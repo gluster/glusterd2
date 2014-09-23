@@ -10,10 +10,10 @@ import (
 )
 
 var (
-	usage string = `Create Volume
+	usage string = `gluster volume create
 
 Usage:
-	create-volume <volname> [options] <brick>...
+	gluster-volume-create <volname> [options] <brick>...
 Options:
 	--transport=<transport>          Transport type (tcp|rdma|tcp,rdma) [default: tcp]
 	--replica=<replica-count>        Replication count [default: 1]
@@ -25,8 +25,8 @@ Options:
 	`
 )
 
-func parseCreateVolume() *volume.Volinfo {
-	args, _ := docopt.Parse(usage, nil, true, "Gluster-create-volume 1.0", false)
+func parseVolumeCreate() *volume.Volinfo {
+	args, _ := docopt.Parse(usage, nil, true, "gluster volume create 0.0", false)
 
 	volname := args["<volname>"].(string)
 	transport := args["--transport"].(string)
@@ -42,7 +42,7 @@ func parseCreateVolume() *volume.Volinfo {
 }
 
 func main() {
-	v := parseCreateVolume()
+	v := parseVolumeCreate()
 	c := consul.New()
 
 	if c.VolumeExists(v.Name) {

@@ -8,22 +8,22 @@ import (
 )
 
 var (
-	usage string = `Create Volume
+	usage string = `gluster volume info
 
 Usage:
 	get-volume <volname>
 	`
 )
 
-func parseGetVolume() string {
-	args, _ := docopt.Parse(usage, nil, true, "Gluster-create-volume 1.0", false)
+func parseVolumeInfo() string {
+	args, _ := docopt.Parse(usage, nil, true, "gluster volume info 0.0", false)
 
 	volname := args["<volname>"].(string)
 	return volname
 }
 
 func main() {
-	name := parseGetVolume()
+	name := parseVolumeInfo()
 	c := consul.New()
 
 	vol, err := c.GetVolume(name)
