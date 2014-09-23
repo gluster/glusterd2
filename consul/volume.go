@@ -28,7 +28,7 @@ func (c *Consul) AddVolume(v *volume.Volinfo) error {
 
 func (c *Consul) GetVolume(name string) (*volume.Volinfo, error) {
 	pair, _, err := c.kv.Get(volumePrefix+name, nil)
-	if err != nil {
+	if err != nil || pair == nil {
 		return nil, err
 	}
 
@@ -41,7 +41,7 @@ func (c *Consul) GetVolume(name string) (*volume.Volinfo, error) {
 }
 
 func (c *Consul) VolumeExists(name string) bool {
-	if _, err := c.GetVolume(name); err != nil {
+	if v, err := c.GetVolume(name); err != nil || v == nil {
 		return false
 	}
 	return true

@@ -45,9 +45,11 @@ func main() {
 	v := parseCreateVolume()
 	c := consul.New()
 
-	//if c.VolumeExists(v.Name) {
-	//fmt.Println("Volume with name", v.Name, "exists")
-	//}
+	if c.VolumeExists(v.Name) {
+		fmt.Println("Volume with name", v.Name, "exists")
+		return
+	}
+
 	err := c.AddVolume(v)
 	if err != nil {
 		fmt.Println("Failed to create volume", v.Name)
