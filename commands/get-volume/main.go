@@ -27,9 +27,8 @@ func main() {
 	c := consul.New()
 
 	vol, err := c.GetVolume(name)
-	if err != nil {
+	if err != nil || vol == nil {
 		fmt.Println("Volume", name, "does not exist")
-		fmt.Println(err)
 		return
 	}
 
