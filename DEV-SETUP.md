@@ -15,6 +15,7 @@ This document describes how to setup a development environment for _GlusterD-2.0
   ```
   yum install https://dl.bintray.com/mitchellh/vagrant/vagrant_1.6.5_x86_64.rpm
   ```
+  
   > *NOTE*
   >
   > Get the latest Vagrant RPM link from http://www.vagrantup.com/downloads.html
