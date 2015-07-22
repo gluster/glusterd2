@@ -4,6 +4,7 @@ import (
 	"os"
 	"os/signal"
 
+	"github.com/kshlm/glusterd2/commands"
 	"github.com/kshlm/glusterd2/config"
 	"github.com/kshlm/glusterd2/context"
 	"github.com/kshlm/glusterd2/rest"
@@ -25,6 +26,10 @@ func main() {
 	ctx.Config.RestAddress = "localhost:24007"
 
 	ctx.Rest = rest.New(ctx.Config, ctx.Log)
+
+	for _, c := range command.Commands {
+		c.SetRoutes(ctx.Rest.Routes, ctx)
+	}
 
 	sigCh := make(chan os.Signal)
 	signal.Notify(sigCh)
