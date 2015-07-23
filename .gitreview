@@ -1,0 +1,6 @@
+[gerrit]
+  host=review.gerrithub.io
+  port=29148
+  project=kshlm/glusterd2.git
+  defaultbranch=master
+
