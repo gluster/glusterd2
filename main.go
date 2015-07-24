@@ -27,7 +27,7 @@ func main() {
 
 	ctx.Rest = rest.New(ctx.Config, ctx.Log)
 
-	for _, c := range command.Commands {
+	for _, c := range commands.Commands {
 		c.SetRoutes(ctx.Rest.Routes, ctx)
 	}
 
@@ -53,5 +53,4 @@ func main() {
 	if err != nil {
 		logger.Fatal("Could not start GlusterD Rest Server. Aborting.")
 	}
-
 }
