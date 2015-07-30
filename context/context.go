@@ -1,23 +1,38 @@
 // Package context is the runtime context of GlusterD
+//
+// Any package that needs access to the GlusterD runtime context just needs to
+// import this package.
 package context
 
 import (
-	"github.com/kshlm/glusterd2/config"
+	"sync"
+
 	"github.com/kshlm/glusterd2/rest"
 	"github.com/kshlm/glusterd2/transaction"
 
-	"github.com/Sirupsen/logrus"
+	log "github.com/Sirupsen/logrus"
 )
 
-var Ctx GDContext
+// Any object that is a part of the GlusterD context and needs to be available
+// to other packages should be declared here as exported global variables
+var (
+	Rest  *rest.GDRest
+	TxnFw *transaction.GDTxnFw
+)
 
-type GDContext struct {
-	Config *config.GDConfig
-	Rest   *rest.GDRest
-	TxnFw  *transaction.GDTxnFw
-	Log    *logrus.Logger
+var (
+	initOnce sync.Once
+)
+
+func doInit() {
+	log.Debug("Initializing GlusterD context")
+
+	Rest = rest.New()
+
+	log.Debug("Initialized GlusterD context")
 }
 
-//func New() {
-//	Ctx := &GDContext{}
-//}
+// Init initializes the GlusterD context. This should be called once before doing anything else.
+func Init() {
+	initOnce.Do(doInit)
+}

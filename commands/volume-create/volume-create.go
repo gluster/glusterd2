@@ -2,10 +2,12 @@ package volumecreate
 
 import (
 	"fmt"
-	"github.com/gorilla/mux"
-	"github.com/kshlm/glusterd2/context"
-	"github.com/kshlm/glusterd2/rest"
 	"net/http"
+
+	"github.com/kshlm/glusterd2/rest"
+
+	log "github.com/Sirupsen/logrus"
+	"github.com/gorilla/mux"
 )
 
 type VolumeCreateCommand struct {
@@ -16,7 +18,7 @@ func (c *VolumeCreateCommand) VolumeCreate(w http.ResponseWriter, r *http.Reques
 
 	w.WriteHeader(http.StatusOK)
 	fmt.Fprint(w, "Volume Create API")
-	context.Ctx.Log.Info("In Volume create API")
+	log.Info("In Volume create API")
 }
 
 func (c *VolumeCreateCommand) SetRoutes(router *mux.Router) error {
