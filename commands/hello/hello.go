@@ -3,7 +3,6 @@ package hello
 import (
 	"fmt"
 	"github.com/gorilla/mux"
-	"github.com/kshlm/glusterd2/context"
 	"github.com/kshlm/glusterd2/rest"
 	"net/http"
 )
@@ -17,7 +16,7 @@ func (h *HelloCommand) Hello(w http.ResponseWriter, r *http.Request) {
 	fmt.Fprint(w, "HelloWorld from GlusterFS Application")
 }
 
-func (h *HelloCommand) SetRoutes(router *mux.Router, ctx *context.GDContext) error {
+func (h *HelloCommand) SetRoutes(router *mux.Router) error {
 	routes := rest.Routes{
 		// HelloWorld
 		rest.Route{
