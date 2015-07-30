@@ -9,6 +9,8 @@ import (
 	"github.com/Sirupsen/logrus"
 )
 
+var Ctx GDContext
+
 type GDContext struct {
 	Config *config.GDConfig
 	Rest   *rest.GDRest
@@ -16,8 +18,6 @@ type GDContext struct {
 	Log    *logrus.Logger
 }
 
-func New() *GDContext {
-	ctx := &GDContext{}
-
-	return ctx
-}
+//func New() {
+//	Ctx := &GDContext{}
+//}

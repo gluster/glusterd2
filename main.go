@@ -19,28 +19,28 @@ func main() {
 
 	logger.Info("GlusterD starting")
 
-	ctx := context.New()
-	ctx.Log = logger
+	//context := context.New()
+	context.Ctx.Log = logger
 
-	ctx.Config = config.New()
-	ctx.Config.RestAddress = "localhost:24007"
+	context.Ctx.Config = config.New()
+	context.Ctx.Config.RestAddress = "localhost:24007"
 
-	ctx.Rest = rest.New(ctx.Config, ctx.Log)
+	context.Ctx.Rest = rest.New(context.Ctx.Config, context.Ctx.Log)
 
 	for _, c := range commands.Commands {
-		c.SetRoutes(ctx.Rest.Routes, ctx)
+		c.SetRoutes(context.Ctx.Rest.Routes)
 	}
 
 	sigCh := make(chan os.Signal)
 	signal.Notify(sigCh)
 	go func() {
 		for s := range sigCh {
-			ctx.Log.WithField("signal", s).Debug("Signal recieved")
+			context.Ctx.Log.WithField("signal", s).Debug("Signal recieved")
 			switch s {
 			case os.Interrupt:
-				ctx.Log.WithField("signal", s).Info("Recieved SIGTERM. Stopping GlusterD.")
-				ctx.Rest.Stop()
-				ctx.Log.Info("Termintaing GlusterD.")
+				context.Ctx.Log.WithField("signal", s).Info("Recieved SIGTERM. Stopping GlusterD.")
+				context.Ctx.Rest.Stop()
+				context.Ctx.Log.Info("Termintaing GlusterD.")
 				os.Exit(0)
 
 			default:
@@ -49,7 +49,7 @@ func main() {
 		}
 	}()
 
-	err := ctx.Rest.Listen()
+	err := context.Ctx.Rest.Listen()
 	if err != nil {
 		logger.Fatal("Could not start GlusterD Rest Server. Aborting.")
 	}
