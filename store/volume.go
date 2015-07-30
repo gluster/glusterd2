@@ -1,5 +1,8 @@
 package store
 
+// This file contains helper functions which make it easier to interact with
+// volumes stored in the store
+
 import (
 	"encoding/json"
 
@@ -10,7 +13,7 @@ const (
 	volumePrefix string = glusterPrefix + "volume/"
 )
 
-func (s *Store) AddVolume(v *volume.Volinfo) error {
+func (s *GDStore) AddVolume(v *volume.Volinfo) error {
 	json, err := json.Marshal(v)
 	if err != nil {
 		return err
@@ -23,7 +26,7 @@ func (s *Store) AddVolume(v *volume.Volinfo) error {
 	return nil
 }
 
-func (s *Store) GetVolume(name string) (*volume.Volinfo, error) {
+func (s *GDStore) GetVolume(name string) (*volume.Volinfo, error) {
 	pair, err := s.Get(volumePrefix + name)
 	if err != nil || pair == nil {
 		return nil, err
@@ -37,7 +40,7 @@ func (s *Store) GetVolume(name string) (*volume.Volinfo, error) {
 	return &v, nil
 }
 
-func (s *Store) VolumeExists(name string) bool {
+func (s *GDStore) VolumeExists(name string) bool {
 	if v, err := s.GetVolume(name); err != nil || v == nil {
 		return false
 	}

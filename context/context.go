@@ -8,6 +8,7 @@ import (
 	"sync"
 
 	"github.com/kshlm/glusterd2/rest"
+	"github.com/kshlm/glusterd2/store"
 	"github.com/kshlm/glusterd2/transaction"
 
 	log "github.com/Sirupsen/logrus"
@@ -18,6 +19,7 @@ import (
 var (
 	Rest  *rest.GDRest
 	TxnFw *transaction.GDTxnFw
+	Store *store.GDStore
 )
 
 var (
@@ -28,6 +30,8 @@ func doInit() {
 	log.Debug("Initializing GlusterD context")
 
 	Rest = rest.New()
+
+	Store = store.New()
 
 	log.Debug("Initialized GlusterD context")
 }
