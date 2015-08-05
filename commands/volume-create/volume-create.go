@@ -6,6 +6,7 @@ import (
 
 	"github.com/kshlm/glusterd2/context"
 	"github.com/kshlm/glusterd2/rest"
+	"github.com/kshlm/glusterd2/utils"
 	"github.com/kshlm/glusterd2/volume"
 
 	log "github.com/Sirupsen/logrus"
@@ -16,22 +17,37 @@ type VolumeCreateCommand struct {
 }
 
 func (c *VolumeCreateCommand) VolumeCreate(w http.ResponseWriter, r *http.Request) {
-	p := mux.Vars(r)
-	volname := p["volname"]
 
-	w.Header().Set("Content-Type", "text/plain; charset=UTF-8")
+	var msg volume.VolumeCreateRequest
 
-	w.WriteHeader(http.StatusOK)
-	fmt.Fprint(w, "Volume Create API")
-	log.Info("In Volume create API")
+	e := utils.GetJsonFromRequest(r, &msg)
+	if e != nil {
+		http.Error(w, "request unable to be parsed", 422)
+		return
+	}
 
-	vol := volume.New(volname, "tcp", 2, 3, 4, 5, []string{"brick1", "brick2"})
-	e := context.Store.AddVolume(vol)
+	if context.Store.VolumeExists(msg.Name) {
+		log.WithField("Volume", msg.Name).Error("Volume already exists")
+		http.Error(w, "Volume already exists", http.StatusBadRequest)
+		return
+	}
+
+	vol := volume.New(msg.Name, msg.Transport, msg.ReplicaCount,
+		msg.StripeCount, msg.DisperseCount,
+		msg.RedundancyCount, msg.Bricks)
+
+	e = context.Store.AddVolume(vol)
 	if e != nil {
 		log.WithField("error", e).Error("Couldn't add volume to store")
+		http.Error(w, e.Error(), http.StatusInternalServerError)
+		return
 	} else {
 		log.WithField("volume", vol.Name).Debug("NewVolume added to store")
 	}
+
+	w.Header().Set("Content-Type", "text/plain; charset=UTF-8")
+	w.WriteHeader(http.StatusOK)
+	fmt.Fprint(w, "Volume created successfully")
 }
 
 func (c *VolumeCreateCommand) SetRoutes(router *mux.Router) error {
@@ -40,7 +56,7 @@ func (c *VolumeCreateCommand) SetRoutes(router *mux.Router) error {
 		rest.Route{
 			Name:        "VolumeCreate",
 			Method:      "POST",
-			Pattern:     "/volumes/{volname}",
+			Pattern:     "/volumes/",
 			HandlerFunc: c.VolumeCreate},
 	}
 	// Register all routes

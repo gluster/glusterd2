@@ -50,6 +50,18 @@ type Volinfo struct {
 	Version  uint64
 }
 
+type VolumeCreateRequest struct {
+	Name            string `json:"name"`
+	Transport       string `json:"transport,omitempty"`
+	DistCount       uint64 `json:"distcount,omitempty"`
+	ReplicaCount    uint16 `json:"replica,omitempty"`
+	StripeCount     uint16 `json:"stripecount,omitempty"`
+	DisperseCount   uint16 `json:"dispersecount,omitempty"`
+	RedundancyCount uint16 `json:"redundancycount,omitempty"`
+
+	Bricks []string `json:"bricks"`
+}
+
 func NewVolinfo() *Volinfo {
 	v := new(Volinfo)
 	v.Options = make(map[string]string)
@@ -62,9 +74,16 @@ func New(volname, transport string, replica, stripe, disperse, redundancy uint16
 
 	v.Id = uuid.NewUUID().String()
 	v.Name = volname
-	v.Transport = transport
-
-	v.ReplicaCount = replica
+	if len(transport) > 0 {
+		v.Transport = transport
+	} else {
+		v.Transport = "tcp"
+	}
+	if replica == 0 {
+		v.ReplicaCount = 1
+	} else {
+		v.ReplicaCount = replica
+	}
 	v.StripeCount = stripe
 	v.DisperseCount = disperse
 	v.RedundancyCount = redundancy
