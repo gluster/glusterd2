@@ -5,7 +5,7 @@ package store
 
 import (
 	"encoding/json"
-
+	log "github.com/Sirupsen/logrus"
 	"github.com/kshlm/glusterd2/volume"
 )
 
@@ -38,6 +38,35 @@ func (s *GDStore) GetVolume(name string) (*volume.Volinfo, error) {
 	}
 
 	return &v, nil
+}
+
+func (s *GDStore) GetVolumes() ([]volume.Volinfo, error) {
+	pairs, err := s.List(volumePrefix)
+	if err != nil || pairs == nil {
+		return nil, err
+	}
+
+	var v volume.Volinfo
+	volumes := make([]volume.Volinfo, len(pairs))
+	for index, pair := range pairs {
+		p, err := s.Get(pair.Key)
+		if err != nil || p == nil {
+			log.Error("Failed to retrieve volume %v from the store", pair.Key)
+			continue
+		}
+		if err := json.Unmarshal(p.Value, &v); err != nil {
+			log.WithField("error", err).Error("Failed to unmarshal volume %v", pair.Key)
+			continue
+		}
+		volumes[index] = v
+	}
+
+	return volumes, nil
+}
+
+func (s *GDStore) DeleteVolume(name string) error {
+	err := s.Delete(volumePrefix + name)
+	return err
 }
 
 func (s *GDStore) VolumeExists(name string) bool {
