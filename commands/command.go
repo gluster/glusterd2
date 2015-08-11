@@ -5,7 +5,9 @@ import (
 	"github.com/gorilla/mux"
 	"github.com/kshlm/glusterd2/commands/hello"
 	"github.com/kshlm/glusterd2/commands/volume-create"
+	"github.com/kshlm/glusterd2/commands/volume-delete"
 	"github.com/kshlm/glusterd2/commands/volume-info"
+	"github.com/kshlm/glusterd2/commands/volume-list"
 )
 
 type Command interface {
@@ -19,4 +21,6 @@ var Commands = []Command{
 	&hello.HelloCommand{},
 	&volumecreate.VolumeCreateCommand{},
 	&volumeinfo.VolumeInfoCommand{},
+	&volumedelete.VolumeDeleteCommand{},
+	&volumelist.VolumeListCommand{},
 }
