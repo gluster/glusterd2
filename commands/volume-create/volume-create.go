@@ -26,9 +26,23 @@ func (c *VolumeCreateCommand) VolumeCreate(w http.ResponseWriter, r *http.Reques
 		return
 	}
 
+	if msg.Name == "" {
+		log.Error("Volume name is empty")
+		http.Error(w, "Volume name is empty", http.StatusBadRequest)
+
+		return
+	}
+	if len(msg.Bricks) <= 0 {
+		log.Error("Brick list is empty")
+		http.Error(w, "Brick list is empty", http.StatusBadRequest)
+
+		return
+	}
+
 	if context.Store.VolumeExists(msg.Name) {
 		log.WithField("Volume", msg.Name).Error("Volume already exists")
 		http.Error(w, "Volume already exists", http.StatusBadRequest)
+
 		return
 	}
 
