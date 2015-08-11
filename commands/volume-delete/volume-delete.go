@@ -37,7 +37,7 @@ func (c *VolumeDeleteCommand) SetRoutes(router *mux.Router) error {
 		// VolumeDelete
 		rest.Route{
 			Name:        "VolumeDelete",
-			Method:      "POST",
+			Method:      "DELETE",
 			Pattern:     "/volumes/{volname}",
 			HandlerFunc: c.VolumeDelete},
 	}

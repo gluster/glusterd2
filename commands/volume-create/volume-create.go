@@ -50,7 +50,7 @@ func (c *VolumeCreateCommand) VolumeCreate(w http.ResponseWriter, r *http.Reques
 		msg.StripeCount, msg.DisperseCount,
 		msg.RedundancyCount, msg.Bricks)
 
-	e = context.Store.AddVolume(vol)
+	e = context.Store.AddOrUpdateVolume(vol)
 	if e != nil {
 		log.WithField("error", e).Error("Couldn't add volume to store")
 		http.Error(w, e.Error(), http.StatusInternalServerError)
@@ -60,7 +60,7 @@ func (c *VolumeCreateCommand) VolumeCreate(w http.ResponseWriter, r *http.Reques
 	}
 
 	w.Header().Set("Content-Type", "text/plain; charset=UTF-8")
-	w.WriteHeader(http.StatusOK)
+	w.WriteHeader(http.StatusCreated)
 	fmt.Fprint(w, "Volume created successfully")
 }
 
