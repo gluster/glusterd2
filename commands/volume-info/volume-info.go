@@ -22,7 +22,7 @@ func (c *VolumeInfoCommand) VolumeInfo(w http.ResponseWriter, r *http.Request) {
 
 	vol, e := context.Store.GetVolume(volname)
 	if e != nil {
-		http.Error(w, e.Error(), http.StatusInternalServerError)
+		http.Error(w, e.Error(), http.StatusNotFound)
 		return
 	}
 

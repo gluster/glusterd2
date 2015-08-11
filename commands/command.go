@@ -8,6 +8,8 @@ import (
 	"github.com/kshlm/glusterd2/commands/volume-delete"
 	"github.com/kshlm/glusterd2/commands/volume-info"
 	"github.com/kshlm/glusterd2/commands/volume-list"
+	"github.com/kshlm/glusterd2/commands/volume-start"
+	"github.com/kshlm/glusterd2/commands/volume-stop"
 )
 
 type Command interface {
@@ -23,4 +25,6 @@ var Commands = []Command{
 	&volumeinfo.VolumeInfoCommand{},
 	&volumedelete.VolumeDeleteCommand{},
 	&volumelist.VolumeListCommand{},
+	&volumestart.VolumeStartCommand{},
+	&volumestop.VolumeStopCommand{},
 }

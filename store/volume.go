@@ -13,7 +13,7 @@ const (
 	volumePrefix string = glusterPrefix + "volume/"
 )
 
-func (s *GDStore) AddVolume(v *volume.Volinfo) error {
+func (s *GDStore) AddOrUpdateVolume(v *volume.Volinfo) error {
 	json, err := json.Marshal(v)
 	if err != nil {
 		return err
