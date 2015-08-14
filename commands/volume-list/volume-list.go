@@ -1,3 +1,4 @@
+// Package volumelist implements the volume list command for GlusterD
 package volumelist
 
 import (
@@ -10,10 +11,12 @@ import (
 	log "github.com/Sirupsen/logrus"
 )
 
-type VolumeListCommand struct {
+// Command is a holding struct used to implement the GlusterD Command interface
+// for the volume info command
+type Command struct {
 }
 
-func (c *VolumeListCommand) VolumeList(w http.ResponseWriter, r *http.Request) {
+func (c *Command) volumeList(w http.ResponseWriter, r *http.Request) {
 
 	log.Info("In Volume list API")
 
@@ -30,13 +33,14 @@ func (c *VolumeListCommand) VolumeList(w http.ResponseWriter, r *http.Request) {
 	}
 }
 
-func (c *VolumeListCommand) Routes() rest.Routes {
+// Routes returns command routes to be set up for the volume info command.
+func (c *Command) Routes() rest.Routes {
 	return rest.Routes{
 		// VolumeList
 		rest.Route{
 			Name:        "VolumeList",
 			Method:      "GET",
 			Pattern:     "/volumes/",
-			HandlerFunc: c.VolumeList},
+			HandlerFunc: c.volumeList},
 	}
 }

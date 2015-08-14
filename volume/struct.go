@@ -1,3 +1,4 @@
+// Package volume contains some types associated with GlusterFS volumes that will be used in GlusterD
 package volume
 
 import (
@@ -7,30 +8,45 @@ import (
 	"code.google.com/p/go-uuid/uuid"
 )
 
+// VolStatus is the current status of a volume
 type VolStatus uint16
 
 const (
+	// VolCreated should be set only for a volume that has been just created
 	VolCreated VolStatus = iota
+	// VolStarted should be set only for volumes that are running
 	VolStarted
+	// VolStopped should be set only for volumes that are not running, excluding newly created volumes
 	VolStopped
 )
 
+// VolType is the status of the volume
 type VolType uint16
 
 const (
+	// Distribute is a plain distribute volume
 	Distribute VolType = iota
+	// Replicate is plain replicate volume
 	Replicate
+	// Stripe is a plain stripe volume
 	Stripe
+	// Disperse is a plain erasure coded volume
 	Disperse
+	// DistReplicate is a distribute-replicate volume
 	DistReplicate
+	// DistStripe is  a distribute-stripe volume
 	DistStripe
+	// DistDisperse is a distribute-'erasure coded' volume
 	DistDisperse
+	// DistRepStripe is a distribute-replicate-stripe volume
 	DistRepStripe
+	// DistDispStripe is distrbute-'erasure coded'-stripe volume
 	DistDispStripe
 )
 
+// Volinfo repesents a volume
 type Volinfo struct {
-	Id   string
+	ID   string
 	Name string
 	Type VolType
 
@@ -50,7 +66,9 @@ type Volinfo struct {
 	Version  uint64
 }
 
-type VolumeCreateRequest struct {
+// VolCreateRequest defines the parameters for creating a volume in the volume-create command
+// TODO: This should probably be moved out of here.
+type VolCreateRequest struct {
 	Name            string `json:"name"`
 	Transport       string `json:"transport,omitempty"`
 	DistCount       uint64 `json:"distcount,omitempty"`
@@ -62,6 +80,7 @@ type VolumeCreateRequest struct {
 	Bricks []string `json:"bricks"`
 }
 
+// NewVolinfo returns an empty Volinfo
 func NewVolinfo() *Volinfo {
 	v := new(Volinfo)
 	v.Options = make(map[string]string)
@@ -69,10 +88,11 @@ func NewVolinfo() *Volinfo {
 	return v
 }
 
+// New returns an initialized Volinfo using the given parameters
 func New(volname, transport string, replica, stripe, disperse, redundancy uint16, bricks []string) *Volinfo {
 	v := NewVolinfo()
 
-	v.Id = uuid.NewUUID().String()
+	v.ID = uuid.NewUUID().String()
 	v.Name = volname
 	if len(transport) > 0 {
 		v.Transport = transport

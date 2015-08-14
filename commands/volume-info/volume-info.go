@@ -1,3 +1,4 @@
+// Package volumeinfo implements the volume info command for GlusterD
 package volumeinfo
 
 import (
@@ -11,10 +12,12 @@ import (
 	"github.com/gorilla/mux"
 )
 
-type VolumeInfoCommand struct {
+// Command is a holding struct used to implement the GlusterD Command interface
+// for the volume info command
+type Command struct {
 }
 
-func (c *VolumeInfoCommand) VolumeInfo(w http.ResponseWriter, r *http.Request) {
+func (c *Command) volumeInfo(w http.ResponseWriter, r *http.Request) {
 	p := mux.Vars(r)
 	volname := p["volname"]
 
@@ -34,14 +37,14 @@ func (c *VolumeInfoCommand) VolumeInfo(w http.ResponseWriter, r *http.Request) {
 	}
 }
 
-func (c *VolumeInfoCommand) Routes() rest.Routes {
+// Routes returns command routes to be set up for the volume info command.
+func (c *Command) Routes() rest.Routes {
 	return rest.Routes{
 		// VolumeInfo
 		rest.Route{
 			Name:        "VolumeInfo",
 			Method:      "GET",
 			Pattern:     "/volumes/{volname}",
-			HandlerFunc: c.VolumeInfo},
+			HandlerFunc: c.volumeInfo},
 	}
-	// Register all routes
 }

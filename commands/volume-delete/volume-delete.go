@@ -1,3 +1,4 @@
+// Package volumedelete implements the volume delete command for GlusterD
 package volumedelete
 
 import (
@@ -11,10 +12,12 @@ import (
 	"github.com/gorilla/mux"
 )
 
-type VolumeDeleteCommand struct {
+// Command is a holding struct used to implement the GlusterD Command interface
+// for the volume delete command
+type Command struct {
 }
 
-func (c *VolumeDeleteCommand) VolumeDelete(w http.ResponseWriter, r *http.Request) {
+func (c *Command) volumeDelete(w http.ResponseWriter, r *http.Request) {
 	p := mux.Vars(r)
 	volname := p["volname"]
 
@@ -32,13 +35,14 @@ func (c *VolumeDeleteCommand) VolumeDelete(w http.ResponseWriter, r *http.Reques
 	fmt.Fprint(w, "Volume deleted successfully")
 }
 
-func (c *VolumeDeleteCommand) Routes() rest.Routes {
+// Routes returns command routes to be set up for the volume delete command.
+func (c *Command) Routes() rest.Routes {
 	return rest.Routes{
 		// VolumeDelete
 		rest.Route{
 			Name:        "VolumeDelete",
 			Method:      "DELETE",
 			Pattern:     "/volumes/{volname}",
-			HandlerFunc: c.VolumeDelete},
+			HandlerFunc: c.volumeDelete},
 	}
 }

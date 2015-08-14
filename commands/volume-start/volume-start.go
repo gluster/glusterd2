@@ -1,3 +1,4 @@
+// Package volumestart implements the volume start command for GlusterD
 package volumestart
 
 import (
@@ -11,10 +12,12 @@ import (
 	"github.com/gorilla/mux"
 )
 
-type VolumeStartCommand struct {
+// Command is a holding struct used to implement the GlusterD Command interface
+// for the volume start command
+type Command struct {
 }
 
-func (c *VolumeStartCommand) VolumeStart(w http.ResponseWriter, r *http.Request) {
+func (c *Command) volumeStart(w http.ResponseWriter, r *http.Request) {
 	p := mux.Vars(r)
 	volname := p["volname"]
 
@@ -36,22 +39,22 @@ func (c *VolumeStartCommand) VolumeStart(w http.ResponseWriter, r *http.Request)
 		log.WithField("error", e).Error("Couldn't update volume into the store")
 		http.Error(w, e.Error(), http.StatusInternalServerError)
 		return
-	} else {
-		log.WithField("volume", vol.Name).Debug("Volume updated into the store")
 	}
+	log.WithField("volume", vol.Name).Debug("Volume updated into the store")
 
 	// Write nsg
 	w.Header().Set("Content-Type", "text/plain; charset=UTF-8")
 	w.WriteHeader(http.StatusOK)
 }
 
-func (c *VolumeStartCommand) Routes() rest.Routes {
+// Routes returns command routes to be set up for the volume start command.
+func (c *Command) Routes() rest.Routes {
 	return rest.Routes{
 		// VolumeStart
 		rest.Route{
 			Name:        "VolumeStart",
 			Method:      "POST",
 			Pattern:     "/volumes/{volname}/start",
-			HandlerFunc: c.VolumeStart},
+			HandlerFunc: c.volumeStart},
 	}
 }

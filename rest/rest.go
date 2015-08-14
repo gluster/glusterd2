@@ -14,13 +14,14 @@ import (
 	"gopkg.in/tylerb/graceful.v1"
 )
 
+// GDRest is the GlusterD Rest server
 type GDRest struct {
 	Routes *mux.Router
 
 	srv *graceful.Server
 }
 
-// function New returns a GlusterDRest object which listens on the give address
+// New returns a GDRest object which can listen on the configured address
 func New() *GDRest {
 	rest := &GDRest{}
 
@@ -41,6 +42,7 @@ func New() *GDRest {
 	return rest
 }
 
+// Listen begins the GlusterD Rest server
 func (r *GDRest) Listen() error {
 	log.Debug("Beginning the GlusterD Rest server")
 	err := r.srv.ListenAndServe()
@@ -51,6 +53,7 @@ func (r *GDRest) Listen() error {
 	return nil
 }
 
+// Stop stops the GlusterD Rest server
 func (r *GDRest) Stop() {
 	log.Debug("Stopping the GlusterD Rest server")
 	schan := r.srv.StopChan()

@@ -17,10 +17,12 @@ const (
 	glusterPrefix string = "gluster/"
 )
 
+// GDStore is the GlusterD centralized store
 type GDStore struct {
 	store.Store
 }
 
+// New creates a new GDStore
 func New() *GDStore {
 	//TODO: Make this configurable
 	address := "localhost:8500"

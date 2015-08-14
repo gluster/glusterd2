@@ -1,3 +1,4 @@
+// Package volgen implements volume graph generation and volfile generation for GlusterD
 package volgen
 
 import (
@@ -5,6 +6,7 @@ import (
 	"io"
 )
 
+// DumpGraph dumps a textual representation of the volume graph into `w`
 func (x Xlator) DumpGraph(w io.Writer) {
 
 	for _, xl := range x.Children {
