@@ -43,7 +43,7 @@ func (c *Command) volumeStart(w http.ResponseWriter, r *http.Request) {
 	log.WithField("volume", vol.Name).Debug("Volume updated into the store")
 
 	// Write nsg
-	w.Header().Set("Content-Type", "text/plain; charset=UTF-8")
+	w.Header().Set("Content-Type", "application/json; charset=UTF-8")
 	w.WriteHeader(http.StatusOK)
 }
 
