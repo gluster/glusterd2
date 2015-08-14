@@ -3,7 +3,7 @@ box: google/golang:1.4
 build:
   steps:
 
-    - wercker/setup-go-workspace
+    - wercker/setup-go-workspace:
         package_dir: github.com/kshlm/glusterd2
 
     - wercker/golint
