@@ -1,3 +1,4 @@
+// Package volumecreate implements the volume create command for GlusterD
 package volumecreate
 
 import (
@@ -12,14 +13,16 @@ import (
 	log "github.com/Sirupsen/logrus"
 )
 
-type VolumeCreateCommand struct {
+// Command is a holding struct used to implement the GlusterD Command interface
+// for the volume create command
+type Command struct {
 }
 
-func (c *VolumeCreateCommand) VolumeCreate(w http.ResponseWriter, r *http.Request) {
+func (c *Command) volumeCreate(w http.ResponseWriter, r *http.Request) {
 
-	var msg volume.VolumeCreateRequest
+	var msg volume.VolCreateRequest
 
-	e := utils.GetJsonFromRequest(r, &msg)
+	e := utils.GetJSONFromRequest(r, &msg)
 	if e != nil {
 		http.Error(w, "request unable to be parsed", 422)
 		return
@@ -54,22 +57,22 @@ func (c *VolumeCreateCommand) VolumeCreate(w http.ResponseWriter, r *http.Reques
 		log.WithField("error", e).Error("Couldn't add volume to store")
 		http.Error(w, e.Error(), http.StatusInternalServerError)
 		return
-	} else {
-		log.WithField("volume", vol.Name).Debug("NewVolume added to store")
 	}
+	log.WithField("volume", vol.Name).Debug("NewVolume added to store")
 
 	w.Header().Set("Content-Type", "text/plain; charset=UTF-8")
 	w.WriteHeader(http.StatusCreated)
 	fmt.Fprint(w, "Volume created successfully")
 }
 
-func (c *VolumeCreateCommand) Routes() rest.Routes {
+// Routes returns command routes to be set up for the volume create command.
+func (c *Command) Routes() rest.Routes {
 	return rest.Routes{
 		// VolumeCreate
 		rest.Route{
 			Name:        "VolumeCreate",
 			Method:      "POST",
 			Pattern:     "/volumes/",
-			HandlerFunc: c.VolumeCreate},
+			HandlerFunc: c.volumeCreate},
 	}
 }

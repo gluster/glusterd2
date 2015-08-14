@@ -6,10 +6,9 @@ import (
 	log "github.com/Sirupsen/logrus"
 )
 
-//
+// Route models a route to be set on the GlusterD Rest server
 // This route style comes from the tutorial on
 // http://thenewstack.io/make-a-restful-json-api-go/
-//
 type Route struct {
 	Name        string
 	Method      string
@@ -17,8 +16,10 @@ type Route struct {
 	HandlerFunc http.HandlerFunc
 }
 
+// Routes is a table of many Route's
 type Routes []Route
 
+// SetRoutes adds the given routes to the GlusterD Rest server
 func (r *GDRest) SetRoutes(routes Routes) {
 	for _, route := range routes {
 		log.WithFields(log.Fields{

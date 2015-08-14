@@ -8,16 +8,16 @@ import (
 	"code.google.com/p/go-uuid/uuid"
 )
 
-var volCount uint64 = 0
+var volCount uint64
 
 func getRandVolume() *Volinfo {
 	v := NewVolinfo()
 
-	v.Id = uuid.NewUUID().String()
+	v.ID = uuid.NewUUID().String()
 	v.Name = fmt.Sprintf("volume-%d", atomic.AddUint64(&volCount, 1))
 	v.Type = DistReplicate
 	brickCount := uint64(rand.Intn(256) + 1)
-	for i := uint64(1); i <= brickCount; i += 1 {
+	for i := uint64(1); i <= brickCount; i++ {
 		v.Bricks = append(v.Bricks, fmt.Sprintf("host:/brick-%d", i))
 	}
 	v.DistCount = uint64(rand.Intn(256) + 1)

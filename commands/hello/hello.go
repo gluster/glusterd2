@@ -1,3 +1,4 @@
+// Package hello implements a dummy Hello Command
 package hello
 
 import (
@@ -6,22 +7,24 @@ import (
 	"net/http"
 )
 
-type HelloCommand struct {
+// Command is a holding struct used to implement the GlusterD Command interface
+type Command struct {
 }
 
-func (h *HelloCommand) Hello(w http.ResponseWriter, r *http.Request) {
+func (h *Command) hello(w http.ResponseWriter, r *http.Request) {
 	w.Header().Set("Content-Type", "text/plain; charset=UTF-8")
 	w.WriteHeader(http.StatusOK)
 	fmt.Fprint(w, "HelloWorld from GlusterFS Application")
 }
 
-func (h *HelloCommand) Routes() rest.Routes {
+// Routes returns command routes. Required for the Command interface.
+func (h *Command) Routes() rest.Routes {
 	return rest.Routes{
 		// HelloWorld
 		rest.Route{
 			Name:        "Hello",
 			Method:      "GET",
 			Pattern:     "/hello",
-			HandlerFunc: h.Hello},
+			HandlerFunc: h.hello},
 	}
 }

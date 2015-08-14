@@ -21,12 +21,14 @@ func jsonFromBody(r io.Reader, v interface{}) error {
 	return nil
 }
 
-func GetJsonFromRequest(r *http.Request, v interface{}) error {
+// GetJSONFromRequest unmarshals JSON in `r` into `v`
+func GetJSONFromRequest(r *http.Request, v interface{}) error {
 	defer r.Body.Close()
 	return jsonFromBody(r.Body, v)
 }
 
-func GetJsonFromResponse(r *http.Response, v interface{}) error {
+// GetJSONFromResponse unmarshals JSON in `r` into `v`
+func GetJSONFromResponse(r *http.Response, v interface{}) error {
 	defer r.Body.Close()
 	return jsonFromBody(r.Body, v)
 }

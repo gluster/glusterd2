@@ -1,4 +1,4 @@
-// The command package defines the command interfaces that need to be implemented by the GlusterD commands
+// Package commands defines the command interfaces that need to be implemented by the GlusterD commands
 package commands
 
 import (
@@ -12,6 +12,7 @@ import (
 	"github.com/kshlm/glusterd2/rest"
 )
 
+// Command is the interface that needs to be implemented by the GlusterD commands
 type Command interface {
 	// Routes should return a table of REST API endpoints and handlers for the command
 	Routes() rest.Routes
@@ -19,12 +20,13 @@ type Command interface {
 	//SetTransactionHandlers() error
 }
 
+// Commands is a list of commands available
 var Commands = []Command{
-	&hello.HelloCommand{},
-	&volumecreate.VolumeCreateCommand{},
-	&volumeinfo.VolumeInfoCommand{},
-	&volumedelete.VolumeDeleteCommand{},
-	&volumelist.VolumeListCommand{},
-	&volumestart.VolumeStartCommand{},
-	&volumestop.VolumeStopCommand{},
+	&hello.Command{},
+	&volumecreate.Command{},
+	&volumeinfo.Command{},
+	&volumedelete.Command{},
+	&volumelist.Command{},
+	&volumestart.Command{},
+	&volumestop.Command{},
 }
