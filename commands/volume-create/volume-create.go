@@ -60,7 +60,7 @@ func (c *Command) volumeCreate(w http.ResponseWriter, r *http.Request) {
 	}
 	log.WithField("volume", vol.Name).Debug("NewVolume added to store")
 
-	w.Header().Set("Content-Type", "text/plain; charset=UTF-8")
+	w.Header().Set("Content-Type", "application/json; charset=UTF-8")
 	w.WriteHeader(http.StatusCreated)
 	fmt.Fprint(w, "Volume created successfully")
 }
