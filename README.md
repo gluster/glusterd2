@@ -1,4 +1,5 @@
 # GlusterD-2.0
+[![wercker status](https://app.wercker.com/status/6b02e386a99296c01e87cb8293fe3dc4/m/master "wercker status")](https://app.wercker.com/project/bykey/6b02e386a99296c01e87cb8293fe3dc4)
 
 GlusterD-2.0 is a re-implementation of GlusterD. It attempts to be have better
 consistency, scalability and performance when compared with the current
