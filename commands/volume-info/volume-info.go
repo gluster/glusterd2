@@ -2,10 +2,11 @@
 package volumeinfo
 
 import (
-	"encoding/json"
 	"net/http"
 
+	"github.com/kshlm/glusterd2/cli"
 	"github.com/kshlm/glusterd2/context"
+	"github.com/kshlm/glusterd2/errors"
 	"github.com/kshlm/glusterd2/rest"
 
 	log "github.com/Sirupsen/logrus"
@@ -21,19 +22,15 @@ func (c *Command) volumeInfo(w http.ResponseWriter, r *http.Request) {
 	p := mux.Vars(r)
 	volname := p["volname"]
 
-	log.Info("In Volume info API")
+	log.Debug("In Volume info API")
+
+	w.Header().Set("Content-Type", "application/json; charset=UTF-8")
 
 	vol, e := context.Store.GetVolume(volname)
 	if e != nil {
-		http.Error(w, e.Error(), http.StatusNotFound)
-		return
-	}
-
-	// Write nsg
-	w.Header().Set("Content-Type", "text/plain; charset=UTF-8")
-	w.WriteHeader(http.StatusOK)
-	if e = json.NewEncoder(w).Encode(vol); e != nil {
-		panic(e)
+		cli.SendResponse(w, -1, http.StatusNotFound, errors.ErrVolNotFound.Error(), http.StatusNotFound, "")
+	} else {
+		cli.SendResponse(w, 0, http.StatusOK, "", http.StatusNotFound, vol)
 	}
 }
 

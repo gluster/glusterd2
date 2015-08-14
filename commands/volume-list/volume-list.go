@@ -26,7 +26,7 @@ func (c *Command) volumeList(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 	// Write nsg
-	w.Header().Set("Content-Type", "text/plain; charset=UTF-8")
+	w.Header().Set("Content-Type", "application/json; charset=UTF-8")
 	w.WriteHeader(http.StatusOK)
 	if e = json.NewEncoder(w).Encode(volumes); e != nil {
 		panic(e)

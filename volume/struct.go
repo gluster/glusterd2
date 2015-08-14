@@ -80,7 +80,6 @@ type VolCreateRequest struct {
 	Bricks []string `json:"bricks"`
 }
 
-// NewVolinfo returns an empty Volinfo
 func NewVolinfo() *Volinfo {
 	v := new(Volinfo)
 	v.Options = make(map[string]string)

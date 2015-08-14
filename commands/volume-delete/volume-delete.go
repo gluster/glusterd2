@@ -30,7 +30,7 @@ func (c *Command) volumeDelete(w http.ResponseWriter, r *http.Request) {
 	}
 
 	// Write nsg
-	w.Header().Set("Content-Type", "text/plain; charset=UTF-8")
+	w.Header().Set("Content-Type", "application/json; charset=UTF-8")
 	w.WriteHeader(http.StatusOK)
 	fmt.Fprint(w, "Volume deleted successfully")
 }
