@@ -1,0 +1,18 @@
+box: google/golang@1.4
+
+build:
+  steps:
+
+    - setup-go-workspace
+
+    - wercker/golint
+
+    - script:
+        name: go build
+        code: |
+          go build ./...
+
+    - script:
+        name: go test
+        code: |
+          go test ./...
