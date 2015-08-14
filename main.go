@@ -16,7 +16,7 @@ func main() {
 	context.Init()
 
 	for _, c := range commands.Commands {
-		c.SetRoutes(context.Rest.Routes)
+		context.Rest.SetRoutes(c.Routes())
 	}
 
 	sigCh := make(chan os.Signal)
