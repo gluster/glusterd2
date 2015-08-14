@@ -1,5 +1,4 @@
 # GlusterD-2.0
-[![Build Status](https://drone.io/github.com/kshlm/glusterd2/status.png)](https://drone.io/github.com/kshlm/glusterd2/latest)
 
 GlusterD-2.0 is a re-implementation of GlusterD. It attempts to be have better
 consistency, scalability and performance when compared with the current
