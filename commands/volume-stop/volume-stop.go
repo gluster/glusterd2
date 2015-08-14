@@ -45,8 +45,8 @@ func (c *VolumeStopCommand) VolumeStop(w http.ResponseWriter, r *http.Request) {
 	w.WriteHeader(http.StatusOK)
 }
 
-func (c *VolumeStopCommand) SetRoutes(router *mux.Router) error {
-	routes := rest.Routes{
+func (c *VolumeStopCommand) Routes() rest.Routes {
+	return rest.Routes{
 		// VolumeStop
 		rest.Route{
 			Name:        "VolumeStop",
@@ -54,16 +54,4 @@ func (c *VolumeStopCommand) SetRoutes(router *mux.Router) error {
 			Pattern:     "/volumes/{volname}/stop",
 			HandlerFunc: c.VolumeStop},
 	}
-	// Register all routes
-	for _, route := range routes {
-		// Add routes from the table
-		router.
-			Methods(route.Method).
-			Path(route.Pattern).
-			Name(route.Name).
-			Handler(route.HandlerFunc)
-	}
-
-	return nil
-
 }

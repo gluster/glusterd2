@@ -2,7 +2,6 @@
 package commands
 
 import (
-	"github.com/gorilla/mux"
 	"github.com/kshlm/glusterd2/commands/hello"
 	"github.com/kshlm/glusterd2/commands/volume-create"
 	"github.com/kshlm/glusterd2/commands/volume-delete"
@@ -10,11 +9,12 @@ import (
 	"github.com/kshlm/glusterd2/commands/volume-list"
 	"github.com/kshlm/glusterd2/commands/volume-start"
 	"github.com/kshlm/glusterd2/commands/volume-stop"
+	"github.com/kshlm/glusterd2/rest"
 )
 
 type Command interface {
-	// SetRoutes should setup the REST API endpoints and handlers for the command
-	SetRoutes(r *mux.Router) error
+	// Routes should return a table of REST API endpoints and handlers for the command
+	Routes() rest.Routes
 	// SetTransactionHandlers will setup the transaction handlers for the command
 	//SetTransactionHandlers() error
 }

@@ -2,6 +2,8 @@ package rest
 
 import (
 	"net/http"
+
+	log "github.com/Sirupsen/logrus"
 )
 
 //
@@ -16,3 +18,19 @@ type Route struct {
 }
 
 type Routes []Route
+
+func (r *GDRest) SetRoutes(routes Routes) {
+	for _, route := range routes {
+		log.WithFields(log.Fields{
+			"name":   route.Name,
+			"path":   route.Pattern,
+			"method": route.Method,
+		}).Debug("Registering new route")
+
+		r.Routes.
+			Methods(route.Method).
+			Path(route.Pattern).
+			Name(route.Name).
+			Handler(route.HandlerFunc)
+	}
+}

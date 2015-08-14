@@ -2,7 +2,6 @@ package hello
 
 import (
 	"fmt"
-	"github.com/gorilla/mux"
 	"github.com/kshlm/glusterd2/rest"
 	"net/http"
 )
@@ -16,8 +15,8 @@ func (h *HelloCommand) Hello(w http.ResponseWriter, r *http.Request) {
 	fmt.Fprint(w, "HelloWorld from GlusterFS Application")
 }
 
-func (h *HelloCommand) SetRoutes(router *mux.Router) error {
-	routes := rest.Routes{
+func (h *HelloCommand) Routes() rest.Routes {
+	return rest.Routes{
 		// HelloWorld
 		rest.Route{
 			Name:        "Hello",
@@ -25,16 +24,4 @@ func (h *HelloCommand) SetRoutes(router *mux.Router) error {
 			Pattern:     "/hello",
 			HandlerFunc: h.Hello},
 	}
-	// Register all routes
-	for _, route := range routes {
-		// Add routes from the table
-		router.
-			Methods(route.Method).
-			Path(route.Pattern).
-			Name(route.Name).
-			Handler(route.HandlerFunc)
-	}
-
-	return nil
-
 }

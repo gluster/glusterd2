@@ -8,7 +8,6 @@ import (
 	"github.com/kshlm/glusterd2/rest"
 
 	log "github.com/Sirupsen/logrus"
-	"github.com/gorilla/mux"
 )
 
 type VolumeListCommand struct {
@@ -31,8 +30,8 @@ func (c *VolumeListCommand) VolumeList(w http.ResponseWriter, r *http.Request) {
 	}
 }
 
-func (c *VolumeListCommand) SetRoutes(router *mux.Router) error {
-	routes := rest.Routes{
+func (c *VolumeListCommand) Routes() rest.Routes {
+	return rest.Routes{
 		// VolumeList
 		rest.Route{
 			Name:        "VolumeList",
@@ -40,16 +39,4 @@ func (c *VolumeListCommand) SetRoutes(router *mux.Router) error {
 			Pattern:     "/volumes/",
 			HandlerFunc: c.VolumeList},
 	}
-	// Register all routes
-	for _, route := range routes {
-		// Add routes from the table
-		router.
-			Methods(route.Method).
-			Path(route.Pattern).
-			Name(route.Name).
-			Handler(route.HandlerFunc)
-	}
-
-	return nil
-
 }

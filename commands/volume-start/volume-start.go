@@ -45,8 +45,8 @@ func (c *VolumeStartCommand) VolumeStart(w http.ResponseWriter, r *http.Request)
 	w.WriteHeader(http.StatusOK)
 }
 
-func (c *VolumeStartCommand) SetRoutes(router *mux.Router) error {
-	routes := rest.Routes{
+func (c *VolumeStartCommand) Routes() rest.Routes {
+	return rest.Routes{
 		// VolumeStart
 		rest.Route{
 			Name:        "VolumeStart",
@@ -54,16 +54,4 @@ func (c *VolumeStartCommand) SetRoutes(router *mux.Router) error {
 			Pattern:     "/volumes/{volname}/start",
 			HandlerFunc: c.VolumeStart},
 	}
-	// Register all routes
-	for _, route := range routes {
-		// Add routes from the table
-		router.
-			Methods(route.Method).
-			Path(route.Pattern).
-			Name(route.Name).
-			Handler(route.HandlerFunc)
-	}
-
-	return nil
-
 }

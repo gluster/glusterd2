@@ -10,7 +10,6 @@ import (
 	"github.com/kshlm/glusterd2/volume"
 
 	log "github.com/Sirupsen/logrus"
-	"github.com/gorilla/mux"
 )
 
 type VolumeCreateCommand struct {
@@ -64,8 +63,8 @@ func (c *VolumeCreateCommand) VolumeCreate(w http.ResponseWriter, r *http.Reques
 	fmt.Fprint(w, "Volume created successfully")
 }
 
-func (c *VolumeCreateCommand) SetRoutes(router *mux.Router) error {
-	routes := rest.Routes{
+func (c *VolumeCreateCommand) Routes() rest.Routes {
+	return rest.Routes{
 		// VolumeCreate
 		rest.Route{
 			Name:        "VolumeCreate",
@@ -73,16 +72,4 @@ func (c *VolumeCreateCommand) SetRoutes(router *mux.Router) error {
 			Pattern:     "/volumes/",
 			HandlerFunc: c.VolumeCreate},
 	}
-	// Register all routes
-	for _, route := range routes {
-		// Add routes from the table
-		router.
-			Methods(route.Method).
-			Path(route.Pattern).
-			Name(route.Name).
-			Handler(route.HandlerFunc)
-	}
-
-	return nil
-
 }

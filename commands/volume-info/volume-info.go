@@ -34,8 +34,8 @@ func (c *VolumeInfoCommand) VolumeInfo(w http.ResponseWriter, r *http.Request) {
 	}
 }
 
-func (c *VolumeInfoCommand) SetRoutes(router *mux.Router) error {
-	routes := rest.Routes{
+func (c *VolumeInfoCommand) Routes() rest.Routes {
+	return rest.Routes{
 		// VolumeInfo
 		rest.Route{
 			Name:        "VolumeInfo",
@@ -44,15 +44,4 @@ func (c *VolumeInfoCommand) SetRoutes(router *mux.Router) error {
 			HandlerFunc: c.VolumeInfo},
 	}
 	// Register all routes
-	for _, route := range routes {
-		// Add routes from the table
-		router.
-			Methods(route.Method).
-			Path(route.Pattern).
-			Name(route.Name).
-			Handler(route.HandlerFunc)
-	}
-
-	return nil
-
 }

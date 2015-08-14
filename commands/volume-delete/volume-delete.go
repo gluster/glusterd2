@@ -32,8 +32,8 @@ func (c *VolumeDeleteCommand) VolumeDelete(w http.ResponseWriter, r *http.Reques
 	fmt.Fprint(w, "Volume deleted successfully")
 }
 
-func (c *VolumeDeleteCommand) SetRoutes(router *mux.Router) error {
-	routes := rest.Routes{
+func (c *VolumeDeleteCommand) Routes() rest.Routes {
+	return rest.Routes{
 		// VolumeDelete
 		rest.Route{
 			Name:        "VolumeDelete",
@@ -41,16 +41,4 @@ func (c *VolumeDeleteCommand) SetRoutes(router *mux.Router) error {
 			Pattern:     "/volumes/{volname}",
 			HandlerFunc: c.VolumeDelete},
 	}
-	// Register all routes
-	for _, route := range routes {
-		// Add routes from the table
-		router.
-			Methods(route.Method).
-			Path(route.Pattern).
-			Name(route.Name).
-			Handler(route.HandlerFunc)
-	}
-
-	return nil
-
 }
