@@ -3,16 +3,18 @@ box: google/golang:1.4
 build:
   steps:
 
-    - setup-go-workspace
+    - wercker/setup-go-workspace
+      package-dir: github.com/kshlm/glusterd2
+
 
     - wercker/golint
 
     - script:
-        name: go build
-        code: |
-          go build ./...
+      name: go build
+      code: |
+        go build ./...
 
     - script:
-        name: go test
-        code: |
-          go test ./...
+      name: go test
+      code: |
+        go test ./...
