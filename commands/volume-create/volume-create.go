@@ -8,6 +8,7 @@ import (
 	"github.com/kshlm/glusterd2/context"
 	"github.com/kshlm/glusterd2/rest"
 	"github.com/kshlm/glusterd2/utils"
+	"github.com/kshlm/glusterd2/volgen"
 	"github.com/kshlm/glusterd2/volume"
 
 	log "github.com/Sirupsen/logrus"
@@ -63,6 +64,9 @@ func (c *Command) volumeCreate(w http.ResponseWriter, r *http.Request) {
 	w.Header().Set("Content-Type", "application/json; charset=UTF-8")
 	w.WriteHeader(http.StatusCreated)
 	fmt.Fprint(w, "Volume created successfully")
+
+	// Creating client volfile
+	volgen.GenerateVolfile(vol)
 }
 
 // Routes returns command routes to be set up for the volume create command.
