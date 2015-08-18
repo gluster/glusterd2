@@ -8,7 +8,6 @@ import (
 
 // DumpGraph dumps a textual representation of the volume graph into `w`
 func (x Xlator) DumpGraph(w io.Writer) {
-
 	for _, xl := range x.Children {
 		xl.DumpGraph(w)
 	}
@@ -27,6 +26,6 @@ func (x Xlator) DumpGraph(w io.Writer) {
 			fmt.Fprintf(w, " %s", xl.Name)
 		}
 	}
-	fmt.Fprintf(w, "\nend-volume\n\n")
 
+	fmt.Fprintf(w, "\nend-volume\n\n")
 }
