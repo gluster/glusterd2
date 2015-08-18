@@ -7,26 +7,26 @@ import (
 )
 
 // DumpGraph dumps a textual representation of the volume graph into `w`
-func (x Xlator) DumpGraph(w io.Writer) {
+func (graph Xlator_t) DumpGraph(w io.Writer) {
 
-	for _, xl := range x.Children {
-		xl.DumpGraph(w)
+	for _, graph := range graph.Children {
+		graph.DumpGraph(w)
 	}
 
-	fmt.Fprintf(w, "volume %s\n", x.Name)
-	fmt.Fprintf(w, "   type %s", x.Type)
+	fmt.Fprintf(w, "volume %s\n    type %s\n", graph.Name, graph.Type)
 
-	for key, value := range x.Options {
-		fmt.Fprintf(w, "\n   option %s %s", key, value)
+	for k, v := range graph.Options {
+		fmt.Fprintf(w, "    options %v %v\n", k, v)
 	}
 
-	if x.Children != nil {
-		fmt.Fprintf(w, "\n   subvolumes")
+	if graph.Children != nil {
+		fmt.Fprintf(w, "    subvolumes")
 
-		for _, xl := range x.Children {
-			fmt.Fprintf(w, " %s", xl.Name)
+		for _, graph := range graph.Children {
+			fmt.Fprintf(w, " %v", graph.Name)
 		}
+		fmt.Fprintf(w, "\n")
 	}
-	fmt.Fprintf(w, "\nend-volume\n\n")
 
+	fmt.Fprintf(w, "end-volume\n\n")
 }
