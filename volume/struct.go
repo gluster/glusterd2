@@ -80,6 +80,25 @@ type VolCreateRequest struct {
 	Bricks []string `json:"bricks"`
 }
 
+// VolAddBrickRequest defines the parameters for adding bricks to a given volume
+// TODO: This should probably be moved out of here.
+type VolAddBrickRequest struct {
+	Name         string `json:"name"`
+	ReplicaCount uint16 `json:"replica,omitempty"`
+	StripeCount  uint16 `json:"stripecount,omitempty"`
+
+	Bricks []string `json:"bricks"`
+}
+
+// VolAddRemoveRequest defines the parameters for removing bricks from a  given volume
+// TODO: This should probably be moved out of here.
+type VolRemoveBrickRequest struct {
+	Name         string `json:"name"`
+	ReplicaCount uint16 `json:"replica,omitempty"`
+
+	Bricks []string `json:"bricks"`
+}
+
 // NewVolinfo returns an empty Volinfo
 func NewVolinfo() *Volinfo {
 	v := new(Volinfo)

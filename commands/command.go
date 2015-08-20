@@ -3,10 +3,12 @@ package commands
 
 import (
 	"github.com/kshlm/glusterd2/commands/hello"
+	"github.com/kshlm/glusterd2/commands/volume-add-brick"
 	"github.com/kshlm/glusterd2/commands/volume-create"
 	"github.com/kshlm/glusterd2/commands/volume-delete"
 	"github.com/kshlm/glusterd2/commands/volume-info"
 	"github.com/kshlm/glusterd2/commands/volume-list"
+	"github.com/kshlm/glusterd2/commands/volume-remove-brick"
 	"github.com/kshlm/glusterd2/commands/volume-start"
 	"github.com/kshlm/glusterd2/commands/volume-stop"
 	"github.com/kshlm/glusterd2/rest"
@@ -29,4 +31,6 @@ var Commands = []Command{
 	&volumelist.Command{},
 	&volumestart.Command{},
 	&volumestop.Command{},
+	&volumeaddbrick.Command{},
+	&volumeremovebrick.Command{},
 }
