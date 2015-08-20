@@ -2,10 +2,11 @@
 package volumecreate
 
 import (
-	"fmt"
 	"net/http"
 
+	"github.com/kshlm/glusterd2/client"
 	"github.com/kshlm/glusterd2/context"
+	"github.com/kshlm/glusterd2/errors"
 	"github.com/kshlm/glusterd2/rest"
 	"github.com/kshlm/glusterd2/utils"
 	"github.com/kshlm/glusterd2/volgen"
@@ -25,27 +26,24 @@ func (c *Command) volumeCreate(w http.ResponseWriter, r *http.Request) {
 
 	e := utils.GetJSONFromRequest(r, &msg)
 	if e != nil {
-		http.Error(w, "request unable to be parsed", 422)
+		client.SendResponse(w, -1, 422, errors.ErrJSONParsingFailed.Error(), 422, "")
 		return
 	}
 
 	if msg.Name == "" {
 		log.Error("Volume name is empty")
-		http.Error(w, "Volume name is empty", http.StatusBadRequest)
-
+		client.SendResponse(w, -1, http.StatusBadRequest, errors.ErrEmptyVolName.Error(), http.StatusBadRequest, "")
 		return
 	}
 	if len(msg.Bricks) <= 0 {
 		log.Error("Brick list is empty")
-		http.Error(w, "Brick list is empty", http.StatusBadRequest)
-
+		client.SendResponse(w, -1, http.StatusBadRequest, errors.ErrEmptyBrickList.Error(), http.StatusBadRequest, "")
 		return
 	}
 
 	if context.Store.VolumeExists(msg.Name) {
 		log.WithField("Volume", msg.Name).Error("Volume already exists")
-		http.Error(w, "Volume already exists", http.StatusBadRequest)
-
+		client.SendResponse(w, -1, http.StatusBadRequest, errors.ErrVolExists.Error(), http.StatusBadRequest, "")
 		return
 	}
 
@@ -56,17 +54,15 @@ func (c *Command) volumeCreate(w http.ResponseWriter, r *http.Request) {
 	e = context.Store.AddOrUpdateVolume(vol)
 	if e != nil {
 		log.WithField("error", e).Error("Couldn't add volume to store")
-		http.Error(w, e.Error(), http.StatusInternalServerError)
+		client.SendResponse(w, -1, http.StatusInternalServerError, e.Error(), http.StatusInternalServerError, "")
 		return
 	}
-	log.WithField("volume", vol.Name).Debug("NewVolume added to store")
-
-	w.Header().Set("Content-Type", "application/json; charset=UTF-8")
-	w.WriteHeader(http.StatusCreated)
-	fmt.Fprint(w, "Volume created successfully")
 
 	// Creating client  and server volfile
 	volgen.GenerateVolfile(vol)
+
+	log.WithField("volume", vol.Name).Debug("NewVolume added to store")
+	client.SendResponse(w, 0, 0, "", http.StatusCreated, "")
 }
 
 // Routes returns command routes to be set up for the volume create command.

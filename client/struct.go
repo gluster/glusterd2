@@ -21,6 +21,8 @@ func SendResponse(w http.ResponseWriter, opRet int, opErrno int, opErrStr string
 	rsp.OpRet = opRet
 	rsp.OpErrno = opErrno
 	rsp.OpErrstr = opErrStr
+
+	w.Header().Set("Content-Type", "application/json; charset=UTF-8")
 	w.WriteHeader(status)
 	rsp.Data = v
 

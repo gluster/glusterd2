@@ -24,13 +24,11 @@ func (c *Command) volumeInfo(w http.ResponseWriter, r *http.Request) {
 
 	log.Debug("In Volume info API")
 
-	w.Header().Set("Content-Type", "application/json; charset=UTF-8")
-
 	vol, e := context.Store.GetVolume(volname)
 	if e != nil {
 		client.SendResponse(w, -1, http.StatusNotFound, errors.ErrVolNotFound.Error(), http.StatusNotFound, "")
 	} else {
-		client.SendResponse(w, 0, http.StatusOK, "", http.StatusNotFound, vol)
+		client.SendResponse(w, 0, 0, "", http.StatusOK, vol)
 	}
 }
 
