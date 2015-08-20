@@ -4,7 +4,9 @@ package volumestart
 import (
 	"net/http"
 
+	"github.com/kshlm/glusterd2/client"
 	"github.com/kshlm/glusterd2/context"
+	"github.com/kshlm/glusterd2/errors"
 	"github.com/kshlm/glusterd2/rest"
 	"github.com/kshlm/glusterd2/volume"
 
@@ -25,11 +27,11 @@ func (c *Command) volumeStart(w http.ResponseWriter, r *http.Request) {
 
 	vol, e := context.Store.GetVolume(volname)
 	if e != nil {
-		http.Error(w, e.Error(), http.StatusNotFound)
+		client.SendResponse(w, -1, http.StatusBadRequest, errors.ErrVolNotFound.Error(), http.StatusBadRequest, "")
 		return
 	}
 	if vol.Status == volume.VolStarted {
-		http.Error(w, "Volume is already started", http.StatusBadRequest)
+		client.SendResponse(w, -1, http.StatusBadRequest, errors.ErrVolAlreadyStarted.Error(), http.StatusBadRequest, "")
 		return
 	}
 	vol.Status = volume.VolStarted
@@ -37,14 +39,11 @@ func (c *Command) volumeStart(w http.ResponseWriter, r *http.Request) {
 	e = context.Store.AddOrUpdateVolume(vol)
 	if e != nil {
 		log.WithField("error", e).Error("Couldn't update volume into the store")
-		http.Error(w, e.Error(), http.StatusInternalServerError)
+		client.SendResponse(w, -1, http.StatusInternalServerError, e.Error(), http.StatusInternalServerError, "")
 		return
 	}
 	log.WithField("volume", vol.Name).Debug("Volume updated into the store")
-
-	// Write nsg
-	w.Header().Set("Content-Type", "application/json; charset=UTF-8")
-	w.WriteHeader(http.StatusOK)
+	client.SendResponse(w, 0, 0, "", http.StatusOK, "")
 }
 
 // Routes returns command routes to be set up for the volume start command.
