@@ -2,10 +2,11 @@
 package volumedelete
 
 import (
-	"fmt"
 	"net/http"
 
+	"github.com/kshlm/glusterd2/client"
 	"github.com/kshlm/glusterd2/context"
+	"github.com/kshlm/glusterd2/errors"
 	"github.com/kshlm/glusterd2/rest"
 
 	log "github.com/Sirupsen/logrus"
@@ -23,18 +24,19 @@ func (c *Command) volumeDelete(w http.ResponseWriter, r *http.Request) {
 	* to consider the volume id as well */
 	volname := p["volname"]
 
-	log.Info("In Volume info API")
+	log.Info("In Volume delete API")
 
-	e := context.Store.DeleteVolume(volname)
-	if e != nil {
-		http.Error(w, e.Error(), http.StatusInternalServerError)
+	if context.Store.VolumeExists(volname) {
+		client.SendResponse(w, -1, http.StatusBadRequest, errors.ErrVolNotFound.Error(), http.StatusBadRequest, "")
 		return
 	}
 
-	// Write nsg
-	w.Header().Set("Content-Type", "application/json; charset=UTF-8")
-	w.WriteHeader(http.StatusOK)
-	fmt.Fprint(w, "Volume deleted successfully")
+	e := context.Store.DeleteVolume(volname)
+	if e != nil {
+		client.SendResponse(w, -1, http.StatusInternalServerError, e.Error(), http.StatusInternalServerError, "")
+		return
+	}
+	client.SendResponse(w, 0, 0, "", http.StatusOK, "")
 }
 
 // Routes returns command routes to be set up for the volume delete command.
