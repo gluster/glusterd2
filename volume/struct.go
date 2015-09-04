@@ -69,14 +69,19 @@ type Volinfo struct {
 // VolCreateRequest defines the parameters for creating a volume in the volume-create command
 // TODO: This should probably be moved out of here.
 type VolCreateRequest struct {
-	Name            string `json:"name"`
-	Transport       string `json:"transport,omitempty"`
-	DistCount       uint64 `json:"distcount,omitempty"`
-	ReplicaCount    uint16 `json:"replica,omitempty"`
-	StripeCount     uint16 `json:"stripecount,omitempty"`
-	DisperseCount   uint16 `json:"dispersecount,omitempty"`
-	RedundancyCount uint16 `json:"redundancycount,omitempty"`
-
+	Size            int      `json:"size,omitempty"` // omitempty till intelligent volume creation is handled
+	Clusters        []string `json:"clusters,omitempty"`
+	Name            string   `json:"name"`
+	Transport       string   `json:"transport,omitempty"`
+	DistCount       uint64   `json:"distcount,omitempty"`
+	ReplicaCount    uint16   `json:"replica,omitempty"`
+	StripeCount     uint16   `json:"stripecount,omitempty"`
+	DisperseCount   uint16   `json:"dispersecount,omitempty"`
+	RedundancyCount uint16   `json:"redundancycount,omitempty"`
+	Snapshot        struct {
+		Enable bool    `json:"enable"`
+		Factor float32 `json:"factor"`
+	} `json:"snapshot, omitempty"`
 	Bricks []string `json:"bricks"`
 }
 

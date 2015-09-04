@@ -21,6 +21,8 @@ type Command struct {
 
 func (c *Command) volumeStart(w http.ResponseWriter, r *http.Request) {
 	p := mux.Vars(r)
+	/* TODO : As of now we consider the request as volname, later on we need
+	* to consider the volume id as well */
 	volname := p["volname"]
 
 	log.Info("In Volume start API")
