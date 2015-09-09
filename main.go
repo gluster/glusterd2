@@ -10,6 +10,10 @@ import (
 	log "github.com/Sirupsen/logrus"
 )
 
+var (
+	GLUSTERD2_VERSION = "(dev)"
+)
+
 func main() {
 	log.Info("GlusterD starting")
 
