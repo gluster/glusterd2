@@ -49,10 +49,7 @@ func (c *Command) volumeCreate(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	vol := volume.New(msg.Name, msg.Transport, msg.ReplicaCount,
-		msg.StripeCount, msg.DisperseCount,
-		msg.RedundancyCount, msg.Bricks)
-
+	vol := volume.NewVolumeEntry(msg)
 	e = context.Store.AddOrUpdateVolume(vol)
 	if e != nil {
 		log.WithField("error", e).Error("Couldn't add volume to store")

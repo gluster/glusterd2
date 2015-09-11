@@ -93,27 +93,27 @@ func NewVolinfo() *Volinfo {
 	return v
 }
 
-// New returns an initialized Volinfo using the given parameters
-func New(volname, transport string, replica, stripe, disperse, redundancy uint16, bricks []string) *Volinfo {
+// NewVolumeEntry returns an initialized Volinfo using the given parameters
+func NewVolumeEntry(req VolCreateRequest) *Volinfo {
 	v := NewVolinfo()
 
 	v.ID = uuid.NewUUID().String()
-	v.Name = volname
-	if len(transport) > 0 {
-		v.Transport = transport
+	v.Name = req.Name
+	if len(req.Transport) > 0 {
+		v.Transport = req.Transport
 	} else {
 		v.Transport = "tcp"
 	}
-	if replica == 0 {
+	if req.ReplicaCount == 0 {
 		v.ReplicaCount = 1
 	} else {
-		v.ReplicaCount = replica
+		v.ReplicaCount = req.ReplicaCount
 	}
-	v.StripeCount = stripe
-	v.DisperseCount = disperse
-	v.RedundancyCount = redundancy
+	v.StripeCount = req.StripeCount
+	v.DisperseCount = req.DisperseCount
+	v.RedundancyCount = req.RedundancyCount
 
-	v.Bricks = bricks
+	v.Bricks = req.Bricks
 
 	return v
 }
