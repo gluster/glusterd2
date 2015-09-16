@@ -2,9 +2,9 @@
 package volumelist
 
 import (
-	"encoding/json"
 	"net/http"
 
+	"github.com/kshlm/glusterd2/client"
 	"github.com/kshlm/glusterd2/context"
 	"github.com/kshlm/glusterd2/rest"
 
@@ -22,14 +22,9 @@ func (c *Command) volumeList(w http.ResponseWriter, r *http.Request) {
 
 	volumes, e := context.Store.GetVolumes()
 	if e != nil {
-		http.Error(w, e.Error(), http.StatusInternalServerError)
-		return
-	}
-	// Write nsg
-	w.Header().Set("Content-Type", "application/json; charset=UTF-8")
-	w.WriteHeader(http.StatusOK)
-	if e = json.NewEncoder(w).Encode(volumes); e != nil {
-		panic(e)
+		client.SendResponse(w, -1, http.StatusNotFound, e.Error(), http.StatusNotFound, "")
+	} else {
+		client.SendResponse(w, 0, 0, "", http.StatusNotFound, volumes)
 	}
 }
 
