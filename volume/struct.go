@@ -5,7 +5,7 @@ import (
 	"bytes"
 	"encoding/json"
 
-	"code.google.com/p/go-uuid/uuid"
+	"github.com/pborman/uuid"
 )
 
 // VolStatus is the current status of a volume
