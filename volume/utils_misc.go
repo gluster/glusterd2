@@ -5,7 +5,7 @@ import (
 	"math/rand"
 	"sync/atomic"
 
-	"code.google.com/p/go-uuid/uuid"
+	"github.com/pborman/uuid"
 )
 
 var volCount uint64
