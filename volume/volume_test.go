@@ -3,8 +3,7 @@ package volume
 import (
 	"testing"
 
-	"github.com/heketi/heketi/tests"
-	"github.com/heketi/heketi/utils"
+	"github.com/kshlm/glusterd2/tests"
 )
 
 func TestNewVolumeEntry(t *testing.T) {
@@ -82,12 +81,23 @@ func TestNewVolumeEntryFromRequestRedundancy(t *testing.T) {
 	tests.Assert(t, v.RedundancyCount == 2)
 }
 
+func find(haystack []string, needle string) bool {
+
+	for _, hay := range haystack {
+		if hay == needle {
+			return true
+		}
+	}
+
+	return false
+}
+
 func TestNewVolumeEntryFromRequestBricks(t *testing.T) {
 
 	req := VolCreateRequest{}
 	req.Bricks = []string{"abc", "def"}
 
 	v := NewVolumeEntry(req)
-	tests.Assert(t, utils.SortedStringHas(v.Bricks, "abc"))
-	tests.Assert(t, utils.SortedStringHas(v.Bricks, "def"))
+	tests.Assert(t, find(v.Bricks, "abc"))
+	tests.Assert(t, find(v.Bricks, "def"))
 }
