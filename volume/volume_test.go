@@ -98,6 +98,7 @@ func TestNewVolumeEntryFromRequestBricks(t *testing.T) {
 	req.Bricks = []string{"abc", "def"}
 
 	v := NewVolumeEntry(req)
-	tests.Assert(t, find(v.Bricks, "abc"))
-	tests.Assert(t, find(v.Bricks, "def"))
+	for _, brick := range req.Bricks {
+		tests.Assert(t, find(v.Bricks, brick))
+	}
 }
