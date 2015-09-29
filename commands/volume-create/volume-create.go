@@ -4,13 +4,13 @@ package volumecreate
 import (
 	"net/http"
 
-	"github.com/kshlm/glusterd2/client"
-	"github.com/kshlm/glusterd2/context"
-	"github.com/kshlm/glusterd2/errors"
-	"github.com/kshlm/glusterd2/rest"
-	"github.com/kshlm/glusterd2/utils"
-	"github.com/kshlm/glusterd2/volgen"
-	"github.com/kshlm/glusterd2/volume"
+	"github.com/gluster/glusterd2/client"
+	"github.com/gluster/glusterd2/context"
+	"github.com/gluster/glusterd2/errors"
+	"github.com/gluster/glusterd2/rest"
+	"github.com/gluster/glusterd2/utils"
+	"github.com/gluster/glusterd2/volgen"
+	"github.com/gluster/glusterd2/volume"
 
 	log "github.com/Sirupsen/logrus"
 )

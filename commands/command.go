@@ -2,14 +2,14 @@
 package commands
 
 import (
-	"github.com/kshlm/glusterd2/commands/hello"
-	"github.com/kshlm/glusterd2/commands/volume-create"
-	"github.com/kshlm/glusterd2/commands/volume-delete"
-	"github.com/kshlm/glusterd2/commands/volume-info"
-	"github.com/kshlm/glusterd2/commands/volume-list"
-	"github.com/kshlm/glusterd2/commands/volume-start"
-	"github.com/kshlm/glusterd2/commands/volume-stop"
-	"github.com/kshlm/glusterd2/rest"
+	"github.com/gluster/glusterd2/commands/hello"
+	"github.com/gluster/glusterd2/commands/volume-create"
+	"github.com/gluster/glusterd2/commands/volume-delete"
+	"github.com/gluster/glusterd2/commands/volume-info"
+	"github.com/gluster/glusterd2/commands/volume-list"
+	"github.com/gluster/glusterd2/commands/volume-start"
+	"github.com/gluster/glusterd2/commands/volume-stop"
+	"github.com/gluster/glusterd2/rest"
 )
 
 // Command is the interface that needs to be implemented by the GlusterD commands

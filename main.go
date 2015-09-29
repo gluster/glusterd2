@@ -4,8 +4,8 @@ import (
 	"os"
 	"os/signal"
 
-	"github.com/kshlm/glusterd2/commands"
-	"github.com/kshlm/glusterd2/context"
+	"github.com/gluster/glusterd2/commands"
+	"github.com/gluster/glusterd2/context"
 
 	log "github.com/Sirupsen/logrus"
 )

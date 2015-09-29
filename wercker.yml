@@ -4,7 +4,7 @@ build:
   steps:
 
     - wercker/setup-go-workspace:
-        package_dir: github.com/kshlm/glusterd2
+        package_dir: github.com/gluster/glusterd2
 
     - wercker/golint
 
