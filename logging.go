@@ -4,7 +4,7 @@ import (
 	"os"
 	"strings"
 
-	"github.com/kshlm/glusterd2/config"
+	"github.com/gluster/glusterd2/config"
 
 	log "github.com/Sirupsen/logrus"
 )

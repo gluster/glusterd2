@@ -5,8 +5,10 @@ package store
 
 import (
 	"encoding/json"
+
+	"github.com/gluster/glusterd2/volume"
+
 	log "github.com/Sirupsen/logrus"
-	"github.com/kshlm/glusterd2/volume"
 )
 
 const (

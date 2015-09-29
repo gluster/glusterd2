@@ -1,6 +1,7 @@
 # GlusterD-2.0
-[![wercker status](https://app.wercker.com/status/6b02e386a99296c01e87cb8293fe3dc4/m/master "wercker status")](https://app.wercker.com/project/bykey/6b02e386a99296c01e87cb8293fe3dc4)
-[![Stories in Progress](https://badge.waffle.io/kshlm/glusterd2.svg?label=in%20progress&title=In%20Progress)](http://waffle.io/kshlm/glusterd2)
+[![wercker status](https://app.wercker.com/status/8d3e2cd9852aac02259ba18878eed860/m "wercker status")](https://app.wercker.com/project/bykey/8d3e2cd9852aac02259ba18878eed860)
+[![Stories in Progress](https://badge.waffle.io/gluster/glusterd2.svg?label=in%20progress&title=In%20Progress)](http://waffle.io/gluster/glusterd2)
+
 GlusterD-2.0 is a re-implementation of GlusterD. It attempts to be have better
 consistency, scalability and performance when compared with the current
 GlusterD, while also becoming more modular and easing extensibility.

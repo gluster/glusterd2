@@ -7,9 +7,9 @@ package context
 import (
 	"sync"
 
-	"github.com/kshlm/glusterd2/rest"
-	"github.com/kshlm/glusterd2/store"
-	"github.com/kshlm/glusterd2/transaction"
+	"github.com/gluster/glusterd2/rest"
+	"github.com/gluster/glusterd2/store"
+	"github.com/gluster/glusterd2/transaction"
 
 	log "github.com/Sirupsen/logrus"
 )

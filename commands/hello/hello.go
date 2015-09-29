@@ -3,7 +3,7 @@ package hello
 
 import (
 	"fmt"
-	"github.com/kshlm/glusterd2/rest"
+	"github.com/gluster/glusterd2/rest"
 	"net/http"
 )
 

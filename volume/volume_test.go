@@ -3,7 +3,7 @@ package volume
 import (
 	"testing"
 
-	"github.com/kshlm/glusterd2/tests"
+	"github.com/gluster/glusterd2/tests"
 )
 
 func TestNewVolumeEntry(t *testing.T) {

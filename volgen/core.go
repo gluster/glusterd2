@@ -6,7 +6,7 @@ import (
 	"fmt"
 	"os"
 
-	"github.com/kshlm/glusterd2/volume"
+	"github.com/gluster/glusterd2/volume"
 )
 
 const (
