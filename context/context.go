@@ -12,14 +12,16 @@ import (
 	"github.com/gluster/glusterd2/transaction"
 
 	log "github.com/Sirupsen/logrus"
+	"github.com/pborman/uuid"
 )
 
 // Any object that is a part of the GlusterD context and needs to be available
 // to other packages should be declared here as exported global variables
 var (
-	Rest  *rest.GDRest
-	TxnFw *transaction.GDTxnFw
-	Store *store.GDStore
+	MyUUID uuid.UUID
+	Rest   *rest.GDRest
+	TxnFw  *transaction.GDTxnFw
+	Store  *store.GDStore
 )
 
 var (
@@ -28,6 +30,10 @@ var (
 
 func doInit() {
 	log.Debug("Initializing GlusterD context")
+
+	initLocalStateDir()
+
+	initMyUUID()
 
 	Rest = rest.New()
 
