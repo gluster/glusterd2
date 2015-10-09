@@ -8,6 +8,7 @@ import (
 	"github.com/gluster/glusterd2/context"
 	"github.com/gluster/glusterd2/errors"
 	"github.com/gluster/glusterd2/rest"
+	"github.com/gluster/glusterd2/volume"
 
 	log "github.com/Sirupsen/logrus"
 	"github.com/gorilla/mux"
@@ -20,23 +21,24 @@ type Command struct {
 
 func (c *Command) volumeDelete(w http.ResponseWriter, r *http.Request) {
 	p := mux.Vars(r)
-	/* TODO : As of now we consider the request as volname, later on we need
-	* to consider the volume id as well */
 	volname := p["volname"]
 
 	log.Info("In Volume delete API")
 
 	if context.Store.VolumeExists(volname) {
-		client.SendResponse(w, -1, http.StatusBadRequest, errors.ErrVolNotFound.Error(), http.StatusBadRequest, "")
+		rsp := client.FormResponse(-1, http.StatusBadRequest, errors.ErrVolNotFound.Error(), "")
+		client.SendResponse(w, http.StatusBadRequest, rsp)
 		return
 	}
 
-	e := context.Store.DeleteVolume(volname)
+	e := volume.DeleteVolume(volname)
 	if e != nil {
-		client.SendResponse(w, -1, http.StatusInternalServerError, e.Error(), http.StatusInternalServerError, "")
+		rsp := client.FormResponse(-1, http.StatusInternalServerError, e.Error(), "")
+		client.SendResponse(w, http.StatusInternalServerError, rsp)
 		return
 	}
-	client.SendResponse(w, 0, 0, "", http.StatusOK, "")
+	rsp := client.FormResponse(0, 0, "", "")
+	client.SendResponse(w, http.StatusOK, rsp)
 }
 
 // Routes returns command routes to be set up for the volume delete command.

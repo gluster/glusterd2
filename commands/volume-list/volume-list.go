@@ -5,8 +5,8 @@ import (
 	"net/http"
 
 	"github.com/gluster/glusterd2/client"
-	"github.com/gluster/glusterd2/context"
 	"github.com/gluster/glusterd2/rest"
+	"github.com/gluster/glusterd2/volume"
 
 	log "github.com/Sirupsen/logrus"
 )
@@ -20,11 +20,14 @@ func (c *Command) volumeList(w http.ResponseWriter, r *http.Request) {
 
 	log.Info("In Volume list API")
 
-	volumes, e := context.Store.GetVolumes()
+	volumes, e := volume.GetVolumes()
+
 	if e != nil {
-		client.SendResponse(w, -1, http.StatusNotFound, e.Error(), http.StatusNotFound, "")
+		rsp := client.FormResponse(-1, http.StatusNotFound, e.Error(), "")
+		client.SendResponse(w, http.StatusNotFound, rsp)
 	} else {
-		client.SendResponse(w, 0, 0, "", http.StatusNotFound, volumes)
+		rsp := client.FormResponse(0, 0, "", volumes)
+		client.SendResponse(w, http.StatusOK, rsp)
 	}
 }
 

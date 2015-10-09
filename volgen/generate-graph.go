@@ -4,8 +4,8 @@ package volgen
 
 import (
 	"fmt"
-	"os"
 
+	"github.com/gluster/glusterd2/errors"
 	"github.com/gluster/glusterd2/volume"
 )
 
@@ -14,7 +14,7 @@ type trans struct {
 	Type string
 }
 
-func graphAddAsRoot(graph *Xlator, vinfo *volume.Volinfo, gtype string) {
+func graphAddAsRoot(graph *Xlator, vinfo *volume.Volinfo, gtype string) error {
 	switch gtype {
 	case "CLIENT":
 		graph.Name = vinfo.Name
@@ -36,11 +36,12 @@ func graphAddAsRoot(graph *Xlator, vinfo *volume.Volinfo, gtype string) {
 		graph.Options["auth.addr./brr1.allow"] = "*"
 		graph.Options["transport-type"] = "tcp"
 	default:
-		os.Exit(2)
+		return errors.ErrWrongGraphType
 	}
+	return nil
 }
 
-func addGraphClientLink(cnode *Xlator, vtype string, name string, brick string) {
+func addGraphClientLink(cnode *Xlator, vtype string, name string, brick volume.Brickinfo) {
 	node := new(Xlator)
 
 	node.Options = make(map[string]string)
@@ -48,12 +49,10 @@ func addGraphClientLink(cnode *Xlator, vtype string, name string, brick string) 
 	node.Name = name
 	node.Type = vtype
 
-	hostname, _ := os.Hostname()
-
 	// Add options to client subgraph
 	node.Options["transport-type"] = "tcp"
-	node.Options["remote-subvolume"] = brick
-	node.Options["remote-host"] = hostname
+	node.Options["remote-subvolume"] = brick.Path
+	node.Options["remote-host"] = brick.Hostname
 	node.Options["ping-timeout"] = "42"
 
 	cnode.Children = append(cnode.Children, *node)
@@ -74,7 +73,6 @@ func graphBuildClient(vinfo *volume.Volinfo) *Xlator {
 			for j := 1; j <= int(vinfo.ReplicaCount); j++ {
 				name := fmt.Sprintf("%v-client-%v", vinfo.Name, i)
 				addGraphClientLink(subnode, "protocol/client", name, vinfo.Bricks[i])
-
 				i++
 			}
 			sname := fmt.Sprintf("%s-replicate-%d", vinfo.Name, d)

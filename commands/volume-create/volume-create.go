@@ -20,46 +20,71 @@ import (
 type Command struct {
 }
 
-func (c *Command) volumeCreate(w http.ResponseWriter, r *http.Request) {
-
-	var msg volume.VolCreateRequest
-
-	e := utils.GetJSONFromRequest(r, &msg)
+func validateVolumeCreateRequest(msg *volume.VolCreateRequest, r *http.Request) *client.GenericJSONResponse {
+	e := utils.GetJSONFromRequest(r, msg)
 	if e != nil {
-		client.SendResponse(w, -1, 422, errors.ErrJSONParsingFailed.Error(), 422, "")
-		return
+		log.Error("Invalid JSON Request")
+		return client.FormResponse(-1, 422, errors.ErrJSONParsingFailed.Error(), "")
 	}
 
 	if msg.Name == "" {
 		log.Error("Volume name is empty")
-		client.SendResponse(w, -1, http.StatusBadRequest, errors.ErrEmptyVolName.Error(), http.StatusBadRequest, "")
-		return
+		return client.FormResponse(-1, http.StatusBadRequest, errors.ErrEmptyVolName.Error(), "")
 	}
 	if len(msg.Bricks) <= 0 {
 		log.Error("Brick list is empty")
-		client.SendResponse(w, -1, http.StatusBadRequest, errors.ErrEmptyBrickList.Error(), http.StatusBadRequest, "")
+		return client.FormResponse(-1, http.StatusBadRequest, errors.ErrEmptyBrickList.Error(), "")
+	}
+	return nil
+
+}
+
+func createVolume(msg *volume.VolCreateRequest) *volume.Volinfo {
+	vol := volume.NewVolumeEntry(msg)
+	return vol
+}
+
+func (c *Command) volumeCreate(w http.ResponseWriter, r *http.Request) {
+
+	msg := new(volume.VolCreateRequest)
+
+	rsp := validateVolumeCreateRequest(msg, r)
+	if rsp != nil {
+		client.SendResponse(w, http.StatusBadRequest, rsp)
 		return
 	}
-
 	if context.Store.VolumeExists(msg.Name) {
 		log.WithField("Volume", msg.Name).Error("Volume already exists")
-		client.SendResponse(w, -1, http.StatusBadRequest, errors.ErrVolExists.Error(), http.StatusBadRequest, "")
+		rsp = client.FormResponse(-1, http.StatusBadRequest, errors.ErrVolExists.Error(), "")
+		client.SendResponse(w, http.StatusBadRequest, rsp)
+		return
+	}
+	vol := createVolume(msg)
+	if vol == nil {
+		rsp = client.FormResponse(-1, http.StatusBadRequest, errors.ErrVolCreateFail.Error(), "")
+		client.SendResponse(w, http.StatusBadRequest, rsp)
 		return
 	}
 
-	vol := volume.NewVolumeEntry(msg)
-	e = context.Store.AddOrUpdateVolume(vol)
-	if e != nil {
-		log.WithField("error", e).Error("Couldn't add volume to store")
-		client.SendResponse(w, -1, http.StatusInternalServerError, e.Error(), http.StatusInternalServerError, "")
-		return
-	}
-
+	//TODO : Error handling for volgen
 	// Creating client  and server volfile
-	volgen.GenerateVolfile(vol)
+	e := volgen.GenerateVolfile(vol)
+	if e != nil {
+		rsp = client.FormResponse(-1, http.StatusInternalServerError, e.Error(), "")
+		client.SendResponse(w, http.StatusInternalServerError, rsp)
+		return
+	}
+
+	e = volume.AddOrUpdateVolume(vol)
+	if e != nil {
+		rsp = client.FormResponse(-1, http.StatusInternalServerError, e.Error(), "")
+		client.SendResponse(w, http.StatusInternalServerError, rsp)
+		return
+	}
 
 	log.WithField("volume", vol.Name).Debug("NewVolume added to store")
-	client.SendResponse(w, 0, 0, "", http.StatusCreated, "")
+	rsp = client.FormResponse(0, 0, "", "")
+	client.SendResponse(w, http.StatusCreated, rsp)
 }
 
 // Routes returns command routes to be set up for the volume create command.
