@@ -3,10 +3,10 @@ package peercommands
 import (
 	"net/http"
 
-	"gihtub.com/gluster/glusterd2/utils"
 	"github.com/gluster/glusterd2/client"
 	"github.com/gluster/glusterd2/context"
 	"github.com/gluster/glusterd2/peer"
+	"github.com/gluster/glusterd2/utils"
 
 	"github.com/gorilla/mux"
 	"github.com/pborman/uuid"
