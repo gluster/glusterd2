@@ -42,7 +42,6 @@ func addPeer(w http.ResponseWriter, r *http.Request) {
 		Name:      req.Name,
 		Addresses: req.Addresses,
 	}
-	p.IDstr = p.ID.String()
 
 	if e := context.Store.AddOrUpdatePeer(p); e != nil {
 		client.SendResponse(w, -1, http.StatusInternalServerError, e.Error(), http.StatusInternalServerError, nil)
