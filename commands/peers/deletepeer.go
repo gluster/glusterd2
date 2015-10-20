@@ -23,7 +23,7 @@ func deletePeer(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	if err := context.Store.DeletePeer(id); err != nil {
+	if e := context.Store.DeletePeer(id); e != nil {
 		client.SendResponse(w, -1, http.StatusInternalServerError, e.Error(), http.StatusInternalServerError, nil)
 	} else {
 		client.SendResponse(w, 0, 0, "", http.StatusOK, nil)

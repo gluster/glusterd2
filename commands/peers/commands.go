@@ -2,13 +2,7 @@
 package peercommands
 
 import (
-	"net/http"
-
-	"github.com/gluster/glusterd2/client"
-	"github.com/gluster/glusterd2/context"
 	"github.com/gluster/glusterd2/rest"
-
-	"github.com/gorilla/mux"
 )
 
 // Command is a holding struct used to implement the GlusterD Command interface

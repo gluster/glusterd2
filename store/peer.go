@@ -70,6 +70,11 @@ func (s *GDStore) DeletePeer(id string) error {
 }
 
 // PeerExists checks if given peer is present in the store
-func (s *GDStore) PeerExists(id string) (bool, error) {
-	return s.Exists(peerPrefix + id)
+func (s *GDStore) PeerExists(id string) bool {
+	b, e := s.Exists(peerPrefix + id)
+	if e != nil {
+		return false
+	}
+
+	return b
 }

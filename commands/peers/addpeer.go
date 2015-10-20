@@ -8,7 +8,6 @@ import (
 	"github.com/gluster/glusterd2/peer"
 	"github.com/gluster/glusterd2/utils"
 
-	"github.com/gorilla/mux"
 	"github.com/pborman/uuid"
 )
 
@@ -25,13 +24,13 @@ func addPeer(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	if len(req.hostnames) < 1 {
+	if len(req.Addresses) < 1 {
 		client.SendResponse(w, -1, http.StatusBadRequest, "no hostnames present", http.StatusBadRequest, nil)
 		return
 	}
 
-	if req.name == "" {
-		req.name = req.hostnames[0]
+	if req.Name == "" {
+		req.Name = req.Addresses[0]
 	}
 
 	//TODO: Do proper validation before initiating the add process

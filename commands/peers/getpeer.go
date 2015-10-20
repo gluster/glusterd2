@@ -14,7 +14,7 @@ func getPeer(w http.ResponseWriter, r *http.Request) {
 
 	id := p["peerid"]
 	if id == "" {
-		client.sendResponse(w, -1, http.StatusBadRequest, "peerid not present in request", http.StatusBadRequest, nil)
+		client.SendResponse(w, -1, http.StatusBadRequest, "peerid not present in request", http.StatusBadRequest, nil)
 		return
 	}
 
