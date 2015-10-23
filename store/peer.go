@@ -39,7 +39,7 @@ func (s *GDStore) GetPeer(id string) (*peer.Peer, error) {
 	}
 
 	var p peer.Peer
-	if err := json.Unmarshal(pair.Value, p); err != nil {
+	if err := json.Unmarshal(pair.Value, &p); err != nil {
 		return nil, err
 	}
 	return &p, nil
@@ -57,7 +57,7 @@ func (s *GDStore) GetPeers() ([]peer.Peer, error) {
 	for i, pair := range pairs {
 		var p peer.Peer
 
-		if err := json.Unmarshal(pair.Value, p); err != nil {
+		if err := json.Unmarshal(pair.Value, &p); err != nil {
 			log.WithFields(log.Fields{
 				"peer":  pair.Key,
 				"error": err,
