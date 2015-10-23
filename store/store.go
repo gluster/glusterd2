@@ -11,6 +11,7 @@ import (
 	log "github.com/Sirupsen/logrus"
 	"github.com/docker/libkv"
 	"github.com/docker/libkv/store"
+	"github.com/docker/libkv/store/consul"
 )
 
 const (
@@ -20,6 +21,10 @@ const (
 // GDStore is the GlusterD centralized store
 type GDStore struct {
 	store.Store
+}
+
+func init() {
+	consul.Register()
 }
 
 // New creates a new GDStore
