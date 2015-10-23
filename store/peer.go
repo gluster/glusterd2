@@ -15,6 +15,10 @@ const (
 	peerPrefix string = glusterPrefix + "peers/"
 )
 
+func init() {
+	prefixes = append(prefixes, peerPrefix)
+}
+
 // AddOrUpdatePeer adds/updates given peer in the store
 func (s *GDStore) AddOrUpdatePeer(p *peer.Peer) error {
 	json, err := json.Marshal(p)

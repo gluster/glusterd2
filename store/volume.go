@@ -15,6 +15,10 @@ const (
 	volumePrefix string = glusterPrefix + "volume/"
 )
 
+func init() {
+	prefixes = append(prefixes, volumePrefix)
+}
+
 // AddOrUpdateVolume adds/updates given volume in the store
 func (s *GDStore) AddOrUpdateVolume(v *volume.Volinfo) error {
 	json, err := json.Marshal(v)
