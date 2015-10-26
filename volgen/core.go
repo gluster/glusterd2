@@ -4,10 +4,9 @@ package volgen
 
 import (
 	"fmt"
+	"github.com/gluster/glusterd2/volume"
 	"os"
 	"strings"
-
-	"github.com/gluster/glusterd2/volume"
 )
 
 const (
@@ -72,14 +71,7 @@ func getServerFilePath(vinfo *volume.Volinfo, path *string, brickinfo volume.Bri
 		return err
 	}
 
-	slash_to_hyphen := func(r rune) rune {
-		switch {
-		case r == '/':
-			return '-'
-		}
-		return r
-	}
-	*path = fmt.Sprintf("%s/%s.%s.%s.vol", vdir, vinfo.Name, hname, strings.Map(slash_to_hyphen, brickinfo.Path[1:]))
+	*path = fmt.Sprintf("%s/%s.%s.%s.vol", vdir, vinfo.Name, hname, strings.Replace(brickinfo.Path, "/", "-", -1))
 	return nil
 }
 

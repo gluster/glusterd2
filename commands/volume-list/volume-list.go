@@ -16,18 +16,16 @@ import (
 type Command struct {
 }
 
-func (c *Command) volumeList(w http.ResponseWriter, r *http.Request) {
+func (c *Command) volumeListHandler(w http.ResponseWriter, r *http.Request) {
 
 	log.Info("In Volume list API")
 
 	volumes, e := volume.GetVolumes()
 
 	if e != nil {
-		rsp := client.FormResponse(-1, http.StatusNotFound, e.Error(), "")
-		client.SendResponse(w, http.StatusNotFound, rsp)
+		client.SendResponse(w, -1, http.StatusNotFound, e.Error(), http.StatusNotFound, "")
 	} else {
-		rsp := client.FormResponse(0, 0, "", volumes)
-		client.SendResponse(w, http.StatusOK, rsp)
+		client.SendResponse(w, 0, 0, "", http.StatusOK, volumes)
 	}
 }
 
@@ -39,6 +37,6 @@ func (c *Command) Routes() rest.Routes {
 			Name:        "VolumeList",
 			Method:      "GET",
 			Pattern:     "/volumes/",
-			HandlerFunc: c.volumeList},
+			HandlerFunc: c.volumeListHandler},
 	}
 }

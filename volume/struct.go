@@ -6,7 +6,6 @@ import (
 	"encoding/json"
 	"path/filepath"
 
-	"github.com/gluster/glusterd2/context"
 	"github.com/gluster/glusterd2/utils"
 	"github.com/pborman/uuid"
 
@@ -121,79 +120,16 @@ func NewVolumeEntry(req *VolCreateRequest) *Volinfo {
 	v.RedundancyCount = req.RedundancyCount
 	//TODO : Generate internal username & password
 
-	v.Bricks = NewBrickEntries(req.Bricks, req.Force)
+	v.Bricks = newBrickEntries(req.Bricks, req.Force)
 	if v.Bricks == nil {
 		return nil
 	}
 	return v
 }
 
-// AddOrUpdateVolume marshals to volume object and passes to store to add/update
-func AddOrUpdateVolume(v *Volinfo) error {
-	json, e := json.Marshal(v)
-	if e != nil {
-		log.Error("Failed to marshal the volinfo object")
-		return e
-	}
-	e = context.Store.AddOrUpdateVolumeToStore(v.Name, json)
-	if e != nil {
-		log.WithField("error", e).Error("Couldn't add volume to store")
-		return e
-	}
-	return nil
-}
-
-// GetVolume fetches the json object from the store and unmarshalls it into
-// volinfo object
-func GetVolume(name string) (*Volinfo, error) {
-	var v Volinfo
-	b, e := context.Store.GetVolumeFromStore(name)
-	if e != nil {
-		log.WithField("error", e).Error("Couldn't retrive volume from store")
-		return nil, e
-	}
-	if e = json.Unmarshal(b, &v); e != nil {
-		log.Error("Failed to unmarshal the data into volinfo object")
-		return nil, e
-	}
-	return &v, nil
-}
-
-//DeleteVolume passes the volname to store to delete the volume object
-func DeleteVolume(name string) error {
-	return context.Store.DeleteVolumeFromStore(name)
-}
-
-//GetVolumes retrives the json objects from the store and converts them into
-//respective volinfo objects
-func GetVolumes() ([]Volinfo, error) {
-	pairs, e := context.Store.GetVolumesFromStore()
-	if e != nil {
-		return nil, e
-	}
-
-	var vol *Volinfo
-	var err error
-	volumes := make([]Volinfo, len(pairs))
-
-	for index, pair := range pairs {
-		vol, err = GetVolume(filepath.Base(pair.Key))
-		if err != nil || vol == nil {
-			log.WithFields(log.Fields{
-				"volume": pair.Key,
-				"error":  err,
-			}).Error("Failed to retrieve volume from the store")
-			continue
-		}
-		volumes[index] = *vol
-	}
-	return volumes, nil
-
-}
-
-// NewBrickEntries returns list of initialized Brickinfo objects using list of
+// newBrickEntries returns list of initialized Brickinfo objects using list of
 // bricks
-func NewBrickEntries(bricks []string, force bool) []Brickinfo {
+func newBrickEntries(bricks []string, force bool) []Brickinfo {
 	var b []Brickinfo
 	var b1 Brickinfo
 	for _, brick := range bricks {
@@ -219,7 +155,7 @@ func NewBrickEntries(bricks []string, force bool) []Brickinfo {
 		if utils.ValidateBrickPathLength(b1.Path) != 0 || utils.ValidateBrickSubDirLength(b1.Path) != 0 {
 			return nil
 		}
-		if IsBrickPathAvailable(b1.Hostname, b1.Path) != 0 {
+		if isBrickPathAvailable(b1.Hostname, b1.Path) != 0 {
 			return nil
 		}
 		e = utils.ValidateBrickPathStats(b1.Path, b1.Hostname, force)
@@ -234,11 +170,11 @@ func NewBrickEntries(bricks []string, force bool) []Brickinfo {
 	return b
 }
 
-// IsBrickPathAvailable validates whether the brick is consumed by other
+// isBrickPathAvailable validates whether the brick is consumed by other
 // volume
-func IsBrickPathAvailable(hostname string, brickPath string) int {
+func isBrickPathAvailable(hostname string, brickPath string) int {
 	volumes, e := GetVolumes()
-	if e != nil {
+	if e != nil || volumes == nil {
 		// In case cluster doesn't have any volumes configured yet,
 		// treat this as success
 		log.Debug("Failed to retrieve volumes")

@@ -6,6 +6,7 @@ import "C"
 import (
 	"net"
 	"os"
+	"path"
 	"path/filepath"
 	"strings"
 	"syscall"
@@ -48,13 +49,13 @@ func IsLocalAddress(host string) bool {
 
 // ParseHostAndBrickPath parses the host & brick path out of req.Bricks list
 func ParseHostAndBrickPath(brickPath string) (string, string) {
-	idx := strings.LastIndex(brickPath, ":")
-	if idx == -1 {
+	i := strings.LastIndex(brickPath, ":")
+	if i == -1 {
 		log.Error("Invalid brick path, it should be in the form of host:path")
 		return "", ""
 	}
-	hostname := brickPath[0:idx]
-	path := brickPath[idx+1 : len(brickPath)]
+	hostname := brickPath[0:i]
+	path := brickPath[i+1 : len(brickPath)]
 
 	return hostname, path
 }
@@ -134,12 +135,13 @@ func ValidateBrickPathStats(brickPath string, host string, force bool) error {
 		return err
 	}
 
-	parentBrick := filepath.Base(brickPath)
+	parentBrick := path.Dir(brickPath)
 	parentStat, err = os.Lstat(parentBrick)
 	if err != nil {
 		log.WithFields(log.Fields{
-			"host":  host,
-			"brick": brickPath,
+			"host":        host,
+			"brick":       brickPath,
+			"parentBrick": parentBrick,
 		}).Error("Failed to stat on parent of the brick path")
 		return err
 	}

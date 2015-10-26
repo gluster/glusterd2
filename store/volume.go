@@ -30,7 +30,7 @@ func (s *GDStore) GetVolumeFromStore(name string) ([]byte, error) {
 	return pair.Value, nil
 }
 
-// GetVolumes gets all available volumes in the store
+// GetVolumesFromStore gets all available volumes in the store
 func (s *GDStore) GetVolumesFromStore() ([]*store.KVPair, error) {
 	pairs, err := s.List(volumePrefix)
 	if err != nil {
@@ -40,13 +40,13 @@ func (s *GDStore) GetVolumesFromStore() ([]*store.KVPair, error) {
 	return pairs, nil
 }
 
-// DeleteVolume deletes named volume from the store
+// DeleteVolumeFromStore deletes named volume from the store
 func (s *GDStore) DeleteVolumeFromStore(name string) error {
 	return s.Delete(volumePrefix + name)
 }
 
-// VolumeExists checks if name volume exists in the store
-func (s *GDStore) VolumeExists(name string) bool {
+// VolumeExistsInStore checks if name volume exists in the store
+func (s *GDStore) VolumeExistsInStore(name string) bool {
 	if v, err := s.GetVolumeFromStore(name); err != nil || v == nil {
 		return false
 	}

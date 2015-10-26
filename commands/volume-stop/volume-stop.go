@@ -18,7 +18,7 @@ import (
 type Command struct {
 }
 
-func (c *Command) volumeStop(w http.ResponseWriter, r *http.Request) {
+func (c *Command) volumeStopHandler(w http.ResponseWriter, r *http.Request) {
 	p := mux.Vars(r)
 	volname := p["volname"]
 
@@ -26,26 +26,22 @@ func (c *Command) volumeStop(w http.ResponseWriter, r *http.Request) {
 
 	vol, e := volume.GetVolume(volname)
 	if e != nil {
-		rsp := client.FormResponse(-1, http.StatusBadRequest, errors.ErrVolNotFound.Error(), "")
-		client.SendResponse(w, http.StatusBadRequest, rsp)
+		client.SendResponse(w, -1, http.StatusBadRequest, errors.ErrVolNotFound.Error(), http.StatusBadRequest, "")
 		return
 	}
 	if vol.Status == volume.VolStopped {
-		rsp := client.FormResponse(-1, http.StatusBadRequest, errors.ErrVolAlreadyStopped.Error(), "")
-		client.SendResponse(w, http.StatusBadRequest, rsp)
+		client.SendResponse(w, -1, http.StatusBadRequest, errors.ErrVolAlreadyStopped.Error(), http.StatusBadRequest, "")
 		return
 	}
 	vol.Status = volume.VolStopped
 
 	e = volume.AddOrUpdateVolume(vol)
 	if e != nil {
-		rsp := client.FormResponse(-1, http.StatusInternalServerError, e.Error(), "")
-		client.SendResponse(w, http.StatusInternalServerError, rsp)
+		client.SendResponse(w, -1, http.StatusInternalServerError, e.Error(), http.StatusInternalServerError, "")
 		return
 	}
 	log.WithField("volume", vol.Name).Debug("Volume updated into the store")
-	rsp := client.FormResponse(0, 0, "", "")
-	client.SendResponse(w, http.StatusOK, rsp)
+	client.SendResponse(w, 0, 0, "", http.StatusOK, vol)
 }
 
 // Routes returns command routes to be set up for the volume stop command.
@@ -56,6 +52,6 @@ func (c *Command) Routes() rest.Routes {
 			Name:        "VolumeStop",
 			Method:      "POST",
 			Pattern:     "/volumes/{volname}/stop",
-			HandlerFunc: c.volumeStop},
+			HandlerFunc: c.volumeStopHandler},
 	}
 }

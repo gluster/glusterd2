@@ -5,7 +5,6 @@ import (
 	"net/http"
 
 	"github.com/gluster/glusterd2/client"
-	"github.com/gluster/glusterd2/context"
 	"github.com/gluster/glusterd2/errors"
 	"github.com/gluster/glusterd2/rest"
 	"github.com/gluster/glusterd2/utils"
@@ -20,20 +19,23 @@ import (
 type Command struct {
 }
 
-func validateVolumeCreateRequest(msg *volume.VolCreateRequest, r *http.Request) *client.GenericJSONResponse {
+func validateVolumeCreateRequest(msg *volume.VolCreateRequest, r *http.Request, w http.ResponseWriter) error {
 	e := utils.GetJSONFromRequest(r, msg)
 	if e != nil {
-		log.Error("Invalid JSON Request")
-		return client.FormResponse(-1, 422, errors.ErrJSONParsingFailed.Error(), "")
+		log.WithField("error", e).Error("Failed to parse the JSON Request")
+		client.SendResponse(w, -1, 422, errors.ErrJSONParsingFailed.Error(), 422, "")
+		return errors.ErrJSONParsingFailed
 	}
 
 	if msg.Name == "" {
 		log.Error("Volume name is empty")
-		return client.FormResponse(-1, http.StatusBadRequest, errors.ErrEmptyVolName.Error(), "")
+		client.SendResponse(w, -1, http.StatusBadRequest, errors.ErrEmptyVolName.Error(), http.StatusBadRequest, "")
+		return errors.ErrEmptyVolName
 	}
 	if len(msg.Bricks) <= 0 {
-		log.Error("Brick list is empty")
-		return client.FormResponse(-1, http.StatusBadRequest, errors.ErrEmptyBrickList.Error(), "")
+		log.WithField("volume", msg.Name).Error("Brick list is empty")
+		client.SendResponse(w, -1, http.StatusBadRequest, errors.ErrEmptyBrickList.Error(), http.StatusBadRequest, "")
+		return errors.ErrEmptyBrickList
 	}
 	return nil
 
@@ -44,47 +46,47 @@ func createVolume(msg *volume.VolCreateRequest) *volume.Volinfo {
 	return vol
 }
 
-func (c *Command) volumeCreate(w http.ResponseWriter, r *http.Request) {
+func (c *Command) volumeCreateHandler(w http.ResponseWriter, r *http.Request) {
 
 	msg := new(volume.VolCreateRequest)
 
-	rsp := validateVolumeCreateRequest(msg, r)
-	if rsp != nil {
-		client.SendResponse(w, http.StatusBadRequest, rsp)
+	e := validateVolumeCreateRequest(msg, r, w)
+	if e != nil {
+		// Response has been already sent, just return
 		return
 	}
-	if context.Store.VolumeExists(msg.Name) {
-		log.WithField("Volume", msg.Name).Error("Volume already exists")
-		rsp = client.FormResponse(-1, http.StatusBadRequest, errors.ErrVolExists.Error(), "")
-		client.SendResponse(w, http.StatusBadRequest, rsp)
+	if volume.VolumeExists(msg.Name) {
+		log.WithField("volume", msg.Name).Error("Volume already exists")
+		client.SendResponse(w, -1, http.StatusBadRequest, errors.ErrVolExists.Error(), http.StatusBadRequest, "")
 		return
 	}
 	vol := createVolume(msg)
 	if vol == nil {
-		rsp = client.FormResponse(-1, http.StatusBadRequest, errors.ErrVolCreateFail.Error(), "")
-		client.SendResponse(w, http.StatusBadRequest, rsp)
+		client.SendResponse(w, -1, http.StatusBadRequest, errors.ErrVolCreateFail.Error(), http.StatusBadRequest, "")
 		return
 	}
 
-	//TODO : Error handling for volgen
 	// Creating client  and server volfile
-	e := volgen.GenerateVolfile(vol)
+	e = volgen.GenerateVolfile(vol)
 	if e != nil {
-		rsp = client.FormResponse(-1, http.StatusInternalServerError, e.Error(), "")
-		client.SendResponse(w, http.StatusInternalServerError, rsp)
+		log.WithFields(log.Fields{"error": e.Error(),
+			"volume": vol.Name,
+		}).Error("Failed to generate volfile")
+		client.SendResponse(w, -1, http.StatusInternalServerError, e.Error(), http.StatusInternalServerError, "")
 		return
 	}
 
 	e = volume.AddOrUpdateVolume(vol)
 	if e != nil {
-		rsp = client.FormResponse(-1, http.StatusInternalServerError, e.Error(), "")
-		client.SendResponse(w, http.StatusInternalServerError, rsp)
+		log.WithFields(log.Fields{"error": e.Error(),
+			"volume": vol.Name,
+		}).Error("Failed to create volume")
+		client.SendResponse(w, -1, http.StatusInternalServerError, e.Error(), http.StatusInternalServerError, "")
 		return
 	}
 
 	log.WithField("volume", vol.Name).Debug("NewVolume added to store")
-	rsp = client.FormResponse(0, 0, "", "")
-	client.SendResponse(w, http.StatusCreated, rsp)
+	client.SendResponse(w, 0, 0, "", http.StatusCreated, vol)
 }
 
 // Routes returns command routes to be set up for the volume create command.
@@ -95,6 +97,6 @@ func (c *Command) Routes() rest.Routes {
 			Name:        "VolumeCreate",
 			Method:      "POST",
 			Pattern:     "/volumes/",
-			HandlerFunc: c.volumeCreate},
+			HandlerFunc: c.volumeCreateHandler},
 	}
 }

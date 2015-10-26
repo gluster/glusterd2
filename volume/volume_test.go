@@ -3,6 +3,7 @@ package volume
 import (
 	"testing"
 
+	"github.com/gluster/glusterd2/context"
 	"github.com/gluster/glusterd2/tests"
 )
 
@@ -14,71 +15,9 @@ func TestNewVolumeEntry(t *testing.T) {
 }
 
 func TestNewVolumeEntryFromEmptyRequest(t *testing.T) {
-
-	req := VolCreateRequest{}
-
+	req := new(VolCreateRequest)
 	v := NewVolumeEntry(req)
-	tests.Assert(t, len(v.Name) == 0)
-}
-
-func TestNewVolumeEntryFromRequest(t *testing.T) {
-
-	req := VolCreateRequest{}
-	req.Name = "vol1"
-
-	v := NewVolumeEntry(req)
-	tests.Assert(t, v.Name == "vol1")
-	tests.Assert(t, v.Transport == "tcp")
-	tests.Assert(t, v.ReplicaCount == 1)
-	tests.Assert(t, len(v.ID) != 0)
-	tests.Assert(t, len(v.Bricks) == 0)
-
-}
-
-func TestNewVolumeEntryFromRequestReplica(t *testing.T) {
-
-	req := VolCreateRequest{}
-	req.Name = "vol1"
-	req.ReplicaCount = 3
-
-	v := NewVolumeEntry(req)
-	tests.Assert(t, v.ReplicaCount == 3)
-}
-
-func TestNewVolumeEntryFromRequestTransport(t *testing.T) {
-
-	req := VolCreateRequest{}
-	req.Transport = "rdma"
-
-	v := NewVolumeEntry(req)
-	tests.Assert(t, v.Transport == "rdma")
-}
-
-func TestNewVolumeEntryFromRequestStripe(t *testing.T) {
-
-	req := VolCreateRequest{}
-	req.StripeCount = 2
-
-	v := NewVolumeEntry(req)
-	tests.Assert(t, v.StripeCount == 2)
-}
-
-func TestNewVolumeEntryFromRequestDisperse(t *testing.T) {
-
-	req := VolCreateRequest{}
-	req.DisperseCount = 2
-
-	v := NewVolumeEntry(req)
-	tests.Assert(t, v.DisperseCount == 2)
-}
-
-func TestNewVolumeEntryFromRequestRedundancy(t *testing.T) {
-
-	req := VolCreateRequest{}
-	req.RedundancyCount = 2
-
-	v := NewVolumeEntry(req)
-	tests.Assert(t, v.RedundancyCount == 2)
+	tests.Assert(t, v == nil)
 }
 
 func find(haystack []string, needle string) bool {
@@ -93,12 +32,85 @@ func find(haystack []string, needle string) bool {
 }
 
 func TestNewVolumeEntryFromRequestBricks(t *testing.T) {
+	context.Init()
+	bricks := []string{"127.0.0.1:/tmp/b1", "127.0.0.1:/tmp/b2"}
+	brickPaths := []string{"/tmp/b1", "/tmp/b2"}
+	hosts := []string{"127.0.0.1"}
 
-	req := VolCreateRequest{}
-	req.Bricks = []string{"abc", "def"}
+	b := newBrickEntries(bricks, false)
+	tests.Assert(t, b != nil)
+	for _, brick := range b {
+		tests.Assert(t, find(brickPaths, brick.Path))
+		tests.Assert(t, find(hosts, brick.Hostname))
+	}
+
+}
+
+func TestNewVolumeEntryFromRequest(t *testing.T) {
+	context.Init()
+	req := new(VolCreateRequest)
+	req.Name = "vol1"
+	req.Bricks = []string{"127.0.0.1:/tmp/b1", "127.0.0.1:/tmp/b2"}
+	v := NewVolumeEntry(req)
+	tests.Assert(t, v.Name == "vol1")
+	tests.Assert(t, v.Transport == "tcp")
+	tests.Assert(t, v.ReplicaCount == 1)
+	tests.Assert(t, len(v.ID) != 0)
+	tests.Assert(t, len(v.Bricks) != 0)
+
+}
+
+func TestNewVolumeEntryFromRequestReplica(t *testing.T) {
+	context.Init()
+	req := new(VolCreateRequest)
+	req.Name = "vol1"
+	req.Bricks = []string{"127.0.0.1:/tmp/b1", "127.0.0.1:/tmp/b2"}
+	req.ReplicaCount = 3
 
 	v := NewVolumeEntry(req)
-	for _, brick := range req.Bricks {
-		tests.Assert(t, find(v.Bricks, brick))
-	}
+	tests.Assert(t, v.ReplicaCount == 3)
+}
+
+func TestNewVolumeEntryFromRequestTransport(t *testing.T) {
+	context.Init()
+	req := new(VolCreateRequest)
+	req.Name = "vol1"
+	req.Transport = "rdma"
+	req.Bricks = []string{"127.0.0.1:/tmp/b1", "127.0.0.1:/tmp/b2"}
+
+	v := NewVolumeEntry(req)
+	tests.Assert(t, v.Transport == "rdma")
+}
+
+func TestNewVolumeEntryFromRequestStripe(t *testing.T) {
+	context.Init()
+	req := new(VolCreateRequest)
+	req.Name = "vol1"
+	req.Bricks = []string{"127.0.0.1:/tmp/b1", "127.0.0.1:/tmp/b2"}
+	req.StripeCount = 2
+
+	v := NewVolumeEntry(req)
+	tests.Assert(t, v.StripeCount == 2)
+}
+
+func TestNewVolumeEntryFromRequestDisperse(t *testing.T) {
+	context.Init()
+	req := new(VolCreateRequest)
+	req.Name = "vol1"
+	req.Bricks = []string{"127.0.0.1:/tmp/b1", "127.0.0.1:/tmp/b2"}
+	req.DisperseCount = 2
+
+	v := NewVolumeEntry(req)
+	tests.Assert(t, v.DisperseCount == 2)
+}
+
+func TestNewVolumeEntryFromRequestRedundancy(t *testing.T) {
+	context.Init()
+	req := new(VolCreateRequest)
+	req.Name = "vol1"
+	req.Bricks = []string{"127.0.0.1:/tmp/b1", "127.0.0.1:/tmp/b2"}
+	req.RedundancyCount = 2
+
+	v := NewVolumeEntry(req)
+	tests.Assert(t, v.RedundancyCount == 2)
 }

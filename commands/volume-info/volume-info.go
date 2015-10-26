@@ -18,7 +18,7 @@ import (
 type Command struct {
 }
 
-func (c *Command) volumeInfo(w http.ResponseWriter, r *http.Request) {
+func (c *Command) volumeInfoHandler(w http.ResponseWriter, r *http.Request) {
 	p := mux.Vars(r)
 	volname := p["volname"]
 
@@ -26,11 +26,10 @@ func (c *Command) volumeInfo(w http.ResponseWriter, r *http.Request) {
 
 	vol, e := volume.GetVolume(volname)
 	if e != nil {
-		rsp := client.FormResponse(-1, http.StatusNotFound, errors.ErrVolNotFound.Error(), "")
-		client.SendResponse(w, http.StatusNotFound, rsp)
+		client.SendResponse(w, -1, http.StatusNotFound, errors.ErrVolNotFound.Error(), http.StatusNotFound, "")
 	} else {
-		rsp := client.FormResponse(0, 0, "", vol)
-		client.SendResponse(w, http.StatusOK, rsp)
+
+		client.SendResponse(w, 0, 0, "", 0, vol)
 	}
 }
 
@@ -42,6 +41,6 @@ func (c *Command) Routes() rest.Routes {
 			Name:        "VolumeInfo",
 			Method:      "GET",
 			Pattern:     "/volumes/{volname}",
-			HandlerFunc: c.volumeInfo},
+			HandlerFunc: c.volumeInfoHandler},
 	}
 }
