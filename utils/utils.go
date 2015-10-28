@@ -4,7 +4,6 @@ package utils
 import "C"
 
 import (
-	"net"
 	"os"
 	"path"
 	"path/filepath"
