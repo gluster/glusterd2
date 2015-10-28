@@ -17,7 +17,6 @@ import (
 
 // IsLocalAddress checks whether a given host/IP is local
 func IsLocalAddress(host string) bool {
-	var finalHost string
 	found := false
 
 	addrs, e := net.LookupHost(host)
@@ -32,11 +31,7 @@ func IsLocalAddress(host string) bool {
 			return found
 		}
 		for _, name := range names {
-			// LookupHost/LookupAddr appends a '.' at the end of the
-			// hostname, not sure why though, so this is hack as of
-			// now
-			finalHost = name[0 : len(name)-1]
-			if finalHost == host ||
+			if name == host ||
 				finalHost == "localhost.localdomain" ||
 				finalHost == "localhost" {
 				found = true
