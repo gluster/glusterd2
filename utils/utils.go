@@ -17,7 +17,12 @@ import (
 
 // IsLocalAddress checks whether a given host/IP is local
 func IsLocalAddress(host string) bool {
-	found := false
+	return true
+
+	//TODO : Return true now, need to write this utility to validate a given
+	//hostname or IP is local or not
+
+	/*found := false
 
 	addrs, e := net.LookupHost(host)
 	if e != nil {
@@ -32,14 +37,14 @@ func IsLocalAddress(host string) bool {
 		}
 		for _, name := range names {
 			if name == host ||
-				finalHost == "localhost.localdomain" ||
-				finalHost == "localhost" {
+				name == "localhost.localdomain" ||
+				name == "localhost" {
 				found = true
 				return found
 			}
 		}
 	}
-	return found
+	return found*/
 }
 
 // ParseHostAndBrickPath parses the host & brick path out of req.Bricks list
