@@ -9,12 +9,12 @@ import (
 	"github.com/gluster/glusterd2/tests"
 )
 
-func getSampleBricks() []string {
+func getSampleBricks(b1 string, b2 string) []string {
 
 	var bricks []string
 	lhost, _ := os.Hostname()
-	brick1 := fmt.Sprintf("%s:/tmp/b1", lhost)
-	brick2 := fmt.Sprintf("%s:/tmp/b2", lhost)
+	brick1 := fmt.Sprintf("%s:%s", lhost, b1)
+	brick2 := fmt.Sprintf("%s:%s", lhost, b2)
 	bricks = append(bricks, brick1)
 	bricks = append(bricks, brick2)
 	return bricks
@@ -44,13 +44,22 @@ func find(haystack []string, needle string) bool {
 	return false
 }
 
+func TestNewVolumeEntryFromRequestBricksRootPartition(t *testing.T) {
+	context.Init()
+	bricks := getSampleBricks("/b1", "/b2")
+
+	b := newBrickEntries(bricks, false)
+	tests.Assert(t, b == nil)
+
+}
+
 func TestNewVolumeEntryFromRequestBricks(t *testing.T) {
 	context.Init()
-	bricks := getSampleBricks()
+	bricks := getSampleBricks("/tmp/b1", "/tmp/b2")
 	brickPaths := []string{"/tmp/b1", "/tmp/b2"}
 	host, _ := os.Hostname()
 
-	b := newBrickEntries(bricks, false)
+	b := newBrickEntries(bricks, true)
 	tests.Assert(t, b != nil)
 	for _, brick := range b {
 		tests.Assert(t, find(brickPaths, brick.Path))
@@ -63,7 +72,7 @@ func TestNewVolumeEntryFromRequest(t *testing.T) {
 	context.Init()
 	req := new(VolCreateRequest)
 	req.Name = "vol1"
-	req.Bricks = getSampleBricks()
+	req.Bricks = getSampleBricks(os.Getenv("HOME")+"/b1", os.Getenv("HOME")+"/b2")
 	v := NewVolumeEntry(req)
 	tests.Assert(t, v.Name == "vol1")
 	tests.Assert(t, v.Transport == "tcp")
@@ -77,7 +86,8 @@ func TestNewVolumeEntryFromRequestReplica(t *testing.T) {
 	context.Init()
 	req := new(VolCreateRequest)
 	req.Name = "vol1"
-	req.Bricks = getSampleBricks()
+	req.Bricks = getSampleBricks("/tmp/b1", "/tmp/b2")
+	req.Force = true
 	req.ReplicaCount = 3
 
 	v := NewVolumeEntry(req)
@@ -89,7 +99,8 @@ func TestNewVolumeEntryFromRequestTransport(t *testing.T) {
 	req := new(VolCreateRequest)
 	req.Name = "vol1"
 	req.Transport = "rdma"
-	req.Bricks = getSampleBricks()
+	req.Force = true
+	req.Bricks = getSampleBricks("/tmp/b1", "/tmp/b2")
 	v := NewVolumeEntry(req)
 	tests.Assert(t, v.Transport == "rdma")
 }
@@ -98,7 +109,8 @@ func TestNewVolumeEntryFromRequestStripe(t *testing.T) {
 	context.Init()
 	req := new(VolCreateRequest)
 	req.Name = "vol1"
-	req.Bricks = getSampleBricks()
+	req.Bricks = getSampleBricks("/tmp/b1", "/tmp/b2")
+	req.Force = true
 	req.StripeCount = 2
 
 	v := NewVolumeEntry(req)
@@ -109,7 +121,8 @@ func TestNewVolumeEntryFromRequestDisperse(t *testing.T) {
 	context.Init()
 	req := new(VolCreateRequest)
 	req.Name = "vol1"
-	req.Bricks = getSampleBricks()
+	req.Force = true
+	req.Bricks = getSampleBricks("/tmp/b1", "/tmp/b2")
 	req.DisperseCount = 2
 
 	v := NewVolumeEntry(req)
@@ -120,7 +133,8 @@ func TestNewVolumeEntryFromRequestRedundancy(t *testing.T) {
 	context.Init()
 	req := new(VolCreateRequest)
 	req.Name = "vol1"
-	req.Bricks = getSampleBricks()
+	req.Force = true
+	req.Bricks = getSampleBricks("/tmp/b1", "/tmp/b2")
 	req.RedundancyCount = 2
 
 	v := NewVolumeEntry(req)
