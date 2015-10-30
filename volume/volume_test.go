@@ -72,7 +72,8 @@ func TestNewVolumeEntryFromRequest(t *testing.T) {
 	context.Init()
 	req := new(VolCreateRequest)
 	req.Name = "vol1"
-	req.Bricks = getSampleBricks(os.Getenv("HOME")+"/b1", os.Getenv("HOME")+"/b2")
+	req.Bricks = getSampleBricks("/tmp/b1", "/tmp/b2")
+	req.Force = true
 	v := NewVolumeEntry(req)
 	tests.Assert(t, v.Name == "vol1")
 	tests.Assert(t, v.Transport == "tcp")
