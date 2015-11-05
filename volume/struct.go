@@ -140,9 +140,13 @@ func newBrickEntries(bricks []string, force bool) []Brickinfo {
 		}
 		//TODO : Check for peer hosts first, otherwise look for local
 		//address
-		local := utils.IsLocalAddress(hostname)
+		local, err := utils.IsLocalAddress(hostname)
+		if err != nil {
+			log.WithField("Host", hostname).Error(err.Error())
+			return nil
+		}
 		if local == false {
-			log.Error("Host is not local")
+			log.WithField("Host", hostname).Error("Host is not local")
 			return nil
 		}
 

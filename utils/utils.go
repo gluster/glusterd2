@@ -4,6 +4,7 @@ package utils
 import "C"
 
 import (
+	"net"
 	"os"
 	"path"
 	"path/filepath"
@@ -14,43 +15,44 @@ import (
 	"github.com/gluster/glusterd2/errors"
 )
 
+// PosixPathMax represents POSIX_PATH_MAX
+var PosixPathMax int
+
+func init() {
+	PosixPathMax = C._POSIX_PATH_MAX
+}
+
 // IsLocalAddress checks whether a given host/IP is local
-func IsLocalAddress(host string) bool {
-	return true
-
-	//TODO : Return true now, need to write this utility to validate a given
-	//hostname or IP is local or not
-
-	/*found := false
-
-	addrs, e := net.LookupHost(host)
+func IsLocalAddress(host string) (bool, error) {
+	laddrs, e := net.InterfaceAddrs()
 	if e != nil {
-		log.Error(e.Error())
-		return found
+		return false, e
 	}
-	for _, addr := range addrs {
-		names, err := net.LookupAddr(addr)
-		if err != nil {
-			log.Error(e.Error())
-			return found
-		}
-		for _, name := range names {
-			if name == host ||
-				name == "localhost.localdomain" ||
-				name == "localhost" {
-				found = true
-				return found
+	var lips []net.IP
+	for _, laddr := range laddrs {
+		lipa := laddr.(*net.IPNet)
+		lips = append(lips, lipa.IP)
+	}
+
+	rips, e := net.LookupIP(host)
+	if e != nil {
+		return false, e
+	}
+	for _, rip := range rips {
+		for _, lip := range lips {
+			if lip.Equal(rip) {
+				return true, nil
 			}
 		}
 	}
-	return found*/
+	return false, nil
 }
 
 // ParseHostAndBrickPath parses the host & brick path out of req.Bricks list
 func ParseHostAndBrickPath(brickPath string) (string, string) {
 	i := strings.LastIndex(brickPath, ":")
 	if i == -1 {
-		log.Error("Invalid brick path, it should be in the form of host:path")
+		log.WithField("brick", brickPath).Error("Invalid brick path, it should be in the form of host:path")
 		return "", ""
 	}
 	hostname := brickPath[0:i]
@@ -63,7 +65,7 @@ func ParseHostAndBrickPath(brickPath string) (string, string) {
 func ValidateBrickPathLength(brickPath string) int {
 	//TODO : Check whether PATH_MAX is compatible across all distros
 	if len(filepath.Clean(brickPath)) >= syscall.PathMax {
-		log.Error("brickpath is too long")
+		log.WithField("brick", brickPath).Error("brickpath is too long")
 		return -1
 	}
 	return 0
@@ -76,8 +78,8 @@ func ValidateBrickSubDirLength(brickPath string) int {
 	// Iterate over the sub directories and validate that they don't breach
 	//  _POSIX_PATH_MAX validation
 	for _, subdir := range subdirs {
-		if len(subdir) >= C._POSIX_PATH_MAX {
-			log.Error("sub directory path %v is too long", subdir)
+		if len(subdir) >= PosixPathMax {
+			log.WithField("subdir", subdir).Error("sub directory path is too long")
 			return -1
 		}
 	}
@@ -100,7 +102,7 @@ func GetDeviceID(f os.FileInfo) (int, error) {
 func ValidateBrickPathStats(brickPath string, host string, force bool) error {
 	var created bool
 	var rootStat, brickStat, parentStat os.FileInfo
-	err := os.Mkdir(brickPath, 0666)
+	err := os.Mkdir(brickPath, os.ModeDir|os.ModePerm)
 	if err != nil {
 		if !os.IsExist(err) {
 			log.WithFields(log.Fields{
@@ -125,7 +127,7 @@ func ValidateBrickPathStats(brickPath string, host string, force bool) error {
 			"host":  host,
 			"brick": brickPath,
 		}).Error("brick path which is already present is not a directory")
-		return err
+		return errors.ErrBrickNotDirectory
 	}
 
 	rootStat, err = os.Lstat("/")

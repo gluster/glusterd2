@@ -19,4 +19,5 @@ var (
 	ErrDeviceIDNotFound        = errors.New("Failed to get device id")
 	ErrBrickIsMountPoint       = errors.New("Brick path is already a mount point")
 	ErrBrickUnderRootPartition = errors.New("Brick path is under root partition")
+	ErrBrickNotDirectory       = errors.New("Brick path is not a directory")
 )
