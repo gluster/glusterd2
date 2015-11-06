@@ -16,25 +16,25 @@ func (c *Command) Routes() rest.Routes {
 			Name:        "GetPeer",
 			Method:      "GET",
 			Pattern:     "/peers/{peerid}",
-			HandlerFunc: getPeer,
+			HandlerFunc: getPeerHandler,
 		},
 		rest.Route{
 			Name:        "GetPeers",
 			Method:      "GET",
 			Pattern:     "/peers/",
-			HandlerFunc: getPeers,
+			HandlerFunc: getPeersHandler,
 		},
 		rest.Route{
 			Name:        "DeletePeer",
 			Method:      "DELETE",
 			Pattern:     "/peers/{peerid}",
-			HandlerFunc: deletePeer,
+			HandlerFunc: deletePeerHandler,
 		},
 		rest.Route{
 			Name:        "AddPeer",
 			Method:      "POST",
 			Pattern:     "/peers/",
-			HandlerFunc: addPeer,
+			HandlerFunc: addPeerHandler,
 		},
 	}
 }

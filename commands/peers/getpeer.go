@@ -9,7 +9,7 @@ import (
 	"github.com/gorilla/mux"
 )
 
-func getPeer(w http.ResponseWriter, r *http.Request) {
+func getPeerHandler(w http.ResponseWriter, r *http.Request) {
 	p := mux.Vars(r)
 
 	id := p["peerid"]

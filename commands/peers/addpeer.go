@@ -16,7 +16,7 @@ type peerAddRequest struct {
 	Name      string   `json:"name,omitempty"`
 }
 
-func addPeer(w http.ResponseWriter, r *http.Request) {
+func addPeerHandler(w http.ResponseWriter, r *http.Request) {
 	var req peerAddRequest
 
 	if e := utils.GetJSONFromRequest(r, &req); e != nil {

@@ -9,7 +9,7 @@ import (
 	"github.com/gorilla/mux"
 )
 
-func deletePeer(w http.ResponseWriter, r *http.Request) {
+func deletePeerHandler(w http.ResponseWriter, r *http.Request) {
 	p := mux.Vars(r)
 
 	id := p["peerid"]
@@ -26,6 +26,6 @@ func deletePeer(w http.ResponseWriter, r *http.Request) {
 	if e := context.Store.DeletePeer(id); e != nil {
 		client.SendResponse(w, -1, http.StatusInternalServerError, e.Error(), http.StatusInternalServerError, nil)
 	} else {
-		client.SendResponse(w, 0, 0, "", http.StatusOK, nil)
+		client.SendResponse(w, 0, 0, "", http.StatusNoContent, nil)
 	}
 }

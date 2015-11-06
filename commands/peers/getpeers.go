@@ -7,7 +7,7 @@ import (
 	"github.com/gluster/glusterd2/context"
 )
 
-func getPeers(w http.ResponseWriter, r *http.Request) {
+func getPeersHandler(w http.ResponseWriter, r *http.Request) {
 	if peers, err := context.Store.GetPeers(); err != nil {
 		client.SendResponse(w, -1, http.StatusNotFound, err.Error(), http.StatusNotFound, "")
 	} else {
