@@ -13,4 +13,6 @@ var (
 	ErrVolExists         = errors.New("volume already exists")
 	ErrVolAlreadyStarted = errors.New("volume already started")
 	ErrVolAlreadyStopped = errors.New("volume already stopped")
+
+	ErrNoHostnamesPresent = errors.New("no hostnames present")
 )

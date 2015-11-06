@@ -5,6 +5,7 @@ import (
 
 	"github.com/gluster/glusterd2/client"
 	"github.com/gluster/glusterd2/context"
+	"github.com/gluster/glusterd2/errors"
 	"github.com/gluster/glusterd2/peer"
 	"github.com/gluster/glusterd2/utils"
 
@@ -25,7 +26,7 @@ func addPeerHandler(w http.ResponseWriter, r *http.Request) {
 	}
 
 	if len(req.Addresses) < 1 {
-		client.SendResponse(w, -1, http.StatusBadRequest, "no hostnames present", http.StatusBadRequest, nil)
+		client.SendResponse(w, -1, http.StatusBadRequest, errors.ErrNoHostnamesPresent.Error(), http.StatusBadRequest, nil)
 		return
 	}
 
