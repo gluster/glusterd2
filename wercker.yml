@@ -6,8 +6,6 @@ build:
     - wercker/setup-go-workspace:
         package_dir: github.com/gluster/glusterd2
 
-    - wercker/golint
-
     - script:
         name: enable go1.5 vendoring experiment
         code: export GO15VENDOREXPERIMENT=1
@@ -23,21 +21,26 @@ build:
           popd
           rm -rf $TMPDIR/*
           export GLIDE_HOME=$TMPDIR
+    - script:
+        name: get other requirements
+        code: |
+          ./scripts/install-reqs.sh
 
     - script:
         name: sync vendored packages
-        code: |
-          glide up
+        code: make vendor-update
 
     - script:
-        name: go build
-        code: |
-          go build -v
+        name: run linters
+        script: make verify
 
     - script:
-        name: go test
-        code: |
-          go test -v $(glide nv)
+        name: test build
+        code: make glusterd2
+
+    - script:
+        name: run unit tests
+        code: make test
 
     - script:
         name: cleanup GLIDE_HOME
