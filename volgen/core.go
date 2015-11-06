@@ -66,7 +66,7 @@ func getServerFilePath(vinfo *volume.Volinfo, path *string, brickinfo volume.Bri
 	//TODO : take the hostname from brickinfo
 	hname := brickinfo.Hostname
 	// Create volume directory (/var/lib/glusterd/vols/<VOLNAME>)
-	err := os.MkdirAll(vdir, 0666)
+	err := os.MkdirAll(vdir, os.ModeDir|os.ModePerm)
 	if err != nil {
 		return err
 	}
@@ -80,7 +80,7 @@ func getClientFilePath(vinfo *volume.Volinfo, path *string) error {
 	getVolumeDir(vinfo, &vdir)
 
 	// Create volume directory (/var/lib/glusterd/vols/<VOLNAME>)
-	err := os.MkdirAll(vdir, 0666)
+	err := os.MkdirAll(vdir, os.ModeDir|os.ModePerm)
 	if err != nil {
 		return err
 	}

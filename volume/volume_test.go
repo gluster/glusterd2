@@ -7,6 +7,7 @@ import (
 
 	"github.com/gluster/glusterd2/context"
 	"github.com/gluster/glusterd2/tests"
+	"github.com/pborman/uuid"
 )
 
 func getSampleBricks(b1 string, b2 string) []string {
@@ -48,8 +49,8 @@ func TestNewVolumeEntryFromRequestBricksRootPartition(t *testing.T) {
 	context.Init()
 	bricks := getSampleBricks("/b1", "/b2")
 
-	b := newBrickEntries(bricks, false)
-	tests.Assert(t, b == nil)
+	b := newBrickEntries(bricks, uuid.NewUUID().String(), true)
+	tests.Assert(t, b != nil)
 
 }
 
@@ -59,7 +60,7 @@ func TestNewVolumeEntryFromRequestBricks(t *testing.T) {
 	brickPaths := []string{"/tmp/b1", "/tmp/b2"}
 	host, _ := os.Hostname()
 
-	b := newBrickEntries(bricks, true)
+	b := newBrickEntries(bricks, uuid.NewUUID().String(), true)
 	tests.Assert(t, b != nil)
 	for _, brick := range b {
 		tests.Assert(t, find(brickPaths, brick.Path))

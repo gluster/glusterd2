@@ -20,4 +20,5 @@ var (
 	ErrBrickIsMountPoint       = errors.New("Brick path is already a mount point")
 	ErrBrickUnderRootPartition = errors.New("Brick path is under root partition")
 	ErrBrickNotDirectory       = errors.New("Brick path is not a directory")
+	ErrBrickPathAlreadyInUse   = errors.New("Brick path is already in use by other gluster volume")
 )

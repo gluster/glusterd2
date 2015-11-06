@@ -4,6 +4,7 @@ package utils
 import "C"
 
 import (
+	"golang.org/x/sys/unix"
 	"net"
 	"os"
 	"path"
@@ -14,6 +15,10 @@ import (
 	log "github.com/Sirupsen/logrus"
 	"github.com/gluster/glusterd2/errors"
 )
+
+const testXattr = "trusted.glusterfs.test"
+const volumeIDXattr = "trusted.glusterfs.volume-id"
+const gfidXattr = "trusted.gfid"
 
 // PosixPathMax represents POSIX_PATH_MAX
 var PosixPathMax int
@@ -64,7 +69,7 @@ func ParseHostAndBrickPath(brickPath string) (string, string) {
 //ValidateBrickPathLength validates the length of the brick path
 func ValidateBrickPathLength(brickPath string) int {
 	//TODO : Check whether PATH_MAX is compatible across all distros
-	if len(filepath.Clean(brickPath)) >= syscall.PathMax {
+	if len(filepath.Clean(brickPath)) >= unix.PathMax {
 		log.WithField("brick", brickPath).Error("brickpath is too long")
 		return -1
 	}
@@ -90,6 +95,8 @@ func ValidateBrickSubDirLength(brickPath string) int {
 func GetDeviceID(f os.FileInfo) (int, error) {
 	s := f.Sys()
 	switch s := s.(type) {
+	//TODO : Need to change syscall to unix, using unix.Stat_t fails in one
+	//of the test
 	case *syscall.Stat_t:
 		return int(s.Dev), nil
 	}
@@ -189,4 +196,66 @@ func ValidateBrickPathStats(brickPath string, host string, force bool) error {
 	}
 
 	return nil
+}
+
+//ValidateXattrSupport checks whether the underlying file system has extended
+//attribute support and it also sets some internal xattrs to mark the brick in
+//use
+func ValidateXattrSupport(brickPath string, host string, uuid string, force bool) error {
+	var err error
+	err = unix.Setxattr(brickPath, "trusted.glusterfs.test", []byte("working"), 0)
+	if err != nil {
+		log.WithFields(log.Fields{"error": err.Error(),
+			"brickPath": brickPath,
+			"host":      host,
+			"xattr":     testXattr}).Error("setxattr failed")
+		return err
+	}
+	err = unix.Removexattr(brickPath, "trusted.glusterfs.test")
+	if err != nil {
+		log.WithFields(log.Fields{"error": err.Error(),
+			"brickPath": brickPath,
+			"host":      host,
+			"xattr":     testXattr}).Fatal("removexattr failed")
+		return err
+	}
+	if !force {
+		if isBrickPathAlreadyInUse(brickPath) {
+			log.WithFields(log.Fields{
+				"brickPath": brickPath,
+				"host":      host}).Error(errors.ErrBrickPathAlreadyInUse.Error())
+			return errors.ErrBrickPathAlreadyInUse
+		}
+	}
+	err = unix.Setxattr(brickPath, "trusted.glusterfs.volume-id", []byte(uuid), 0)
+	if err != nil {
+		log.WithFields(log.Fields{"error": err.Error(),
+			"brickPath": brickPath,
+			"host":      host,
+			"xattr":     volumeIDXattr}).Error("setxattr failed")
+		return err
+	}
+
+	return nil
+}
+
+func isBrickPathAlreadyInUse(brickPath string) bool {
+	keys := []string{gfidXattr, volumeIDXattr}
+	var p string
+	var buf []byte
+	p = brickPath
+	for ; p != "/"; p = path.Dir(p) {
+		for _, key := range keys {
+			size, err := unix.Getxattr(p, key, buf)
+			if err != nil {
+				return false
+			} else if size > 0 {
+				return true
+			} else {
+				return false
+			}
+
+		}
+	}
+	return false
 }

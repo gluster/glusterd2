@@ -120,7 +120,7 @@ func NewVolumeEntry(req *VolCreateRequest) *Volinfo {
 	v.RedundancyCount = req.RedundancyCount
 	//TODO : Generate internal username & password
 
-	v.Bricks = newBrickEntries(req.Bricks, req.Force)
+	v.Bricks = newBrickEntries(req.Bricks, v.ID, req.Force)
 	if v.Bricks == nil {
 		return nil
 	}
@@ -129,7 +129,7 @@ func NewVolumeEntry(req *VolCreateRequest) *Volinfo {
 
 // newBrickEntries returns list of initialized Brickinfo objects using list of
 // bricks
-func newBrickEntries(bricks []string, force bool) []Brickinfo {
+func newBrickEntries(bricks []string, volId string, force bool) []Brickinfo {
 	var b []Brickinfo
 	var b1 Brickinfo
 	for _, brick := range bricks {
@@ -163,6 +163,11 @@ func newBrickEntries(bricks []string, force bool) []Brickinfo {
 			return nil
 		}
 		e = utils.ValidateBrickPathStats(b1.Path, b1.Hostname, force)
+		if e != nil {
+			//TODO: Need to communicate back the error
+			return nil
+		}
+		e = utils.ValidateXattrSupport(b1.Path, b1.Hostname, volId, force)
 		if e != nil {
 			//TODO: Need to communicate back the error
 			return nil
