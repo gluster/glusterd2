@@ -32,7 +32,7 @@ build:
 
     - script:
         name: run linters
-        script: make verify
+        code: make verify
 
     - script:
         name: test build
