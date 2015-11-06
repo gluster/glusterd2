@@ -1,4 +1,4 @@
-box: google/golang:1.4
+box: golang:1.5
 
 build:
   steps:
@@ -9,13 +9,36 @@ build:
     - wercker/golint
 
     - script:
+        name: enable go1.5 vendoring experiment
+        code: export GO15VENDOREXPERIMENT=1
+
+    - script:
+        name: get glide
+        code: |
+          TMPDIR=$(mktemp -d)
+          pushd $TMPDIR
+          wget --quiet -O glide.tar.gz https://github.com/Masterminds/glide/releases/download/0.7.0/glide-0.7.0-linux-amd64.tar.gz
+          tar zxf glide.tar.gz
+          cp linux-amd64/glide $GOPATH/bin
+          popd
+          rm -rf $TMPDIR/*
+          export GLIDE_HOME=$TMPDIR
+
+    - script:
+        name: sync vendored packages
+        code: |
+          glide up
+
+    - script:
         name: go build
         code: |
-          go get -v -t ./...
-          go build -v ./...
+          go build -v
 
     - script:
         name: go test
         code: |
-          go test -v ./...
+          go test -v $(glide nv)
 
+    - script:
+        name: cleanup GLIDE_HOME
+        code: rm -rf $TMPDIR
