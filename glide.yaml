@@ -1,0 +1,21 @@
+parent: null
+package: github.com/gluster/glusterd2
+import:
+- package: github.com/pborman/uuid
+  version: cccd189d45f7ac3368a0d127efb7f4d08ae0b655
+- package: github.com/gorilla/mux
+  version: ad4d7a5882b961e07e2626045eb995c022ac6664
+- package: github.com/docker/libkv
+  version: 93099f38de7421e6979983652730a81e2bafd578
+- package: github.com/Sirupsen/logrus
+  version: v0.8.7
+- package: github.com/meatballhat/negroni-logrus
+  version: dd89490b0057cca7fe3fa3885f82935dfd430c2e
+- package: gopkg.in/tylerb/graceful.v1
+  version: 48afeb21e2fcbcff0f30bd5ad6b97747b0fae38e
+- package: golang.org/x/net
+  version: b4e17d61b15679caf2335da776c614169a1b4643
+- package: github.com/codegangsta/negroni
+  version: c7477ad8e330bef55bf1ebe300cf8aa67c492d1b
+- package: github.com/gorilla/context
+  version: 1c83b3eabd45b6d76072b66b746c20815fb2872d
