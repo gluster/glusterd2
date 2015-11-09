@@ -17,5 +17,5 @@ build:
     - script:
         name: go test
         code: |
-          go test -v ./...
+                go test -v ./... -tags volcreate
 
