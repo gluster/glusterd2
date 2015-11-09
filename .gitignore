@@ -1,2 +1,10 @@
-.vagrant/
+# Ignore built binaries
 glusterd2
+# Ignore vagrant direcotry
+.vagrant/
+# Ignore vendored dependencies
+vendor/
+# Ignore wercker local build directories
+_builds/
+_steps/
+_projects/
