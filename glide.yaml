@@ -19,3 +19,5 @@ import:
   version: c7477ad8e330bef55bf1ebe300cf8aa67c492d1b
 - package: github.com/gorilla/context
   version: 1c83b3eabd45b6d76072b66b746c20815fb2872d
+- package: github.com/hashicorp/consul
+  version: v0.5.2
