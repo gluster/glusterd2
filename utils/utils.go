@@ -19,13 +19,7 @@ import (
 const testXattr = "trusted.glusterfs.test"
 const volumeIDXattr = "trusted.glusterfs.volume-id"
 const gfidXattr = "trusted.gfid"
-
-// PosixPathMax represents POSIX_PATH_MAX
-var PosixPathMax int
-
-func init() {
-	PosixPathMax = C._POSIX_PATH_MAX
-}
+const PosixPathMax = C._POSIX_PATH_MAX
 
 // IsLocalAddress checks whether a given host/IP is local
 func IsLocalAddress(host string) (bool, error) {

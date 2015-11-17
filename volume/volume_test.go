@@ -1,4 +1,4 @@
-// +build !volumecreate
+// +build volumecreate
 
 package volume
 
