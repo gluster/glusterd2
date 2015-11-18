@@ -5,9 +5,9 @@ import (
 	"net/http"
 
 	"github.com/gluster/glusterd2/client"
-	"github.com/gluster/glusterd2/context"
 	"github.com/gluster/glusterd2/errors"
 	"github.com/gluster/glusterd2/rest"
+	"github.com/gluster/glusterd2/volume"
 
 	log "github.com/Sirupsen/logrus"
 	"github.com/gorilla/mux"
@@ -18,19 +18,18 @@ import (
 type Command struct {
 }
 
-func (c *Command) volumeInfo(w http.ResponseWriter, r *http.Request) {
+func (c *Command) volumeInfoHandler(w http.ResponseWriter, r *http.Request) {
 	p := mux.Vars(r)
-	/* TODO : As of now we consider the request as volname, later on we need
-	* to consider the volume id as well */
 	volname := p["volname"]
 
 	log.Debug("In Volume info API")
 
-	vol, e := context.Store.GetVolume(volname)
+	vol, e := volume.GetVolume(volname)
 	if e != nil {
 		client.SendResponse(w, -1, http.StatusNotFound, errors.ErrVolNotFound.Error(), http.StatusNotFound, "")
 	} else {
-		client.SendResponse(w, 0, 0, "", http.StatusOK, vol)
+
+		client.SendResponse(w, 0, 0, "", 0, vol)
 	}
 }
 
@@ -42,6 +41,6 @@ func (c *Command) Routes() rest.Routes {
 			Name:        "VolumeInfo",
 			Method:      "GET",
 			Pattern:     "/volumes/{volname}",
-			HandlerFunc: c.volumeInfo},
+			HandlerFunc: c.volumeInfoHandler},
 	}
 }

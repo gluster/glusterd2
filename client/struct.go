@@ -3,6 +3,8 @@ package client
 import (
 	"encoding/json"
 	"net/http"
+
+	log "github.com/Sirupsen/logrus"
 )
 
 // GenericJSONResponse defines the generic response type to be sent back to
@@ -27,7 +29,7 @@ func SendResponse(w http.ResponseWriter, opRet int, opErrno int, opErrStr string
 	rsp.Data = v
 
 	if e := json.NewEncoder(w).Encode(rsp); e != nil {
-		panic(e)
+		log.WithField("error", e).Error("Failed to send the response -", rsp.Data)
 	}
 	return
 }

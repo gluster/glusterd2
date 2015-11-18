@@ -4,9 +4,7 @@ package store
 // volumes stored in the store
 
 import (
-	"encoding/json"
-
-	"github.com/gluster/glusterd2/volume"
+	"github.com/docker/libkv/store"
 
 	log "github.com/Sirupsen/logrus"
 )
@@ -19,74 +17,41 @@ func init() {
 	prefixes = append(prefixes, volumePrefix)
 }
 
-// AddOrUpdateVolume adds/updates given volume in the store
-func (s *GDStore) AddOrUpdateVolume(v *volume.Volinfo) error {
-	json, err := json.Marshal(v)
-	if err != nil {
+// AddOrUpdateVolumeToStore adds/updates given volume data in the store
+func (s *GDStore) AddOrUpdateVolumeToStore(name string, b []byte) error {
+	if err := s.Put(volumePrefix+name, b, nil); err != nil {
 		return err
 	}
-
-	if err := s.Put(volumePrefix+v.Name, json, nil); err != nil {
-		return err
-	}
-
 	return nil
 }
 
-// GetVolume returns the named volume from the store
-func (s *GDStore) GetVolume(name string) (*volume.Volinfo, error) {
+// GetVolumeFromStore returns the named volume from the store
+func (s *GDStore) GetVolumeFromStore(name string) ([]byte, error) {
 	pair, err := s.Get(volumePrefix + name)
 	if err != nil || pair == nil {
 		return nil, err
 	}
-
-	var v volume.Volinfo
-	if err := json.Unmarshal(pair.Value, &v); err != nil {
-		return nil, err
-	}
-
-	return &v, nil
+	return pair.Value, nil
 }
 
-// GetVolumes gets all available volumes in the store
-func (s *GDStore) GetVolumes() ([]volume.Volinfo, error) {
+// GetVolumesFromStore gets all available volumes in the store
+func (s *GDStore) GetVolumesFromStore() ([]*store.KVPair, error) {
 	pairs, err := s.List(volumePrefix)
-	if err != nil || pairs == nil {
+	if err != nil {
+		log.Error("Failed to retrive volumes from the store -", err.Error())
 		return nil, err
 	}
-
-	var v volume.Volinfo
-	volumes := make([]volume.Volinfo, len(pairs))
-	for index, pair := range pairs {
-		p, err := s.Get(pair.Key)
-		if err != nil || p == nil {
-			log.WithFields(log.Fields{
-				"volume": pair.Key,
-				"error":  err,
-			}).Error("Failed to retrieve volume from the store")
-			continue
-		}
-		if err := json.Unmarshal(p.Value, &v); err != nil {
-			log.WithFields(log.Fields{
-				"volume": pair.Key,
-				"error":  err,
-			}).Error("Failed to unmarshal volume")
-			continue
-		}
-		volumes[index] = v
-	}
-
-	return volumes, nil
+	return pairs, nil
 }
 
-// DeleteVolume deletes named volume from the store
-func (s *GDStore) DeleteVolume(name string) error {
+// DeleteVolumeFromStore deletes named volume from the store
+func (s *GDStore) DeleteVolumeFromStore(name string) error {
 	return s.Delete(volumePrefix + name)
 }
 
-// VolumeExists checks if name volume exists in the store
-func (s *GDStore) VolumeExists(name string) bool {
-	if v, err := s.GetVolume(name); err != nil || v == nil {
+// VolumeExistsInStore checks if name volume exists in the store
+func (s *GDStore) VolumeExistsInStore(name string) bool {
+	if v, err := s.GetVolumeFromStore(name); err != nil || v == nil {
 		return false
 	}
 	return true

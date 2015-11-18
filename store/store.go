@@ -36,6 +36,7 @@ func init() {
 func New() *GDStore {
 	//TODO: Make this configurable
 	address := "localhost:8500"
+	consul.Register()
 
 	log.WithFields(log.Fields{"type": "consul", "consul.config": address}).Debug("Creating new store")
 	s, err := libkv.NewStore(store.CONSUL, []string{address}, &store.Config{ConnectionTimeout: 10 * time.Second})
