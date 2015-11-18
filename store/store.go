@@ -15,7 +15,7 @@ import (
 )
 
 const (
-	glusterPrefix string = "gluster/"
+	GlusterPrefix string = "gluster/"
 )
 
 var (
@@ -25,6 +25,7 @@ var (
 // GDStore is the GlusterD centralized store
 type GDStore struct {
 	store.Store
+	Prefix string
 }
 
 func init() {
