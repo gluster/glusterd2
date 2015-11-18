@@ -4,7 +4,6 @@ import (
 	"net/http"
 
 	"github.com/gluster/glusterd2/client"
-	"github.com/gluster/glusterd2/context"
 	"github.com/gluster/glusterd2/errors"
 	"github.com/gluster/glusterd2/peer"
 	"github.com/gluster/glusterd2/utils"
@@ -44,7 +43,7 @@ func addPeerHandler(w http.ResponseWriter, r *http.Request) {
 		Addresses: req.Addresses,
 	}
 
-	if e := context.Store.AddOrUpdatePeer(p); e != nil {
+	if e := peer.AddOrUpdatePeer(p); e != nil {
 		client.SendResponse(w, -1, http.StatusInternalServerError, e.Error(), http.StatusInternalServerError, nil)
 		return
 	}
