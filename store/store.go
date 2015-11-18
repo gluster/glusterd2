@@ -15,6 +15,7 @@ import (
 )
 
 const (
+	// GlusterPrefix prefixes all paths in the store
 	GlusterPrefix string = "gluster/"
 )
 
@@ -25,12 +26,10 @@ var (
 // GDStore is the GlusterD centralized store
 type GDStore struct {
 	store.Store
-	Prefix string
 }
 
 func init() {
 	consul.Register()
-	prefixes = append(prefixes, glusterPrefix)
 }
 
 // New creates a new GDStore
@@ -49,7 +48,7 @@ func New() *GDStore {
 
 	gds := &GDStore{s}
 
-	if !gds.initPrefixes() {
+	if e := gds.InitPrefix(GlusterPrefix); e != nil {
 		log.Fatal("failed to init store prefixes")
 	}
 
@@ -61,33 +60,43 @@ func New() *GDStore {
 func (s *GDStore) initPrefixes() bool {
 	log.Debug("initing store prefixes")
 	for _, p := range prefixes {
-		// Create the prefix if the prefix is not found. If any other error occurs
-		// return it. Don't do anything if prefix is found
-		if _, e := s.Get(p); e != nil {
-			switch e {
-			case store.ErrKeyNotFound:
-				log.WithField("prefix", p).Debug("prefix not found, initing")
-
-				if e := s.Put(p, nil, nil); e != nil {
-					log.WithFields(log.Fields{
-						"preifx": p,
-						"error":  e,
-					}).Error("error initing prefix")
-
-					return false
-				}
-
-			default:
-				log.WithFields(log.Fields{
-					"prefix": p,
-					"error":  e,
-				}).Error("error getting prefix")
-
-				return false
-			}
-		} else {
-			log.WithField("prefix", p).Debug("prefix present")
+		if e := s.InitPrefix(p); e != nil {
+			return false
 		}
 	}
 	return true
+}
+
+// InitPrefix initializes the given prefix `p` in the store so that GETs on empty prefixes don't fail
+// Returns error on failure, nil on success
+func (s *GDStore) InitPrefix(p string) error {
+	// Create the prefix if the prefix is not found. If any other error occurs
+	// return it. Don't do anything if prefix is found
+	if _, e := s.Get(p); e != nil {
+		switch e {
+		case store.ErrKeyNotFound:
+			log.WithField("prefix", p).Debug("prefix not found, initing")
+
+			if e := s.Put(p, nil, nil); e != nil {
+				log.WithFields(log.Fields{
+					"preifx": p,
+					"error":  e,
+				}).Error("error initing prefix")
+
+				return e
+			}
+
+		default:
+			log.WithFields(log.Fields{
+				"prefix": p,
+				"error":  e,
+			}).Error("error getting prefix")
+
+			return e
+		}
+	} else {
+		log.WithField("prefix", p).Debug("prefix present")
+	}
+
+	return nil
 }

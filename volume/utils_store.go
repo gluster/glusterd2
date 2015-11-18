@@ -14,6 +14,10 @@ const (
 	volumePrefix string = store.GlusterPrefix + "volume/"
 )
 
+func init() {
+	context.Store.InitPrefix(volumePrefix)
+}
+
 // AddOrUpdateVolume marshals to volume object and passes to store to add/update
 func AddOrUpdateVolume(v *Volinfo) error {
 	json, e := json.Marshal(v)
