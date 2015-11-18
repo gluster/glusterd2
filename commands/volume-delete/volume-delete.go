@@ -24,7 +24,7 @@ func (c *Command) volumeDeleteHandler(w http.ResponseWriter, r *http.Request) {
 
 	log.Info("In Volume delete API")
 
-	if volume.VolumeExists(volname) {
+	if volume.Exists(volname) {
 		client.SendResponse(w, -1, http.StatusBadRequest, errors.ErrVolNotFound.Error(), http.StatusBadRequest, "")
 		return
 	}
