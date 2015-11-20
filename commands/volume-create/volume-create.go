@@ -55,7 +55,7 @@ func (c *Command) volumeCreateHandler(w http.ResponseWriter, r *http.Request) {
 		// Response has been already sent, just return
 		return
 	}
-	if volume.VolumeExists(msg.Name) {
+	if volume.Exists(msg.Name) {
 		log.WithField("volume", msg.Name).Error("Volume already exists")
 		client.SendResponse(w, -1, http.StatusBadRequest, errors.ErrVolExists.Error(), http.StatusBadRequest, "")
 		return

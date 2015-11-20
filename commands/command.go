@@ -3,6 +3,7 @@ package commands
 
 import (
 	"github.com/gluster/glusterd2/commands/hello"
+	"github.com/gluster/glusterd2/commands/peers"
 	"github.com/gluster/glusterd2/commands/volume-create"
 	"github.com/gluster/glusterd2/commands/volume-delete"
 	"github.com/gluster/glusterd2/commands/volume-info"
@@ -29,4 +30,5 @@ var Commands = []Command{
 	&volumelist.Command{},
 	&volumestart.Command{},
 	&volumestop.Command{},
+	&peercommands.Command{},
 }

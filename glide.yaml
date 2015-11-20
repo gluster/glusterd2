@@ -24,4 +24,3 @@ import:
   version: v0.8.7
 - package: github.com/hashicorp/consul
   version: v0.5.2
-
