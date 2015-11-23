@@ -16,9 +16,9 @@ const (
 	peerPrefix string = store.GlusterPrefix + "peers/"
 )
 
-func init() {
-	context.Store.InitPrefix(peerPrefix)
-}
+//func init() {
+//context.Store.InitPrefix(peerPrefix)
+//}
 
 // AddOrUpdatePeer adds/updates given peer in the store
 func AddOrUpdatePeer(p *Peer) error {
