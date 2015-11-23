@@ -2,14 +2,8 @@
 package commands
 
 import (
-	"github.com/gluster/glusterd2/commands/hello"
 	"github.com/gluster/glusterd2/commands/peers"
-	"github.com/gluster/glusterd2/commands/volume-create"
-	"github.com/gluster/glusterd2/commands/volume-delete"
-	"github.com/gluster/glusterd2/commands/volume-info"
-	"github.com/gluster/glusterd2/commands/volume-list"
-	"github.com/gluster/glusterd2/commands/volume-start"
-	"github.com/gluster/glusterd2/commands/volume-stop"
+	"github.com/gluster/glusterd2/commands/volumes"
 	"github.com/gluster/glusterd2/rest"
 )
 
@@ -23,12 +17,6 @@ type Command interface {
 
 // Commands is a list of commands available
 var Commands = []Command{
-	&hello.Command{},
-	&volumecreate.Command{},
-	&volumeinfo.Command{},
-	&volumedelete.Command{},
-	&volumelist.Command{},
-	&volumestart.Command{},
-	&volumestop.Command{},
 	&peercommands.Command{},
+	&volumecommands.Command{},
 }
