@@ -41,6 +41,7 @@ func createVolume(msg *volume.VolCreateRequest) *volume.Volinfo {
 
 func volumeCreateHandler(w http.ResponseWriter, r *http.Request) {
 
+	log.Debug("In volume create")
 	msg := new(volume.VolCreateRequest)
 
 	e := validateVolumeCreateRequest(msg, r, w)
