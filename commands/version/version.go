@@ -11,13 +11,13 @@ import (
 // Response represents the structure of the response object for /version
 // end point
 type Response struct {
-	OpVersion  int
-	APIVersion int
+	GlusterdVersion string
+	APIVersion      int
 }
 
 func getVersionHandler(w http.ResponseWriter, r *http.Request) {
 	var v Response
-	v.OpVersion = context.GlusterdVersion
+	v.GlusterdVersion = context.GlusterdVersion
 	v.APIVersion = context.APIVersion
 	client.SendResponse(w, 0, 0, "", http.StatusOK, v)
 }

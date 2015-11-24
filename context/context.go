@@ -17,15 +17,16 @@ import (
 
 const MaxOpVersion = 40000
 const APIVersion = 1
+const GlusterdVersion = "4.0-dev"
 
 // Any object that is a part of the GlusterD context and needs to be available
 // to other packages should be declared here as exported global variables
 var (
-	MyUUID          uuid.UUID
-	Rest            *rest.GDRest
-	TxnFw           *transaction.GDTxnFw
-	Store           *store.GDStore
-	GlusterdVersion int
+	MyUUID    uuid.UUID
+	Rest      *rest.GDRest
+	TxnFw     *transaction.GDTxnFw
+	Store     *store.GDStore
+	OpVersion int
 )
 
 var (
@@ -34,7 +35,7 @@ var (
 
 func initOpVersion() {
 	//TODO : Need cluster awareness and then decide the op-version
-	GlusterdVersion = MaxOpVersion
+	OpVersion = MaxOpVersion
 }
 
 func doInit() {
