@@ -4,7 +4,7 @@ import (
 	"net/http"
 
 	"github.com/gluster/glusterd2/errors"
-	"github.com/gluster/glusterd2/utils"
+	"github.com/gluster/glusterd2/rest"
 	"github.com/gluster/glusterd2/volume"
 
 	log "github.com/Sirupsen/logrus"
@@ -19,9 +19,9 @@ func volumeInfoHandler(w http.ResponseWriter, r *http.Request) {
 
 	vol, e := volume.GetVolume(volname)
 	if e != nil {
-		utils.SendHTTPError(w, http.StatusNotFound, errors.ErrVolNotFound.Error())
+		rest.SendHTTPError(w, http.StatusNotFound, errors.ErrVolNotFound.Error())
 	} else {
 
-		utils.SendHTTPResponse(w, http.StatusOK, vol)
+		rest.SendHTTPResponse(w, http.StatusOK, vol)
 	}
 }

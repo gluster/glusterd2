@@ -4,7 +4,7 @@ import (
 	"net/http"
 
 	"github.com/gluster/glusterd2/errors"
-	"github.com/gluster/glusterd2/utils"
+	"github.com/gluster/glusterd2/rest"
 	"github.com/gluster/glusterd2/volume"
 
 	log "github.com/Sirupsen/logrus"
@@ -18,7 +18,7 @@ func volumeDeleteHandler(w http.ResponseWriter, r *http.Request) {
 	log.Info("In Volume delete API")
 
 	if volume.Exists(volname) {
-		utils.SendHTTPError(w, http.StatusBadRequest, errors.ErrVolNotFound.Error())
+		rest.SendHTTPError(w, http.StatusBadRequest, errors.ErrVolNotFound.Error())
 		return
 	}
 
@@ -27,8 +27,8 @@ func volumeDeleteHandler(w http.ResponseWriter, r *http.Request) {
 		log.WithFields(log.Fields{"error": e.Error(),
 			"volume": volname,
 		}).Error("Failed to delete the volume")
-		utils.SendHTTPError(w, http.StatusInternalServerError, e.Error())
+		rest.SendHTTPError(w, http.StatusInternalServerError, e.Error())
 		return
 	}
-	utils.SendHTTPResponse(w, http.StatusOK, nil)
+	rest.SendHTTPResponse(w, http.StatusOK, nil)
 }

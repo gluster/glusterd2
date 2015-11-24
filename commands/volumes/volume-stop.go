@@ -4,7 +4,7 @@ import (
 	"net/http"
 
 	"github.com/gluster/glusterd2/errors"
-	"github.com/gluster/glusterd2/utils"
+	"github.com/gluster/glusterd2/rest"
 	"github.com/gluster/glusterd2/volume"
 
 	log "github.com/Sirupsen/logrus"
@@ -19,20 +19,20 @@ func volumeStopHandler(w http.ResponseWriter, r *http.Request) {
 
 	vol, e := volume.GetVolume(volname)
 	if e != nil {
-		utils.SendHTTPError(w, http.StatusBadRequest, errors.ErrVolNotFound.Error())
+		rest.SendHTTPError(w, http.StatusBadRequest, errors.ErrVolNotFound.Error())
 		return
 	}
 	if vol.Status == volume.VolStopped {
-		utils.SendHTTPError(w, http.StatusBadRequest, errors.ErrVolAlreadyStopped.Error())
+		rest.SendHTTPError(w, http.StatusBadRequest, errors.ErrVolAlreadyStopped.Error())
 		return
 	}
 	vol.Status = volume.VolStopped
 
 	e = volume.AddOrUpdateVolume(vol)
 	if e != nil {
-		utils.SendHTTPError(w, http.StatusInternalServerError, e.Error())
+		rest.SendHTTPError(w, http.StatusInternalServerError, e.Error())
 		return
 	}
 	log.WithField("volume", vol.Name).Debug("Volume updated into the store")
-	utils.SendHTTPResponse(w, http.StatusOK, vol)
+	rest.SendHTTPResponse(w, http.StatusOK, vol)
 }

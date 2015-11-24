@@ -4,10 +4,8 @@ package utils
 import "C"
 
 import (
-	"encoding/json"
 	"golang.org/x/sys/unix"
 	"net"
-	"net/http"
 	"os"
 	"path"
 	"path/filepath"
@@ -17,11 +15,6 @@ import (
 	log "github.com/Sirupsen/logrus"
 	"github.com/gluster/glusterd2/errors"
 )
-
-// APIError is the placeholder for error string to report back to the client
-type APIError struct {
-	Error string
-}
 
 const testXattr = "trusted.glusterfs.test"
 const volumeIDXattr = "trusted.glusterfs.volume-id"
@@ -261,21 +254,4 @@ func isBrickPathAlreadyInUse(brickPath string) bool {
 		}
 	}
 	return false
-}
-
-// SendHTTPResponse to send response back to the client
-func SendHTTPResponse(w http.ResponseWriter, statusCode int, rsp interface{}) {
-	w.Header().Set("Content-Type", "application/json; charset=UTF-8")
-	w.WriteHeader(statusCode)
-	if e := json.NewEncoder(w).Encode(rsp); e != nil {
-		log.WithField("error", e).Error("Failed to send the response -", rsp)
-	}
-	return
-}
-
-// SendHTTPError is to report error back to the client
-func SendHTTPError(rw http.ResponseWriter, statusCode int, errMsg string) {
-	bytes, _ := json.Marshal(APIError{Error: errMsg})
-	rw.WriteHeader(statusCode)
-	rw.Write(bytes)
 }
