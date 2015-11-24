@@ -14,6 +14,7 @@ import (
 
 	log "github.com/Sirupsen/logrus"
 	"github.com/gluster/glusterd2/errors"
+	"github.com/pborman/uuid"
 )
 
 const testXattr = "trusted.glusterfs.test"
@@ -195,7 +196,7 @@ func ValidateBrickPathStats(brickPath string, host string, force bool) error {
 //ValidateXattrSupport checks whether the underlying file system has extended
 //attribute support and it also sets some internal xattrs to mark the brick in
 //use
-func ValidateXattrSupport(brickPath string, host string, uuid string, force bool) error {
+func ValidateXattrSupport(brickPath string, host string, uuid uuid.UUID, force bool) error {
 	var err error
 	err = unix.Setxattr(brickPath, "trusted.glusterfs.test", []byte("working"), 0)
 	if err != nil {

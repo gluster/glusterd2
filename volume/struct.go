@@ -50,7 +50,7 @@ const (
 
 // Volinfo repesents a volume
 type Volinfo struct {
-	ID   string
+	ID   uuid.UUID
 	Name string
 	Type VolType
 
@@ -88,7 +88,7 @@ type VolCreateRequest struct {
 type Brickinfo struct {
 	Hostname string
 	Path     string
-	ID       string
+	ID       uuid.UUID
 }
 
 // NewVolinfo returns an empty Volinfo
@@ -103,7 +103,7 @@ func NewVolinfo() *Volinfo {
 func NewVolumeEntry(req *VolCreateRequest) *Volinfo {
 	v := NewVolinfo()
 
-	v.ID = uuid.NewUUID().String()
+	v.ID = uuid.NewRandom()
 	v.Name = req.Name
 	if len(req.Transport) > 0 {
 		v.Transport = req.Transport
@@ -129,7 +129,7 @@ func NewVolumeEntry(req *VolCreateRequest) *Volinfo {
 
 // newBrickEntries returns list of initialized Brickinfo objects using list of
 // bricks
-func newBrickEntries(bricks []string, volId string, force bool) []Brickinfo {
+func newBrickEntries(bricks []string, volId uuid.UUID, force bool) []Brickinfo {
 	var b []Brickinfo
 	var b1 Brickinfo
 	for _, brick := range bricks {

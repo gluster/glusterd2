@@ -13,7 +13,7 @@ var volCount uint64
 func getRandVolume() *Volinfo {
 	v := NewVolinfo()
 
-	v.ID = uuid.NewUUID().String()
+	v.ID = uuid.NewRandom()
 	v.Name = fmt.Sprintf("volume-%d", atomic.AddUint64(&volCount, 1))
 	v.Type = DistReplicate
 	brickCount := uint64(rand.Intn(256) + 1)
