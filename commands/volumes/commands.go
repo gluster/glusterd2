@@ -15,32 +15,38 @@ func (c *Command) Routes() rest.Routes {
 		rest.Route{
 			Name:        "VolumeCreate",
 			Method:      "POST",
-			Pattern:     "/volumes/",
+			Pattern:     "/volumes",
+			Version:     1,
 			HandlerFunc: volumeCreateHandler},
 		rest.Route{
 			Name:        "VolumeDelete",
 			Method:      "DELETE",
 			Pattern:     "/volumes/{volname}",
+			Version:     1,
 			HandlerFunc: volumeDeleteHandler},
 		rest.Route{
 			Name:        "VolumeInfo",
 			Method:      "GET",
 			Pattern:     "/volumes/{volname}",
+			Version:     1,
 			HandlerFunc: volumeInfoHandler},
 		rest.Route{
 			Name:        "VolumeList",
 			Method:      "GET",
-			Pattern:     "/volumes/",
+			Pattern:     "/volumes",
+			Version:     1,
 			HandlerFunc: volumeListHandler},
 		rest.Route{
 			Name:        "VolumeStart",
 			Method:      "POST",
 			Pattern:     "/volumes/{volname}/start",
+			Version:     1,
 			HandlerFunc: volumeStartHandler},
 		rest.Route{
 			Name:        "VolumeStop",
 			Method:      "POST",
 			Pattern:     "/volumes/{volname}/stop",
+			Version:     1,
 			HandlerFunc: volumeStopHandler},
 	}
 }

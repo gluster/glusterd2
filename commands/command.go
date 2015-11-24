@@ -3,6 +3,7 @@ package commands
 
 import (
 	"github.com/gluster/glusterd2/commands/peers"
+	"github.com/gluster/glusterd2/commands/version"
 	"github.com/gluster/glusterd2/commands/volumes"
 	"github.com/gluster/glusterd2/rest"
 )
@@ -17,6 +18,7 @@ type Command interface {
 
 // Commands is a list of commands available
 var Commands = []Command{
-	&peercommands.Command{},
+	&versioncommands.Command{},
 	&volumecommands.Command{},
+	&peercommands.Command{},
 }
