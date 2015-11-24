@@ -3,7 +3,6 @@ package peercommands
 import (
 	"net/http"
 
-	"github.com/gluster/glusterd2/client"
 	"github.com/gluster/glusterd2/errors"
 	"github.com/gluster/glusterd2/peer"
 	"github.com/gluster/glusterd2/utils"
@@ -20,12 +19,12 @@ func addPeerHandler(w http.ResponseWriter, r *http.Request) {
 	var req peerAddRequest
 
 	if e := utils.GetJSONFromRequest(r, &req); e != nil {
-		client.SendResponse(w, -1, http.StatusBadRequest, e.Error(), http.StatusBadRequest, nil)
+		utils.SendHTTPError(w, http.StatusBadRequest, e.Error())
 		return
 	}
 
 	if len(req.Addresses) < 1 {
-		client.SendResponse(w, -1, http.StatusBadRequest, errors.ErrNoHostnamesPresent.Error(), http.StatusBadRequest, nil)
+		utils.SendHTTPError(w, http.StatusBadRequest, errors.ErrNoHostnamesPresent.Error())
 		return
 	}
 
@@ -44,10 +43,10 @@ func addPeerHandler(w http.ResponseWriter, r *http.Request) {
 	}
 
 	if e := peer.AddOrUpdatePeer(p); e != nil {
-		client.SendResponse(w, -1, http.StatusInternalServerError, e.Error(), http.StatusInternalServerError, nil)
+		utils.SendHTTPError(w, http.StatusInternalServerError, e.Error())
 		return
 	}
 
-	client.SendResponse(w, 0, 0, "", http.StatusOK, nil)
+	utils.SendHTTPResponse(w, http.StatusOK, nil)
 
 }

@@ -3,8 +3,8 @@ package peercommands
 import (
 	"net/http"
 
-	"github.com/gluster/glusterd2/client"
 	"github.com/gluster/glusterd2/peer"
+	"github.com/gluster/glusterd2/utils"
 
 	"github.com/gorilla/mux"
 )
@@ -14,18 +14,18 @@ func deletePeerHandler(w http.ResponseWriter, r *http.Request) {
 
 	id := p["peerid"]
 	if id == "" {
-		client.SendResponse(w, -1, http.StatusBadRequest, "peerid not present in request", http.StatusBadRequest, nil)
+		utils.SendHTTPError(w, http.StatusBadRequest, "peerid not present in the request")
 		return
 	}
 
 	if !peer.Exists(id) {
-		client.SendResponse(w, -1, http.StatusNotFound, "", http.StatusNotFound, nil)
+		utils.SendHTTPError(w, http.StatusNotFound, "peer not found in cluster")
 		return
 	}
 
 	if e := peer.DeletePeer(id); e != nil {
-		client.SendResponse(w, -1, http.StatusInternalServerError, e.Error(), http.StatusInternalServerError, nil)
+		utils.SendHTTPError(w, http.StatusInternalServerError, e.Error())
 	} else {
-		client.SendResponse(w, 0, 0, "", http.StatusNoContent, nil)
+		utils.SendHTTPResponse(w, http.StatusNoContent, nil)
 	}
 }

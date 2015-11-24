@@ -3,8 +3,8 @@ package volumecommands
 import (
 	"net/http"
 
-	"github.com/gluster/glusterd2/client"
 	"github.com/gluster/glusterd2/errors"
+	"github.com/gluster/glusterd2/utils"
 	"github.com/gluster/glusterd2/volume"
 
 	log "github.com/Sirupsen/logrus"
@@ -19,9 +19,9 @@ func volumeInfoHandler(w http.ResponseWriter, r *http.Request) {
 
 	vol, e := volume.GetVolume(volname)
 	if e != nil {
-		client.SendResponse(w, -1, http.StatusNotFound, errors.ErrVolNotFound.Error(), http.StatusNotFound, "")
+		utils.SendHTTPError(w, http.StatusNotFound, errors.ErrVolNotFound.Error())
 	} else {
 
-		client.SendResponse(w, 0, 0, "", 0, vol)
+		utils.SendHTTPResponse(w, http.StatusOK, vol)
 	}
 }

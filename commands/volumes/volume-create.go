@@ -3,7 +3,6 @@ package volumecommands
 import (
 	"net/http"
 
-	"github.com/gluster/glusterd2/client"
 	"github.com/gluster/glusterd2/errors"
 	"github.com/gluster/glusterd2/utils"
 	"github.com/gluster/glusterd2/volgen"
@@ -16,18 +15,18 @@ func validateVolumeCreateRequest(msg *volume.VolCreateRequest, r *http.Request, 
 	e := utils.GetJSONFromRequest(r, msg)
 	if e != nil {
 		log.WithField("error", e).Error("Failed to parse the JSON Request")
-		client.SendResponse(w, -1, 422, errors.ErrJSONParsingFailed.Error(), 422, "")
+		utils.SendHTTPError(w, 422, errors.ErrJSONParsingFailed.Error())
 		return errors.ErrJSONParsingFailed
 	}
 
 	if msg.Name == "" {
 		log.Error("Volume name is empty")
-		client.SendResponse(w, -1, http.StatusBadRequest, errors.ErrEmptyVolName.Error(), http.StatusBadRequest, "")
+		utils.SendHTTPError(w, http.StatusBadRequest, errors.ErrEmptyVolName.Error())
 		return errors.ErrEmptyVolName
 	}
 	if len(msg.Bricks) <= 0 {
 		log.WithField("volume", msg.Name).Error("Brick list is empty")
-		client.SendResponse(w, -1, http.StatusBadRequest, errors.ErrEmptyBrickList.Error(), http.StatusBadRequest, "")
+		utils.SendHTTPError(w, http.StatusBadRequest, errors.ErrEmptyBrickList.Error())
 		return errors.ErrEmptyBrickList
 	}
 	return nil
@@ -51,12 +50,12 @@ func volumeCreateHandler(w http.ResponseWriter, r *http.Request) {
 	}
 	if volume.Exists(msg.Name) {
 		log.WithField("volume", msg.Name).Error("Volume already exists")
-		client.SendResponse(w, -1, http.StatusBadRequest, errors.ErrVolExists.Error(), http.StatusBadRequest, "")
+		utils.SendHTTPError(w, http.StatusBadRequest, errors.ErrVolExists.Error())
 		return
 	}
 	vol := createVolume(msg)
 	if vol == nil {
-		client.SendResponse(w, -1, http.StatusBadRequest, errors.ErrVolCreateFail.Error(), http.StatusBadRequest, "")
+		utils.SendHTTPError(w, http.StatusBadRequest, errors.ErrVolCreateFail.Error())
 		return
 	}
 
@@ -66,7 +65,7 @@ func volumeCreateHandler(w http.ResponseWriter, r *http.Request) {
 		log.WithFields(log.Fields{"error": e.Error(),
 			"volume": vol.Name,
 		}).Error("Failed to generate volfile")
-		client.SendResponse(w, -1, http.StatusInternalServerError, e.Error(), http.StatusInternalServerError, "")
+		utils.SendHTTPError(w, http.StatusInternalServerError, e.Error())
 		return
 	}
 
@@ -75,10 +74,10 @@ func volumeCreateHandler(w http.ResponseWriter, r *http.Request) {
 		log.WithFields(log.Fields{"error": e.Error(),
 			"volume": vol.Name,
 		}).Error("Failed to create volume")
-		client.SendResponse(w, -1, http.StatusInternalServerError, e.Error(), http.StatusInternalServerError, "")
+		utils.SendHTTPError(w, http.StatusInternalServerError, e.Error())
 		return
 	}
 
 	log.WithField("volume", vol.Name).Debug("NewVolume added to store")
-	client.SendResponse(w, 0, 0, "", http.StatusCreated, vol)
+	utils.SendHTTPResponse(w, http.StatusCreated, vol)
 }
