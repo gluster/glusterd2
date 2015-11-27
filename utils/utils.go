@@ -51,41 +51,41 @@ func IsLocalAddress(host string) (bool, error) {
 }
 
 // ParseHostAndBrickPath parses the host & brick path out of req.Bricks list
-func ParseHostAndBrickPath(brickPath string) (string, string) {
+func ParseHostAndBrickPath(brickPath string) (string, string, error) {
 	i := strings.LastIndex(brickPath, ":")
 	if i == -1 {
-		log.WithField("brick", brickPath).Error("Invalid brick path, it should be in the form of host:path")
-		return "", ""
+		log.WithField("brick", brickPath).Error(errors.ErrInvalidBrickPath.Error())
+		return "", "", errors.ErrInvalidBrickPath
 	}
 	hostname := brickPath[0:i]
 	path := brickPath[i+1 : len(brickPath)]
 
-	return hostname, path
+	return hostname, path, nil
 }
 
 //ValidateBrickPathLength validates the length of the brick path
-func ValidateBrickPathLength(brickPath string) int {
+func ValidateBrickPathLength(brickPath string) error {
 	//TODO : Check whether PATH_MAX is compatible across all distros
 	if len(filepath.Clean(brickPath)) >= unix.PathMax {
-		log.WithField("brick", brickPath).Error("brickpath is too long")
-		return -1
+		log.WithField("brick", brickPath).Error(errors.ErrBrickPathTooLong.Error())
+		return errors.ErrBrickPathTooLong
 	}
-	return 0
+	return nil
 }
 
 //ValidateBrickSubDirLength validates the length of each sub directories under
 //the brick path
-func ValidateBrickSubDirLength(brickPath string) int {
+func ValidateBrickSubDirLength(brickPath string) error {
 	subdirs := strings.Split(brickPath, string(os.PathSeparator))
 	// Iterate over the sub directories and validate that they don't breach
 	//  _POSIX_PATH_MAX validation
 	for _, subdir := range subdirs {
 		if len(subdir) >= PosixPathMax {
 			log.WithField("subdir", subdir).Error("sub directory path is too long")
-			return -1
+			return errors.ErrSubDirPathTooLong
 		}
 	}
-	return 0
+	return nil
 }
 
 //GetDeviceID fetches the device id of the device containing the file/directory

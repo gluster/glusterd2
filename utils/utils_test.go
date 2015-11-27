@@ -14,8 +14,8 @@ func TestIsLocalAddress(t *testing.T) {
 	var local bool
 	var e error
 	local, e = IsLocalAddress(host)
-	tests.Assert(t, local == true)
 	tests.Assert(t, e == nil)
+	tests.Assert(t, local == true)
 
 	local, e = IsLocalAddress("invalid ip")
 	tests.Assert(t, local == false)
@@ -35,16 +35,20 @@ func TestParseHostAndBrickPath(t *testing.T) {
 	brick := "/brick"
 	brickPath := "abc:/brick"
 	var h, b string
+	var e error
 
-	h, b = ParseHostAndBrickPath(brickPath)
+	h, b, e = ParseHostAndBrickPath(brickPath)
+	tests.Assert(t, e == nil)
 	tests.Assert(t, h == hostname)
 	tests.Assert(t, b == brick)
 
-	h, b = ParseHostAndBrickPath("invalid brick")
+	h, b, e = ParseHostAndBrickPath("invalid brick")
+	tests.Assert(t, e != nil)
 	tests.Assert(t, len(h) == 0)
 	tests.Assert(t, len(b) == 0)
 
-	h, b = ParseHostAndBrickPath("a:b:c")
+	h, b, e = ParseHostAndBrickPath("a:b:c")
+	tests.Assert(t, e == nil)
 	tests.Assert(t, h == "a:b")
 	tests.Assert(t, b == "c")
 }
@@ -54,8 +58,8 @@ func TestValidateBrickPathLength(t *testing.T) {
 	for i := 0; i <= unix.PathMax; i++ {
 		brick = brick + "a"
 	}
-	tests.Assert(t, ValidateBrickPathLength(brick) != 0)
-	tests.Assert(t, ValidateBrickPathLength("/brick/b1") == 0)
+	tests.Assert(t, ValidateBrickPathLength(brick) != nil)
+	tests.Assert(t, ValidateBrickPathLength("/brick/b1") == nil)
 }
 
 func TestValidateBrickSubDirLength(t *testing.T) {
@@ -63,8 +67,8 @@ func TestValidateBrickSubDirLength(t *testing.T) {
 	for i := 0; i <= PosixPathMax; i++ {
 		brick = brick + "a"
 	}
-	tests.Assert(t, ValidateBrickSubDirLength(brick) != 0)
-	tests.Assert(t, ValidateBrickSubDirLength("/tmp/brick1") == 0)
+	tests.Assert(t, ValidateBrickSubDirLength(brick) != nil)
+	tests.Assert(t, ValidateBrickSubDirLength("/tmp/brick1") == nil)
 }
 
 func TestValidateBrickPathStats(t *testing.T) {
