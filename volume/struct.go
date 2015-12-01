@@ -4,8 +4,10 @@ package volume
 import (
 	"bytes"
 	"encoding/json"
+	"net/http"
 	"path/filepath"
 
+	"github.com/gluster/glusterd2/errors"
 	"github.com/gluster/glusterd2/utils"
 	"github.com/pborman/uuid"
 
@@ -100,9 +102,11 @@ func NewVolinfo() *Volinfo {
 }
 
 // NewVolumeEntry returns an initialized Volinfo using the given parameters
-func NewVolumeEntry(req *VolCreateRequest) *Volinfo {
+func NewVolumeEntry(req *VolCreateRequest) (*Volinfo, error) {
 	v := NewVolinfo()
-
+	if v == nil {
+		return nil, errors.ErrVolCreateFail
+	}
 	v.ID = uuid.NewRandom()
 	v.Name = req.Name
 	if len(req.Transport) > 0 {
@@ -120,84 +124,71 @@ func NewVolumeEntry(req *VolCreateRequest) *Volinfo {
 	v.RedundancyCount = req.RedundancyCount
 	//TODO : Generate internal username & password
 
-	v.Bricks = newBrickEntries(req.Bricks, v.ID, req.Force)
-	if v.Bricks == nil {
-		return nil
-	}
-	return v
+	return v, nil
 }
 
-// newBrickEntries returns list of initialized Brickinfo objects using list of
-// bricks
-func newBrickEntries(bricks []string, volId uuid.UUID, force bool) []Brickinfo {
+// NewBrickEntries creates the brick list
+func NewBrickEntries(bricks []string) ([]Brickinfo, error) {
 	var b []Brickinfo
 	var b1 Brickinfo
+	var e error
 	for _, brick := range bricks {
-		var e error
-		hostname, path := utils.ParseHostAndBrickPath(brick)
-		if len(hostname) == 0 || len(path) == 0 {
-			return nil
-		}
-		//TODO : Check for peer hosts first, otherwise look for local
-		//address
-		local, err := utils.IsLocalAddress(hostname)
+		hostname, path, err := utils.ParseHostAndBrickPath(brick)
 		if err != nil {
-			log.WithField("Host", hostname).Error(err.Error())
-			return nil
+			return nil, err
 		}
-		if local == false {
-			log.WithField("Host", hostname).Error("Host is not local")
-			return nil
-		}
-
 		b1.Hostname = hostname
 		b1.Path, e = filepath.Abs(path)
 		if e != nil {
 			log.Error("Failed to convert the brickpath to absolute path")
-			return nil
+			return nil, errors.ErrBrickPathConvertFail
 		}
-		if utils.ValidateBrickPathLength(b1.Path) != 0 || utils.ValidateBrickSubDirLength(b1.Path) != 0 {
-			return nil
-		}
-		if isBrickPathAvailable(b1.Hostname, b1.Path) != 0 {
-			return nil
-		}
-		e = utils.ValidateBrickPathStats(b1.Path, b1.Hostname, force)
-		if e != nil {
-			//TODO: Need to communicate back the error
-			return nil
-		}
-		e = utils.ValidateXattrSupport(b1.Path, b1.Hostname, volId, force)
-		if e != nil {
-			//TODO: Need to communicate back the error
-			return nil
-		}
-		//TODO : Add validation to check whether file system support
-		//extended attributes
+
 		b = append(b, b1)
 	}
-	return b
+	return b, nil
 }
 
-// isBrickPathAvailable validates whether the brick is consumed by other
-// volume
-func isBrickPathAvailable(hostname string, brickPath string) int {
-	volumes, e := GetVolumes()
-	if e != nil || volumes == nil {
-		// In case cluster doesn't have any volumes configured yet,
-		// treat this as success
-		log.Debug("Failed to retrieve volumes")
-		return 0
-	}
-	for _, v := range volumes {
-		for _, b := range v.Bricks {
-			if b.Hostname == hostname && b.Path == brickPath {
-				log.Error("Brick is already used by ", v.Name)
-				return -1
-			}
+// ValidateBrickEntries validates the brick list
+func ValidateBrickEntries(bricks []Brickinfo, volID uuid.UUID, force bool) (int, error) {
+
+	var b []Brickinfo
+	var b1 Brickinfo
+	for _, brick := range bricks {
+		//TODO : Check for peer hosts first, otherwise look for local
+		//address
+		local, err := utils.IsLocalAddress(brick.Hostname)
+		if err != nil {
+			log.WithField("Host", brick.Hostname).Error(err.Error())
+			return http.StatusInternalServerError, err
 		}
+		if local == false {
+			log.WithField("Host", brick.Hostname).Error("Host is not local")
+			return http.StatusBadRequest, errors.ErrBrickNotLocal
+		}
+		err = utils.ValidateBrickPathLength(b1.Path)
+		if err != nil {
+			return http.StatusBadRequest, err
+		}
+		err = utils.ValidateBrickSubDirLength(b1.Path)
+		if err != nil {
+			return http.StatusBadRequest, err
+		}
+		err = isBrickPathAvailable(b1.Hostname, b1.Path)
+		if err != nil {
+			return http.StatusBadRequest, err
+		}
+		err = utils.ValidateBrickPathStats(b1.Path, b1.Hostname, force)
+		if err != nil {
+			return http.StatusBadRequest, err
+		}
+		err = utils.ValidateXattrSupport(b1.Path, b1.Hostname, volID, force)
+		if err != nil {
+			return http.StatusBadRequest, err
+		}
+		b = append(b, b1)
 	}
-	return 0
+	return 0, nil
 }
 
 func (v *Volinfo) String() string {
