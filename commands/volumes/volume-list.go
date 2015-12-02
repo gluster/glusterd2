@@ -13,7 +13,7 @@ func volumeListHandler(w http.ResponseWriter, r *http.Request) {
 
 	log.Info("In Volume list API")
 
-	volumes, e := volume.GetVolumes()
+	volumes, e := volume.GetVolumesList()
 
 	if e != nil {
 		rest.SendHTTPError(w, http.StatusNotFound, e.Error())
