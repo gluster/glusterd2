@@ -7,7 +7,11 @@ consistency, scalability and performance when compared with the current
 GlusterD, while also becoming more modular and easing extensibility.
 
 ## Architecture and Design
-> NOTE: This is still under discussion. We will add details on this soon.
+Please refer to the [wiki](https://github.com/gluster/glusterd2/wiki/Design) for more information.
+
+## Building
+
+To build GD2, just run `make`. If you don't have the required tools installed, run `scripts/install-reqs.sh`.
 
 ## Contributing
 
