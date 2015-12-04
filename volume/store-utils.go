@@ -26,7 +26,7 @@ func AddOrUpdateVolume(v *Volinfo) error {
 		return e
 	}
 
-	e = context.Store.Put(v.Name, json, nil)
+	e = context.Store.Put(volumePrefix+v.Name, json, nil)
 	if e != nil {
 		log.WithField("error", e).Error("Couldn't add volume to store")
 		return e
