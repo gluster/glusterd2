@@ -5,6 +5,7 @@ import (
 
 	"github.com/gluster/glusterd2/context"
 	"github.com/gluster/glusterd2/store"
+	"github.com/pborman/uuid"
 
 	log "github.com/Sirupsen/logrus"
 )
@@ -52,6 +53,31 @@ func GetVolume(name string) (*Volinfo, error) {
 //DeleteVolume passes the volname to store to delete the volume object
 func DeleteVolume(name string) error {
 	return context.Store.Delete(volumePrefix + name)
+}
+
+func GetVolumesList() (map[string]uuid.UUID, error) {
+	pairs, e := context.Store.List(volumePrefix)
+	if e != nil {
+		return nil, e
+	}
+
+	volumes := make(map[string]uuid.UUID)
+
+	for _, pair := range pairs {
+		var vol Volinfo
+
+		if err := json.Unmarshal(pair.Value, &vol); err != nil {
+			log.WithFields(log.Fields{
+				"volume": pair.Key,
+				"error":  err,
+			}).Error("Failed to unmarshal volume")
+			continue
+		}
+
+		volumes[vol.Name] = vol.ID
+	}
+
+	return volumes, nil
 }
 
 //GetVolumes retrives the json objects from the store and converts them into
