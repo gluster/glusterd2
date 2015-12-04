@@ -152,8 +152,6 @@ func NewBrickEntries(bricks []string) ([]Brickinfo, error) {
 // ValidateBrickEntries validates the brick list
 func ValidateBrickEntries(bricks []Brickinfo, volID uuid.UUID, force bool) (int, error) {
 
-	var b []Brickinfo
-	var b1 Brickinfo
 	for _, brick := range bricks {
 		//TODO : Check for peer hosts first, otherwise look for local
 		//address
@@ -166,27 +164,26 @@ func ValidateBrickEntries(bricks []Brickinfo, volID uuid.UUID, force bool) (int,
 			log.WithField("Host", brick.Hostname).Error("Host is not local")
 			return http.StatusBadRequest, errors.ErrBrickNotLocal
 		}
-		err = utils.ValidateBrickPathLength(b1.Path)
+		err = utils.ValidateBrickPathLength(brick.Path)
 		if err != nil {
 			return http.StatusBadRequest, err
 		}
-		err = utils.ValidateBrickSubDirLength(b1.Path)
+		err = utils.ValidateBrickSubDirLength(brick.Path)
 		if err != nil {
 			return http.StatusBadRequest, err
 		}
-		err = isBrickPathAvailable(b1.Hostname, b1.Path)
+		err = isBrickPathAvailable(brick.Hostname, brick.Path)
 		if err != nil {
 			return http.StatusBadRequest, err
 		}
-		err = utils.ValidateBrickPathStats(b1.Path, b1.Hostname, force)
+		err = utils.ValidateBrickPathStats(brick.Path, brick.Hostname, force)
 		if err != nil {
 			return http.StatusBadRequest, err
 		}
-		err = utils.ValidateXattrSupport(b1.Path, b1.Hostname, volID, force)
+		err = utils.ValidateXattrSupport(brick.Path, brick.Hostname, volID, force)
 		if err != nil {
 			return http.StatusBadRequest, err
 		}
-		b = append(b, b1)
 	}
 	return 0, nil
 }
