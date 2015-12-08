@@ -30,7 +30,7 @@ vendor-update:
 	@echo
 
 verify: check-reqs
-	@GO15VENDOREXPERIMENT=1 gometalinter -D gotype --errors --deadline=1m $$(GO15VENDOREXPERIMENT=1 glide nv)
+	@GO15VENDOREXPERIMENT=1 gometalinter -D gotype -E gofmt --errors --deadline=1m $$(GO15VENDOREXPERIMENT=1 glide nv)
 
 test:
 	@GO15VENDOREXPERIMENT=1 go test $$(GO15VENDOREXPERIMENT=1 glide nv)
