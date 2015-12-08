@@ -34,7 +34,7 @@ type TxnStep struct {
 
 // Do performs the step
 func (s *TxnStep) Do() error {
-	for _, n := range s.Nodes {
+	for _, _ := range s.Nodes {
 		// DoSteponNode(s.Step, n)
 	}
 	return nil
@@ -51,7 +51,7 @@ type Txn struct {
 // Perform runs the transaction on the cluster
 func (t *Txn) Perform() error {
 	//First verify all nodes are online
-	for _, n := range t.Nodes {
+	for _, _ := range t.Nodes {
 		/*
 			if !Online(n) {
 				return error
