@@ -30,7 +30,7 @@ install_gometalinter() {
   fi
 
   echo "Installing linters"
-  gometalinter -i all -u || failed_install linters
+  gometalinter --install --update || failed_install linters
 }
 
 install_glide
