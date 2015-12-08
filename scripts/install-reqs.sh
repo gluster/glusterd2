@@ -23,14 +23,14 @@ install_gometalinter() {
   fi
 
   echo "Installing gometalinter"
-  go get github.com/alecthomas/gometalinter
+  go get -u github.com/alecthomas/gometalinter
   if [ $? -ne 0 ]; then
     failed_install gometalinter
     return
   fi
 
   echo "Installing linters"
-  gometalinter -i -u || failed_install linters
+  gometalinter -i all -u || failed_install linters
 }
 
 install_glide
