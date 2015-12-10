@@ -10,6 +10,7 @@ import (
 	"github.com/gluster/glusterd2/store"
 
 	log "github.com/Sirupsen/logrus"
+	etcdctx "github.com/coreos/etcd/Godeps/_workspace/src/golang.org/x/net/context"
 )
 
 const (
@@ -26,10 +27,9 @@ func AddOrUpdatePeer(p *Peer) error {
 	if err != nil {
 		return err
 	}
-
 	idStr := p.ID.String()
 
-	if err := context.Store.Put(peerPrefix+idStr, json, nil); err != nil {
+	if _, err := context.Store.Set(etcdctx.Background(), peerPrefix+idStr, string(json), nil); err != nil {
 		return err
 	}
 
@@ -38,13 +38,13 @@ func AddOrUpdatePeer(p *Peer) error {
 
 // GetPeer returns specified peer from the store
 func GetPeer(id string) (*Peer, error) {
-	pair, err := context.Store.Get(peerPrefix + id)
-	if err != nil || pair == nil {
+	rsp, err := context.Store.Get(etcdctx.Background(), peerPrefix+id, nil)
+	if err != nil || rsp == nil {
 		return nil, err
 	}
 
 	var p Peer
-	if err := json.Unmarshal(pair.Value, &p); err != nil {
+	if err := json.Unmarshal([]byte(rsp.Node.Value), &p); err != nil {
 		return nil, err
 	}
 	return &p, nil
@@ -52,17 +52,17 @@ func GetPeer(id string) (*Peer, error) {
 
 // GetPeers returns all available peers in the store
 func GetPeers() ([]Peer, error) {
-	pairs, err := context.Store.List(peerPrefix)
+	pairs, err := context.Store.Get(etcdctx.Background(), peerPrefix, nil)
 	if err != nil || pairs == nil {
 		return nil, err
 	}
 
-	peers := make([]Peer, len(pairs))
+	peers := make([]Peer, len(pairs.Node.Nodes))
 
-	for i, pair := range pairs {
+	for i, pair := range pairs.Node.Nodes {
 		var p Peer
 
-		if err := json.Unmarshal(pair.Value, &p); err != nil {
+		if err := json.Unmarshal([]byte(pair.Value), &p); err != nil {
 			log.WithFields(log.Fields{
 				"peer":  pair.Key,
 				"error": err,
@@ -77,15 +77,16 @@ func GetPeers() ([]Peer, error) {
 
 // DeletePeer deletes given peer from the store
 func DeletePeer(id string) error {
-	return context.Store.Delete(peerPrefix + id)
+	_, err := context.Store.Delete(etcdctx.Background(), peerPrefix+id, nil)
+	return err
 }
 
 // Exists checks if given peer is present in the store
 func Exists(id string) bool {
-	b, e := context.Store.Exists(peerPrefix + id)
+	_, e := context.Store.Get(etcdctx.Background(), peerPrefix+id, nil)
 	if e != nil {
 		return false
 	}
 
-	return b
+	return true
 }
