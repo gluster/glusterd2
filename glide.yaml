@@ -1,47 +1,68 @@
 parent: null
 package: github.com/gluster/glusterd2
 import:
+- package: github.com/coreos/etcd
+- package: github.com/shurcooL/sanitized_anchor_name
+  version: 10ef21a441db47d8b13ebcc5fd2310f636973c77
 - package: github.com/prometheus/client_model
   version: fa8ad6fec33561be4280a8f0514318c79d7f6cb6
   subpackages:
   - go
-- package: github.com/hashicorp/consul
-  version: v0.5.2
-- package: github.com/cheggaaa/pb
-  version: da1f27ad1d9509b16f65f52fd9d8138b0f2dc7b2
 - package: github.com/codegangsta/cli
   version: f7ebb761e83e21225d1d8954fde853bf8edd46c4
-- package: github.com/prometheus/common
-  version: ffe929a3f4c4faeaa10f2b9535c2b1be3ad15650
-  subpackages:
-  - expfmt
-  - model
-- package: github.com/coreos/pkg
-  version: 2c77715c4df99b5420ffcae14ead08f52104065d
-  subpackages:
-  - capnslog
 - package: github.com/golang/protobuf
   version: 5677a0e3d5e89854c9974e1256839ee23f8233ca
   subpackages:
   - proto
+- package: github.com/russross/blackfriday
+  version: 300106c228d52c8941d4b3de6054a6062a86dda3
+- package: github.com/bgentry/speakeasy
+  version: 36e9cfdd690967f4f690c6edcc9ffacd006014a0
+- package: golang.org/x/net
+  version: b4e17d61b15679caf2335da776c614169a1b4643
 - package: github.com/golang/glog
   version: 44145f04b68cf362d9c4df2182967c2275eaefed
+- package: github.com/spf13/pflag
+  version: 08b1a584251b5b62f458943640fc8ebd4d50aaa5
+- package: github.com/pborman/uuid
+  version: cccd189d45f7ac3368a0d127efb7f4d08ae0b655
+- package: github.com/gogo/protobuf
+  version: 64f27bf06efee53589314a6e5a4af34cdd85adf6
+  subpackages:
+  - proto
 - package: github.com/ugorji/go
   version: f1f1a805ed361a0e078bb537e4ea78cd37dcf065
   subpackages:
   - codec
 - package: github.com/prometheus/procfs
   version: 454a56f35412459b5e684fd5ec0f9211b94f002a
-- package: github.com/russross/blackfriday
-  version: 300106c228d52c8941d4b3de6054a6062a86dda3
-- package: github.com/matttproud/golang_protobuf_extensions
-  version: fc2b8d3a73c4867e51861bbdd5ae3c1f0869dd6a
+- package: gopkg.in/tylerb/graceful.v1
+  version: 48afeb21e2fcbcff0f30bd5ad6b97747b0fae38e
+- package: github.com/prometheus/client_golang
+  version: e51041b3fa41cece0dca035740ba6411905be473
   subpackages:
-  - pbutil
-- package: github.com/spf13/pflag
-  version: 08b1a584251b5b62f458943640fc8ebd4d50aaa5
-- package: github.com/xiang90/probing
-  version: 6a0cc1ae81b4cc11db5e491e030e4b98fba79c19
+  - prometheus
+- package: github.com/coreos/go-systemd
+  version: cea488b4e6855fee89b6c22a811e3c5baca861b6
+  subpackages:
+  - daemon
+  - journal
+  - util
+- package: github.com/cpuguy83/go-md2man
+  version: 71acacd42f85e5e82f70a55327789582a5200a90
+  subpackages:
+  - md2man
+- package: github.com/inconshreveable/mousetrap
+  version: 76626ae9c91c4f2a10f34cad8ce83ea42c93bb75
+- package: github.com/hashicorp/consul
+  version: v0.5.2
+- package: github.com/cheggaaa/pb
+  version: da1f27ad1d9509b16f65f52fd9d8138b0f2dc7b2
+- package: github.com/prometheus/common
+  version: ffe929a3f4c4faeaa10f2b9535c2b1be3ad15650
+  subpackages:
+  - expfmt
+  - model
 - package: github.com/coreos/go-semver
   version: 568e959cd89871e61434c1143528d9162da89ef2
   subpackages:
@@ -51,83 +72,62 @@ import:
   subpackages:
   - bcrypt
   - blowfish
-- package: gopkg.in/tylerb/graceful.v1
-  version: 48afeb21e2fcbcff0f30bd5ad6b97747b0fae38e
+- package: github.com/codegangsta/negroni
+  version: c7477ad8e330bef55bf1ebe300cf8aa67c492d1b
+- package: github.com/coreos/pkg
+  version: 2c77715c4df99b5420ffcae14ead08f52104065d
+  subpackages:
+  - capnslog
 - package: google.golang.org/grpc
   version: f5ebd86be717593ab029545492c93ddf8914832b
-- package: golang.org/x/oauth2
-  version: 3046bc76d6dfd7d3707f6640f85e42d9c4050f50
+- package: github.com/google/btree
+  version: cc6329d4279e3f025a53a83c397d2339b5705c45
+- package: github.com/spf13/cobra
+  version: 1c44ec8d3f1552cac48999f9306da23c4d8a288b
+- package: github.com/spacejam/loghisto
+  version: 323309774dec8b7430187e46cd0793974ccca04a
 - package: github.com/Sirupsen/logrus
   version: v0.8.7
-- package: github.com/stretchr/testify
-  version: 9cc77fa25329013ce07362c7742952ff887361f2
-  subpackages:
-  - assert
-- package: github.com/prometheus/client_golang
-  version: e51041b3fa41cece0dca035740ba6411905be473
-  subpackages:
-  - prometheus
-- package: github.com/docker/libkv
-  version: 93099f38de7421e6979983652730a81e2bafd578
-- package: github.com/bgentry/speakeasy
-  version: 36e9cfdd690967f4f690c6edcc9ffacd006014a0
-- package: github.com/boltdb/bolt
-  version: 0b00effdd7a8270ebd91c24297e51643e370dd52
 - package: bitbucket.org/ww/goautoneg
   version: 75cd24fc2f2c2a2088577d12123ddee5f54e0675
-- package: github.com/pborman/uuid
-  version: cccd189d45f7ac3368a0d127efb7f4d08ae0b655
 - package: google.golang.org/cloud
   version: f20d6dcccb44ed49de45ae3703312cb46e627db1
   subpackages:
   - compute/metadata
   - internal
-- package: github.com/codegangsta/negroni
-  version: c7477ad8e330bef55bf1ebe300cf8aa67c492d1b
-- package: github.com/google/btree
-  version: cc6329d4279e3f025a53a83c397d2339b5705c45
-- package: golang.org/x/net
-  version: b4e17d61b15679caf2335da776c614169a1b4643
-- package: github.com/meatballhat/negroni-logrus
-  version: dd89490b0057cca7fe3fa3885f82935dfd430c2e
-- package: github.com/coreos/go-systemd
-  version: cea488b4e6855fee89b6c22a811e3c5baca861b6
-  subpackages:
-  - daemon
-  - journal
-  - util
-- package: github.com/gorilla/mux
-  version: ad4d7a5882b961e07e2626045eb995c022ac6664
-- package: github.com/coreos/etcd
-- package: golang.org/x/sys
-  version: 9c60d1c508f5134d1ca726b4641db998f2523357
-  subpackages:
-  - /unix
-- package: github.com/beorn7/perks
-  version: b965b613227fddccbfffe13eae360ed3fa822f8d
-  subpackages:
-  - quantile
-- package: github.com/spf13/cobra
-  version: 1c44ec8d3f1552cac48999f9306da23c4d8a288b
-- package: github.com/inconshreveable/mousetrap
-  version: 76626ae9c91c4f2a10f34cad8ce83ea42c93bb75
-- package: github.com/bradfitz/http2
-  version: 3e36af6d3af0e56fa3da71099f864933dea3d9fb
 - package: github.com/jonboulle/clockwork
   version: 72f9bd7c4e0c2a40055ab3d0f09654f730cce982
 - package: github.com/gorilla/context
   version: 1c83b3eabd45b6d76072b66b746c20815fb2872d
-- package: github.com/gogo/protobuf
-  version: 64f27bf06efee53589314a6e5a4af34cdd85adf6
-  subpackages:
-  - proto
-- package: github.com/spacejam/loghisto
-  version: 323309774dec8b7430187e46cd0793974ccca04a
-- package: github.com/shurcooL/sanitized_anchor_name
-  version: 10ef21a441db47d8b13ebcc5fd2310f636973c77
 - package: github.com/akrennmair/gopcap
   version: 00e11033259acb75598ba416495bb708d864a010
-- package: github.com/cpuguy83/go-md2man
-  version: 71acacd42f85e5e82f70a55327789582a5200a90
+- package: github.com/bradfitz/http2
+  version: 3e36af6d3af0e56fa3da71099f864933dea3d9fb
+- package: github.com/xiang90/probing
+  version: 6a0cc1ae81b4cc11db5e491e030e4b98fba79c19
+- package: golang.org/x/oauth2
+  version: 3046bc76d6dfd7d3707f6640f85e42d9c4050f50
+- package: github.com/docker/libkv
+  version: 93099f38de7421e6979983652730a81e2bafd578
+- package: github.com/meatballhat/negroni-logrus
+  version: dd89490b0057cca7fe3fa3885f82935dfd430c2e
+- package: github.com/gorilla/mux
+  version: ad4d7a5882b961e07e2626045eb995c022ac6664
+- package: github.com/beorn7/perks
+  version: b965b613227fddccbfffe13eae360ed3fa822f8d
   subpackages:
-  - md2man
+  - quantile
+- package: github.com/matttproud/golang_protobuf_extensions
+  version: fc2b8d3a73c4867e51861bbdd5ae3c1f0869dd6a
+  subpackages:
+  - pbutil
+- package: github.com/stretchr/testify
+  version: 9cc77fa25329013ce07362c7742952ff887361f2
+  subpackages:
+  - assert
+- package: github.com/boltdb/bolt
+  version: 0b00effdd7a8270ebd91c24297e51643e370dd52
+- package: golang.org/x/sys
+  version: 9c60d1c508f5134d1ca726b4641db998f2523357
+  subpackages:
+  - /unix

@@ -9,7 +9,7 @@ import (
 	"time"
 
 	log "github.com/Sirupsen/logrus"
-	"github.com/coreos/etcd/Godeps/_workspace/src/golang.org/x/net/context"
+	etcdctx "github.com/coreos/etcd/Godeps/_workspace/src/golang.org/x/net/context"
 	"github.com/coreos/etcd/client"
 )
 
@@ -20,11 +20,16 @@ const (
 
 var (
 	prefixes []string
+	EtcdCtx  etcdctx.Context
 )
 
 // GDStore is the GlusterD centralized store
 type GDStore struct {
 	client.KeysAPI
+}
+
+func init() {
+	EtcdCtx = etcdctx.Background()
 }
 
 // New creates a new GDStore
@@ -73,13 +78,13 @@ func (s *GDStore) InitPrefix(p string) error {
 	// Create the prefix if the prefix is not found. If any other error occurs
 	// return it. Don't do anything if prefix is found
 
-	if _, e := s.Get(context.Background(), p, nil); e != nil {
+	if _, e := s.Get(etcdctx.Background(), p, nil); e != nil {
 		switch e.(client.Error).Code {
 		case client.ErrorCodeKeyNotFound:
 			log.WithField("prefix", p).Debug("prefix not found, initing")
 			opts := new(client.SetOptions)
 			opts.Dir = true
-			if _, e := s.Set(context.Background(), p, "", opts); e != nil {
+			if _, e := s.Set(EtcdCtx, p, "", opts); e != nil {
 				log.WithFields(log.Fields{
 					"preifx": p,
 					"error":  e,

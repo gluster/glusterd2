@@ -8,7 +8,6 @@ import (
 	"github.com/pborman/uuid"
 
 	log "github.com/Sirupsen/logrus"
-	etcdctx "github.com/coreos/etcd/Godeps/_workspace/src/golang.org/x/net/context"
 )
 
 const (
@@ -26,7 +25,7 @@ func AddOrUpdateVolume(v *Volinfo) error {
 		log.WithField("error", e).Error("Failed to marshal the volinfo object")
 		return e
 	}
-	if _, e := context.Store.Set(etcdctx.Background(), volumePrefix+v.Name, string(json), nil); e != nil {
+	if _, e := context.Store.Set(store.EtcdCtx, volumePrefix+v.Name, string(json), nil); e != nil {
 		log.WithField("error", e).Error("Couldn't add volume to store")
 		return e
 	}
@@ -37,7 +36,7 @@ func AddOrUpdateVolume(v *Volinfo) error {
 // volinfo object
 func GetVolume(name string) (*Volinfo, error) {
 	var v Volinfo
-	rsp, e := context.Store.Get(etcdctx.Background(), volumePrefix+name, nil)
+	rsp, e := context.Store.Get(store.EtcdCtx, volumePrefix+name, nil)
 	if e != nil {
 		log.WithField("error", e).Error("Couldn't retrive volume from store")
 		return nil, e
@@ -51,12 +50,12 @@ func GetVolume(name string) (*Volinfo, error) {
 
 //DeleteVolume passes the volname to store to delete the volume object
 func DeleteVolume(name string) error {
-	_, err := context.Store.Delete(etcdctx.Background(), volumePrefix+name, nil)
+	_, err := context.Store.Delete(store.EtcdCtx, volumePrefix+name, nil)
 	return err
 }
 
 func GetVolumesList() (map[string]uuid.UUID, error) {
-	pairs, e := context.Store.Get(etcdctx.Background(), volumePrefix, nil)
+	pairs, e := context.Store.Get(store.EtcdCtx, volumePrefix, nil)
 	if e != nil || pairs == nil {
 		return nil, e
 	}
@@ -83,7 +82,7 @@ func GetVolumesList() (map[string]uuid.UUID, error) {
 //GetVolumes retrives the json objects from the store and converts them into
 //respective volinfo objects
 func GetVolumes() ([]Volinfo, error) {
-	pairs, e := context.Store.Get(etcdctx.Background(), volumePrefix, nil)
+	pairs, e := context.Store.Get(store.EtcdCtx, volumePrefix, nil)
 	if e != nil || pairs == nil {
 		return nil, e
 	}
@@ -109,7 +108,7 @@ func GetVolumes() ([]Volinfo, error) {
 
 //Exists check whether a given volume exist or not
 func Exists(name string) bool {
-	_, e := context.Store.Get(etcdctx.Background(), volumePrefix+name, nil)
+	_, e := context.Store.Get(store.EtcdCtx, volumePrefix+name, nil)
 	if e != nil {
 		return false
 	}

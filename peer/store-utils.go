@@ -10,7 +10,6 @@ import (
 	"github.com/gluster/glusterd2/store"
 
 	log "github.com/Sirupsen/logrus"
-	etcdctx "github.com/coreos/etcd/Godeps/_workspace/src/golang.org/x/net/context"
 )
 
 const (
@@ -29,7 +28,7 @@ func AddOrUpdatePeer(p *Peer) error {
 	}
 	idStr := p.ID.String()
 
-	if _, err := context.Store.Set(etcdctx.Background(), peerPrefix+idStr, string(json), nil); err != nil {
+	if _, err := context.Store.Set(store.EtcdCtx, peerPrefix+idStr, string(json), nil); err != nil {
 		return err
 	}
 
@@ -38,7 +37,7 @@ func AddOrUpdatePeer(p *Peer) error {
 
 // GetPeer returns specified peer from the store
 func GetPeer(id string) (*Peer, error) {
-	rsp, err := context.Store.Get(etcdctx.Background(), peerPrefix+id, nil)
+	rsp, err := context.Store.Get(store.EtcdCtx, peerPrefix+id, nil)
 	if err != nil || rsp == nil {
 		return nil, err
 	}
@@ -52,7 +51,7 @@ func GetPeer(id string) (*Peer, error) {
 
 // GetPeers returns all available peers in the store
 func GetPeers() ([]Peer, error) {
-	pairs, err := context.Store.Get(etcdctx.Background(), peerPrefix, nil)
+	pairs, err := context.Store.Get(store.EtcdCtx, peerPrefix, nil)
 	if err != nil || pairs == nil {
 		return nil, err
 	}
@@ -77,13 +76,13 @@ func GetPeers() ([]Peer, error) {
 
 // DeletePeer deletes given peer from the store
 func DeletePeer(id string) error {
-	_, err := context.Store.Delete(etcdctx.Background(), peerPrefix+id, nil)
+	_, err := context.Store.Delete(store.EtcdCtx, peerPrefix+id, nil)
 	return err
 }
 
 // Exists checks if given peer is present in the store
 func Exists(id string) bool {
-	_, e := context.Store.Get(etcdctx.Background(), peerPrefix+id, nil)
+	_, e := context.Store.Get(store.EtcdCtx, peerPrefix+id, nil)
 	if e != nil {
 		return false
 	}
