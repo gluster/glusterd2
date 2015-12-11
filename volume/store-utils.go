@@ -25,9 +25,7 @@ func AddOrUpdateVolume(v *Volinfo) error {
 		log.WithField("error", e).Error("Failed to marshal the volinfo object")
 		return e
 	}
-
-	e = context.Store.Put(volumePrefix+v.Name, json, nil)
-	if e != nil {
+	if _, e := context.Store.Set(store.EtcdCtx, volumePrefix+v.Name, string(json), nil); e != nil {
 		log.WithField("error", e).Error("Couldn't add volume to store")
 		return e
 	}
@@ -38,12 +36,12 @@ func AddOrUpdateVolume(v *Volinfo) error {
 // volinfo object
 func GetVolume(name string) (*Volinfo, error) {
 	var v Volinfo
-	b, e := context.Store.Get(volumePrefix + name)
+	rsp, e := context.Store.Get(store.EtcdCtx, volumePrefix+name, nil)
 	if e != nil {
 		log.WithField("error", e).Error("Couldn't retrive volume from store")
 		return nil, e
 	}
-	if e = json.Unmarshal(b.Value, &v); e != nil {
+	if e = json.Unmarshal([]byte(rsp.Node.Value), &v); e != nil {
 		log.WithField("error", e).Error("Failed to unmarshal the data into volinfo object")
 		return nil, e
 	}
@@ -52,21 +50,22 @@ func GetVolume(name string) (*Volinfo, error) {
 
 //DeleteVolume passes the volname to store to delete the volume object
 func DeleteVolume(name string) error {
-	return context.Store.Delete(volumePrefix + name)
+	_, err := context.Store.Delete(store.EtcdCtx, volumePrefix+name, nil)
+	return err
 }
 
 func GetVolumesList() (map[string]uuid.UUID, error) {
-	pairs, e := context.Store.List(volumePrefix)
-	if e != nil {
+	pairs, e := context.Store.Get(store.EtcdCtx, volumePrefix, nil)
+	if e != nil || pairs == nil {
 		return nil, e
 	}
 
 	volumes := make(map[string]uuid.UUID)
 
-	for _, pair := range pairs {
+	for _, pair := range pairs.Node.Nodes {
 		var vol Volinfo
 
-		if err := json.Unmarshal(pair.Value, &vol); err != nil {
+		if err := json.Unmarshal([]byte(pair.Value), &vol); err != nil {
 			log.WithFields(log.Fields{
 				"volume": pair.Key,
 				"error":  err,
@@ -83,17 +82,17 @@ func GetVolumesList() (map[string]uuid.UUID, error) {
 //GetVolumes retrives the json objects from the store and converts them into
 //respective volinfo objects
 func GetVolumes() ([]Volinfo, error) {
-	pairs, e := context.Store.List(volumePrefix)
-	if e != nil {
+	pairs, e := context.Store.Get(store.EtcdCtx, volumePrefix, nil)
+	if e != nil || pairs == nil {
 		return nil, e
 	}
 
-	volumes := make([]Volinfo, len(pairs))
+	volumes := make([]Volinfo, len(pairs.Node.Nodes))
 
-	for index, pair := range pairs {
+	for index, pair := range pairs.Node.Nodes {
 		var vol Volinfo
 
-		if err := json.Unmarshal(pair.Value, &vol); err != nil {
+		if err := json.Unmarshal([]byte(pair.Value), &vol); err != nil {
 			log.WithFields(log.Fields{
 				"volume": pair.Key,
 				"error":  err,
@@ -109,10 +108,10 @@ func GetVolumes() ([]Volinfo, error) {
 
 //Exists check whether a given volume exist or not
 func Exists(name string) bool {
-	b, e := context.Store.Exists(volumePrefix + name)
+	_, e := context.Store.Get(store.EtcdCtx, volumePrefix+name, nil)
 	if e != nil {
 		return false
 	}
 
-	return b
+	return true
 }

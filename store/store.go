@@ -9,9 +9,8 @@ import (
 	"time"
 
 	log "github.com/Sirupsen/logrus"
-	"github.com/docker/libkv"
-	"github.com/docker/libkv/store"
-	"github.com/docker/libkv/store/consul"
+	etcdctx "github.com/coreos/etcd/Godeps/_workspace/src/golang.org/x/net/context"
+	"github.com/coreos/etcd/client"
 )
 
 const (
@@ -21,30 +20,35 @@ const (
 
 var (
 	prefixes []string
+	EtcdCtx  etcdctx.Context
 )
 
 // GDStore is the GlusterD centralized store
 type GDStore struct {
-	store.Store
+	client.KeysAPI
 }
 
 func init() {
-	consul.Register()
+	EtcdCtx = etcdctx.Background()
 }
 
 // New creates a new GDStore
 func New() *GDStore {
-	//TODO: Make this configurable
-	address := "localhost:8500"
-	consul.Register()
-
-	log.WithFields(log.Fields{"type": "consul", "consul.config": address}).Debug("Creating new store")
-	s, err := libkv.NewStore(store.CONSUL, []string{address}, &store.Config{ConnectionTimeout: 10 * time.Second})
+	cfg := client.Config{
+		//TODO: Make this configurable
+		Endpoints: []string{"http://127.0.0.1:2379"},
+		Transport: client.DefaultTransport,
+		// set timeout per request to fail fast when the target endpoint is unavailable
+		HeaderTimeoutPerRequest: time.Second,
+	}
+	c, err := client.New(cfg)
 	if err != nil {
+		log.Fatal(err)
 		log.WithField("error", err).Fatal("Failed to create store")
 	}
+	s := client.NewKeysAPI(c)
 
-	log.Info("Created new store using Consul")
+	log.Info("Created new store using etcd")
 
 	gds := &GDStore{s}
 
@@ -70,14 +74,17 @@ func (s *GDStore) initPrefixes() bool {
 // InitPrefix initializes the given prefix `p` in the store so that GETs on empty prefixes don't fail
 // Returns error on failure, nil on success
 func (s *GDStore) InitPrefix(p string) error {
+
 	// Create the prefix if the prefix is not found. If any other error occurs
 	// return it. Don't do anything if prefix is found
-	if _, e := s.Get(p); e != nil {
-		switch e {
-		case store.ErrKeyNotFound:
-			log.WithField("prefix", p).Debug("prefix not found, initing")
 
-			if e := s.Put(p, nil, nil); e != nil {
+	if _, e := s.Get(etcdctx.Background(), p, nil); e != nil {
+		switch e.(client.Error).Code {
+		case client.ErrorCodeKeyNotFound:
+			log.WithField("prefix", p).Debug("prefix not found, initing")
+			opts := new(client.SetOptions)
+			opts.Dir = true
+			if _, e := s.Set(EtcdCtx, p, "", opts); e != nil {
 				log.WithFields(log.Fields{
 					"preifx": p,
 					"error":  e,
