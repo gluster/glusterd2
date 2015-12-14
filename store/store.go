@@ -75,7 +75,7 @@ func (s *GDStore) InitPrefix(p string) error {
 		case store.ErrKeyNotFound:
 			log.WithField("prefix", p).Debug("prefix not found, initing")
 
-			if e := s.Put(p, nil, nil); e != nil {
+			if e := s.Put(p, nil, &store.WriteOptions{IsDir: true}); e != nil {
 				log.WithFields(log.Fields{
 					"preifx": p,
 					"error":  e,
