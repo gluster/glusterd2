@@ -25,7 +25,6 @@ var (
 	MyUUID    uuid.UUID
 	Rest      *rest.GDRest
 	TxnFw     *transaction.GDTxnFw
-	Store     *store.GDStore
 	OpVersion int
 )
 
@@ -48,7 +47,7 @@ func doInit() {
 
 	Rest = rest.New()
 
-	Store = store.New()
+	initStore()
 
 	log.Debug("Initialized GlusterD context")
 }
