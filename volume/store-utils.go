@@ -11,7 +11,7 @@ import (
 )
 
 const (
-	volumePrefix string = store.GlusterPrefix + "volume/"
+	volumePrefix string = store.GlusterPrefix + "volumes/"
 )
 
 func init() {
