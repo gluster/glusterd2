@@ -1,8 +1,7 @@
 // Package store implements the centralized store for GlusterD
 //
-// It currently uses [Consul](https://www.consul.io) as the backend. But we
-// hope to have it pluggable in the end. libkv is being used to help achieve
-// this goal.
+// We use etcd as the store backend, and use libkv as the frontend to etcd.
+// libkv should allow us to change backends easily if required.
 package store
 
 import (
@@ -11,7 +10,7 @@ import (
 	log "github.com/Sirupsen/logrus"
 	"github.com/docker/libkv"
 	"github.com/docker/libkv/store"
-	"github.com/docker/libkv/store/consul"
+	"github.com/docker/libkv/store/etcd"
 )
 
 const (
@@ -29,22 +28,21 @@ type GDStore struct {
 }
 
 func init() {
-	consul.Register()
+	etcd.Register()
 }
 
 // New creates a new GDStore
 func New() *GDStore {
 	//TODO: Make this configurable
-	address := "localhost:8500"
-	consul.Register()
+	address := "localhost:2379"
 
-	log.WithFields(log.Fields{"type": "consul", "consul.config": address}).Debug("Creating new store")
-	s, err := libkv.NewStore(store.CONSUL, []string{address}, &store.Config{ConnectionTimeout: 10 * time.Second})
+	log.WithFields(log.Fields{"type": "etcd", "etcd.config": address}).Debug("Creating new store")
+	s, err := libkv.NewStore(store.ETCD, []string{address}, &store.Config{ConnectionTimeout: 10 * time.Second})
 	if err != nil {
 		log.WithField("error", err).Fatal("Failed to create store")
 	}
 
-	log.Info("Created new store using Consul")
+	log.Info("Created new store using ETCD")
 
 	gds := &GDStore{s}
 
@@ -77,7 +75,7 @@ func (s *GDStore) InitPrefix(p string) error {
 		case store.ErrKeyNotFound:
 			log.WithField("prefix", p).Debug("prefix not found, initing")
 
-			if e := s.Put(p, nil, nil); e != nil {
+			if e := s.Put(p, nil, &store.WriteOptions{IsDir: true}); e != nil {
 				log.WithFields(log.Fields{
 					"preifx": p,
 					"error":  e,
