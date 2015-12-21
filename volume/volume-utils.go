@@ -9,6 +9,10 @@ import (
 	log "github.com/Sirupsen/logrus"
 )
 
+var (
+	MGetVolumes = GetVolumes
+)
+
 // RemoveBrickPaths is to clean up the bricks in case commit fails for volume
 // create
 func RemoveBrickPaths(bricks []Brickinfo) {
@@ -30,7 +34,7 @@ func RemoveBrickPaths(bricks []Brickinfo) {
 // isBrickPathAvailable validates whether the brick is consumed by other
 // volume
 func isBrickPathAvailable(hostname string, brickPath string) error {
-	volumes, e := GetVolumes()
+	volumes, e := MGetVolumes()
 	if e != nil || volumes == nil {
 		// In case cluster doesn't have any volumes configured yet,
 		// treat this as success

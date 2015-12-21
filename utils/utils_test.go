@@ -7,6 +7,8 @@ import (
 	"testing"
 
 	"github.com/gluster/glusterd2/tests"
+
+	"github.com/pborman/uuid"
 )
 
 func TestIsLocalAddress(t *testing.T) {
@@ -85,7 +87,8 @@ func TestValidateBrickPathStats(t *testing.T) {
 }
 
 func TestValidateXattrSupport(t *testing.T) {
-	//TODO : xattr related calls need root permission and hence having valid
-	//tests will always fail in build system. Need to find a way to tackle
-	//it.
+	defer tests.Patch(&Setxattr, tests.MockSetxattr).Restore()
+	defer tests.Patch(&Getxattr, tests.MockGetxattr).Restore()
+	defer tests.Patch(&Removexattr, tests.MockRemovexattr).Restore()
+	tests.Assert(t, ValidateXattrSupport("/tmp/b1", "localhost", uuid.NewRandom(), true) == nil)
 }
