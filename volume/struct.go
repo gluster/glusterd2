@@ -26,6 +26,10 @@ const (
 	VolStopped
 )
 
+var (
+	MValidateBrickPathStats = utils.ValidateBrickPathStats
+)
+
 // VolType is the status of the volume
 type VolType uint16
 
@@ -176,7 +180,7 @@ func ValidateBrickEntries(bricks []Brickinfo, volID uuid.UUID, force bool) (int,
 		if err != nil {
 			return http.StatusBadRequest, err
 		}
-		err = utils.ValidateBrickPathStats(brick.Path, brick.Hostname, force)
+		err = MValidateBrickPathStats(brick.Path, brick.Hostname, force)
 		if err != nil {
 			return http.StatusBadRequest, err
 		}

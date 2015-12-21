@@ -14,3 +14,8 @@ func MockSetxattr(path string, attr string, data []byte, flags int) (err error) 
 func MockGetxattr(path string, attr string, dest []byte) (sz int, err error) {
 	return 0, nil
 }
+
+// MockValidateBrickPathStats is mock function for utils.ValidateBrickPathStats
+func MockValidateBrickPathStats(brickPath string, host string, force bool) error {
+	return nil
+}

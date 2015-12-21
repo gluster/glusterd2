@@ -98,6 +98,7 @@ func TestNewVolumeEntryFromRequest(t *testing.T) {
 	tests.Assert(t, len(v.Bricks) != 0)
 	_, err = ValidateBrickEntries(v.Bricks, v.ID, true)
 	tests.Assert(t, err == nil)
+	defer tests.Patch(&MValidateBrickPathStats, tests.MockValidateBrickPathStats).Restore()
 	_, err = ValidateBrickEntries(v.Bricks, v.ID, false)
 	tests.Assert(t, err == nil)
 
