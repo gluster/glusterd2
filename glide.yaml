@@ -19,3 +19,4 @@ import:
   subpackages:
   - /unix
 - package: gopkg.in/tylerb/graceful.v1
+- package: github.com/heketi/tests
