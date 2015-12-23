@@ -4,6 +4,8 @@ package transaction
 type SimpleTxn struct {
 	// Nodes are the nodes where the stage and commit functions are performed
 	Nodes []string
+	// LockKey is the key to be locked
+	LockKey string
 
 	// Stage function verifies if the node can perform an operation.
 	Stage StepFunc
@@ -16,10 +18,15 @@ type SimpleTxn struct {
 }
 
 // NewSimpleTxn returns creates and returns a Txn using e Simple transaction template
-func NewSimpleTxn(nodes []string, stage, commit, store, rollback StepFunc) Txn {
+func NewSimpleTxn(nodes []string, lockKey string, stage, commit, store, rollback StepFunc) (Txn, error) {
 	simple := Txn{
 		Nodes: nodes,
-		Steps: make([]Step, 3), //A simple transaction has just 3 steps
+		Steps: make([]Step, 5), //A simple transaction has just 5 steps
+	}
+
+	lockstep, unlockstep, err := CreateLockSteps(lockKey)
+	if err != nil {
+		return nil, err
 	}
 
 	stagestep := Step{
@@ -38,16 +45,18 @@ func NewSimpleTxn(nodes []string, stage, commit, store, rollback StepFunc) Txn {
 		Nodes:    []string{Leader},
 	}
 
-	simple.Steps[0] = stagestep
-	simple.Steps[1] = commitstep
-	simple.Steps[2] = storestep
+	simple.Steps[0] = lockstep
+	simple.Steps[1] = stagestep
+	simple.Steps[2] = commitstep
+	simple.Steps[3] = storestep
+	simple.Steps[4] = unlockstep
 
 	return simple
 }
 
 // Do runs the SimpleTxn on the cluster
 func (s *SimpleTxn) Do() error {
-	t := NewSimpleTxn(s.Nodes, s.Stage, s.Commit, s.Store, s.Rollback)
+	t := NewSimpleTxn(s.Nodes, s.LockKey, s.Stage, s.Commit, s.Store, s.Rollback)
 
 	return t.Do()
 }
