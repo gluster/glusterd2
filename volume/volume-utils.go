@@ -10,7 +10,7 @@ import (
 )
 
 var (
-	MGetVolumes = GetVolumes
+	getVolumesFunc = GetVolumes
 )
 
 // RemoveBrickPaths is to clean up the bricks in case commit fails for volume
@@ -34,7 +34,7 @@ func RemoveBrickPaths(bricks []Brickinfo) {
 // isBrickPathAvailable validates whether the brick is consumed by other
 // volume
 func isBrickPathAvailable(hostname string, brickPath string) error {
-	volumes, e := MGetVolumes()
+	volumes, e := getVolumesFunc()
 	if e != nil || volumes == nil {
 		// In case cluster doesn't have any volumes configured yet,
 		// treat this as success

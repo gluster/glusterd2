@@ -5,8 +5,11 @@ import (
 	"os"
 	"testing"
 
+	"github.com/gluster/glusterd2/errors"
 	"github.com/gluster/glusterd2/tests"
 	"github.com/gluster/glusterd2/utils"
+
+	heketitests "github.com/heketi/tests"
 )
 
 func find(haystack []string, needle string) bool {
@@ -39,26 +42,37 @@ func getSampleBricks(b1 string, b2 string) []string {
 
 // TestNewVolumeEntry tests whether the volinfo object is successfully created
 func TestNewVolumeObject(t *testing.T) {
-	v := NewVolinfo()
+	v := NewVolinfoFunc()
 
 	tests.Assert(t, v.Options != nil)
 	tests.Assert(t, len(v.ID) == 0)
+
+	// Negative test
+	defer heketitests.Patch(&NewVolinfoFunc, func() (vol *Volinfo) {
+		return nil
+	}).Restore()
+	v1 := NewVolinfoFunc()
+	tests.Assert(t, v1 == nil)
 }
 
-// TestNewBrickEntryFromRequestBricksRootPartition checks whether bricks can be
-// created from root partition with a force option
-func TestNewBrickEntryFromRequestBricksRootPartition(t *testing.T) {
-	bricks := getSampleBricks("/b1", "/b2")
+// TestNewVolumeEntry validates NewVolumeEntry()
+func TestNewVolumeEntry(t *testing.T) {
+	req := new(VolCreateRequest)
+	v, e := NewVolumeEntry(req)
+	tests.Assert(t, e == nil)
+	tests.Assert(t, v != nil)
 
-	b, err := NewBrickEntries(bricks)
-	tests.Assert(t, err == nil)
-	tests.Assert(t, b != nil)
+	// Negative test - mock out NewVolInfo()
+	defer heketitests.Patch(&NewVolinfoFunc, func() (vol *Volinfo) {
+		return nil
+	}).Restore()
 
+	_, e = NewVolumeEntry(req)
+	tests.Assert(t, e == errors.ErrVolCreateFail)
 }
 
-// TestNewBrickEntryFromRequestBricks checks if bricks are successfully created
-// from the request
-func TestNewBrickEntryFromRequestBricks(t *testing.T) {
+// TestNewBrickEntry validates NewBrickEntries ()
+func TestNewBrickEntry(t *testing.T) {
 	bricks := getSampleBricks("/tmp/b1", "/tmp/b2")
 	brickPaths := []string{"/tmp/b1", "/tmp/b2"}
 	host, _ := os.Hostname()
@@ -71,16 +85,30 @@ func TestNewBrickEntryFromRequestBricks(t *testing.T) {
 		tests.Assert(t, host == brick.Hostname)
 	}
 
+	// Some negative tests
+	mockBricks := []string{"/tmp/b1", "/tmp/b2"} //with out IPs
+	_, err = NewBrickEntries(mockBricks)
+	tests.Assert(t, err != nil)
+
+	//Now mock filepath.Abs()
+	defer heketitests.Patch(&absFilePath, func(path string) (string, error) {
+		return "", errors.ErrBrickPathConvertFail
+	}).Restore()
+
+	_, err = NewBrickEntries(bricks)
+	tests.Assert(t, err == errors.ErrBrickPathConvertFail)
+
 }
 
 // TestNewVolumeEntryFromRequest tests whether the volume is created with a
 // valid request
 func TestNewVolumeEntryFromRequest(t *testing.T) {
 	var err error
-	defer tests.Patch(&utils.Setxattr, tests.MockSetxattr).Restore()
-	defer tests.Patch(&utils.Getxattr, tests.MockGetxattr).Restore()
-	defer tests.Patch(&utils.Removexattr, tests.MockRemovexattr).Restore()
-	defer tests.Patch(&MGetVolumes, mockGetVolumes).Restore()
+	defer heketitests.Patch(&utils.PathMax, 4096).Restore()
+	defer heketitests.Patch(&utils.Setxattr, tests.MockSetxattr).Restore()
+	defer heketitests.Patch(&utils.Getxattr, tests.MockGetxattr).Restore()
+	defer heketitests.Patch(&utils.Removexattr, tests.MockRemovexattr).Restore()
+	defer heketitests.Patch(&getVolumesFunc, mockGetVolumes).Restore()
 
 	req := new(VolCreateRequest)
 	req.Name = "vol1"
@@ -98,7 +126,7 @@ func TestNewVolumeEntryFromRequest(t *testing.T) {
 	tests.Assert(t, len(v.Bricks) != 0)
 	_, err = ValidateBrickEntries(v.Bricks, v.ID, true)
 	tests.Assert(t, err == nil)
-	defer tests.Patch(&MValidateBrickPathStats, tests.MockValidateBrickPathStats).Restore()
+	defer heketitests.Patch(&validateBrickPathStatsFunc, tests.MockValidateBrickPathStats).Restore()
 	_, err = ValidateBrickEntries(v.Bricks, v.ID, false)
 	tests.Assert(t, err == nil)
 

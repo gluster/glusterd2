@@ -1,6 +1,7 @@
 package utils
 
 import (
+	"errors"
 	"golang.org/x/sys/unix"
 	"os"
 	"os/exec"
@@ -9,6 +10,8 @@ import (
 	"github.com/gluster/glusterd2/tests"
 
 	"github.com/pborman/uuid"
+
+	heketitests "github.com/heketi/tests"
 )
 
 func TestIsLocalAddress(t *testing.T) {
@@ -87,8 +90,32 @@ func TestValidateBrickPathStats(t *testing.T) {
 }
 
 func TestValidateXattrSupport(t *testing.T) {
-	defer tests.Patch(&Setxattr, tests.MockSetxattr).Restore()
-	defer tests.Patch(&Getxattr, tests.MockGetxattr).Restore()
-	defer tests.Patch(&Removexattr, tests.MockRemovexattr).Restore()
+	defer heketitests.Patch(&Setxattr, tests.MockSetxattr).Restore()
+	defer heketitests.Patch(&Getxattr, tests.MockGetxattr).Restore()
+	defer heketitests.Patch(&Removexattr, tests.MockRemovexattr).Restore()
 	tests.Assert(t, ValidateXattrSupport("/tmp/b1", "localhost", uuid.NewRandom(), true) == nil)
+
+	// Some negative tests
+	var xattr_err error
+	baderror := errors.New("Bad")
+	xattr_err = baderror
+
+	// Now check what happens when setxattr fails
+	defer heketitests.Patch(&Setxattr, func(path string, attr string, data []byte, flags int) (err error) {
+		return xattr_err
+	}).Restore()
+	tests.Assert(t, ValidateXattrSupport("/tmp/b1", "localhost", uuid.NewRandom(), true) == baderror)
+
+	// Now check what happens when getxattr fails
+	defer heketitests.Patch(&Getxattr, func(path string, attr string, dest []byte) (sz int, err error) {
+		return 0, xattr_err
+	}).Restore()
+	tests.Assert(t, ValidateXattrSupport("/tmp/b1", "localhost", uuid.NewRandom(), true) == baderror)
+
+	// Now check what happens when removexattr fails
+	defer heketitests.Patch(&Removexattr, func(path string, attr string) (err error) {
+		return xattr_err
+	}).Restore()
+	tests.Assert(t, ValidateXattrSupport("/tmp/b1", "localhost", uuid.NewRandom(), true) == baderror)
+
 }
