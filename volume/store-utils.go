@@ -11,12 +11,12 @@ import (
 )
 
 const (
-	volumePrefix string = store.GlusterPrefix + "volume/"
+	volumePrefix string = store.GlusterPrefix + "volumes/"
 )
 
-//func init() {
-//context.Store.InitPrefix(volumePrefix)
-//}
+func init() {
+	context.RegisterStorePrefix(volumePrefix)
+}
 
 // AddOrUpdateVolume marshals to volume object and passes to store to add/update
 func AddOrUpdateVolume(v *Volinfo) error {

@@ -8,16 +8,18 @@ import (
 	"sync"
 
 	"github.com/gluster/glusterd2/rest"
-	"github.com/gluster/glusterd2/store"
 	"github.com/gluster/glusterd2/transaction"
 
 	log "github.com/Sirupsen/logrus"
 	"github.com/pborman/uuid"
 )
 
-const MaxOpVersion = 40000
-const APIVersion = 1
-const GlusterdVersion = "4.0-dev"
+// Various version constants that will be used by GD2
+const (
+	MaxOpVersion    = 40000
+	APIVersion      = 1
+	GlusterdVersion = "4.0-dev"
+)
 
 // Any object that is a part of the GlusterD context and needs to be available
 // to other packages should be declared here as exported global variables
@@ -25,7 +27,6 @@ var (
 	MyUUID    uuid.UUID
 	Rest      *rest.GDRest
 	TxnFw     *transaction.GDTxnFw
-	Store     *store.GDStore
 	OpVersion int
 )
 
@@ -48,7 +49,7 @@ func doInit() {
 
 	Rest = rest.New()
 
-	Store = store.New()
+	initStore()
 
 	log.Debug("Initialized GlusterD context")
 }

@@ -15,7 +15,7 @@ build:
         code: |
           TMPDIR=$(mktemp -d)
           pushd $TMPDIR
-          wget --quiet -O glide.tar.gz https://github.com/Masterminds/glide/releases/download/0.7.0/glide-0.7.0-linux-amd64.tar.gz
+          wget --quiet -O glide.tar.gz https://github.com/Masterminds/glide/releases/download/0.8.0/glide-0.8.0-linux-amd64.tar.gz
           tar zxf glide.tar.gz
           cp linux-amd64/glide $GOPATH/bin
           popd

@@ -16,3 +16,9 @@ To build GD2, just run `make`. If you don't have the required tools installed, r
 ## Contributing
 
 We use the Github pull-request model for accepting contributions. If you are not familiar with the pull request model please read ["Using pull requests"](https://help.github.com/articles/using-pull-requests/). For specific information on GlusterD-2.0, refer the [Development Guide](../../wiki/Development-Guide).
+
+## Copyright and License
+Copyright (c) 2015 Red Hat, Inc. <http://www.redhat.com>
+
+This program is free software; you can redistribute it and/or modify it under the terms of the GNU General Public License version 2 as published by the Free Software Foundation.
+
