@@ -36,7 +36,7 @@ func createVolume(msg *volume.VolCreateRequest) (*volume.Volinfo, error) {
 	if err != nil {
 		return nil, err
 	}
-	vol.Bricks, err = volume.NewBrickEntries(msg.Bricks)
+	vol.Bricks, err = volume.NewBrickEntriesFunc(msg.Bricks)
 	if err != nil {
 		return nil, err
 	}
@@ -44,11 +44,11 @@ func createVolume(msg *volume.VolCreateRequest) (*volume.Volinfo, error) {
 }
 
 func validateVolumeCreate(msg *volume.VolCreateRequest, v *volume.Volinfo) (int, error) {
-	if volume.Exists(msg.Name) {
+	if volume.ExistsFunc(msg.Name) {
 		log.WithField("volume", msg.Name).Error("Volume already exists")
 		return http.StatusBadRequest, errors.ErrVolExists
 	}
-	httpStatusCode, err := volume.ValidateBrickEntries(v.Bricks, v.ID, msg.Force)
+	httpStatusCode, err := volume.ValidateBrickEntriesFunc(v.Bricks, v.ID, msg.Force)
 	if err != nil {
 		return httpStatusCode, err
 	}
@@ -57,7 +57,7 @@ func validateVolumeCreate(msg *volume.VolCreateRequest, v *volume.Volinfo) (int,
 
 func commitVolumeCreate(vol *volume.Volinfo) (int, error) {
 	// Creating client and server volfile
-	e := volgen.GenerateVolfile(vol)
+	e := volgen.GenerateVolfileFunc(vol)
 	if e != nil {
 		log.WithFields(log.Fields{"error": e.Error(),
 			"volume": vol.Name,
@@ -65,7 +65,7 @@ func commitVolumeCreate(vol *volume.Volinfo) (int, error) {
 		return http.StatusInternalServerError, e
 	}
 
-	e = volume.AddOrUpdateVolume(vol)
+	e = volume.AddOrUpdateVolumeFunc(vol)
 	if e != nil {
 		log.WithFields(log.Fields{"error": e.Error(),
 			"volume": vol.Name,
@@ -77,7 +77,7 @@ func commitVolumeCreate(vol *volume.Volinfo) (int, error) {
 }
 
 func rollBackVolumeCreate(vol *volume.Volinfo) error {
-	volume.RemoveBrickPaths(vol.Bricks)
+	_ = volume.RemoveBrickPaths(vol.Bricks)
 	return nil
 }
 

@@ -77,7 +77,7 @@ func TestNewBrickEntry(t *testing.T) {
 	brickPaths := []string{"/tmp/b1", "/tmp/b2"}
 	host, _ := os.Hostname()
 
-	b, err := NewBrickEntries(bricks)
+	b, err := NewBrickEntriesFunc(bricks)
 	tests.Assert(t, err == nil)
 	tests.Assert(t, b != nil)
 	for _, brick := range b {
@@ -87,7 +87,7 @@ func TestNewBrickEntry(t *testing.T) {
 
 	// Some negative tests
 	mockBricks := []string{"/tmp/b1", "/tmp/b2"} //with out IPs
-	_, err = NewBrickEntries(mockBricks)
+	_, err = NewBrickEntriesFunc(mockBricks)
 	tests.Assert(t, err != nil)
 
 	//Now mock filepath.Abs()
@@ -95,7 +95,7 @@ func TestNewBrickEntry(t *testing.T) {
 		return "", errors.ErrBrickPathConvertFail
 	}).Restore()
 
-	_, err = NewBrickEntries(bricks)
+	_, err = NewBrickEntriesFunc(bricks)
 	tests.Assert(t, err == errors.ErrBrickPathConvertFail)
 
 }
@@ -120,14 +120,14 @@ func TestNewVolumeEntryFromRequest(t *testing.T) {
 	tests.Assert(t, v.Transport == "tcp")
 	tests.Assert(t, v.ReplicaCount == 1)
 	tests.Assert(t, len(v.ID) != 0)
-	v.Bricks, err = NewBrickEntries(req.Bricks)
+	v.Bricks, err = NewBrickEntriesFunc(req.Bricks)
 	tests.Assert(t, err == nil)
 	tests.Assert(t, v.Bricks != nil)
 	tests.Assert(t, len(v.Bricks) != 0)
-	_, err = ValidateBrickEntries(v.Bricks, v.ID, true)
+	_, err = ValidateBrickEntriesFunc(v.Bricks, v.ID, true)
 	tests.Assert(t, err == nil)
 	defer heketitests.Patch(&validateBrickPathStatsFunc, tests.MockValidateBrickPathStats).Restore()
-	_, err = ValidateBrickEntries(v.Bricks, v.ID, false)
+	_, err = ValidateBrickEntriesFunc(v.Bricks, v.ID, false)
 	tests.Assert(t, err == nil)
 
 }
@@ -195,4 +195,14 @@ func TestNewVolumeEntryFromRequestRedundancy(t *testing.T) {
 	//coupled with disperse count, ideally this should fail
 	v, _ := NewVolumeEntry(req)
 	tests.Assert(t, v.RedundancyCount == 2)
+}
+
+func TestRemoveBrickPaths(t *testing.T) {
+	req := new(VolCreateRequest)
+	req.Name = "vol1"
+	req.Bricks = getSampleBricks("/tmp/b1", "/tmp/b2")
+	v, e := NewVolumeEntry(req)
+	v.Bricks, e = NewBrickEntriesFunc(req.Bricks)
+	e = RemoveBrickPaths(v.Bricks)
+	tests.Assert(t, e == nil)
 }

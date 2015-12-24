@@ -15,8 +15,8 @@ var (
 
 // RemoveBrickPaths is to clean up the bricks in case commit fails for volume
 // create
-func RemoveBrickPaths(bricks []Brickinfo) {
-
+func RemoveBrickPaths(bricks []Brickinfo) error {
+	var e error
 	for _, brick := range bricks {
 		local, err := utils.IsLocalAddress(brick.Hostname)
 		if err != nil || local == false {
@@ -24,11 +24,13 @@ func RemoveBrickPaths(bricks []Brickinfo) {
 		}
 		err = os.Remove(brick.Path)
 		if err != nil {
-			log.WithFields(log.Fields{"error": err.Error(),
+			e := err
+			log.WithFields(log.Fields{"error": e.Error(),
 				"brickPath": brick.Path,
 				"host":      brick.Hostname}).Error("Failed to remove directory")
 		}
 	}
+	return e
 }
 
 // isBrickPathAvailable validates whether the brick is consumed by other

@@ -27,9 +27,11 @@ const (
 )
 
 var (
+	ValidateBrickEntriesFunc   = ValidateBrickEntries
 	validateBrickPathStatsFunc = utils.ValidateBrickPathStats
 	NewVolinfoFunc             = NewVolinfo
 	absFilePath                = filepath.Abs
+	NewBrickEntriesFunc        = NewBrickEntries
 )
 
 // VolType is the status of the volume
