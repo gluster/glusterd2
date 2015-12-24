@@ -83,7 +83,6 @@ func rollBackVolumeCreate(vol *volume.Volinfo) error {
 
 func volumeCreateHandler(w http.ResponseWriter, r *http.Request) {
 
-	log.Debug("In volume create")
 	msg := new(volume.VolCreateRequest)
 
 	httpStatusCode, e := validateVolumeCreateJSONRequest(msg, r)
