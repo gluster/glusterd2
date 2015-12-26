@@ -8,7 +8,6 @@ import (
 	"sync"
 
 	"github.com/gluster/glusterd2/rest"
-	"github.com/gluster/glusterd2/transaction"
 
 	log "github.com/Sirupsen/logrus"
 	"github.com/pborman/uuid"
@@ -26,7 +25,6 @@ const (
 var (
 	MyUUID    uuid.UUID
 	Rest      *rest.GDRest
-	TxnFw     *transaction.GDTxnFw
 	OpVersion int
 )
 
