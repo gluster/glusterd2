@@ -5,14 +5,25 @@ failed_install() {
 }
 
 install_glide() {
+  GLIDEVER="0.8.2"
+  GLIDEURL="https://github.com/Masterminds/glide/releases/download/${GLIDEVER}/glide-${GLIDEVER}-linux-amd64.tar.gz"
   type glide >/dev/null 2>&1
   if [ $? -eq 0 ]; then
-    echo "glide already installed"
-    return
+    local version=$(glide --version | awk '{print $3}')
+    if [[ $version == $GLIDEVER || $version >  $GLIDEVER ]]; then
+      echo "glide $GLIDEVER or greater is already installed"
+      return
+    fi
   fi
 
   echo "Installing glide"
-  go get github.com/Masterminds/glide || failed_install glide
+  TMPD=$(mktemp -d)
+  pushd $TMPD
+  wget --quiet -O glide.tar.gz $GLIDEURL
+  tar zxf glide.tar.gz
+  cp linux-amd64/glide $GOPATH/bin
+  popd
+  rm -rf $TMPD
 }
 
 install_gometalinter() {
