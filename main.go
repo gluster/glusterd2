@@ -1,11 +1,11 @@
 package main
 
 import (
-	"os"
-	"os/signal"
-
 	"github.com/gluster/glusterd2/commands"
 	"github.com/gluster/glusterd2/context"
+	"github.com/gluster/glusterd2/rpc"
+	"os"
+	"os/signal"
 
 	log "github.com/Sirupsen/logrus"
 )
@@ -17,6 +17,12 @@ func main() {
 
 	for _, c := range commands.Commands {
 		context.Rest.SetRoutes(c.Routes())
+	}
+	err := rpc.RegisterServer()
+	if err != nil {
+		log.Fatal("Could not register as RPC Server. Aborting")
+	} else {
+		log.Debug("Registered as RPC Server")
 	}
 
 	sigCh := make(chan os.Signal)
@@ -37,8 +43,9 @@ func main() {
 		}
 	}()
 
-	err := context.Rest.Listen()
+	err = context.Rest.Listen()
 	if err != nil {
 		log.Fatal("Could not start GlusterD Rest Server. Aborting.")
 	}
+
 }

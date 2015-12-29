@@ -7,6 +7,7 @@ import (
 	"encoding/json"
 
 	"github.com/gluster/glusterd2/context"
+	"github.com/gluster/glusterd2/errors"
 	"github.com/gluster/glusterd2/store"
 
 	log "github.com/Sirupsen/logrus"
@@ -73,6 +74,30 @@ func GetPeers() ([]Peer, error) {
 	}
 
 	return peers, nil
+}
+
+// GetPeerByName returns the peer with the given name from store
+func GetPeerByName(name string) (*Peer, error) {
+	pairs, err := context.Store.List(peerPrefix)
+	if err != nil || pairs == nil {
+		return nil, err
+	}
+
+	for _, pair := range pairs {
+		var p Peer
+		if err := json.Unmarshal(pair.Value, &p); err != nil {
+			log.WithFields(log.Fields{
+				"peer":  pair.Key,
+				"error": err,
+			}).Error("Failed to unmarshal peer")
+			continue
+		}
+		if p.Name == name {
+			return &p, nil
+		}
+	}
+
+	return nil, errors.ErrPeerNotFound
 }
 
 // DeletePeer deletes given peer from the store
