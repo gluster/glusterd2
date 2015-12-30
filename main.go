@@ -18,11 +18,11 @@ func main() {
 	for _, c := range commands.Commands {
 		context.Rest.SetRoutes(c.Routes())
 	}
-	err := rpc.RegisterServer()
+	err := rpc.StartListener()
 	if err != nil {
-		log.Fatal("Could not register as RPC Server. Aborting")
+		log.Fatal("Could not register the listener. Aborting")
 	} else {
-		log.Debug("Registered as RPC Server")
+		log.Debug("Registered RPC listener")
 	}
 
 	sigCh := make(chan os.Signal)

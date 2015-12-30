@@ -40,7 +40,8 @@ func addPeerHandler(w http.ResponseWriter, r *http.Request) {
 
 	rsp, e := gdrpc.PeerAddRPCClnt(&req)
 	if e != nil {
-		rest.SendHTTPError(w, http.StatusInternalServerError, rsp.OpError)
+		rest.SendHTTPError(w, http.StatusInternalServerError, *rsp.OpError)
+		return
 	}
 	if e = peer.AddOrUpdatePeer(p); e != nil {
 		rest.SendHTTPError(w, http.StatusInternalServerError, e.Error())
