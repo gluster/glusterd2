@@ -16,12 +16,12 @@ func (r *Connection) PeerAddRPCSvc(args *peer.PeerAddRequest, reply *RPCPeerAddR
 	log.Debug("In PeerAdd")
 	if context.MaxOpVersion < 40000 {
 		*reply.OpRet = -1
-		fmt.Sprintf(*reply.OpError, "GlusterD instance running on %s is not compatible", args.Name)
+		*reply.OpError = fmt.Sprintf("GlusterD instance running on %s is not compatible", args.Name)
 	}
 	peers, _ := peer.GetPeers()
 	if len(peers) != 0 {
 		*reply.OpRet = -1
-		fmt.Sprintf(*reply.OpError, "Peer %s is already part of another cluster", args.Name)
+		*reply.OpError = fmt.Sprintf("Peer %s is already part of another cluster", args.Name)
 	}
 	return nil
 }
