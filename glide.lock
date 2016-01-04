@@ -1,5 +1,5 @@
-hash: 5454bc944f7678002a3534406f2f502fd9c359ec106a41c48f17e393588c276c
-updated: 2015-12-30T11:05:43.798939124+05:30
+hash: b08d0d0eac7f86a2bff745af50abc21409f6844a1cb40454ba193b8ce1e739da
+updated: 2015-12-24T16:58:09.583409212+05:30
 imports:
 - name: bitbucket.org/ww/goautoneg
   version: 75cd24fc2f2c
@@ -146,6 +146,8 @@ imports:
   version: 39c7c06298b480560202bec00c2c77e974e88792
 - name: github.com/hashicorp/yamux
   version: df949784da9ed028ee76df44652e42d37a09d7e4
+- name: github.com/heketi/tests
+  version: f3775cbcefd6822086c729e3ce4b70ca85a5bd21
 - name: github.com/inconshreveable/mousetrap
   version: 76626ae9c91c4f2a10f34cad8ce83ea42c93bb75
 - name: github.com/inconshreveable/muxado

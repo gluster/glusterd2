@@ -17,9 +17,18 @@ import (
 	"github.com/pborman/uuid"
 )
 
-const testXattr = "trusted.glusterfs.test"
-const volumeIDXattr = "trusted.glusterfs.volume-id"
-const gfidXattr = "trusted.gfid"
+const (
+	testXattr     = "trusted.glusterfs.test"
+	volumeIDXattr = "trusted.glusterfs.volume-id"
+	gfidXattr     = "trusted.gfid"
+)
+
+var (
+	PathMax     = unix.PathMax
+	Removexattr = unix.Removexattr
+	Setxattr    = unix.Setxattr
+	Getxattr    = unix.Getxattr
+)
 
 //PosixPathMax represents C's POSIX_PATH_MAX
 const PosixPathMax = C._POSIX_PATH_MAX
@@ -66,7 +75,7 @@ func ParseHostAndBrickPath(brickPath string) (string, string, error) {
 //ValidateBrickPathLength validates the length of the brick path
 func ValidateBrickPathLength(brickPath string) error {
 	//TODO : Check whether PATH_MAX is compatible across all distros
-	if len(filepath.Clean(brickPath)) >= unix.PathMax {
+	if len(filepath.Clean(brickPath)) >= PathMax {
 		log.WithField("brick", brickPath).Error(errors.ErrBrickPathTooLong.Error())
 		return errors.ErrBrickPathTooLong
 	}
@@ -200,7 +209,7 @@ func ValidateBrickPathStats(brickPath string, host string, force bool) error {
 //use
 func ValidateXattrSupport(brickPath string, host string, uuid uuid.UUID, force bool) error {
 	var err error
-	err = unix.Setxattr(brickPath, "trusted.glusterfs.test", []byte("working"), 0)
+	err = Setxattr(brickPath, "trusted.glusterfs.test", []byte("working"), 0)
 	if err != nil {
 		log.WithFields(log.Fields{"error": err.Error(),
 			"brickPath": brickPath,
@@ -208,7 +217,7 @@ func ValidateXattrSupport(brickPath string, host string, uuid uuid.UUID, force b
 			"xattr":     testXattr}).Error("setxattr failed")
 		return err
 	}
-	err = unix.Removexattr(brickPath, "trusted.glusterfs.test")
+	err = Removexattr(brickPath, "trusted.glusterfs.test")
 	if err != nil {
 		log.WithFields(log.Fields{"error": err.Error(),
 			"brickPath": brickPath,
@@ -224,7 +233,7 @@ func ValidateXattrSupport(brickPath string, host string, uuid uuid.UUID, force b
 			return errors.ErrBrickPathAlreadyInUse
 		}
 	}
-	err = unix.Setxattr(brickPath, "trusted.glusterfs.volume-id", []byte(uuid), 0)
+	err = Setxattr(brickPath, "trusted.glusterfs.volume-id", []byte(uuid), 0)
 	if err != nil {
 		log.WithFields(log.Fields{"error": err.Error(),
 			"brickPath": brickPath,
@@ -243,7 +252,7 @@ func isBrickPathAlreadyInUse(brickPath string) bool {
 	p = brickPath
 	for ; p != "/"; p = path.Dir(p) {
 		for _, key := range keys {
-			size, err := unix.Getxattr(p, key, buf)
+			size, err := Getxattr(p, key, buf)
 			if err != nil {
 				return false
 			} else if size > 0 {

@@ -14,6 +14,11 @@ const (
 	volumePrefix string = store.GlusterPrefix + "volumes/"
 )
 
+var (
+	ExistsFunc            = Exists
+	AddOrUpdateVolumeFunc = AddOrUpdateVolume
+)
+
 func init() {
 	context.RegisterStorePrefix(volumePrefix)
 }

@@ -24,3 +24,4 @@ import:
 - package: github.com/kshlm/pbrpc
   subpackages:
   - /pbcodec
+- package: github.com/heketi/tests
