@@ -13,6 +13,10 @@ const (
 	workdir = "/var/lib/glusterd"
 )
 
+var (
+	GenerateVolfileFunc = GenerateVolfile
+)
+
 // GenerateVolfile function will do all task from graph generation to volfile generation
 func GenerateVolfile(vinfo *volume.Volinfo) error {
 	var cpath string

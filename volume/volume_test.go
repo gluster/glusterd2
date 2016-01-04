@@ -1,5 +1,3 @@
-// +build volumecreate
-
 package volume
 
 import (
@@ -7,14 +5,12 @@ import (
 	"os"
 	"testing"
 
-	"github.com/gluster/glusterd2/context"
+	"github.com/gluster/glusterd2/errors"
 	"github.com/gluster/glusterd2/tests"
-	"github.com/pborman/uuid"
-)
+	"github.com/gluster/glusterd2/utils"
 
-func init() {
-	context.Init()
-}
+	heketitests "github.com/heketi/tests"
+)
 
 func find(haystack []string, needle string) bool {
 
@@ -25,6 +21,10 @@ func find(haystack []string, needle string) bool {
 	}
 
 	return false
+}
+
+func mockGetVolumes() ([]Volinfo, error) {
+	return nil, nil
 }
 
 // getSampleBricks prepare a list of couple of bricks with the path names as
@@ -41,60 +41,94 @@ func getSampleBricks(b1 string, b2 string) []string {
 }
 
 // TestNewVolumeEntry tests whether the volinfo object is successfully created
-func TestNewVolumeEntry(t *testing.T) {
-	v := NewVolinfo()
+func TestNewVolumeObject(t *testing.T) {
+	v := NewVolinfoFunc()
 
 	tests.Assert(t, v.Options != nil)
 	tests.Assert(t, len(v.ID) == 0)
+
+	// Negative test
+	defer heketitests.Patch(&NewVolinfoFunc, func() (vol *Volinfo) {
+		return nil
+	}).Restore()
+	v1 := NewVolinfoFunc()
+	tests.Assert(t, v1 == nil)
 }
 
-// TestNewVolumeEntryFromEmptyRequest validates whether the volume creation
-// fails for an empty request
-func TestNewVolumeEntryFromEmptyRequest(t *testing.T) {
+// TestNewVolumeEntry validates NewVolumeEntry()
+func TestNewVolumeEntry(t *testing.T) {
 	req := new(VolCreateRequest)
-	v := NewVolumeEntry(req)
-	tests.Assert(t, v == nil)
+	v, e := NewVolumeEntry(req)
+	tests.Assert(t, e == nil)
+	tests.Assert(t, v != nil)
+
+	// Negative test - mock out NewVolInfo()
+	defer heketitests.Patch(&NewVolinfoFunc, func() (vol *Volinfo) {
+		return nil
+	}).Restore()
+
+	_, e = NewVolumeEntry(req)
+	tests.Assert(t, e == errors.ErrVolCreateFail)
 }
 
-// TestNewBrickEntryFromRequestBricksRootPartition checks whether bricks can be
-// created from root partition with a force option
-func TestNewBrickEntryFromRequestBricksRootPartition(t *testing.T) {
-	bricks := getSampleBricks("/b1", "/b2")
-
-	b := newBrickEntries(bricks, uuid.NewUUID().String(), true)
-	tests.Assert(t, b != nil)
-
-}
-
-// TestNewBrickEntryFromRequestBricks checks if bricks are successfully created
-// from the request
-func TestNewBrickEntryFromRequestBricks(t *testing.T) {
+// TestNewBrickEntry validates NewBrickEntries ()
+func TestNewBrickEntry(t *testing.T) {
 	bricks := getSampleBricks("/tmp/b1", "/tmp/b2")
 	brickPaths := []string{"/tmp/b1", "/tmp/b2"}
 	host, _ := os.Hostname()
 
-	b := newBrickEntries(bricks, uuid.NewUUID().String(), true)
+	b, err := NewBrickEntriesFunc(bricks)
+	tests.Assert(t, err == nil)
 	tests.Assert(t, b != nil)
 	for _, brick := range b {
 		tests.Assert(t, find(brickPaths, brick.Path))
 		tests.Assert(t, host == brick.Hostname)
 	}
 
+	// Some negative tests
+	mockBricks := []string{"/tmp/b1", "/tmp/b2"} //with out IPs
+	_, err = NewBrickEntriesFunc(mockBricks)
+	tests.Assert(t, err != nil)
+
+	//Now mock filepath.Abs()
+	defer heketitests.Patch(&absFilePath, func(path string) (string, error) {
+		return "", errors.ErrBrickPathConvertFail
+	}).Restore()
+
+	_, err = NewBrickEntriesFunc(bricks)
+	tests.Assert(t, err == errors.ErrBrickPathConvertFail)
+
 }
 
 // TestNewVolumeEntryFromRequest tests whether the volume is created with a
 // valid request
 func TestNewVolumeEntryFromRequest(t *testing.T) {
+	var err error
+	defer heketitests.Patch(&utils.PathMax, 4096).Restore()
+	defer heketitests.Patch(&utils.Setxattr, tests.MockSetxattr).Restore()
+	defer heketitests.Patch(&utils.Getxattr, tests.MockGetxattr).Restore()
+	defer heketitests.Patch(&utils.Removexattr, tests.MockRemovexattr).Restore()
+	defer heketitests.Patch(&getVolumesFunc, mockGetVolumes).Restore()
+
 	req := new(VolCreateRequest)
 	req.Name = "vol1"
 	req.Bricks = getSampleBricks("/tmp/b1", "/tmp/b2")
 	req.Force = true
-	v := NewVolumeEntry(req)
+	v, e := NewVolumeEntry(req)
+	tests.Assert(t, e == nil)
 	tests.Assert(t, v.Name == "vol1")
 	tests.Assert(t, v.Transport == "tcp")
 	tests.Assert(t, v.ReplicaCount == 1)
 	tests.Assert(t, len(v.ID) != 0)
+	v.Bricks, err = NewBrickEntriesFunc(req.Bricks)
+	tests.Assert(t, err == nil)
+	tests.Assert(t, v.Bricks != nil)
 	tests.Assert(t, len(v.Bricks) != 0)
+	_, err = ValidateBrickEntriesFunc(v.Bricks, v.ID, true)
+	tests.Assert(t, err == nil)
+	defer heketitests.Patch(&validateBrickPathStatsFunc, tests.MockValidateBrickPathStats).Restore()
+	_, err = ValidateBrickEntriesFunc(v.Bricks, v.ID, false)
+	tests.Assert(t, err == nil)
 
 }
 
@@ -107,7 +141,7 @@ func TestNewVolumeEntryFromRequestReplica(t *testing.T) {
 	req.Force = true
 	req.ReplicaCount = 3
 
-	v := NewVolumeEntry(req)
+	v, _ := NewVolumeEntry(req)
 	tests.Assert(t, v.ReplicaCount == 3)
 }
 
@@ -119,7 +153,7 @@ func TestNewVolumeEntryFromRequestTransport(t *testing.T) {
 	req.Transport = "rdma"
 	req.Force = true
 	req.Bricks = getSampleBricks("/tmp/b1", "/tmp/b2")
-	v := NewVolumeEntry(req)
+	v, _ := NewVolumeEntry(req)
 	tests.Assert(t, v.Transport == "rdma")
 }
 
@@ -132,7 +166,7 @@ func TestNewVolumeEntryFromRequestStripe(t *testing.T) {
 	req.Force = true
 	req.StripeCount = 2
 
-	v := NewVolumeEntry(req)
+	v, _ := NewVolumeEntry(req)
 	tests.Assert(t, v.StripeCount == 2)
 }
 
@@ -145,7 +179,7 @@ func TestNewVolumeEntryFromRequestDisperse(t *testing.T) {
 	req.Bricks = getSampleBricks("/tmp/b1", "/tmp/b2")
 	req.DisperseCount = 2
 
-	v := NewVolumeEntry(req)
+	v, _ := NewVolumeEntry(req)
 	tests.Assert(t, v.DisperseCount == 2)
 }
 
@@ -159,6 +193,16 @@ func TestNewVolumeEntryFromRequestRedundancy(t *testing.T) {
 	req.RedundancyCount = 2
 	//TODO : This test needs improvement as redundancy count is tightly
 	//coupled with disperse count, ideally this should fail
-	v := NewVolumeEntry(req)
+	v, _ := NewVolumeEntry(req)
 	tests.Assert(t, v.RedundancyCount == 2)
+}
+
+func TestRemoveBrickPaths(t *testing.T) {
+	req := new(VolCreateRequest)
+	req.Name = "vol1"
+	req.Bricks = getSampleBricks("/tmp/b1", "/tmp/b2")
+	v, e := NewVolumeEntry(req)
+	v.Bricks, e = NewBrickEntriesFunc(req.Bricks)
+	e = RemoveBrickPaths(v.Bricks)
+	tests.Assert(t, e == nil)
 }

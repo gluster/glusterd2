@@ -26,6 +26,14 @@ const (
 	VolStopped
 )
 
+var (
+	ValidateBrickEntriesFunc   = ValidateBrickEntries
+	validateBrickPathStatsFunc = utils.ValidateBrickPathStats
+	NewVolinfoFunc             = NewVolinfo
+	absFilePath                = filepath.Abs
+	NewBrickEntriesFunc        = NewBrickEntries
+)
+
 // VolType is the status of the volume
 type VolType uint16
 
@@ -103,7 +111,7 @@ func NewVolinfo() *Volinfo {
 
 // NewVolumeEntry returns an initialized Volinfo using the given parameters
 func NewVolumeEntry(req *VolCreateRequest) (*Volinfo, error) {
-	v := NewVolinfo()
+	v := NewVolinfoFunc()
 	if v == nil {
 		return nil, errors.ErrVolCreateFail
 	}
@@ -138,7 +146,7 @@ func NewBrickEntries(bricks []string) ([]Brickinfo, error) {
 			return nil, err
 		}
 		b1.Hostname = hostname
-		b1.Path, e = filepath.Abs(path)
+		b1.Path, e = absFilePath(path)
 		if e != nil {
 			log.Error("Failed to convert the brickpath to absolute path")
 			return nil, errors.ErrBrickPathConvertFail
@@ -176,7 +184,7 @@ func ValidateBrickEntries(bricks []Brickinfo, volID uuid.UUID, force bool) (int,
 		if err != nil {
 			return http.StatusBadRequest, err
 		}
-		err = utils.ValidateBrickPathStats(brick.Path, brick.Hostname, force)
+		err = validateBrickPathStatsFunc(brick.Path, brick.Hostname, force)
 		if err != nil {
 			return http.StatusBadRequest, err
 		}

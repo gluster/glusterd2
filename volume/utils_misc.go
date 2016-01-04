@@ -11,7 +11,7 @@ import (
 var volCount uint64
 
 func getRandVolume() *Volinfo {
-	v := NewVolinfo()
+	v := NewVolinfoFunc()
 
 	v.ID = uuid.NewRandom()
 	v.Name = fmt.Sprintf("volume-%d", atomic.AddUint64(&volCount, 1))
