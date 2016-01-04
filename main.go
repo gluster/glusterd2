@@ -3,7 +3,7 @@ package main
 import (
 	"github.com/gluster/glusterd2/commands"
 	"github.com/gluster/glusterd2/context"
-	"github.com/gluster/glusterd2/rpc"
+	"github.com/gluster/glusterd2/rpc/server"
 	"os"
 	"os/signal"
 
@@ -18,7 +18,7 @@ func main() {
 	for _, c := range commands.Commands {
 		context.Rest.SetRoutes(c.Routes())
 	}
-	err := rpc.StartListener()
+	err := server.StartListener()
 	if err != nil {
 		log.Fatal("Could not register the listener. Aborting")
 	} else {

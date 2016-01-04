@@ -6,7 +6,7 @@ import (
 	"github.com/gluster/glusterd2/errors"
 	"github.com/gluster/glusterd2/peer"
 	"github.com/gluster/glusterd2/rest"
-	gdrpc "github.com/gluster/glusterd2/rpc"
+	"github.com/gluster/glusterd2/rpc/client"
 	"github.com/gluster/glusterd2/utils"
 
 	"github.com/pborman/uuid"
@@ -38,7 +38,7 @@ func addPeerHandler(w http.ResponseWriter, r *http.Request) {
 		Addresses: req.Addresses,
 	}
 
-	rsp, e := gdrpc.PeerAddRPCClnt(&req)
+	rsp, e := client.ValidateAddPeer(&req)
 	if e != nil {
 		rest.SendHTTPError(w, http.StatusInternalServerError, *rsp.OpError)
 		return
