@@ -20,17 +20,17 @@ func (p *PeerService) Validate(args *RPCPeerAddReq, reply *RPCPeerAddResp) error
 	opError = ""
 	if context.MaxOpVersion < 40000 {
 		opRet = -1
-		opError = fmt.Sprintf("GlusterD instance running on %s is not compatible", args.Name)
+		opError = fmt.Sprintf("GlusterD instance running on %s is not compatible", *args.Name)
 	}
 	peers, _ := peer.GetPeers()
 	if len(peers) != 0 {
 		opRet = -1
-		opError = fmt.Sprintf("Peer %s is already part of another cluster", args.Name)
+		opError = fmt.Sprintf("Peer %s is already part of another cluster", *args.Name)
 	}
 	volumes, _ := volume.GetVolumes()
 	if len(volumes) != 0 {
 		opRet = -1
-		opError = fmt.Sprintf("Peer %s already has existing volumes", args.Name)
+		opError = fmt.Sprintf("Peer %s already has existing volumes", *args.Name)
 	}
 
 	reply.OpRet = &opRet
