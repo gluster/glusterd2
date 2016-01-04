@@ -12,7 +12,6 @@ import (
 
 func StartListener() error {
 	server := rpc.NewServer()
-	//server.Register(new(PeerService))
 	services.RegisterServices(server)
 	l, e := net.Listen("tcp", ":9876")
 	if e != nil {
