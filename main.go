@@ -46,7 +46,7 @@ func main() {
 	// Starting etcd daemon upon starting of GlusterD
 	etcd_start := exec.Command("/bin/etcd")
 
-	err := etcd_start.Start()
+	err = etcd_start.Start()
 	if err != nil {
 		log.Fatal("Could not start etcd daemon.")
 	}
