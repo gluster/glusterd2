@@ -1,7 +1,8 @@
 // Package context is the runtime context of GlusterD
 //
-// Any package that needs access to the GlusterD runtime context just needs to
-// import this package.
+// This file implements the global runtime context for GlusterD.
+// Any package that needs access to the GlusterD global runtime context just
+// needs to import this package.
 package context
 
 import (
