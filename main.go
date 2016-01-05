@@ -2,6 +2,7 @@ package main
 
 import (
 	"os"
+	"os/exec"
 	"os/signal"
 
 	"github.com/gluster/glusterd2/commands"
@@ -40,5 +41,13 @@ func main() {
 	err := context.Rest.Listen()
 	if err != nil {
 		log.Fatal("Could not start GlusterD Rest Server. Aborting.")
+	}
+
+	// Starting etcd daemon upon starting of GlusterD
+	etcd_start := exec.Command("/bin/etcd")
+
+	err := etcd_start.Start()
+	if err != nil {
+		log.Fatal("Could not start etcd daemon.")
 	}
 }
