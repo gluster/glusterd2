@@ -5,7 +5,7 @@ package transaction
 //
 // Nodes is a union of the all the TxnStep.Nodes
 type Txn struct {
-	Steps []Step
+	Steps []*Step
 	Nodes []string
 }
 

@@ -1,5 +1,9 @@
 package transaction
 
+import (
+	"github.com/gluster/glusterd2/context"
+)
+
 // Temporary declarations for step args and return.
 
 // StepArg in the input to a Step
@@ -9,7 +13,7 @@ type StepArg interface{}
 type StepRet interface{}
 
 // StepFunc is the function that is supposed to be run during a transaction step
-type StepFunc func(StepArg) StepRet
+type StepFunc func(*context.Context, StepArg) (StepRet, error)
 
 const (
 	//Leader is a constant string representing the leader node
@@ -22,7 +26,6 @@ const (
 //
 // DoFunc performs does the action
 // UndoFunc undoes anything done by DoFunc
-// Nodes can have a single entry of either transaction.Leader or transaction.All, in which case the transaction will run on all Nodes in a transaction or just the leader
 type Step struct {
 	DoFunc   StepFunc
 	UndoFunc StepFunc
