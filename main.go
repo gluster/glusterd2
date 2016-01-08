@@ -4,6 +4,7 @@ import (
 	"os"
 	"os/signal"
 
+	"github.com/gluster/glusterd2/EtcdMgmt"
 	"github.com/gluster/glusterd2/commands"
 	"github.com/gluster/glusterd2/context"
 
@@ -14,7 +15,10 @@ func main() {
 	log.Info("GlusterD starting")
 
 	// Starting etcd daemon upon starting of GlusterD
-	context.StartEtcd()
+	err := EtcdMgmt.StartEtcd()
+	if err != nil {
+		log.Fatal("Could not able to start etcd")
+	}
 
 	context.Init()
 
@@ -40,7 +44,7 @@ func main() {
 		}
 	}()
 
-	err := context.Rest.Listen()
+	err = context.Rest.Listen()
 	if err != nil {
 		log.Fatal("Could not start GlusterD Rest Server. Aborting.")
 	}
