@@ -1,20 +1,18 @@
 hash: b08d0d0eac7f86a2bff745af50abc21409f6844a1cb40454ba193b8ce1e739da
-updated: 2015-12-24T16:58:09.583409212+05:30
+updated: 2016-01-08T11:56:19.651347004+05:30
 imports:
 - name: bitbucket.org/ww/goautoneg
   version: 75cd24fc2f2c
 - name: code.google.com/p/go.net
   version: 937a34c9de13
+  repo: https://code.google.com/p/go.net
 - name: code.google.com/p/go.text
   version: 5b2527008a4c
+  repo: https://code.google.com/p/go.text
 - name: github.com/agtorre/gocolorize
   version: f42b554bf7f006936130c9bb4f971afd2d87f671
-- name: github.com/akrennmair/gopcap
-  version: 00e11033259acb75598ba416495bb708d864a010
 - name: github.com/armon/circbuf
   version: bbbad097214e2918d8543d5201d12bfd7bca254d
-- name: github.com/armon/consul-api
-  version: dcfedd50ed5334f96adee43fc88518a4f095e15c
 - name: github.com/armon/go-metrics
   version: 06b60999766278efd6d2b5d8418a58c3d5b99e87
 - name: github.com/armon/go-radix
@@ -28,7 +26,7 @@ imports:
 - name: github.com/bgentry/speakeasy
   version: 36e9cfdd690967f4f690c6edcc9ffacd006014a0
 - name: github.com/boltdb/bolt
-  version: 0b00effdd7a8270ebd91c24297e51643e370dd52
+  version: 90fef389f98027ca55594edd7dbd6e7f3926fdad
 - name: github.com/bradfitz/gomemcache
   version: 72a68649ba712ee7c4b5b4a943a626bcd7d90eb8
 - name: github.com/bradfitz/http2
@@ -39,8 +37,6 @@ imports:
   version: 0dd3f918b21bec95ace9dc86c7e70266cfc5c702
 - name: github.com/bugsnag/panicwrap
   version: e2c28503fcd0675329da73bf48b33404db873782
-- name: github.com/BurntSushi/toml
-  version: 056c9bc7be7190eaa7715723883caffa5f8fa3e4
 - name: github.com/cheggaaa/pb
   version: da1f27ad1d9509b16f65f52fd9d8138b0f2dc7b2
 - name: github.com/codegangsta/cli
@@ -50,11 +46,9 @@ imports:
 - name: github.com/codegangsta/negroni
   version: c7477ad8e330bef55bf1ebe300cf8aa67c492d1b
 - name: github.com/coreos/etcd
-  version: ""
+  version: b4bddf685b26b4aa70e939445044bdeac822d042
   subpackages:
   - /client
-- name: github.com/coreos/go-etcd
-  version: 003851be7bb0694fe3cc457a49529a19388ee7cf
 - name: github.com/coreos/go-semver
   version: 568e959cd89871e61434c1143528d9162da89ef2
   subpackages:
@@ -69,10 +63,6 @@ imports:
   version: 2c77715c4df99b5420ffcae14ead08f52104065d
   subpackages:
   - capnslog
-- name: github.com/cpuguy83/go-md2man
-  version: 71acacd42f85e5e82f70a55327789582a5200a90
-  subpackages:
-  - md2man
 - name: github.com/DataDog/datadog-go
   version: b050cd8f4d7c394545fd7d966c8e2909ce89d552
 - name: github.com/docker/libkv
@@ -148,8 +138,6 @@ imports:
   version: df949784da9ed028ee76df44652e42d37a09d7e4
 - name: github.com/heketi/tests
   version: f3775cbcefd6822086c729e3ce4b70ca85a5bd21
-- name: github.com/inconshreveable/mousetrap
-  version: 76626ae9c91c4f2a10f34cad8ce83ea42c93bb75
 - name: github.com/inconshreveable/muxado
   version: f693c7e88ba316d1a0ae3e205e22a01aa3ec2848
 - name: github.com/jonboulle/clockwork
@@ -197,6 +185,8 @@ imports:
   - model
 - name: github.com/prometheus/procfs
   version: 454a56f35412459b5e684fd5ec0f9211b94f002a
+- name: github.com/rakyll/pb
+  version: dc507ad06b7462501281bb4691ee43f0b1d1ec37
 - name: github.com/revel/revel
   version: a9a2ff45fae4330ef4116b257bcf9c82e53350c2
 - name: github.com/robfig/config
@@ -205,28 +195,12 @@ imports:
   version: 9fc39e0dbf62c034ec4e45e6120fc69433a3ec51
 - name: github.com/robfig/pathtree
   version: 41257a1839e945fce74afd070e02bab2ea2c776a
-- name: github.com/russross/blackfriday
-  version: 300106c228d52c8941d4b3de6054a6062a86dda3
 - name: github.com/ryanuber/columnize
   version: 983d3a5fab1bf04d1b412465d2d9f8430e2e917e
 - name: github.com/samuel/go-zookeeper
   version: 218e9c81c0dd8b3b18172b2bbfad92cc7d6db55f
-- name: github.com/shurcooL/sanitized_anchor_name
-  version: 10ef21a441db47d8b13ebcc5fd2310f636973c77
 - name: github.com/Sirupsen/logrus
   version: 418b41d23a1bf978c06faea5313ba194650ac088
-- name: github.com/spacejam/loghisto
-  version: 323309774dec8b7430187e46cd0793974ccca04a
-- name: github.com/spf13/cast
-  version: ee7b3e0353166ab1f3a605294ac8cd2b77953778
-- name: github.com/spf13/cobra
-  version: 1c44ec8d3f1552cac48999f9306da23c4d8a288b
-- name: github.com/spf13/jwalterweatherman
-  version: c2aa07df593850a04644d77bb757d002e517a296
-- name: github.com/spf13/pflag
-  version: 08b1a584251b5b62f458943640fc8ebd4d50aaa5
-- name: github.com/spf13/viper
-  version: 79971f1ae71e74d2e814b9b4bb91fb59b0263654
 - name: github.com/stretchr/objx
   version: 1a9d0bb9f541897e62256577b352fdbc1fb4fd94
 - name: github.com/stretchr/testify
@@ -243,8 +217,6 @@ imports:
   - codec
 - name: github.com/xiang90/probing
   version: 6a0cc1ae81b4cc11db5e491e030e4b98fba79c19
-- name: github.com/xordataexchange/crypt
-  version: 749e360c8f236773f28fc6d3ddfce4a470795227
 - name: golang.org/x/crypto
   version: 1351f936d976c60a0a48d728281922cf63eafb8d
   subpackages:
@@ -277,6 +249,4 @@ imports:
   version: 48afeb21e2fcbcff0f30bd5ad6b97747b0fae38e
 - name: gopkg.in/yaml.v1
   version: 9f9df34309c04878acc86042b16630b0f696e1de
-- name: gopkg.in/yaml.v2
-  version: f7716cbe52baa25d2e9b0d0da546fcf909fc16b4
 devImports: []
