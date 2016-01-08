@@ -5,7 +5,7 @@ failed_install() {
 }
 
 install_glide() {
-  GLIDEVER="0.8.2"
+  GLIDEVER="0.8.3"
   GLIDEURL="https://github.com/Masterminds/glide/releases/download/${GLIDEVER}/glide-${GLIDEVER}-linux-amd64.tar.gz"
   type glide >/dev/null 2>&1
   if [ $? -eq 0 ]; then
