@@ -26,7 +26,7 @@ install:
 
 vendor-update:
 	@echo Updating vendored packages
-	@GO15VENDOREXPERIMENT=1 glide install
+	@GO15VENDOREXPERIMENT=1 glide up
 	@echo
 
 verify: check-reqs

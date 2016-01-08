@@ -28,7 +28,7 @@ func volumeStartHandler(w http.ResponseWriter, r *http.Request) {
 	}
 	vol.Status = volume.VolStarted
 
-	e = volume.AddOrUpdateVolume(vol)
+	e = volume.AddOrUpdateVolumeFunc(vol)
 	if e != nil {
 		rest.SendHTTPError(w, http.StatusInternalServerError, e.Error())
 		return
