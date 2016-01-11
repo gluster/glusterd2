@@ -4,9 +4,9 @@ import (
 	"os"
 	"os/signal"
 
-	"github.com/gluster/glusterd2/EtcdMgmt"
 	"github.com/gluster/glusterd2/commands"
 	"github.com/gluster/glusterd2/context"
+	"github.com/gluster/glusterd2/etcdmgmt"
 
 	log "github.com/Sirupsen/logrus"
 )
@@ -15,7 +15,7 @@ func main() {
 	log.Info("GlusterD starting")
 
 	// Starting etcd daemon upon starting of GlusterD
-	err := EtcdMgmt.StartEtcd()
+	err := etcdmgmt.StartEtcd()
 	if err != nil {
 		log.Fatal("Could not able to start etcd")
 	}

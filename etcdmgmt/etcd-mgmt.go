@@ -1,4 +1,4 @@
-package EtcdMgmt
+package etcdmgmt
 
 import (
 	"os"
@@ -17,22 +17,23 @@ func StartEtcd() error {
 		return err
 	}
 
-	Ip2379 := "http://" + hostname + ":2379"
+	HostPort2379 := "http://" + hostname + ":2379"
 
-	Ip2380 := "http://" + hostname + ":2380"
+	HostPort2380 := "http://" + hostname + ":2380"
 
-	etcd_start := exec.Command("/bin/etcd",
-		"-listen-client-urls", Ip2379,
-		"-advertise-client-urls", Ip2379,
-		"-listen-peer-urls", Ip2380,
-		"-initial-advertise-peer-urls", Ip2380,
-		"--initial-cluster", "default="+Ip2380)
+	EtcdStart := exec.Command("/bin/etcd",
+		"-listen-client-urls", HostPort2379,
+		"-advertise-client-urls", HostPort2379,
+		"-listen-peer-urls", HostPort2380,
+		"-initial-advertise-peer-urls", HostPort2380,
+		"--initial-cluster", "default="+HostPort2380)
 
-	err = etcd_start.Start()
+	err = EtcdStart.Start()
 	if err != nil {
 		log.Fatal("Could not start etcd daemon.")
 		return err
 	}
+
 	// Waiting 1 second for etcd come up. We should not wait for command
 	// to finish.
 	time.Sleep(1 * time.Second)
