@@ -10,9 +10,11 @@ import (
 	"github.com/kshlm/pbrpc/pbcodec"
 )
 
+// StartListener is to register all the services and start listening on them
 func StartListener() error {
 	server := rpc.NewServer()
 	services.RegisterServices(server)
+	//TODO : port 9876 is hardcoded now, can be made configurable
 	l, e := net.Listen("tcp", ":9876")
 	if e != nil {
 		log.WithField("error", e).Fatal("listener error")

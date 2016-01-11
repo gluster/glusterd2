@@ -15,7 +15,8 @@ var (
 	opError string
 )
 
-func (p *PeerService) Validate(args *RPCPeerAddReq, reply *RPCPeerAddResp) error {
+// Validate function checks all validation for AddPeer at server side
+func (p *PeerService) ValidateAdd(args *RPCPeerAddReq, reply *RPCPeerAddResp) error {
 	opRet = 0
 	opError = ""
 	if context.MaxOpVersion < 40000 {

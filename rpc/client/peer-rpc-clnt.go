@@ -17,11 +17,14 @@ var (
 	opError string
 )
 
+// ValidateAddPeer is the validation function for AddPeer to invoke the rpc
+// server call
 func ValidateAddPeer(p *peer.PeerAddRequest) (*services.RPCPeerAddResp, error) {
 	args := &services.RPCPeerAddReq{Name: new(string), Addresses: p.Addresses}
 	*args.Name = p.Name
 
 	rsp := new(services.RPCPeerAddResp)
+	//TODO : port 9876 is hardcoded for now, can be made configurable
 	remoteAddress := fmt.Sprintf("%s:%s", p.Name, "9876")
 	rpcConn, e := net.Dial("tcp", remoteAddress)
 	if e != nil {
@@ -35,7 +38,7 @@ func ValidateAddPeer(p *peer.PeerAddRequest) (*services.RPCPeerAddResp, error) {
 	client := rpc.NewClientWithCodec(pbcodec.NewClientCodec(rpcConn))
 	defer client.Close()
 
-	e = client.Call("PeerService.Validate", args, rsp)
+	e = client.Call("PeerService.ValidateAdd", args, rsp)
 	if e != nil {
 		log.Error("Failed to execute PeerService.Validate() rpc call")
 		opRet = -1
