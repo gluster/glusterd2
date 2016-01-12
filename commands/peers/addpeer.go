@@ -6,19 +6,14 @@ import (
 	"github.com/gluster/glusterd2/errors"
 	"github.com/gluster/glusterd2/peer"
 	"github.com/gluster/glusterd2/rest"
+	"github.com/gluster/glusterd2/rpc/client"
 	"github.com/gluster/glusterd2/utils"
 
 	"github.com/pborman/uuid"
 )
 
-type peerAddRequest struct {
-	Addresses []string `json:"addresses"`
-	Name      string   `json:"name,omitempty"`
-}
-
 func addPeerHandler(w http.ResponseWriter, r *http.Request) {
-	var req peerAddRequest
-
+	var req peer.PeerAddRequest
 	if e := utils.GetJSONFromRequest(r, &req); e != nil {
 		rest.SendHTTPError(w, http.StatusBadRequest, e.Error())
 		return
@@ -43,7 +38,12 @@ func addPeerHandler(w http.ResponseWriter, r *http.Request) {
 		Addresses: req.Addresses,
 	}
 
-	if e := peer.AddOrUpdatePeer(p); e != nil {
+	rsp, e := client.ValidateAddPeer(&req)
+	if e != nil {
+		rest.SendHTTPError(w, http.StatusInternalServerError, *rsp.OpError)
+		return
+	}
+	if e = peer.AddOrUpdatePeer(p); e != nil {
 		rest.SendHTTPError(w, http.StatusInternalServerError, e.Error())
 		return
 	}
