@@ -1,9 +1,11 @@
 package etcdmgmt
 
 import (
+	"encoding/json"
+	"io/ioutil"
+	"net/http"
 	"os"
 	"os/exec"
-	"time"
 
 	log "github.com/Sirupsen/logrus"
 )
@@ -34,9 +36,25 @@ func StartEtcd() error {
 		return err
 	}
 
-	// Waiting 1 second for etcd come up. We should not wait for command
-	// to finish.
-	time.Sleep(1 * time.Second)
+	//Checking health of etcd cluster
+	for {
+		result := struct{ Health string }{}
+
+		resp, err := http.Get(HostPort2379 + "/health")
+		if err != nil {
+			continue
+		}
+
+		Body, err := ioutil.ReadAll(resp.Body)
+
+		err = json.Unmarshal([]byte(Body), &result)
+		if err != nil {
+			continue
+		}
+		if result.Health == "true" {
+			break
+		}
+	}
 
 	return nil
 }
