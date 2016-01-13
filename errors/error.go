@@ -8,6 +8,7 @@ import (
 var (
 	ErrVolCreateFail           = errors.New("unable to create volume")
 	ErrVolNotFound             = errors.New("volume not found")
+	ErrPeerNotFound            = errors.New("peer not found")
 	ErrJSONParsingFailed       = errors.New("unable to parse the request")
 	ErrEmptyVolName            = errors.New("volume name is empty")
 	ErrEmptyBrickList          = errors.New("brick list is empty")
