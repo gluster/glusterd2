@@ -34,6 +34,8 @@ install_gometalinter() {
   fi
 
   echo "Installing gometalinter"
+  # Expects $GOPATH to be set. If not set, set to /usr
+  test -z $GOPATH && export GOPATH="/usr"
   go get -u github.com/alecthomas/gometalinter
   if [ $? -ne 0 ]; then
     failed_install gometalinter
@@ -43,6 +45,8 @@ install_gometalinter() {
   echo "Installing linters"
   gometalinter --install --update || failed_install linters
 }
+
+test `id -u` -ne 0  && echo "$0: only root can install" && exit 1
 
 install_glide
 install_gometalinter
