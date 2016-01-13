@@ -18,7 +18,7 @@ func main() {
 	// Starting etcd daemon upon starting of GlusterD
 	err := etcdmgmt.StartEtcd()
 	if err != nil {
-		log.Fatal("Could not able to start etcd")
+		log.Fatal("Could not able to start etcd", err)
 	}
 
 	context.Init()
@@ -26,7 +26,8 @@ func main() {
 	for _, c := range commands.Commands {
 		context.Rest.SetRoutes(c.Routes())
 	}
-	err := server.StartListener()
+
+	err = server.StartListener()
 	if err != nil {
 		log.Fatal("Could not register the listener. Aborting")
 	} else {

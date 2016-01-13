@@ -6,6 +6,7 @@ import (
 	"net/http"
 	"os"
 	"os/exec"
+	"time"
 
 	log "github.com/Sirupsen/logrus"
 )
@@ -19,39 +20,51 @@ func StartEtcd() error {
 		return err
 	}
 
-	HostPort2379 := "http://" + hostname + ":2379"
+	listenClientUrls := "http://" + hostname + ":2379"
 
-	HostPort2380 := "http://" + hostname + ":2380"
+	advClientUrls := "http://" + hostname + ":2380"
 
-	EtcdStart := exec.Command("/bin/etcd",
-		"-listen-client-urls", HostPort2379,
-		"-advertise-client-urls", HostPort2379,
-		"-listen-peer-urls", HostPort2380,
-		"-initial-advertise-peer-urls", HostPort2380,
-		"--initial-cluster", "default="+HostPort2380)
+	etcdStart := exec.Command("/bin/etcd",
+		"-listen-client-urls", listenClientUrls,
+		"-advertise-client-urls", listenClientUrls,
+		"-listen-peer-urls", advClientUrls,
+		"-initial-advertise-peer-urls", advClientUrls,
+		"--initial-cluster", "default="+advClientUrls)
 
-	err = EtcdStart.Start()
+	err = etcdStart.Start()
 	if err != nil {
 		log.Fatal("Could not start etcd daemon.")
 		return err
 	}
 
-	//Checking health of etcd cluster
+	result := struct{ Health string }{}
+	// Checking health of etcd. Health of the etcd should be true,
+	// means etcd have initialized properly before using any etcd command
 	for {
-		result := struct{ Health string }{}
 
-		resp, err := http.Get(HostPort2379 + "/health")
+		// Waiting for 15 second. Within 15 second health of etcd should
+		// be true otherwise it should through an error
+		timer := time.NewTimer(time.Second * 15)
+		go func() {
+			<-timer.C
+			if result.Health != "true" {
+				log.Fatal("Health of etcd is not proper. Please check your etcd configuration.")
+			}
+		}()
+
+		resp, err := http.Get(listenClientUrls + "/health")
 		if err != nil {
 			continue
 		}
 
-		Body, err := ioutil.ReadAll(resp.Body)
+		body, err := ioutil.ReadAll(resp.Body)
 
-		err = json.Unmarshal([]byte(Body), &result)
+		err = json.Unmarshal([]byte(body), &result)
 		if err != nil {
 			continue
 		}
 		if result.Health == "true" {
+			timer.Stop()
 			break
 		}
 	}
