@@ -22,18 +22,22 @@ func StartEtcd() error {
 
 	listenClientUrls := "http://" + hostname + ":2379"
 
-	advClientUrls := "http://" + hostname + ":2380"
+	advClientUrls := "http://" + hostname + ":2379"
+
+	listenPeerUrls := "http://" + hostname + ":2380"
+
+	initialAdvPeerUrls := "http://" + hostname + ":2380"
 
 	etcdStart := exec.Command("/bin/etcd",
 		"-listen-client-urls", listenClientUrls,
-		"-advertise-client-urls", listenClientUrls,
-		"-listen-peer-urls", advClientUrls,
-		"-initial-advertise-peer-urls", advClientUrls,
-		"--initial-cluster", "default="+advClientUrls)
+		"-advertise-client-urls", advClientUrls,
+		"-listen-peer-urls", listenPeerUrls,
+		"-initial-advertise-peer-urls", initialAdvPeerUrls,
+		"--initial-cluster", "default="+listenPeerUrls)
 
 	err = etcdStart.Start()
 	if err != nil {
-		log.Fatal("Could not start etcd daemon.")
+		log.Fatal("Could not start etcd daemon.", err)
 		return err
 	}
 
@@ -43,12 +47,12 @@ func StartEtcd() error {
 	for {
 
 		// Waiting for 15 second. Within 15 second health of etcd should
-		// be true otherwise it should through an error
+		// be true otherwise it should throw an error
 		timer := time.NewTimer(time.Second * 15)
 		go func() {
 			<-timer.C
 			if result.Health != "true" {
-				log.Fatal("Health of etcd is not proper. Please check your etcd configuration.")
+				log.Fatal("Health of etcd is not proper. Check etcd configuration.")
 			}
 		}()
 
