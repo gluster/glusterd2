@@ -2,10 +2,11 @@ package utils
 
 import (
 	"errors"
-	"golang.org/x/sys/unix"
 	"os"
 	"os/exec"
 	"testing"
+
+	"golang.org/x/sys/unix"
 
 	"github.com/gluster/glusterd2/tests"
 
@@ -77,16 +78,16 @@ func TestValidateBrickSubDirLength(t *testing.T) {
 }
 
 func TestValidateBrickPathStats(t *testing.T) {
-	tests.Assert(t, ValidateBrickPathStats("/b1", "host", false) != nil)
-	tests.Assert(t, ValidateBrickPathStats("/b1", "host", true) == nil)
+	tests.Assert(t, ValidateBrickPathStats("/bricks/b1", "host", false) != nil)
+	tests.Assert(t, ValidateBrickPathStats("/bricks/b1", "host", true) == nil)
 	tests.Assert(t, ValidateBrickPathStats("/tmp", "host", false) != nil)
 	//TODO : In build system /tmp is considered as root, hence passing
 	//force = true
-	tests.Assert(t, ValidateBrickPathStats("/tmp/b1", "host", true) == nil)
-	cmd := exec.Command("touch", "/tmp/b1/b2")
+	tests.Assert(t, ValidateBrickPathStats("/tmp/bricks/b1", "host", true) == nil)
+	cmd := exec.Command("touch", "/tmp/bricks/b1/b2")
 	err := cmd.Run()
 	tests.Assert(t, err == nil)
-	tests.Assert(t, ValidateBrickPathStats("/tmp/b1/b2", "host", false) != nil)
+	tests.Assert(t, ValidateBrickPathStats("/tmp/bricks/b1/b2", "host", false) != nil)
 }
 
 func TestValidateXattrSupport(t *testing.T) {
