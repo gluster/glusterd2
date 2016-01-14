@@ -4,13 +4,14 @@ package utils
 import "C"
 
 import (
-	"golang.org/x/sys/unix"
 	"net"
 	"os"
 	"path"
 	"path/filepath"
 	"strings"
 	"syscall"
+
+	"golang.org/x/sys/unix"
 
 	log "github.com/Sirupsen/logrus"
 	"github.com/gluster/glusterd2/errors"
@@ -115,7 +116,7 @@ func GetDeviceID(f os.FileInfo) (int, error) {
 func ValidateBrickPathStats(brickPath string, host string, force bool) error {
 	var created bool
 	var rootStat, brickStat, parentStat os.FileInfo
-	err := os.Mkdir(brickPath, os.ModeDir|os.ModePerm)
+	err := os.MkdirAll(brickPath, os.ModeDir|os.ModePerm)
 	if err != nil {
 		if !os.IsExist(err) {
 			log.WithFields(log.Fields{
