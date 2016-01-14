@@ -37,7 +37,7 @@ func StartEtcd() error {
 
 	err = etcdStart.Start()
 	if err != nil {
-		log.Fatal("Could not start etcd daemon.", err)
+		log.WithField("error", err.Error()).Fatal("Could not start etcd daemon.")
 		return err
 	}
 
