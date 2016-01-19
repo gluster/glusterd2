@@ -2,7 +2,7 @@
 
 # Checks if the tools required for properly building, verifying and testing GlusterD are installed.
 
-TOOLS=(glide gometalinter)
+TOOLS=(glide gometalinter etcd)
 
 MISSING=0
 
