@@ -1,8 +1,6 @@
 package context
 
-import (
-	"github.com/gluster/glusterd2/store"
-)
+import "github.com/gluster/glusterd2/store"
 
 // If someone needs to use the GD2 store, all they need to do is just import context and use context.Store
 var (

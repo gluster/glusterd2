@@ -5,6 +5,7 @@
 package store
 
 import (
+	"os"
 	"time"
 
 	log "github.com/Sirupsen/logrus"
@@ -34,7 +35,8 @@ func init() {
 // New creates a new GDStore
 func New() *GDStore {
 	//TODO: Make this configurable
-	address := "localhost:2379"
+	hostname, _ := os.Hostname()
+	address := hostname + ":2379"
 
 	log.WithFields(log.Fields{"type": "etcd", "etcd.config": address}).Debug("Creating new store")
 	s, err := libkv.NewStore(store.ETCD, []string{address}, &store.Config{ConnectionTimeout: 10 * time.Second})
