@@ -28,7 +28,7 @@ func StartEtcd() error {
 
 	initialAdvPeerUrls := "http://" + hostname + ":2380"
 
-	etcdStart := exec.Command("/bin/etcd",
+	etcdStart := exec.Command("etcd",
 		"-listen-client-urls", listenClientUrls,
 		"-advertise-client-urls", advClientUrls,
 		"-listen-peer-urls", listenPeerUrls,
