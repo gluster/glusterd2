@@ -6,6 +6,7 @@ import (
 	"net/http"
 	"os"
 	"os/exec"
+	"syscall"
 	"time"
 
 	log "github.com/Sirupsen/logrus"
@@ -34,6 +35,11 @@ func StartEtcd() error {
 		"-listen-peer-urls", listenPeerUrls,
 		"-initial-advertise-peer-urls", initialAdvPeerUrls,
 		"--initial-cluster", "default="+listenPeerUrls)
+
+	// Don't kill chlid process (etcd) upon ^C (SIGINT) of main glusterd process
+	etcdStart.SysProcAttr = &syscall.SysProcAttr{
+		Setpgid: true,
+	}
 
 	err = etcdStart.Start()
 	if err != nil {
