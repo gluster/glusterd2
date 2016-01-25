@@ -5,6 +5,7 @@
 package context
 
 import (
+	"os/exec"
 	"sync"
 
 	"github.com/gluster/glusterd2/rest"
@@ -28,6 +29,7 @@ var (
 	Rest      *rest.GDRest
 	TxnFw     *transaction.GDTxnFw
 	OpVersion int
+	EtcdCtx   *exec.Cmd
 )
 
 var (
@@ -57,4 +59,9 @@ func doInit() {
 // Init initializes the GlusterD context. This should be called once before doing anything else.
 func Init() {
 	initOnce.Do(doInit)
+}
+
+// AssignEtcdCtx () is to assign the etcd ctx in context.EtcdCtx
+func AssignEtcdCtx(ctx *exec.Cmd) {
+	EtcdCtx = ctx
 }

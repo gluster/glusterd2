@@ -11,13 +11,17 @@ import (
 	log "github.com/Sirupsen/logrus"
 )
 
-func StartEtcd() error {
+// ExecName is to indicate the executable name, useful for mocking in tests
+var ExecName = "etcd"
 
-	log.Info("Starting etcd")
+// StartEtcd () is to bring up etcd instance
+func StartEtcd() (*exec.Cmd, error) {
+
+	log.WithField("Executable", ExecName).Info("Starting")
 	hostname, err := os.Hostname()
 	if err != nil {
 		log.Fatal("Could not able to get hostname")
-		return err
+		return nil, err
 	}
 
 	listenClientUrls := "http://" + hostname + ":2379"
@@ -28,17 +32,17 @@ func StartEtcd() error {
 
 	initialAdvPeerUrls := "http://" + hostname + ":2380"
 
-	etcdStart := exec.Command("etcd",
+	etcdCmd := exec.Command(ExecName,
 		"-listen-client-urls", listenClientUrls,
 		"-advertise-client-urls", advClientUrls,
 		"-listen-peer-urls", listenPeerUrls,
 		"-initial-advertise-peer-urls", initialAdvPeerUrls,
 		"--initial-cluster", "default="+listenPeerUrls)
 
-	err = etcdStart.Start()
+	err = etcdCmd.Start()
 	if err != nil {
-		log.WithField("error", err.Error()).Fatal("Could not start etcd daemon.")
-		return err
+		log.WithField("error", err.Error()).Error("Could not start etcd daemon.")
+		return nil, err
 	}
 
 	result := struct{ Health string }{}
@@ -73,5 +77,5 @@ func StartEtcd() error {
 		}
 	}
 
-	return nil
+	return etcdCmd, nil
 }
