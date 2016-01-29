@@ -7,8 +7,10 @@ import (
 	"io/ioutil"
 	"net"
 	"os"
+	"os/exec"
 	"path"
 	"path/filepath"
+	"strconv"
 	"strings"
 	"syscall"
 
@@ -312,4 +314,17 @@ func InitDir(dir string) {
 	// defer happens in LIFO
 	defer syscall.Unlink(t.Name())
 	defer t.Close()
+}
+
+// Function to check whether the process with given pid exist or not in the system
+func CheckPidExist(pid int) bool {
+	out, err := exec.Command("kill", "-s", "0", strconv.Itoa(pid)).CombinedOutput()
+	if err != nil {
+		log.WithField("pid", pid).Debug("Requested pid does not exist in the system")
+	}
+
+	if string(out) == "" {
+		return true
+	}
+	return false
 }

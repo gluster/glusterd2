@@ -105,7 +105,7 @@ func StartETCD() (*os.Process, error) {
 	log.WithField("pid", etcdCmd.Process.Pid).Debug("etcd pid")
 	writeETCDPidFile(etcdCmd.Process.Pid)
 
-	return etcdCmd.Process, nil
+	return etcdCmd.Process, err
 }
 
 // writeETCDPidFile () is to write the pid of etcd instance
@@ -128,16 +128,18 @@ func writeETCDPidFile(pid int) {
 
 func isETCDStartNeeded() (bool, int) {
 	pid := -1
-	start := false
+	start := true
 	bytes, err := ioutil.ReadFile(etcdPidFile)
 	if err == nil {
 		pidString := string(bytes)
 		if pid, err = strconv.Atoi(pidString); err != nil {
 			log.WithField("pid", pidString).Error("Failed to convert string to integer")
 			start = true
+			return start, pid
 		}
-		if _, err = os.FindProcess(pid); err != nil {
-			start = true
+
+		if exist := utils.CheckPidExist(pid); exist == true {
+			start = false
 		}
 	} else {
 		switch {
