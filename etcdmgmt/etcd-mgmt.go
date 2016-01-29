@@ -79,3 +79,8 @@ func StartEtcd() (*exec.Cmd, error) {
 
 	return etcdCmd, nil
 }
+
+// To Do: Restarting Etcd
+func ReStartEtcd() error {
+	return nil
+}

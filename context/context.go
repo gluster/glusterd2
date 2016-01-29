@@ -12,6 +12,7 @@ import (
 	"github.com/gluster/glusterd2/transaction"
 
 	log "github.com/Sirupsen/logrus"
+	etcdclient "github.com/coreos/etcd/client"
 	"github.com/pborman/uuid"
 )
 
@@ -59,6 +60,11 @@ func doInit() {
 // Init initializes the GlusterD context. This should be called once before doing anything else.
 func Init() {
 	initOnce.Do(doInit)
+}
+
+func GetEtcdMemberAPI() etcdclient.MembersAPI {
+	var c etcdclient.Client
+	return etcdclient.NewMembersAPI(c)
 }
 
 // AssignEtcdCtx () is to assign the etcd ctx in context.EtcdCtx

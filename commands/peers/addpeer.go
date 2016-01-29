@@ -5,6 +5,7 @@ import (
 	"net/http"
 	"strings"
 
+	"github.com/gluster/glusterd2/context"
 	"github.com/gluster/glusterd2/errors"
 	"github.com/gluster/glusterd2/peer"
 	"github.com/gluster/glusterd2/rest"
@@ -12,7 +13,6 @@ import (
 	"github.com/gluster/glusterd2/utils"
 
 	log "github.com/Sirupsen/logrus"
-	etcdclient "github.com/coreos/etcd/client"
 	etcdcontext "golang.org/x/net/context"
 
 	"github.com/pborman/uuid"
@@ -51,12 +51,9 @@ func addPeerHandler(w http.ResponseWriter, r *http.Request) {
 	}
 
 	// Add member to etcd server
-	var c etcdclient.Client
-	mAPI := etcdclient.NewMembersAPI(c)
-	//_, e = membersAPI.Add(context.Background(), p.Name)
+	mAPI := context.GetEtcdMemberAPI()
 	member, e := mAPI.Add(etcdcontext.Background(), p.Name)
 	if e != nil {
-		//rest.SendHTTPError(w, http.StatusInternalServerError, strings.e)
 		rest.SendHTTPError(w, http.StatusInternalServerError, e.Error())
 		return
 	}
@@ -64,7 +61,10 @@ func addPeerHandler(w http.ResponseWriter, r *http.Request) {
 	newID := member.ID
 	newName := member.Name
 
-	log.Info("New member named %s with ID %s added to cluster", newName, newID)
+	log.WithFields(log.Fields{
+		"New member ": newName,
+		"member Id ":  newID,
+	}).Info("New member added to the cluster")
 
 	mlist, e := mAPI.List(etcdcontext.Background())
 	if e != nil {
@@ -83,8 +83,8 @@ func addPeerHandler(w http.ResponseWriter, r *http.Request) {
 		}
 	}
 
-	log.Info("ETCD_NAME=%q", newName)
-	log.Info("ETCD_INITIAL_CLUSTER=%q", strings.Join(conf, ","))
+	log.WithField("ETCD_NAME=", newName).Info("ETCD_NAME")
+	log.WithField("ETCD_INITIAL_CLUSTER=", strings.Join(conf, ",")).Info("ETCD_INITIAL_CLUSTER")
 	log.Info("ETCD_INITIAL_CLUSTER_STATE=\"existing\"")
 
 	if e = peer.AddOrUpdatePeer(p); e != nil {
