@@ -2,13 +2,15 @@ package etcdmgmt
 
 import (
 	"encoding/json"
-	"fmt"
 	"io/ioutil"
 	"net/http"
 	"os"
 	"os/exec"
+	"strconv"
 	"syscall"
 	"time"
+
+	"github.com/gluster/glusterd2/utils"
 
 	log "github.com/Sirupsen/logrus"
 )
@@ -50,9 +52,19 @@ func checkHealth(val time.Duration, listenClientUrls string) bool {
 	return true
 }
 
-// StartEtcd () is to bring up etcd instance
-func StartEtcd() (*exec.Cmd, error) {
-	result := struct{ Health string }{}
+var (
+	etcdPidDir  = "/var/run/gluster/"
+	etcdPidFile = etcdPidDir + "etcd.pid"
+)
+
+// StartETCD () is to bring up etcd instance
+func StartETCD() (*os.Process, error) {
+	start, pid := isETCDStartNeeded()
+	if start == false {
+		log.WithField("pid", pid).Info("etcd instance is already running")
+		etcdCtx, e := os.FindProcess(pid)
+		return etcdCtx, e
+	}
 
 	log.WithField("Executable", ExecName).Info("Starting")
 	hostname, err := os.Hostname()
@@ -69,19 +81,6 @@ func StartEtcd() (*exec.Cmd, error) {
 
 	initialAdvPeerUrls := "http://" + hostname + ":2380"
 
-	// Checking health of etcd cluster. If etcd daemon already running then
-	// no need to start etcd daemon again.
-	resp, err := http.Get(listenClientUrls + "/health")
-	if err == nil {
-		body, err := ioutil.ReadAll(resp.Body)
-
-		err = json.Unmarshal([]byte(body), &result)
-		if err == nil && result.Health == "true" {
-			log.Info("etcd daemon is already running")
-			return nil
-		}
-	}
-
 	etcdCmd := exec.Command(ExecName,
 		"-listen-client-urls", listenClientUrls,
 		"-advertise-client-urls", advClientUrls,
@@ -90,7 +89,7 @@ func StartEtcd() (*exec.Cmd, error) {
 		"--initial-cluster", "default="+listenPeerUrls)
 
 	// Don't kill chlid process (etcd) upon ^C (SIGINT) of main glusterd process
-	etcdStart.SysProcAttr = &syscall.SysProcAttr{
+	etcdCmd.SysProcAttr = &syscall.SysProcAttr{
 		Setpgid: true,
 	}
 
@@ -101,9 +100,56 @@ func StartEtcd() (*exec.Cmd, error) {
 	}
 
 	if check := checkHealth(15, listenClientUrls); check != true {
-		fmt.Println("check is: ", check)
 		log.Fatal("Health of etcd is not proper. Check etcd configuration.")
 	}
+	log.WithField("pid", etcdCmd.Process.Pid).Debug("etcd pid")
+	writeETCDPidFile(etcdCmd.Process.Pid)
 
-	return etcdCmd, nil
+	return etcdCmd.Process, nil
+}
+
+// writeETCDPidFile () is to write the pid of etcd instance
+func writeETCDPidFile(pid int) {
+	// create directory to store etcd pid if it doesn't exist
+	utils.InitDir(etcdPidDir)
+	if err := ioutil.WriteFile(etcdPidFile, []byte(strconv.Itoa(pid)), os.ModePerm); err != nil {
+		log.WithFields(log.Fields{
+			"error": err,
+			"path":  etcdPidFile,
+			"pid":   string(pid),
+		}).Fatal("Failed to write etcd pid to the file")
+	}
+}
+
+// isETCDStartNeeded() reads etcd.pid file
+// @ if pid is not found returns true
+// @ if pid is found, checks for the process with the pid, if a running instance
+//   is found return false else true
+
+func isETCDStartNeeded() (bool, int) {
+	pid := -1
+	start := false
+	bytes, err := ioutil.ReadFile(etcdPidFile)
+	if err == nil {
+		pidString := string(bytes)
+		if pid, err = strconv.Atoi(pidString); err != nil {
+			log.WithField("pid", pidString).Error("Failed to convert string to integer")
+			start = true
+		}
+		if _, err = os.FindProcess(pid); err != nil {
+			start = true
+		}
+	} else {
+		switch {
+		case os.IsNotExist(err):
+			start = true
+			break
+		default:
+			log.WithFields(log.Fields{
+				"error": err,
+				"path":  etcdPidFile,
+			}).Fatal("Failed to read from file")
+		}
+	}
+	return start, pid
 }
