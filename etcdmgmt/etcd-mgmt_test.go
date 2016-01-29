@@ -8,9 +8,9 @@ import (
 )
 
 func TestStartETCD(t *testing.T) {
-	etcdCmd, err := StartETCD()
+	etcdCtx, err := StartETCD()
 	tests.Assert(t, err == nil)
-	etcdCmd.Process.Kill()
+	etcdCtx.Kill()
 }
 
 func TestStartETCDWithInvalidExecName(t *testing.T) {
