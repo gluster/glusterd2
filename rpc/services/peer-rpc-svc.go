@@ -87,12 +87,14 @@ func (etcd *ExportEtcd) ExportAndStoreEtcdEnv(env *RPCEtcdEnvReq, reply *RPCEtcd
 	}
 
 	// Restarting etcd daemon
-	err = etcdmgmt.ReStartEtcd()
+	etcdCmd, err := etcdmgmt.ReStartEtcd()
 	if err != nil {
 		opRet = -1
 		opError = fmt.Sprintf("Could not able to restart etcd at remote node")
 		log.WithField("error", err.Error()).Error("Could not able to restart etcd")
 	}
+	context.Init()
+	context.EtcdCtx = etcdCmd
 
 	reply.OpRet = &opRet
 	reply.OpError = &opError

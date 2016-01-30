@@ -15,31 +15,12 @@ import (
 var ExecName = "etcd"
 
 // StartEtcd () is to bring up etcd instance
-func StartEtcd() (*exec.Cmd, error) {
-
+func StartEtcd(args []string) (*exec.Cmd, error) {
 	log.WithField("Executable", ExecName).Info("Starting")
-	hostname, err := os.Hostname()
-	if err != nil {
-		log.Fatal("Could not able to get hostname")
-		return nil, err
-	}
 
-	listenClientUrls := "http://" + hostname + ":2379"
+	etcdCmd := exec.Command(ExecName, args...)
 
-	advClientUrls := "http://" + hostname + ":2379"
-
-	listenPeerUrls := "http://" + hostname + ":2380"
-
-	initialAdvPeerUrls := "http://" + hostname + ":2380"
-
-	etcdCmd := exec.Command(ExecName,
-		"-listen-client-urls", listenClientUrls,
-		"-advertise-client-urls", advClientUrls,
-		"-listen-peer-urls", listenPeerUrls,
-		"-initial-advertise-peer-urls", initialAdvPeerUrls,
-		"--initial-cluster", "default="+listenPeerUrls)
-
-	err = etcdCmd.Start()
+	err := etcdCmd.Start()
 	if err != nil {
 		log.WithField("error", err.Error()).Error("Could not start etcd daemon.")
 		return nil, err
@@ -49,7 +30,6 @@ func StartEtcd() (*exec.Cmd, error) {
 	// Checking health of etcd. Health of the etcd should be true,
 	// means etcd have initialized properly before using any etcd command
 	for {
-
 		// Waiting for 15 second. Within 15 second health of etcd should
 		// be true otherwise it should throw an error
 		timer := time.NewTimer(time.Second * 15)
@@ -60,7 +40,7 @@ func StartEtcd() (*exec.Cmd, error) {
 			}
 		}()
 
-		resp, err := http.Get(listenClientUrls + "/health")
+		resp, err := http.Get(args[1] + "/health")
 		if err != nil {
 			continue
 		}
@@ -80,7 +60,43 @@ func StartEtcd() (*exec.Cmd, error) {
 	return etcdCmd, nil
 }
 
-// To Do: Restarting Etcd
-func ReStartEtcd() error {
-	return nil
+func StartInitialEtcd() (*exec.Cmd, error) {
+	hostname, err := os.Hostname()
+	if err != nil {
+		log.Fatal("Could not able to get hostname")
+		return nil, err
+	}
+
+	listenClientUrls := "http://" + hostname + ":2379"
+	advClientUrls := "http://" + hostname + ":2379"
+	listenPeerUrls := "http://" + hostname + ":2380"
+	initialAdvPeerUrls := "http://" + hostname + ":2380"
+
+	args := []string{"-listen-client-urls", listenClientUrls,
+		"-advertise-client-urls", advClientUrls,
+		"-listen-peer-urls", listenPeerUrls,
+		"-initial-advertise-peer-urls", initialAdvPeerUrls,
+		"--initial-cluster", "default=" + listenPeerUrls}
+
+	return StartEtcd(args)
+}
+
+func ReStartEtcd() (*exec.Cmd, error) {
+	hostname, err := os.Hostname()
+	if err != nil {
+		log.Fatal("Could not able to get hostname")
+		return nil, err
+	}
+
+	listenClientUrls := "http://" + hostname + ":2379"
+	advClientUrls := "http://" + hostname + ":2379"
+	listenPeerUrls := "http://" + hostname + ":2380"
+	initialAdvPeerUrls := "http://" + hostname + ":2380"
+
+	args := []string{"-listen-client-urls", listenClientUrls,
+		"-advertise-client-urls", advClientUrls,
+		"-listen-peer-urls", listenPeerUrls,
+		"-initial-advertise-peer-urls", initialAdvPeerUrls}
+
+	return StartEtcd(args)
 }

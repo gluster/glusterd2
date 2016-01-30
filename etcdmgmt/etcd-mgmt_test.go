@@ -8,7 +8,7 @@ import (
 )
 
 func TestStartETCD(t *testing.T) {
-	etcdCmd, err := StartEtcd()
+	etcdCmd, err := StartInitialEtcd()
 	tests.Assert(t, err == nil)
 	etcdCmd.Process.Kill()
 }
@@ -16,6 +16,6 @@ func TestStartETCD(t *testing.T) {
 func TestStartETCDWithInvalidExecName(t *testing.T) {
 	// Mock the executable name such that it fails
 	defer heketitests.Patch(&ExecName, "abc").Restore()
-	_, err := StartEtcd()
+	_, err := StartInitialEtcd()
 	tests.Assert(t, err != nil)
 }

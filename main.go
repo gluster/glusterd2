@@ -16,7 +16,7 @@ func main() {
 	log.Info("GlusterD starting")
 
 	// Starting etcd daemon upon starting of GlusterD
-	etcdCmd, err := etcdmgmt.StartEtcd()
+	etcdCmd, err := etcdmgmt.StartInitialEtcd()
 	if err != nil {
 		log.WithField("Error", err).Fatal("Could not able to start etcd")
 	}
