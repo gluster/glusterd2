@@ -22,7 +22,7 @@ func main() {
 	}
 
 	context.Init()
-	context.EtcdCtx = etcdCtx
+	context.EtcdProcessCtx = etcdCtx
 
 	for _, c := range commands.Commands {
 		context.Rest.SetRoutes(c.Routes())

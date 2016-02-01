@@ -317,7 +317,7 @@ func InitDir(dir string) {
 }
 
 // Function to check whether the process with given pid exist or not in the system
-func CheckPidExist(pid int) bool {
+func CheckProcessExist(pid int) bool {
 	out, err := exec.Command("kill", "-s", "0", strconv.Itoa(pid)).CombinedOutput()
 	if err != nil {
 		log.WithField("pid", pid).Debug("Requested pid does not exist in the system")

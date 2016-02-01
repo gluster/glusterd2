@@ -88,6 +88,7 @@ func StartETCD() (*os.Process, error) {
 		"-initial-advertise-peer-urls", initialAdvPeerUrls,
 		"--initial-cluster", "default="+listenPeerUrls)
 
+	// TODO: use unix.Setpgid instead of using syscall
 	// Don't kill chlid process (etcd) upon ^C (SIGINT) of main glusterd process
 	etcdCmd.SysProcAttr = &syscall.SysProcAttr{
 		Setpgid: true,
@@ -138,7 +139,7 @@ func isETCDStartNeeded() (bool, int) {
 			return start, pid
 		}
 
-		if exist := utils.CheckPidExist(pid); exist == true {
+		if exist := utils.CheckProcessExist(pid); exist == true {
 			start = false
 		}
 	} else {

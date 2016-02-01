@@ -27,11 +27,11 @@ const (
 // Any object that is a part of the GlusterD context and needs to be available
 // to other packages should be declared here as exported global variables
 var (
-	MyUUID    uuid.UUID
-	Rest      *rest.GDRest
-	TxnFw     *transaction.GDTxnFw
-	OpVersion int
-	EtcdCtx   *os.Process
+	MyUUID         uuid.UUID
+	Rest           *rest.GDRest
+	TxnFw          *transaction.GDTxnFw
+	OpVersion      int
+	EtcdProcessCtx *os.Process
 )
 
 var (
@@ -63,7 +63,7 @@ func Init() {
 	initOnce.Do(doInit)
 }
 
-// AssignEtcdCtx () is to assign the etcd ctx in context.EtcdCtx
-func AssignEtcdCtx(ctx *os.Process) {
-	EtcdCtx = ctx
+// AssignEtcdProcessCtx () is to assign the etcd ctx in context.EtcdCtx
+func AssignEtcdProcessCtx(ctx *os.Process) {
+	EtcdProcessCtx = ctx
 }
