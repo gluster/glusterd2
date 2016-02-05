@@ -94,7 +94,7 @@ func (etcd *ExportEtcd) ExportAndStoreEtcdEnv(env *RPCEtcdEnvReq, reply *RPCEtcd
 		log.WithField("error", err.Error()).Error("Could not able to restart etcd")
 	}
 	context.Init()
-	context.EtcdCtx = etcdCmd
+	context.EtcdProcessCtx = etcdCmd
 
 	reply.OpRet = &opRet
 	reply.OpError = &opError
