@@ -4,10 +4,13 @@ package utils
 import "C"
 
 import (
+	"io/ioutil"
 	"net"
 	"os"
+	"os/exec"
 	"path"
 	"path/filepath"
+	"strconv"
 	"strings"
 	"syscall"
 
@@ -263,6 +266,65 @@ func isBrickPathAlreadyInUse(brickPath string) bool {
 			}
 
 		}
+	}
+	return false
+}
+
+// InitDir checks if the input directory is present, a direcotry and is accessible.
+// @ If the directory is not present, it will create directory.
+// @ If it is not a directory, initDir panics.
+// @ If the directory is not accessible, initDir panics.
+func InitDir(dir string) {
+	di, err := os.Stat(dir)
+
+	if err != nil {
+		switch {
+		case os.IsNotExist(err):
+			if err = os.Mkdir(dir, os.ModeDir|os.ModePerm); err != nil {
+				log.WithFields(log.Fields{
+					"err":  err,
+					"path": dir,
+				}).Fatal("failed to create directory")
+			}
+			return
+
+		case os.IsPermission(err):
+			log.WithFields(log.Fields{
+				"err":  err,
+				"path": dir,
+			}).Fatal("failed to access directory")
+		}
+	}
+
+	if !di.IsDir() {
+		log.WithFields(log.Fields{
+			"err":  syscall.ENOTDIR,
+			"path": dir,
+		}).Fatal("directory path is not a directory")
+	}
+
+	// Check if you can create entries in the input directory
+	t, err := ioutil.TempFile(dir, "")
+	if err != nil {
+		log.WithFields(log.Fields{
+			"err":  err,
+			"path": dir,
+		}).Fatal("directory path is not a writable")
+	}
+	// defer happens in LIFO
+	defer syscall.Unlink(t.Name())
+	defer t.Close()
+}
+
+// Function to check whether the process with given pid exist or not in the system
+func CheckProcessExist(pid int) bool {
+	out, err := exec.Command("kill", "-s", "0", strconv.Itoa(pid)).CombinedOutput()
+	if err != nil {
+		log.WithField("pid", pid).Debug("Requested pid does not exist in the system")
+	}
+
+	if string(out) == "" {
+		return true
 	}
 	return false
 }
