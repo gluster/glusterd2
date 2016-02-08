@@ -10,6 +10,7 @@ import (
 	"github.com/gluster/glusterd2/peer"
 	"github.com/gluster/glusterd2/rest"
 	"github.com/gluster/glusterd2/rpc/client"
+	"github.com/gluster/glusterd2/rpc/services"
 	"github.com/gluster/glusterd2/utils"
 
 	log "github.com/Sirupsen/logrus"
@@ -86,6 +87,18 @@ func addPeerHandler(w http.ResponseWriter, r *http.Request) {
 	log.WithField("ETCD_NAME=", newName).Info("ETCD_NAME")
 	log.WithField("ETCD_INITIAL_CLUSTER=", strings.Join(conf, ",")).Info("ETCD_INITIAL_CLUSTER")
 	log.Info("ETCD_INITIAL_CLUSTER_STATE=\"existing\"")
+
+	var etcdenv services.RPCEtcdEnvReq
+	*etcdenv.PeerName = p.Name
+	*etcdenv.Name = newName
+	*etcdenv.InitialCluster = strings.Join(conf, ",")
+	*etcdenv.ClusterState = "existing"
+
+	etcdrsp, e := client.AddEtcdEnvVar(&etcdenv)
+	if e != nil {
+		rest.SendHTTPError(w, http.StatusInternalServerError, *etcdrsp.OpError)
+		return
+	}
 
 	if e = peer.AddOrUpdatePeer(p); e != nil {
 		rest.SendHTTPError(w, http.StatusInternalServerError, e.Error())

@@ -50,7 +50,7 @@ func ValidateAddPeer(p *peer.PeerAddRequest) (*services.RPCPeerAddResp, error) {
 	return rsp, nil
 }
 
-func ExportEtcdEnvVar(argv *services.RPCEtcdEnvReq) (*services.RPCEtcdEnvResp, error) {
+func AddEtcdEnvVar(argv *services.RPCEtcdEnvReq) (*services.RPCEtcdEnvResp, error) {
 	env := &services.RPCEtcdEnvReq{PeerName: argv.PeerName, Name: argv.Name, InitialCluster: argv.InitialCluster, ClusterState: argv.ClusterState}
 
 	rsp := new(services.RPCEtcdEnvResp)
@@ -69,7 +69,7 @@ func ExportEtcdEnvVar(argv *services.RPCEtcdEnvReq) (*services.RPCEtcdEnvResp, e
 	client := rpc.NewClientWithCodec(pbcodec.NewClientCodec(rpcConn))
 	defer client.Close()
 
-	e = client.Call("ExportEtcd.ExportAndStoreEtcdEnv", env, rsp)
+	e = client.Call("PeerService.ExportAndStoreEtcdEnv", env, rsp)
 	if e != nil {
 		log.Error("Failed to execute PeerService.ExportAndStoreEtcdEnv() rpc call")
 		opRet = -1

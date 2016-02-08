@@ -1,12 +1,14 @@
 package etcdmgmt
 
 import (
+	"bufio"
 	"encoding/json"
 	"io/ioutil"
 	"net/http"
 	"os"
 	"os/exec"
 	"strconv"
+	"strings"
 	"syscall"
 	"time"
 
@@ -53,8 +55,10 @@ func checkHealth(val time.Duration, listenClientUrls string) bool {
 }
 
 var (
-	etcdPidDir  = "/var/run/gluster/"
-	etcdPidFile = etcdPidDir + "etcd.pid"
+	etcdPidDir   = "/var/run/gluster/"
+	etcdPidFile  = etcdPidDir + "etcd.pid"
+	etcdConfDir  = "/var/lib/glusterd/"
+	etcdConfFile = etcdConfDir + "etcdConf"
 )
 
 // StartETCD () is to bring up etcd instance
@@ -137,6 +141,30 @@ func isETCDStartNeeded() (bool, int) {
 		}
 	}
 	return start, pid
+}
+
+func EtcdStartInit() (*os.Process, error) {
+	// Check whether etcd environment variable present or not
+	// If it present then start etcd without --initial-cluster flag
+	// other wise start etcd normally.
+
+	file, err := os.Open(etcdConfFile)
+	if err != nil {
+		log.Info("Starting/Restarting etcd for a initial node")
+		return StartInitialEtcd()
+	} else {
+		defer file.Close()
+		// Restoring etcd environment variable and starting etcd daemon
+		scanner := bufio.NewScanner(file)
+		scanner.Split(bufio.ScanLines)
+		for scanner.Scan() {
+			linestr := scanner.Text()
+			etcdenv := strings.Split(linestr, "=")
+			os.Setenv(etcdenv[0], etcdenv[1])
+		}
+
+		return ReStartEtcd()
+	}
 }
 
 func StartInitialEtcd() (*os.Process, error) {

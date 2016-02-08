@@ -15,7 +15,6 @@ import (
 )
 
 type PeerService int
-type ExportEtcd int
 
 var (
 	opRet        int32
@@ -50,6 +49,7 @@ func (p *PeerService) ValidateAdd(args *RPCPeerAddReq, reply *RPCPeerAddResp) er
 }
 
 func storeEtcdEnv(env *RPCEtcdEnvReq) error {
+	//func StoreEtcdEnv(env *services.RPCEtcdEnvReq) error {
 	utils.InitDir(etcdConfDir)
 	if err := ioutil.WriteFile(etcdConfFile, []byte("ETCD_NAME="+*env.Name), os.ModePerm); err != nil {
 		return err
@@ -63,7 +63,7 @@ func storeEtcdEnv(env *RPCEtcdEnvReq) error {
 	return nil
 }
 
-func (etcd *ExportEtcd) ExportAndStoreEtcdEnv(env *RPCEtcdEnvReq, reply *RPCEtcdEnvResp) error {
+func (etcd *PeerService) ExportAndStoreEtcdEnv(env *RPCEtcdEnvReq, reply *RPCEtcdEnvResp) error {
 	opRet = 0
 	opError = ""
 
@@ -79,6 +79,7 @@ func (etcd *ExportEtcd) ExportAndStoreEtcdEnv(env *RPCEtcdEnvReq, reply *RPCEtcd
 
 	// Storing there envioronment variable locally. So that upon glusterd
 	// restart we can set these environment variable again
+	//err := utils.StoreEtcdEnv(env)
 	err := storeEtcdEnv(env)
 	if err != nil {
 		opRet = -1
