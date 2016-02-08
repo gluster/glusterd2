@@ -322,7 +322,6 @@ func CheckProcessExist(pid int) bool {
 	if err != nil {
 		log.WithField("pid", pid).Debug("Requested pid does not exist in the system")
 	}
-
 	if string(out) == "" {
 		return true
 	}

@@ -125,7 +125,9 @@ func TestCheckProcessExist(t *testing.T) {
 	cmd := exec.Command("etcd")
 	_ = cmd.Start()
 	tests.Assert(t, CheckProcessExist(cmd.Process.Pid) == true)
+
+	// Check for the negative case
+	pid := cmd.Process.Pid
 	_ = cmd.Process.Kill()
-	pid := 8768
-	tests.Assert(t, CheckProcessExist(pid) == false)
+	tests.Assert(t, CheckProcessExist(pid) == true)
 }

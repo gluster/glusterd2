@@ -101,8 +101,7 @@ func StartETCD() (*os.Process, error) {
 	}
 
 	if check := checkHealth(15, listenClientUrls); check != true {
-		log.Error("Health of etcd is not proper. Check etcd configuration.")
-		return nil, err
+		log.Fatal("Health of etcd is not proper. Check etcd configuration.")
 	}
 	log.WithField("pid", etcdCmd.Process.Pid).Debug("etcd pid")
 	if err := writeETCDPidFile(etcdCmd.Process.Pid); err != nil {
@@ -121,7 +120,7 @@ func writeETCDPidFile(pid int) error {
 			"error": err,
 			"path":  etcdPidFile,
 			"pid":   string(pid),
-		}).Fatal("Failed to write etcd pid to the file")
+		}).Error("Failed to write etcd pid to the file")
 		return err
 	}
 	return nil
