@@ -120,3 +120,14 @@ func TestValidateXattrSupport(t *testing.T) {
 	tests.Assert(t, ValidateXattrSupport("/tmp/b1", "localhost", uuid.NewRandom(), true) == baderror)
 
 }
+
+func TestCheckProcessExist(t *testing.T) {
+	cmd := exec.Command("etcd")
+	_ = cmd.Start()
+	tests.Assert(t, CheckProcessExist(cmd.Process.Pid) == true)
+
+	// Check for the negative case
+	pid := cmd.Process.Pid
+	_ = cmd.Process.Kill()
+	tests.Assert(t, CheckProcessExist(pid) == true)
+}
