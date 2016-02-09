@@ -5,7 +5,6 @@ import (
 	"net/http"
 	"strings"
 
-	"github.com/gluster/glusterd2/context"
 	"github.com/gluster/glusterd2/errors"
 	"github.com/gluster/glusterd2/peer"
 	"github.com/gluster/glusterd2/rest"
@@ -14,6 +13,7 @@ import (
 	"github.com/gluster/glusterd2/utils"
 
 	log "github.com/Sirupsen/logrus"
+	etcdclient "github.com/coreos/etcd/client"
 	etcdcontext "golang.org/x/net/context"
 
 	"github.com/pborman/uuid"
@@ -51,8 +51,9 @@ func addPeerHandler(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
+	var c etcdclient.Client
 	// Add member to etcd server
-	mAPI := context.GetEtcdMemberAPI()
+	mAPI := etcdclient.NewMembersAPI(c)
 	member, e := mAPI.Add(etcdcontext.Background(), p.Name)
 	if e != nil {
 		rest.SendHTTPError(w, http.StatusInternalServerError, e.Error())
