@@ -55,7 +55,7 @@ func TestIsETCDStartNeeded(t *testing.T) {
 	tests.Assert(t, err == nil)
 	start, pid = isETCDStartNeeded()
 	tests.Assert(t, oldPid == pid)
-	tests.Assert(t, start == false)*/
+	tests.Assert(t, start == true)*/
 
 	// check if the pid file is missing then isETCDStartNeeded returns true
 	os.Remove(etcdPidFile)
