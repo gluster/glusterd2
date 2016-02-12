@@ -12,6 +12,7 @@ import (
 	"syscall"
 	"time"
 
+	"github.com/gluster/glusterd2/context"
 	"github.com/gluster/glusterd2/utils"
 
 	log "github.com/Sirupsen/logrus"
@@ -58,7 +59,7 @@ var (
 	etcdPidDir   = "/var/run/gluster/"
 	etcdPidFile  = etcdPidDir + "etcd.pid"
 	etcdConfDir  = "/var/lib/glusterd/"
-	etcdConfFile = etcdConfDir + "etcdConf"
+	etcdConfFile = etcdConfDir + "etcdenv.conf"
 )
 
 // StartETCD () is to bring up etcd instance
@@ -188,7 +189,25 @@ func StartInitialEtcd() (*os.Process, error) {
 	return StartETCD(args)
 }
 
+func etcdStop(etcdctx *os.Process) error {
+	err := etcdctx.Kill()
+	if err != nil {
+		log.Error("Could not able to kill etcd daemon")
+		return err
+	}
+	etcdctx.Wait()
+	return nil
+}
+
 func ReStartEtcd() (*os.Process, error) {
+	// Stop etcd process
+	etcdCtx := context.EtcdProcessCtx
+	err := etcdStop(etcdCtx)
+	if err != nil {
+		log.Error("Could not able to stop etcd daemon")
+		return nil, err
+	}
+
 	hostname, err := os.Hostname()
 	if err != nil {
 		log.Fatal("Could not able to get hostname")
@@ -204,6 +223,8 @@ func ReStartEtcd() (*os.Process, error) {
 		"-advertise-client-urls", advClientUrls,
 		"-listen-peer-urls", listenPeerUrls,
 		"-initial-advertise-peer-urls", initialAdvPeerUrls}
+
+	log.Info("Restarting etcd daemon")
 
 	return StartETCD(args)
 }

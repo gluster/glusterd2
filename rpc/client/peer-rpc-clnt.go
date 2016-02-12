@@ -50,12 +50,16 @@ func ValidateAddPeer(p *peer.PeerAddRequest) (*services.RPCPeerAddResp, error) {
 	return rsp, nil
 }
 
-func AddEtcdEnvVar(argv *services.RPCEtcdEnvReq) (*services.RPCEtcdEnvResp, error) {
-	env := &services.RPCEtcdEnvReq{PeerName: argv.PeerName, Name: argv.Name, InitialCluster: argv.InitialCluster, ClusterState: argv.ClusterState}
+func AddEtcdEnvVar(p *peer.PeerETCDEnv) (*services.RPCEtcdEnvResp, error) {
+	args := &services.RPCEtcdEnvReq{PeerName: new(string), Name: new(string), InitialCluster: new(string), ClusterState: new(string)}
+	*args.PeerName = p.PeerName
+	*args.Name = p.Name
+	*args.InitialCluster = p.InitialCluster
+	*args.ClusterState = p.ClusterState
 
 	rsp := new(services.RPCEtcdEnvResp)
 
-	remoteAddress := fmt.Sprintf("%s:%s", argv.PeerName, "9877")
+	remoteAddress := fmt.Sprintf("%s:%s", p.PeerName, "9876")
 	rpcConn, e := net.Dial("tcp", remoteAddress)
 	if e != nil {
 		log.WithField("error", e).Error("net.Dial() call failed")
@@ -69,7 +73,7 @@ func AddEtcdEnvVar(argv *services.RPCEtcdEnvReq) (*services.RPCEtcdEnvResp, erro
 	client := rpc.NewClientWithCodec(pbcodec.NewClientCodec(rpcConn))
 	defer client.Close()
 
-	e = client.Call("PeerService.ExportAndStoreEtcdEnv", env, rsp)
+	e = client.Call("PeerService.ExportAndStoreEtcdEnv", args, rsp)
 	if e != nil {
 		log.Error("Failed to execute PeerService.ExportAndStoreEtcdEnv() rpc call")
 		opRet = -1

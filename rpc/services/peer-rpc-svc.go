@@ -2,7 +2,6 @@ package services
 
 import (
 	"fmt"
-	"io/ioutil"
 	"os"
 
 	"github.com/gluster/glusterd2/context"
@@ -20,7 +19,7 @@ var (
 	opRet        int32
 	opError      string
 	etcdConfDir  = "/var/lib/glusterd/"
-	etcdConfFile = etcdConfDir + "etcdConf"
+	etcdConfFile = etcdConfDir + "etcdenv.conf"
 )
 
 // Validate function checks all validation for AddPeer at server side
@@ -49,28 +48,35 @@ func (p *PeerService) ValidateAdd(args *RPCPeerAddReq, reply *RPCPeerAddResp) er
 }
 
 func storeEtcdEnv(env *RPCEtcdEnvReq) error {
-	//func StoreEtcdEnv(env *services.RPCEtcdEnvReq) error {
 	utils.InitDir(etcdConfDir)
-	if err := ioutil.WriteFile(etcdConfFile, []byte("ETCD_NAME="+*env.Name), os.ModePerm); err != nil {
+	fp, err := os.OpenFile(etcdConfFile, os.O_CREATE|os.O_WRONLY, 0666)
+	if err != nil {
+		log.WithField("err", err).Error("Failed to open etcdConfFile")
 		return err
 	}
-	if err := ioutil.WriteFile(etcdConfFile, []byte("ETCD_INITIAL_CLUSTER="+*env.InitialCluster), os.ModePerm); err != nil {
+	defer fp.Close()
+
+	if _, err = fp.WriteString("ETCD_NAME=" + *env.Name + "\n"); err != nil {
+		log.WithField("err", err).Error("Failed to write Environment variable to etcdConfFile")
 		return err
 	}
-	if err := ioutil.WriteFile(etcdConfFile, []byte("ETCD_INITIAL_CLUSTER_STATE"+*env.ClusterState), os.ModePerm); err != nil {
+
+	if _, err = fp.WriteString("ETCD_INITIAL_CLUSTER=" + *env.InitialCluster + "\n"); err != nil {
+		log.WithField("err", err).Error("Failed to write Environment variable to etcdConfFile")
 		return err
 	}
+
+	if _, err = fp.WriteString("ETCD_INITIAL_CLUSTER_STATE=" + *env.ClusterState + "\n"); err != nil {
+		log.WithField("err", err).Error("Failed to write Environment variable to etcdConfFile")
+		return err
+	}
+
 	return nil
 }
 
 func (etcd *PeerService) ExportAndStoreEtcdEnv(env *RPCEtcdEnvReq, reply *RPCEtcdEnvResp) error {
 	opRet = 0
 	opError = ""
-
-	if context.MaxOpVersion < 40000 {
-		opRet = -1
-		opError = fmt.Sprintf("GlusterD instance running on %s is not compatible", *env.PeerName)
-	}
 
 	// Exporting etcd environment variable
 	os.Setenv("ETCD_NAME", *env.Name)
@@ -79,7 +85,6 @@ func (etcd *PeerService) ExportAndStoreEtcdEnv(env *RPCEtcdEnvReq, reply *RPCEtc
 
 	// Storing there envioronment variable locally. So that upon glusterd
 	// restart we can set these environment variable again
-	//err := utils.StoreEtcdEnv(env)
 	err := storeEtcdEnv(env)
 	if err != nil {
 		opRet = -1
@@ -94,7 +99,6 @@ func (etcd *PeerService) ExportAndStoreEtcdEnv(env *RPCEtcdEnvReq, reply *RPCEtc
 		opError = fmt.Sprintf("Could not able to restart etcd at remote node")
 		log.WithField("error", err.Error()).Error("Could not able to restart etcd")
 	}
-	context.Init()
 	context.EtcdProcessCtx = etcdCmd
 
 	reply.OpRet = &opRet
