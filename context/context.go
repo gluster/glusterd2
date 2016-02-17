@@ -33,6 +33,7 @@ var (
 	TxnFw          *transaction.GDTxnFw
 	OpVersion      int
 	EtcdProcessCtx *os.Process
+	EtcdClient     etcdclient.Client
 )
 
 var (
@@ -42,6 +43,22 @@ var (
 func initOpVersion() {
 	//TODO : Need cluster awareness and then decide the op-version
 	OpVersion = MaxOpVersion
+}
+
+func initEtcdClient() error {
+	h, err := os.Hostname()
+	if err != nil {
+		log.Fatal("Could not able to get hostname")
+		return err
+	}
+	c, err := etcdclient.New(etcdclient.Config{Endpoints: []string{"http://" + h + ":2379"}})
+	if err != nil {
+		log.WithField("err", err).Error("Failed to create etcd client")
+		return err
+	}
+	EtcdClient = c
+
+	return nil
 }
 
 func doInit() {
@@ -55,6 +72,13 @@ func doInit() {
 	Rest = rest.New()
 
 	initStore()
+
+	// Initializing etcd client
+	err := initEtcdClient()
+	if err != nil {
+		log.WithField("err", err).Error("Failed to initialize etcd client")
+		return
+	}
 
 	log.Debug("Initialized GlusterD context")
 }

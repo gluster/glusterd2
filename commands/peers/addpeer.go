@@ -3,9 +3,9 @@ package peercommands
 import (
 	"fmt"
 	"net/http"
-	"os"
 	"strings"
 
+	"github.com/gluster/glusterd2/context"
 	"github.com/gluster/glusterd2/errors"
 	"github.com/gluster/glusterd2/peer"
 	"github.com/gluster/glusterd2/rest"
@@ -51,13 +51,7 @@ func addPeerHandler(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	h, _ := os.Hostname()
-	c, err := etcdclient.New(etcdclient.Config{Endpoints: []string{"http://" + h + ":2379"}})
-	if err != nil {
-		log.WithField("err", e).Error("Failed to create etcd client")
-		rest.SendHTTPError(w, http.StatusInternalServerError, e.Error())
-		return
-	}
+	c := context.EtcdClient
 	// Add member to etcd server
 	mAPI := etcdclient.NewMembersAPI(c)
 	member, e := mAPI.Add(etcdcontext.Background(), "http://"+p.Name+":2380")

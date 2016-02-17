@@ -159,16 +159,43 @@ func EtcdStartInit() (*os.Process, error) {
 		return StartInitialEtcd()
 	} else {
 		defer file.Close()
+
 		// Restoring etcd environment variable and starting etcd daemon
 		scanner := bufio.NewScanner(file)
 		scanner.Split(bufio.ScanLines)
 		for scanner.Scan() {
 			linestr := scanner.Text()
 			etcdenv := strings.Split(linestr, "=")
-			os.Setenv(etcdenv[0], etcdenv[1])
+
+			etcdEnvKey := etcdenv[0]
+			etcdEnvData := etcdenv[1]
+			envlen := len(etcdenv)
+			for i := 2; i < envlen; i++ {
+				etcdEnvData = etcdEnvData + "=" + etcdenv[i]
+			}
+
+			// setting etcd environment variable
+			os.Setenv(etcdEnvKey, etcdEnvData)
 		}
 
-		return ReStartEtcd()
+		hostname, err := os.Hostname()
+		if err != nil {
+			log.Fatal("Could not able to get hostname")
+			return nil, err
+		}
+
+		listenClientUrls := "http://" + hostname + ":2379"
+		advClientUrls := "http://" + hostname + ":2379"
+		listenPeerUrls := "http://" + hostname + ":2380"
+		initialAdvPeerUrls := "http://" + hostname + ":2380"
+
+		args := []string{"-listen-client-urls", listenClientUrls,
+			"-advertise-client-urls", advClientUrls,
+			"-listen-peer-urls", listenPeerUrls,
+			"-initial-advertise-peer-urls", initialAdvPeerUrls}
+
+		log.Info("Sstarting etcd daemon")
+		return StartETCD(args)
 	}
 }
 
