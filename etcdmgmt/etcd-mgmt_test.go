@@ -50,8 +50,8 @@ func TestIsETCDStartNeeded(t *testing.T) {
 	var pid int
 	oldPid := cmd.Process.Pid
 	err = cmd.Process.Kill()
-	tests.Assert(t, err == nil)
 	cmd.Wait()
+	tests.Assert(t, err == nil)
 	start, pid = isETCDStartNeeded()
 	tests.Assert(t, oldPid == pid)
 	tests.Assert(t, start == true)
