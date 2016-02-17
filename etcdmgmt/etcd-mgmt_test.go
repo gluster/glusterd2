@@ -46,16 +46,15 @@ func TestIsETCDStartNeeded(t *testing.T) {
 	start, _ := isETCDStartNeeded()
 	tests.Assert(t, start == false)
 
-	// check once etcd process is killed isETCDStartNeeded returns true
-	//TODO : the last test fails here, need to investigate why, commenting
-	//out the whole section for now
-	/*var pid int
+	//check once etcd process is killed isETCDStartNeeded returns true
+	var pid int
 	oldPid := cmd.Process.Pid
 	err = cmd.Process.Kill()
 	tests.Assert(t, err == nil)
+	cmd.Wait()
 	start, pid = isETCDStartNeeded()
 	tests.Assert(t, oldPid == pid)
-	tests.Assert(t, start == true)*/
+	tests.Assert(t, start == true)
 
 	// check if the pid file is missing then isETCDStartNeeded returns true
 	os.Remove(etcdPidFile)
