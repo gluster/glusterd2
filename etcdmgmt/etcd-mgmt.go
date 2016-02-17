@@ -129,7 +129,8 @@ func writeETCDPidFile(pid int) error {
 // isETCDStartNeeded() reads etcd.pid file
 // @ if pid is not found returns true
 // @ if pid is found, checks for the process with the pid, if a running instance
-//   is found return false else true
+//   is found then check whether etcd health is ok, if so then return true else
+//   false
 
 func isETCDStartNeeded() (bool, int) {
 	pid := -1
@@ -142,9 +143,20 @@ func isETCDStartNeeded() (bool, int) {
 			start = true
 			return start, pid
 		}
-
 		if exist := utils.CheckProcessExist(pid); exist == true {
-			start = false
+			hostname, err := os.Hostname()
+			if err != nil {
+				log.Fatal("Could not able to get hostname")
+			}
+			listenClientUrls := "http://" + hostname + ":2379"
+			_, err = http.Get(listenClientUrls + "/health")
+			if err != nil {
+				log.WithField("err", err).Error("etcd health check failed")
+				pid = -1
+				start = true
+			} else {
+				start = false
+			}
 		}
 	} else {
 		switch {
