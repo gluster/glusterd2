@@ -4,7 +4,6 @@ import (
 	"os"
 	"os/exec"
 	"testing"
-	"time"
 
 	"github.com/gluster/glusterd2/tests"
 
@@ -16,7 +15,6 @@ func formETCDCommand() *exec.Cmd {
 	hostname, err := os.Hostname()
 	if err != nil {
 		log.Fatal("Could not able to get hostname")
-		return nil
 	}
 
 	listenClientUrls := "http://" + hostname + ":2379"
@@ -47,8 +45,10 @@ func TestStartETCDWithInvalidExecName(t *testing.T) {
 func TestStartETCD(t *testing.T) {
 	etcdCtx, err := StartETCD()
 	tests.Assert(t, err == nil)
-	etcdCtx.Kill()
-	etcdCtx.Wait()
+	err = etcdCtx.Kill()
+	tests.Assert(t, err == nil)
+	_, err = etcdCtx.Wait()
+	tests.Assert(t, err == nil)
 }
 
 func TestWriteETCDPidFile(t *testing.T) {
@@ -73,7 +73,12 @@ func TestIsETCDStartNeeded(t *testing.T) {
 	tests.Assert(t, err == nil)
 	err = writeETCDPidFile(cmd.Process.Pid)
 	tests.Assert(t, err == nil)
-	time.Sleep(15 * time.Second)
+	hostname, err := os.Hostname()
+	if err != nil {
+		log.Fatal("Could not able to get hostname")
+	}
+	listenClientUrls := "http://" + hostname + ":2379"
+	tests.Assert(t, checkHealth(15, listenClientUrls) == true)
 	start, _ := isETCDStartNeeded()
 	tests.Assert(t, start == false)
 
