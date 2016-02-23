@@ -34,6 +34,7 @@ var (
 	OpVersion      int
 	EtcdProcessCtx *os.Process
 	EtcdClient     etcdclient.Client
+	Hostname       string
 )
 
 var (
@@ -46,12 +47,11 @@ func initOpVersion() {
 }
 
 func initEtcdClient() error {
-	h, err := os.Hostname()
+	Hostname, err := os.Hostname()
 	if err != nil {
 		log.Fatal("Could not able to get hostname")
-		return err
 	}
-	c, err := etcdclient.New(etcdclient.Config{Endpoints: []string{"http://" + h + ":2379"}})
+	c, err := etcdclient.New(etcdclient.Config{Endpoints: []string{"http://" + Hostname + ":2379"}})
 	if err != nil {
 		log.WithField("err", err).Error("Failed to create etcd client")
 		return err

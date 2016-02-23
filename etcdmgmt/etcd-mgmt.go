@@ -19,9 +19,20 @@ import (
 )
 
 // ExecName is to indicate the executable name, useful for mocking in tests
-var ExecName = "etcd"
+var (
+	ExecName           = "etcd"
+	listenClientUrls   = "http://" + context.Hostname + ":2379"
+	advClientUrls      = "http://" + context.Hostname + ":2379"
+	listenPeerUrls     = "http://" + context.Hostname + ":2380"
+	initialAdvPeerUrls = "http://" + context.Hostname + ":2380"
+	etcdPidDir         = "/var/run/gluster/"
+	etcdPidFile        = etcdPidDir + "etcd.pid"
+	etcdConfDir        = "/var/lib/glusterd/"
+	etcdConfFile       = etcdConfDir + "etcdenv.conf"
+)
 
-func checkHealth(val time.Duration, listenClientUrls string) bool {
+// checkETCDHealth() is to ensure that etcd process have come up properlly or not
+func checkETCDHealth(val time.Duration, listenClientUrls string) bool {
 	result := struct{ Health string }{}
 	// Checking health of etcd. Health of the etcd should be true,
 	// means etcd have initialized properly before using any etcd command
@@ -55,13 +66,6 @@ func checkHealth(val time.Duration, listenClientUrls string) bool {
 	return true
 }
 
-var (
-	etcdPidDir   = "/var/run/gluster/"
-	etcdPidFile  = etcdPidDir + "etcd.pid"
-	etcdConfDir  = "/var/lib/glusterd/"
-	etcdConfFile = etcdConfDir + "etcdenv.conf"
-)
-
 // StartETCD () is to bring up etcd instance
 func StartETCD(args []string) (*os.Process, error) {
 	start, pid := isETCDStartNeeded()
@@ -87,7 +91,8 @@ func StartETCD(args []string) (*os.Process, error) {
 		return nil, err
 	}
 
-	if check := checkHealth(15, args[1]); check != true {
+	// Check the health of node whether etcd have come up properly or not
+	if check := checkETCDHealth(15, args[1]); check != true {
 		log.Fatal("Health of etcd is not proper. Check etcd configuration.")
 	}
 	log.WithField("pid", etcdCmd.Process.Pid).Debug("etcd pid")
@@ -117,7 +122,6 @@ func writeETCDPidFile(pid int) error {
 // @ if pid is not found returns true
 // @ if pid is found, checks for the process with the pid, if a running instance
 //   is found return false else true
-
 func isETCDStartNeeded() (bool, int) {
 	pid := -1
 	start := true
@@ -148,15 +152,23 @@ func isETCDStartNeeded() (bool, int) {
 	return start, pid
 }
 
-func EtcdStartInit() (*os.Process, error) {
-	// Check whether etcd environment variable present or not
-	// If it present then start etcd without --initial-cluster flag
-	// other wise start etcd normally.
+// Check whether etcd environment variable present or not
+// If it present then start etcd without --initial-cluster flag
+// other wise start etcd normally.
+func ETCDStartInit() (*os.Process, error) {
 
 	file, err := os.Open(etcdConfFile)
 	if err != nil {
-		log.Info("Starting/Restarting etcd for a initial node")
-		return StartInitialEtcd()
+		switch {
+		case os.IsNotExist(err):
+			log.Info("Starting/Restarting etcd for a initial node")
+			return StartStandAloneETCD()
+		default:
+			log.WithFields(log.Fields{
+				"error": err,
+				"path":  etcdPidFile,
+			}).Fatal("Failed to read from file")
+		}
 	} else {
 		defer file.Close()
 
@@ -178,17 +190,6 @@ func EtcdStartInit() (*os.Process, error) {
 			os.Setenv(etcdEnvKey, etcdEnvData)
 		}
 
-		hostname, err := os.Hostname()
-		if err != nil {
-			log.Fatal("Could not able to get hostname")
-			return nil, err
-		}
-
-		listenClientUrls := "http://" + hostname + ":2379"
-		advClientUrls := "http://" + hostname + ":2379"
-		listenPeerUrls := "http://" + hostname + ":2380"
-		initialAdvPeerUrls := "http://" + hostname + ":2380"
-
 		args := []string{"-listen-client-urls", listenClientUrls,
 			"-advertise-client-urls", advClientUrls,
 			"-listen-peer-urls", listenPeerUrls,
@@ -197,20 +198,11 @@ func EtcdStartInit() (*os.Process, error) {
 		log.Info("Sstarting etcd daemon")
 		return StartETCD(args)
 	}
+	return nil, err
 }
 
-func StartInitialEtcd() (*os.Process, error) {
-	hostname, err := os.Hostname()
-	if err != nil {
-		log.Fatal("Could not able to get hostname")
-		return nil, err
-	}
-
-	listenClientUrls := "http://" + hostname + ":2379"
-	advClientUrls := "http://" + hostname + ":2379"
-	listenPeerUrls := "http://" + hostname + ":2380"
-	initialAdvPeerUrls := "http://" + hostname + ":2380"
-
+// Starting default etcd by considering single server node
+func StartStandAloneETCD() (*os.Process, error) {
 	args := []string{"-listen-client-urls", listenClientUrls,
 		"-advertise-client-urls", advClientUrls,
 		"-listen-peer-urls", listenPeerUrls,
@@ -220,35 +212,30 @@ func StartInitialEtcd() (*os.Process, error) {
 	return StartETCD(args)
 }
 
-func etcdStop(etcdctx *os.Process) error {
-	err := etcdctx.Kill()
+// Stopping etcd process on the node
+func StopETCD(etcdCtx *os.Process) error {
+	err := etcdCtx.Kill()
 	if err != nil {
 		log.Error("Could not able to kill etcd daemon")
 		return err
 	}
-	etcdctx.Wait()
+	_, err = etcdCtx.Wait()
+	if err != nil {
+		log.Error("Could not able to kill etcd daemon")
+		return err
+	}
 	return nil
 }
 
-func ReStartEtcd() (*os.Process, error) {
+// ReStartETCD will restart etcd process
+func ReStartETCD() (*os.Process, error) {
 	// Stop etcd process
 	etcdCtx := context.EtcdProcessCtx
-	err := etcdStop(etcdCtx)
+	err := StopETCD(etcdCtx)
 	if err != nil {
 		log.Error("Could not able to stop etcd daemon")
 		return nil, err
 	}
-
-	hostname, err := os.Hostname()
-	if err != nil {
-		log.Fatal("Could not able to get hostname")
-		return nil, err
-	}
-
-	listenClientUrls := "http://" + hostname + ":2379"
-	advClientUrls := "http://" + hostname + ":2379"
-	listenPeerUrls := "http://" + hostname + ":2380"
-	initialAdvPeerUrls := "http://" + hostname + ":2380"
 
 	args := []string{"-listen-client-urls", listenClientUrls,
 		"-advertise-client-urls", advClientUrls,

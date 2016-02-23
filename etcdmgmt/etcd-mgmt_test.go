@@ -12,12 +12,12 @@ import (
 func TestStartETCDWithInvalidExecName(t *testing.T) {
 	// Mock the executable name such that it fails
 	defer heketitests.Patch(&ExecName, "abc").Restore()
-	_, err := StartInitialEtcd()
+	_, err := StartStandAloneETCD()
 	tests.Assert(t, err != nil)
 }
 
 func TestStartETCD(t *testing.T) {
-	etcdCtx, err := StartInitialEtcd()
+	etcdCtx, err := StartStandAloneETCD()
 	tests.Assert(t, err == nil)
 	etcdCtx.Kill()
 }

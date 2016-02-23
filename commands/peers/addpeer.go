@@ -56,13 +56,13 @@ func addPeerHandler(w http.ResponseWriter, r *http.Request) {
 	mAPI := etcdclient.NewMembersAPI(c)
 	member, e := mAPI.Add(etcdcontext.Background(), "http://"+p.Name+":2380")
 	if e != nil {
-		log.WithField("err", e).Error("Failed to add member")
+		log.WithField("err", e).Error("Failed to add member into etcd cluster")
 		rest.SendHTTPError(w, http.StatusInternalServerError, e.Error())
 		return
 	}
 
 	newID := member.ID
-	newName := "name_" + p.Name
+	newName := "ETCD_" + p.Name
 
 	log.WithFields(log.Fields{
 		"New member ": newName,
@@ -71,7 +71,7 @@ func addPeerHandler(w http.ResponseWriter, r *http.Request) {
 
 	mlist, e := mAPI.List(etcdcontext.Background())
 	if e != nil {
-		log.WithField("err", e).Error("Failed to list member")
+		log.WithField("err", e).Error("Failed to list member in etcd cluster")
 		rest.SendHTTPError(w, http.StatusInternalServerError, e.Error())
 		return
 	}
@@ -91,13 +91,13 @@ func addPeerHandler(w http.ResponseWriter, r *http.Request) {
 	log.WithField("ETCD_INITIAL_CLUSTER", strings.Join(conf, ",")).Info("ETCD_INITIAL_CLUSTER")
 	log.Info("ETCD_INITIAL_CLUSTER_STATE\"existing\"")
 
-	var etcdEnv peer.PeerETCDEnv
+	var etcdEnv peer.ETCDEnvConfig
 	etcdEnv.PeerName = p.Name
 	etcdEnv.Name = newName
 	etcdEnv.InitialCluster = strings.Join(conf, ",")
 	etcdEnv.ClusterState = "existing"
 
-	etcdrsp, e := client.AddEtcdEnvVar(&etcdEnv)
+	etcdrsp, e := client.ConfigureETCDEnv(&etcdEnv)
 	if e != nil {
 		log.WithField("err", e).Error("Failed to set etcd env in remote node")
 		rest.SendHTTPError(w, http.StatusInternalServerError, *etcdrsp.OpError)
@@ -105,7 +105,10 @@ func addPeerHandler(w http.ResponseWriter, r *http.Request) {
 	}
 
 	if e = peer.AddOrUpdatePeer(p); e != nil {
-		log.WithField("err", e).Error("Failed to add peer into the store")
+		log.WithFields(log.Fields{
+			"error":     e,
+			"peer/node": p,
+		}).Error("Failed to add peer into the etcd store")
 		rest.SendHTTPError(w, http.StatusInternalServerError, e.Error())
 		return
 	}
