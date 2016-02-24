@@ -6,6 +6,8 @@ import (
 
 	"github.com/gluster/glusterd2/commands"
 	"github.com/gluster/glusterd2/context"
+	"github.com/gluster/glusterd2/etcdmgmt"
+	"github.com/gluster/glusterd2/rpc/server"
 
 	log "github.com/Sirupsen/logrus"
 )
@@ -13,10 +15,24 @@ import (
 func main() {
 	log.Info("GlusterD starting")
 
+	// Starting etcd daemon upon starting of GlusterD
+	etcdCtx, err := etcdmgmt.StartETCD()
+	if err != nil {
+		log.WithField("Error", err).Fatal("Could not able to start etcd")
+	}
+
 	context.Init()
+	context.EtcdProcessCtx = etcdCtx
 
 	for _, c := range commands.Commands {
 		context.Rest.SetRoutes(c.Routes())
+	}
+
+	err = server.StartListener()
+	if err != nil {
+		log.Fatal("Could not register the listener. Aborting")
+	} else {
+		log.Debug("Registered RPC listener")
 	}
 
 	sigCh := make(chan os.Signal)
@@ -37,8 +53,9 @@ func main() {
 		}
 	}()
 
-	err := context.Rest.Listen()
+	err = context.Rest.Listen()
 	if err != nil {
 		log.Fatal("Could not start GlusterD Rest Server. Aborting.")
 	}
+
 }

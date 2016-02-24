@@ -11,3 +11,9 @@ type Peer struct {
 	Name      string    `json:"name"`
 	Addresses []string  `json:"addresses"`
 }
+
+// PeerAddRequest represents the structure to be added into the store
+type PeerAddRequest struct {
+	Addresses []string `json:"addresses"`
+	Name      string   `json:"name,omitempty"`
+}

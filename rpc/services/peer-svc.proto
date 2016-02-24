@@ -1,0 +1,13 @@
+package services;
+
+message RPCPeerAddReq
+{
+  required string Name = 1;
+  repeated string Addresses = 2;
+}
+
+message RPCPeerAddResp
+{
+  required int32 OpRet = 1;
+  required string OpError = 2;
+}

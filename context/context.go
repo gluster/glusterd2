@@ -40,7 +40,6 @@ func (c *Context) NewContext() *Context {
 // NewLoggingContext returns a new context with the logger set to log given fields in addition to the parents logging fields
 func (c *Context) NewLoggingContext(fields log.Fields) *Context {
 	n := c.NewContext()
-
 	n.Log = n.Log.WithFields(fields)
 
 	return n

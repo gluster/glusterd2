@@ -6,9 +6,12 @@
 package context
 
 import (
+	"os"
 	"sync"
 
+	"github.com/gluster/glusterd2/config"
 	"github.com/gluster/glusterd2/rest"
+	"github.com/gluster/glusterd2/utils"
 
 	log "github.com/Sirupsen/logrus"
 	"github.com/pborman/uuid"
@@ -24,9 +27,10 @@ const (
 // Any object that is a part of the GlusterD context and needs to be available
 // to other packages should be declared here as exported global variables
 var (
-	MyUUID    uuid.UUID
-	Rest      *rest.GDRest
-	OpVersion int
+	MyUUID         uuid.UUID
+	Rest           *rest.GDRest
+	OpVersion      int
+	EtcdProcessCtx *os.Process
 )
 
 var (
@@ -41,14 +45,13 @@ func initOpVersion() {
 func doInit() {
 	log.Debug("Initializing GlusterD context")
 
-	initLocalStateDir()
-
 	initMyUUID()
 	initOpVersion()
 
 	Rest = rest.New()
 
 	initStore()
+	utils.InitDir(config.LocalStateDir)
 
 	log.Debug("Initialized GlusterD context")
 }
@@ -56,4 +59,9 @@ func doInit() {
 // Init initializes the GlusterD context. This should be called once before doing anything else.
 func Init() {
 	initOnce.Do(doInit)
+}
+
+// AssignEtcdProcessCtx () is to assign the etcd ctx in context.EtcdCtx
+func AssignEtcdProcessCtx(ctx *os.Process) {
+	EtcdProcessCtx = ctx
 }
