@@ -154,12 +154,7 @@ func isETCDStartNeeded() (bool, int) {
 
 // initETCDArgVar() will initialize etcd argument which will be used at various places
 func initETCDArgVar() {
-	HostIP, err := utils.GetLocalIP()
-	if err != nil {
-		log.Fatal("Could not able to get IP address")
-	}
-
-	context.HostIP = HostIP
+	context.SetLocalHostIP()
 
 	listenClientUrls = "http://" + context.HostIP + ":2379"
 	advClientUrls = "http://" + context.HostIP + ":2379"

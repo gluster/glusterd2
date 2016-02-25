@@ -85,6 +85,7 @@ func Init() {
 	initOnce.Do(doInit)
 }
 
+// GetEtcdMemberAPI() will return etcd MemberAPI interface
 func GetEtcdMemberAPI() etcdclient.MembersAPI {
 	var c etcdclient.Client
 	return etcdclient.NewMembersAPI(c)
@@ -93,4 +94,14 @@ func GetEtcdMemberAPI() etcdclient.MembersAPI {
 // AssignEtcdProcessCtx () is to assign the etcd ctx in context.EtcdCtx
 func AssignEtcdProcessCtx(ctx *os.Process) {
 	EtcdProcessCtx = ctx
+}
+
+// SetLocalHostIP() function will set LocalIP address
+func SetLocalHostIP() {
+	hostIP, err := utils.GetLocalIP()
+	if err != nil {
+		log.Fatal("Could not able to get IP address")
+	}
+
+	HostIP = hostIP
 }
