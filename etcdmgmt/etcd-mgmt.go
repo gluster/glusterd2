@@ -20,11 +20,11 @@ import (
 
 // ExecName is to indicate the executable name, useful for mocking in tests
 var (
+	listenClientUrls   string
+	advClientUrls      string
+	listenPeerUrls     string
+	initialAdvPeerUrls string
 	ExecName           = "etcd"
-	listenClientUrls   = "http://" + context.Hostname + ":2379"
-	advClientUrls      = "http://" + context.Hostname + ":2379"
-	listenPeerUrls     = "http://" + context.Hostname + ":2380"
-	initialAdvPeerUrls = "http://" + context.Hostname + ":2380"
 	etcdPidDir         = "/var/run/gluster/"
 	etcdPidFile        = etcdPidDir + "etcd.pid"
 	etcdConfDir        = "/var/lib/glusterd/"
@@ -66,7 +66,7 @@ func checkETCDHealth(val time.Duration, listenClientUrls string) bool {
 	return true
 }
 
-// StartETCD () is to bring up etcd instance
+// StartETCD() is to bring up etcd instance
 func StartETCD(args []string) (*os.Process, error) {
 	start, pid := isETCDStartNeeded()
 	if start == false {
@@ -152,10 +152,26 @@ func isETCDStartNeeded() (bool, int) {
 	return start, pid
 }
 
-// Check whether etcd environment variable present or not
+// initETCDArgVar() will initialize etcd argument which will be used at various places
+func initETCDArgVar() {
+	HostIP, err := utils.GetLocalIP()
+	if err != nil {
+		log.Fatal("Could not able to get IP address")
+	}
+
+	context.HostIP = HostIP
+
+	listenClientUrls = "http://" + context.HostIP + ":2379"
+	advClientUrls = "http://" + context.HostIP + ":2379"
+	listenPeerUrls = "http://" + context.HostIP + ":2380"
+	initialAdvPeerUrls = "http://" + context.HostIP + ":2380"
+}
+
+// ETCDStartInit() Check whether etcd environment variable present or not
 // If it present then start etcd without --initial-cluster flag
 // other wise start etcd normally.
 func ETCDStartInit() (*os.Process, error) {
+	initETCDArgVar()
 
 	file, err := os.Open(etcdConfFile)
 	if err != nil {
@@ -201,7 +217,7 @@ func ETCDStartInit() (*os.Process, error) {
 	return nil, err
 }
 
-// Starting default etcd by considering single server node
+//StartStandAloneETCD() will Start default etcd by considering single server node
 func StartStandAloneETCD() (*os.Process, error) {
 	args := []string{"-listen-client-urls", listenClientUrls,
 		"-advertise-client-urls", advClientUrls,
@@ -212,7 +228,7 @@ func StartStandAloneETCD() (*os.Process, error) {
 	return StartETCD(args)
 }
 
-// Stopping etcd process on the node
+// StopETCD() will Stop etcd process on the node
 func StopETCD(etcdCtx *os.Process) error {
 	err := etcdCtx.Kill()
 	if err != nil {
@@ -227,7 +243,7 @@ func StopETCD(etcdCtx *os.Process) error {
 	return nil
 }
 
-// ReStartETCD will restart etcd process
+// ReStartETCD() will restart etcd process
 func ReStartETCD() (*os.Process, error) {
 	// Stop etcd process
 	etcdCtx := context.EtcdProcessCtx

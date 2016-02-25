@@ -34,7 +34,7 @@ var (
 	OpVersion      int
 	EtcdProcessCtx *os.Process
 	EtcdClient     etcdclient.Client
-	Hostname       string
+	HostIP         string
 )
 
 var (
@@ -46,12 +46,9 @@ func initOpVersion() {
 	OpVersion = MaxOpVersion
 }
 
-func initEtcdClient() error {
-	Hostname, err := os.Hostname()
-	if err != nil {
-		log.Fatal("Could not able to get hostname")
-	}
-	c, err := etcdclient.New(etcdclient.Config{Endpoints: []string{"http://" + Hostname + ":2379"}})
+//initETCDClient will initialize etcd client that will be use during member add/remove in the cluster
+func initETCDClient() error {
+	c, err := etcdclient.New(etcdclient.Config{Endpoints: []string{"http://" + HostIP + ":2379"}})
 	if err != nil {
 		log.WithField("err", err).Error("Failed to create etcd client")
 		return err
@@ -74,7 +71,7 @@ func doInit() {
 	initStore()
 
 	// Initializing etcd client
-	err := initEtcdClient()
+	err := initETCDClient()
 	if err != nil {
 		log.WithField("err", err).Error("Failed to initialize etcd client")
 		return

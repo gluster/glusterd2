@@ -22,7 +22,7 @@ var (
 	etcdConfFile = etcdConfDir + "etcdenv.conf"
 )
 
-// Validate function checks all validation for AddPeer at server side
+// ValidateAdd() will checks all validation for AddPeer at server side
 func (p *PeerService) ValidateAdd(args *RPCPeerAddReq, reply *RPCPeerAddResp) error {
 	opRet = 0
 	opError = ""
@@ -47,7 +47,7 @@ func (p *PeerService) ValidateAdd(args *RPCPeerAddReq, reply *RPCPeerAddResp) er
 	return nil
 }
 
-// storeETCDEnv will store etcd environment variable in etcdConfFile
+// storeETCDEnv() will store etcd environment variable in etcdConfFile
 // (/var/lib/glusterd/etcdenv.conf) it will be useful at the time of restarting
 func storeETCDEnv(env *RPCEtcdEnvReq) error {
 	utils.InitDir(etcdConfDir)
@@ -88,7 +88,7 @@ func storeETCDEnv(env *RPCEtcdEnvReq) error {
 	return nil
 }
 
-// ExportAndStoreETCDEnv will export etcd environment variable
+// ExportAndStoreETCDEnv() will export etcd environment variable
 func (etcd *PeerService) ExportAndStoreETCDEnv(env *RPCEtcdEnvReq, reply *RPCEtcdEnvResp) error {
 	opRet = 0
 	opError = ""

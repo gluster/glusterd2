@@ -56,7 +56,10 @@ func addPeerHandler(w http.ResponseWriter, r *http.Request) {
 	mAPI := etcdclient.NewMembersAPI(c)
 	member, e := mAPI.Add(etcdcontext.Background(), "http://"+p.Name+":2380")
 	if e != nil {
-		log.WithField("err", e).Error("Failed to add member into etcd cluster")
+		log.WithFields(log.Fields{
+			"error":  e,
+			"member": p.Name,
+		}).Error("Failed to add member into etcd cluster")
 		rest.SendHTTPError(w, http.StatusInternalServerError, e.Error())
 		return
 	}
@@ -107,7 +110,7 @@ func addPeerHandler(w http.ResponseWriter, r *http.Request) {
 	if e = peer.AddOrUpdatePeer(p); e != nil {
 		log.WithFields(log.Fields{
 			"error":     e,
-			"peer/node": p,
+			"peer/node": p.Name,
 		}).Error("Failed to add peer into the etcd store")
 		rest.SendHTTPError(w, http.StatusInternalServerError, e.Error())
 		return
