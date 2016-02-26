@@ -11,14 +11,18 @@ It is generated from these files:
 It has these top-level messages:
 	RPCPeerAddReq
 	RPCPeerAddResp
+	RPCEtcdEnvReq
+	RPCEtcdEnvResp
 */
 package services
 
 import proto "github.com/golang/protobuf/proto"
+import fmt "fmt"
 import math "math"
 
 // Reference imports to suppress errors if they are not otherwise used.
 var _ = proto.Marshal
+var _ = fmt.Errorf
 var _ = math.Inf
 
 type RPCPeerAddReq struct {
@@ -63,6 +67,70 @@ func (m *RPCPeerAddResp) GetOpRet() int32 {
 }
 
 func (m *RPCPeerAddResp) GetOpError() string {
+	if m != nil && m.OpError != nil {
+		return *m.OpError
+	}
+	return ""
+}
+
+type RPCEtcdEnvReq struct {
+	PeerName         *string `protobuf:"bytes,1,req" json:"PeerName,omitempty"`
+	Name             *string `protobuf:"bytes,2,req" json:"Name,omitempty"`
+	InitialCluster   *string `protobuf:"bytes,3,req" json:"InitialCluster,omitempty"`
+	ClusterState     *string `protobuf:"bytes,4,req" json:"ClusterState,omitempty"`
+	XXX_unrecognized []byte  `json:"-"`
+}
+
+func (m *RPCEtcdEnvReq) Reset()         { *m = RPCEtcdEnvReq{} }
+func (m *RPCEtcdEnvReq) String() string { return proto.CompactTextString(m) }
+func (*RPCEtcdEnvReq) ProtoMessage()    {}
+
+func (m *RPCEtcdEnvReq) GetPeerName() string {
+	if m != nil && m.PeerName != nil {
+		return *m.PeerName
+	}
+	return ""
+}
+
+func (m *RPCEtcdEnvReq) GetName() string {
+	if m != nil && m.Name != nil {
+		return *m.Name
+	}
+	return ""
+}
+
+func (m *RPCEtcdEnvReq) GetInitialCluster() string {
+	if m != nil && m.InitialCluster != nil {
+		return *m.InitialCluster
+	}
+	return ""
+}
+
+func (m *RPCEtcdEnvReq) GetClusterState() string {
+	if m != nil && m.ClusterState != nil {
+		return *m.ClusterState
+	}
+	return ""
+}
+
+type RPCEtcdEnvResp struct {
+	OpRet            *int32  `protobuf:"varint,1,req" json:"OpRet,omitempty"`
+	OpError          *string `protobuf:"bytes,2,req" json:"OpError,omitempty"`
+	XXX_unrecognized []byte  `json:"-"`
+}
+
+func (m *RPCEtcdEnvResp) Reset()         { *m = RPCEtcdEnvResp{} }
+func (m *RPCEtcdEnvResp) String() string { return proto.CompactTextString(m) }
+func (*RPCEtcdEnvResp) ProtoMessage()    {}
+
+func (m *RPCEtcdEnvResp) GetOpRet() int32 {
+	if m != nil && m.OpRet != nil {
+		return *m.OpRet
+	}
+	return 0
+}
+
+func (m *RPCEtcdEnvResp) GetOpError() string {
 	if m != nil && m.OpError != nil {
 		return *m.OpError
 	}

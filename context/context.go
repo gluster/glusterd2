@@ -14,6 +14,7 @@ import (
 	"github.com/gluster/glusterd2/utils"
 
 	log "github.com/Sirupsen/logrus"
+	etcdclient "github.com/coreos/etcd/client"
 	"github.com/pborman/uuid"
 )
 
@@ -32,6 +33,8 @@ var (
 	TxnFw          *transaction.GDTxnFw
 	OpVersion      int
 	EtcdProcessCtx *os.Process
+	EtcdClient     etcdclient.Client
+	HostIP         string
 )
 
 var (
@@ -41,6 +44,18 @@ var (
 func initOpVersion() {
 	//TODO : Need cluster awareness and then decide the op-version
 	OpVersion = MaxOpVersion
+}
+
+//initETCDClient will initialize etcd client that will be use during member add/remove in the cluster
+func initETCDClient() error {
+	c, err := etcdclient.New(etcdclient.Config{Endpoints: []string{"http://" + HostIP + ":2379"}})
+	if err != nil {
+		log.WithField("err", err).Error("Failed to create etcd client")
+		return err
+	}
+	EtcdClient = c
+
+	return nil
 }
 
 func doInit() {
@@ -55,6 +70,13 @@ func doInit() {
 
 	initStore()
 
+	// Initializing etcd client
+	err := initETCDClient()
+	if err != nil {
+		log.WithField("err", err).Error("Failed to initialize etcd client")
+		return
+	}
+
 	log.Debug("Initialized GlusterD context")
 }
 
@@ -63,7 +85,23 @@ func Init() {
 	initOnce.Do(doInit)
 }
 
+// GetEtcdMemberAPI() will return etcd MemberAPI interface
+func GetEtcdMemberAPI() etcdclient.MembersAPI {
+	var c etcdclient.Client
+	return etcdclient.NewMembersAPI(c)
+}
+
 // AssignEtcdProcessCtx () is to assign the etcd ctx in context.EtcdCtx
 func AssignEtcdProcessCtx(ctx *os.Process) {
 	EtcdProcessCtx = ctx
+}
+
+// SetLocalHostIP() function will set LocalIP address
+func SetLocalHostIP() {
+	hostIP, err := utils.GetLocalIP()
+	if err != nil {
+		log.Fatal("Could not able to get IP address")
+	}
+
+	HostIP = hostIP
 }

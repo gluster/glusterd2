@@ -27,4 +27,5 @@ var (
 	ErrBrickNotLocal           = errors.New("Brickpath doesn't belong to localhost")
 	ErrBrickPathTooLong        = errors.New("Brickpath too long")
 	ErrSubDirPathTooLong       = errors.New("sub directory path is too long")
+	ErrIPAddressNotFound       = errors.New("Failed to find IP address")
 )

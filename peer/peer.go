@@ -17,3 +17,12 @@ type PeerAddRequest struct {
 	Addresses []string `json:"addresses"`
 	Name      string   `json:"name,omitempty"`
 }
+
+// ETCDEnvConfig represents the structure which holds the ETCD env variables to
+// be set at the remote peer
+type ETCDEnvConfig struct {
+	PeerName       string
+	Name           string
+	InitialCluster string
+	ClusterState   string
+}

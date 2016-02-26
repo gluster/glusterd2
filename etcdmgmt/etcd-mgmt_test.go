@@ -36,14 +36,16 @@ func formETCDCommand() *exec.Cmd {
 }
 
 func TestStartETCDWithInvalidExecName(t *testing.T) {
+	initETCDArgVar()
 	// Mock the executable name such that it fails
 	defer heketitests.Patch(&ExecName, "abc").Restore()
-	_, err := StartETCD()
+	_, err := StartStandAloneETCD()
 	tests.Assert(t, err != nil)
 }
 
 func TestStartETCD(t *testing.T) {
-	etcdCtx, err := StartETCD()
+	initETCDArgVar()
+	etcdCtx, err := StartStandAloneETCD()
 	tests.Assert(t, err == nil)
 	err = etcdCtx.Kill()
 	tests.Assert(t, err == nil)
