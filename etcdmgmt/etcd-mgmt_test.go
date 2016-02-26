@@ -80,7 +80,7 @@ func TestIsETCDStartNeeded(t *testing.T) {
 		log.Fatal("Could not able to get hostname")
 	}
 	listenClientUrls := "http://" + hostname + ":2379"
-	tests.Assert(t, checkHealth(15, listenClientUrls) == true)
+	tests.Assert(t, checkETCDHealth(15, listenClientUrls) == true)
 	start, _ := isETCDStartNeeded()
 	tests.Assert(t, start == false)
 
