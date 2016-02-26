@@ -10,19 +10,17 @@ It is generated from these files:
 
 It has these top-level messages:
 	RPCPeerAddReq
-	RPCPeerAddResp
+	RPCPeerResp
+	RPCPeerDeleteReq
 	RPCEtcdEnvReq
-	RPCEtcdEnvResp
 */
 package services
 
 import proto "github.com/golang/protobuf/proto"
-import fmt "fmt"
 import math "math"
 
 // Reference imports to suppress errors if they are not otherwise used.
 var _ = proto.Marshal
-var _ = fmt.Errorf
 var _ = math.Inf
 
 type RPCPeerAddReq struct {
@@ -49,26 +47,42 @@ func (m *RPCPeerAddReq) GetAddresses() []string {
 	return nil
 }
 
-type RPCPeerAddResp struct {
+type RPCPeerResp struct {
 	OpRet            *int32  `protobuf:"varint,1,req" json:"OpRet,omitempty"`
 	OpError          *string `protobuf:"bytes,2,req" json:"OpError,omitempty"`
 	XXX_unrecognized []byte  `json:"-"`
 }
 
-func (m *RPCPeerAddResp) Reset()         { *m = RPCPeerAddResp{} }
-func (m *RPCPeerAddResp) String() string { return proto.CompactTextString(m) }
-func (*RPCPeerAddResp) ProtoMessage()    {}
+func (m *RPCPeerResp) Reset()         { *m = RPCPeerResp{} }
+func (m *RPCPeerResp) String() string { return proto.CompactTextString(m) }
+func (*RPCPeerResp) ProtoMessage()    {}
 
-func (m *RPCPeerAddResp) GetOpRet() int32 {
+func (m *RPCPeerResp) GetOpRet() int32 {
 	if m != nil && m.OpRet != nil {
 		return *m.OpRet
 	}
 	return 0
 }
 
-func (m *RPCPeerAddResp) GetOpError() string {
+func (m *RPCPeerResp) GetOpError() string {
 	if m != nil && m.OpError != nil {
 		return *m.OpError
+	}
+	return ""
+}
+
+type RPCPeerDeleteReq struct {
+	ID               *string `protobuf:"bytes,1,req" json:"ID,omitempty"`
+	XXX_unrecognized []byte  `json:"-"`
+}
+
+func (m *RPCPeerDeleteReq) Reset()         { *m = RPCPeerDeleteReq{} }
+func (m *RPCPeerDeleteReq) String() string { return proto.CompactTextString(m) }
+func (*RPCPeerDeleteReq) ProtoMessage()    {}
+
+func (m *RPCPeerDeleteReq) GetID() string {
+	if m != nil && m.ID != nil {
+		return *m.ID
 	}
 	return ""
 }
@@ -109,30 +123,6 @@ func (m *RPCEtcdEnvReq) GetInitialCluster() string {
 func (m *RPCEtcdEnvReq) GetClusterState() string {
 	if m != nil && m.ClusterState != nil {
 		return *m.ClusterState
-	}
-	return ""
-}
-
-type RPCEtcdEnvResp struct {
-	OpRet            *int32  `protobuf:"varint,1,req" json:"OpRet,omitempty"`
-	OpError          *string `protobuf:"bytes,2,req" json:"OpError,omitempty"`
-	XXX_unrecognized []byte  `json:"-"`
-}
-
-func (m *RPCEtcdEnvResp) Reset()         { *m = RPCEtcdEnvResp{} }
-func (m *RPCEtcdEnvResp) String() string { return proto.CompactTextString(m) }
-func (*RPCEtcdEnvResp) ProtoMessage()    {}
-
-func (m *RPCEtcdEnvResp) GetOpRet() int32 {
-	if m != nil && m.OpRet != nil {
-		return *m.OpRet
-	}
-	return 0
-}
-
-func (m *RPCEtcdEnvResp) GetOpError() string {
-	if m != nil && m.OpError != nil {
-		return *m.OpError
 	}
 	return ""
 }

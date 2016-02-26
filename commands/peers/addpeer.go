@@ -39,12 +39,6 @@ func addPeerHandler(w http.ResponseWriter, r *http.Request) {
 
 	//FIXME: In the correct add process, the peer being probed would add it's details to the store once it's been validated. The code below is just a temporary stand-in to show how the API's would work
 
-	p := &peer.Peer{
-		ID:        uuid.NewRandom(),
-		Name:      req.Name,
-		Addresses: req.Addresses,
-	}
-
 	rsp, e := client.ValidateAddPeer(&req)
 	if e != nil {
 		rest.SendHTTPError(w, http.StatusInternalServerError, *rsp.OpError)
@@ -52,24 +46,29 @@ func addPeerHandler(w http.ResponseWriter, r *http.Request) {
 	}
 
 	c := context.EtcdClient
-	// Add member to etcd server
+	// Add member into the etcd cluster
 	mAPI := etcdclient.NewMembersAPI(c)
-	member, e := mAPI.Add(etcdcontext.Background(), "http://"+p.Name+":2380")
+	member, e := mAPI.Add(etcdcontext.Background(), "http://"+req.Name+":2380")
 	if e != nil {
 		log.WithFields(log.Fields{
-			"error":  e,
-			"member": p.Name,
+			"error":     e,
+			"peer": req.Name,
 		}).Error("Failed to add member into etcd cluster")
 		rest.SendHTTPError(w, http.StatusInternalServerError, e.Error())
 		return
 	}
+	p := &peer.Peer{
+		ID:        uuid.NewRandom(),
+		Name:      req.Name,
+		Addresses: req.Addresses,
+		MemberID:  member.ID,
+	}
 
-	newID := member.ID
 	newName := "ETCD_" + p.Name
 
 	log.WithFields(log.Fields{
 		"New member ": newName,
-		"member Id ":  newID,
+		"member Id ":  member.ID,
 	}).Info("New member added to the cluster")
 
 	mlist, e := mAPI.List(etcdcontext.Background())
@@ -83,7 +82,7 @@ func addPeerHandler(w http.ResponseWriter, r *http.Request) {
 	for _, memb := range mlist {
 		for _, u := range memb.PeerURLs {
 			n := memb.Name
-			if memb.ID == newID {
+			if memb.ID == p.MemberID {
 				n = newName
 			}
 			conf = append(conf, fmt.Sprintf("%s=%s", n, u))
@@ -110,7 +109,7 @@ func addPeerHandler(w http.ResponseWriter, r *http.Request) {
 	if e = peer.AddOrUpdatePeer(p); e != nil {
 		log.WithFields(log.Fields{
 			"error":     e,
-			"peer/node": p.Name,
+			"peer/node": p,
 		}).Error("Failed to add peer into the etcd store")
 		rest.SendHTTPError(w, http.StatusInternalServerError, e.Error())
 		return

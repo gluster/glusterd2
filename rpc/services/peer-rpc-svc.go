@@ -23,7 +23,7 @@ var (
 )
 
 // ValidateAdd() will checks all validation for AddPeer at server side
-func (p *PeerService) ValidateAdd(args *RPCPeerAddReq, reply *RPCPeerAddResp) error {
+func (p *PeerService) ValidateAdd(args *RPCPeerAddReq, reply *RPCPeerResp) error {
 	opRet = 0
 	opError = ""
 	if context.MaxOpVersion < 40000 {
@@ -40,6 +40,20 @@ func (p *PeerService) ValidateAdd(args *RPCPeerAddReq, reply *RPCPeerAddResp) er
 		opRet = -1
 		opError = fmt.Sprintf("Peer %s already has existing volumes", *args.Name)
 	}
+
+	reply.OpRet = &opRet
+	reply.OpError = &opError
+
+	return nil
+}
+
+// ValidateDelete() will checks all validation for AddPeer at server side
+func (p *PeerService) ValidateDelete(args *RPCPeerAddReq, reply *RPCPeerResp) error {
+	opRet = 0
+	opError = ""
+
+	// TODO : Validate if this guy has any volume configured where the brick(s) is
+	// hosted in some other node, in that case the validation should fail
 
 	reply.OpRet = &opRet
 	reply.OpError = &opError
@@ -89,7 +103,7 @@ func storeETCDEnv(env *RPCEtcdEnvReq) error {
 }
 
 // ExportAndStoreETCDEnv() will export etcd environment variable
-func (etcd *PeerService) ExportAndStoreETCDEnv(env *RPCEtcdEnvReq, reply *RPCEtcdEnvResp) error {
+func (etcd *PeerService) ExportAndStoreETCDEnv(env *RPCEtcdEnvReq, reply *RPCPeerResp) error {
 	opRet = 0
 	opError = ""
 
