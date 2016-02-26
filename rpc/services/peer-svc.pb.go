@@ -10,7 +10,8 @@ It is generated from these files:
 
 It has these top-level messages:
 	RPCPeerAddReq
-	RPCPeerResp
+	RPCPeerAddResp
+	RPCPeerGenericResp
 	RPCPeerDeleteReq
 	RPCEtcdEnvReq
 */
@@ -47,24 +48,56 @@ func (m *RPCPeerAddReq) GetAddresses() []string {
 	return nil
 }
 
-type RPCPeerResp struct {
+type RPCPeerAddResp struct {
 	OpRet            *int32  `protobuf:"varint,1,req" json:"OpRet,omitempty"`
 	OpError          *string `protobuf:"bytes,2,req" json:"OpError,omitempty"`
+	UUID             *string `protobuf:"bytes,3,req" json:"UUID,omitempty"`
 	XXX_unrecognized []byte  `json:"-"`
 }
 
-func (m *RPCPeerResp) Reset()         { *m = RPCPeerResp{} }
-func (m *RPCPeerResp) String() string { return proto.CompactTextString(m) }
-func (*RPCPeerResp) ProtoMessage()    {}
+func (m *RPCPeerAddResp) Reset()         { *m = RPCPeerAddResp{} }
+func (m *RPCPeerAddResp) String() string { return proto.CompactTextString(m) }
+func (*RPCPeerAddResp) ProtoMessage()    {}
 
-func (m *RPCPeerResp) GetOpRet() int32 {
+func (m *RPCPeerAddResp) GetOpRet() int32 {
 	if m != nil && m.OpRet != nil {
 		return *m.OpRet
 	}
 	return 0
 }
 
-func (m *RPCPeerResp) GetOpError() string {
+func (m *RPCPeerAddResp) GetOpError() string {
+	if m != nil && m.OpError != nil {
+		return *m.OpError
+	}
+	return ""
+}
+
+func (m *RPCPeerAddResp) GetUUID() string {
+	if m != nil && m.UUID != nil {
+		return *m.UUID
+	}
+	return ""
+}
+
+type RPCPeerGenericResp struct {
+	OpRet            *int32  `protobuf:"varint,1,req" json:"OpRet,omitempty"`
+	OpError          *string `protobuf:"bytes,2,req" json:"OpError,omitempty"`
+	XXX_unrecognized []byte  `json:"-"`
+}
+
+func (m *RPCPeerGenericResp) Reset()         { *m = RPCPeerGenericResp{} }
+func (m *RPCPeerGenericResp) String() string { return proto.CompactTextString(m) }
+func (*RPCPeerGenericResp) ProtoMessage()    {}
+
+func (m *RPCPeerGenericResp) GetOpRet() int32 {
+	if m != nil && m.OpRet != nil {
+		return *m.OpRet
+	}
+	return 0
+}
+
+func (m *RPCPeerGenericResp) GetOpError() string {
 	if m != nil && m.OpError != nil {
 		return *m.OpError
 	}

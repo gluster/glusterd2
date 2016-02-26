@@ -45,20 +45,21 @@ func addPeerHandler(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	c := context.EtcdClient
 	// Add member into the etcd cluster
+	c := context.EtcdClient
 	mAPI := etcdclient.NewMembersAPI(c)
 	member, e := mAPI.Add(etcdcontext.Background(), "http://"+req.Name+":2380")
 	if e != nil {
 		log.WithFields(log.Fields{
-			"error":     e,
-			"peer": req.Name,
+			"error": e,
+			"peer":  req.Name,
 		}).Error("Failed to add member into etcd cluster")
 		rest.SendHTTPError(w, http.StatusInternalServerError, e.Error())
 		return
 	}
+	log.Info("rsp UUID", *rsp.UUID)
 	p := &peer.Peer{
-		ID:        uuid.NewRandom(),
+		ID:        uuid.Parse(*rsp.UUID),
 		Name:      req.Name,
 		Addresses: req.Addresses,
 		MemberID:  member.ID,
@@ -109,7 +110,7 @@ func addPeerHandler(w http.ResponseWriter, r *http.Request) {
 	if e = peer.AddOrUpdatePeer(p); e != nil {
 		log.WithFields(log.Fields{
 			"error":     e,
-			"peer/node": p,
+			"peer/node": p.Name,
 		}).Error("Failed to add peer into the etcd store")
 		rest.SendHTTPError(w, http.StatusInternalServerError, e.Error())
 		return

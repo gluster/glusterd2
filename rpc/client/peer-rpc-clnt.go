@@ -19,11 +19,11 @@ var (
 
 // ValidateAddPeer is the validation function for AddPeer to invoke the rpc
 // server call
-func ValidateAddPeer(p *peer.PeerAddRequest) (*services.RPCPeerResp, error) {
+func ValidateAddPeer(p *peer.PeerAddRequest) (*services.RPCPeerAddResp, error) {
 	args := &services.RPCPeerAddReq{Name: new(string), Addresses: p.Addresses}
 	*args.Name = p.Name
 
-	rsp := new(services.RPCPeerResp)
+	rsp := new(services.RPCPeerAddResp)
 	//TODO : port 9876 is hardcoded for now, can be made configurable
 	remoteAddress := fmt.Sprintf("%s:%s", p.Name, "9876")
 	rpcConn, e := net.Dial("tcp", remoteAddress)
@@ -52,11 +52,11 @@ func ValidateAddPeer(p *peer.PeerAddRequest) (*services.RPCPeerResp, error) {
 
 // ValidateDeletePeer is the validation function for DeletePeer to invoke the rpc
 // server call
-func ValidateDeletePeer(id string, name string) (*services.RPCPeerResp, error) {
+func ValidateDeletePeer(id string, name string) (*services.RPCPeerGenericResp, error) {
 	args := &services.RPCPeerDeleteReq{ID: new(string)}
 	*args.ID = id
 
-	rsp := new(services.RPCPeerResp)
+	rsp := new(services.RPCPeerGenericResp)
 	//TODO : port 9876 is hardcoded for now, can be made configurable
 	remoteAddress := fmt.Sprintf("%s:%s", name, "9876")
 	rpcConn, e := net.Dial("tcp", remoteAddress)
@@ -85,14 +85,14 @@ func ValidateDeletePeer(id string, name string) (*services.RPCPeerResp, error) {
 
 // ConfigureETCDEnv function is a rpc server call for exporting and storing etcd
 // environment variable
-func ConfigureETCDEnv(p *peer.ETCDEnvConfig) (*services.RPCPeerResp, error) {
+func ConfigureETCDEnv(p *peer.ETCDEnvConfig) (*services.RPCPeerGenericResp, error) {
 	args := &services.RPCEtcdEnvReq{PeerName: new(string), Name: new(string), InitialCluster: new(string), ClusterState: new(string)}
 	*args.PeerName = p.PeerName
 	*args.Name = p.Name
 	*args.InitialCluster = p.InitialCluster
 	*args.ClusterState = p.ClusterState
 
-	rsp := new(services.RPCPeerResp)
+	rsp := new(services.RPCPeerGenericResp)
 
 	remoteAddress := fmt.Sprintf("%s:%s", p.PeerName, "9876")
 	rpcConn, e := net.Dial("tcp", remoteAddress)

@@ -7,6 +7,7 @@ import (
 	"github.com/gluster/glusterd2/commands"
 	"github.com/gluster/glusterd2/context"
 	"github.com/gluster/glusterd2/etcdmgmt"
+	"github.com/gluster/glusterd2/peer"
 	"github.com/gluster/glusterd2/rpc/server"
 
 	log "github.com/Sirupsen/logrus"
@@ -27,6 +28,9 @@ func main() {
 	for _, c := range commands.Commands {
 		context.Rest.SetRoutes(c.Routes())
 	}
+
+	// Store self information in the store
+	peer.AddSelfDetails()
 
 	err = server.StartListener()
 	if err != nil {
