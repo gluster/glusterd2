@@ -49,6 +49,8 @@ func deletePeerHandler(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
+	//TODO : Also delete the etcd env from the remote node to be detached?
+
 	// Remove the peer from the store
 	if e := peer.DeletePeer(id); e != nil {
 		rest.SendHTTPError(w, http.StatusInternalServerError, e.Error())
