@@ -12,12 +12,13 @@ message RPCPeerAddResp
   required string OpError = 2;
 }
 
-message RPCEtcdEnvReq
+message RPCEtcdConfigReq
 {
  required string PeerName = 1;
  required string Name = 2;
  required string InitialCluster = 3;
  required string ClusterState = 4;
+ required bool Client = 5;
 }
 
 message RPCEtcdEnvResp
