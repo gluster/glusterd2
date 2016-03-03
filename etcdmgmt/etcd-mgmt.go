@@ -197,7 +197,7 @@ func initETCDArgVar() {
 	context.SetLocalHostIP()
 
 	listenClientUrls = "http://" + context.HostIP + ":2379"
-	listenClientProxyUrls = "http://127.0.0.1:8080"
+	listenClientProxyUrls = listenClientUrls
 	advClientUrls = "http://" + context.HostIP + ":2379"
 	listenPeerUrls = "http://" + context.HostIP + ":2380"
 	initialAdvPeerUrls = "http://" + context.HostIP + ":2380"
@@ -247,8 +247,6 @@ func formETCDArgs() []string {
 			"-listen-client-urls", listenClientProxyUrls,
 			"-initial-cluster", m["ETCD_INITIAL_CLUSTER"]}
 		//"-data-dir", ETCDDataDir}
-		//"-initial-cluster", "node3=http://172.17.0.3:2380"}
-		//string(m["ETCD_INITIAL_CLUSTER"])}
 	} else {
 		args = []string{"-listen-client-urls", listenClientUrls,
 			"-advertise-client-urls", advClientUrls,
@@ -354,6 +352,7 @@ func ReStartETCD() (*os.Process, error) {
 	args := formETCDArgs()
 	log.WithField("args", args).Info("Restarting etcd daemon")
 	if etcdClient == true {
+		log.Info("Removing old etcd configuration")
 		os.RemoveAll("/default.etcd")
 	}
 	return StartETCD(args)
