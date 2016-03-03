@@ -29,18 +29,21 @@ var (
 	listenPeerUrls        string
 	initialAdvPeerUrls    string
 
-	ExecName = "etcd"
+	// ETCD executable path
+	ExecName = "/usr/bin/etcd"
+	// Configuration directory for storing etcd configuration
+	ETCDConfDir = "/var/lib/glusterd"
+	// Stores all the environment variables for etcd boot
+	ETCDDataDir = ETCDConfDir + "/default.etcd"
+	ETCDEnvFile = ETCDConfDir + "/etcdenv.conf"
+	// If this file is touched on ETCDConfDir that indicates that etcd
+	// instance need to come with proxy mode
+	ETCDProxyFile = ETCDConfDir + "/proxy"
 
 	etcdPidDir  = "/var/run/gluster/"
 	etcdPidFile = etcdPidDir + "etcd.pid"
-
-	// Configuration directory for storing etcd configuration
-	ETCDConfDir = "/var/lib/glusterd/"
-	// Stores all the environment variables for etcd boot
-	ETCDEnvFile = ETCDConfDir + "etcdenv.conf"
-	// If this file is touched on ETCDConfDir that indicates that etcd
-	// instance need to come with proxy mode
-	ETCDProxyFile = ETCDConfDir + "proxy"
+	etcdLogDir  = "/var/log/glusterfs"
+	etcdLogFile = etcdLogDir + "/etcd.log"
 )
 
 // checkETCDHealth() is to ensure that etcd process have come up properlly or not
@@ -87,16 +90,27 @@ func StartETCD(args []string) (*os.Process, error) {
 		return etcdCtx, e
 	}
 
-	log.WithField("Executable", ExecName).Info("Starting")
-	log.Info(args)
+	log.WithField("Executable", ExecName).Info("Starting the instance")
+
 	etcdCmd := exec.Command(ExecName, args...)
+
+	utils.InitDir(etcdLogDir)
+	outFile, err := os.OpenFile(etcdLogFile, os.O_CREATE|os.O_WRONLY|os.O_APPEND, 0666)
+	if err != nil {
+		log.WithFields(log.Fields{
+			"err":  err,
+			"path": etcdLogFile,
+		}).Fatal("Failed to create etcd log")
+	}
+	etcdCmd.Stdout = outFile
+	etcdCmd.Stderr = outFile
 
 	// TODO: use unix.Setpgid instead of using syscall
 	// Don't kill chlid process (etcd) upon ^C (SIGINT) of main glusterd process
 	etcdCmd.SysProcAttr = &syscall.SysProcAttr{
 		Setpgid: true,
 	}
-	err := etcdCmd.Start()
+	err = etcdCmd.Start()
 	if err != nil {
 		log.WithField("error", err.Error()).Error("Could not start etcd daemon.")
 		return nil, err
@@ -107,6 +121,7 @@ func StartETCD(args []string) (*os.Process, error) {
 		url = args[1]
 	} else {
 		url = listenClientProxyUrls
+		//url = listenClientUrls
 	}
 	if check := checkETCDHealth(15, url); check != true {
 		log.Fatal("Health of etcd is not proper. Check etcd configuration.")
@@ -182,8 +197,7 @@ func initETCDArgVar() {
 	context.SetLocalHostIP()
 
 	listenClientUrls = "http://" + context.HostIP + ":2379"
-	listenClientProxyUrls = "http://" + context.HostIP + ":4001" + "," +
-		"http://" + context.HostIP + ":2379"
+	listenClientProxyUrls = "http://127.0.0.1:8080"
 	advClientUrls = "http://" + context.HostIP + ":2379"
 	listenPeerUrls = "http://" + context.HostIP + ":2380"
 	initialAdvPeerUrls = "http://" + context.HostIP + ":2380"
@@ -231,12 +245,16 @@ func formETCDArgs() []string {
 	if etcdClient == true {
 		args = []string{"-proxy", "on",
 			"-listen-client-urls", listenClientProxyUrls,
-			string(m["ETCD_INITIAL_CLUSTER"])}
+			"-initial-cluster", m["ETCD_INITIAL_CLUSTER"]}
+		//"-data-dir", ETCDDataDir}
+		//"-initial-cluster", "node3=http://172.17.0.3:2380"}
+		//string(m["ETCD_INITIAL_CLUSTER"])}
 	} else {
 		args = []string{"-listen-client-urls", listenClientUrls,
 			"-advertise-client-urls", advClientUrls,
 			"-listen-peer-urls", listenPeerUrls,
 			"-initial-advertise-peer-urls", initialAdvPeerUrls}
+		//"-data-dir", ETCDDataDir}
 	}
 	log.Info(args)
 	return args
@@ -301,7 +319,8 @@ func StartStandAloneETCD() (*os.Process, error) {
 			"-advertise-client-urls", advClientUrls,
 			"-listen-peer-urls", listenPeerUrls,
 			"-initial-advertise-peer-urls", initialAdvPeerUrls,
-			"--initial-cluster", "default=" + listenPeerUrls}
+			"-initial-cluster", "default=" + listenPeerUrls}
+		//"-data-dir", ETCDDataDir}
 	}
 
 	return StartETCD(args)
@@ -333,7 +352,9 @@ func ReStartETCD() (*os.Process, error) {
 		return nil, err
 	}
 	args := formETCDArgs()
-	log.Info("Restarting etcd daemon")
-
+	log.WithField("args", args).Info("Restarting etcd daemon")
+	if etcdClient == true {
+		os.RemoveAll("/default.etcd")
+	}
 	return StartETCD(args)
 }

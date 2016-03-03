@@ -120,13 +120,13 @@ func storeETCDProxyConf(env *RPCEtcdConfigReq) error {
 func (etcd *PeerService) ExportAndStoreETCDConfig(c *RPCEtcdConfigReq, reply *RPCEtcdEnvResp) error {
 	opRet = 0
 	opError = ""
-	log.Debug("In ExportAndStoreETCDConfig")
-	// Exporting etcd environment variable
-	os.Setenv("ETCD_NAME", *c.Name)
-	os.Setenv("ETCD_INITIAL_CLUSTER", *c.InitialCluster)
-	os.Setenv("ETCD_INITIAL_CLUSTER_STATE", *c.ClusterState)
 
 	if *c.Client == false {
+		// Exporting etcd environment variable
+		os.Setenv("ETCD_NAME", *c.Name)
+		os.Setenv("ETCD_INITIAL_CLUSTER", *c.InitialCluster)
+		os.Setenv("ETCD_INITIAL_CLUSTER_STATE", *c.ClusterState)
+
 		// Storing etcd envioronment variable in
 		// etcdEnvFile (/var/lib/glusterd/etcdenv.conf) locally. So that upon
 		// glusterd restart we can restore these environment variable again
@@ -138,7 +138,6 @@ func (etcd *PeerService) ExportAndStoreETCDConfig(c *RPCEtcdConfigReq, reply *RP
 			return err
 		}
 	} else {
-		log.Debug("Going to call storeETCDProxyConf")
 		err := storeETCDProxyConf(c)
 		if err != nil {
 			opRet = -1

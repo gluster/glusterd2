@@ -14,6 +14,7 @@ func RegisterStorePrefix(prefix string) {
 	prefixes = append(prefixes, prefix)
 }
 
+// InitStore is to initialize the store
 func initStore() {
 	Store = store.New()
 

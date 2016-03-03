@@ -54,18 +54,21 @@ func GetPeer(id string) (*Peer, error) {
 // GetInitialCluster() form and returns the etcd initial cluster value in a
 // string
 func GetInitialCluster() (string, error) {
-	initialCluster := "-initial-cluster "
+	var initialCluster string
 	peers, err := GetPeers()
 	if err != nil {
 		return "", err
 	}
-	for i, peer := range peers {
-		//TODO : currently it doesn't consider the first node in the
-		//initial cluster
-		if i > 0 {
+	c := 0
+	for _, peer := range peers {
+		if peer.Client == true {
+			continue
+		}
+		if c > 0 {
 			initialCluster = initialCluster + ", "
 		}
-		initialCluster = initialCluster + "ETCD_" + peer.Name + "=" + "http://" + peer.Name + ":2380"
+		initialCluster = initialCluster + peer.Name + "=" + "http://" + peer.Name + ":2380"
+		c = c + 1
 	}
 	return initialCluster, nil
 }
