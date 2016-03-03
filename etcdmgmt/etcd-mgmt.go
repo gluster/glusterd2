@@ -30,7 +30,7 @@ var (
 	initialAdvPeerUrls    string
 
 	// ETCD executable path
-	ExecName = "/usr/bin/etcd"
+	ExecName = "etcd"
 	// Configuration directory for storing etcd configuration
 	ETCDConfDir = "/var/lib/glusterd"
 	ETCDEnvFile = ETCDConfDir + "/etcdenv.conf"
