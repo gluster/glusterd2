@@ -35,10 +35,6 @@ func addPeerHandler(w http.ResponseWriter, r *http.Request) {
 		req.Name = req.Addresses[0]
 	}
 
-	//TODO: Do proper validation before initiating the add process
-
-	//FIXME: In the correct add process, the peer being probed would add it's details to the store once it's been validated. The code below is just a temporary stand-in to show how the API's would work
-
 	rsp, e := client.ValidateAddPeer(&req)
 	if e != nil {
 		rest.SendHTTPError(w, http.StatusInternalServerError, *rsp.OpError)

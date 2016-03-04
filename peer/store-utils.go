@@ -77,11 +77,8 @@ func GetPeers() ([]Peer, error) {
 		peers[i] = p
 		i = i + 1
 	}
-	if i == 0 {
-		return nil, nil
-	} else {
-		return peers, nil
-	}
+
+	return peers, nil
 }
 
 // GetPeerByName returns the peer with the given name from store
