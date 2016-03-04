@@ -57,7 +57,6 @@ func addPeerHandler(w http.ResponseWriter, r *http.Request) {
 		rest.SendHTTPError(w, http.StatusInternalServerError, e.Error())
 		return
 	}
-	log.Info("rsp UUID", *rsp.UUID)
 	p := &peer.Peer{
 		ID:        uuid.Parse(*rsp.UUID),
 		Name:      req.Name,
