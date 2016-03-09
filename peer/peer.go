@@ -10,6 +10,7 @@ type Peer struct {
 	ID        uuid.UUID `json:"id"`
 	Name      string    `json:"name"`
 	Addresses []string  `json:"addresses"`
+	MemberID  string    `json:"memberID"`
 }
 
 // PeerAddRequest represents the structure to be added into the store

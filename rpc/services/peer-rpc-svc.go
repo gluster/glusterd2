@@ -18,6 +18,7 @@ type PeerService int
 var (
 	opRet        int32
 	opError      string
+	uuid         string
 	etcdConfDir  = "/var/lib/glusterd/"
 	etcdConfFile = etcdConfDir + "etcdenv.conf"
 )
@@ -26,6 +27,8 @@ var (
 func (p *PeerService) ValidateAdd(args *RPCPeerAddReq, reply *RPCPeerAddResp) error {
 	opRet = 0
 	opError = ""
+	uuid = context.MyUUID.String()
+
 	if context.MaxOpVersion < 40000 {
 		opRet = -1
 		opError = fmt.Sprintf("GlusterD instance running on %s is not compatible", *args.Name)
@@ -43,7 +46,19 @@ func (p *PeerService) ValidateAdd(args *RPCPeerAddReq, reply *RPCPeerAddResp) er
 
 	reply.OpRet = &opRet
 	reply.OpError = &opError
+	reply.UUID = &uuid
+	return nil
+}
 
+// ValidateDelete() will checks all validation for DeletePeer at server side
+func (p *PeerService) ValidateDelete(args *RPCPeerDeleteReq, reply *RPCPeerGenericResp) error {
+	opRet = 0
+	opError = ""
+	// TODO : Validate if this guy has any volume configured where the brick(s) is
+	// hosted in some other node, in that case the validation should fail
+
+	reply.OpRet = &opRet
+	reply.OpError = &opError
 	return nil
 }
 
@@ -89,7 +104,7 @@ func storeETCDEnv(env *RPCEtcdEnvReq) error {
 }
 
 // ExportAndStoreETCDEnv() will export etcd environment variable
-func (etcd *PeerService) ExportAndStoreETCDEnv(env *RPCEtcdEnvReq, reply *RPCEtcdEnvResp) error {
+func (etcd *PeerService) ExportAndStoreETCDEnv(env *RPCEtcdEnvReq, reply *RPCPeerGenericResp) error {
 	opRet = 0
 	opError = ""
 
