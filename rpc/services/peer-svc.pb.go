@@ -11,8 +11,9 @@ It is generated from these files:
 It has these top-level messages:
 	RPCPeerAddReq
 	RPCPeerAddResp
+	RPCPeerGenericResp
+	RPCPeerDeleteReq
 	RPCEtcdConfigReq
-	RPCEtcdEnvResp
 */
 package services
 
@@ -50,6 +51,7 @@ func (m *RPCPeerAddReq) GetAddresses() []string {
 type RPCPeerAddResp struct {
 	OpRet            *int32  `protobuf:"varint,1,req" json:"OpRet,omitempty"`
 	OpError          *string `protobuf:"bytes,2,req" json:"OpError,omitempty"`
+	UUID             *string `protobuf:"bytes,3,req" json:"UUID,omitempty"`
 	XXX_unrecognized []byte  `json:"-"`
 }
 
@@ -67,6 +69,53 @@ func (m *RPCPeerAddResp) GetOpRet() int32 {
 func (m *RPCPeerAddResp) GetOpError() string {
 	if m != nil && m.OpError != nil {
 		return *m.OpError
+	}
+	return ""
+}
+
+func (m *RPCPeerAddResp) GetUUID() string {
+	if m != nil && m.UUID != nil {
+		return *m.UUID
+	}
+	return ""
+}
+
+type RPCPeerGenericResp struct {
+	OpRet            *int32  `protobuf:"varint,1,req" json:"OpRet,omitempty"`
+	OpError          *string `protobuf:"bytes,2,req" json:"OpError,omitempty"`
+	XXX_unrecognized []byte  `json:"-"`
+}
+
+func (m *RPCPeerGenericResp) Reset()         { *m = RPCPeerGenericResp{} }
+func (m *RPCPeerGenericResp) String() string { return proto.CompactTextString(m) }
+func (*RPCPeerGenericResp) ProtoMessage()    {}
+
+func (m *RPCPeerGenericResp) GetOpRet() int32 {
+	if m != nil && m.OpRet != nil {
+		return *m.OpRet
+	}
+	return 0
+}
+
+func (m *RPCPeerGenericResp) GetOpError() string {
+	if m != nil && m.OpError != nil {
+		return *m.OpError
+	}
+	return ""
+}
+
+type RPCPeerDeleteReq struct {
+	ID               *string `protobuf:"bytes,1,req" json:"ID,omitempty"`
+	XXX_unrecognized []byte  `json:"-"`
+}
+
+func (m *RPCPeerDeleteReq) Reset()         { *m = RPCPeerDeleteReq{} }
+func (m *RPCPeerDeleteReq) String() string { return proto.CompactTextString(m) }
+func (*RPCPeerDeleteReq) ProtoMessage()    {}
+
+func (m *RPCPeerDeleteReq) GetID() string {
+	if m != nil && m.ID != nil {
+		return *m.ID
 	}
 	return ""
 }
@@ -117,28 +166,4 @@ func (m *RPCEtcdConfigReq) GetClient() bool {
 		return *m.Client
 	}
 	return false
-}
-
-type RPCEtcdEnvResp struct {
-	OpRet            *int32  `protobuf:"varint,1,req" json:"OpRet,omitempty"`
-	OpError          *string `protobuf:"bytes,2,req" json:"OpError,omitempty"`
-	XXX_unrecognized []byte  `json:"-"`
-}
-
-func (m *RPCEtcdEnvResp) Reset()         { *m = RPCEtcdEnvResp{} }
-func (m *RPCEtcdEnvResp) String() string { return proto.CompactTextString(m) }
-func (*RPCEtcdEnvResp) ProtoMessage()    {}
-
-func (m *RPCEtcdEnvResp) GetOpRet() int32 {
-	if m != nil && m.OpRet != nil {
-		return *m.OpRet
-	}
-	return 0
-}
-
-func (m *RPCEtcdEnvResp) GetOpError() string {
-	if m != nil && m.OpError != nil {
-		return *m.OpError
-	}
-	return ""
 }
