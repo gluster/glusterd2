@@ -16,9 +16,13 @@ func RegisterStorePrefix(prefix string) {
 
 // InitStore is to initialize the store
 func initStore() {
-	Store = store.New()
+	Store = store.New(Restart)
 
-	for _, prefix := range prefixes {
-		Store.InitPrefix(prefix)
+	// If its a fresh install and GlusterD is coming up for the first time
+	// then initialize the store prefix, otherwise not
+	if Restart == false {
+		for _, prefix := range prefixes {
+			Store.InitPrefix(prefix)
+		}
 	}
 }

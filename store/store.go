@@ -34,7 +34,7 @@ func init() {
 }
 
 // New creates a new GDStore
-func New() *GDStore {
+func New(restart bool) *GDStore {
 	//TODO: Make this configurable
 	ip, _ := utils.GetLocalIP()
 	address := ip + ":2379"
@@ -48,8 +48,10 @@ func New() *GDStore {
 
 	gds := &GDStore{s}
 
-	if e := gds.InitPrefix(GlusterPrefix); e != nil {
-		log.Fatal("failed to init store prefixes")
+	if restart == false {
+		if e := gds.InitPrefix(GlusterPrefix); e != nil {
+			log.Fatal("failed to init store prefixes")
+		}
 	}
 
 	return gds

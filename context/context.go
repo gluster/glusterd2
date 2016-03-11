@@ -8,7 +8,6 @@ import (
 	"os"
 	"sync"
 
-	"github.com/gluster/glusterd2/config"
 	"github.com/gluster/glusterd2/rest"
 	"github.com/gluster/glusterd2/transaction"
 	"github.com/gluster/glusterd2/utils"
@@ -29,6 +28,7 @@ const (
 // to other packages should be declared here as exported global variables
 var (
 	MyUUID         uuid.UUID
+	Restart        bool // Indicates if its a fresh install or not
 	Rest           *rest.GDRest
 	TxnFw          *transaction.GDTxnFw
 	OpVersion      int
@@ -61,9 +61,6 @@ func initETCDClient() error {
 func doInit() {
 	log.Debug("Initializing GlusterD context")
 
-	utils.InitDir(config.LocalStateDir)
-
-	MyUUID = initMyUUID()
 	initOpVersion()
 
 	Rest = rest.New()

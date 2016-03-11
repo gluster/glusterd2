@@ -119,10 +119,13 @@ func StartETCD(args []string) (*os.Process, error) {
 		url = args[1]
 	} else {
 		url = listenClientProxyUrls
-		//url = listenClientUrls
 	}
-	if check := checkETCDHealth(15, url); check != true {
-		log.Fatal("Health of etcd is not proper. Check etcd configuration.")
+	// If its a fresh install and GlusterD is coming up for the first time
+	// then check for etcd health, otherwise not
+	if context.Restart == false {
+		if check := checkETCDHealth(15, url); check != true {
+			log.Fatal("Health of etcd is not proper. Check etcd configuration.")
+		}
 	}
 	log.WithField("pid", etcdCmd.Process.Pid).Debug("etcd pid")
 	if err := writeETCDPidFile(etcdCmd.Process.Pid); err != nil {
