@@ -79,7 +79,11 @@ func GetPeers() ([]Peer, error) {
 	if err != nil || pairs == nil {
 		return nil, err
 	}
-
+	// If there is only one entry in the store this indicates its a stand
+	// alone cluster, no need to return back it's own information
+	if len(pairs) == 1 {
+		return nil, nil
+	}
 	peers := make([]Peer, len(pairs)-1)
 	i := 0
 	for _, pair := range pairs {
