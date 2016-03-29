@@ -10,6 +10,8 @@ import (
 	"os/exec"
 	"path"
 	"path/filepath"
+	"reflect"
+	"runtime"
 	"strconv"
 	"strings"
 	"syscall"
@@ -327,4 +329,9 @@ func CheckProcessExist(pid int) bool {
 		return true
 	}
 	return false
+}
+
+// GetFuncName returns the name of the passed function pointer
+func GetFuncName(fn interface{}) string {
+	return runtime.FuncForPC(reflect.ValueOf(fn).Pointer()).Name()
 }

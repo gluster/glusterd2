@@ -2,33 +2,45 @@ package transaction
 
 import (
 	"github.com/gluster/glusterd2/context"
+	"github.com/gluster/glusterd2/store"
+)
+
+const (
+	lockPrefix = store.GlusterPrefix + "locks/"
 )
 
 // CreateLockStepFunc returns a lock and an unlock StepFunc which lock/unlock the given key
 func CreateLockStepFunc(key string) (StepFunc, StepFunc, error) {
+	key = lockPrefix + key
 	locker, err := context.Store.NewLock(key, nil)
 	if err != nil {
 		return nil, nil, err
 	}
 
-	lockFunc := func(c *context.Context, a StepArg) (StepRet, error) {
+	lockFunc := func(c *context.Context) error {
 		log := c.Log.WithField("key", key)
-		log.Debug("locking key in store")
 
 		_, err := locker.Lock(nil)
+		if err != nil {
+			log.WithError(err).Debug("failed to lock")
+		} else {
+			log.Debug("locked obtained")
+		}
 
-		log.WithError(err).Debug("failed to lock key in store")
-		return nil, err
+		return err
 	}
 
-	unlockFunc := func(c *context.Context, a StepArg) (StepRet, error) {
+	unlockFunc := func(c *context.Context) error {
 		log := c.Log.WithField("key", key)
-		log.Debug("unlocking key in store")
 
 		err := locker.Unlock()
+		if err != nil {
+			log.WithError(err).Error("failed to release lock")
+		} else {
+			log.Debug("lock released")
+		}
 
-		log.WithError(err).Debug("failed to unlock key in store")
-		return nil, err
+		return err
 	}
 	return lockFunc, unlockFunc, nil
 }

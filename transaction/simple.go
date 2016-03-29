@@ -1,7 +1,13 @@
 package transaction
 
+import (
+	"github.com/gluster/glusterd2/context"
+)
+
 // SimpleTxn is transaction with fixed stage, commit and store steps
 type SimpleTxn struct {
+	// Ctx is the transaction context
+	Ctx *context.Context
 	// Nodes are the nodes where the stage and commit functions are performed
 	Nodes []string
 	// LockKey is the key to be locked
@@ -18,8 +24,9 @@ type SimpleTxn struct {
 }
 
 // NewSimpleTxn returns creates and returns a Txn using e Simple transaction template
-func NewSimpleTxn(nodes []string, lockKey string, stage, commit, store, rollback StepFunc) (*Txn, error) {
+func NewSimpleTxn(c *context.Context, nodes []string, lockKey string, stage, commit, store, rollback StepFunc) (*Txn, error) {
 	simple := Txn{
+		Ctx:   c,
 		Nodes: nodes,
 		Steps: make([]*Step, 5), //A simple transaction has just 5 steps
 	}
@@ -56,7 +63,7 @@ func NewSimpleTxn(nodes []string, lockKey string, stage, commit, store, rollback
 
 // Do runs the SimpleTxn on the cluster
 func (s *SimpleTxn) Do() error {
-	t, err := NewSimpleTxn(s.Nodes, s.LockKey, s.Stage, s.Commit, s.Store, s.Rollback)
+	t, err := NewSimpleTxn(s.Ctx, s.Nodes, s.LockKey, s.Stage, s.Commit, s.Store, s.Rollback)
 	if err != nil {
 		return err
 	}
