@@ -11,6 +11,9 @@ It is generated from these files:
 It has these top-level messages:
 	RPCPeerAddReq
 	RPCPeerAddResp
+	RPCPeerGenericResp
+	RPCPeerDeleteReq
+	RPCEtcdEnvReq
 */
 package services
 
@@ -48,6 +51,7 @@ func (m *RPCPeerAddReq) GetAddresses() []string {
 type RPCPeerAddResp struct {
 	OpRet            *int32  `protobuf:"varint,1,req" json:"OpRet,omitempty"`
 	OpError          *string `protobuf:"bytes,2,req" json:"OpError,omitempty"`
+	UUID             *string `protobuf:"bytes,3,req" json:"UUID,omitempty"`
 	XXX_unrecognized []byte  `json:"-"`
 }
 
@@ -65,6 +69,93 @@ func (m *RPCPeerAddResp) GetOpRet() int32 {
 func (m *RPCPeerAddResp) GetOpError() string {
 	if m != nil && m.OpError != nil {
 		return *m.OpError
+	}
+	return ""
+}
+
+func (m *RPCPeerAddResp) GetUUID() string {
+	if m != nil && m.UUID != nil {
+		return *m.UUID
+	}
+	return ""
+}
+
+type RPCPeerGenericResp struct {
+	OpRet            *int32  `protobuf:"varint,1,req" json:"OpRet,omitempty"`
+	OpError          *string `protobuf:"bytes,2,req" json:"OpError,omitempty"`
+	XXX_unrecognized []byte  `json:"-"`
+}
+
+func (m *RPCPeerGenericResp) Reset()         { *m = RPCPeerGenericResp{} }
+func (m *RPCPeerGenericResp) String() string { return proto.CompactTextString(m) }
+func (*RPCPeerGenericResp) ProtoMessage()    {}
+
+func (m *RPCPeerGenericResp) GetOpRet() int32 {
+	if m != nil && m.OpRet != nil {
+		return *m.OpRet
+	}
+	return 0
+}
+
+func (m *RPCPeerGenericResp) GetOpError() string {
+	if m != nil && m.OpError != nil {
+		return *m.OpError
+	}
+	return ""
+}
+
+type RPCPeerDeleteReq struct {
+	ID               *string `protobuf:"bytes,1,req" json:"ID,omitempty"`
+	XXX_unrecognized []byte  `json:"-"`
+}
+
+func (m *RPCPeerDeleteReq) Reset()         { *m = RPCPeerDeleteReq{} }
+func (m *RPCPeerDeleteReq) String() string { return proto.CompactTextString(m) }
+func (*RPCPeerDeleteReq) ProtoMessage()    {}
+
+func (m *RPCPeerDeleteReq) GetID() string {
+	if m != nil && m.ID != nil {
+		return *m.ID
+	}
+	return ""
+}
+
+type RPCEtcdEnvReq struct {
+	PeerName         *string `protobuf:"bytes,1,req" json:"PeerName,omitempty"`
+	Name             *string `protobuf:"bytes,2,req" json:"Name,omitempty"`
+	InitialCluster   *string `protobuf:"bytes,3,req" json:"InitialCluster,omitempty"`
+	ClusterState     *string `protobuf:"bytes,4,req" json:"ClusterState,omitempty"`
+	XXX_unrecognized []byte  `json:"-"`
+}
+
+func (m *RPCEtcdEnvReq) Reset()         { *m = RPCEtcdEnvReq{} }
+func (m *RPCEtcdEnvReq) String() string { return proto.CompactTextString(m) }
+func (*RPCEtcdEnvReq) ProtoMessage()    {}
+
+func (m *RPCEtcdEnvReq) GetPeerName() string {
+	if m != nil && m.PeerName != nil {
+		return *m.PeerName
+	}
+	return ""
+}
+
+func (m *RPCEtcdEnvReq) GetName() string {
+	if m != nil && m.Name != nil {
+		return *m.Name
+	}
+	return ""
+}
+
+func (m *RPCEtcdEnvReq) GetInitialCluster() string {
+	if m != nil && m.InitialCluster != nil {
+		return *m.InitialCluster
+	}
+	return ""
+}
+
+func (m *RPCEtcdEnvReq) GetClusterState() string {
+	if m != nil && m.ClusterState != nil {
+		return *m.ClusterState
 	}
 	return ""
 }

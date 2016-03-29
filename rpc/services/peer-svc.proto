@@ -10,4 +10,26 @@ message RPCPeerAddResp
 {
   required int32 OpRet = 1;
   required string OpError = 2;
+  required string UUID = 3;
 }
+
+
+message RPCPeerGenericResp
+{
+  required int32 OpRet = 1;
+  required string OpError = 2;
+}
+
+message RPCPeerDeleteReq
+{
+  required string ID = 1;
+}
+
+message RPCEtcdEnvReq
+{
+ required string PeerName = 1;
+ required string Name = 2;
+ required string InitialCluster = 3;
+ required string ClusterState = 4;
+}
+

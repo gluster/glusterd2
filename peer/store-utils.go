@@ -58,9 +58,9 @@ func GetPeers() ([]Peer, error) {
 		return nil, err
 	}
 
-	peers := make([]Peer, len(pairs))
-
-	for i, pair := range pairs {
+	peers := make([]Peer, len(pairs)-1)
+	i := 0
+	for _, pair := range pairs {
 		var p Peer
 
 		if err := json.Unmarshal(pair.Value, &p); err != nil {
@@ -70,7 +70,12 @@ func GetPeers() ([]Peer, error) {
 			}).Error("Failed to unmarshal peer")
 			continue
 		}
+		if p.ID.String() == context.MyUUID.String() {
+			// Skip self's information
+			continue
+		}
 		peers[i] = p
+		i = i + 1
 	}
 
 	return peers, nil
