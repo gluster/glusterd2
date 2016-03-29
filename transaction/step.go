@@ -5,14 +5,6 @@ import (
 	"github.com/gluster/glusterd2/utils"
 )
 
-// Temporary declarations for step args and return.
-
-// StepArg in the input to a Step
-type StepArg interface{}
-
-// StepRet is what the Step returns
-type StepRet interface{}
-
 // StepFunc is the function that is supposed to be run during a transaction step
 type StepFunc func(*context.Context) error
 
