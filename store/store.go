@@ -5,8 +5,9 @@
 package store
 
 import (
-	"os"
 	"time"
+
+	"github.com/gluster/glusterd2/utils"
 
 	log "github.com/Sirupsen/logrus"
 	"github.com/docker/libkv"
@@ -35,7 +36,7 @@ func init() {
 // New creates a new GDStore
 func New() *GDStore {
 	//TODO: Make this configurable
-	hostname, _ := os.Hostname()
+	hostname, _ := utils.GetLocalIP()
 	address := hostname + ":2379"
 
 	log.WithFields(log.Fields{"type": "etcd", "etcd.config": address}).Debug("Creating new store")
