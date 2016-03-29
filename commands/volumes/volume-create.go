@@ -47,7 +47,7 @@ func createVolinfo(msg *volume.VolCreateRequest) (*volume.Volinfo, error) {
 	return vol, nil
 }
 
-func validateVolCreateRequest(c *context.Context) error {
+func validateVolumeCreate(c *context.Context) error {
 	req, ok := c.Get("req").(*volume.VolCreateRequest)
 	if !ok {
 		return errors.New("failed to get request from context")
@@ -140,7 +140,7 @@ func volumeCreateHandler(w http.ResponseWriter, r *http.Request) {
 		Ctx:      c,
 		Nodes:    nodes,
 		LockKey:  req.Name,
-		Stage:    validateVolCreateRequest,
+		Stage:    validateVolumeCreate,
 		Commit:   generateVolfiles,
 		Store:    storeVolume,
 		Rollback: rollBackVolumeCreate,
