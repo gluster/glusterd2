@@ -10,7 +10,6 @@ import (
 	log "github.com/Sirupsen/logrus"
 	"github.com/codegangsta/negroni"
 	"github.com/gorilla/mux"
-	"github.com/meatballhat/negroni-logrus"
 	"gopkg.in/tylerb/graceful.v1"
 )
 
@@ -28,7 +27,6 @@ func New() *GDRest {
 	rest.Routes = mux.NewRouter()
 
 	n := negroni.New()
-	n.Use(&negronilogrus.Middleware{Logger: log.StandardLogger(), Name: "glusterd-rest"})
 	n.UseHandler(rest.Routes)
 
 	rest.srv = &graceful.Server{
