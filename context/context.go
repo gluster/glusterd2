@@ -8,8 +8,7 @@ import (
 type Context struct {
 	parent *Context
 	data   map[string]interface{}
-
-	Log *log.Entry // Functions which are given this context must use this logger to log their data.
+	Log    *log.Entry // Functions which are given this context must use this logger to log their data.
 }
 
 // NewEmptyContext returns a new empty Context with no parent, no associated data and the default logger.

@@ -10,6 +10,7 @@ type Peer struct {
 	ID        uuid.UUID `json:"id"`
 	Name      string    `json:"name"`
 	Addresses []string  `json:"addresses"`
+	Client    bool      `json:"client"`
 	MemberID  string    `json:"memberID"`
 }
 
@@ -17,13 +18,16 @@ type Peer struct {
 type PeerAddRequest struct {
 	Addresses []string `json:"addresses"`
 	Name      string   `json:"name,omitempty"`
+	Client    bool     `json:"client,omitempty"`
 }
 
-// ETCDEnvConfig represents the structure which holds the ETCD env variables to
-// be set at the remote peer
-type ETCDEnvConfig struct {
+// ETCDConfig represents the structure which holds the ETCD env variables &
+// other configurations to be used to set at the remote peer & bring up the etcd
+// instance
+type ETCDConfig struct {
 	PeerName       string
 	Name           string
 	InitialCluster string
 	ClusterState   string
+	Client         bool
 }

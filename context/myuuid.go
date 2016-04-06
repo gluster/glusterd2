@@ -15,10 +15,10 @@ var (
 	myUUIDFile = path.Join(config.LocalStateDir, "uuid")
 )
 
-// initMyUUID initializes MyUUID by reading the `<config.LocalStateDir>/uuid` file.
+// InitMyUUID initializes MyUUID by reading the `<config.LocalStateDir>/uuid` file.
 // If the file is not present it generates a new UUID and saves it to the file.
 // If the file is not accessible. initMyUUID panics.
-func initMyUUID() uuid.UUID {
+func InitMyUUID() uuid.UUID {
 	ubytes, err := ioutil.ReadFile(myUUIDFile)
 	if err != nil {
 		switch {
@@ -35,7 +35,8 @@ func initMyUUID() uuid.UUID {
 	}
 
 	u := uuid.Parse(string(ubytes))
-	log.WithField("myuuid", u.String()).Info("restored u")
+	log.WithField("myuuid", u.String()).Info("restored uuid")
+	Restart = true
 
 	return u
 }

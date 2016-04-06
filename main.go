@@ -5,16 +5,21 @@ import (
 	"os/signal"
 
 	"github.com/gluster/glusterd2/commands"
+	"github.com/gluster/glusterd2/config"
 	"github.com/gluster/glusterd2/context"
 	"github.com/gluster/glusterd2/etcdmgmt"
 	"github.com/gluster/glusterd2/peer"
 	"github.com/gluster/glusterd2/rpc/server"
+	"github.com/gluster/glusterd2/utils"
 
 	log "github.com/Sirupsen/logrus"
 )
 
 func main() {
 	log.Info("GlusterD starting")
+
+	utils.InitDir(config.LocalStateDir)
+	context.MyUUID = context.InitMyUUID()
 
 	// Starting etcd daemon upon starting of GlusterD
 	etcdCtx, err := etcdmgmt.ETCDStartInit()
@@ -29,8 +34,11 @@ func main() {
 		context.Rest.SetRoutes(c.Routes())
 	}
 
-	// Store self information in the store
-	peer.AddSelfDetails()
+	// Store self information in the store if GlusterD is coming up for
+	// first time
+	if context.Restart == false {
+		peer.AddSelfDetails()
+	}
 
 	err = server.StartListener()
 	if err != nil {

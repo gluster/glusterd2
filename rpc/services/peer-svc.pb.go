@@ -13,7 +13,7 @@ It has these top-level messages:
 	RPCPeerAddResp
 	RPCPeerGenericResp
 	RPCPeerDeleteReq
-	RPCEtcdEnvReq
+	RPCEtcdConfigReq
 */
 package services
 
@@ -120,42 +120,50 @@ func (m *RPCPeerDeleteReq) GetID() string {
 	return ""
 }
 
-type RPCEtcdEnvReq struct {
+type RPCEtcdConfigReq struct {
 	PeerName         *string `protobuf:"bytes,1,req" json:"PeerName,omitempty"`
 	Name             *string `protobuf:"bytes,2,req" json:"Name,omitempty"`
 	InitialCluster   *string `protobuf:"bytes,3,req" json:"InitialCluster,omitempty"`
 	ClusterState     *string `protobuf:"bytes,4,req" json:"ClusterState,omitempty"`
+	Client           *bool   `protobuf:"varint,5,req" json:"Client,omitempty"`
 	XXX_unrecognized []byte  `json:"-"`
 }
 
-func (m *RPCEtcdEnvReq) Reset()         { *m = RPCEtcdEnvReq{} }
-func (m *RPCEtcdEnvReq) String() string { return proto.CompactTextString(m) }
-func (*RPCEtcdEnvReq) ProtoMessage()    {}
+func (m *RPCEtcdConfigReq) Reset()         { *m = RPCEtcdConfigReq{} }
+func (m *RPCEtcdConfigReq) String() string { return proto.CompactTextString(m) }
+func (*RPCEtcdConfigReq) ProtoMessage()    {}
 
-func (m *RPCEtcdEnvReq) GetPeerName() string {
+func (m *RPCEtcdConfigReq) GetPeerName() string {
 	if m != nil && m.PeerName != nil {
 		return *m.PeerName
 	}
 	return ""
 }
 
-func (m *RPCEtcdEnvReq) GetName() string {
+func (m *RPCEtcdConfigReq) GetName() string {
 	if m != nil && m.Name != nil {
 		return *m.Name
 	}
 	return ""
 }
 
-func (m *RPCEtcdEnvReq) GetInitialCluster() string {
+func (m *RPCEtcdConfigReq) GetInitialCluster() string {
 	if m != nil && m.InitialCluster != nil {
 		return *m.InitialCluster
 	}
 	return ""
 }
 
-func (m *RPCEtcdEnvReq) GetClusterState() string {
+func (m *RPCEtcdConfigReq) GetClusterState() string {
 	if m != nil && m.ClusterState != nil {
 		return *m.ClusterState
 	}
 	return ""
+}
+
+func (m *RPCEtcdConfigReq) GetClient() bool {
+	if m != nil && m.Client != nil {
+		return *m.Client
+	}
+	return false
 }

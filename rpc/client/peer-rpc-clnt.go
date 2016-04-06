@@ -83,14 +83,15 @@ func ValidateDeletePeer(id string, name string) (*services.RPCPeerGenericResp, e
 	return rsp, nil
 }
 
-// ConfigureETCDEnv function is a rpc server call for exporting and storing etcd
-// environment variable
-func ConfigureETCDEnv(p *peer.ETCDEnvConfig) (*services.RPCPeerGenericResp, error) {
-	args := &services.RPCEtcdEnvReq{PeerName: new(string), Name: new(string), InitialCluster: new(string), ClusterState: new(string)}
+// ConfigureRemoteETCD function is a rpc server call for exporting and storing etcd
+// environment variable & other configuration parameters
+func ConfigureRemoteETCD(p *peer.ETCDConfig) (*services.RPCPeerGenericResp, error) {
+	args := &services.RPCEtcdConfigReq{PeerName: new(string), Name: new(string), InitialCluster: new(string), ClusterState: new(string), Client: new(bool)}
 	*args.PeerName = p.PeerName
 	*args.Name = p.Name
 	*args.InitialCluster = p.InitialCluster
 	*args.ClusterState = p.ClusterState
+	*args.Client = p.Client
 
 	rsp := new(services.RPCPeerGenericResp)
 
@@ -108,9 +109,9 @@ func ConfigureETCDEnv(p *peer.ETCDEnvConfig) (*services.RPCPeerGenericResp, erro
 	client := rpc.NewClientWithCodec(pbcodec.NewClientCodec(rpcConn))
 	defer client.Close()
 
-	e = client.Call("PeerService.ExportAndStoreETCDEnv", args, rsp)
+	e = client.Call("PeerService.ExportAndStoreETCDConfig", args, rsp)
 	if e != nil {
-		log.Error("Failed to execute PeerService.ExportAndStoreEtcdEnv() rpc call")
+		log.Error("Failed to execute PeerService.ExportAndStoreEtcdConfig() rpc call")
 		opRet = -1
 		opError = e.Error()
 		rsp.OpRet = &opRet

@@ -41,67 +41,80 @@ func addPeerHandler(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	// Add member into the etcd cluster
-	c := context.EtcdClient
-	mAPI := etcdclient.NewMembersAPI(c)
-	member, e := mAPI.Add(etcdcontext.Background(), "http://"+req.Name+":2380")
-	if e != nil {
-		log.WithFields(log.Fields{
-			"error": e,
-			"peer":  req.Name,
-		}).Error("Failed to add member into etcd cluster")
-		rest.SendHTTPError(w, http.StatusInternalServerError, e.Error())
-		return
-	}
+	var etcdConf peer.ETCDConfig
 	p := &peer.Peer{
 		ID:        uuid.Parse(*rsp.UUID),
 		Name:      req.Name,
 		Addresses: req.Addresses,
-		MemberID:  member.ID,
+		MemberID:  "",
 	}
 
-	newName := "ETCD_" + p.Name
-
-	log.WithFields(log.Fields{
-		"New member ": newName,
-		"member Id ":  member.ID,
-	}).Info("New member added to the cluster")
-
-	mlist, e := mAPI.List(etcdcontext.Background())
-	if e != nil {
-		log.WithField("err", e).Error("Failed to list member in etcd cluster")
-		rest.SendHTTPError(w, http.StatusInternalServerError, e.Error())
-		return
-	}
-
-	conf := []string{}
-	for _, memb := range mlist {
-		for _, u := range memb.PeerURLs {
-			n := memb.Name
-			if memb.ID == p.MemberID {
-				n = newName
-			}
-			conf = append(conf, fmt.Sprintf("%s=%s", n, u))
+	if req.Client == false {
+		c := context.EtcdClient
+		// Add member to etcd server
+		mAPI := etcdclient.NewMembersAPI(c)
+		member, e := mAPI.Add(etcdcontext.Background(), "http://"+req.Name+":2380")
+		if e != nil {
+			log.WithFields(log.Fields{
+				"error":  e,
+				"member": req.Name,
+			}).Error("Failed to add member into etcd cluster")
+			rest.SendHTTPError(w, http.StatusInternalServerError, e.Error())
+			return
 		}
+
+		p.MemberID = member.ID
+		newName := "ETCD_" + p.Name
+
+		log.WithFields(log.Fields{
+			"New member ": newName,
+			"member Id ":  member.ID,
+		}).Info("New member added to the cluster")
+
+		mlist, e := mAPI.List(etcdcontext.Background())
+		if e != nil {
+			log.WithField("err", e).Error("Failed to list member in etcd cluster")
+			rest.SendHTTPError(w, http.StatusInternalServerError, e.Error())
+			return
+		}
+
+		conf := []string{}
+		for _, memb := range mlist {
+			for _, u := range memb.PeerURLs {
+				n := memb.Name
+				if memb.ID == p.MemberID {
+					n = newName
+				}
+				conf = append(conf, fmt.Sprintf("%s=%s", n, u))
+			}
+		}
+
+		log.WithField("ETCD_NAME", newName).Info("ETCD_NAME")
+		log.WithField("ETCD_INITIAL_CLUSTER", strings.Join(conf, ",")).Info("ETCD_INITIAL_CLUSTER")
+		log.Info("ETCD_INITIAL_CLUSTER_STATE\"existing\"")
+
+		etcdConf.Name = newName
+		etcdConf.InitialCluster = strings.Join(conf, ",")
+		etcdConf.ClusterState = "existing"
+	} else {
+		etcdConf.Name = "ETCD_" + req.Name
+		initialCluster, err := peer.GetInitialCluster()
+		if err != nil {
+			log.WithField("err", e).Error("Failed to construct initialCluster")
+			rest.SendHTTPError(w, http.StatusInternalServerError, e.Error())
+		}
+		etcdConf.InitialCluster = initialCluster
+		etcdConf.ClusterState = ""
 	}
 
-	log.WithField("ETCD_NAME", newName).Info("ETCD_NAME")
-	log.WithField("ETCD_INITIAL_CLUSTER", strings.Join(conf, ",")).Info("ETCD_INITIAL_CLUSTER")
-	log.Info("ETCD_INITIAL_CLUSTER_STATE\"existing\"")
-
-	var etcdEnv peer.ETCDEnvConfig
-	etcdEnv.PeerName = p.Name
-	etcdEnv.Name = newName
-	etcdEnv.InitialCluster = strings.Join(conf, ",")
-	etcdEnv.ClusterState = "existing"
-
-	etcdrsp, e := client.ConfigureETCDEnv(&etcdEnv)
+	etcdConf.Client = req.Client
+	etcdConf.PeerName = req.Name
+	etcdrsp, e := client.ConfigureRemoteETCD(&etcdConf)
 	if e != nil {
-		log.WithField("err", e).Error("Failed to set etcd env in remote node")
+		log.WithField("err", e).Error("Failed to configure remote etcd")
 		rest.SendHTTPError(w, http.StatusInternalServerError, *etcdrsp.OpError)
 		return
 	}
-
 	if e = peer.AddOrUpdatePeer(p); e != nil {
 		log.WithFields(log.Fields{
 			"error":     e,
@@ -110,6 +123,5 @@ func addPeerHandler(w http.ResponseWriter, r *http.Request) {
 		rest.SendHTTPError(w, http.StatusInternalServerError, e.Error())
 		return
 	}
-
 	rest.SendHTTPResponse(w, http.StatusOK, nil)
 }

@@ -51,13 +51,39 @@ func GetPeer(id string) (*Peer, error) {
 	return &p, nil
 }
 
+// GetInitialCluster() form and returns the etcd initial cluster value in a
+// string
+func GetInitialCluster() (string, error) {
+	var initialCluster string
+	peers, err := GetPeers()
+	if err != nil {
+		return "", err
+	}
+	c := 0
+	for _, peer := range peers {
+		if peer.Client == true {
+			continue
+		}
+		if c > 0 {
+			initialCluster = initialCluster + ", "
+		}
+		initialCluster = initialCluster + peer.Name + "=" + "http://" + peer.Name + ":2380"
+		c = c + 1
+	}
+	return initialCluster, nil
+}
+
 // GetPeers returns all available peers in the store
 func GetPeers() ([]Peer, error) {
 	pairs, err := context.Store.List(peerPrefix)
 	if err != nil || pairs == nil {
 		return nil, err
 	}
-
+	// If there is only one entry in the store this indicates its a stand
+	// alone cluster, no need to return back it's own information
+	if len(pairs) == 1 {
+		return nil, nil
+	}
 	peers := make([]Peer, len(pairs)-1)
 	i := 0
 	for _, pair := range pairs {

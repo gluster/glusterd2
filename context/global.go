@@ -29,6 +29,7 @@ const (
 // to other packages should be declared here as exported global variables
 var (
 	MyUUID         uuid.UUID
+	Restart        bool // Indicates if its a fresh install or not
 	Rest           *rest.GDRest
 	OpVersion      int
 	EtcdProcessCtx *os.Process
@@ -63,7 +64,7 @@ func doInit() {
 
 	utils.InitDir(config.LocalStateDir)
 
-	MyUUID = initMyUUID()
+	MyUUID = InitMyUUID()
 	initOpVersion()
 
 	Rest = rest.New()
