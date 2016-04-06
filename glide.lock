@@ -1,5 +1,5 @@
-hash: ef1eb2f94349f4d898c66dd21b5fef55f4e22c69c02282c2fe15be55e23ed7f4
-updated: 2016-02-29T11:25:22.333782576+05:30
+hash: 36ea938ba3ba4fb7c532c7f8eae4b405bfe56791060ba54e5eea523ee058c652
+updated: 2016-03-29T19:37:03.991724135+05:30
 imports:
 - name: github.com/codegangsta/negroni
   version: c7477ad8e330bef55bf1ebe300cf8aa67c492d1b
@@ -30,8 +30,6 @@ imports:
   version: 8aae79d221a0ae64c755fe199609792d65999281
   subpackages:
   - pbcodec
-- name: github.com/meatballhat/negroni-logrus
-  version: 0456e765fdc169ebcb064ac33ed462b632bfc41f
 - name: github.com/pborman/uuid
   version: c55201b036063326c5b1b89ccfe45a184973d073
 - name: github.com/Sirupsen/logrus

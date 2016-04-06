@@ -10,6 +10,8 @@ import (
 	"os/exec"
 	"path"
 	"path/filepath"
+	"reflect"
+	"runtime"
 	"strconv"
 	"strings"
 	"syscall"
@@ -344,4 +346,9 @@ func GetLocalIP() (string, error) {
 		}
 	}
 	return "", errors.ErrIPAddressNotFound
+}
+
+// GetFuncName returns the name of the passed function pointer
+func GetFuncName(fn interface{}) string {
+	return runtime.FuncForPC(reflect.ValueOf(fn).Pointer()).Name()
 }
