@@ -4,14 +4,13 @@ import:
 - package: github.com/coreos/etcd
   version: v2.2.2
   subpackages:
-  - /client
+  - client
 - package: github.com/docker/libkv
   subpackages:
-  - /store
-  - /store/etcd
+  - store
+  - store/etcd
 - package: github.com/pborman/uuid
 - package: github.com/gorilla/mux
-- package: github.com/meatballhat/negroni-logrus
 - package: github.com/Sirupsen/logrus
   version: v0.8.7
 - package: golang.org/x/net
@@ -19,9 +18,9 @@ import:
 - package: golang.org/x/sys
   version: 9c60d1c508f5134d1ca726b4641db998f2523357
   subpackages:
-  - /unix
+  - unix
 - package: gopkg.in/tylerb/graceful.v1
 - package: github.com/kshlm/pbrpc
   subpackages:
-  - /pbcodec
+  - pbcodec
 - package: github.com/heketi/tests
