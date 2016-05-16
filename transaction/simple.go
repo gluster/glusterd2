@@ -6,12 +6,13 @@ import (
 
 // SimpleTxn is transaction with fixed stage, commit and store steps
 type SimpleTxn struct {
+	// Name holds the command
+	Name string
+
 	// Ctx is the transaction context
 	Ctx *context.Context
 	// Nodes are the nodes where the stage and commit functions are performed
 	Nodes []string
-	// LockKey is the key to be locked
-	LockKey string
 
 	// Stage function verifies if the node can perform an operation.
 	Stage StepFunc
@@ -24,14 +25,15 @@ type SimpleTxn struct {
 }
 
 // NewSimpleTxn returns creates and returns a Txn using e Simple transaction template
-func NewSimpleTxn(c *context.Context, nodes []string, lockKey string, stage, commit, store, rollback StepFunc) (*Txn, error) {
+func NewSimpleTxn(c *context.Context, name string, nodes []string, stage, commit, store, rollback StepFunc) (*Txn, error) {
 	simple := Txn{
 		Ctx:   c,
+		Name:  name,
 		Nodes: nodes,
 		Steps: make([]*Step, 5), //A simple transaction has just 5 steps
 	}
 
-	lockstep, unlockstep, err := CreateLockSteps(lockKey)
+	lockstep, unlockstep, err := CreateLockUnlockSteps()
 	if err != nil {
 		return nil, err
 	}
@@ -39,12 +41,12 @@ func NewSimpleTxn(c *context.Context, nodes []string, lockKey string, stage, com
 	stagestep := &Step{
 		DoFunc:   stage,
 		UndoFunc: nil,
-		Nodes:    []string{All},
+		Nodes:    nodes,
 	}
 	commitstep := &Step{
 		DoFunc:   commit,
 		UndoFunc: rollback,
-		Nodes:    []string{All},
+		Nodes:    nodes,
 	}
 	storestep := &Step{
 		DoFunc:   store,
@@ -59,14 +61,4 @@ func NewSimpleTxn(c *context.Context, nodes []string, lockKey string, stage, com
 	simple.Steps[4] = unlockstep
 
 	return &simple, nil
-}
-
-// Do runs the SimpleTxn on the cluster
-func (s *SimpleTxn) Do() error {
-	t, err := NewSimpleTxn(s.Ctx, s.Nodes, s.LockKey, s.Stage, s.Commit, s.Store, s.Rollback)
-	if err != nil {
-		return err
-	}
-
-	return t.Do()
 }

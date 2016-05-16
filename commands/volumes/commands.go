@@ -3,10 +3,23 @@ package volumecommands
 
 import (
 	"github.com/gluster/glusterd2/rest"
+	"github.com/gluster/glusterd2/transaction"
 )
 
 // Command is a holding struct used to implement the GlusterD Command interface
 type Command struct {
+}
+
+// Txns returns command transaction steps. Required for the Command interface.
+func (c *Command) Txns() *transaction.Txns {
+	return &transaction.Txns{
+		transaction.RegisterTxn("VolumeCreate",
+			validateVolumeCreate,
+			generateVolfiles,
+			storeVolume,
+			rollBackVolumeCreate),
+	}
+
 }
 
 // Routes returns command routes. Required for the Command interface.
