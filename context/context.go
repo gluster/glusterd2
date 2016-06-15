@@ -1,6 +1,8 @@
 package context
 
 import (
+	"encoding/json"
+
 	log "github.com/Sirupsen/logrus"
 )
 
@@ -64,4 +66,48 @@ func (c *Context) Get(key string) interface{} {
 // Delete doesn't recurse to parents
 func (c *Context) Delete(key string) {
 	delete(c.data, key)
+}
+
+// Implementing the JSON Marshaler and Unmarshaler interfaces to allow Contexts
+// to be exported Using an temporary struct to allow Context to be serialized
+// using JSON.  Cannot serialize Context.Log otherwise.
+// TODO: Implement proper tests to ensure proper Context is generated after (un)marshaling.
+// XXX: We shold ideally be using protobuf here instead of JSON, as we use it for RPC,
+// but JSON is simpler
+
+type expContext struct {
+	Parent    *Context
+	Data      map[string]interface{}
+	LogFields log.Fields
+}
+
+// MarshalJSON implements the json.Marshaler interface
+func (c *Context) MarshalJSON() ([]byte, error) {
+	ac := expContext{
+		Parent:    c.parent,
+		Data:      c.data,
+		LogFields: c.Log.Data,
+	}
+
+	return json.Marshal(ac)
+}
+
+// UnmarshalJSON implements the json.Unmarshaler interface
+func (c *Context) UnmarshalJSON(d []byte) error {
+	var ac expContext
+
+	e := json.Unmarshal(d, &ac)
+	if e != nil {
+		return e
+	}
+
+	c.parent = ac.Parent
+	c.data = ac.Data
+	if c.parent == nil {
+		c.Log = log.NewEntry(log.StandardLogger()).WithFields(ac.LogFields)
+	} else {
+		c.Log = c.Parent.Log.WithFields(ac.LogFields)
+	}
+
+	return nil
 }
