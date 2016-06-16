@@ -32,6 +32,7 @@ func main() {
 
 	for _, c := range commands.Commands {
 		context.Rest.SetRoutes(c.Routes())
+		c.RegisterStepFuncs()
 	}
 
 	// Store self information in the store if GlusterD is coming up for

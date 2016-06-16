@@ -42,3 +42,8 @@ func (c *Command) Routes() rest.Routes {
 		},
 	}
 }
+
+// RegisterStepFuncs implements a required function for the Command interface
+func (c *Command) RegisterStepFuncs() {
+	return
+}
