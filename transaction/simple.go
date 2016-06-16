@@ -13,18 +13,22 @@ type SimpleTxn struct {
 	// LockKey is the key to be locked
 	LockKey string
 
+	// Stage is the registered name of the staging StepFunc
 	// Stage function verifies if the node can perform an operation.
-	Stage StepFunc
+	Stage string
+	// Commit is the registered name of the commit StepFunc
 	// Commit performs the operation on the a node
-	Commit StepFunc
+	Commit string
+	// Store is the registered name of the store StepFunc
 	// Store stores the results of an operation. This will only be run on the leader
-	Store StepFunc
+	Store string
+	// Rollback is the registered name of the rollback StepFunc
 	// Rollback rollsback any changes done by Commit
-	Rollback StepFunc
+	Rollback string
 }
 
 // NewSimpleTxn returns creates and returns a Txn using e Simple transaction template
-func NewSimpleTxn(c *context.Context, nodes []string, lockKey string, stage, commit, store, rollback StepFunc) (*Txn, error) {
+func NewSimpleTxn(c *context.Context, nodes []string, lockKey, stage, commit, store, rollback string) (*Txn, error) {
 	simple := Txn{
 		Ctx:   c,
 		Nodes: nodes,
@@ -38,7 +42,7 @@ func NewSimpleTxn(c *context.Context, nodes []string, lockKey string, stage, com
 
 	stagestep := &Step{
 		DoFunc:   stage,
-		UndoFunc: nil,
+		UndoFunc: "",
 		Nodes:    []string{All},
 	}
 	commitstep := &Step{
@@ -48,7 +52,7 @@ func NewSimpleTxn(c *context.Context, nodes []string, lockKey string, stage, com
 	}
 	storestep := &Step{
 		DoFunc:   store,
-		UndoFunc: nil,
+		UndoFunc: "",
 		Nodes:    []string{Leader},
 	}
 
