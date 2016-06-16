@@ -146,7 +146,8 @@ func volumeCreateHandler(w http.ResponseWriter, r *http.Request) {
 		Rollback: "vol-create.Rollback",
 	}
 
-	if e := txn.Do(); e != nil {
+	c, e = txn.Do()
+	if e != nil {
 		rest.SendHTTPError(w, http.StatusInternalServerError, e.Error())
 		return
 	}

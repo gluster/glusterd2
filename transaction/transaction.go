@@ -28,9 +28,9 @@ func (t *Txn) prepareTxn() error {
 }
 
 // Do runs the transaction on the cluster
-func (t *Txn) Do() error {
+func (t *Txn) Do() (*context.Context, error) {
 	if e := t.prepareTxn(); e != nil {
-		return e
+		return nil, e
 	}
 
 	t.Ctx.Log.Debug("Starting transaction")
@@ -55,11 +55,11 @@ func (t *Txn) Do() error {
 		if e := s.do(t.Ctx); e != nil {
 			t.Ctx.Log.WithError(e).Error("Transaction failed, rolling back changes")
 			t.undo(i)
-			return e
+			return nil, e
 		}
 	}
 
-	return nil
+	return t.Ctx, nil
 }
 
 // undo undoes a transaction and will be automatically called by Perform if any step fails.

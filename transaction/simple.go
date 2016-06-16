@@ -66,10 +66,10 @@ func NewSimpleTxn(c *context.Context, nodes []string, lockKey, stage, commit, st
 }
 
 // Do runs the SimpleTxn on the cluster
-func (s *SimpleTxn) Do() error {
+func (s *SimpleTxn) Do() (*context.Context, error) {
 	t, err := NewSimpleTxn(s.Ctx, s.Nodes, s.LockKey, s.Stage, s.Commit, s.Store, s.Rollback)
 	if err != nil {
-		return err
+		return nil, err
 	}
 
 	return t.Do()
