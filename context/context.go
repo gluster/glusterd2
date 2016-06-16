@@ -106,7 +106,7 @@ func (c *Context) UnmarshalJSON(d []byte) error {
 	if c.parent == nil {
 		c.Log = log.NewEntry(log.StandardLogger()).WithFields(ac.LogFields)
 	} else {
-		c.Log = c.Parent.Log.WithFields(ac.LogFields)
+		c.Log = c.parent.Log.WithFields(ac.LogFields)
 	}
 
 	return nil
