@@ -18,7 +18,7 @@ func registerStepFunc(s StepFunc, name string) {
 		sfRegistry.sfMap = make(map[string]StepFunc)
 	}
 
-	if _, ok := sfRegistry.sfMap[name]; !ok {
+	if _, ok := sfRegistry.sfMap[name]; ok {
 		log.WithField("stepname", name).Warning("step with provided name exists in registry and will be overwritten")
 	}
 
