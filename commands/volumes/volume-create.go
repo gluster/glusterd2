@@ -140,10 +140,10 @@ func volumeCreateHandler(w http.ResponseWriter, r *http.Request) {
 		Ctx:      c,
 		Nodes:    nodes,
 		LockKey:  req.Name,
-		Stage:    validateVolumeCreate,
-		Commit:   generateVolfiles,
-		Store:    storeVolume,
-		Rollback: rollBackVolumeCreate,
+		Stage:    "vol-create.Stage",
+		Commit:   "vol-create.Commit",
+		Store:    "vol-create.Store",
+		Rollback: "vol-create.Rollback",
 	}
 
 	if e := txn.Do(); e != nil {
@@ -160,4 +160,19 @@ func volumeCreateHandler(w http.ResponseWriter, r *http.Request) {
 	}
 
 	return
+}
+
+func registerVolCreateStepFuncs() {
+	var sfs = []struct {
+		name string
+		sf   transaction.StepFunc
+	}{
+		{"vol-create.Stage", validateVolumeCreate},
+		{"vol-create.Commit", generateVolfiles},
+		{"vol-create.Store", storeVolume},
+		{"vol-create.Rollback", rollBackVolumeCreate},
+	}
+	for _, sf := range sfs {
+		transaction.RegisterStepFunc(sf.sf, sf.name)
+	}
 }
