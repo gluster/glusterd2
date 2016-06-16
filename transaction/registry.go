@@ -1,47 +1,43 @@
 package transaction
 
-// The registry registers StepFunc's
+// The StepFunc registry registers StepFunc's to be used by transaction framework
 
 import (
-	"errors"
-	"reflect"
 	"sync"
-
-	"github.com/gluster/glusterd2/context"
 
 	log "github.com/Sirupsen/logrus"
 )
 
-var (
-	stepRegistry map[string]StepFunc
-	srMutex      sync.Mutex
-)
+var sfRegistry = struct {
+	sync.RWMutex
+	sfMap map[string]StepFunc
+}{}
 
-func init() {
-	stepRegistry = make(map[string]StepFunc)
-}
+func registerStepFunc(s StepFunc, name string) {
+	if sfRegistry.sfMap == nil {
+		sfRegistry.sfMap = make(map[string]StepFunc)
+	}
 
-func registerStepFunc(s *StepFunc, name string) {
-	if _, ok := stepRegistry[name]; !ok {
+	if _, ok := sfRegistry.sfMap[name]; !ok {
 		log.WithField("stepname", name).Warning("step with provided name exists in registry and will be overwritten")
 	}
 
-	stepRegistry[name] = s
+	sfRegistry.sfMap[name] = s
 }
 
 //RegisterStepFunc registers the given StepFunc in the registry
-func RegisterStep(s StepFunc, name string) {
-	srMutex.Lock()
-	defer srMutex.Unlock()
+func RegisterStepFunc(s StepFunc, name string) {
+	sfRegistry.Lock()
+	defer sfRegistry.Unlock()
 
-	registerStep(s, name)
+	registerStepFunc(s, name)
 }
 
 //GetStepFunc returns named step if found.
 func GetStepFunc(name string) (StepFunc, bool) {
-	srMutex.Lock()
-	defer srMutex.Unlock()
+	sfRegistry.RLock()
+	defer sfRegistry.RUnlock()
 
-	s, ok := stepRegistry[name]
+	s, ok := sfRegistry.sfMap[name]
 	return s, ok
 }
