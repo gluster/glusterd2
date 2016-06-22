@@ -50,7 +50,7 @@ func genMyUUID() uuid.UUID {
 }
 
 func writeMyUUIDFile(u uuid.UUID) {
-	if err := ioutil.WriteFile(myUUIDFile, []byte(u.String()), os.ModePerm); err != nil {
+	if err := ioutil.WriteFile(myUUIDFile, []byte(u.String()), 0644); err != nil {
 		log.WithFields(log.Fields{
 			"err":  err,
 			"path": myUUIDFile,
