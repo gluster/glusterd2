@@ -67,7 +67,6 @@ func getServerFilePath(vinfo *volume.Volinfo, path *string, brickinfo volume.Bri
 	var vdir string
 	getVolumeDir(vinfo, &vdir)
 
-	//TODO : take the hostname from brickinfo
 	hname := brickinfo.Hostname
 	// Create volume directory (/var/lib/glusterd/vols/<VOLNAME>)
 	err := os.MkdirAll(vdir, os.ModeDir|os.ModePerm)

@@ -4,6 +4,7 @@ import (
 	"net"
 	"net/rpc"
 
+	"github.com/gluster/glusterd2/config"
 	"github.com/gluster/glusterd2/rpc/services"
 
 	log "github.com/Sirupsen/logrus"
@@ -14,13 +15,12 @@ import (
 func StartListener() error {
 	server := rpc.NewServer()
 	services.RegisterServices(server)
-	//TODO : port 9876 is hardcoded now, can be made configurable
-	l, e := net.Listen("tcp", ":9876")
+	l, e := net.Listen("tcp", *config.RpcAddress)
 	if e != nil {
-		log.WithField("error", e).Fatal("listener error")
+		log.WithField("error", e).Error("net.Listen() error")
 		return e
 	} else {
-		log.Debug("listening on port 9876")
+		log.WithField("port", *config.RpcAddress).Info("Registered RPC Listener")
 	}
 
 	go func() {

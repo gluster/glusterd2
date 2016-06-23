@@ -16,6 +16,19 @@ import (
 var (
 	LogLevel    = flag.String("loglevel", "debug", "Log messages upto this level")
 	RestAddress = flag.String("restaddress", ":24007", "Address to bind REST endpoint to")
+	RpcAddress  = flag.String("rpcaddress", ":9876", "Address to bind for RPC")
+
+	// Example to start glusterd2 with REST server listening on port 8080:
+	// glusterd2 --restaddress=:8080
+	// TODO: Parse and remove ':' appropriately
+
+	/*
+		A non-root user can start glusterd2 by setting appropriate
+		permissions to the following paths:
+		ETCDConfDir: /var/lib/glusterd
+		etcdPidDir: /var/run/gluster
+		etcdLogDir: /var/log/glusterfs
+	*/
 
 	LocalStateDir string
 )
