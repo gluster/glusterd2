@@ -6,8 +6,6 @@ package config
 
 import (
 	"flag"
-	"os"
-	"path"
 )
 
 // All configuration values which should be available for use by other packages need to be defined here as global variables.
@@ -34,9 +32,8 @@ var (
 )
 
 func initLocalStateDir() {
-	wd, _ := os.Getwd()
 
-	flag.StringVar(&LocalStateDir, "localstatedir", path.Join(wd, "glusterd"), "Directory to store local state information.")
+	flag.StringVar(&LocalStateDir, "localstatedir", "/var/lib/glusterd", "Directory to store local state information.")
 }
 
 func init() {
