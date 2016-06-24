@@ -15,12 +15,15 @@ import (
 func StartListener() error {
 	server := rpc.NewServer()
 	services.RegisterServices(server)
-	l, e := net.Listen("tcp", *config.RpcAddress)
+	l, e := net.Listen("tcp", *config.RpcIp+":"+*config.RpcPort)
 	if e != nil {
 		log.WithField("error", e).Error("net.Listen() error")
 		return e
 	} else {
-		log.WithField("port", *config.RpcAddress).Info("Registered RPC Listener")
+		log.WithFields(log.Fields{
+			"ip":   *config.RpcIp,
+			"port": *config.RpcPort,
+		}).Info("Registered RPC Listener")
 	}
 
 	go func() {
