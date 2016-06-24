@@ -24,3 +24,5 @@ import:
   subpackages:
   - pbcodec
 - package: github.com/heketi/tests
+- package: github.com/spf13/viper
+- package: github.com/spf13/pflag
