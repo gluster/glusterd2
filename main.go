@@ -10,6 +10,7 @@ import (
 	"github.com/gluster/glusterd2/etcdmgmt"
 	"github.com/gluster/glusterd2/peer"
 	"github.com/gluster/glusterd2/rpc/server"
+	"github.com/gluster/glusterd2/transaction"
 	"github.com/gluster/glusterd2/utils"
 
 	log "github.com/Sirupsen/logrus"
@@ -32,6 +33,7 @@ func main() {
 
 	for _, c := range commands.Commands {
 		context.Rest.SetRoutes(c.Routes())
+		transaction.SetTxnSteps(c.Txns())
 	}
 
 	// Store self information in the store if GlusterD is coming up for

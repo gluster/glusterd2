@@ -28,7 +28,8 @@ type Step struct {
 // do runs the DoFunc on the nodes
 func (s *Step) do(c *context.Context) error {
 	for range s.Nodes {
-		// RunStepFunconNode(s.DoFunc, n)
+		// TODO : Implement go routine
+		// RunStepFunconNode(commandName, stepIndex, rollBack (false), c, n)
 	}
 	c.Log.WithField("step", utils.GetFuncName(s.DoFunc)).Debug("running step")
 
@@ -39,7 +40,8 @@ func (s *Step) do(c *context.Context) error {
 func (s *Step) undo(c *context.Context) error {
 	if s.UndoFunc != nil {
 		for range s.Nodes {
-			// RunStepFunconNode(s.UndoFunc, n)
+			// TODO : Implement go routine
+			// RunStepFunconNode(commandName, stepIndex, rollBack (false), c, n)
 		}
 		c.Log.WithField("undostep", utils.GetFuncName(s.DoFunc)).Debug("running undostep")
 		return s.UndoFunc(c)

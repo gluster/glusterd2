@@ -135,16 +135,15 @@ func volumeCreateHandler(w http.ResponseWriter, r *http.Request) {
 		"reqid": uuid.NewRandom().String(),
 	})
 	c.Set("req", req)
-
-	txn := &transaction.SimpleTxn{
-		Ctx:      c,
-		Nodes:    nodes,
-		LockKey:  req.Name,
-		Stage:    validateVolumeCreate,
-		Commit:   generateVolfiles,
-		Store:    storeVolume,
-		Rollback: rollBackVolumeCreate,
+	c.Set("lockKey", req.Name)
+	txn := transaction.GetTxn("VolumeCreate")
+	if txn == nil {
+		c.Log.Error("Failed to get transaction object for volumeCreate")
+		rest.SendHTTPError(w, http.StatusInternalServerError, e.Error())
+		return
 	}
+	// Update with context
+	txn.UpdateTxn(c, nodes)
 
 	if e := txn.Do(); e != nil {
 		rest.SendHTTPError(w, http.StatusInternalServerError, e.Error())

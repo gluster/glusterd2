@@ -12,9 +12,55 @@ import (
 //
 // Nodes is a union of the all the TxnStep.Nodes
 type Txn struct {
+	Name  string
 	Ctx   *context.Context
 	Steps []*Step
 	Nodes []string
+}
+
+// TxnSteps contains the bare minimum details to be maintained to capture the
+// transaction steps
+/*type TxnSteps struct {
+	Name  string
+	Steps []*Step
+}*/
+
+// Txns is a table of all the txn steps for the command
+type Txns []*Txn
+
+// TxnTable contains all the transaction details
+var (
+	TxnTable *Txns
+)
+
+// SetTxnSteps sets all the txns in the global TxnTable
+func SetTxnSteps(txns *Txns) {
+	TxnTable = txns
+}
+
+// RegisterTxn registers all the transaction steps
+func RegisterTxn(name string, stage StepFunc, commit StepFunc, store StepFunc, rollback StepFunc) *Txn {
+	t, err := NewSimpleTxn(nil, name, []string{All}, stage, commit, store, rollback)
+	if err != nil {
+		return nil
+	}
+	return t
+}
+
+// GetTxn retrieves the txn from the global txn table
+func GetTxn(name string) *Txn {
+	for _, t := range *TxnTable {
+		if t.Name == name {
+			return t
+		}
+	}
+	return nil
+}
+
+// UpdateTxn retrieves the txn and updates it with ctx and nodes
+func (t *Txn) UpdateTxn(ctx *context.Context, nodes []string) {
+	t.Ctx = ctx
+	t.Nodes = nodes
 }
 
 // prepareTxn sets up some stuff required for the transaction
