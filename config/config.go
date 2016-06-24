@@ -24,6 +24,7 @@ var (
 		A non-root user can start glusterd2 by setting appropriate
 		permissions to the following paths:
 		ETCDConfDir: /var/lib/glusterd
+		ETCDDataDir: /var/lib/etcd
 		etcdPidDir: /var/run/gluster
 		etcdLogDir: /var/log/glusterfs
 	*/

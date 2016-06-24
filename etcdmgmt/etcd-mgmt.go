@@ -33,6 +33,9 @@ var (
 	ExecName = "etcd"
 	// Configuration directory for storing etcd configuration
 	ETCDConfDir = "/var/lib/glusterd"
+	// Etcd -data-dir location. This contains WAL files and log snapshots
+	// https://coreos.com/etcd/docs/latest/admin_guide.html#data-directory
+	ETCDDataDir = "/var/lib/etcd"
 	ETCDEnvFile = ETCDConfDir + "/etcdenv.conf"
 	// If this file is touched on ETCDConfDir that indicates that etcd
 	// instance need to come with proxy mode
@@ -244,10 +247,12 @@ func formETCDArgs() []string {
 	}
 	if etcdClient == true {
 		args = []string{"-proxy", "on",
+			"-data-dir", ETCDDataDir,
 			"-listen-client-urls", listenClientProxyUrls,
 			"-initial-cluster", m["ETCD_INITIAL_CLUSTER"]}
 	} else {
 		args = []string{"-listen-client-urls", listenClientUrls,
+			"-data-dir", ETCDDataDir,
 			"-advertise-client-urls", advClientUrls,
 			"-listen-peer-urls", listenPeerUrls,
 			"-initial-advertise-peer-urls", initialAdvPeerUrls}
@@ -311,6 +316,7 @@ func StartStandAloneETCD() (*os.Process, error) {
 		args = formETCDArgs()
 	} else {
 		args = []string{"-listen-client-urls", listenClientUrls,
+			"-data-dir", ETCDDataDir,
 			"-advertise-client-urls", advClientUrls,
 			"-listen-peer-urls", listenPeerUrls,
 			"-initial-advertise-peer-urls", initialAdvPeerUrls,
@@ -349,9 +355,7 @@ func ReStartETCD() (*os.Process, error) {
 	log.WithField("args", args).Info("Restarting etcd daemon")
 	if etcdClient == true {
 		log.Info("Removing old etcd configuration")
-		//TODO : this is hardcoded now, with -data-dir coming in this
-		//needs to be configurable
-		os.RemoveAll("/default.etcd")
+		os.RemoveAll(ETCDDataDir)
 	}
 	return StartETCD(args)
 }
