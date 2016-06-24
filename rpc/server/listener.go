@@ -4,23 +4,26 @@ import (
 	"net"
 	"net/rpc"
 
-	"github.com/gluster/glusterd2/config"
 	"github.com/gluster/glusterd2/rpc/services"
 
 	log "github.com/Sirupsen/logrus"
 	"github.com/kshlm/pbrpc/pbcodec"
+	config "github.com/spf13/viper"
 )
 
 // StartListener is to register all the services and start listening on them
 func StartListener() error {
 	server := rpc.NewServer()
 	services.RegisterServices(server)
-	l, e := net.Listen("tcp", *config.RpcAddress)
+
+	listenAddr := config.GetString("rpcaddress")
+
+	l, e := net.Listen("tcp", listenAddr)
 	if e != nil {
 		log.WithField("error", e).Error("net.Listen() error")
 		return e
 	} else {
-		log.WithField("port", *config.RpcAddress).Info("Registered RPC Listener")
+		log.WithField("port", listenAddr).Info("Registered RPC Listener")
 	}
 
 	go func() {

@@ -1,19 +1,17 @@
 package main
 
 import (
-	"os"
+	"io"
 	"strings"
-
-	"github.com/gluster/glusterd2/config"
 
 	log "github.com/Sirupsen/logrus"
 )
 
-func init() {
-	l, err := log.ParseLevel(strings.ToLower(*config.LogLevel))
+func initLog(logLevel string, out io.Writer) {
+	l, err := log.ParseLevel(strings.ToLower(logLevel))
 	if err != nil {
 		log.WithField("error", err).Fatal("Failed to parse log level")
 	}
 	log.SetLevel(l)
-	log.SetOutput(os.Stderr)
+	log.SetOutput(out)
 }

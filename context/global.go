@@ -9,13 +9,13 @@ import (
 	"os"
 	"sync"
 
-	"github.com/gluster/glusterd2/config"
 	"github.com/gluster/glusterd2/rest"
 	"github.com/gluster/glusterd2/utils"
 
 	log "github.com/Sirupsen/logrus"
 	etcdclient "github.com/coreos/etcd/client"
 	"github.com/pborman/uuid"
+	config "github.com/spf13/viper"
 )
 
 // Various version constants that will be used by GD2
@@ -62,7 +62,7 @@ func initETCDClient() error {
 func doInit() {
 	log.Debug("Initializing GlusterD context")
 
-	utils.InitDir(config.LocalStateDir)
+	utils.InitDir(config.GetString("localstatedir"))
 
 	MyUUID = InitMyUUID()
 	initOpVersion()

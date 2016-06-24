@@ -5,12 +5,12 @@ import (
 	"net"
 	"net/rpc"
 
-	"github.com/gluster/glusterd2/config"
 	"github.com/gluster/glusterd2/peer"
 	"github.com/gluster/glusterd2/rpc/services"
 
 	log "github.com/Sirupsen/logrus"
 	"github.com/kshlm/pbrpc/pbcodec"
+	config "github.com/spf13/viper"
 )
 
 var (
@@ -25,7 +25,7 @@ func ValidateAddPeer(p *peer.PeerAddRequest) (*services.RPCPeerAddResp, error) {
 	*args.Name = p.Name
 
 	rsp := new(services.RPCPeerAddResp)
-	remoteAddress := fmt.Sprintf("%s:%s", p.Name, *config.RpcAddress)
+	remoteAddress := fmt.Sprintf("%s:%s", p.Name, config.GetString("rpcaddress"))
 	rpcConn, e := net.Dial("tcp", remoteAddress)
 	if e != nil {
 		log.WithField("error", e).Error("net.Dial() call failed")
@@ -57,7 +57,7 @@ func ValidateDeletePeer(id string, name string) (*services.RPCPeerGenericResp, e
 	*args.ID = id
 
 	rsp := new(services.RPCPeerGenericResp)
-	remoteAddress := fmt.Sprintf("%s:%s", name, *config.RpcAddress)
+	remoteAddress := fmt.Sprintf("%s:%s", name, config.GetString("rpcaddress"))
 	rpcConn, e := net.Dial("tcp", remoteAddress)
 	if e != nil {
 		log.WithField("error", e).Error("net.Dial() call failed")
@@ -94,7 +94,7 @@ func ConfigureRemoteETCD(p *peer.ETCDConfig) (*services.RPCPeerGenericResp, erro
 
 	rsp := new(services.RPCPeerGenericResp)
 
-	remoteAddress := fmt.Sprintf("%s:%s", p.PeerName, *config.RpcAddress)
+	remoteAddress := fmt.Sprintf("%s:%s", p.PeerName, config.GetString("rpcaddress"))
 	rpcConn, e := net.Dial("tcp", remoteAddress)
 	if e != nil {
 		log.WithField("error", e).Error("net.Dial() call failed")

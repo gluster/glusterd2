@@ -5,14 +5,13 @@ import (
 	"os"
 	"path"
 
-	"github.com/gluster/glusterd2/config"
-
 	log "github.com/Sirupsen/logrus"
 	"github.com/pborman/uuid"
+	config "github.com/spf13/viper"
 )
 
 var (
-	myUUIDFile = path.Join(config.LocalStateDir, "uuid")
+	myUUIDFile = path.Join(config.GetString("localstatedir"), "uuid")
 )
 
 // InitMyUUID initializes MyUUID by reading the `<config.LocalStateDir>/uuid` file.
