@@ -25,7 +25,7 @@ func ValidateAddPeer(p *peer.PeerAddRequest) (*services.RPCPeerAddResp, error) {
 	*args.Name = p.Name
 
 	rsp := new(services.RPCPeerAddResp)
-	remoteAddress := fmt.Sprintf("%s:%s", p.Name, *config.RpcPort)
+	remoteAddress := fmt.Sprintf("%s:%s", p.Name, config.RpcPort)
 	rpcConn, e := net.Dial("tcp", remoteAddress)
 	if e != nil {
 		log.WithField("error", e).Error("net.Dial() call failed")
@@ -94,7 +94,7 @@ func ConfigureRemoteETCD(p *peer.ETCDConfig) (*services.RPCPeerGenericResp, erro
 
 	rsp := new(services.RPCPeerGenericResp)
 
-	remoteAddress := fmt.Sprintf("%s:%s", p.PeerName, *config.RpcPort)
+	remoteAddress := fmt.Sprintf("%s:%s", p.PeerName, config.RpcPort)
 	rpcConn, e := net.Dial("tcp", remoteAddress)
 	if e != nil {
 		log.WithField("error", e).Error("net.Dial() call failed")

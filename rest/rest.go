@@ -32,7 +32,7 @@ func New() *GDRest {
 	rest.srv = &graceful.Server{
 		Timeout: 10 * time.Second,
 		Server: &http.Server{
-			Addr:    *config.RestIp + ":" + *config.RestPort,
+			Addr:    *config.RestAddress,
 			Handler: n,
 		},
 	}
@@ -43,8 +43,7 @@ func New() *GDRest {
 // Listen begins the GlusterD Rest server
 func (r *GDRest) Listen() error {
 	log.WithFields(log.Fields{
-		"ip":   *config.RestIp,
-		"port": *config.RestPort,
+		"ip:port": *config.RestAddress,
 	}).Info("Starting GlusterD REST server")
 	err := r.srv.ListenAndServe()
 	if err != nil {

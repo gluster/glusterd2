@@ -6,6 +6,7 @@ package config
 
 import (
 	"flag"
+	"strings"
 )
 
 // All configuration values which should be available for use by other packages need to be defined here as global variables.
@@ -15,18 +16,16 @@ var (
 	LogLevel = flag.String("loglevel", "debug", "Log messages upto this level")
 
 	// A machine can have multiple network interfaces, each with it's own
-	// IP address. If -rest-ip is not specified, the REST service listens
-	// on all available interfaces. If -rest-ip is specified, the REST
-	// service binds only to that specific interface.
-	RestIp   = flag.String("rest-ip", "", "IP address of interface to bind REST endpoint to")
-	RestPort = flag.String("rest-port", "24007", "Port to bind REST endpoint to")
-
-	RpcIp   = flag.String("rpc-ip", "", "IP address of interface to bind RPC service to")
-	RpcPort = flag.String("rpc-port", "9876", "Port to bind for RPC service to")
+	// IP address. If IP is not specified, the REST service listens on all
+	// available interfaces. If IP is specified, the REST service binds
+	// only to that specific interface.
+	RestAddress = flag.String("rest-address", ":24007", "IP address of interface and port to bind REST endpoint to")
+	RpcAddress  = flag.String("rpc-address", ":9876", "IP address of interface and port to bind RPC service to")
+	RpcPort     = strings.Split(*RpcAddress, ":")[1]
 
 	// Example to start glusterd2 with REST server listening on port 8080
-	// and on local ip.
-	// glusterd2 -rest-port=8080 -rest-ip=127.0.0.1
+	// and only on local ip.
+	// glusterd2 -rest-address=127.0.0.1:8080
 
 	/*
 		A non-root user can start glusterd2 by setting appropriate
