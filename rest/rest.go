@@ -44,7 +44,7 @@ func New() *GDRest {
 
 // Listen begins the GlusterD Rest server
 func (r *GDRest) Listen() error {
-	log.WithField("port", r.addr).Info("Starting GlusterD REST server")
+	log.WithField("ip:port", r.addr).Info("Starting GlusterD REST server")
 	err := r.srv.ListenAndServe()
 	if err != nil {
 		log.WithField("error", err).Error("Failed to start the Rest Server")
