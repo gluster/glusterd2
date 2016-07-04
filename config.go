@@ -10,14 +10,6 @@ import (
 )
 
 var (
-	confFile      string
-	logLevel      string
-	restAddress   string
-	rpcAddress    string
-	localStateDir string
-)
-
-var (
 	defaultConfPaths = []string{
 		"/etc/glusterd",
 		".",
@@ -27,11 +19,11 @@ var (
 
 // parseFlags sets up the flags and parses them, this needs to be called before any other operation
 func parseFlags() {
-	flag.StringVar(&confFile, "config", "", "Configuration file for GlusterD. By default looks for glusterd.(yaml|toml|json) in /etc/glusterd and current working directory.")
-	flag.StringVar(&localStateDir, "localstatedir", "", "Directory to store local state information. Defaults to current working directory.")
-	flag.StringVar(&logLevel, "loglevel", "debug", "Severity of messages to be logged.")
-	flag.StringVar(&restAddress, "restaddress", ":24007", "Address to bind the REST service.")
-	flag.StringVar(&rpcAddress, "rpcaddress", ":24008", "Address to bind the RPC service.")
+	flag.String("config", "", "Configuration file for GlusterD. By default looks for glusterd.(yaml|toml|json) in /etc/glusterd and current working directory.")
+	flag.String("localstatedir", "", "Directory to store local state information. Defaults to current working directory.")
+	flag.String("loglevel", "debug", "Severity of messages to be logged.")
+	flag.String("restaddress", ":24007", "Address to bind the REST service.")
+	flag.String("rpcaddress", ":24008", "Address to bind the RPC service.")
 
 	flag.Parse()
 }
@@ -53,7 +45,7 @@ func dumpConfig() {
 	l.Debug("running with configuration")
 }
 
-func initConfig() {
+func initConfig(confFile string) {
 	// Initialize default configuration values
 	setDefaults()
 

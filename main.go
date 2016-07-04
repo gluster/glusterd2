@@ -12,6 +12,7 @@ import (
 	"github.com/gluster/glusterd2/utils"
 
 	log "github.com/Sirupsen/logrus"
+	flag "github.com/spf13/pflag"
 	config "github.com/spf13/viper"
 )
 
@@ -20,10 +21,12 @@ func main() {
 
 	// Parse flags and set up logging before continuing
 	parseFlags()
+	logLevel, _ := flag.CommandLine.GetString("loglevel")
 	initLog(logLevel, os.Stderr)
 
 	// Read in config
-	initConfig()
+	confFile, _ := flag.CommandLine.GetString("config")
+	initConfig(confFile)
 
 	utils.InitDir(config.GetString("localstatedir"))
 	context.MyUUID = context.InitMyUUID()
