@@ -20,7 +20,9 @@ func StartListener() error {
 		log.WithField("error", e).Error("net.Listen() error")
 		return e
 	} else {
-		log.WithField("port", *config.RpcAddress).Info("Registered RPC Listener")
+		log.WithFields(log.Fields{
+			"ip:port": *config.RpcAddress,
+		}).Info("Registered RPC Listener")
 	}
 
 	go func() {
