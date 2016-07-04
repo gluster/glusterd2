@@ -22,12 +22,12 @@ var (
 		"/etc/glusterd",
 		".",
 	}
-	defaultConfName = "glusterdconf"
+	defaultConfName = "glusterd"
 )
 
 // parseFlags sets up the flags and parses them, this needs to be called before any other operation
 func parseFlags() {
-	flag.StringVar(&confFile, "config", "", "Configuration file for GlusterD. By default looks for glusterdconf.(yaml|toml|json) in /etc/glusterd and current working directory.")
+	flag.StringVar(&confFile, "config", "", "Configuration file for GlusterD. By default looks for glusterd.(yaml|toml|json) in /etc/glusterd and current working directory.")
 	flag.StringVar(&localStateDir, "localstatedir", "", "Directory to store local state information. Defaults to current working directory.")
 	flag.StringVar(&logLevel, "loglevel", "debug", "Severity of messages to be logged.")
 	flag.StringVar(&restAddress, "restaddress", ":24007", "Address to bind the REST service.")
