@@ -9,21 +9,29 @@ import (
 	config "github.com/spf13/viper"
 )
 
+const (
+	defaultLogLevel    = "debug"
+	defaultRestAddress = ":24007"
+	defaultRpcAddress  = ":24008"
+
+	defaultConfName = "glusterd"
+)
+
+// Slices,Arrays cannot be constants :(
 var (
 	defaultConfPaths = []string{
 		"/etc/glusterd",
 		".",
 	}
-	defaultConfName = "glusterd"
 )
 
 // parseFlags sets up the flags and parses them, this needs to be called before any other operation
 func parseFlags() {
 	flag.String("config", "", "Configuration file for GlusterD. By default looks for glusterd.(yaml|toml|json) in /etc/glusterd and current working directory.")
 	flag.String("localstatedir", "", "Directory to store local state information. Defaults to current working directory.")
-	flag.String("loglevel", "debug", "Severity of messages to be logged.")
-	flag.String("restaddress", ":24007", "Address to bind the REST service.")
-	flag.String("rpcaddress", ":24008", "Address to bind the RPC service.")
+	flag.String("loglevel", defaultLogLevel, "Severity of messages to be logged.")
+	flag.String("restaddress", defaultRestAddress, "Address to bind the REST service.")
+	flag.String("rpcaddress", defaultRpcAddress, "Address to bind the RPC service.")
 
 	flag.Parse()
 }
