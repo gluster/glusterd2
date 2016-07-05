@@ -5,11 +5,10 @@ import (
 	"net/http"
 	"time"
 
-	"github.com/gluster/glusterd2/config"
-
 	log "github.com/Sirupsen/logrus"
 	"github.com/codegangsta/negroni"
 	"github.com/gorilla/mux"
+	config "github.com/spf13/viper"
 	"gopkg.in/tylerb/graceful.v1"
 )
 
@@ -17,12 +16,15 @@ import (
 type GDRest struct {
 	Routes *mux.Router
 
-	srv *graceful.Server
+	addr string
+	srv  *graceful.Server
 }
 
 // New returns a GDRest object which can listen on the configured address
 func New() *GDRest {
 	rest := &GDRest{}
+
+	rest.addr = config.GetString("restaddress")
 
 	rest.Routes = mux.NewRouter()
 
@@ -32,7 +34,7 @@ func New() *GDRest {
 	rest.srv = &graceful.Server{
 		Timeout: 10 * time.Second,
 		Server: &http.Server{
-			Addr:    *config.RestAddress,
+			Addr:    rest.addr,
 			Handler: n,
 		},
 	}
@@ -42,9 +44,7 @@ func New() *GDRest {
 
 // Listen begins the GlusterD Rest server
 func (r *GDRest) Listen() error {
-	log.WithFields(log.Fields{
-		"ip:port": *config.RestAddress,
-	}).Info("Starting GlusterD REST server")
+	log.WithField("ip:port", r.addr).Info("Starting GlusterD REST server")
 	err := r.srv.ListenAndServe()
 	if err != nil {
 		log.WithField("error", err).Error("Failed to start the Rest Server")
