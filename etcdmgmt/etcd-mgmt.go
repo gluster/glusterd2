@@ -103,7 +103,6 @@ func StartETCD(args []string) (*os.Process, error) {
 	etcdCmd.Stdout = outFile
 	etcdCmd.Stderr = outFile
 
-	// TODO: use unix.Setpgid instead of using syscall
 	// Don't kill chlid process (etcd) upon ^C (SIGINT) of main glusterd process
 	etcdCmd.SysProcAttr = &syscall.SysProcAttr{
 		Setpgid: true,

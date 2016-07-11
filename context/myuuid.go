@@ -5,14 +5,13 @@ import (
 	"os"
 	"path"
 
-	"github.com/gluster/glusterd2/config"
-
 	log "github.com/Sirupsen/logrus"
 	"github.com/pborman/uuid"
+	config "github.com/spf13/viper"
 )
 
 var (
-	myUUIDFile = path.Join(config.LocalStateDir, "uuid")
+	myUUIDFile = path.Join(config.GetString("localstatedir"), "uuid")
 )
 
 // InitMyUUID initializes MyUUID by reading the `<config.LocalStateDir>/uuid` file.
@@ -50,7 +49,7 @@ func genMyUUID() uuid.UUID {
 }
 
 func writeMyUUIDFile(u uuid.UUID) {
-	if err := ioutil.WriteFile(myUUIDFile, []byte(u.String()), os.ModePerm); err != nil {
+	if err := ioutil.WriteFile(myUUIDFile, []byte(u.String()), 0644); err != nil {
 		log.WithFields(log.Fields{
 			"err":  err,
 			"path": myUUIDFile,

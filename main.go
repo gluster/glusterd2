@@ -5,7 +5,6 @@ import (
 	"os/signal"
 
 	"github.com/gluster/glusterd2/commands"
-	"github.com/gluster/glusterd2/config"
 	"github.com/gluster/glusterd2/context"
 	"github.com/gluster/glusterd2/etcdmgmt"
 	"github.com/gluster/glusterd2/peer"
@@ -13,12 +12,23 @@ import (
 	"github.com/gluster/glusterd2/utils"
 
 	log "github.com/Sirupsen/logrus"
+	flag "github.com/spf13/pflag"
+	config "github.com/spf13/viper"
 )
 
 func main() {
-	log.Info("GlusterD starting")
+	log.WithField("pid", os.Getpid()).Info("GlusterD starting")
 
-	utils.InitDir(config.LocalStateDir)
+	// Parse flags and set up logging before continuing
+	parseFlags()
+	logLevel, _ := flag.CommandLine.GetString("loglevel")
+	initLog(logLevel, os.Stderr)
+
+	// Read in config
+	confFile, _ := flag.CommandLine.GetString("config")
+	initConfig(confFile)
+
+	utils.InitDir(config.GetString("localstatedir"))
 	context.MyUUID = context.InitMyUUID()
 
 	// Starting etcd daemon upon starting of GlusterD
@@ -41,11 +51,10 @@ func main() {
 		peer.AddSelfDetails()
 	}
 
+	// Start listening for incoming RPC requests
 	err = server.StartListener()
 	if err != nil {
-		log.Fatal("Could not register the listener. Aborting")
-	} else {
-		log.Debug("Registered RPC listener")
+		log.Fatal("Could not register RPC listener. Aborting")
 	}
 
 	sigCh := make(chan os.Signal)
@@ -66,6 +75,7 @@ func main() {
 		}
 	}()
 
+	// Start GlusterD REST server
 	err = context.Rest.Listen()
 	if err != nil {
 		log.Fatal("Could not start GlusterD Rest Server. Aborting.")

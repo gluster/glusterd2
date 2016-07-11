@@ -1,0 +1,3 @@
+localstatedir = "/var/lib/glusterd"
+rpcaddress = ":24008"
+restaddress = ":24007"

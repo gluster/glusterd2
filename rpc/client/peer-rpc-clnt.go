@@ -10,6 +10,7 @@ import (
 
 	log "github.com/Sirupsen/logrus"
 	"github.com/kshlm/pbrpc/pbcodec"
+	config "github.com/spf13/viper"
 )
 
 var (
@@ -24,8 +25,7 @@ func ValidateAddPeer(p *peer.PeerAddRequest) (*services.RPCPeerAddResp, error) {
 	*args.Name = p.Name
 
 	rsp := new(services.RPCPeerAddResp)
-	//TODO : port 9876 is hardcoded for now, can be made configurable
-	remoteAddress := fmt.Sprintf("%s:%s", p.Name, "9876")
+	remoteAddress := fmt.Sprintf("%s:%s", p.Name, config.GetString("rpcport"))
 	rpcConn, e := net.Dial("tcp", remoteAddress)
 	if e != nil {
 		log.WithField("error", e).Error("net.Dial() call failed")
@@ -57,8 +57,7 @@ func ValidateDeletePeer(id string, name string) (*services.RPCPeerGenericResp, e
 	*args.ID = id
 
 	rsp := new(services.RPCPeerGenericResp)
-	//TODO : port 9876 is hardcoded for now, can be made configurable
-	remoteAddress := fmt.Sprintf("%s:%s", name, "9876")
+	remoteAddress := fmt.Sprintf("%s:%s", name, config.GetString("rpcport"))
 	rpcConn, e := net.Dial("tcp", remoteAddress)
 	if e != nil {
 		log.WithField("error", e).Error("net.Dial() call failed")
@@ -95,7 +94,7 @@ func ConfigureRemoteETCD(p *peer.ETCDConfig) (*services.RPCPeerGenericResp, erro
 
 	rsp := new(services.RPCPeerGenericResp)
 
-	remoteAddress := fmt.Sprintf("%s:%s", p.PeerName, "9876")
+	remoteAddress := fmt.Sprintf("%s:%s", p.PeerName, config.GetString("rpcport"))
 	rpcConn, e := net.Dial("tcp", remoteAddress)
 	if e != nil {
 		log.WithField("error", e).Error("net.Dial() call failed")
