@@ -123,5 +123,7 @@ func addPeerHandler(w http.ResponseWriter, r *http.Request) {
 		rest.SendHTTPError(w, http.StatusInternalServerError, e.Error())
 		return
 	}
-	rest.SendHTTPResponse(w, http.StatusOK, nil)
+
+	body := map[string]uuid.UUID{"id": p.ID}
+	rest.SendHTTPResponse(w, http.StatusCreated, body)
 }
