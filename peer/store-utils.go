@@ -79,12 +79,12 @@ func GetPeers() ([]Peer, error) {
 	if err != nil || pairs == nil {
 		return nil, err
 	}
-	// If there is only one entry in the store this indicates its a stand
-	// alone cluster, no need to return back it's own information
-	if len(pairs) == 1 {
+	if len(pairs) == 0 {
+		// No peers
+		// TODO: Should the client get 201 with empty list or a 404 ?
 		return nil, nil
 	}
-	peers := make([]Peer, len(pairs)-1)
+	peers := make([]Peer, len(pairs))
 	i := 0
 	for _, pair := range pairs {
 		var p Peer
@@ -94,10 +94,6 @@ func GetPeers() ([]Peer, error) {
 				"peer":  pair.Key,
 				"error": err,
 			}).Error("Failed to unmarshal peer")
-			continue
-		}
-		if p.ID.String() == context.MyUUID.String() {
-			// Skip self's information
 			continue
 		}
 		peers[i] = p
