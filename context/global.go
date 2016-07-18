@@ -64,7 +64,6 @@ func doInit() {
 
 	utils.InitDir(config.GetString("localstatedir"))
 
-	MyUUID = InitMyUUID()
 	initOpVersion()
 
 	Rest = rest.New()

@@ -14,7 +14,11 @@ type APIError struct {
 
 // SendHTTPResponse to send response back to the client
 func SendHTTPResponse(w http.ResponseWriter, statusCode int, rsp interface{}) {
-	w.Header().Set("Content-Type", "application/json; charset=UTF-8")
+	if rsp != nil {
+		// Do not include content-type header for responses such as 204
+		// which as per RFC, should not have a response body.
+		w.Header().Set("Content-Type", "application/json; charset=UTF-8")
+	}
 	w.WriteHeader(statusCode)
 	if e := json.NewEncoder(w).Encode(rsp); e != nil {
 		log.WithField("error", e).Error("Failed to send the response -", rsp)
