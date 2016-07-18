@@ -35,6 +35,20 @@ func addPeerHandler(w http.ResponseWriter, r *http.Request) {
 		req.Name = req.Addresses[0]
 	}
 
+	local_node := false
+	for _, addr := range req.Addresses {
+		local, err := utils.IsLocalAddress(addr)
+		if err != nil || local == true {
+			local_node = true
+			break
+		}
+	}
+
+	if local_node == true {
+		rest.SendHTTPError(w, http.StatusInternalServerError, errors.ErrPeerLocalNode.Error())
+		return
+	}
+
 	rsp, e := client.ValidateAddPeer(&req)
 	if e != nil {
 		rest.SendHTTPError(w, http.StatusInternalServerError, *rsp.OpError)
