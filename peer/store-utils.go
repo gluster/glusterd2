@@ -79,11 +79,7 @@ func GetPeers() ([]Peer, error) {
 	if err != nil || pairs == nil {
 		return nil, err
 	}
-	if len(pairs) == 0 {
-		// No peers
-		// TODO: Should the client get 201 with empty list or a 404 ?
-		return nil, nil
-	}
+	// There will be at least one peer (current node)
 	peers := make([]Peer, len(pairs))
 	i := 0
 	for _, pair := range pairs {
