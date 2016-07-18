@@ -60,6 +60,6 @@ func deletePeerHandler(w http.ResponseWriter, r *http.Request) {
 		}).Error("Failed to remove peer from the store")
 		rest.SendHTTPError(w, http.StatusInternalServerError, e.Error())
 	} else {
-		rest.SendHTTPResponse(w, http.StatusOK, nil)
+		rest.SendHTTPResponse(w, http.StatusNoContent, nil)
 	}
 }
