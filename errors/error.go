@@ -28,4 +28,5 @@ var (
 	ErrBrickPathTooLong        = errors.New("Brickpath too long")
 	ErrSubDirPathTooLong       = errors.New("sub directory path is too long")
 	ErrIPAddressNotFound       = errors.New("Failed to find IP address")
+	ErrPeerLocalNode           = errors.New("The peer being added is the local node")
 )
