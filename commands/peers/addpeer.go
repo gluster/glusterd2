@@ -37,8 +37,8 @@ func addPeerHandler(w http.ResponseWriter, r *http.Request) {
 
 	local_node := false
 	for _, addr := range req.Addresses {
-		local, err := utils.IsLocalAddress(addr)
-		if err != nil || local == true {
+		local, _ := utils.IsLocalAddress(addr)
+		if local == true {
 			local_node = true
 			break
 		}
