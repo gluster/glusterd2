@@ -18,21 +18,30 @@ It has these top-level messages:
 package services
 
 import proto "github.com/golang/protobuf/proto"
+import fmt "fmt"
 import math "math"
 
 // Reference imports to suppress errors if they are not otherwise used.
 var _ = proto.Marshal
+var _ = fmt.Errorf
 var _ = math.Inf
 
+// This is a compile-time assertion to ensure that this generated file
+// is compatible with the proto package it is being compiled against.
+// A compilation error at this line likely means your copy of the
+// proto package needs to be updated.
+const _ = proto.ProtoPackageIsVersion2 // please upgrade the proto package
+
 type RPCPeerAddReq struct {
-	Name             *string  `protobuf:"bytes,1,req" json:"Name,omitempty"`
-	Addresses        []string `protobuf:"bytes,2,rep" json:"Addresses,omitempty"`
+	Name             *string  `protobuf:"bytes,1,req,name=Name" json:"Name,omitempty"`
+	Addresses        []string `protobuf:"bytes,2,rep,name=Addresses" json:"Addresses,omitempty"`
 	XXX_unrecognized []byte   `json:"-"`
 }
 
-func (m *RPCPeerAddReq) Reset()         { *m = RPCPeerAddReq{} }
-func (m *RPCPeerAddReq) String() string { return proto.CompactTextString(m) }
-func (*RPCPeerAddReq) ProtoMessage()    {}
+func (m *RPCPeerAddReq) Reset()                    { *m = RPCPeerAddReq{} }
+func (m *RPCPeerAddReq) String() string            { return proto.CompactTextString(m) }
+func (*RPCPeerAddReq) ProtoMessage()               {}
+func (*RPCPeerAddReq) Descriptor() ([]byte, []int) { return fileDescriptor0, []int{0} }
 
 func (m *RPCPeerAddReq) GetName() string {
 	if m != nil && m.Name != nil {
@@ -49,15 +58,16 @@ func (m *RPCPeerAddReq) GetAddresses() []string {
 }
 
 type RPCPeerAddResp struct {
-	OpRet            *int32  `protobuf:"varint,1,req" json:"OpRet,omitempty"`
-	OpError          *string `protobuf:"bytes,2,req" json:"OpError,omitempty"`
-	UUID             *string `protobuf:"bytes,3,req" json:"UUID,omitempty"`
+	OpRet            *int32  `protobuf:"varint,1,req,name=OpRet" json:"OpRet,omitempty"`
+	OpError          *string `protobuf:"bytes,2,req,name=OpError" json:"OpError,omitempty"`
+	UUID             *string `protobuf:"bytes,3,req,name=UUID" json:"UUID,omitempty"`
 	XXX_unrecognized []byte  `json:"-"`
 }
 
-func (m *RPCPeerAddResp) Reset()         { *m = RPCPeerAddResp{} }
-func (m *RPCPeerAddResp) String() string { return proto.CompactTextString(m) }
-func (*RPCPeerAddResp) ProtoMessage()    {}
+func (m *RPCPeerAddResp) Reset()                    { *m = RPCPeerAddResp{} }
+func (m *RPCPeerAddResp) String() string            { return proto.CompactTextString(m) }
+func (*RPCPeerAddResp) ProtoMessage()               {}
+func (*RPCPeerAddResp) Descriptor() ([]byte, []int) { return fileDescriptor0, []int{1} }
 
 func (m *RPCPeerAddResp) GetOpRet() int32 {
 	if m != nil && m.OpRet != nil {
@@ -81,14 +91,15 @@ func (m *RPCPeerAddResp) GetUUID() string {
 }
 
 type RPCPeerGenericResp struct {
-	OpRet            *int32  `protobuf:"varint,1,req" json:"OpRet,omitempty"`
-	OpError          *string `protobuf:"bytes,2,req" json:"OpError,omitempty"`
+	OpRet            *int32  `protobuf:"varint,1,req,name=OpRet" json:"OpRet,omitempty"`
+	OpError          *string `protobuf:"bytes,2,req,name=OpError" json:"OpError,omitempty"`
 	XXX_unrecognized []byte  `json:"-"`
 }
 
-func (m *RPCPeerGenericResp) Reset()         { *m = RPCPeerGenericResp{} }
-func (m *RPCPeerGenericResp) String() string { return proto.CompactTextString(m) }
-func (*RPCPeerGenericResp) ProtoMessage()    {}
+func (m *RPCPeerGenericResp) Reset()                    { *m = RPCPeerGenericResp{} }
+func (m *RPCPeerGenericResp) String() string            { return proto.CompactTextString(m) }
+func (*RPCPeerGenericResp) ProtoMessage()               {}
+func (*RPCPeerGenericResp) Descriptor() ([]byte, []int) { return fileDescriptor0, []int{2} }
 
 func (m *RPCPeerGenericResp) GetOpRet() int32 {
 	if m != nil && m.OpRet != nil {
@@ -105,13 +116,14 @@ func (m *RPCPeerGenericResp) GetOpError() string {
 }
 
 type RPCPeerDeleteReq struct {
-	ID               *string `protobuf:"bytes,1,req" json:"ID,omitempty"`
+	ID               *string `protobuf:"bytes,1,req,name=ID" json:"ID,omitempty"`
 	XXX_unrecognized []byte  `json:"-"`
 }
 
-func (m *RPCPeerDeleteReq) Reset()         { *m = RPCPeerDeleteReq{} }
-func (m *RPCPeerDeleteReq) String() string { return proto.CompactTextString(m) }
-func (*RPCPeerDeleteReq) ProtoMessage()    {}
+func (m *RPCPeerDeleteReq) Reset()                    { *m = RPCPeerDeleteReq{} }
+func (m *RPCPeerDeleteReq) String() string            { return proto.CompactTextString(m) }
+func (*RPCPeerDeleteReq) ProtoMessage()               {}
+func (*RPCPeerDeleteReq) Descriptor() ([]byte, []int) { return fileDescriptor0, []int{3} }
 
 func (m *RPCPeerDeleteReq) GetID() string {
 	if m != nil && m.ID != nil {
@@ -121,17 +133,18 @@ func (m *RPCPeerDeleteReq) GetID() string {
 }
 
 type RPCEtcdConfigReq struct {
-	PeerName         *string `protobuf:"bytes,1,req" json:"PeerName,omitempty"`
-	Name             *string `protobuf:"bytes,2,req" json:"Name,omitempty"`
-	InitialCluster   *string `protobuf:"bytes,3,req" json:"InitialCluster,omitempty"`
-	ClusterState     *string `protobuf:"bytes,4,req" json:"ClusterState,omitempty"`
-	Client           *bool   `protobuf:"varint,5,req" json:"Client,omitempty"`
+	PeerName         *string `protobuf:"bytes,1,req,name=PeerName" json:"PeerName,omitempty"`
+	Name             *string `protobuf:"bytes,2,req,name=Name" json:"Name,omitempty"`
+	InitialCluster   *string `protobuf:"bytes,3,req,name=InitialCluster" json:"InitialCluster,omitempty"`
+	ClusterState     *string `protobuf:"bytes,4,req,name=ClusterState" json:"ClusterState,omitempty"`
+	Client           *bool   `protobuf:"varint,5,req,name=Client" json:"Client,omitempty"`
 	XXX_unrecognized []byte  `json:"-"`
 }
 
-func (m *RPCEtcdConfigReq) Reset()         { *m = RPCEtcdConfigReq{} }
-func (m *RPCEtcdConfigReq) String() string { return proto.CompactTextString(m) }
-func (*RPCEtcdConfigReq) ProtoMessage()    {}
+func (m *RPCEtcdConfigReq) Reset()                    { *m = RPCEtcdConfigReq{} }
+func (m *RPCEtcdConfigReq) String() string            { return proto.CompactTextString(m) }
+func (*RPCEtcdConfigReq) ProtoMessage()               {}
+func (*RPCEtcdConfigReq) Descriptor() ([]byte, []int) { return fileDescriptor0, []int{4} }
 
 func (m *RPCEtcdConfigReq) GetPeerName() string {
 	if m != nil && m.PeerName != nil {
@@ -166,4 +179,34 @@ func (m *RPCEtcdConfigReq) GetClient() bool {
 		return *m.Client
 	}
 	return false
+}
+
+func init() {
+	proto.RegisterType((*RPCPeerAddReq)(nil), "services.RPCPeerAddReq")
+	proto.RegisterType((*RPCPeerAddResp)(nil), "services.RPCPeerAddResp")
+	proto.RegisterType((*RPCPeerGenericResp)(nil), "services.RPCPeerGenericResp")
+	proto.RegisterType((*RPCPeerDeleteReq)(nil), "services.RPCPeerDeleteReq")
+	proto.RegisterType((*RPCEtcdConfigReq)(nil), "services.RPCEtcdConfigReq")
+}
+
+func init() { proto.RegisterFile("peer-svc.proto", fileDescriptor0) }
+
+var fileDescriptor0 = []byte{
+	// 243 bytes of a gzipped FileDescriptorProto
+	0x1f, 0x8b, 0x08, 0x00, 0x00, 0x09, 0x6e, 0x88, 0x02, 0xff, 0x8c, 0x8f, 0x41, 0x4b, 0xc3, 0x40,
+	0x10, 0x85, 0x31, 0x6d, 0x34, 0x19, 0xda, 0x58, 0x17, 0x91, 0x3d, 0x49, 0xd9, 0x53, 0x2f, 0x8a,
+	0x07, 0xcf, 0x82, 0xa4, 0x45, 0x7a, 0xb1, 0x25, 0xd2, 0x1f, 0x10, 0x92, 0xa7, 0x2c, 0xc4, 0x64,
+	0xdd, 0x1d, 0xfb, 0xfb, 0xdd, 0x4d, 0x23, 0xe4, 0xd8, 0xe3, 0xbc, 0xc7, 0xf7, 0xf8, 0x86, 0x32,
+	0x03, 0xd8, 0x07, 0x77, 0xac, 0x1e, 0x8d, 0xed, 0xb8, 0x13, 0x89, 0x83, 0x3d, 0xea, 0x0a, 0x4e,
+	0x3d, 0xd1, 0xbc, 0xd8, 0xe7, 0x7b, 0x5f, 0xbf, 0xd6, 0x75, 0x81, 0x1f, 0x31, 0xa3, 0xe9, 0x7b,
+	0xf9, 0x0d, 0x79, 0xb1, 0x8c, 0x56, 0xa9, 0xb8, 0xa1, 0xd4, 0xe7, 0x16, 0xce, 0xc1, 0xc9, 0x68,
+	0x39, 0x59, 0xa5, 0xea, 0x85, 0xb2, 0x31, 0xe1, 0x8c, 0x98, 0x53, 0xbc, 0x33, 0x05, 0xb8, 0x67,
+	0x62, 0x71, 0x4d, 0x57, 0x3b, 0xb3, 0xb1, 0xb6, 0xb3, 0x9e, 0x08, 0x23, 0x7e, 0xf2, 0x70, 0xd8,
+	0xae, 0xe5, 0x24, 0x5c, 0xea, 0x99, 0xc4, 0xc0, 0xbf, 0xa1, 0x85, 0xd5, 0xd5, 0x39, 0x1b, 0xea,
+	0x9e, 0x16, 0x03, 0xb5, 0x46, 0x03, 0x46, 0x50, 0x25, 0x8a, 0xfc, 0x6a, 0x2f, 0xaa, 0x4c, 0xdf,
+	0x6f, 0xb8, 0xaa, 0xf3, 0xae, 0xfd, 0xd4, 0x5f, 0xa1, 0x5f, 0x50, 0x12, 0x80, 0xd1, 0x3b, 0xff,
+	0xcf, 0x9d, 0xbc, 0xee, 0x28, 0xdb, 0xb6, 0x9a, 0x75, 0xd9, 0xe4, 0xcd, 0xaf, 0x63, 0xd8, 0x93,
+	0xa1, 0xb8, 0xa5, 0xd9, 0x10, 0x7c, 0x70, 0xc9, 0x90, 0xd3, 0x3e, 0xcd, 0xe8, 0x32, 0x6f, 0x34,
+	0x5a, 0x96, 0xb1, 0xbf, 0x93, 0xbf, 0x00, 0x00, 0x00, 0xff, 0xff, 0x1e, 0xd9, 0xd1, 0x88, 0x54,
+	0x01, 0x00, 0x00,
 }
