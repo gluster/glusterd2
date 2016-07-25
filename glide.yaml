@@ -26,3 +26,6 @@ import:
 - package: github.com/heketi/tests
 - package: github.com/spf13/viper
 - package: github.com/spf13/pflag
+- package: github.com/golang/protobuf
+  subpackages:
+  - proto

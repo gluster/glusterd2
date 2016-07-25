@@ -1,35 +1,33 @@
-hash: 175099e2980ce6acd3f330bf51ae8de61ae94087a13db93bdc1671996dd60eaa
-updated: 2016-06-24T18:03:01.9482782+05:30
+hash: 8ec237140caddb3de6f3435f373dce7f0527c3f5c933ae08c23d460e93540584
+updated: 2016-07-20T12:18:58.340854204+05:30
 imports:
 - name: github.com/BurntSushi/toml
-  version: f0aeabca5a127c4078abb8c8d64298b147264b55
+  version: 99064174e013895bbd9b025c31100bd1d9b590ca
 - name: github.com/codegangsta/negroni
-  version: c7477ad8e330bef55bf1ebe300cf8aa67c492d1b
+  version: dc6b9d037e8dab60cbfc09c61d6932537829be8b
 - name: github.com/coreos/etcd
   version: b4bddf685b26b4aa70e939445044bdeac822d042
   subpackages:
   - client
-  - Godeps/_workspace/src/github.com/ugorji/go/codec
-  - Godeps/_workspace/src/golang.org/x/net/context
   - pkg/pathutil
   - pkg/types
 - name: github.com/docker/libkv
-  version: 6af172b94a679a43e91971f75b7f189946c466b7
+  version: 35d3e2084c650109e7bcc7282655b1bc8ba924ff
   subpackages:
   - store
   - store/etcd
 - name: github.com/fsnotify/fsnotify
-  version: 30411dbcefb7a1da7e84f75530ad3abe4011b4f8
+  version: a8a77c9133d2d6fd8334f3260d06f60e8d80a5fb
 - name: github.com/golang/protobuf
-  version: 5677a0e3d5e89854c9974e1256839ee23f8233ca
+  version: 874264fbbb43f4d91e999fecb4b40143ed611400
   subpackages:
   - proto
 - name: github.com/gorilla/context
-  version: 1ea25387ff6f684839d82767c1733ff4d4d15d0a
+  version: aed02d124ae4a0e94fea4541c8effd05bf0c8296
 - name: github.com/gorilla/mux
-  version: c9e326e2bdec29039a3761c07bece13133863e1e
+  version: d391bea3118c9fc17a88d62c9189bb791255e0ef
 - name: github.com/hashicorp/hcl
-  version: 61f5143284c041681f76a5b63efcb232aaa94737
+  version: d8c773c4cba11b11539e3d45f93daeaa5dcf1fa1
   subpackages:
   - hcl/ast
   - hcl/parser
@@ -46,9 +44,9 @@ imports:
   subpackages:
   - pbcodec
 - name: github.com/magiconair/properties
-  version: c265cfa48dda6474e208715ca93e987829f572f8
+  version: af14024f63beeb153d0048591b39c5788f21cc24
 - name: github.com/mitchellh/mapstructure
-  version: d2dd0262208475919e1a362f675cfc0e7c10e905
+  version: 21a35fb16463dfb7c8eee579c65d995d95e64d1e
 - name: github.com/pborman/uuid
   version: c55201b036063326c5b1b89ccfe45a184973d073
 - name: github.com/Sirupsen/logrus
@@ -58,20 +56,23 @@ imports:
 - name: github.com/spf13/jwalterweatherman
   version: 33c24e77fb80341fe7130ee7c594256ff08ccc46
 - name: github.com/spf13/pflag
-  version: 367864438f1b1a3c7db4da06a2f55b144e6784e0
+  version: 1560c1005499d61b80f865c04d39ca7505bf7f0b
 - name: github.com/spf13/viper
-  version: c1ccc378a054ea8d4e38d8c67f6938d4760b53dd
+  version: b53595fb56a492ecef90ee0457595a999eb6ec15
+- name: github.com/ugorji/go
+  version: b94837a2404ab90efe9289e77a70694c355739cb
+  subpackages:
+  - codec
 - name: golang.org/x/net
   version: 7dbad50ab5b31073856416cdcfeb2796d682f844
   subpackages:
   - context
-  - netutil
 - name: golang.org/x/sys
   version: 9c60d1c508f5134d1ca726b4641db998f2523357
   subpackages:
   - unix
 - name: gopkg.in/tylerb/graceful.v1
-  version: 119c58e176bce26fd40698146d9a106c8f1723a5
+  version: d7d7a205e779a4738d38eda0671fff8bfc965f14
 - name: gopkg.in/yaml.v2
-  version: a83829b6f1293c91addabc89d0571c246397bbf4
-devImports: []
+  version: e4d366fc3c7938e2958e662b4258c7a89e1f0e3e
+testImports: []
