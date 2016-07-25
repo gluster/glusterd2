@@ -40,7 +40,16 @@ var (
 const PosixPathMax = C._POSIX_PATH_MAX
 
 // IsLocalAddress checks whether a given host/IP is local
+// Does lookup only after string matching IP addresses
 func IsLocalAddress(host string) (bool, error) {
+
+	local_names := []string{"127.0.0.1", "localhost", "::1"}
+	for _, name := range local_names {
+		if host == name {
+			return true, nil
+		}
+	}
+
 	laddrs, e := net.InterfaceAddrs()
 	if e != nil {
 		return false, e
@@ -49,6 +58,12 @@ func IsLocalAddress(host string) (bool, error) {
 	for _, laddr := range laddrs {
 		lipa := laddr.(*net.IPNet)
 		lips = append(lips, lipa.IP)
+	}
+
+	for _, ip := range lips {
+		if host == ip.String() {
+			return true, nil
+		}
 	}
 
 	rips, e := net.LookupIP(host)
