@@ -37,8 +37,7 @@ func parseFlags() {
 	flag.Parse()
 }
 
-// dumpConfig dumps current config to the log
-func dumpConfig() {
+func dumpConfigToLog() {
 	l := log.NewEntry(log.StandardLogger())
 
 	for k, v := range config.AllSettings() {
@@ -83,5 +82,5 @@ func initConfig(confFile string) {
 	// Finally use config given by flags
 	config.BindPFlags(flag.CommandLine)
 
-	dumpConfig()
+	dumpConfigToLog()
 }
