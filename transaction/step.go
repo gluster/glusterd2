@@ -4,17 +4,21 @@ import (
 	"errors"
 
 	"github.com/gluster/glusterd2/context"
+
+	"github.com/pborman/uuid"
 )
 
 // StepFunc is the function that is supposed to be run during a transaction step
 type StepFunc func(*context.Context) error
 
-const (
-	//Leader is a constant string representing the leader node
-	Leader = "leader"
-	//All is a contant string representing all the nodes in a transaction
-	All = "all"
-)
+//const (
+////Leader is a constant string representing the leader node
+//Leader = "leader"
+////All is a contant string representing all the nodes in a transaction
+//All = "all"
+//)
+// XXX: Because Nodes are now uuid.UUID, string constants cannot be used in node lists
+// TODO: Figure out an alternate method and re-enable. Or just remove it.
 
 // Step is a combination of a StepFunc and a list of nodes the step is supposed to be run on
 //
@@ -24,7 +28,7 @@ const (
 type Step struct {
 	DoFunc   string
 	UndoFunc string
-	Nodes    []string
+	Nodes    []uuid.UUID
 }
 
 // do runs the DoFunc on the nodes

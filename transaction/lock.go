@@ -3,6 +3,8 @@ package transaction
 import (
 	"github.com/gluster/glusterd2/context"
 	"github.com/gluster/glusterd2/store"
+
+	"github.com/pborman/uuid"
 )
 
 const (
@@ -70,8 +72,8 @@ func CreateLockSteps(key string) (*Step, *Step, error) {
 		return nil, nil, err
 	}
 
-	lockStep := &Step{lockFunc, unlockFunc, []string{Leader}}
-	unlockStep := &Step{unlockFunc, "", []string{Leader}}
+	lockStep := &Step{lockFunc, unlockFunc, []uuid.UUID{context.MyUUID}}
+	unlockStep := &Step{unlockFunc, "", []uuid.UUID{context.MyUUID}}
 
 	return lockStep, unlockStep, nil
 }

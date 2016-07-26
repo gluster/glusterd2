@@ -2,6 +2,8 @@ package transaction
 
 import (
 	"github.com/gluster/glusterd2/context"
+
+	"github.com/pborman/uuid"
 )
 
 // SimpleTxn is transaction with fixed stage, commit and store steps
@@ -9,7 +11,7 @@ type SimpleTxn struct {
 	// Ctx is the transaction context
 	Ctx *context.Context
 	// Nodes are the nodes where the stage and commit functions are performed
-	Nodes []string
+	Nodes []uuid.UUID
 	// LockKey is the key to be locked
 	LockKey string
 
@@ -28,7 +30,7 @@ type SimpleTxn struct {
 }
 
 // NewSimpleTxn returns creates and returns a Txn using e Simple transaction template
-func NewSimpleTxn(c *context.Context, nodes []string, lockKey, stage, commit, store, rollback string) (*Txn, error) {
+func NewSimpleTxn(c *context.Context, nodes []uuid.UUID, lockKey, stage, commit, store, rollback string) (*Txn, error) {
 	simple := Txn{
 		Ctx:   c,
 		Nodes: nodes,
@@ -43,17 +45,17 @@ func NewSimpleTxn(c *context.Context, nodes []string, lockKey, stage, commit, st
 	stagestep := &Step{
 		DoFunc:   stage,
 		UndoFunc: "",
-		Nodes:    []string{All},
+		Nodes:    nodes,
 	}
 	commitstep := &Step{
 		DoFunc:   commit,
 		UndoFunc: rollback,
-		Nodes:    []string{All},
+		Nodes:    nodes,
 	}
 	storestep := &Step{
 		DoFunc:   store,
 		UndoFunc: "",
-		Nodes:    []string{Leader},
+		Nodes:    []uuid.UUID{context.MyUUID},
 	}
 
 	simple.Steps[0] = lockstep

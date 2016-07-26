@@ -14,7 +14,7 @@ import (
 type Txn struct {
 	Ctx   *context.Context
 	Steps []*Step
-	Nodes []string
+	Nodes []uuid.UUID
 }
 
 // prepareTxn sets up some stuff required for the transaction
@@ -46,11 +46,12 @@ func (t *Txn) Do() (*context.Context, error) {
 
 	//Do the steps
 	for i, s := range t.Steps {
-		if s.Nodes[0] == All {
-			s.Nodes = t.Nodes
-		} else if s.Nodes[0] == Leader {
-			//s.Nodes[0] = LeaderName
-		}
+		//TODO: Renable (correctly) if All/Leader keys are fixed
+		//if s.Nodes[0] == All {
+		//s.Nodes = t.Nodes
+		//} else if s.Nodes[0] == Leader {
+		////s.Nodes[0] = LeaderName
+		//}
 
 		if e := s.do(t.Ctx); e != nil {
 			t.Ctx.Log.WithError(e).Error("Transaction failed, rolling back changes")
