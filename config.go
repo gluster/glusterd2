@@ -2,7 +2,6 @@ package main
 
 import (
 	"os"
-	"strings"
 
 	log "github.com/Sirupsen/logrus"
 	flag "github.com/spf13/pflag"
@@ -90,11 +89,6 @@ func initConfig(confFile string) {
 
 	// Finally use config given by flags
 	config.BindPFlags(flag.CommandLine)
-
-	// Set RpcPort
-	// TODO: This is not probably the right way to do this, just doing it this way to fix merge issues
-	rpcAddress := config.GetString("RpcAddress")
-	config.SetDefault("RpcPort", strings.Split(rpcAddress, ":")[1])
 
 	dumpConfig()
 }
