@@ -37,6 +37,11 @@ func parseFlags() {
 	flag.Parse()
 }
 
+// setDefaults sets defaults values for config options not available as a flag,
+// and flags which don't have default values
+func setDefaults() {
+}
+
 func dumpConfigToLog() {
 	l := log.NewEntry(log.StandardLogger())
 
@@ -47,6 +52,9 @@ func dumpConfigToLog() {
 }
 
 func initConfig(confFile string) {
+
+	// Initialize default configuration values
+	setDefaults()
 
 	// Read in configuration from file
 	// If a config file is not given try to read from default paths
