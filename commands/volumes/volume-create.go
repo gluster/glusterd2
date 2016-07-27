@@ -6,6 +6,7 @@ import (
 
 	"github.com/gluster/glusterd2/context"
 	gderrors "github.com/gluster/glusterd2/errors"
+	"github.com/gluster/glusterd2/peer"
 	"github.com/gluster/glusterd2/rest"
 	"github.com/gluster/glusterd2/transaction"
 	"github.com/gluster/glusterd2/utils"
@@ -120,6 +121,39 @@ func rollBackVolumeCreate(c *context.Context) error {
 	return nil
 }
 
+func registerVolCreateStepFuncs() {
+	var sfs = []struct {
+		name string
+		sf   transaction.StepFunc
+	}{
+		{"vol-create.Stage", validateVolumeCreate},
+		{"vol-create.Commit", generateVolfiles},
+		{"vol-create.Store", storeVolume},
+		{"vol-create.Rollback", rollBackVolumeCreate},
+	}
+	for _, sf := range sfs {
+		transaction.RegisterStepFunc(sf.sf, sf.name)
+	}
+}
+
+// nodesForVolCreate returns a list of Nodes which volume create touches
+func nodesForVolCreate(req *volume.VolCreateRequest) ([]uuid.UUID, error) {
+	nodes := make([]uuid.UUID, 10)
+
+	for _, b := range req.Bricks {
+		addr, _, err := utils.ParseHostAndBrickPath(b)
+		if err != nil {
+			return nil, err
+		}
+		id, err := peer.GetPeerIDByAddr(addr)
+		if err != nil {
+			return nil, err
+		}
+		nodes = append(nodes, id)
+	}
+	return nodes, nil
+}
+
 func volumeCreateHandler(w http.ResponseWriter, r *http.Request) {
 	req := new(volume.VolCreateRequest)
 
@@ -129,12 +163,16 @@ func volumeCreateHandler(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	// TODO: Properly construct these things
-	nodes := make([]string, 1)
 	c := context.NewLoggingContext(log.Fields{
 		"reqid": uuid.NewRandom().String(),
 	})
 	c.Set("req", req)
+
+	nodes, e := nodesForVolCreate(req)
+	if e != nil {
+		rest.SendHTTPError(w, http.StatusInternalServerError, e.Error())
+		return
+	}
 
 	txn := &transaction.SimpleTxn{
 		Ctx:      c,
@@ -161,19 +199,4 @@ func volumeCreateHandler(w http.ResponseWriter, r *http.Request) {
 	}
 
 	return
-}
-
-func registerVolCreateStepFuncs() {
-	var sfs = []struct {
-		name string
-		sf   transaction.StepFunc
-	}{
-		{"vol-create.Stage", validateVolumeCreate},
-		{"vol-create.Commit", generateVolfiles},
-		{"vol-create.Store", storeVolume},
-		{"vol-create.Rollback", rollBackVolumeCreate},
-	}
-	for _, sf := range sfs {
-		transaction.RegisterStepFunc(sf.sf, sf.name)
-	}
 }

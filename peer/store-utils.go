@@ -11,6 +11,7 @@ import (
 	"github.com/gluster/glusterd2/store"
 
 	log "github.com/Sirupsen/logrus"
+	"github.com/pborman/uuid"
 )
 
 const (
@@ -144,4 +145,42 @@ func Exists(id string) bool {
 	}
 
 	return b
+}
+
+//GetPeerByAddr returns the peer with the given address from the store
+func GetPeerByAddr(addr string) (*Peer, error) {
+	pairs, err := context.Store.List(peerPrefix)
+	if err != nil || pairs == nil {
+		return nil, err
+	}
+
+	for _, pair := range pairs {
+		var p Peer
+		if err := json.Unmarshal(pair.Value, &p); err != nil {
+			log.WithFields(log.Fields{
+				"peer":  pair.Key,
+				"error": err,
+			}).Error("Failed to unmarshal peer")
+			continue
+		}
+
+		for _, paddr := range p.Addresses {
+			if paddr == addr {
+				return &p, nil
+			}
+		}
+	}
+
+	return nil, errors.ErrPeerNotFound
+}
+
+//GetPeerIDByAddr returns the ID of the peer with the given address
+func GetPeerIDByAddr(addr string) (uuid.UUID, error) {
+	p, e := GetPeerByAddr(addr)
+	if e != nil {
+		return nil, e
+	} else {
+		return p.ID, nil
+	}
+
 }
