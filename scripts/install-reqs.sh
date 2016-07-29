@@ -5,7 +5,7 @@ failed_install() {
 }
 
 install_glide() {
-  GLIDEVER="0.9.1"
+  GLIDEVER="v0.11.1"
   GLIDEURL="https://github.com/Masterminds/glide/releases/download/${GLIDEVER}/glide-${GLIDEVER}-linux-amd64.tar.gz"
   type glide >/dev/null 2>&1
   if [ $? -eq 0 ]; then
@@ -19,7 +19,7 @@ install_glide() {
   echo "Installing glide"
   TMPD=$(mktemp -d)
   pushd $TMPD
-  wget --quiet -O glide.tar.gz $GLIDEURL
+  curl -L -o glide.tar.gz $GLIDEURL
   tar zxf glide.tar.gz
   cp linux-amd64/glide $GOPATH/bin
   popd
