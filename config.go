@@ -26,8 +26,10 @@ var (
 
 // parseFlags sets up the flags and parses them, this needs to be called before any other operation
 func parseFlags() {
+	cwd, _ := os.Getwd()
+
+	flag.String("localstatedir", cwd, "Directory to store local state information. Defaults to current working directory.")
 	flag.String("config", "", "Configuration file for GlusterD. By default looks for glusterd.(yaml|toml|json) in /etc/glusterd and current working directory.")
-	flag.String("localstatedir", "", "Directory to store local state information. Defaults to current working directory.")
 	flag.String("loglevel", defaultLogLevel, "Severity of messages to be logged.")
 	flag.String("restaddress", defaultRestAddress, "Address to bind the REST service.")
 	flag.String("rpcaddress", defaultRpcAddress, "Address to bind the RPC service.")
@@ -38,12 +40,9 @@ func parseFlags() {
 // setDefaults sets defaults values for config options not available as a flag,
 // and flags which don't have default values
 func setDefaults() {
-	wd, _ := os.Getwd()
-	config.SetDefault("localStateDir", wd)
 }
 
-// dumpConfig dumps current config to the log
-func dumpConfig() {
+func dumpConfigToLog() {
 	l := log.NewEntry(log.StandardLogger())
 
 	for k, v := range config.AllSettings() {
@@ -53,6 +52,7 @@ func dumpConfig() {
 }
 
 func initConfig(confFile string) {
+
 	// Initialize default configuration values
 	setDefaults()
 
@@ -90,5 +90,5 @@ func initConfig(confFile string) {
 	// Finally use config given by flags
 	config.BindPFlags(flag.CommandLine)
 
-	dumpConfig()
+	dumpConfigToLog()
 }
