@@ -35,6 +35,20 @@ func addPeerHandler(w http.ResponseWriter, r *http.Request) {
 		req.Name = req.Addresses[0]
 	}
 
+	local_node := false
+	for _, addr := range req.Addresses {
+		local, _ := utils.IsLocalAddress(addr)
+		if local == true {
+			local_node = true
+			break
+		}
+	}
+
+	if local_node == true {
+		rest.SendHTTPError(w, http.StatusInternalServerError, errors.ErrPeerLocalNode.Error())
+		return
+	}
+
 	rsp, e := client.ValidateAddPeer(&req)
 	if e != nil {
 		rest.SendHTTPError(w, http.StatusInternalServerError, *rsp.OpError)
@@ -123,5 +137,7 @@ func addPeerHandler(w http.ResponseWriter, r *http.Request) {
 		rest.SendHTTPError(w, http.StatusInternalServerError, e.Error())
 		return
 	}
-	rest.SendHTTPResponse(w, http.StatusOK, nil)
+
+	body := map[string]uuid.UUID{"id": p.ID}
+	rest.SendHTTPResponse(w, http.StatusCreated, body)
 }
