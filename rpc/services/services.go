@@ -3,7 +3,7 @@ package services
 import (
 	"net/rpc"
 
-	"github.com/gluster/glusterd2/rpc/services/txnsvc"
+	"github.com/gluster/glusterd2/transaction"
 )
 
 // Contains all the list of the rpc services
@@ -11,7 +11,7 @@ type service interface{}
 
 var services = []service{
 	new(PeerService),
-	new(txnsvc.TxnSvc),
+	new(transaction.TxnSvc),
 }
 
 func RegisterServices(server *rpc.Server) {

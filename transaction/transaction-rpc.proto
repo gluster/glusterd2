@@ -1,4 +1,4 @@
-package txnsvc;
+package transaction;
 
 message TxnStepReq {
   required string StepFunc = 1;

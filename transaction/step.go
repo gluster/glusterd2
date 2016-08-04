@@ -2,15 +2,10 @@ package transaction
 
 import (
 	"errors"
-	"net"
-	"net/rpc"
 
 	"github.com/gluster/glusterd2/context"
-	"github.com/gluster/glusterd2/peer"
 
-	"github.com/kshlm/pbrpc/pbcodec"
 	"github.com/pborman/uuid"
-	config "github.com/spf13/viper"
 )
 
 // StepFunc is the function that is supposed to be run during a transaction step
@@ -54,24 +49,28 @@ func (s *Step) undo(c *context.Context) error {
 }
 
 func runStepFuncOnNodes(name string, c *context.Context, nodes []uuid.UUID) error {
+	var (
+		i    int
+		node uuid.UUID
+	)
 	done := make(chan error)
 	defer close(done)
 
-	for i, node := range nodes {
+	for i, node = range nodes {
 		go runStepFuncOnNode(name, c, node, done)
 	}
 
 	// TODO: Need to properly aggregate results
 	var err error
 	for i >= 0 {
-		err <- done
+		err = <-done
 		i--
 	}
 	return err
 }
 
 func runStepFuncOnNode(name string, c *context.Context, node uuid.UUID, done chan<- error) {
-	if node == context.MyUUID {
+	if uuid.Equal(node, context.MyUUID) {
 		done <- runStepFuncLocal(name, c)
 	} else {
 		done <- runStepFuncRemote(name, c, node)
@@ -86,30 +85,12 @@ func runStepFuncLocal(name string, c *context.Context) error {
 		return ErrStepFuncNotFound
 	}
 	return stepFunc(c)
+	//TODO: Results need to be aggregated
 }
 
-func runStepFuncRemote(name string, c *context.Context, node uuid.UUID) error {
-	// TODO: I'm creating connections on demand. This should be changed so that
-	// we have long term connections.
-	p, err := peer.GetPeer(node.String())
-	if err != nil {
-		return err
-	}
-
-	var conn net.Conn
-	port := config.GetString("rpcport")
-
-	for _, addr := range p.Addresses {
-		conn, err = net.Dial("tcp", addr+":"+port)
-		if err == nil && conn != nil {
-			break
-		}
-	}
-	if conn == nil {
-		return err
-	}
-
-	client := rpc.NewClientWithCodec(pbcodec.NewClientCodec(conn))
-	defer client.Close()
-
+func runStepFuncRemote(step string, c *context.Context, node uuid.UUID) error {
+	rsp, err := RunStepOn(step, node, c)
+	//TODO: Results need to be aggregated
+	_ = rsp
+	return err
 }

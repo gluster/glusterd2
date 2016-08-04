@@ -1,11 +1,10 @@
-package txnsvc
+package transaction
 
 import (
 	"encoding/json"
 	"errors"
 
 	"github.com/gluster/glusterd2/context"
-	"github.com/gluster/glusterd2/transaction"
 
 	log "github.com/Sirupsen/logrus"
 )
@@ -23,7 +22,7 @@ func (p *TxnSvc) RunStep(req *TxnStepReq, resp *TxnStepResp) error {
 
 	ctx.Log.WithField("stepfunc", *req.StepFunc).Debug("RunStep request recieved")
 
-	f, ok := transaction.GetStepFunc(*req.StepFunc)
+	f, ok := GetStepFunc(*req.StepFunc)
 	if !ok {
 		log.WithField("stepfunc", *req.StepFunc).Error("step function not found in registry")
 		return errors.New("step function not found")
