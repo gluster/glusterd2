@@ -29,6 +29,8 @@ func main() {
 	initConfig(confFile)
 
 	utils.InitDir(config.GetString("localstatedir"))
+	utils.InitDir(config.GetString("rundir"))
+	utils.InitDir(config.GetString("logdir"))
 	context.MyUUID = context.InitMyUUID()
 
 	// Starting etcd daemon upon starting of GlusterD

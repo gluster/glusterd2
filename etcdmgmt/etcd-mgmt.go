@@ -7,6 +7,7 @@ import (
 	"net/http"
 	"os"
 	"os/exec"
+	"path"
 	"strconv"
 	"strings"
 	"syscall"
@@ -16,6 +17,7 @@ import (
 	"github.com/gluster/glusterd2/utils"
 
 	log "github.com/Sirupsen/logrus"
+	config "github.com/spf13/viper"
 )
 
 // ExecName is to indicate the executable name, useful for mocking in tests
@@ -32,16 +34,13 @@ var (
 	// ETCD executable path
 	ExecName = "etcd"
 	// Configuration directory for storing etcd configuration
-	ETCDConfDir = "/var/lib/glusterd"
-	ETCDEnvFile = ETCDConfDir + "/etcdenv.conf"
+	ETCDConfDir string
+	ETCDEnvFile string
 	// If this file is touched on ETCDConfDir that indicates that etcd
 	// instance need to come with proxy mode
-	ETCDProxyFile = ETCDConfDir + "/proxy"
+	ETCDProxyFile string
 
-	etcdPidDir  = "/var/run/gluster/"
-	etcdPidFile = etcdPidDir + "etcd.pid"
-	etcdLogDir  = "/var/log/glusterfs"
-	etcdLogFile = etcdLogDir + "/etcd.log"
+	etcdPidDir, etcdPidFile, etcdLogDir, etcdLogFile string
 )
 
 // checkETCDHealth() is to ensure that etcd process have come up properlly or not
@@ -192,8 +191,18 @@ func isETCDStartNeeded() (bool, int) {
 	return start, pid
 }
 
-// initETCDArgVar() will initialize etcd argument which will be used at various places
+// initETCDArgVar() will initialize etcd arguments and variables which will be used at various places
 func initETCDArgVar() {
+	// Set the paths required for etcd
+	ETCDConfDir = path.Join(config.GetString("localstatedir"), "etcd")
+	ETCDEnvFile = path.Join(ETCDConfDir, "etcdenv.conf")
+	ETCDProxyFile = path.Join(ETCDConfDir, "proxy")
+
+	etcdPidDir = path.Join(config.GetString("rundir"), "etcd")
+	etcdPidFile = path.Join(etcdPidDir, "etcd.pid")
+	etcdLogDir = path.Join(config.GetString("logdir"), "etcd")
+	etcdLogFile = path.Join(etcdLogDir, "etcd.log")
+
 	context.SetLocalHostIP()
 
 	listenClientUrls = "http://" + context.HostIP + ":2379"
