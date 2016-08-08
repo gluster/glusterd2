@@ -27,7 +27,10 @@ var (
 
 // parseFlags sets up the flags and parses them, this needs to be called before any other operation
 func parseFlags() {
-	flag.String("localstatedir", "", "Directory to store local state information. Defaults to current working directory.")
+	flag.String("workdir", "", "Working directory for GlusterD. (default: current directory)")
+	flag.String("localstatedir", "", "Directory to store local state information. (default: workdir)")
+	flag.String("rundir", "", "Directory to store runtime data. (default: workdir/run)")
+	flag.String("logdir", "", "Directory to store logs. (default: workdir/log)")
 	flag.String("config", "", "Configuration file for GlusterD. By default looks for glusterd.(yaml|toml|json) in /etc/glusterd and current working directory.")
 	flag.String("loglevel", defaultLogLevel, "Severity of messages to be logged.")
 	flag.String("restaddress", defaultRestAddress, "Address to bind the REST service.")
@@ -41,10 +44,23 @@ func parseFlags() {
 func setDefaults() {
 	cwd, _ := os.Getwd()
 
-	config.SetDefault("localstatedir", cwd)
-	//RunDir and LogDir default to being under localstatedir
-	config.SetDefault("rundir", path.Join(cwd, "run"))
-	config.SetDefault("logdir", path.Join(cwd, "log"))
+	wd := config.GetString("workdir")
+	if wd == "" {
+		config.SetDefault("rundir", cwd)
+		wd = cwd
+	}
+
+	if config.GetString("localstatedir") == "" {
+		config.SetDefault("localstatedir", wd)
+	}
+
+	if config.GetString("rundir") == "" {
+		config.SetDefault("rundir", path.Join(wd, "run"))
+	}
+
+	if config.GetString("logdir") == "" {
+		config.SetDefault("logdir", path.Join(wd, "log"))
+	}
 }
 
 func dumpConfigToLog() {
@@ -57,10 +73,6 @@ func dumpConfigToLog() {
 }
 
 func initConfig(confFile string) {
-
-	// Initialize default configuration values
-	setDefaults()
-
 	// Read in configuration from file
 	// If a config file is not given try to read from default paths
 	// If a config file was given, read in configration from that file.
@@ -92,8 +104,11 @@ func initConfig(confFile string) {
 		log.WithField("config", config.ConfigFileUsed()).Info("loaded configuration from file")
 	}
 
-	// Finally use config given by flags
+	// Use config given by flags
 	config.BindPFlags(flag.CommandLine)
+
+	// Finally initialize missing config with defaults
+	setDefaults()
 
 	dumpConfigToLog()
 }

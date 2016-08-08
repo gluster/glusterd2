@@ -28,6 +28,11 @@ func main() {
 	confFile, _ := flag.CommandLine.GetString("config")
 	initConfig(confFile)
 
+	// Change to working directory before continuing
+	if e := os.Chdir(config.GetString("workdir")); e != nil {
+		log.WithError(e).Fatalf("failed to change working directory")
+	}
+
 	utils.InitDir(config.GetString("localstatedir"))
 	utils.InitDir(config.GetString("rundir"))
 	utils.InitDir(config.GetString("logdir"))
