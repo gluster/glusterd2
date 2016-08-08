@@ -13,6 +13,7 @@ const (
 	defaultLogLevel    = "debug"
 	defaultRestAddress = ":24007"
 	defaultRpcAddress  = ":24008"
+	defaultRpcPort     = 24008
 
 	defaultConfName = "glusterd"
 )
@@ -61,6 +62,9 @@ func setDefaults() {
 	if config.GetString("logdir") == "" {
 		config.SetDefault("logdir", path.Join(wd, "log"))
 	}
+
+	// Set the default RpcPort will be used to connect to remote GlusterDs
+	config.SetDefault("rpcport", defaultRpcPort)
 }
 
 func dumpConfigToLog() {
