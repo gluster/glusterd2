@@ -7,11 +7,13 @@ import (
 	"net/http"
 	"path/filepath"
 
+	"github.com/gluster/glusterd2/context"
 	"github.com/gluster/glusterd2/errors"
+	"github.com/gluster/glusterd2/peer"
 	"github.com/gluster/glusterd2/utils"
-	"github.com/pborman/uuid"
 
 	log "github.com/Sirupsen/logrus"
+	"github.com/pborman/uuid"
 )
 
 // VolStatus is the current status of a volume
@@ -137,32 +139,38 @@ func NewVolumeEntry(req *VolCreateRequest) (*Volinfo, error) {
 
 // NewBrickEntries creates the brick list
 func NewBrickEntries(bricks []string) ([]Brickinfo, error) {
-	var b []Brickinfo
-	var b1 Brickinfo
+	var brickInfos []Brickinfo
+	var b Brickinfo
 	var e error
 	for _, brick := range bricks {
 		hostname, path, err := utils.ParseHostAndBrickPath(brick)
 		if err != nil {
 			return nil, err
 		}
-		b1.Hostname = hostname
-		b1.Path, e = absFilePath(path)
+		b.Hostname = hostname
+		b.Path, e = absFilePath(path)
 		if e != nil {
 			log.Error("Failed to convert the brickpath to absolute path")
-			return nil, errors.ErrBrickPathConvertFail
+			return nil, e
+		}
+		b.ID, e = peer.GetPeerIDByAddr(hostname)
+		if e != nil {
+			return nil, e
 		}
 
-		b = append(b, b1)
+		brickInfos = append(brickInfos, b)
 	}
-	return b, nil
+	return brickInfos, nil
 }
 
 // ValidateBrickEntries validates the brick list
 func ValidateBrickEntries(bricks []Brickinfo, volID uuid.UUID, force bool) (int, error) {
 
 	for _, brick := range bricks {
-		//TODO : Check for peer hosts first, otherwise look for local
-		//address
+		if !uuid.Equal(brick.ID, context.MyUUID) {
+			continue
+		}
+
 		local, err := utils.IsLocalAddress(brick.Hostname)
 		if err != nil {
 			log.WithField("Host", brick.Hostname).Error(err.Error())
