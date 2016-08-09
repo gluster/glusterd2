@@ -30,6 +30,9 @@ func (p *TxnSvc) RunStep(req *TxnStepReq, resp *TxnStepResp) error {
 
 	ctx.Log.WithField("stepfunc", *req.StepFunc).Debug("running step")
 
+	resp.Error = new(string)
+	resp.Resp = make([]byte, 0)
+
 	err = f(&ctx)
 	if err != nil {
 		*resp.Error = err.Error()
