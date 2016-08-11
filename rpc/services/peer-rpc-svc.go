@@ -33,7 +33,7 @@ func (p *PeerService) ValidateAdd(args *RPCPeerAddReq, reply *RPCPeerAddResp) er
 		opRet = -1
 		opError = fmt.Sprintf("GlusterD instance running on %s is not compatible", *args.Name)
 	}
-	peers, _ := peer.GetPeers()
+	peers, _ := peer.GetPeersF()
 	if len(peers) != 0 {
 		opRet = -1
 		opError = fmt.Sprintf("Peer %s is already part of another cluster", *args.Name)

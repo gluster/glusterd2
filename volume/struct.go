@@ -153,7 +153,7 @@ func NewBrickEntries(bricks []string) ([]Brickinfo, error) {
 			log.Error("Failed to convert the brickpath to absolute path")
 			return nil, e
 		}
-		b.ID, e = peer.GetPeerIDByAddr(hostname)
+		b.ID, e = peer.GetPeerIDByAddrF(hostname)
 		if e != nil {
 			return nil, e
 		}

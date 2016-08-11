@@ -18,6 +18,14 @@ const (
 	peerPrefix string = store.GlusterPrefix + "peers/"
 )
 
+var (
+	GetPeerF         = GetPeer
+	GetPeersF        = GetPeers
+	GetPeerByAddrF   = GetPeerByAddr
+	GetPeerByNameF   = GetPeerByName
+	GetPeerIDByAddrF = GetPeerIDByAddr
+)
+
 func init() {
 	context.RegisterStorePrefix(peerPrefix)
 }
@@ -56,7 +64,7 @@ func GetPeer(id string) (*Peer, error) {
 // string
 func GetInitialCluster() (string, error) {
 	var initialCluster string
-	peers, err := GetPeers()
+	peers, err := GetPeersF()
 	if err != nil {
 		return "", err
 	}
@@ -168,9 +176,9 @@ func GetPeerByAddr(addr string) (*Peer, error) {
 
 //GetPeerIDByAddr returns the ID of the peer with the given address
 func GetPeerIDByAddr(addr string) (uuid.UUID, error) {
-	p, e := GetPeerByAddr(addr)
+	p, e := GetPeerByAddrF(addr)
 	if e != nil {
-		return nil, e
+		return nil, errors.ErrPeerNotFound
 	} else {
 		return p.ID, nil
 	}

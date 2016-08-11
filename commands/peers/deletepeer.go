@@ -24,7 +24,7 @@ func deletePeerHandler(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 	// Check whether the member exists
-	p, e := peer.GetPeer(id)
+	p, e := peer.GetPeerF(id)
 	if e != nil || p == nil {
 		rest.SendHTTPError(w, http.StatusNotFound, "peer not found in cluster")
 		return

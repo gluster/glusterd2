@@ -17,7 +17,7 @@ import (
 func RunStepOn(step string, node uuid.UUID, c *context.Context) (*context.Context, error) {
 	// TODO: I'm creating connections on demand. This should be changed so that
 	// we have long term connections.
-	p, err := peer.GetPeer(node.String())
+	p, err := peer.GetPeerF(node.String())
 	if err != nil {
 		return nil, err
 	}

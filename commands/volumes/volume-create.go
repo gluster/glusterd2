@@ -70,7 +70,7 @@ func validateVolumeCreate(c *context.Context) error {
 	}
 
 	// Store volinfo for later usage
-	c.Set("volinfo", vol)
+	c.Set("volinfo", *vol)
 
 	return nil
 }
@@ -145,7 +145,7 @@ func nodesForVolCreate(req *volume.VolCreateRequest) ([]uuid.UUID, error) {
 		if err != nil {
 			return nil, err
 		}
-		id, err := peer.GetPeerIDByAddr(addr)
+		id, err := peer.GetPeerIDByAddrF(addr)
 		if err != nil {
 			return nil, err
 		}

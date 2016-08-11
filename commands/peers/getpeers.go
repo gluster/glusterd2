@@ -8,7 +8,7 @@ import (
 )
 
 func getPeersHandler(w http.ResponseWriter, r *http.Request) {
-	if peers, err := peer.GetPeers(); err != nil {
+	if peers, err := peer.GetPeersF(); err != nil {
 		rest.SendHTTPError(w, http.StatusNotFound, err.Error())
 	} else {
 		rest.SendHTTPResponse(w, http.StatusOK, peers)
