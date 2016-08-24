@@ -4,15 +4,13 @@ import (
 	"encoding/json"
 	"errors"
 
-	"github.com/gluster/glusterd2/context"
-
 	log "github.com/Sirupsen/logrus"
 )
 
 type TxnSvc int
 
 func (p *TxnSvc) RunStep(req *TxnStepReq, resp *TxnStepResp) error {
-	var ctx context.Context
+	var ctx Context
 
 	err := json.Unmarshal(req.Context, &ctx)
 	if err != nil {

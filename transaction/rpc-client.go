@@ -6,7 +6,6 @@ import (
 	"net"
 	"net/rpc"
 
-	"github.com/gluster/glusterd2/context"
 	"github.com/gluster/glusterd2/peer"
 
 	"github.com/kshlm/pbrpc/pbcodec"
@@ -14,7 +13,7 @@ import (
 	config "github.com/spf13/viper"
 )
 
-func RunStepOn(step string, node uuid.UUID, c *context.Context) (*context.Context, error) {
+func RunStepOn(step string, node uuid.UUID, c *Context) (*Context, error) {
 	// TODO: I'm creating connections on demand. This should be changed so that
 	// we have long term connections.
 	p, err := peer.GetPeerF(node.String())
@@ -59,7 +58,7 @@ func RunStepOn(step string, node uuid.UUID, c *context.Context) (*context.Contex
 		return nil, errors.New(*rsp.Error)
 	}
 
-	rspCtx := new(context.Context)
+	rspCtx := new(Context)
 	err = json.Unmarshal(rsp.Resp, rspCtx)
 
 	return rspCtx, err

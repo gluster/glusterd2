@@ -9,7 +9,7 @@ import (
 // SimpleTxn is transaction with fixed stage, commit and store steps
 type SimpleTxn struct {
 	// Ctx is the transaction context
-	Ctx *context.Context
+	Ctx *Context
 	// Nodes are the nodes where the stage and commit functions are performed
 	Nodes []uuid.UUID
 	// LockKey is the key to be locked
@@ -25,35 +25,34 @@ type SimpleTxn struct {
 	// Store stores the results of an operation. This will only be run on the leader
 	Store string
 	// Rollback is the registered name of the rollback StepFunc
-	// Rollback rollsback any changes done by Commit
+	// Rollback rolls back any changes done by Commit
 	Rollback string
 }
 
-// NewSimpleTxn returns creates and returns a Txn using e Simple transaction template
-func NewSimpleTxn(c *context.Context, nodes []uuid.UUID, lockKey, stage, commit, store, rollback string) (*Txn, error) {
-	simple := Txn{
-		Ctx:   c,
-		Nodes: nodes,
-		Steps: make([]*Step, 5), //A simple transaction has just 5 steps
-	}
+// NewTxn creates and returns a Txn using SimpleTxn as a template
+func (s *SimpleTxn) NewTxn() (*Txn, error) {
+	simple := NewTxn()
+	simple.Nodes = s.Nodes
+	simple.Steps = make([]*Step, 5)
 
-	lockstep, unlockstep, err := CreateLockSteps(lockKey)
+	lockstep, unlockstep, err := CreateLockSteps(s.LockKey)
 	if err != nil {
+		simple.Cleanup()
 		return nil, err
 	}
 
 	stagestep := &Step{
-		DoFunc:   stage,
+		DoFunc:   s.Stage,
 		UndoFunc: "",
-		Nodes:    nodes,
+		Nodes:    s.Nodes,
 	}
 	commitstep := &Step{
-		DoFunc:   commit,
-		UndoFunc: rollback,
-		Nodes:    nodes,
+		DoFunc:   s.Commit,
+		UndoFunc: s.Rollback,
+		Nodes:    s.Nodes,
 	}
 	storestep := &Step{
-		DoFunc:   store,
+		DoFunc:   s.Store,
 		UndoFunc: "",
 		Nodes:    []uuid.UUID{context.MyUUID},
 	}
@@ -64,12 +63,12 @@ func NewSimpleTxn(c *context.Context, nodes []uuid.UUID, lockKey, stage, commit,
 	simple.Steps[3] = storestep
 	simple.Steps[4] = unlockstep
 
-	return &simple, nil
+	return simple, nil
 }
 
 // Do runs the SimpleTxn on the cluster
-func (s *SimpleTxn) Do() (*context.Context, error) {
-	t, err := NewSimpleTxn(s.Ctx, s.Nodes, s.LockKey, s.Stage, s.Commit, s.Store, s.Rollback)
+func (s *SimpleTxn) Do() (*Context, error) {
+	t, err := s.NewTxn()
 	if err != nil {
 		return nil, err
 	}

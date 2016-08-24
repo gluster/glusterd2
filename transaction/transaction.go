@@ -3,28 +3,41 @@ package transaction
 
 import (
 	"github.com/gluster/glusterd2/context"
+	"github.com/gluster/glusterd2/store"
 
 	log "github.com/Sirupsen/logrus"
 	"github.com/pborman/uuid"
 )
 
+const (
+	txnPrefix = store.GlusterPrefix + "/transaction/"
+)
+
+func init() {
+	context.RegisterStorePrefix(txnPrefix)
+}
+
 // Txn is a set of steps
 //
 // Nodes is a union of the all the TxnStep.Nodes
 type Txn struct {
-	Ctx   *context.Context
+	ID    uuid.UUID
+	Ctx   *Context
 	Steps []*Step
 	Nodes []uuid.UUID
 }
 
-// prepareTxn sets up some stuff required for the transaction
-// like setting a transaction id
-func (t *Txn) prepareTxn() error {
-	t.Ctx = t.Ctx.NewLoggingContext(log.Fields{
-		"txnid": uuid.NewRandom().String(),
+// NewTxn returns an initialized Txn without any steps
+func NewTxn() *Txn {
+	t := new(Txn)
+	t.ID = uuid.NewRandom()
+	t.Ctx = NewLoggingContext(log.Fields{
+		"txnid": t.ID.String(),
 	})
+	t.Ctx.Prefix = txnPrefix + t.ID.String()
+	context.Store.InitPrefix(t.Ctx.Prefix)
 
-	return nil
+	return t
 }
 
 // Do runs the transaction on the cluster
@@ -33,6 +46,14 @@ func (t *Txn) Do() (*context.Context, error) {
 		return nil, e
 	}
 
+
+// Cleanup cleans the leftovers after a transaction ends
+func (t *Txn) Cleanup() {
+	context.Store.Delete(t.Ctx.Prefix)
+}
+
+// Do runs the transaction on the cluster
+func (t *Txn) Do() (*Context, error) {
 	t.Ctx.Log.Debug("Starting transaction")
 
 	//First verify all nodes are online

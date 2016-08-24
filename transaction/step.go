@@ -9,7 +9,7 @@ import (
 )
 
 // StepFunc is the function that is supposed to be run during a transaction step
-type StepFunc func(*context.Context) error
+type StepFunc func(*Context) error
 
 //const (
 ////Leader is a constant string representing the leader node
@@ -36,19 +36,19 @@ var (
 )
 
 // do runs the DoFunc on the nodes
-func (s *Step) do(c *context.Context) error {
+func (s *Step) do(c *Context) error {
 	return runStepFuncOnNodes(s.DoFunc, c, s.Nodes)
 }
 
 // undo runs the UndoFunc on the nodes
-func (s *Step) undo(c *context.Context) error {
+func (s *Step) undo(c *Context) error {
 	if s.UndoFunc != "" {
 		return runStepFuncOnNodes(s.UndoFunc, c, s.Nodes)
 	}
 	return nil
 }
 
-func runStepFuncOnNodes(name string, c *context.Context, nodes []uuid.UUID) error {
+func runStepFuncOnNodes(name string, c *Context, nodes []uuid.UUID) error {
 	var (
 		i    int
 		node uuid.UUID
@@ -69,7 +69,7 @@ func runStepFuncOnNodes(name string, c *context.Context, nodes []uuid.UUID) erro
 	return err
 }
 
-func runStepFuncOnNode(name string, c *context.Context, node uuid.UUID, done chan<- error) {
+func runStepFuncOnNode(name string, c *Context, node uuid.UUID, done chan<- error) {
 	if uuid.Equal(node, context.MyUUID) {
 		done <- runStepFuncLocal(name, c)
 	} else {
@@ -77,7 +77,7 @@ func runStepFuncOnNode(name string, c *context.Context, node uuid.UUID, done cha
 	}
 }
 
-func runStepFuncLocal(name string, c *context.Context) error {
+func runStepFuncLocal(name string, c *Context) error {
 	c.Log.WithField("stepfunc", name).Debug("running step function")
 
 	stepFunc, ok := GetStepFunc(name)
@@ -88,7 +88,7 @@ func runStepFuncLocal(name string, c *context.Context) error {
 	//TODO: Results need to be aggregated
 }
 
-func runStepFuncRemote(step string, c *context.Context, node uuid.UUID) error {
+func runStepFuncRemote(step string, c *Context, node uuid.UUID) error {
 	rsp, err := RunStepOn(step, node, c)
 	//TODO: Results need to be aggregated
 	_ = rsp
