@@ -3,6 +3,7 @@ package transaction
 import (
 	"github.com/gluster/glusterd2/context"
 
+	log "github.com/Sirupsen/logrus"
 	"github.com/pborman/uuid"
 )
 
@@ -27,11 +28,18 @@ type SimpleTxn struct {
 	// Rollback is the registered name of the rollback StepFunc
 	// Rollback rolls back any changes done by Commit
 	Rollback string
+	//LogFields will be set in the transaction context
+	LogFields *log.Fields
 }
 
 // NewTxn creates and returns a Txn using SimpleTxn as a template
 func (s *SimpleTxn) NewTxn() (*Txn, error) {
-	simple := NewTxn()
+	var simple *Txn
+	if s.LogFields == nil {
+		simple = NewTxn()
+	} else {
+		simple = NewTxnWithLoggingContext(*s.LogFields)
+	}
 	simple.Nodes = s.Nodes
 	simple.Steps = make([]*Step, 5)
 

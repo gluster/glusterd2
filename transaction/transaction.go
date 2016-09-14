@@ -40,12 +40,13 @@ func NewTxn() *Txn {
 	return t
 }
 
-// Do runs the transaction on the cluster
-func (t *Txn) Do() (*context.Context, error) {
-	if e := t.prepareTxn(); e != nil {
-		return nil, e
-	}
+// NewTxnWithLoggingContext creates a Txn with a Context with given logging fields
+func NewTxnWithLoggingContext(f log.Fields) *Txn {
+	t := NewTxn()
+	t.Ctx = t.Ctx.NewLoggingContext(f)
 
+	return t
+}
 
 // Cleanup cleans the leftovers after a transaction ends
 func (t *Txn) Cleanup() {
