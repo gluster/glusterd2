@@ -4,7 +4,6 @@ import (
 	"errors"
 	"net/http"
 
-	"github.com/gluster/glusterd2/context"
 	gderrors "github.com/gluster/glusterd2/errors"
 	"github.com/gluster/glusterd2/peer"
 	"github.com/gluster/glusterd2/rest"
@@ -48,9 +47,10 @@ func createVolinfo(msg *volume.VolCreateRequest) (*volume.Volinfo, error) {
 	return vol, nil
 }
 
-func validateVolumeCreate(c *context.Context) error {
-	req, ok := c.Get("req").(*volume.VolCreateRequest)
-	if !ok {
+func validateVolumeCreate(c *transaction.Context) error {
+	var req volume.VolCreateRequest
+	e := c.Get("req", &req)
+	if e != nil {
 		return errors.New("failed to get request from context")
 	}
 
@@ -59,7 +59,7 @@ func validateVolumeCreate(c *context.Context) error {
 		return gderrors.ErrVolExists
 	}
 
-	vol, err := createVolinfo(req)
+	vol, err := createVolinfo(&req)
 	if err != nil {
 		return err
 	}
@@ -70,19 +70,20 @@ func validateVolumeCreate(c *context.Context) error {
 	}
 
 	// Store volinfo for later usage
-	c.Set("volinfo", *vol)
+	e = c.Set("volinfo", vol)
 
-	return nil
+	return e
 }
 
-func generateVolfiles(c *context.Context) error {
-	vol, ok := c.Get("volinfo").(*volume.Volinfo)
-	if !ok {
+func generateVolfiles(c *transaction.Context) error {
+	var vol volume.Volinfo
+	e := c.Get("volinfo", &vol)
+	if e != nil {
 		return errors.New("failed to get volinfo from context")
 	}
 
 	// Creating client and server volfile
-	e := volgen.GenerateVolfileFunc(vol)
+	e = volgen.GenerateVolfileFunc(&vol)
 	if e != nil {
 		c.Log.WithFields(log.Fields{"error": e.Error(),
 			"volume": vol.Name,
@@ -92,13 +93,14 @@ func generateVolfiles(c *context.Context) error {
 	return nil
 }
 
-func storeVolume(c *context.Context) error {
-	vol, ok := c.Get("volinfo").(*volume.Volinfo)
-	if !ok {
+func storeVolume(c *transaction.Context) error {
+	var vol volume.Volinfo
+	e := c.Get("volinfo", &vol)
+	if e != nil {
 		return errors.New("failed to get volinfo from context")
 	}
 
-	e := volume.AddOrUpdateVolumeFunc(vol)
+	e = volume.AddOrUpdateVolumeFunc(&vol)
 	if e != nil {
 		c.Log.WithFields(log.Fields{"error": e.Error(),
 			"volume": vol.Name,
@@ -110,9 +112,10 @@ func storeVolume(c *context.Context) error {
 	return nil
 }
 
-func rollBackVolumeCreate(c *context.Context) error {
-	vol, ok := c.Get("volinfo").(*volume.Volinfo)
-	if !ok {
+func rollBackVolumeCreate(c *transaction.Context) error {
+	var vol volume.Volinfo
+	e := c.Get("volinfo", &vol)
+	if e != nil {
 		return errors.New("failed to get volinfo from context")
 	}
 
@@ -163,35 +166,44 @@ func volumeCreateHandler(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	c := context.NewLoggingContext(log.Fields{
-		"reqid": uuid.NewRandom().String(),
-	})
-	c.Set("req", req)
-
 	nodes, e := nodesForVolCreate(req)
 	if e != nil {
 		rest.SendHTTPError(w, http.StatusInternalServerError, e.Error())
 		return
 	}
 
-	txn := &transaction.SimpleTxn{
-		Ctx:      c,
+	txn, e := (&transaction.SimpleTxn{
 		Nodes:    nodes,
 		LockKey:  req.Name,
 		Stage:    "vol-create.Stage",
 		Commit:   "vol-create.Commit",
 		Store:    "vol-create.Store",
 		Rollback: "vol-create.Rollback",
+		LogFields: &log.Fields{
+			"reqid": uuid.NewRandom().String(),
+		},
+	}).NewTxn()
+	if e != nil {
+		rest.SendHTTPError(w, http.StatusInternalServerError, e.Error())
+		return
 	}
+	defer txn.Cleanup()
 
-	c, e = txn.Do()
+	e = txn.Ctx.Set("req", req)
 	if e != nil {
 		rest.SendHTTPError(w, http.StatusInternalServerError, e.Error())
 		return
 	}
 
-	vol, ok := c.Get("volinfo").(*volume.Volinfo)
-	if ok {
+	c, e := txn.Do()
+	if e != nil {
+		rest.SendHTTPError(w, http.StatusInternalServerError, e.Error())
+		return
+	}
+
+	var vol volume.Volinfo
+	e = c.Get("volinfo", &vol)
+	if e == nil {
 		rest.SendHTTPResponse(w, http.StatusCreated, vol)
 		c.Log.WithField("volname", vol.Name).Info("new volume created")
 	} else {
