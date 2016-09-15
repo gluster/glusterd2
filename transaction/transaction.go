@@ -22,7 +22,7 @@ func init() {
 // Nodes is a union of the all the TxnStep.Nodes
 type Txn struct {
 	ID    uuid.UUID
-	Ctx   *Context
+	Ctx   TxnCtx
 	Steps []*Step
 	Nodes []uuid.UUID
 }
@@ -31,31 +31,40 @@ type Txn struct {
 func NewTxn() *Txn {
 	t := new(Txn)
 	t.ID = uuid.NewRandom()
-	t.Ctx = NewLoggingContext(log.Fields{
+	prefix := txnPrefix + t.ID.String()
+
+	t.Ctx = NewCtxWithLogFields(log.Fields{
 		"txnid": t.ID.String(),
-	})
-	t.Ctx.Prefix = txnPrefix + t.ID.String()
-	context.Store.InitPrefix(t.Ctx.Prefix)
+	}).WithPrefix(prefix)
+
+	context.Store.InitPrefix(prefix)
 
 	return t
 }
 
 // NewTxnWithLoggingContext creates a Txn with a Context with given logging fields
 func NewTxnWithLoggingContext(f log.Fields) *Txn {
-	t := NewTxn()
-	t.Ctx = t.Ctx.NewLoggingContext(f)
+	t := new(Txn)
+	t.ID = uuid.NewRandom()
+	prefix := txnPrefix + t.ID.String()
+
+	t.Ctx = NewCtxWithLogFields(log.Fields{
+		"txnid": t.ID.String(),
+	}).WithPrefix(prefix).WithLogFields(f)
+
+	context.Store.InitPrefix(prefix)
 
 	return t
 }
 
 // Cleanup cleans the leftovers after a transaction ends
 func (t *Txn) Cleanup() {
-	context.Store.Delete(t.Ctx.Prefix)
+	context.Store.Delete(t.Ctx.Prefix())
 }
 
 // Do runs the transaction on the cluster
-func (t *Txn) Do() (*Context, error) {
-	t.Ctx.Log.Debug("Starting transaction")
+func (t *Txn) Do() (TxnCtx, error) {
+	t.Ctx.Logger().Debug("Starting transaction")
 
 	//First verify all nodes are online
 	for range t.Nodes {
@@ -76,7 +85,7 @@ func (t *Txn) Do() (*Context, error) {
 		//}
 
 		if e := s.do(t.Ctx); e != nil {
-			t.Ctx.Log.WithError(e).Error("Transaction failed, rolling back changes")
+			t.Ctx.Logger().WithError(e).Error("Transaction failed, rolling back changes")
 			t.undo(i)
 			return nil, e
 		}

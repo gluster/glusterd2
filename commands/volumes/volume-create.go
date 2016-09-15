@@ -47,7 +47,7 @@ func createVolinfo(msg *volume.VolCreateRequest) (*volume.Volinfo, error) {
 	return vol, nil
 }
 
-func validateVolumeCreate(c *transaction.Context) error {
+func validateVolumeCreate(c transaction.TxnCtx) error {
 	var req volume.VolCreateRequest
 	e := c.Get("req", &req)
 	if e != nil {
@@ -55,7 +55,7 @@ func validateVolumeCreate(c *transaction.Context) error {
 	}
 
 	if volume.ExistsFunc(req.Name) {
-		c.Log.WithField("volume", req.Name).Error("volume already exists")
+		c.Logger().WithField("volume", req.Name).Error("volume already exists")
 		return gderrors.ErrVolExists
 	}
 
@@ -75,7 +75,7 @@ func validateVolumeCreate(c *transaction.Context) error {
 	return e
 }
 
-func generateVolfiles(c *transaction.Context) error {
+func generateVolfiles(c transaction.TxnCtx) error {
 	var vol volume.Volinfo
 	e := c.Get("volinfo", &vol)
 	if e != nil {
@@ -85,7 +85,7 @@ func generateVolfiles(c *transaction.Context) error {
 	// Creating client and server volfile
 	e = volgen.GenerateVolfileFunc(&vol)
 	if e != nil {
-		c.Log.WithFields(log.Fields{"error": e.Error(),
+		c.Logger().WithFields(log.Fields{"error": e.Error(),
 			"volume": vol.Name,
 		}).Error("failed to generate volfile")
 		return e
@@ -93,7 +93,7 @@ func generateVolfiles(c *transaction.Context) error {
 	return nil
 }
 
-func storeVolume(c *transaction.Context) error {
+func storeVolume(c transaction.TxnCtx) error {
 	var vol volume.Volinfo
 	e := c.Get("volinfo", &vol)
 	if e != nil {
@@ -102,7 +102,7 @@ func storeVolume(c *transaction.Context) error {
 
 	e = volume.AddOrUpdateVolumeFunc(&vol)
 	if e != nil {
-		c.Log.WithFields(log.Fields{"error": e.Error(),
+		c.Logger().WithFields(log.Fields{"error": e.Error(),
 			"volume": vol.Name,
 		}).Error("Failed to create volume")
 		return e
@@ -112,7 +112,7 @@ func storeVolume(c *transaction.Context) error {
 	return nil
 }
 
-func rollBackVolumeCreate(c *transaction.Context) error {
+func rollBackVolumeCreate(c transaction.TxnCtx) error {
 	var vol volume.Volinfo
 	e := c.Get("volinfo", &vol)
 	if e != nil {
@@ -205,7 +205,7 @@ func volumeCreateHandler(w http.ResponseWriter, r *http.Request) {
 	e = c.Get("volinfo", &vol)
 	if e == nil {
 		rest.SendHTTPResponse(w, http.StatusCreated, vol)
-		c.Log.WithField("volname", vol.Name).Info("new volume created")
+		c.Logger().WithField("volname", vol.Name).Info("new volume created")
 	} else {
 		rest.SendHTTPError(w, http.StatusInternalServerError, "failed to get volinfo")
 	}

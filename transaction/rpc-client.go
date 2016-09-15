@@ -13,7 +13,7 @@ import (
 	config "github.com/spf13/viper"
 )
 
-func RunStepOn(step string, node uuid.UUID, c *Context) (*Context, error) {
+func RunStepOn(step string, node uuid.UUID, c TxnCtx) (TxnCtx, error) {
 	// TODO: I'm creating connections on demand. This should be changed so that
 	// we have long term connections.
 	p, err := peer.GetPeerF(node.String())
@@ -58,7 +58,7 @@ func RunStepOn(step string, node uuid.UUID, c *Context) (*Context, error) {
 		return nil, errors.New(*rsp.Error)
 	}
 
-	rspCtx := new(Context)
+	rspCtx := new(txnCtx)
 	err = json.Unmarshal(rsp.Resp, rspCtx)
 
 	return rspCtx, err

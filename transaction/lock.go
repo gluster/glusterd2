@@ -31,8 +31,8 @@ func CreateLockStepFunc(key string) (string, string, error) {
 	}
 
 	if !lockFuncFound {
-		lockFunc := func(c *Context) error {
-			log := c.Log.WithField("key", key)
+		lockFunc := func(c TxnCtx) error {
+			log := c.Logger().WithField("key", key)
 
 			_, err := locker.Lock(nil)
 			if err != nil {
@@ -47,8 +47,8 @@ func CreateLockStepFunc(key string) (string, string, error) {
 	}
 
 	if !unlockFuncFound {
-		unlockFunc := func(c *Context) error {
-			log := c.Log.WithField("key", key)
+		unlockFunc := func(c TxnCtx) error {
+			log := c.Logger().WithField("key", key)
 
 			err := locker.Unlock()
 			if err != nil {

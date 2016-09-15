@@ -10,7 +10,7 @@ import (
 // SimpleTxn is transaction with fixed stage, commit and store steps
 type SimpleTxn struct {
 	// Ctx is the transaction context
-	Ctx *Context
+	Ctx *TxnCtx
 	// Nodes are the nodes where the stage and commit functions are performed
 	Nodes []uuid.UUID
 	// LockKey is the key to be locked
@@ -75,7 +75,7 @@ func (s *SimpleTxn) NewTxn() (*Txn, error) {
 }
 
 // Do runs the SimpleTxn on the cluster
-func (s *SimpleTxn) Do() (*Context, error) {
+func (s *SimpleTxn) Do() (TxnCtx, error) {
 	t, err := s.NewTxn()
 	if err != nil {
 		return nil, err

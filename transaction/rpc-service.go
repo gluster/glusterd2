@@ -10,7 +10,7 @@ import (
 type TxnSvc int
 
 func (p *TxnSvc) RunStep(req *TxnStepReq, resp *TxnStepResp) error {
-	var ctx Context
+	var ctx txnCtx
 
 	err := json.Unmarshal(req.Context, &ctx)
 	if err != nil {
@@ -18,7 +18,7 @@ func (p *TxnSvc) RunStep(req *TxnStepReq, resp *TxnStepResp) error {
 		return err
 	}
 
-	ctx.Log.WithField("stepfunc", *req.StepFunc).Debug("RunStep request recieved")
+	ctx.Logger().WithField("stepfunc", *req.StepFunc).Debug("RunStep request recieved")
 
 	f, ok := GetStepFunc(*req.StepFunc)
 	if !ok {
@@ -26,7 +26,7 @@ func (p *TxnSvc) RunStep(req *TxnStepReq, resp *TxnStepResp) error {
 		return errors.New("step function not found")
 	}
 
-	ctx.Log.WithField("stepfunc", *req.StepFunc).Debug("running step")
+	ctx.Logger().WithField("stepfunc", *req.StepFunc).Debug("running step")
 
 	resp.Error = new(string)
 	resp.Resp = make([]byte, 0)
