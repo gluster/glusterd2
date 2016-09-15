@@ -5,7 +5,7 @@ failed_install() {
 }
 
 install_glide() {
-  GLIDEVER="v0.11.1"
+  GLIDEVER="v0.12.2"
   GLIDEURL="https://github.com/Masterminds/glide/releases/download/${GLIDEVER}/glide-${GLIDEVER}-linux-amd64.tar.gz"
   type glide >/dev/null 2>&1
   if [ $? -eq 0 ]; then
@@ -45,26 +45,29 @@ install_gometalinter() {
 }
 
 install_etcd() {
-        ETCDVERSION="v2.2.4"
-        ETCDURL="https://github.com/coreos/etcd/releases/download/${ETCDVERSION}/etcd-${ETCDVERSION}-linux-amd64.tar.gz"
-        type etcd >/dev/null 2>&1
-        if [ $? -eq 0 ]; then
-                echo "etcd already installed"
-                return
-        fi
+  ETCDVERSION="3.0.8"
+  ETCDURL="https://github.com/coreos/etcd/releases/download/v${ETCDVERSION}/etcd-v${ETCDVERSION}-linux-amd64.tar.gz"
+  type etcd >/dev/null 2>&1
+  if [ $? -eq 0 ]; then
+    local version=$(etcd --version | head -1 | awk '{print $3}')
+    if [[ $version == $ETCDVERSION || $version >  $VERSION ]]; then
+      echo "etcd $ETCDVERSION or greater is already installed"
+      return
+    fi
+  fi
 
-        echo "Installing ETCD version ${ETCDVERSION}"
-        TMPD=$(mktemp -d)
-        pushd $TMPD
-        echo ${TMPD}
-        curl -L $ETCDURL -o etcd-${VERSION}-linux-amd64.tar.gz
+  echo "Installing ETCD version ${ETCDVERSION}"
+  TMPD=$(mktemp -d)
+  pushd $TMPD
+  echo ${TMPD}
+  curl -L $ETCDURL -o etcd-v${ETCDVERSION}-linux-amd64.tar.gz
 
-        tar xzvf etcd-${VERSION}-linux-amd64.tar.gz
+  tar xzf etcd-v${ETCDVERSION}-linux-amd64.tar.gz
 
-        cp etcd-${ETCDVERSION}-linux-amd64/etcd     $GOPATH/bin
-        cp etcd-${ETCDVERSION}-linux-amd64/etcdctl  $GOPATH/bin
-        popd
-        rm -rf $TMPD
+  cp etcd-v${ETCDVERSION}-linux-amd64/etcd     $GOPATH/bin
+  cp etcd-v${ETCDVERSION}-linux-amd64/etcdctl  $GOPATH/bin
+  popd
+  rm -rf $TMPD
 }
 
 install_glide
