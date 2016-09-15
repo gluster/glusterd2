@@ -13,7 +13,7 @@ import (
 	"syscall"
 	"time"
 
-	"github.com/gluster/glusterd2/context"
+	"github.com/gluster/glusterd2/gdctx"
 	"github.com/gluster/glusterd2/utils"
 
 	log "github.com/Sirupsen/logrus"
@@ -120,7 +120,7 @@ func StartETCD(args []string) (*os.Process, error) {
 	}
 	// If its a fresh install and GlusterD is coming up for the first time
 	// then check for etcd health, otherwise not
-	if context.Restart == false {
+	if gdctx.Restart == false {
 		if check := checkETCDHealth(15, url); check != true {
 			log.Fatal("Health of etcd is not proper. Check etcd configuration.")
 		}
@@ -166,7 +166,7 @@ func isETCDStartNeeded() (bool, int) {
 			return start, pid
 		}
 		if exist := utils.CheckProcessExist(pid); exist == true {
-			listenClientUrls := "http://" + context.HostIP + ":2379"
+			listenClientUrls := "http://" + gdctx.HostIP + ":2379"
 			_, err = http.Get(listenClientUrls + "/health")
 			if err != nil {
 				log.WithField("err", err).Error("etcd health check failed")
@@ -203,13 +203,13 @@ func initETCDArgVar() {
 	etcdLogDir = path.Join(config.GetString("logdir"), "etcd")
 	etcdLogFile = path.Join(etcdLogDir, "etcd.log")
 
-	context.SetLocalHostIP()
+	gdctx.SetLocalHostIP()
 
-	listenClientUrls = "http://" + context.HostIP + ":2379"
+	listenClientUrls = "http://" + gdctx.HostIP + ":2379"
 	listenClientProxyUrls = listenClientUrls
-	advClientUrls = "http://" + context.HostIP + ":2379"
-	listenPeerUrls = "http://" + context.HostIP + ":2380"
-	initialAdvPeerUrls = "http://" + context.HostIP + ":2380"
+	advClientUrls = "http://" + gdctx.HostIP + ":2379"
+	listenPeerUrls = "http://" + gdctx.HostIP + ":2380"
+	initialAdvPeerUrls = "http://" + gdctx.HostIP + ":2380"
 }
 
 // formETCDArgs constructs the arguments to be passed to etcd binary
@@ -348,7 +348,7 @@ func StopETCD(etcdCtx *os.Process) error {
 // ReStartETCD() will restart etcd process
 func ReStartETCD() (*os.Process, error) {
 	// Stop etcd process
-	etcdCtx := context.EtcdProcessCtx
+	etcdCtx := gdctx.EtcdProcessCtx
 	err := StopETCD(etcdCtx)
 	if err != nil {
 		log.Error("Could not able to stop etcd daemon")

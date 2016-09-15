@@ -3,7 +3,7 @@ package transaction
 import (
 	"errors"
 
-	"github.com/gluster/glusterd2/context"
+	"github.com/gluster/glusterd2/gdctx"
 
 	"github.com/pborman/uuid"
 )
@@ -70,7 +70,7 @@ func runStepFuncOnNodes(name string, c TxnCtx, nodes []uuid.UUID) error {
 }
 
 func runStepFuncOnNode(name string, c TxnCtx, node uuid.UUID, done chan<- error) {
-	if uuid.Equal(node, context.MyUUID) {
+	if uuid.Equal(node, gdctx.MyUUID) {
 		done <- runStepFuncLocal(name, c)
 	} else {
 		done <- runStepFuncRemote(name, c, node)

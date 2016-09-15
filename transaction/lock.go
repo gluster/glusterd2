@@ -1,7 +1,7 @@
 package transaction
 
 import (
-	"github.com/gluster/glusterd2/context"
+	"github.com/gluster/glusterd2/gdctx"
 	"github.com/gluster/glusterd2/store"
 
 	"github.com/pborman/uuid"
@@ -25,7 +25,7 @@ func CreateLockStepFunc(key string) (string, string, error) {
 	}
 
 	key = lockPrefix + key
-	locker, err := context.Store.NewLock(key, nil)
+	locker, err := gdctx.Store.NewLock(key, nil)
 	if err != nil {
 		return "", "", err
 	}
@@ -72,8 +72,8 @@ func CreateLockSteps(key string) (*Step, *Step, error) {
 		return nil, nil, err
 	}
 
-	lockStep := &Step{lockFunc, unlockFunc, []uuid.UUID{context.MyUUID}}
-	unlockStep := &Step{unlockFunc, "", []uuid.UUID{context.MyUUID}}
+	lockStep := &Step{lockFunc, unlockFunc, []uuid.UUID{gdctx.MyUUID}}
+	unlockStep := &Step{unlockFunc, "", []uuid.UUID{gdctx.MyUUID}}
 
 	return lockStep, unlockStep, nil
 }

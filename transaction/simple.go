@@ -1,7 +1,7 @@
 package transaction
 
 import (
-	"github.com/gluster/glusterd2/context"
+	"github.com/gluster/glusterd2/gdctx"
 
 	log "github.com/Sirupsen/logrus"
 	"github.com/pborman/uuid"
@@ -62,7 +62,7 @@ func (s *SimpleTxn) NewTxn() (*Txn, error) {
 	storestep := &Step{
 		DoFunc:   s.Store,
 		UndoFunc: "",
-		Nodes:    []uuid.UUID{context.MyUUID},
+		Nodes:    []uuid.UUID{gdctx.MyUUID},
 	}
 
 	simple.Steps[0] = lockstep

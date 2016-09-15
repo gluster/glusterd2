@@ -2,7 +2,7 @@
 package transaction
 
 import (
-	"github.com/gluster/glusterd2/context"
+	"github.com/gluster/glusterd2/gdctx"
 	"github.com/gluster/glusterd2/store"
 
 	log "github.com/Sirupsen/logrus"
@@ -14,7 +14,7 @@ const (
 )
 
 func init() {
-	context.RegisterStorePrefix(txnPrefix)
+	gdctx.RegisterStorePrefix(txnPrefix)
 }
 
 // Txn is a set of steps
@@ -37,7 +37,7 @@ func NewTxn() *Txn {
 		"txnid": t.ID.String(),
 	}).WithPrefix(prefix)
 
-	context.Store.InitPrefix(prefix)
+	gdctx.Store.InitPrefix(prefix)
 
 	return t
 }
@@ -52,14 +52,14 @@ func NewTxnWithLoggingContext(f log.Fields) *Txn {
 		"txnid": t.ID.String(),
 	}).WithPrefix(prefix).WithLogFields(f)
 
-	context.Store.InitPrefix(prefix)
+	gdctx.Store.InitPrefix(prefix)
 
 	return t
 }
 
 // Cleanup cleans the leftovers after a transaction ends
 func (t *Txn) Cleanup() {
-	context.Store.Delete(t.Ctx.Prefix())
+	gdctx.Store.Delete(t.Ctx.Prefix())
 }
 
 // Do runs the transaction on the cluster

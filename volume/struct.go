@@ -7,8 +7,8 @@ import (
 	"net/http"
 	"path/filepath"
 
-	"github.com/gluster/glusterd2/context"
 	"github.com/gluster/glusterd2/errors"
+	"github.com/gluster/glusterd2/gdctx"
 	"github.com/gluster/glusterd2/peer"
 	"github.com/gluster/glusterd2/utils"
 
@@ -167,7 +167,7 @@ func NewBrickEntries(bricks []string) ([]Brickinfo, error) {
 func ValidateBrickEntries(bricks []Brickinfo, volID uuid.UUID, force bool) (int, error) {
 
 	for _, brick := range bricks {
-		if !uuid.Equal(brick.ID, context.MyUUID) {
+		if !uuid.Equal(brick.ID, gdctx.MyUUID) {
 			continue
 		}
 

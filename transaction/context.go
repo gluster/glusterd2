@@ -3,7 +3,7 @@ package transaction
 import (
 	"encoding/json"
 
-	gdctx "github.com/gluster/glusterd2/context"
+	"github.com/gluster/glusterd2/gdctx"
 
 	log "github.com/Sirupsen/logrus"
 )

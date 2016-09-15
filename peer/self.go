@@ -1,7 +1,7 @@
 package peer
 
 import (
-	"github.com/gluster/glusterd2/context"
+	"github.com/gluster/glusterd2/gdctx"
 
 	log "github.com/Sirupsen/logrus"
 	etcdclient "github.com/coreos/etcd/client"
@@ -11,7 +11,7 @@ import (
 // AddSelfDetails function adds its own details into the central store
 func AddSelfDetails() {
 	var memberID string
-	c := context.EtcdClient
+	c := gdctx.EtcdClient
 	mAPI := etcdclient.NewMembersAPI(c)
 
 	mlist, e := mAPI.List(etcdcontext.Background())
@@ -28,9 +28,9 @@ func AddSelfDetails() {
 		}
 	}
 	p := &Peer{
-		ID:        context.MyUUID,
-		Name:      context.HostIP,
-		Addresses: []string{context.HostIP},
+		ID:        gdctx.MyUUID,
+		Name:      gdctx.HostIP,
+		Addresses: []string{gdctx.HostIP},
 		MemberID:  memberID,
 	}
 
