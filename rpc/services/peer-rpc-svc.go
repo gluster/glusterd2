@@ -4,8 +4,8 @@ import (
 	"fmt"
 	"os"
 
-	"github.com/gluster/glusterd2/context"
 	"github.com/gluster/glusterd2/etcdmgmt"
+	"github.com/gluster/glusterd2/gdctx"
 	"github.com/gluster/glusterd2/peer"
 	"github.com/gluster/glusterd2/utils"
 	"github.com/gluster/glusterd2/volume"
@@ -27,13 +27,13 @@ var (
 func (p *PeerService) ValidateAdd(args *RPCPeerAddReq, reply *RPCPeerAddResp) error {
 	opRet = 0
 	opError = ""
-	uuid = context.MyUUID.String()
+	uuid = gdctx.MyUUID.String()
 
-	if context.MaxOpVersion < 40000 {
+	if gdctx.MaxOpVersion < 40000 {
 		opRet = -1
 		opError = fmt.Sprintf("GlusterD instance running on %s is not compatible", *args.Name)
 	}
-	peers, _ := peer.GetPeers()
+	peers, _ := peer.GetPeersF()
 	if len(peers) != 0 {
 		opRet = -1
 		opError = fmt.Sprintf("Peer %s is already part of another cluster", *args.Name)
@@ -170,7 +170,7 @@ func (etcd *PeerService) ExportAndStoreETCDConfig(c *RPCEtcdConfigReq, reply *RP
 		opError = fmt.Sprintf("Could not able to restart etcd at remote node")
 		log.WithField("error", err.Error()).Error("Could not able to restart etcd")
 	}
-	context.EtcdProcessCtx = etcdCtx
+	gdctx.EtcdProcessCtx = etcdCtx
 
 	reply.OpRet = &opRet
 	reply.OpError = &opError

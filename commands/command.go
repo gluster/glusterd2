@@ -12,8 +12,8 @@ import (
 type Command interface {
 	// Routes should return a table of REST API endpoints and handlers for the command
 	Routes() rest.Routes
-	// SetTransactionHandlers will setup the transaction handlers for the command
-	//SetTransactionHandlers() error
+	// RegisterStepFuncs will register the transaction StepFuncs for the command
+	RegisterStepFuncs()
 }
 
 // Commands is a list of commands available

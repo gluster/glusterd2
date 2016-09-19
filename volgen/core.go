@@ -4,13 +4,13 @@ package volgen
 
 import (
 	"fmt"
-	"github.com/gluster/glusterd2/volume"
 	"os"
+	"path"
 	"strings"
-)
 
-const (
-	workdir = "/var/lib/glusterd"
+	"github.com/gluster/glusterd2/volume"
+
+	config "github.com/spf13/viper"
 )
 
 var (
@@ -60,7 +60,7 @@ func GenerateVolfile(vinfo *volume.Volinfo) error {
 }
 
 func getVolumeDir(vinfo *volume.Volinfo, dir *string) {
-	*dir = fmt.Sprintf("%s/vols/%s", workdir, vinfo.Name)
+	*dir = path.Join(config.GetString("localstatedir"), "vols", vinfo.Name)
 }
 
 func getServerFilePath(vinfo *volume.Volinfo, path *string, brickinfo volume.Brickinfo) error {

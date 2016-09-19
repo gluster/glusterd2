@@ -1,0 +1,11 @@
+package transaction;
+
+message TxnStepReq {
+  required string StepFunc = 1;
+  required bytes Context = 2;
+}
+
+message TxnStepResp {
+  required string Error = 1;
+  required bytes Resp = 2;
+}

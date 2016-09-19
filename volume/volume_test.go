@@ -6,6 +6,7 @@ import (
 	"testing"
 
 	"github.com/gluster/glusterd2/errors"
+	"github.com/gluster/glusterd2/peer"
 	"github.com/gluster/glusterd2/tests"
 	"github.com/gluster/glusterd2/utils"
 
@@ -73,6 +74,8 @@ func TestNewVolumeEntry(t *testing.T) {
 
 // TestNewBrickEntry validates NewBrickEntries ()
 func TestNewBrickEntry(t *testing.T) {
+	defer heketitests.Patch(&peer.GetPeerIDByAddrF, peer.GetPeerIDByAddrMockGood).Restore()
+
 	bricks := getSampleBricks("/tmp/b1", "/tmp/b2")
 	brickPaths := []string{"/tmp/b1", "/tmp/b2"}
 	host, _ := os.Hostname()
@@ -109,6 +112,10 @@ func TestNewVolumeEntryFromRequest(t *testing.T) {
 	defer heketitests.Patch(&utils.Getxattr, tests.MockGetxattr).Restore()
 	defer heketitests.Patch(&utils.Removexattr, tests.MockRemovexattr).Restore()
 	defer heketitests.Patch(&getVolumesFunc, mockGetVolumes).Restore()
+
+	defer heketitests.Patch(&peer.GetPeerIDByAddrF, peer.GetPeerIDByAddrMockGood).Restore()
+	//peer.GetPeerIDByAddrF = peer.GetPeerIDByAddrMockGood
+	//defer func() { peer.GetPeerIDByAddrF = peer.GetPeerIDByAddr }()
 
 	req := new(VolCreateRequest)
 	req.Name = "vol1"
@@ -198,6 +205,8 @@ func TestNewVolumeEntryFromRequestRedundancy(t *testing.T) {
 }
 
 func TestRemoveBrickPaths(t *testing.T) {
+	defer heketitests.Patch(&peer.GetPeerIDByAddrF, peer.GetPeerIDByAddrMockGood).Restore()
+
 	req := new(VolCreateRequest)
 	req.Name = "vol1"
 	req.Bricks = getSampleBricks("/tmp/b1", "/tmp/b2")

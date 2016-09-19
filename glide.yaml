@@ -2,7 +2,7 @@ package: github.com/gluster/glusterd2
 import:
 - package: github.com/codegangsta/negroni
 - package: github.com/coreos/etcd
-  version: v2.2.2
+  version: v3.0.8
   subpackages:
   - client
 - package: github.com/docker/libkv
@@ -12,11 +12,11 @@ import:
 - package: github.com/pborman/uuid
 - package: github.com/gorilla/mux
 - package: github.com/Sirupsen/logrus
-  version: v0.8.7
+  version: v0.10.0
 - package: golang.org/x/net
-  version: 7dbad50ab5b31073856416cdcfeb2796d682f844
+  subpackages:
+  - context
 - package: golang.org/x/sys
-  version: 9c60d1c508f5134d1ca726b4641db998f2523357
   subpackages:
   - unix
 - package: gopkg.in/tylerb/graceful.v1
@@ -26,3 +26,6 @@ import:
 - package: github.com/heketi/tests
 - package: github.com/spf13/viper
 - package: github.com/spf13/pflag
+- package: github.com/golang/protobuf
+  subpackages:
+  - proto

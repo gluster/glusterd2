@@ -4,7 +4,7 @@ package versioncommands
 import (
 	"net/http"
 
-	"github.com/gluster/glusterd2/context"
+	"github.com/gluster/glusterd2/gdctx"
 	"github.com/gluster/glusterd2/rest"
 )
 
@@ -17,7 +17,7 @@ type Response struct {
 
 func getVersionHandler(w http.ResponseWriter, r *http.Request) {
 	var v Response
-	v.GlusterdVersion = context.GlusterdVersion
-	v.APIVersion = context.APIVersion
+	v.GlusterdVersion = gdctx.GlusterdVersion
+	v.APIVersion = gdctx.APIVersion
 	rest.SendHTTPResponse(w, http.StatusOK, v)
 }

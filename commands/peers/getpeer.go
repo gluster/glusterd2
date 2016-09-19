@@ -18,7 +18,7 @@ func getPeerHandler(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	if peer, err := peer.GetPeer(id); err != nil {
+	if peer, err := peer.GetPeerF(id); err != nil {
 		rest.SendHTTPError(w, http.StatusNotFound, err.Error())
 	} else {
 		rest.SendHTTPResponse(w, http.StatusOK, peer)

@@ -1,48 +1,68 @@
 package transaction
 
 import (
-	"github.com/gluster/glusterd2/context"
+	"github.com/gluster/glusterd2/gdctx"
 	"github.com/gluster/glusterd2/store"
+
+	"github.com/pborman/uuid"
 )
 
 const (
 	lockPrefix = store.GlusterPrefix + "locks/"
 )
 
-// CreateLockStepFunc returns a lock and an unlock StepFunc which lock/unlock the given key
-func CreateLockStepFunc(key string) (StepFunc, StepFunc, error) {
+// CreateLockStepFunc returns the registry IDs ofr StepFuncs which lock/unlock the given key
+// If existing StepFuncs are not found, new funcs are created and registered.
+func CreateLockStepFunc(key string) (string, string, error) {
+	lockFuncID := key + ".Lock"
+	unlockFuncID := key + ".Unlock"
+
+	_, lockFuncFound := GetStepFunc(lockFuncID)
+	_, unlockFuncFound := GetStepFunc(unlockFuncID)
+
+	if lockFuncFound && unlockFuncFound {
+		return lockFuncID, unlockFuncID, nil
+	}
+
 	key = lockPrefix + key
-	locker, err := context.Store.NewLock(key, nil)
+	locker, err := gdctx.Store.NewLock(key, nil)
 	if err != nil {
-		return nil, nil, err
+		return "", "", err
 	}
 
-	lockFunc := func(c *context.Context) error {
-		log := c.Log.WithField("key", key)
+	if !lockFuncFound {
+		lockFunc := func(c TxnCtx) error {
+			log := c.Logger().WithField("key", key)
 
-		_, err := locker.Lock(nil)
-		if err != nil {
-			log.WithError(err).Debug("failed to lock")
-		} else {
-			log.Debug("locked obtained")
+			_, err := locker.Lock(nil)
+			if err != nil {
+				log.WithError(err).Debug("failed to lock")
+			} else {
+				log.Debug("locked obtained")
+			}
+
+			return err
 		}
-
-		return err
+		RegisterStepFunc(lockFunc, lockFuncID)
 	}
 
-	unlockFunc := func(c *context.Context) error {
-		log := c.Log.WithField("key", key)
+	if !unlockFuncFound {
+		unlockFunc := func(c TxnCtx) error {
+			log := c.Logger().WithField("key", key)
 
-		err := locker.Unlock()
-		if err != nil {
-			log.WithError(err).Error("failed to release lock")
-		} else {
-			log.Debug("lock released")
+			err := locker.Unlock()
+			if err != nil {
+				log.WithError(err).Error("failed to release lock")
+			} else {
+				log.Debug("lock released")
+			}
+
+			return err
 		}
-
-		return err
+		RegisterStepFunc(unlockFunc, unlockFuncID)
 	}
-	return lockFunc, unlockFunc, nil
+
+	return lockFuncID, unlockFuncID, nil
 }
 
 // CreateLockSteps retuns a lock and an unlock Step which lock/unlock the given key
@@ -52,8 +72,8 @@ func CreateLockSteps(key string) (*Step, *Step, error) {
 		return nil, nil, err
 	}
 
-	lockStep := &Step{lockFunc, unlockFunc, []string{Leader}}
-	unlockStep := &Step{unlockFunc, nil, []string{Leader}}
+	lockStep := &Step{lockFunc, unlockFunc, []uuid.UUID{gdctx.MyUUID}}
+	unlockStep := &Step{unlockFunc, "", []uuid.UUID{gdctx.MyUUID}}
 
 	return lockStep, unlockStep, nil
 }

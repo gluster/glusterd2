@@ -1,9 +1,9 @@
-// Package context is the runtime context of GlusterD
+// Package gdctx is the runtime context of GlusterD
 //
 // This file implements the global runtime context for GlusterD.
 // Any package that needs access to the GlusterD global runtime context just
 // needs to import this package.
-package context
+package gdctx
 
 import (
 	"os"

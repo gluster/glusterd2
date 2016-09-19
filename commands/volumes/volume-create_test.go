@@ -6,9 +6,10 @@ import (
 	"net/http"
 	"testing"
 
-	"github.com/gluster/glusterd2/context"
 	gderrors "github.com/gluster/glusterd2/errors"
+	"github.com/gluster/glusterd2/peer"
 	"github.com/gluster/glusterd2/tests"
+	"github.com/gluster/glusterd2/transaction"
 	"github.com/gluster/glusterd2/volgen"
 	"github.com/gluster/glusterd2/volume"
 
@@ -52,6 +53,8 @@ func TestUnmarshalVolCreateRequest(t *testing.T) {
 
 // TestCreateVolinfo validates createVolinfo()
 func TestCreateVolinfo(t *testing.T) {
+	defer heketitests.Patch(&peer.GetPeerIDByAddrF, peer.GetPeerIDByAddrMockGood).Restore()
+
 	msg := new(volume.VolCreateRequest)
 
 	msg.Name = "vol"
@@ -74,7 +77,7 @@ func TestValidateVolumeCreate(t *testing.T) {
 	msg.Name = "vol"
 	msg.Bricks = []string{"127.0.0.1:/tmp/b1", "127.0.0.1:/tmp/b2"}
 
-	c := context.NewEmptyContext()
+	c := transaction.NewMockCtx()
 	c.Set("req", msg)
 
 	defer heketitests.Patch(&volume.ExistsFunc, func(name string) bool {
@@ -83,6 +86,7 @@ func TestValidateVolumeCreate(t *testing.T) {
 	defer heketitests.Patch(&volume.ValidateBrickEntriesFunc, func(bricks []volume.Brickinfo, volID uuid.UUID, force bool) (int, error) {
 		return 0, nil
 	}).Restore()
+	defer heketitests.Patch(&peer.GetPeerIDByAddrF, peer.GetPeerIDByAddrMockGood).Restore()
 
 	e := validateVolumeCreate(c)
 	tests.Assert(t, e == nil)
@@ -108,6 +112,7 @@ func TestValidateVolumeCreate(t *testing.T) {
 
 // TestGenerateVolfiles validates generateVolfiles
 func TestGenerateVolfiles(t *testing.T) {
+	defer heketitests.Patch(&peer.GetPeerIDByAddrF, peer.GetPeerIDByAddrMockGood).Restore()
 	msg := new(volume.VolCreateRequest)
 
 	msg.Name = "vol"
@@ -115,7 +120,7 @@ func TestGenerateVolfiles(t *testing.T) {
 
 	vol, e := createVolinfo(msg)
 
-	c := context.NewEmptyContext()
+	c := transaction.NewMockCtx()
 	c.Set("volinfo", vol)
 
 	defer heketitests.Patch(&volgen.GenerateVolfileFunc, func(vinfo *volume.Volinfo) error {
@@ -142,6 +147,7 @@ func TestGenerateVolfiles(t *testing.T) {
 
 // TestStoreVolume tests storeVolume
 func TestStoreVolume(t *testing.T) {
+	defer heketitests.Patch(&peer.GetPeerIDByAddrF, peer.GetPeerIDByAddrMockGood).Restore()
 	msg := new(volume.VolCreateRequest)
 
 	msg.Name = "vol"
@@ -149,7 +155,7 @@ func TestStoreVolume(t *testing.T) {
 
 	vol, e := createVolinfo(msg)
 
-	c := context.NewEmptyContext()
+	c := transaction.NewMockCtx()
 	c.Set("volinfo", vol)
 	// Mock store failure
 	defer heketitests.Patch(&volume.AddOrUpdateVolumeFunc, func(vinfo *volume.Volinfo) error {

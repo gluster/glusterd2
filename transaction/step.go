@@ -1,48 +1,96 @@
 package transaction
 
 import (
-	"github.com/gluster/glusterd2/context"
-	"github.com/gluster/glusterd2/utils"
+	"errors"
+
+	"github.com/gluster/glusterd2/gdctx"
+
+	"github.com/pborman/uuid"
 )
 
 // StepFunc is the function that is supposed to be run during a transaction step
-type StepFunc func(*context.Context) error
+type StepFunc func(TxnCtx) error
 
-const (
-	//Leader is a constant string representing the leader node
-	Leader = "leader"
-	//All is a contant string representing all the nodes in a transaction
-	All = "all"
-)
+//const (
+////Leader is a constant string representing the leader node
+//Leader = "leader"
+////All is a contant string representing all the nodes in a transaction
+//All = "all"
+//)
+// XXX: Because Nodes are now uuid.UUID, string constants cannot be used in node lists
+// TODO: Figure out an alternate method and re-enable. Or just remove it.
 
 // Step is a combination of a StepFunc and a list of nodes the step is supposed to be run on
 //
+// DoFunc and UndoFunc are names of StepFuncs registered in the registry
 // DoFunc performs does the action
 // UndoFunc undoes anything done by DoFunc
 type Step struct {
-	DoFunc   StepFunc
-	UndoFunc StepFunc
-	Nodes    []string
+	DoFunc   string
+	UndoFunc string
+	Nodes    []uuid.UUID
 }
 
-// do runs the DoFunc on the nodes
-func (s *Step) do(c *context.Context) error {
-	for range s.Nodes {
-		// RunStepFunconNode(s.DoFunc, n)
-	}
-	c.Log.WithField("step", utils.GetFuncName(s.DoFunc)).Debug("running step")
+var (
+	ErrStepFuncNotFound = errors.New("StepFunc was not found")
+)
 
-	return s.DoFunc(c)
+// do runs the DoFunc on the nodes
+func (s *Step) do(c TxnCtx) error {
+	return runStepFuncOnNodes(s.DoFunc, c, s.Nodes)
 }
 
 // undo runs the UndoFunc on the nodes
-func (s *Step) undo(c *context.Context) error {
-	if s.UndoFunc != nil {
-		for range s.Nodes {
-			// RunStepFunconNode(s.UndoFunc, n)
-		}
-		c.Log.WithField("undostep", utils.GetFuncName(s.DoFunc)).Debug("running undostep")
-		return s.UndoFunc(c)
+func (s *Step) undo(c TxnCtx) error {
+	if s.UndoFunc != "" {
+		return runStepFuncOnNodes(s.UndoFunc, c, s.Nodes)
 	}
 	return nil
+}
+
+func runStepFuncOnNodes(name string, c TxnCtx, nodes []uuid.UUID) error {
+	var (
+		i    int
+		node uuid.UUID
+	)
+	done := make(chan error)
+	defer close(done)
+
+	for i, node = range nodes {
+		go runStepFuncOnNode(name, c, node, done)
+	}
+
+	// TODO: Need to properly aggregate results
+	var err error
+	for i >= 0 {
+		err = <-done
+		i--
+	}
+	return err
+}
+
+func runStepFuncOnNode(name string, c TxnCtx, node uuid.UUID, done chan<- error) {
+	if uuid.Equal(node, gdctx.MyUUID) {
+		done <- runStepFuncLocal(name, c)
+	} else {
+		done <- runStepFuncRemote(name, c, node)
+	}
+}
+
+func runStepFuncLocal(name string, c TxnCtx) error {
+	c.Logger().WithField("stepfunc", name).Debug("running step function")
+
+	stepFunc, ok := GetStepFunc(name)
+	if !ok {
+		return ErrStepFuncNotFound
+	}
+	return stepFunc(c)
+	//TODO: Results need to be aggregated
+}
+
+func runStepFuncRemote(step string, c TxnCtx, node uuid.UUID) error {
+	rsp, err := RunStepOn(step, node, c)
+	//TODO: Results need to be aggregated
+	_ = rsp
+	return err
 }

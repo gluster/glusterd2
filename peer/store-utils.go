@@ -6,19 +6,28 @@ package peer
 import (
 	"encoding/json"
 
-	"github.com/gluster/glusterd2/context"
 	"github.com/gluster/glusterd2/errors"
+	"github.com/gluster/glusterd2/gdctx"
 	"github.com/gluster/glusterd2/store"
 
 	log "github.com/Sirupsen/logrus"
+	"github.com/pborman/uuid"
 )
 
 const (
 	peerPrefix string = store.GlusterPrefix + "peers/"
 )
 
+var (
+	GetPeerF         = GetPeer
+	GetPeersF        = GetPeers
+	GetPeerByAddrF   = GetPeerByAddr
+	GetPeerByNameF   = GetPeerByName
+	GetPeerIDByAddrF = GetPeerIDByAddr
+)
+
 func init() {
-	context.RegisterStorePrefix(peerPrefix)
+	gdctx.RegisterStorePrefix(peerPrefix)
 }
 
 // AddOrUpdatePeer adds/updates given peer in the store
@@ -30,7 +39,7 @@ func AddOrUpdatePeer(p *Peer) error {
 
 	idStr := p.ID.String()
 
-	if err := context.Store.Put(peerPrefix+idStr, json, nil); err != nil {
+	if err := gdctx.Store.Put(peerPrefix+idStr, json, nil); err != nil {
 		return err
 	}
 
@@ -39,7 +48,7 @@ func AddOrUpdatePeer(p *Peer) error {
 
 // GetPeer returns specified peer from the store
 func GetPeer(id string) (*Peer, error) {
-	pair, err := context.Store.Get(peerPrefix + id)
+	pair, err := gdctx.Store.Get(peerPrefix + id)
 	if err != nil || pair == nil {
 		return nil, err
 	}
@@ -55,7 +64,7 @@ func GetPeer(id string) (*Peer, error) {
 // string
 func GetInitialCluster() (string, error) {
 	var initialCluster string
-	peers, err := GetPeers()
+	peers, err := GetPeersF()
 	if err != nil {
 		return "", err
 	}
@@ -75,7 +84,7 @@ func GetInitialCluster() (string, error) {
 
 // GetPeers returns all available peers in the store
 func GetPeers() ([]Peer, error) {
-	pairs, err := context.Store.List(peerPrefix)
+	pairs, err := gdctx.Store.List(peerPrefix)
 	if err != nil || pairs == nil {
 		return nil, err
 	}
@@ -101,7 +110,7 @@ func GetPeers() ([]Peer, error) {
 
 // GetPeerByName returns the peer with the given name from store
 func GetPeerByName(name string) (*Peer, error) {
-	pairs, err := context.Store.List(peerPrefix)
+	pairs, err := gdctx.Store.List(peerPrefix)
 	if err != nil || pairs == nil {
 		return nil, err
 	}
@@ -125,15 +134,53 @@ func GetPeerByName(name string) (*Peer, error) {
 
 // DeletePeer deletes given peer from the store
 func DeletePeer(id string) error {
-	return context.Store.Delete(peerPrefix + id)
+	return gdctx.Store.Delete(peerPrefix + id)
 }
 
 // Exists checks if given peer is present in the store
 func Exists(id string) bool {
-	b, e := context.Store.Exists(peerPrefix + id)
+	b, e := gdctx.Store.Exists(peerPrefix + id)
 	if e != nil {
 		return false
 	}
 
 	return b
+}
+
+//GetPeerByAddr returns the peer with the given address from the store
+func GetPeerByAddr(addr string) (*Peer, error) {
+	pairs, err := gdctx.Store.List(peerPrefix)
+	if err != nil || pairs == nil {
+		return nil, err
+	}
+
+	for _, pair := range pairs {
+		var p Peer
+		if err := json.Unmarshal(pair.Value, &p); err != nil {
+			log.WithFields(log.Fields{
+				"peer":  pair.Key,
+				"error": err,
+			}).Error("Failed to unmarshal peer")
+			continue
+		}
+
+		for _, paddr := range p.Addresses {
+			if paddr == addr {
+				return &p, nil
+			}
+		}
+	}
+
+	return nil, errors.ErrPeerNotFound
+}
+
+//GetPeerIDByAddr returns the ID of the peer with the given address
+func GetPeerIDByAddr(addr string) (uuid.UUID, error) {
+	p, e := GetPeerByAddrF(addr)
+	if e != nil {
+		return nil, errors.ErrPeerNotFound
+	} else {
+		return p.ID, nil
+	}
+
 }

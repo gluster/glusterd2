@@ -1,4 +1,4 @@
-package context
+package gdctx
 
 import "github.com/gluster/glusterd2/store"
 
