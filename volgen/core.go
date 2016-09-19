@@ -91,3 +91,19 @@ func getClientFilePath(vinfo *volume.Volinfo, path *string) error {
 	*path = fmt.Sprintf("%s/trusted-%s.tcp-fuse.vol", vdir, vinfo.Name)
 	return err
 }
+
+// DeleteVolfile deletes the volfiles created for the volume
+// XXX: This is a quick and dirty implementation with no error checking.
+// A proper implementation will be implemented when volgen is re-implemented.
+func DeleteVolfile(vol *volume.Volinfo) error {
+	var path string
+
+	_ = getClientFilePath(vol, &path)
+	_ = os.Remove(path)
+
+	for _, b := range vol.Bricks {
+		_ = getServerFilePath(vol, &path, b)
+		_ = os.Remove(path)
+	}
+	return nil
+}
