@@ -13,6 +13,8 @@ func volumeListHandler(w http.ResponseWriter, r *http.Request) {
 
 	log.Info("In Volume list API")
 
+	// Simple read operations, which just read information from the store, need
+	// not use the transaction framework
 	volumes, e := volume.GetVolumesList()
 
 	if e != nil {

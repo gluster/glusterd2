@@ -17,6 +17,8 @@ func volumeInfoHandler(w http.ResponseWriter, r *http.Request) {
 
 	log.Debug("In Volume info API")
 
+	// Simple read operations, which just read information from the store, need
+	// not use the transaction framework
 	vol, e := volume.GetVolume(volname)
 	if e != nil {
 		rest.SendHTTPError(w, http.StatusNotFound, errors.ErrVolNotFound.Error())

@@ -141,7 +141,7 @@ func registerVolCreateStepFuncs() {
 
 // nodesForVolCreate returns a list of Nodes which volume create touches
 func nodesForVolCreate(req *volume.VolCreateRequest) ([]uuid.UUID, error) {
-	nodes := make([]uuid.UUID, 10)
+	var nodes []uuid.UUID
 
 	for _, b := range req.Bricks {
 		addr, _, err := utils.ParseHostAndBrickPath(b)
