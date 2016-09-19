@@ -3,7 +3,7 @@
 [![Build Status](https://ci.centos.org/view/Gluster/job/gluster_glusterd2/badge/icon)](https://ci.centos.org/view/Gluster/job/gluster_glusterd2/)
 [![Stories in Progress](https://badge.waffle.io/gluster/glusterd2.svg?label=in%20progress&title=In%20Progress)](http://waffle.io/gluster/glusterd2)
 
-GlusterD-2.0 is a re-implementation of GlusterD. It attempts to be have better
+GlusterD-2.0 (GD2) is a re-implementation of GlusterD. It attempts to have better
 consistency, scalability and performance when compared with the current
 GlusterD, while also becoming more modular and easing extensibility.
 
@@ -21,5 +21,5 @@ We use the Github pull-request model for accepting contributions. If you are not
 ## Copyright and License
 Copyright (c) 2015 Red Hat, Inc. <http://www.redhat.com>
 
-This program is free software; you can redistribute it and/or modify it under the terms of the GNU General Public License version 2 as published by the Free Software Foundation.
+This program is free software; you can redistribute it and/or modify it under the terms of the GNU Lesser General Public License, version 3 or any later version (LGPLv3 or later), or the GNU General Public License, version 2 (GPLv2), in all cases as published by the Free Software Foundation.
 

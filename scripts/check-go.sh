@@ -2,21 +2,36 @@
 
 # We require a minimum of Go 1.5 as we make use of the vendor/ directory
 
+REQ_GO_MAJOR_VERSION="1"
+REQ_GO_MINOR_VERSION="5"
+
+REQ_GO_VERSION="$REQ_GO_MAJOR_VERSION.$REQ_GO_MINOR_VERSION"
+
 missing() {
-  echo "Go1.5 is missing on this system."
-  echo "Install Go${GOVERSION} using the preferred method for your system."
-  echo "Refer to https://golang.org/doc/install is Go1.5 is not available in the system repositories."
+  echo "Go$REQ_GO_VERSION or later is missing on this system."
+  echo "Install Go${REQ_GO_VERSION} using the preferred method for your system."
+  echo "Refer to https://golang.org/doc/install if Go$REQ_GO_VERSION is not available in the system repositories."
 
   exit 1
 }
 
+check_go_version() {
+
 #Check if Go is installed
-env go version >/dev/null 2>&1 || missing
+INST_VERS_STR=$(go version) || missing
 
-# The `link` tool was introduced in Go1.5
-# TODO: Do a proper version check. This will be required for gcc-go
-if [ ! -e $(env go env GOTOOLDIR)/link ]; then
-  missing
+INST_GO_VERSION=$(expr "$INST_VERS_STR" : ".*go version go\([^ ]*\) .*")
+INST_GO_MAJOR_VERSION=$(expr "$INST_GO_VERSION" | cut -d. -f1)
+INST_GO_MINOR_VERSION=$(expr "$INST_GO_VERSION" | cut -d. -f2)
+
+if [ "$REQ_GO_MAJOR_VERSION" -gt "$INST_GO_MAJOR_VERSION" ]; then
+        missing
+elif [ "$REQ_GO_MAJOR_VERSION" -eq "$INST_GO_MAJOR_VERSION" ] &&
+           [ "$REQ_GO_MAJOR_VERSION" -gt "$INST_GO_MAJOR_VERSION" ]; then
+        missing
 fi
+}
 
-echo "Go1.5 is available on the system."
+check_go_version
+
+echo "Go$REQ_GO_VERSION or later is available on the system."
