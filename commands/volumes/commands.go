@@ -55,4 +55,6 @@ func (c *Command) Routes() rest.Routes {
 func (c *Command) RegisterStepFuncs() {
 	registerVolCreateStepFuncs()
 	registerVolDeleteStepFuncs()
+	registerVolStartStepFuncs()
+	registerVolStopStepFuncs()
 }

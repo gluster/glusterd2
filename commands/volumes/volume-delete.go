@@ -67,15 +67,6 @@ func registerVolDeleteStepFuncs() {
 	}
 }
 
-func nodesForVolDelete(vol *volume.Volinfo) []uuid.UUID {
-	var nodes []uuid.UUID
-
-	for _, brick := range vol.Bricks {
-		nodes = append(nodes, brick.ID)
-	}
-	return nodes
-}
-
 func volumeDeleteHandler(w http.ResponseWriter, r *http.Request) {
 	p := mux.Vars(r)
 	volname := p["volname"]
@@ -102,18 +93,14 @@ func volumeDeleteHandler(w http.ResponseWriter, r *http.Request) {
 
 	txn := transaction.NewTxn()
 	defer txn.Cleanup()
-	lock, unlock, err := transaction.CreateLockStepFunc(volname)
+	lock, unlock, err := transaction.CreateLockSteps(volname)
 	if err != nil {
 		rest.SendHTTPError(w, http.StatusInternalServerError, err.Error())
 		return
 	}
-	txn.Nodes = nodesForVolDelete(vol)
+	txn.Nodes = vol.Nodes()
 	txn.Steps = []*transaction.Step{
-		&transaction.Step{
-			DoFunc:   lock,
-			UndoFunc: unlock,
-			Nodes:    []uuid.UUID{gdctx.MyUUID},
-		},
+		lock,
 		&transaction.Step{
 			DoFunc: "vol-delete.Commit",
 			Nodes:  txn.Nodes,
@@ -122,16 +109,14 @@ func volumeDeleteHandler(w http.ResponseWriter, r *http.Request) {
 			DoFunc: "vol-delete.Store",
 			Nodes:  []uuid.UUID{gdctx.MyUUID},
 		},
-		&transaction.Step{
-			DoFunc: unlock,
-			Nodes:  []uuid.UUID{gdctx.MyUUID},
-		},
+		unlock,
 	}
 	txn.Ctx.Set("volname", volname)
 
 	_, e := txn.Do()
 	if e != nil {
-		log.WithFields(log.Fields{"error": e.Error(),
+		log.WithFields(log.Fields{
+			"error":  e.Error(),
 			"volume": volname,
 		}).Error("Failed to delete the volume")
 		rest.SendHTTPError(w, http.StatusInternalServerError, e.Error())
