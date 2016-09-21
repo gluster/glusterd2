@@ -4,10 +4,14 @@ all: build
 
 build: check vendor-update glusterd2
 
-check: check-go check-reqs
+check: check-go check-reqs check-protoc
 
 check-go:
 	@./scripts/check-go.sh
+	@echo
+
+check-protoc:
+	@./scripts/check-protoc.sh
 	@echo
 
 check-reqs:
