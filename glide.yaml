@@ -29,3 +29,6 @@ import:
 - package: github.com/golang/protobuf
   subpackages:
   - proto
+  - protoc-gen-go
+- package: google.golang.org/grpc
+  version: ^1.0.1-GA

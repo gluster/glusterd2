@@ -1,5 +1,5 @@
-hash: 0bcff712fb11e8224e6dd99c6782858c7f211fe98837c8572c91b0d273e5d4c4
-updated: 2016-09-15T17:54:40.629709468+05:30
+hash: a991d6c1b16639c64b5fd928dd2a7a2f00ac8aea93f7ede85df47fe34487a227
+updated: 2016-09-21T14:41:02.401942007+05:30
 imports:
 - name: github.com/codegangsta/negroni
   version: 3f7ce7b928e14ff890b067e5bbbc80af73690a9c
@@ -20,6 +20,7 @@ imports:
   version: 1f49d83d9aa00e6ce4fc8258c71cc7786aec968a
   subpackages:
   - proto
+  - protoc-gen-go
 - name: github.com/gorilla/context
   version: 08b5f424b9271eedf6f9f0ce86cb9396ed337a42
 - name: github.com/gorilla/mux
@@ -96,6 +97,8 @@ imports:
   subpackages:
   - transform
   - unicode/norm
+- name: google.golang.org/grpc
+  version: 0032a855ba5c8a3c8e0d71c2deef354b70af1584
 - name: gopkg.in/tylerb/graceful.v1
   version: 50a48b6e73fcc75b45e22c05b79629a67c79e938
 - name: gopkg.in/yaml.v2
