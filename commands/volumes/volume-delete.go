@@ -67,15 +67,6 @@ func registerVolDeleteStepFuncs() {
 	}
 }
 
-func nodesForVolDelete(vol *volume.Volinfo) []uuid.UUID {
-	var nodes []uuid.UUID
-
-	for _, brick := range vol.Bricks {
-		nodes = append(nodes, brick.ID)
-	}
-	return nodes
-}
-
 func volumeDeleteHandler(w http.ResponseWriter, r *http.Request) {
 	p := mux.Vars(r)
 	volname := p["volname"]
@@ -107,7 +98,7 @@ func volumeDeleteHandler(w http.ResponseWriter, r *http.Request) {
 		rest.SendHTTPError(w, http.StatusInternalServerError, err.Error())
 		return
 	}
-	txn.Nodes = nodesForVolDelete(vol)
+	txn.Nodes = vol.Nodes()
 	txn.Steps = []*transaction.Step{
 		lock,
 		&transaction.Step{

@@ -214,3 +214,13 @@ func (v *Volinfo) String() string {
 	json.Indent(&out, b, "", "\t")
 	return out.String()
 }
+
+// Nodes returns the a list of nodes on which this volume has bricks
+func (v *Volinfo) Nodes() []uuid.UUID {
+	var nodes []uuid.UUID
+
+	for _, b := range v.Bricks {
+		nodes = append(nodes, b.ID)
+	}
+	return nodes
+}

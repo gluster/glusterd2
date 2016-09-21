@@ -50,15 +50,6 @@ func registerVolStopStepFuncs() {
 	transaction.RegisterStepFunc(stopBricks, "vol-stop.Commit")
 }
 
-func nodesForVolStop(vol *volume.Volinfo) []uuid.UUID {
-	var nodes []uuid.UUID
-
-	for _, brick := range vol.Bricks {
-		nodes = append(nodes, brick.ID)
-	}
-	return nodes
-}
-
 func volumeStopHandler(w http.ResponseWriter, r *http.Request) {
 	p := mux.Vars(r)
 	volname := p["volname"]
@@ -83,7 +74,7 @@ func volumeStopHandler(w http.ResponseWriter, r *http.Request) {
 		rest.SendHTTPError(w, http.StatusInternalServerError, err.Error())
 		return
 	}
-	txn.Nodes = nodesForVolStop(vol)
+	txn.Nodes = vol.Nodes()
 	txn.Steps = []*transaction.Step{
 		lock,
 		&transaction.Step{

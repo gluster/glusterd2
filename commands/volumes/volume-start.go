@@ -83,15 +83,6 @@ func registerVolStartStepFuncs() {
 	transaction.RegisterStepFunc(undoStartBricks, "vol-start.Undo")
 }
 
-func nodesForVolStart(vol *volume.Volinfo) []uuid.UUID {
-	var nodes []uuid.UUID
-
-	for _, brick := range vol.Bricks {
-		nodes = append(nodes, brick.ID)
-	}
-	return nodes
-}
-
 func volumeStartHandler(w http.ResponseWriter, r *http.Request) {
 	p := mux.Vars(r)
 	volname := p["volname"]
@@ -116,7 +107,7 @@ func volumeStartHandler(w http.ResponseWriter, r *http.Request) {
 		rest.SendHTTPError(w, http.StatusInternalServerError, err.Error())
 		return
 	}
-	txn.Nodes = nodesForVolStart(vol)
+	txn.Nodes = vol.Nodes()
 	txn.Steps = []*transaction.Step{
 		lock,
 		&transaction.Step{
