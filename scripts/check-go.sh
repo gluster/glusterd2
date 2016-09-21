@@ -27,7 +27,7 @@ INST_GO_MINOR_VERSION=$(expr "$INST_GO_VERSION" | cut -d. -f2)
 if [ "$REQ_GO_MAJOR_VERSION" -gt "$INST_GO_MAJOR_VERSION" ]; then
         missing
 elif [ "$REQ_GO_MAJOR_VERSION" -eq "$INST_GO_MAJOR_VERSION" ] &&
-           [ "$REQ_GO_MAJOR_VERSION" -gt "$INST_GO_MAJOR_VERSION" ]; then
+           [ "$REQ_GO_MINOR_VERSION" -gt "$INST_GO_MINOR_VERSION" ]; then
         missing
 fi
 }
