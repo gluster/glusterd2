@@ -20,8 +20,11 @@ import (
 
 // Various version constants that will be used by GD2
 const (
-	MaxOpVersion    = 40000
-	APIVersion      = 1
+	MaxOpVersion = 40000
+	APIVersion   = 1
+)
+
+var (
 	GlusterdVersion = "4.0-dev"
 )
 
