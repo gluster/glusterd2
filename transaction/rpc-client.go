@@ -47,7 +47,7 @@ func RunStepOn(step string, node uuid.UUID, c TxnCtx) (TxnCtx, error) {
 
 	var rsp *TxnStepResp
 
-	rsp, err = client.RunStep(netctx.Background(), req)
+	rsp, err = client.RunStep(netctx.TODO(), req)
 	if err != nil {
 		return nil, err
 	}

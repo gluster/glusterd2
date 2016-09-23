@@ -36,7 +36,7 @@ func ValidateAddPeer(p *peer.PeerAddRequest) (*PeerAddResp, error) {
 
 	client := NewPeerServiceClient(rpcConn)
 
-	rsp, e = client.ValidateAdd(netctx.Background(), args)
+	rsp, e = client.ValidateAdd(netctx.TODO(), args)
 	if e != nil {
 		log.Error("Failed to execute PeerService.ValidateAdd() rpc call")
 		opRet = -1
@@ -68,7 +68,7 @@ func ValidateDeletePeer(id string, name string) (*PeerGenericResp, error) {
 
 	client := NewPeerServiceClient(rpcConn)
 
-	rsp, e = client.ValidateDelete(netctx.Background(), args)
+	rsp, e = client.ValidateDelete(netctx.TODO(), args)
 	if e != nil {
 		log.Error("Failed to execute PeerService.ValidateDelete() rpc call")
 		opRet = -1
@@ -107,7 +107,7 @@ func ConfigureRemoteETCD(p *peer.ETCDConfig) (*PeerGenericResp, error) {
 
 	client := NewPeerServiceClient(rpcConn)
 
-	rsp, e = client.ExportAndStoreETCDConfig(netctx.Background(), args)
+	rsp, e = client.ExportAndStoreETCDConfig(netctx.TODO(), args)
 	if e != nil {
 		log.Error("Failed to execute PeerService.ExportAndStoreEtcdConfig() rpc call")
 		opRet = -1
