@@ -3,14 +3,13 @@ package transaction
 import (
 	"encoding/json"
 	"errors"
-	"net"
-	"net/rpc"
 
 	"github.com/gluster/glusterd2/peer"
 
-	"github.com/kshlm/pbrpc/pbcodec"
 	"github.com/pborman/uuid"
 	config "github.com/spf13/viper"
+	netctx "golang.org/x/net/context"
+	"google.golang.org/grpc"
 )
 
 func RunStepOn(step string, node uuid.UUID, c TxnCtx) (TxnCtx, error) {
@@ -21,11 +20,11 @@ func RunStepOn(step string, node uuid.UUID, c TxnCtx) (TxnCtx, error) {
 		return nil, err
 	}
 
-	var conn net.Conn
+	var conn *grpc.ClientConn
 	port := config.GetString("rpcport")
 
 	for _, addr := range p.Addresses {
-		conn, err = net.Dial("tcp", addr+":"+port)
+		conn, err = grpc.Dial(addr + ":" + port)
 		if err == nil && conn != nil {
 			break
 		}
@@ -33,29 +32,28 @@ func RunStepOn(step string, node uuid.UUID, c TxnCtx) (TxnCtx, error) {
 	if conn == nil {
 		return nil, err
 	}
+	defer conn.Close()
 
-	client := rpc.NewClientWithCodec(pbcodec.NewClientCodec(conn))
-	defer client.Close()
+	client := NewTxnSvcClient(conn)
 
 	req := &TxnStepReq{
-		StepFunc: new(string),
+		StepFunc: step,
 	}
-	*req.StepFunc = step
 	data, err := json.Marshal(c)
 	if err != nil {
 		return nil, err
 	}
 	req.Context = data
 
-	rsp := new(TxnStepResp)
+	var rsp *TxnStepResp
 
-	err = client.Call("TxnSvc.RunStep", req, rsp)
+	rsp, err = client.RunStep(netctx.Background(), req)
 	if err != nil {
 		return nil, err
 	}
 
-	if *rsp.Error != "" {
-		return nil, errors.New(*rsp.Error)
+	if rsp.Error != "" {
+		return nil, errors.New(rsp.Error)
 	}
 
 	rspCtx := new(txnCtx)
