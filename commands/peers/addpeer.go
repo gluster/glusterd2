@@ -9,7 +9,6 @@ import (
 	"github.com/gluster/glusterd2/gdctx"
 	"github.com/gluster/glusterd2/peer"
 	"github.com/gluster/glusterd2/rest"
-	"github.com/gluster/glusterd2/rpc/client"
 	"github.com/gluster/glusterd2/utils"
 
 	log "github.com/Sirupsen/logrus"
@@ -49,15 +48,15 @@ func addPeerHandler(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	rsp, e := client.ValidateAddPeer(&req)
+	rsp, e := ValidateAddPeer(&req)
 	if e != nil {
-		rest.SendHTTPError(w, http.StatusInternalServerError, *rsp.OpError)
+		rest.SendHTTPError(w, http.StatusInternalServerError, rsp.OpError)
 		return
 	}
 
 	var etcdConf peer.ETCDConfig
 	p := &peer.Peer{
-		ID:        uuid.Parse(*rsp.UUID),
+		ID:        uuid.Parse(rsp.UUID),
 		Name:      req.Name,
 		Addresses: req.Addresses,
 		MemberID:  "",
@@ -123,10 +122,10 @@ func addPeerHandler(w http.ResponseWriter, r *http.Request) {
 
 	etcdConf.Client = req.Client
 	etcdConf.PeerName = req.Name
-	etcdrsp, e := client.ConfigureRemoteETCD(&etcdConf)
+	etcdrsp, e := ConfigureRemoteETCD(&etcdConf)
 	if e != nil {
 		log.WithField("err", e).Error("Failed to configure remote etcd")
-		rest.SendHTTPError(w, http.StatusInternalServerError, *etcdrsp.OpError)
+		rest.SendHTTPError(w, http.StatusInternalServerError, etcdrsp.OpError)
 		return
 	}
 	if e = peer.AddOrUpdatePeer(p); e != nil {
