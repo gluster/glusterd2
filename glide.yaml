@@ -20,9 +20,6 @@ import:
   subpackages:
   - unix
 - package: gopkg.in/tylerb/graceful.v1
-- package: github.com/kshlm/pbrpc
-  subpackages:
-  - pbcodec
 - package: github.com/heketi/tests
 - package: github.com/spf13/viper
 - package: github.com/spf13/pflag
