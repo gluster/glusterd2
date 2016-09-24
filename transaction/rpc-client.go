@@ -24,7 +24,7 @@ func RunStepOn(step string, node uuid.UUID, c TxnCtx) (TxnCtx, error) {
 	port := config.GetString("rpcport")
 
 	for _, addr := range p.Addresses {
-		conn, err = grpc.Dial(addr + ":" + port)
+		conn, err = grpc.Dial(addr+":"+port, grpc.WithInsecure())
 		if err == nil && conn != nil {
 			break
 		}

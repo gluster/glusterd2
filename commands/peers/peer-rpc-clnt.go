@@ -23,7 +23,7 @@ func ValidateAddPeer(p *peer.PeerAddRequest) (*PeerAddResp, error) {
 
 	rsp := new(PeerAddResp)
 	remoteAddress := fmt.Sprintf("%s:%s", p.Name, config.GetString("rpcport"))
-	rpcConn, e := grpc.Dial(remoteAddress)
+	rpcConn, e := grpc.Dial(remoteAddress, grpc.WithInsecure())
 	if e != nil {
 		log.WithField("error", e).Error("net.Dial() call failed")
 		opRet = -1
@@ -55,7 +55,7 @@ func ValidateDeletePeer(id string, name string) (*PeerGenericResp, error) {
 
 	rsp := new(PeerGenericResp)
 	remoteAddress := fmt.Sprintf("%s:%s", name, config.GetString("rpcport"))
-	rpcConn, e := grpc.Dial(remoteAddress)
+	rpcConn, e := grpc.Dial(remoteAddress, grpc.WithInsecure())
 	if e != nil {
 		log.WithField("error", e).Error("net.Dial() call failed")
 		opRet = -1
@@ -94,7 +94,7 @@ func ConfigureRemoteETCD(p *peer.ETCDConfig) (*PeerGenericResp, error) {
 	rsp := new(PeerGenericResp)
 
 	remoteAddress := fmt.Sprintf("%s:%s", p.PeerName, config.GetString("rpcport"))
-	rpcConn, e := grpc.Dial(remoteAddress)
+	rpcConn, e := grpc.Dial(remoteAddress, grpc.WithInsecure())
 	if e != nil {
 		log.WithField("error", e).Error("net.Dial() call failed")
 		opRet = -1
