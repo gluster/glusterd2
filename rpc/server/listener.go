@@ -11,6 +11,7 @@ import (
 // StartListener is to register all the services and start listening on them
 func StartListener() error {
 	server := grpc.NewServer()
+	registerServices(server)
 
 	listenAddr := config.GetString("rpcaddress")
 
@@ -20,6 +21,15 @@ func StartListener() error {
 		return e
 	} else {
 		log.WithField("ip:port", listenAddr).Info("Registered RPC Listener")
+	}
+
+	for s, si := range server.GetServiceInfo() {
+		for _, m := range si.Methods {
+			log.WithFields(log.Fields{
+				"service": s,
+				"method":  m,
+			}).Debug("registered gRPC method")
+		}
 	}
 
 	go server.Serve(l)
