@@ -22,6 +22,6 @@ func StartListener() error {
 		log.WithField("ip:port", listenAddr).Info("Registered RPC Listener")
 	}
 
-	server.Serve(l)
+	go server.Serve(l)
 	return nil
 }
