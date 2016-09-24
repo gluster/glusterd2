@@ -17,12 +17,19 @@ import (
 )
 
 func main() {
-	log.WithField("pid", os.Getpid()).Info("GlusterD starting")
-
-	// Parse flags and set up logging before continuing
+	// Parse flags and handle version and logging before continuing
 	parseFlags()
+
+	showvers, _ := flag.CommandLine.GetBool("version")
+	if showvers {
+		dumpVersionInfo()
+		return
+	}
+
 	logLevel, _ := flag.CommandLine.GetString("loglevel")
 	initLog(logLevel, os.Stderr)
+
+	log.WithField("pid", os.Getpid()).Info("GlusterD starting")
 
 	// Read in config
 	confFile, _ := flag.CommandLine.GetString("config")

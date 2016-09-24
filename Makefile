@@ -1,3 +1,6 @@
+VERSION := $(shell bash ./scripts/pkg-version --full)
+LDFLAGS := '-X github.com/gluster/glusterd2/gdctx.GlusterdVersion=$(VERSION)'
+
 .PHONY: all build check check-go check-reqs install vendor-update verify
 
 all: build
@@ -20,12 +23,14 @@ check-reqs:
 
 glusterd2:
 	@echo Building GlusterD-2.0
-	@GO15VENDOREXPERIMENT=1 go build
+	@GO15VENDOREXPERIMENT=1 go build -ldflags $(LDFLAGS)
 	@echo
 
-install:
+install: check vendor-update
 	@echo Building and installing GlusterD-2.0
-	@GO15VENDOREXPERIMENT=1 go install
+	@GO15VENDOREXPERIMENT=1 go install -ldflags $(LDFLAGS)
+	@echo Setting CAP_SYS_ADMIN for glusterd2 \(requires sudo\)
+	sudo setcap cap_sys_admin+ep $$GOPATH/bin/glusterd2
 	@echo
 
 vendor-update:
