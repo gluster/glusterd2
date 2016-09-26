@@ -30,4 +30,5 @@ var (
 	ErrIPAddressNotFound       = errors.New("Failed to find IP address")
 	ErrPeerLocalNode           = errors.New("The peer being added is the local node")
 	ErrProcessNotFound         = errors.New("The process is not running or is inaccessible")
+	ErrProcessAlreadyRunning   = errors.New("Process is already running")
 )
