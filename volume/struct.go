@@ -220,6 +220,10 @@ func (v *Volinfo) Nodes() []uuid.UUID {
 	var nodes []uuid.UUID
 
 	for _, b := range v.Bricks {
+		// This is a BUG. nodes[] should be a set (like in python)
+		// to avoid duplicates. Although not in production, there
+		// can be multiple bricks on the same machine and this will
+		// result nodes being added multiple times to the list.
 		nodes = append(nodes, b.ID)
 	}
 	return nodes
