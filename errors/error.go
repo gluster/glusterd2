@@ -29,4 +29,5 @@ var (
 	ErrSubDirPathTooLong       = errors.New("sub directory path is too long")
 	ErrIPAddressNotFound       = errors.New("Failed to find IP address")
 	ErrPeerLocalNode           = errors.New("The peer being added is the local node")
+	ErrProcessNotFound         = errors.New("The process is not running or is inaccessible")
 )
