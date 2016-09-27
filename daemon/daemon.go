@@ -6,7 +6,6 @@ import (
 	"syscall"
 
 	"github.com/gluster/glusterd2/errors"
-	"github.com/gluster/glusterd2/utils"
 
 	log "github.com/Sirupsen/logrus"
 )
@@ -33,10 +32,10 @@ func Start(d Daemon, wait bool) error {
 	}
 
 	// Check if pidfile exists
-	pid, err := utils.ReadPidFromFile(d.PidFile())
+	pid, err := ReadPidFromFile(d.PidFile())
 	if err == nil {
 		// Check if process is running
-		_, err := utils.GetProcess(pid)
+		_, err := GetProcess(pid)
 		if err == nil {
 			return errors.ErrProcessAlreadyRunning
 		}
@@ -55,12 +54,12 @@ func Start(d Daemon, wait bool) error {
 
 func Stop(d Daemon, force bool) error {
 
-	pid, err := utils.ReadPidFromFile(d.PidFile())
+	pid, err := ReadPidFromFile(d.PidFile())
 	if err != nil {
 		return err
 	}
 
-	process, err := utils.GetProcess(pid)
+	process, err := GetProcess(pid)
 	if err != nil {
 		return err
 	}
