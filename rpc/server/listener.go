@@ -6,11 +6,17 @@ import (
 	log "github.com/Sirupsen/logrus"
 	config "github.com/spf13/viper"
 	"google.golang.org/grpc"
+	"google.golang.org/grpc/grpclog"
 )
 
 var (
 	server *grpc.Server
 )
+
+func init() {
+	// The GD2 logger for gRPC
+	grpclog.SetLogger(log.StandardLogger().WithField("module", "gRPC"))
+}
 
 // StartListener is to register all the services and start listening on them
 // TODO: This should be able to listen on multiple listeners
