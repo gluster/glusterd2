@@ -10,7 +10,7 @@ import (
 
 	"github.com/gluster/glusterd2/gdctx"
 	"github.com/gluster/glusterd2/utils"
-	"github.com/gluster/glusterd2/volume"
+	"github.com/pborman/uuid"
 
 	config "github.com/spf13/viper"
 )
@@ -20,6 +20,14 @@ const (
 	glusterfsd = "/usr/sbin/glusterfsd"
 )
 
+// Brickinfo represents the information of a brick
+// TODO: Move this into Brick struct ?
+type Brickinfo struct {
+	Hostname string
+	Path     string
+	ID       uuid.UUID
+}
+
 type Brick struct {
 	// Externally consumable using methods of Daemon interface
 	binarypath     string
@@ -28,8 +36,8 @@ type Brick struct {
 	pidfilepath    string
 
 	// For internal use
-	brickinfo volume.Brickinfo
-	volinfo   *volume.Volinfo
+	brickinfo Brickinfo
+	volName   string // Introduce this in Brickinfo itself ?
 	port      int
 }
 
@@ -48,7 +56,7 @@ func (b *Brick) Args() string {
 
 	brickPathWithoutSlashes := strings.Trim(strings.Replace(b.brickinfo.Path, "/", "-", -1), "-")
 	logFile := path.Join(config.GetString("logdir"), "glusterfs", "bricks", fmt.Sprintf("%s.log", brickPathWithoutSlashes))
-	volFileId := fmt.Sprintf("%s.%s.%s", b.volinfo.Name, b.brickinfo.Hostname, brickPathWithoutSlashes)
+	volFileId := fmt.Sprintf("%s.%s.%s", b.volName, b.brickinfo.Hostname, brickPathWithoutSlashes)
 	//TODO: For now, getting next available port. Use portmap ?
 	brickPort := strconv.Itoa(GetNextAvailableFreePort())
 
@@ -61,7 +69,7 @@ func (b *Brick) Args() string {
 	buffer.WriteString(fmt.Sprintf(" --brick-port %s", brickPort))
 	buffer.WriteString(fmt.Sprintf(" -l %s", logFile))
 	buffer.WriteString(fmt.Sprintf(" --xlator-option *-posix.glusterd-uuid=%s", gdctx.MyUUID))
-	buffer.WriteString(fmt.Sprintf(" --xlator-option %s-server.listen-port=%s", b.volinfo.Name, brickPort))
+	buffer.WriteString(fmt.Sprintf(" --xlator-option %s-server.listen-port=%s", b.volName, brickPort))
 
 	b.args = buffer.String()
 	return b.args
@@ -79,7 +87,7 @@ func (b *Brick) SocketFile() string {
 	// Example: /var/lib/glusterd/vols/<vol-name>/run/<host-name>-<brick-path>
 	brickPathWithoutSlashes := strings.Trim(strings.Replace(b.brickinfo.Path, "/", "-", -1), "-")
 	fakeSockFileName := fmt.Sprintf("%s-%s", b.brickinfo.Hostname, brickPathWithoutSlashes)
-	volumedir := utils.GetVolumeDir(b.volinfo.Name)
+	volumedir := utils.GetVolumeDir(b.volName)
 	fakeSockFilePath := path.Join(volumedir, "run", fakeSockFileName)
 
 	// Then md5sum of the above path shall be the name of socket file.
@@ -106,7 +114,7 @@ func (b *Brick) PidFile() string {
 }
 
 // Returns a new instance of Brick type which implements the Daemon interface
-func NewDaemon(vinfo *volume.Volinfo, binfo volume.Brickinfo) (*Brick, error) {
-	brickObject := &Brick{binarypath: glusterfsd, brickinfo: binfo, volinfo: vinfo}
+func NewDaemon(volName string, binfo Brickinfo) (*Brick, error) {
+	brickObject := &Brick{binarypath: glusterfsd, brickinfo: binfo, volName: volName}
 	return brickObject, nil
 }

@@ -43,7 +43,7 @@ func stopBricks(c transaction.TxnCtx) error {
 				"brick":  b.Hostname + ":" + b.Path,
 			}).Info("would stop brick")
 
-			brickDaemon, err := brick.NewDaemon(vol, b)
+			brickDaemon, err := brick.NewDaemon(vol.Name, b)
 			if err != nil {
 				return err
 			}
