@@ -15,5 +15,6 @@ func GetVolumeDir(volumeName string) string {
 func GetBrickVolFilePath(volumeName string, brickHostName string, brickPath string) string {
 	volumeDir := GetVolumeDir(volumeName)
 	brickPathWithoutSlashes := strings.Replace(brickPath, "/", "-", -1)
-	return fmt.Sprintf("%s/%s.%s.%s.vol", volumeDir, volumeName, brickHostName, brickPathWithoutSlashes)
+	volFileName := fmt.Sprintf("%s.%s.%s.vol", volumeName, brickHostName, brickPathWithoutSlashes)
+	return path.Join(volumeDir, volFileName)
 }

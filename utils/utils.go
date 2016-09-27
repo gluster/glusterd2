@@ -25,10 +25,9 @@ import (
 )
 
 const (
-	testXattr       = "trusted.glusterfs.test"
-	volumeIDXattr   = "trusted.glusterfs.volume-id"
-	gfidXattr       = "trusted.gfid"
-	GlusterdSockDir = "/var/run/gluster"
+	testXattr     = "trusted.glusterfs.test"
+	volumeIDXattr = "trusted.glusterfs.volume-id"
+	gfidXattr     = "trusted.gfid"
 )
 
 var (

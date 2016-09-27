@@ -8,6 +8,8 @@ import (
 
 	"github.com/gluster/glusterd2/utils"
 	"github.com/gluster/glusterd2/volume"
+
+	config "github.com/spf13/viper"
 )
 
 const (
@@ -52,13 +54,20 @@ func (b *Brick) SocketFile() string {
 		return b.socketfilepath
 	}
 
-	// Just doing whatever glusterd1 does
-	volumedir := utils.GetVolumeDir(b.volinfo.Name)
+	// This looks a little convoluted but just doing what gd1 did...
+
+	// First we form a fake path to the socket file
+	// Example: /var/lib/glusterd/vols/<vol-name>/run/<host-name>-<brick-path>
 	brickPathWithoutSlashes := strings.Replace(b.brickinfo.Path, "/", "-", -1)
 	fakeSockFileName := fmt.Sprintf("%s-%s", b.brickinfo.Hostname, brickPathWithoutSlashes)
+	volumedir := utils.GetVolumeDir(b.volinfo.Name)
 	fakeSockFilePath := path.Join(volumedir, "run", fakeSockFileName)
+
+	// Then md5sum of the above path shall be the name of socket file.
+	// Example: /var/run/gluster/<md5sum-hash>.socket
 	checksum_data := []byte(fakeSockFilePath)
-	b.socketfilepath = fmt.Sprintf("%s/%x.socket", utils.GlusterdSockDir, md5.Sum(checksum_data))
+	glusterdSockDir := path.Join(config.GetString("rundir"), "gluster")
+	b.socketfilepath = fmt.Sprintf("%s/%x.socket", glusterdSockDir, md5.Sum(checksum_data))
 
 	return b.socketfilepath
 }
@@ -69,15 +78,11 @@ func (b *Brick) PidFile() string {
 		return b.pidfilepath
 	}
 
-	// TODO: A more "standard location" to place pidfiles in is /var/run/
-	// For now, following whatever glusterd1 does
-	volumedir := utils.GetVolumeDir(b.volinfo.Name)
+	rundir := config.GetString("rundir")
 	brickPathWithoutSlashes := strings.Replace(b.brickinfo.Path, "/", "-", -1)
-	pidfilename := fmt.Sprintf("%s-%s.pid", b.brickinfo.Hostname, brickPathWithoutSlashes)
-	b.pidfilepath = path.Join(volumedir, "run", pidfilename)
+	pidfilename := fmt.Sprintf("%s%s.pid", b.brickinfo.Hostname, brickPathWithoutSlashes)
+	b.pidfilepath = path.Join(rundir, pidfilename)
 
-	// It is assumed that the responsibility of this function is to only
-	// generate and return the pid file path and not to create it ?
 	return b.pidfilepath
 }
 

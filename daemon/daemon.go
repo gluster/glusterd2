@@ -42,13 +42,6 @@ func Start(d Daemon, wait bool) error {
 		}
 	}
 
-	// TODO: Modify pidfile under some sort of lock
-	err = utils.WritePidToFile(cmd.Process.Pid, d.PidFile())
-	if err != nil {
-		// TODO: Log. Kill process ?
-		return err
-	}
-
 	log.WithFields(log.Fields{
 		"name":       d.Name(),
 		"args":       d.Args(),
