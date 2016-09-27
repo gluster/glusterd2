@@ -57,9 +57,9 @@ func GetProcess(pid int) (*os.Process, error) {
 	// Sending signal 0 can be used to check for the existence of a process ID
 	// Refer `man 2 kill`
 	err = process.Signal(syscall.Signal(0))
-	if err == nil {
-		return process, nil
+	if err != nil {
+		return nil, errors.ErrProcessNotFound
 	}
 
-	return nil, errors.ErrProcessNotFound
+	return process, nil
 }

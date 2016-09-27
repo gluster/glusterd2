@@ -47,13 +47,14 @@ func Start(d Daemon, wait bool) error {
 		"pid":        cmd.Process.Pid,
 		"pidfile":    d.PidFile(),
 		"socketfile": d.SocketFile(),
-	}).Info("Started daemon successfully")
+	}).Debug("Started daemon successfully")
 
 	return nil
 }
 
 func Stop(d Daemon, force bool) error {
 
+	// It is assumed that the process d has written to pidfile
 	pid, err := ReadPidFromFile(d.PidFile())
 	if err != nil {
 		return err

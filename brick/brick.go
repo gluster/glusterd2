@@ -1,11 +1,14 @@
 package brick
 
 import (
+	"bytes"
 	"crypto/md5"
 	"fmt"
 	"path"
+	"strconv"
 	"strings"
 
+	"github.com/gluster/glusterd2/gdctx"
 	"github.com/gluster/glusterd2/utils"
 	"github.com/gluster/glusterd2/volume"
 
@@ -14,8 +17,7 @@ import (
 
 const (
 	// TODO: Remove hardcoding
-	//	glusterfsd = "/usr/local/sbin/glusterfsd"
-	glusterfsd = "/usr/bin/sleep"
+	glusterfsd = "/usr/sbin/glusterfsd"
 )
 
 type Brick struct {
@@ -44,8 +46,25 @@ func (b *Brick) Args() string {
 		return b.args
 	}
 
-	return "60"
-	//return b.args
+	brickPathWithoutSlashes := strings.Trim(strings.Replace(b.brickinfo.Path, "/", "-", -1), "-")
+	logFile := path.Join(config.GetString("logdir"), "glusterfs", "bricks", fmt.Sprintf("%s.log", brickPathWithoutSlashes))
+	volFileId := fmt.Sprintf("%s.%s.%s", b.volinfo.Name, b.brickinfo.Hostname, brickPathWithoutSlashes)
+	//TODO: For now, getting next available port. Use portmap ?
+	brickPort := strconv.Itoa(GetNextAvailableFreePort())
+
+	var buffer bytes.Buffer
+	buffer.WriteString(fmt.Sprintf(" -s %s", b.brickinfo.Hostname))
+	buffer.WriteString(fmt.Sprintf(" --volfile-id %s", volFileId))
+	buffer.WriteString(fmt.Sprintf(" -p %s", b.PidFile()))
+	buffer.WriteString(fmt.Sprintf(" -S %s", b.SocketFile()))
+	buffer.WriteString(fmt.Sprintf(" --brick-name %s", b.brickinfo.Path))
+	buffer.WriteString(fmt.Sprintf(" --brick-port %s", brickPort))
+	buffer.WriteString(fmt.Sprintf(" -l %s", logFile))
+	buffer.WriteString(fmt.Sprintf(" --xlator-option *-posix.glusterd-uuid=%s", gdctx.MyUUID))
+	buffer.WriteString(fmt.Sprintf(" --xlator-option %s-server.listen-port=%s", b.volinfo.Name, brickPort))
+
+	b.args = buffer.String()
+	return b.args
 }
 
 func (b *Brick) SocketFile() string {
@@ -58,7 +77,7 @@ func (b *Brick) SocketFile() string {
 
 	// First we form a fake path to the socket file
 	// Example: /var/lib/glusterd/vols/<vol-name>/run/<host-name>-<brick-path>
-	brickPathWithoutSlashes := strings.Replace(b.brickinfo.Path, "/", "-", -1)
+	brickPathWithoutSlashes := strings.Trim(strings.Replace(b.brickinfo.Path, "/", "-", -1), "-")
 	fakeSockFileName := fmt.Sprintf("%s-%s", b.brickinfo.Hostname, brickPathWithoutSlashes)
 	volumedir := utils.GetVolumeDir(b.volinfo.Name)
 	fakeSockFilePath := path.Join(volumedir, "run", fakeSockFileName)
@@ -79,9 +98,9 @@ func (b *Brick) PidFile() string {
 	}
 
 	rundir := config.GetString("rundir")
-	brickPathWithoutSlashes := strings.Replace(b.brickinfo.Path, "/", "-", -1)
-	pidfilename := fmt.Sprintf("%s%s.pid", b.brickinfo.Hostname, brickPathWithoutSlashes)
-	b.pidfilepath = path.Join(rundir, pidfilename)
+	brickPathWithoutSlashes := strings.Trim(strings.Replace(b.brickinfo.Path, "/", "-", -1), "-")
+	pidfilename := fmt.Sprintf("%s-%s.pid", b.brickinfo.Hostname, brickPathWithoutSlashes)
+	b.pidfilepath = path.Join(rundir, "gluster", pidfilename)
 
 	return b.pidfilepath
 }
