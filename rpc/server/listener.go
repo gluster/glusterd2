@@ -8,9 +8,14 @@ import (
 	"google.golang.org/grpc"
 )
 
+var (
+	server *grpc.Server
+)
+
 // StartListener is to register all the services and start listening on them
+// TODO: This should be able to listen on multiple listeners
 func StartListener() error {
-	server := grpc.NewServer()
+	server = grpc.NewServer()
 	registerServices(server)
 
 	listenAddr := config.GetString("rpcaddress")
@@ -34,4 +39,9 @@ func StartListener() error {
 
 	go server.Serve(l)
 	return nil
+}
+
+// StopServer stops the server
+func StopServer() {
+	server.GracefulStop()
 }
