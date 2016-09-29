@@ -10,7 +10,7 @@ type Service interface {
 	// RegisterService should register available gRPC Services with the given Server
 	// For eg.
 	// 	type SomeSvc int
-	// 	func (svc *SomeSvc) RegisterServive(s *grpc.Server) {
+	// 	func (svc *SomeSvc) RegisterService(s *grpc.Server) {
 	// 		RegisterSomeSvcServer(s, svc)
 	// 	}
 	RegisterService(s *grpc.Server)
