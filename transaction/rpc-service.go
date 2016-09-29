@@ -27,24 +27,28 @@ func (p *txnSvc) RunStep(rpcCtx context.Context, req *TxnStepReq) (*TxnStepResp,
 		return nil, err
 	}
 
-	ctx.Logger().WithField("stepfunc", req.StepFunc).Debug("RunStep request recieved")
+	logger := ctx.Logger().WithField("stepfunc", req.StepFunc)
+	logger.Debug("RunStep request recieved")
 
 	f, ok := GetStepFunc(req.StepFunc)
 	if !ok {
-		log.WithField("stepfunc", req.StepFunc).Error("step function not found in registry")
+		logger.Error("step function not found in registry")
 		return nil, errors.New("step function not found")
 	}
 
-	ctx.Logger().WithField("stepfunc", req.StepFunc).Debug("running step")
+	logger.Debug("running step")
 
 	resp := new(TxnStepResp)
 
+	// Execute the step function, build and return result
 	err = f(&ctx)
 	if err != nil {
+		logger.WithError(err).Debug("step function failed")
 		resp.Error = err.Error()
 	} else {
 		b, err := json.Marshal(ctx)
 		if err != nil {
+			logger.WithError(err).Debug("failed to JSON marshal transcation context")
 			resp.Error = err.Error()
 		} else {
 			resp.Resp = b
