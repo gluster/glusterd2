@@ -213,12 +213,21 @@ func (v *Volinfo) String() string {
 func (v *Volinfo) Nodes() []uuid.UUID {
 	var nodes []uuid.UUID
 
+	// This shouldn't be very inefficient for small slices.
+	var present bool
 	for _, b := range v.Bricks {
-		// This is a BUG. nodes[] should be a set (like in python)
-		// to avoid duplicates. Although not in production, there
-		// can be multiple bricks on the same machine and this will
-		// result nodes being added multiple times to the list.
-		nodes = append(nodes, b.ID)
+		// Add node to the slice only if it isn't present already
+		present = false
+		for _, n := range nodes {
+			if uuid.Equal(b.ID, n) == true {
+				present = true
+				break
+			}
+		}
+
+		if present == false {
+			nodes = append(nodes, b.ID)
+		}
 	}
 	return nodes
 }
