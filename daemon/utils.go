@@ -11,6 +11,7 @@ import (
 	"github.com/gluster/glusterd2/errors"
 )
 
+// WritePidToFile function writes pid to the file specified by path.
 func WritePidToFile(pid int, path string) error {
 	pidFileDir := filepath.Dir(path)
 
@@ -28,6 +29,8 @@ func WritePidToFile(pid int, path string) error {
 	return nil
 }
 
+// ReadPidFromFile function reads pid from file specified by path and
+// returns it.
 func ReadPidFromFile(path string) (int, error) {
 
 	content, err := ioutil.ReadFile(path)
@@ -43,6 +46,8 @@ func ReadPidFromFile(path string) (int, error) {
 	return pid, nil
 }
 
+// GetProcess function returns an instance of os.Process if the process
+// specified by the pid is running.
 func GetProcess(pid int) (*os.Process, error) {
 
 	process, err := os.FindProcess(pid)

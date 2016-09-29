@@ -18,23 +18,25 @@ type Daemon interface {
 	// used for logging.
 	Name() string
 
-	// Absolute path to the binary/executable of the daemon.
+	// Path should return absolute path to the binary/executable of
+	// the daemon.
 	Path() string
 
-	// Arguments to be passed to the binary during spawn.
+	// Args should return the arguments to be passed to the binary
+	// during spawn.
 	Args() string
 
-	// Absolute path to the socket file which will be used for
-	// inter process communication using Unix domain socket.
-	// Please ensure that this function is deterministic i.e
+	// SocketFile should return the absolute path to the socket file which
+	// will be used for inter process communication using Unix domain
+	// socket. Please ensure that this function is deterministic i.e
 	// it returns the same socket file path for same set of input
 	// states.
 	SocketFile() string
 
-	// Absolute path to the pid file. This will be used by the daemon
-	// framework to send signals (like SIGTERM/SIGKILL) to the process.
-	// For now, it is the responsibility of the process to create the
-	// pid file.
+	// PidFile should return path to the pid file. This will be used by
+	// the daemon framework to send signals (like SIGTERM/SIGKILL) to the
+	// process. For now, it is the responsibility of the process to create
+	// the pid file.
 	PidFile() string
 }
 
