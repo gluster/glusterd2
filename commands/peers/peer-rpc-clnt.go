@@ -19,28 +19,34 @@ var (
 // ValidateAddPeer is the validation function for AddPeer to invoke the rpc
 // server call
 func ValidateAddPeer(args *PeerAddReq) (*PeerAddResp, error) {
-	rsp := new(PeerAddResp)
 	remoteAddress := fmt.Sprintf("%s:%s", args.Name, config.GetString("rpcport"))
 	rpcConn, e := grpc.Dial(remoteAddress, grpc.WithInsecure())
 	if e != nil {
-		log.WithField("error", e).Error("net.Dial() call failed")
-		opRet = -1
-		opError = e.Error()
-		rsp.OpRet = opRet
-		rsp.OpError = opError
+		log.WithFields(log.Fields{
+			"error":  e,
+			"remote": remoteAddress,
+		}).Error("failed net.Dial")
+		rsp := &PeerAddResp{
+			OpRet:   -1,
+			OpError: e.Error(),
+		}
 		return rsp, e
 	}
 	defer rpcConn.Close()
 
 	client := NewPeerServiceClient(rpcConn)
 
-	rsp, e = client.ValidateAdd(netctx.TODO(), args)
+	rsp, e := client.ValidateAdd(netctx.TODO(), args)
 	if e != nil {
-		log.Error("Failed to execute PeerService.ValidateAdd() rpc call")
-		opRet = -1
-		opError = e.Error()
-		rsp.OpRet = opRet
-		rsp.OpError = opError
+		log.WithFields(log.Fields{
+			"error":  e,
+			"rpc":    "PeerService.ValidateAdd",
+			"remote": remoteAddress,
+		}).Error("failed RPC call")
+		rsp := &PeerAddResp{
+			OpRet:   -1,
+			OpError: e.Error(),
+		}
 		return rsp, e
 	}
 	return rsp, nil
@@ -51,28 +57,34 @@ func ValidateAddPeer(args *PeerAddReq) (*PeerAddResp, error) {
 func ValidateDeletePeer(id string, name string) (*PeerGenericResp, error) {
 	args := &PeerDeleteReq{ID: id}
 
-	rsp := new(PeerGenericResp)
 	remoteAddress := fmt.Sprintf("%s:%s", name, config.GetString("rpcport"))
 	rpcConn, e := grpc.Dial(remoteAddress, grpc.WithInsecure())
 	if e != nil {
-		log.WithField("error", e).Error("net.Dial() call failed")
-		opRet = -1
-		opError = e.Error()
-		rsp.OpRet = opRet
-		rsp.OpError = opError
+		log.WithFields(log.Fields{
+			"error":  e,
+			"remote": remoteAddress,
+		}).Error("failed net.Dial")
+		rsp := &PeerGenericResp{
+			OpRet:   -1,
+			OpError: e.Error(),
+		}
 		return rsp, e
 	}
 	defer rpcConn.Close()
 
 	client := NewPeerServiceClient(rpcConn)
 
-	rsp, e = client.ValidateDelete(netctx.TODO(), args)
+	rsp, e := client.ValidateDelete(netctx.TODO(), args)
 	if e != nil {
-		log.Error("Failed to execute PeerService.ValidateDelete() rpc call")
-		opRet = -1
-		opError = e.Error()
-		rsp.OpRet = opRet
-		rsp.OpError = opError
+		log.WithFields(log.Fields{
+			"error":  e,
+			"rpc":    "PeerService.ValidateDelete",
+			"remote": remoteAddress,
+		}).Error("failed RPC call")
+		rsp := &PeerGenericResp{
+			OpRet:   -1,
+			OpError: e.Error(),
+		}
 		return rsp, e
 	}
 	return rsp, nil
@@ -89,29 +101,34 @@ func ConfigureRemoteETCD(p *peer.ETCDConfig) (*PeerGenericResp, error) {
 		Client:         p.Client,
 	}
 
-	rsp := new(PeerGenericResp)
-
 	remoteAddress := fmt.Sprintf("%s:%s", p.PeerName, config.GetString("rpcport"))
 	rpcConn, e := grpc.Dial(remoteAddress, grpc.WithInsecure())
 	if e != nil {
-		log.WithField("error", e).Error("net.Dial() call failed")
-		opRet = -1
-		opError = e.Error()
-		rsp.OpRet = opRet
-		rsp.OpError = opError
+		log.WithFields(log.Fields{
+			"error":  e,
+			"remote": remoteAddress,
+		}).Error("failed net.Dial")
+		rsp := &PeerGenericResp{
+			OpRet:   -1,
+			OpError: e.Error(),
+		}
 		return rsp, e
 	}
 	defer rpcConn.Close()
 
 	client := NewPeerServiceClient(rpcConn)
 
-	rsp, e = client.ExportAndStoreETCDConfig(netctx.TODO(), args)
+	rsp, e := client.ExportAndStoreETCDConfig(netctx.TODO(), args)
 	if e != nil {
-		log.Error("Failed to execute PeerService.ExportAndStoreEtcdConfig() rpc call")
-		opRet = -1
-		opError = e.Error()
-		rsp.OpRet = opRet
-		rsp.OpError = opError
+		log.WithFields(log.Fields{
+			"error":  e,
+			"rpc":    "PeerService.ExportAndStoreETCDConfig",
+			"remote": remoteAddress,
+		}).Error("failed RPC call")
+		rsp := &PeerGenericResp{
+			OpRet:   -1,
+			OpError: e.Error(),
+		}
 		return rsp, e
 	}
 	return rsp, nil
