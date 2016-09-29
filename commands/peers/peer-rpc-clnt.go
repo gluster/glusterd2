@@ -25,7 +25,7 @@ func ValidateAddPeer(args *PeerAddReq) (*PeerAddResp, error) {
 		log.WithFields(log.Fields{
 			"error":  e,
 			"remote": remoteAddress,
-		}).Error("failed net.Dial")
+		}).Error("failed to grpc.Dial remote")
 		rsp := &PeerAddResp{
 			OpRet:   -1,
 			OpError: e.Error(),
@@ -63,7 +63,7 @@ func ValidateDeletePeer(id string, name string) (*PeerGenericResp, error) {
 		log.WithFields(log.Fields{
 			"error":  e,
 			"remote": remoteAddress,
-		}).Error("failed net.Dial")
+		}).Error("failed to grpc.Dial remote")
 		rsp := &PeerGenericResp{
 			OpRet:   -1,
 			OpError: e.Error(),
@@ -107,7 +107,7 @@ func ConfigureRemoteETCD(p *peer.ETCDConfig) (*PeerGenericResp, error) {
 		log.WithFields(log.Fields{
 			"error":  e,
 			"remote": remoteAddress,
-		}).Error("failed net.Dial")
+		}).Error("failed to grpc.Dial remote")
 		rsp := &PeerGenericResp{
 			OpRet:   -1,
 			OpError: e.Error(),
