@@ -10,15 +10,50 @@ import (
 	log "github.com/Sirupsen/logrus"
 )
 
+// Daemon interface should be implemented by individual daemons which wants
+// glusterd to manage the lifecycle of the daemon.
 type Daemon interface {
-	Name() string       // Name of daemon
-	Path() string       // absolute path to the binary
-	Args() string       // args to pass to binary during start
-	SocketFile() string // path to socket file to connect to
-	PidFile() string    // path to pidfile
+
+	// Name should return the name of the daemon. This will be primarily
+	// used for logging.
+	Name() string
+
+	// Path should return absolute path to the binary/executable of
+	// the daemon.
+	Path() string
+
+	// Args should return the arguments to be passed to the binary
+	// during spawn.
+	Args() string
+
+	// SocketFile should return the absolute path to the socket file which
+	// will be used for inter process communication using Unix domain
+	// socket. Please ensure that this function is deterministic i.e
+	// it returns the same socket file path for same set of input
+	// states.
+	SocketFile() string
+
+	// PidFile should return path to the pid file. This will be used by
+	// the daemon framework to send signals (like SIGTERM/SIGKILL) to the
+	// process. For now, it is the responsibility of the process to create
+	// the pid file.
+	PidFile() string
 }
 
+// Start function starts the daemon located at path returned by Path() with
+// args returned by Args() function. If the pidfile to the daemon exists, the
+// contents are read to determine if the daemon is already running. If it
+// is already running, errors.ErrProcessAlreadyRunning is returned.
+// When wait == true, this function can be used to spawn short term processes
+// which will be waited on for completion before this function returns.
 func Start(d Daemon, wait bool) error {
+
+	log.WithFields(log.Fields{
+		"name": d.Name(),
+		"path": d.Path(),
+		"args": d.Args(),
+	}).Debug("Starting daemon.")
+
 	cmd := exec.Command(d.Path(), d.Args())
 	err := cmd.Start()
 	if err != nil {
@@ -42,16 +77,17 @@ func Start(d Daemon, wait bool) error {
 	}
 
 	log.WithFields(log.Fields{
-		"name":       d.Name(),
-		"args":       d.Args(),
-		"pid":        cmd.Process.Pid,
-		"pidfile":    d.PidFile(),
-		"socketfile": d.SocketFile(),
+		"name": d.Name(),
+		"pid":  cmd.Process.Pid,
 	}).Debug("Started daemon successfully")
 
 	return nil
 }
 
+// Stop function reads the PID from path returned by PidFile() and can
+// terminate the process gracefully or forcefully.
+// When force == false, a SIGTERM signal is sent to the daemon.
+// When force == true, a SIGKILL signal is sent to the daemon.
 func Stop(d Daemon, force bool) error {
 
 	// It is assumed that the process d has written to pidfile
@@ -65,6 +101,11 @@ func Stop(d Daemon, force bool) error {
 		return err
 	}
 
+	log.WithFields(log.Fields{
+		"name": d.Name(),
+		"pid":  pid,
+	}).Debug("Stopping daemon.")
+
 	if force == true {
 		err = process.Kill()
 	} else {
@@ -75,7 +116,9 @@ func Stop(d Daemon, force bool) error {
 	_ = os.Remove(d.PidFile())
 
 	if err != nil {
-		// TODO: log
+		log.WithFields(log.Fields{
+			"pid": pid,
+		}).Error("Stopping daemon failed.")
 	}
 
 	return nil
