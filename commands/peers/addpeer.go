@@ -19,7 +19,7 @@ import (
 )
 
 func addPeerHandler(w http.ResponseWriter, r *http.Request) {
-	var req peer.PeerAddRequest
+	var req PeerAddReq
 	if e := utils.GetJSONFromRequest(r, &req); e != nil {
 		rest.SendHTTPError(w, http.StatusBadRequest, e.Error())
 		return

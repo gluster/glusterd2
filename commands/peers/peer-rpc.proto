@@ -4,6 +4,7 @@ package peercommands;
 message PeerAddReq {
   string Name = 1;
   repeated string Addresses = 2;
+  bool Client = 3;
 }
 
 message PeerAddResp {
