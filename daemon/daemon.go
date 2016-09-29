@@ -10,9 +10,12 @@ import (
 	log "github.com/Sirupsen/logrus"
 )
 
+// Daemon interface should be implemented by individual daemons which wants
+// glusterd to manage the lifecycle of the daemon.
 type Daemon interface {
 
-	// Name of the daemon. This will be primarily used for logging.
+	// Name should return the name of the daemon. This will be primarily
+	// used for logging.
 	Name() string
 
 	// Absolute path to the binary/executable of the daemon.
@@ -35,9 +38,9 @@ type Daemon interface {
 	PidFile() string
 }
 
-// Starts the daemon located at path returned by Path() with args returned
-// by Args() function. If the pidfile to the daemon exists, the contents
-// are read to determine if the daemon is already running. If the daemon
+// Start function starts the daemon located at path returned by Path() with
+// args returned by Args() function. If the pidfile to the daemon exists, the
+// contents are read to determine if the daemon is already running. If it
 // is already running, errors.ErrProcessAlreadyRunning is returned.
 // When wait == true, this function can be used to spawn short term processes
 // which will be waited on for completion before this function returns.
@@ -79,7 +82,7 @@ func Start(d Daemon, wait bool) error {
 	return nil
 }
 
-// This function reads the PID from path returned by PidFile() and can
+// Stop function reads the PID from path returned by PidFile() and can
 // terminate the process gracefully or forcefully.
 // When force == false, a SIGTERM signal is sent to the daemon.
 // When force == true, a SIGKILL signal is sent to the daemon.
