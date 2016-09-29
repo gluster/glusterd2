@@ -6,6 +6,7 @@ import (
 	"net/http"
 	"testing"
 
+	"github.com/gluster/glusterd2/brick"
 	gderrors "github.com/gluster/glusterd2/errors"
 	"github.com/gluster/glusterd2/peer"
 	"github.com/gluster/glusterd2/tests"
@@ -63,7 +64,7 @@ func TestCreateVolinfo(t *testing.T) {
 	tests.Assert(t, e == nil && vol != nil)
 
 	// Mock failure in NewBrickEntries(), createVolume() should fail
-	defer heketitests.Patch(&volume.NewBrickEntriesFunc, func(bricks []string) ([]volume.Brickinfo, error) {
+	defer heketitests.Patch(&volume.NewBrickEntriesFunc, func(bricks []string) ([]brick.Brickinfo, error) {
 		return nil, errBad
 	}).Restore()
 	vol, e = createVolinfo(msg)
@@ -83,7 +84,7 @@ func TestValidateVolumeCreate(t *testing.T) {
 	defer heketitests.Patch(&volume.ExistsFunc, func(name string) bool {
 		return false
 	}).Restore()
-	defer heketitests.Patch(&volume.ValidateBrickEntriesFunc, func(bricks []volume.Brickinfo, volID uuid.UUID, force bool) (int, error) {
+	defer heketitests.Patch(&volume.ValidateBrickEntriesFunc, func(bricks []brick.Brickinfo, volID uuid.UUID, force bool) (int, error) {
 		return 0, nil
 	}).Restore()
 	defer heketitests.Patch(&peer.GetPeerIDByAddrF, peer.GetPeerIDByAddrMockGood).Restore()
@@ -103,7 +104,7 @@ func TestValidateVolumeCreate(t *testing.T) {
 		return false
 	}).Restore()
 
-	defer heketitests.Patch(&volume.ValidateBrickEntriesFunc, func(bricks []volume.Brickinfo, volID uuid.UUID, force bool) (int, error) {
+	defer heketitests.Patch(&volume.ValidateBrickEntriesFunc, func(bricks []brick.Brickinfo, volID uuid.UUID, force bool) (int, error) {
 		return 0, errBad
 	}).Restore()
 	e = validateVolumeCreate(c)

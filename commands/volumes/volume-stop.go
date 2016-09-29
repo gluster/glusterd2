@@ -3,6 +3,8 @@ package volumecommands
 import (
 	"net/http"
 
+	"github.com/gluster/glusterd2/brick"
+	"github.com/gluster/glusterd2/daemon"
 	"github.com/gluster/glusterd2/errors"
 	"github.com/gluster/glusterd2/gdctx"
 	"github.com/gluster/glusterd2/rest"
@@ -34,13 +36,22 @@ func stopBricks(c transaction.TxnCtx) error {
 		return e
 	}
 
-	for _, brick := range vol.Bricks {
-		if uuid.Equal(brick.ID, gdctx.MyUUID) {
+	for _, b := range vol.Bricks {
+		if uuid.Equal(b.ID, gdctx.MyUUID) {
 			c.Logger().WithFields(log.Fields{
 				"volume": volname,
-				"brick":  brick.Hostname + ":" + brick.Path,
+				"brick":  b.Hostname + ":" + b.Path,
 			}).Info("would stop brick")
-			//TODO: Stop running brick processes once the daemon management package is ready
+
+			brickDaemon, err := brick.NewDaemon(vol.Name, b)
+			if err != nil {
+				return err
+			}
+
+			err = daemon.Stop(brickDaemon, false)
+			if err != nil {
+				return err
+			}
 		}
 	}
 	return nil

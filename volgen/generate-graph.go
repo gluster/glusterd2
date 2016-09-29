@@ -5,6 +5,7 @@ package volgen
 import (
 	"fmt"
 
+	"github.com/gluster/glusterd2/brick"
 	"github.com/gluster/glusterd2/errors"
 	"github.com/gluster/glusterd2/volume"
 )
@@ -41,7 +42,7 @@ func graphAddAsRoot(graph *Xlator, vinfo *volume.Volinfo, gtype string) error {
 	return nil
 }
 
-func addGraphClientLink(cnode *Xlator, vtype string, name string, brick volume.Brickinfo) {
+func addGraphClientLink(cnode *Xlator, vtype string, name string, b brick.Brickinfo) {
 	node := new(Xlator)
 
 	node.Options = make(map[string]string)
@@ -51,8 +52,8 @@ func addGraphClientLink(cnode *Xlator, vtype string, name string, brick volume.B
 
 	// Add options to client subgraph
 	node.Options["transport-type"] = "tcp"
-	node.Options["remote-subvolume"] = brick.Path
-	node.Options["remote-host"] = brick.Hostname
+	node.Options["remote-subvolume"] = b.Path
+	node.Options["remote-host"] = b.Hostname
 	node.Options["ping-timeout"] = "42"
 
 	cnode.Children = append(cnode.Children, *node)
@@ -89,9 +90,9 @@ func graphBuildClient(vinfo *volume.Volinfo) *Xlator {
 		cnode.Type = svtype
 	default:
 		// As of now if no volume type given then generate plane distribute volume graph
-		for i, brick := range vinfo.Bricks {
+		for i, b := range vinfo.Bricks {
 			name := fmt.Sprintf("%v-client-%v", vinfo.Name, i)
-			addGraphClientLink(cnode, "protocol/client", name, brick)
+			addGraphClientLink(cnode, "protocol/client", name, b)
 			i++
 		}
 

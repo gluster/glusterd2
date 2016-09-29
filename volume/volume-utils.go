@@ -3,6 +3,7 @@ package volume
 import (
 	"os"
 
+	"github.com/gluster/glusterd2/brick"
 	"github.com/gluster/glusterd2/errors"
 	"github.com/gluster/glusterd2/utils"
 
@@ -15,19 +16,19 @@ var (
 
 // RemoveBrickPaths is to clean up the bricks in case commit fails for volume
 // create
-func RemoveBrickPaths(bricks []Brickinfo) error {
+func RemoveBrickPaths(bricks []brick.Brickinfo) error {
 	var e error
-	for _, brick := range bricks {
-		local, err := utils.IsLocalAddress(brick.Hostname)
+	for _, b := range bricks {
+		local, err := utils.IsLocalAddress(b.Hostname)
 		if err != nil || local == false {
 			continue
 		}
-		err = os.Remove(brick.Path)
+		err = os.Remove(b.Path)
 		if err != nil {
 			e := err
 			log.WithFields(log.Fields{"error": e.Error(),
-				"brickPath": brick.Path,
-				"host":      brick.Hostname}).Error("Failed to remove directory")
+				"brickPath": b.Path,
+				"host":      b.Hostname}).Error("Failed to remove directory")
 		}
 	}
 	return e
