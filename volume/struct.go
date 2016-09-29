@@ -7,6 +7,7 @@ import (
 	"net/http"
 	"path/filepath"
 
+	"github.com/gluster/glusterd2/brick"
 	"github.com/gluster/glusterd2/errors"
 	"github.com/gluster/glusterd2/gdctx"
 	"github.com/gluster/glusterd2/peer"
@@ -79,7 +80,7 @@ type Volinfo struct {
 
 	Checksum uint64
 	Version  uint64
-	Bricks   []Brickinfo
+	Bricks   []brick.Brickinfo
 }
 
 // VolCreateRequest defines the parameters for creating a volume in the volume-create command
@@ -94,13 +95,6 @@ type VolCreateRequest struct {
 	RedundancyCount uint16   `json:"redundancycount,omitempty"`
 	Bricks          []string `json:"bricks"`
 	Force           bool     `json:"force,omitempty"`
-}
-
-// Brickinfo represents the information of a brick
-type Brickinfo struct {
-	Hostname string
-	Path     string
-	ID       uuid.UUID
 }
 
 // NewVolinfo returns an empty Volinfo
@@ -138,65 +132,65 @@ func NewVolumeEntry(req *VolCreateRequest) (*Volinfo, error) {
 }
 
 // NewBrickEntries creates the brick list
-func NewBrickEntries(bricks []string) ([]Brickinfo, error) {
-	var brickInfos []Brickinfo
-	var b Brickinfo
+func NewBrickEntries(bricks []string) ([]brick.Brickinfo, error) {
+	var brickInfos []brick.Brickinfo
+	var binfo brick.Brickinfo
 	var e error
-	for _, brick := range bricks {
-		hostname, path, err := utils.ParseHostAndBrickPath(brick)
+	for _, b := range bricks {
+		hostname, path, err := utils.ParseHostAndBrickPath(b)
 		if err != nil {
 			return nil, err
 		}
-		b.Hostname = hostname
-		b.Path, e = absFilePath(path)
+		binfo.Hostname = hostname
+		binfo.Path, e = absFilePath(path)
 		if e != nil {
 			log.Error("Failed to convert the brickpath to absolute path")
 			return nil, e
 		}
-		b.ID, e = peer.GetPeerIDByAddrF(hostname)
+		binfo.ID, e = peer.GetPeerIDByAddrF(hostname)
 		if e != nil {
 			return nil, e
 		}
 
-		brickInfos = append(brickInfos, b)
+		brickInfos = append(brickInfos, binfo)
 	}
 	return brickInfos, nil
 }
 
 // ValidateBrickEntries validates the brick list
-func ValidateBrickEntries(bricks []Brickinfo, volID uuid.UUID, force bool) (int, error) {
+func ValidateBrickEntries(bricks []brick.Brickinfo, volID uuid.UUID, force bool) (int, error) {
 
-	for _, brick := range bricks {
-		if !uuid.Equal(brick.ID, gdctx.MyUUID) {
+	for _, b := range bricks {
+		if !uuid.Equal(b.ID, gdctx.MyUUID) {
 			continue
 		}
 
-		local, err := utils.IsLocalAddress(brick.Hostname)
+		local, err := utils.IsLocalAddress(b.Hostname)
 		if err != nil {
-			log.WithField("Host", brick.Hostname).Error(err.Error())
+			log.WithField("Host", b.Hostname).Error(err.Error())
 			return http.StatusInternalServerError, err
 		}
 		if local == false {
-			log.WithField("Host", brick.Hostname).Error("Host is not local")
+			log.WithField("Host", b.Hostname).Error("Host is not local")
 			return http.StatusBadRequest, errors.ErrBrickNotLocal
 		}
-		err = utils.ValidateBrickPathLength(brick.Path)
+		err = utils.ValidateBrickPathLength(b.Path)
 		if err != nil {
 			return http.StatusBadRequest, err
 		}
-		err = utils.ValidateBrickSubDirLength(brick.Path)
+		err = utils.ValidateBrickSubDirLength(b.Path)
 		if err != nil {
 			return http.StatusBadRequest, err
 		}
-		err = isBrickPathAvailable(brick.Hostname, brick.Path)
+		err = isBrickPathAvailable(b.Hostname, b.Path)
 		if err != nil {
 			return http.StatusBadRequest, err
 		}
-		err = validateBrickPathStatsFunc(brick.Path, brick.Hostname, force)
+		err = validateBrickPathStatsFunc(b.Path, b.Hostname, force)
 		if err != nil {
 			return http.StatusBadRequest, err
 		}
-		err = utils.ValidateXattrSupport(brick.Path, brick.Hostname, volID, force)
+		err = utils.ValidateXattrSupport(b.Path, b.Hostname, volID, force)
 		if err != nil {
 			return http.StatusBadRequest, err
 		}
@@ -219,8 +213,21 @@ func (v *Volinfo) String() string {
 func (v *Volinfo) Nodes() []uuid.UUID {
 	var nodes []uuid.UUID
 
+	// This shouldn't be very inefficient for small slices.
+	var present bool
 	for _, b := range v.Bricks {
-		nodes = append(nodes, b.ID)
+		// Add node to the slice only if it isn't present already
+		present = false
+		for _, n := range nodes {
+			if uuid.Equal(b.ID, n) == true {
+				present = true
+				break
+			}
+		}
+
+		if present == false {
+			nodes = append(nodes, b.ID)
+		}
 	}
 	return nodes
 }
