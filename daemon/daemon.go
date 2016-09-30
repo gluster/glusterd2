@@ -54,18 +54,6 @@ func Start(d Daemon, wait bool) error {
 		"args": d.Args(),
 	}).Debug("Starting daemon.")
 
-	cmd := exec.Command(d.Path(), d.Args())
-	err := cmd.Start()
-	if err != nil {
-		return err
-	}
-
-	if wait == true {
-		// Wait for the process to exit
-		err = cmd.Wait()
-		return err
-	}
-
 	// Check if pidfile exists
 	pid, err := ReadPidFromFile(d.PidFile())
 	if err == nil {
@@ -74,6 +62,39 @@ func Start(d Daemon, wait bool) error {
 		if err == nil {
 			return errors.ErrProcessAlreadyRunning
 		}
+	}
+
+	cmd := exec.Command(d.Path(), d.Args())
+	err = cmd.Start()
+	if err != nil {
+		return err
+	}
+
+	if wait == true {
+		// Wait for the process to exit
+		err = cmd.Wait()
+		return err
+	} else {
+		// If the process exits at some point later, do read it's
+		// exit status. This should not let it be a zombie.
+		done := make(chan error, 1)
+		go func() {
+			done <- cmd.Wait()
+			err := <-done
+			log.WithFields(log.Fields{
+				"name":   d.Name(),
+				"pid":    cmd.Process.Pid,
+				"status": err,
+			}).Debug("Daemon died.")
+		}()
+	}
+
+	// Check if the daemon is running
+	// TODO: Need some form of waiting period or timeout here before
+	// returning success. The process may die shortly after spawn.
+	_, err = GetProcess(pid)
+	if err != nil {
+		return err
 	}
 
 	log.WithFields(log.Fields{
