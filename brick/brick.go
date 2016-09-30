@@ -56,13 +56,14 @@ func (b *Brick) Args() string {
 
 	brickPathWithoutSlashes := strings.Trim(strings.Replace(b.brickinfo.Path, "/", "-", -1), "-")
 	logFile := path.Join(config.GetString("logdir"), "glusterfs", "bricks", fmt.Sprintf("%s.log", brickPathWithoutSlashes))
-	volFileId := fmt.Sprintf("%s.%s.%s", b.volName, b.brickinfo.Hostname, brickPathWithoutSlashes)
 	//TODO: For now, getting next available port. Use portmap ?
 	brickPort := strconv.Itoa(GetNextAvailableFreePort())
+	//TODO: Passing volfile directly for now.
+	//Change this once we have volfile fetch support in GD2.
+	volfile := utils.GetBrickVolFilePath(b.volName, b.brickinfo.Hostname, b.brickinfo.Path)
 
 	var buffer bytes.Buffer
-	buffer.WriteString(fmt.Sprintf(" -s %s", b.brickinfo.Hostname))
-	buffer.WriteString(fmt.Sprintf(" --volfile-id %s", volFileId))
+	buffer.WriteString(fmt.Sprintf(" -f %s", volfile))
 	buffer.WriteString(fmt.Sprintf(" -p %s", b.PidFile()))
 	buffer.WriteString(fmt.Sprintf(" -S %s", b.SocketFile()))
 	buffer.WriteString(fmt.Sprintf(" --brick-name %s", b.brickinfo.Path))
