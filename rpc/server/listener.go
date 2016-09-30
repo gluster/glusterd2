@@ -2,19 +2,27 @@ package server
 
 import (
 	"net"
-	"net/rpc"
-
-	"github.com/gluster/glusterd2/rpc/services"
 
 	log "github.com/Sirupsen/logrus"
-	"github.com/kshlm/pbrpc/pbcodec"
 	config "github.com/spf13/viper"
+	"google.golang.org/grpc"
+	"google.golang.org/grpc/grpclog"
 )
 
+var (
+	server *grpc.Server
+)
+
+func init() {
+	// The GD2 logger for gRPC
+	grpclog.SetLogger(log.StandardLogger().WithField("module", "gRPC"))
+}
+
 // StartListener is to register all the services and start listening on them
+// TODO: This should be able to listen on multiple listeners
 func StartListener() error {
-	server := rpc.NewServer()
-	services.RegisterServices(server)
+	server = grpc.NewServer()
+	registerServices(server)
 
 	listenAddr := config.GetString("rpcaddress")
 
@@ -26,16 +34,20 @@ func StartListener() error {
 		log.WithField("ip:port", listenAddr).Info("Registered RPC Listener")
 	}
 
-	go func() {
-		for {
-			c, e := l.Accept()
-			if e != nil {
-				log.WithField("error", e).Info("Accept failed")
-				continue
-			}
-			log.WithField("Connection", c.RemoteAddr()).Info("New incoming connection")
-			go server.ServeCodec(pbcodec.NewServerCodec(c))
+	for s, si := range server.GetServiceInfo() {
+		for _, m := range si.Methods {
+			log.WithFields(log.Fields{
+				"service": s,
+				"method":  m,
+			}).Debug("registered gRPC method")
 		}
-	}()
+	}
+
+	go server.Serve(l)
 	return nil
+}
+
+// StopServer stops the server
+func StopServer() {
+	server.GracefulStop()
 }

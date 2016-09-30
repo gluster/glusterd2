@@ -1,11 +1,17 @@
+syntax = "proto3";
+
 package transaction;
 
 message TxnStepReq {
-  required string StepFunc = 1;
-  required bytes Context = 2;
+  string StepFunc = 1;
+  bytes Context = 2; // Context JSON encoded TxnCtx
 }
 
 message TxnStepResp {
-  required string Error = 1;
-  required bytes Resp = 2;
+  string Error = 1;
+  bytes Resp = 2; // Resp is JSON encoded TxnCtx
+}
+
+service TxnSvc {
+  rpc RunStep(TxnStepReq) returns(TxnStepResp) {}
 }

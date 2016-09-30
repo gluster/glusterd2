@@ -80,6 +80,7 @@ func main() {
 			case os.Interrupt:
 				log.WithField("signal", s).Info("Recieved SIGTERM. Stopping GlusterD.")
 				gdctx.Rest.Stop()
+				server.StopServer()
 				log.Info("Termintaing GlusterD.")
 				os.Exit(0)
 
