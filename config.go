@@ -47,7 +47,7 @@ func setDefaults() {
 
 	wd := config.GetString("workdir")
 	if wd == "" {
-		config.SetDefault("rundir", cwd)
+		config.SetDefault("workdir", cwd)
 		wd = cwd
 	}
 
