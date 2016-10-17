@@ -9,9 +9,9 @@ Vagrant.configure("2") do |config|
         d.name = "gd2-#{i}"
         d.has_ssh = true
         d.remains_running = true
-        d.volumes = [ENV["GOPATH"]+':/home/vagrant/go']
+        d.volumes = [ENV["GOPATH"]+':/go']
         d.create_args = ['--privileged']
-        # Use the below only if you have dnsdock setup. Change the domain (dev.docker) to match your setup
+        # Use the below only if you have dnsdock setup
         d.create_args += ['--dns', '172.17.0.1']
       end
     end
