@@ -8,3 +8,6 @@ vendor/
 _builds/
 _steps/
 _projects/
+# Ignore build and release directories
+build/
+releases/
