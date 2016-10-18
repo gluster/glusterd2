@@ -1,7 +1,7 @@
-VERSION := $(shell bash ./scripts/pkg-version --full)
-LDFLAGS := '-X github.com/gluster/glusterd2/gdctx.GlusterdVersion=$(VERSION)'
+GOPATH := $(shell go env GOPATH)
+GOBIN := '$(GOPATH)/bin'
 
-.PHONY: all build check check-go check-reqs install vendor-update verify
+.PHONY: all build check check-go check-reqs install vendor-update verify glusterd2 release check-protoc
 
 all: build
 
@@ -22,15 +22,13 @@ check-reqs:
 	@echo
 
 glusterd2:
-	@echo Building GlusterD-2.0
-	@GO15VENDOREXPERIMENT=1 go build -ldflags $(LDFLAGS)
+	@./scripts/build.sh
 	@echo
 
-install: check vendor-update
-	@echo Building and installing GlusterD-2.0
-	@GO15VENDOREXPERIMENT=1 go install -ldflags $(LDFLAGS)
+install: check-go check-reqs vendor-update
+	@./scripts/build.sh $(GOBIN)
 	@echo Setting CAP_SYS_ADMIN for glusterd2 \(requires sudo\)
-	sudo setcap cap_sys_admin+ep $$GOPATH/bin/glusterd2
+	sudo setcap cap_sys_admin+ep $(GOBIN)/glusterd2
 	@echo
 
 vendor-update:
@@ -43,3 +41,6 @@ verify: check-reqs
 
 test:
 	@GO15VENDOREXPERIMENT=1 go test $$(GO15VENDOREXPERIMENT=1 glide nv)
+
+release: check-go check-reqs vendor-update
+	@./scripts/release.sh
