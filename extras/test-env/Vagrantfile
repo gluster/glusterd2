@@ -1,0 +1,16 @@
+# This only works if you have a single GOPATH
+#
+Vagrant.configure("2") do |config|
+  (1..4).each do |i|
+    config.vm.define "gd2test-#{i}" do |arch|
+      arch.vm.hostname = "gd2test-#{i}"
+      arch.vm.provider "docker" do |d|
+        d.image = 'gluster/glusterd2-test:latest'
+        d.name = "gd2test-#{i}"
+        d.has_ssh = true
+        d.remains_running = true
+        d.create_args = ['--privileged']
+      end
+    end
+  end
+end
