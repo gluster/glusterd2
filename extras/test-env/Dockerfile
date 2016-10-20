@@ -1,4 +1,4 @@
-FROM kshlm/glusterd2-dev:centos-latest
+FROM gluster/glusterd2-dev:latest
 
 MAINTAINER Kaushal M <kshlmster@gmail.com>
 
