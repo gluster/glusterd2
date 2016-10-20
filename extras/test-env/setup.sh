@@ -2,9 +2,9 @@
 set -x -e
 TMP=$(mktemp -d)
 
-VERSION=v4.0dev-2
-ARCHIVE=glusterd2-${VERSION}-linux-amd64.tar.xz
-URL=https://github.com/gluster/glusterd2/releases/download/${VERSION}/${ARCHIVE}
+# GD2_VERSION will be set as an ENV variable form the Dockerfile
+ARCHIVE=glusterd2-${GD2_VERSION}-linux-amd64.tar.xz
+URL=https://github.com/gluster/glusterd2/releases/download/${GD2_VERSION}/${ARCHIVE}
 
 curl -o ${TMP}/${ARCHIVE} -L $URL
 tar -C /usr/sbin --xz -xf ${TMP}/${ARCHIVE}
