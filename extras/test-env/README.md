@@ -7,9 +7,9 @@ A 'Vagrantfile' is provided which makes use of this docker image to setup a test
 
 A trusted build 'gluster/glusterd2-test' is available from the Docker hub.
 
-To build the image on your own, run the following from this directory
+To build the image on your own, run the build script from this directory
 ```
-$ docker build -t gluster/glusterd2-test:latest .
+$ ./build.sh
 ```
 
 The image has GD2 installed at `/usr/sbin/glusterd2`.

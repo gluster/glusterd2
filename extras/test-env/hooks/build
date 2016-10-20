@@ -1,0 +1,7 @@
+#!/usr/bin/env bash
+
+## Used to give a custom build command for Docker Hub.
+## Refer https://github.com/docker/hub-feedback/issues/508 for more information
+
+echo Running build hook script
+./build.sh
