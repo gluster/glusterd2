@@ -1,0 +1,5 @@
+#!/usr/bin/env bash
+
+# Also push the latest tag
+LATEST="$(echo $IMAGE_NAME | cut -d: -f1):latest"
+docker push $LATEST
