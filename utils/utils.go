@@ -30,10 +30,14 @@ const (
 )
 
 var (
-	PathMax     = unix.PathMax
+	// PathMax calls unix.PathMax
+	PathMax = unix.PathMax
+	// Removexattr calls unix.Removexattr
 	Removexattr = unix.Removexattr
-	Setxattr    = unix.Setxattr
-	Getxattr    = unix.Getxattr
+	// Setxattr calls unix.Setxattr
+	Setxattr = unix.Setxattr
+	// Getxattr calls unix.Getxattr
+	Getxattr = unix.Getxattr
 )
 
 //PosixPathMax represents C's POSIX_PATH_MAX
@@ -43,8 +47,8 @@ const PosixPathMax = C._POSIX_PATH_MAX
 // Does lookup only after string matching IP addresses
 func IsLocalAddress(host string) (bool, error) {
 
-	local_names := []string{"127.0.0.1", "localhost", "::1"}
-	for _, name := range local_names {
+	localNames := []string{"127.0.0.1", "localhost", "::1"}
+	for _, name := range localNames {
 		if host == name {
 			return true, nil
 		}
@@ -333,7 +337,7 @@ func InitDir(dir string) {
 	defer t.Close()
 }
 
-// Function to check whether the process with given pid exist or not in the system
+// CheckProcessExist will check whether the process with given pid exist or not in the system
 func CheckProcessExist(pid int) bool {
 	out, err := exec.Command("kill", "-s", "0", strconv.Itoa(pid)).CombinedOutput()
 	if err != nil {
@@ -345,7 +349,7 @@ func CheckProcessExist(pid int) bool {
 	return false
 }
 
-// GetLocalIP() function will give local IP address of this node
+// GetLocalIP will give local IP address of this node
 func GetLocalIP() (string, error) {
 	addrs, err := net.InterfaceAddrs()
 	if err != nil {

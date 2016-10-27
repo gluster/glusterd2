@@ -28,6 +28,7 @@ type Brickinfo struct {
 	ID       uuid.UUID
 }
 
+// Brick type represents information about the brick daemon
 type Brick struct {
 	// Externally consumable using methods of Daemon interface
 	binarypath     string
@@ -41,14 +42,17 @@ type Brick struct {
 	port      int
 }
 
+// Name returns human-friendly name of the brick process. This is used for logging.
 func (b *Brick) Name() string {
 	return "glusterfsd"
 }
 
+// Path returns absolute path to the binary of brick process
 func (b *Brick) Path() string {
 	return b.binarypath
 }
 
+// Args returns arguments to be passed to brick process during spawn.
 func (b *Brick) Args() string {
 	if b.args != "" {
 		return b.args
@@ -76,6 +80,7 @@ func (b *Brick) Args() string {
 	return b.args
 }
 
+// SocketFile returns path to the brick socket file used for IPC.
 func (b *Brick) SocketFile() string {
 
 	if b.socketfilepath != "" {
@@ -93,13 +98,14 @@ func (b *Brick) SocketFile() string {
 
 	// Then md5sum of the above path shall be the name of socket file.
 	// Example: /var/run/gluster/<md5sum-hash>.socket
-	checksum_data := []byte(fakeSockFilePath)
+	checksumData := []byte(fakeSockFilePath)
 	glusterdSockDir := path.Join(config.GetString("rundir"), "gluster")
-	b.socketfilepath = fmt.Sprintf("%s/%x.socket", glusterdSockDir, md5.Sum(checksum_data))
+	b.socketfilepath = fmt.Sprintf("%s/%x.socket", glusterdSockDir, md5.Sum(checksumData))
 
 	return b.socketfilepath
 }
 
+// PidFile returns path to the pid file of the brick process
 func (b *Brick) PidFile() string {
 
 	if b.pidfilepath != "" {
@@ -114,7 +120,7 @@ func (b *Brick) PidFile() string {
 	return b.pidfilepath
 }
 
-// Returns a new instance of Brick type which implements the Daemon interface
+// NewDaemon returns a new instance of Brick type which implements the Daemon interface
 func NewDaemon(volName string, binfo Brickinfo) (*Brick, error) {
 	brickObject := &Brick{binarypath: glusterfsd, brickinfo: binfo, volName: volName}
 	return brickObject, nil

@@ -74,18 +74,17 @@ func Start(d Daemon, wait bool) error {
 		// Wait for the process to exit
 		err = cmd.Wait()
 		return err
-	} else {
-		// If the process exits at some point later, do read it's
-		// exit status. This should not let it be a zombie.
-		go func() {
-			err := cmd.Wait()
-			log.WithFields(log.Fields{
-				"name":   d.Name(),
-				"pid":    cmd.Process.Pid,
-				"status": err,
-			}).Debug("Daemon died.")
-		}()
 	}
+	// If the process exits at some point later, do read it's
+	// exit status. This should not let it be a zombie.
+	go func() {
+		err := cmd.Wait()
+		log.WithFields(log.Fields{
+			"name":   d.Name(),
+			"pid":    cmd.Process.Pid,
+			"status": err,
+		}).Debug("Daemon died.")
+	}()
 
 	// Check if the daemon is running
 	// TODO: Need some form of waiting period or timeout here before

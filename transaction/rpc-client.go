@@ -13,6 +13,7 @@ import (
 	"google.golang.org/grpc"
 )
 
+// RunStepOn will run the step on the specified node
 func RunStepOn(step string, node uuid.UUID, c TxnCtx) (TxnCtx, error) {
 	// TODO: I'm creating connections on demand. This should be changed so that
 	// we have long term connections.
