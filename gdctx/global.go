@@ -71,12 +71,11 @@ func doInit() {
 
 	Rest = rest.New()
 
-	if Restart == true {
-		InitStore(false)
-	} else {
-		// If it's a fresh install or standalone cluster.
-		InitStore(true)
-	}
+	// When glusterd is started for the first time, we will have Restart set to
+	// false. That is when we'll have to initialize prefixes by passing true to
+	// InitStore(). On subsequent restarts of glusterd, we would want to skip
+	// initializing prefixes by passing false to InitStore()
+	InitStore(!Restart)
 
 	// Initializing etcd client
 	err := initETCDClient()

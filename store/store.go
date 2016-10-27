@@ -53,10 +53,11 @@ func (s *GDStore) InitPrefix(p string) error {
 	if _, e := s.Get(p); e != nil {
 		switch e {
 		case store.ErrKeyNotFound:
+			log.WithField("prefix", p).Debug("Prefix not found.")
 			if e := s.Put(p, nil, &store.WriteOptions{IsDir: true}); e != nil {
 				return e
 			} else {
-				log.WithField("prefix", p).Debug("Prefix not found. Created prefix.")
+				log.WithField("prefix", p).Debug("Created prefix.")
 			}
 
 		default:

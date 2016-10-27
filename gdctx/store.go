@@ -22,7 +22,7 @@ func RegisterStorePrefix(prefix string) {
 func InitStore(initPrefix bool) {
 	Store = store.New()
 
-	if initPrefix == true {
+	if initPrefix {
 
 		if e := Store.InitPrefix(store.GlusterPrefix); e != nil {
 			log.WithFields(log.Fields{
