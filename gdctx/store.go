@@ -1,6 +1,10 @@
 package gdctx
 
-import "github.com/gluster/glusterd2/store"
+import (
+	"github.com/gluster/glusterd2/store"
+
+	log "github.com/Sirupsen/logrus"
+)
 
 // If someone needs to use the GD2 store, all they need to do is just import context and use context.Store
 var (
@@ -15,14 +19,25 @@ func RegisterStorePrefix(prefix string) {
 }
 
 // InitStore is to initialize the store
-func initStore() {
-	Store = store.New(Restart)
+func InitStore(initPrefix bool) {
+	Store = store.New()
 
-	// If its a fresh install and GlusterD is coming up for the first time
-	// then initialize the store prefix, otherwise not
-	if Restart == false {
+	if initPrefix == true {
+
+		if e := Store.InitPrefix(store.GlusterPrefix); e != nil {
+			log.WithFields(log.Fields{
+				"prefix": store.GlusterPrefix,
+				"error":  e,
+			}).Error("InitPrefix failed.")
+		}
+
 		for _, prefix := range prefixes {
-			Store.InitPrefix(prefix)
+			if e := Store.InitPrefix(prefix); e != nil {
+				log.WithFields(log.Fields{
+					"prefix": prefix,
+					"error":  e,
+				}).Error("InitPrefix failed.")
+			}
 		}
 	}
 }

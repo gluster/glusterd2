@@ -71,7 +71,12 @@ func doInit() {
 
 	Rest = rest.New()
 
-	initStore()
+	if Restart == true {
+		InitStore(false)
+	} else {
+		// If it's a fresh install or standalone cluster.
+		InitStore(true)
+	}
 
 	// Initializing etcd client
 	err := initETCDClient()
