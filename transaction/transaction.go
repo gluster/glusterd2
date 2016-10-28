@@ -10,7 +10,7 @@ import (
 )
 
 const (
-	txnPrefix = store.GlusterPrefix + "/transaction/"
+	txnPrefix = store.GlusterPrefix + "transaction/"
 )
 
 func init() {
