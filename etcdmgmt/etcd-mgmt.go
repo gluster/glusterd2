@@ -331,17 +331,32 @@ func StartStandAloneETCD() (*os.Process, error) {
 
 // StopETCD() will Stop etcd process on the node
 func StopETCD(etcdCtx *os.Process) error {
+
 	err := etcdCtx.Kill()
 	if err != nil {
-		log.Error("Could not able to kill etcd daemon")
+		log.Error("Could not kill etcd daemon.")
 		return err
 	}
+
 	_, err = etcdCtx.Wait()
 	if err != nil {
-		log.Error("Could not able to kill etcd daemon")
+		log.Error("Could not kill etcd daemon.")
 		return err
 	}
-	log.Debug("Stopped a running etcd instance")
+
+	err = os.Remove(etcdPidFile)
+	if err != nil {
+		log.WithFields(log.Fields{
+			"pidfile": etcdPidFile,
+			"error":   err,
+		}).Error("Error deleting etcd pidfile.")
+		return err
+	}
+
+	log.WithFields(log.Fields{
+		"pid": etcdCtx.Pid,
+	}).Info("Stopped a running etcd instance.")
+
 	return nil
 }
 

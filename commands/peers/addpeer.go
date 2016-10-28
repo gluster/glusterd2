@@ -19,6 +19,10 @@ import (
 )
 
 func addPeerHandler(w http.ResponseWriter, r *http.Request) {
+
+	// FIXME: This is not txn based, yet. Behaviour when multiple simultaneous
+	// add peer requests are sent to same node is unknown.
+
 	var req PeerAddReq
 	if e := utils.GetJSONFromRequest(r, &req); e != nil {
 		rest.SendHTTPError(w, http.StatusBadRequest, e.Error())

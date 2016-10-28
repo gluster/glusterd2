@@ -23,4 +23,5 @@ type ETCDConfig struct {
 	InitialCluster string
 	ClusterState   string
 	Client         bool
+	DeletePeer     bool
 }
