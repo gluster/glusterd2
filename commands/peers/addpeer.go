@@ -34,16 +34,16 @@ func addPeerHandler(w http.ResponseWriter, r *http.Request) {
 		req.Name = req.Addresses[0]
 	}
 
-	local_node := false
+	localNode := false
 	for _, addr := range req.Addresses {
 		local, _ := utils.IsLocalAddress(addr)
 		if local == true {
-			local_node = true
+			localNode = true
 			break
 		}
 	}
 
-	if local_node == true {
+	if localNode == true {
 		rest.SendHTTPError(w, http.StatusInternalServerError, errors.ErrPeerLocalNode.Error())
 		return
 	}
