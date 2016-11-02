@@ -33,7 +33,7 @@ var (
 	etcdConfFile = etcdConfDir + "etcdenv.conf"
 )
 
-// ValidateAdd will checks all validation for AddPeer at server side
+// ValidateAdd validates AddPeer operation at server side
 func (p *PeerService) ValidateAdd(nc netctx.Context, args *PeerAddReq) (*PeerAddResp, error) {
 	var opRet int32
 	var opError string
@@ -62,7 +62,7 @@ func (p *PeerService) ValidateAdd(nc netctx.Context, args *PeerAddReq) (*PeerAdd
 	return reply, nil
 }
 
-// ValidateDelete will checks all validation for DeletePeer at server side
+// ValidateDelete validates DeletePeer operation at server side
 func (p *PeerService) ValidateDelete(nc netctx.Context, args *PeerDeleteReq) (*PeerGenericResp, error) {
 	var opRet int32
 	var opError string
