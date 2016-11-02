@@ -3,12 +3,11 @@ package peercommands
 import (
 	"net/http"
 
-	"github.com/gluster/glusterd2/gdctx"
+	"github.com/gluster/glusterd2/etcdmgmt"
 	"github.com/gluster/glusterd2/peer"
 	"github.com/gluster/glusterd2/rest"
 
 	log "github.com/Sirupsen/logrus"
-	etcdclient "github.com/coreos/etcd/client"
 	etcdcontext "golang.org/x/net/context"
 
 	"github.com/gorilla/mux"
@@ -36,8 +35,7 @@ func deletePeerHandler(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 	// Delete member from etcd cluster
-	c := gdctx.EtcdClient
-	mAPI := etcdclient.NewMembersAPI(c)
+	mAPI := etcdmgmt.GetEtcdMembersAPI()
 	e = mAPI.Remove(etcdcontext.Background(), p.MemberID)
 	if e != nil {
 		log.WithFields(log.Fields{

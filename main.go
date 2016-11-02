@@ -53,9 +53,15 @@ func main() {
 	if err != nil {
 		log.WithField("Error", err).Fatal("Could not able to start etcd")
 	}
+	gdctx.EtcdProcessCtx = etcdCtx
 
 	gdctx.Init()
-	gdctx.EtcdProcessCtx = etcdCtx
+
+	// Initialize etcd client
+	err = etcdmgmt.InitEtcdClient("http://" + gdctx.HostIP + ":2379")
+	if err != nil {
+		log.WithField("err", err).Fatal("Failed to initialize etcd client")
+	}
 
 	for _, c := range commands.Commands {
 		gdctx.Rest.SetRoutes(c.Routes())
