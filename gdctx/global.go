@@ -25,6 +25,7 @@ const (
 )
 
 var (
+	// GlusterdVersion is the version of the glusterd daemon
 	GlusterdVersion = "4.0-dev"
 )
 

@@ -11,6 +11,7 @@ import (
 )
 
 var (
+	// GenerateVolfileFunc will do all task from graph generation to volfile generation
 	GenerateVolfileFunc = GenerateVolfile
 )
 
