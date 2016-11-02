@@ -20,7 +20,7 @@ func AddSelfDetails() {
 	}
 
 	for _, memb := range mlist {
-		for _, _ = range memb.PeerURLs {
+		for _ = range memb.PeerURLs {
 			if memb.Name == "default" {
 				memberID = memb.ID
 				break

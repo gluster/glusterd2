@@ -5,15 +5,13 @@ package volgen
 import (
 	"fmt"
 	"os"
-	"path"
-	"strings"
 
+	"github.com/gluster/glusterd2/utils"
 	"github.com/gluster/glusterd2/volume"
-
-	config "github.com/spf13/viper"
 )
 
 var (
+	// GenerateVolfileFunc will do all task from graph generation to volfile generation
 	GenerateVolfileFunc = GenerateVolfile
 )
 
@@ -42,11 +40,14 @@ func GenerateVolfile(vinfo *volume.Volinfo) error {
 	for _, b := range vinfo.Bricks {
 		sgraph := GenerateGraph(vinfo, "SERVER")
 
-		//Generate volfile for server
-		err = getServerFilePath(vinfo, &cpath, b)
+		vdir := utils.GetVolumeDir(vinfo.Name)
+		err := os.MkdirAll(vdir, os.ModeDir|os.ModePerm)
 		if err != nil {
 			return err
 		}
+
+		// Get brick volfile path
+		cpath = utils.GetBrickVolFilePath(vinfo.Name, b.Hostname, b.Path)
 
 		f, err = os.Create(cpath)
 		if err != nil {
@@ -59,28 +60,9 @@ func GenerateVolfile(vinfo *volume.Volinfo) error {
 	return nil
 }
 
-func getVolumeDir(vinfo *volume.Volinfo, dir *string) {
-	*dir = path.Join(config.GetString("localstatedir"), "vols", vinfo.Name)
-}
-
-func getServerFilePath(vinfo *volume.Volinfo, path *string, brickinfo volume.Brickinfo) error {
-	var vdir string
-	getVolumeDir(vinfo, &vdir)
-
-	hname := brickinfo.Hostname
-	// Create volume directory (/var/lib/glusterd/vols/<VOLNAME>)
-	err := os.MkdirAll(vdir, os.ModeDir|os.ModePerm)
-	if err != nil {
-		return err
-	}
-
-	*path = fmt.Sprintf("%s/%s.%s.%s.vol", vdir, vinfo.Name, hname, strings.Replace(brickinfo.Path, "/", "-", -1))
-	return nil
-}
-
+// Fix this: Move it to utils and make it return string
 func getClientFilePath(vinfo *volume.Volinfo, path *string) error {
-	var vdir string
-	getVolumeDir(vinfo, &vdir)
+	vdir := utils.GetVolumeDir(vinfo.Name)
 
 	// Create volume directory (/var/lib/glusterd/vols/<VOLNAME>)
 	err := os.MkdirAll(vdir, os.ModeDir|os.ModePerm)
@@ -102,7 +84,7 @@ func DeleteVolfile(vol *volume.Volinfo) error {
 	_ = os.Remove(path)
 
 	for _, b := range vol.Bricks {
-		_ = getServerFilePath(vol, &path, b)
+		path := utils.GetBrickVolFilePath(vol.Name, b.Hostname, b.Path)
 		_ = os.Remove(path)
 	}
 	return nil

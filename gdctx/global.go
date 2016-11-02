@@ -25,6 +25,7 @@ const (
 )
 
 var (
+	// GlusterdVersion is the version of the glusterd daemon
 	GlusterdVersion = "4.0-dev"
 )
 
@@ -71,7 +72,11 @@ func doInit() {
 
 	Rest = rest.New()
 
-	initStore()
+	// When glusterd is started for the first time, we will have Restart set to
+	// false. That is when we'll have to initialize prefixes by passing true to
+	// InitStore(). On subsequent restarts of glusterd, we would want to skip
+	// initializing prefixes by passing false to InitStore()
+	InitStore(!Restart)
 
 	// Initializing etcd client
 	err := initETCDClient()

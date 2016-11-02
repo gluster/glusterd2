@@ -19,10 +19,15 @@ const (
 )
 
 var (
-	GetPeerF         = GetPeer
-	GetPeersF        = GetPeers
-	GetPeerByAddrF   = GetPeerByAddr
-	GetPeerByNameF   = GetPeerByName
+	// GetPeerF returns specified peer from the store
+	GetPeerF = GetPeer
+	// GetPeersF returns all available peers in the store
+	GetPeersF = GetPeers
+	//GetPeerByAddrF returns the peer with the given address from the store
+	GetPeerByAddrF = GetPeerByAddr
+	// GetPeerByNameF returns the peer with the given name from store
+	GetPeerByNameF = GetPeerByName
+	//GetPeerIDByAddrF returns the ID of the peer with the given address
 	GetPeerIDByAddrF = GetPeerIDByAddr
 )
 
@@ -60,8 +65,7 @@ func GetPeer(id string) (*Peer, error) {
 	return &p, nil
 }
 
-// GetInitialCluster() form and returns the etcd initial cluster value in a
-// string
+// GetInitialCluster forms and returns the etcd initial cluster value as a string
 func GetInitialCluster() (string, error) {
 	var initialCluster string
 	peers, err := GetPeersF()
@@ -179,8 +183,7 @@ func GetPeerIDByAddr(addr string) (uuid.UUID, error) {
 	p, e := GetPeerByAddrF(addr)
 	if e != nil {
 		return nil, errors.ErrPeerNotFound
-	} else {
-		return p.ID, nil
 	}
+	return p.ID, nil
 
 }

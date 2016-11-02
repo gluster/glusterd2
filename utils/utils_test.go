@@ -97,25 +97,25 @@ func TestValidateXattrSupport(t *testing.T) {
 	tests.Assert(t, ValidateXattrSupport("/tmp/b1", "localhost", uuid.NewRandom(), true) == nil)
 
 	// Some negative tests
-	var xattr_err error
+	var xattrErr error
 	baderror := errors.New("Bad")
-	xattr_err = baderror
+	xattrErr = baderror
 
 	// Now check what happens when setxattr fails
 	defer heketitests.Patch(&Setxattr, func(path string, attr string, data []byte, flags int) (err error) {
-		return xattr_err
+		return xattrErr
 	}).Restore()
 	tests.Assert(t, ValidateXattrSupport("/tmp/b1", "localhost", uuid.NewRandom(), true) == baderror)
 
 	// Now check what happens when getxattr fails
 	defer heketitests.Patch(&Getxattr, func(path string, attr string, dest []byte) (sz int, err error) {
-		return 0, xattr_err
+		return 0, xattrErr
 	}).Restore()
 	tests.Assert(t, ValidateXattrSupport("/tmp/b1", "localhost", uuid.NewRandom(), true) == baderror)
 
 	// Now check what happens when removexattr fails
 	defer heketitests.Patch(&Removexattr, func(path string, attr string) (err error) {
-		return xattr_err
+		return xattrErr
 	}).Restore()
 	tests.Assert(t, ValidateXattrSupport("/tmp/b1", "localhost", uuid.NewRandom(), true) == baderror)
 

@@ -61,7 +61,7 @@ func main() {
 
 	// Store self information in the store if GlusterD is coming up for
 	// first time
-	if gdctx.Restart == false {
+	if gdctx.Restart {
 		peer.AddSelfDetails()
 	}
 
@@ -80,6 +80,7 @@ func main() {
 			case os.Interrupt:
 				log.WithField("signal", s).Info("Recieved SIGTERM. Stopping GlusterD.")
 				gdctx.Rest.Stop()
+				server.StopServer()
 				log.Info("Termintaing GlusterD.")
 				os.Exit(0)
 

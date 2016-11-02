@@ -1,4 +1,4 @@
-package services
+package peercommands
 
 import (
 	"fmt"
@@ -7,63 +7,75 @@ import (
 	"github.com/gluster/glusterd2/etcdmgmt"
 	"github.com/gluster/glusterd2/gdctx"
 	"github.com/gluster/glusterd2/peer"
+	"github.com/gluster/glusterd2/rpc/server"
 	"github.com/gluster/glusterd2/utils"
 	"github.com/gluster/glusterd2/volume"
 
 	log "github.com/Sirupsen/logrus"
+	netctx "golang.org/x/net/context"
+	"google.golang.org/grpc"
 )
 
 type PeerService int
 
+func init() {
+	server.Register(new(PeerService))
+}
+
+func (p *PeerService) RegisterService(s *grpc.Server) {
+	RegisterPeerServiceServer(s, p)
+}
+
 var (
-	opRet        int32
-	opError      string
-	uuid         string
 	etcdConfDir  = "/var/lib/glusterd/"
 	etcdConfFile = etcdConfDir + "etcdenv.conf"
 )
 
 // ValidateAdd() will checks all validation for AddPeer at server side
-func (p *PeerService) ValidateAdd(args *RPCPeerAddReq, reply *RPCPeerAddResp) error {
-	opRet = 0
-	opError = ""
-	uuid = gdctx.MyUUID.String()
+func (p *PeerService) ValidateAdd(nc netctx.Context, args *PeerAddReq) (*PeerAddResp, error) {
+	var opRet int32
+	var opError string
+	uuid := gdctx.MyUUID.String()
 
 	if gdctx.MaxOpVersion < 40000 {
 		opRet = -1
-		opError = fmt.Sprintf("GlusterD instance running on %s is not compatible", *args.Name)
+		opError = fmt.Sprintf("GlusterD instance running on %s is not compatible", args.Name)
 	}
 	peers, _ := peer.GetPeersF()
 	if len(peers) != 0 {
 		opRet = -1
-		opError = fmt.Sprintf("Peer %s is already part of another cluster", *args.Name)
+		opError = fmt.Sprintf("Peer %s is already part of another cluster", args.Name)
 	}
 	volumes, _ := volume.GetVolumes()
 	if len(volumes) != 0 {
 		opRet = -1
-		opError = fmt.Sprintf("Peer %s already has existing volumes", *args.Name)
+		opError = fmt.Sprintf("Peer %s already has existing volumes", args.Name)
 	}
 
-	reply.OpRet = &opRet
-	reply.OpError = &opError
-	reply.UUID = &uuid
-	return nil
+	reply := &PeerAddResp{
+		OpRet:   opRet,
+		OpError: opError,
+		UUID:    uuid,
+	}
+	return reply, nil
 }
 
 // ValidateDelete() will checks all validation for DeletePeer at server side
-func (p *PeerService) ValidateDelete(args *RPCPeerDeleteReq, reply *RPCPeerGenericResp) error {
-	opRet = 0
-	opError = ""
+func (p *PeerService) ValidateDelete(nc netctx.Context, args *PeerDeleteReq) (*PeerGenericResp, error) {
+	var opRet int32
+	var opError string
 	// TODO : Validate if this guy has any volume configured where the brick(s) is
 	// hosted in some other node, in that case the validation should fail
 
-	reply.OpRet = &opRet
-	reply.OpError = &opError
-	return nil
+	reply := &PeerGenericResp{
+		OpRet:   opRet,
+		OpError: opError,
+	}
+	return reply, nil
 }
 
 // storeETCDEnv() will store etcd environment in etcdenv config file
-func storeETCDEnv(env *RPCEtcdConfigReq) error {
+func storeETCDEnv(env *EtcdConfigReq) error {
 	utils.InitDir(etcdmgmt.ETCDConfDir)
 	fp, err := os.OpenFile(etcdmgmt.ETCDEnvFile, os.O_CREATE|os.O_WRONLY, 0666)
 	if err != nil {
@@ -75,32 +87,32 @@ func storeETCDEnv(env *RPCEtcdConfigReq) error {
 	}
 	defer fp.Close()
 
-	if _, err = fp.WriteString("ETCD_NAME=" + *env.Name + "\n"); err != nil {
+	if _, err = fp.WriteString("ETCD_NAME=" + env.Name + "\n"); err != nil {
 		log.WithFields(log.Fields{
 			"error": err,
 			"path":  etcdmgmt.ETCDEnvFile,
 			"key":   "ETCD_NAME",
-			"val":   *env.Name,
+			"val":   env.Name,
 		}).Error("Failed to write Environment variable in to etcd conf file")
 		return err
 	}
 
-	if _, err = fp.WriteString("ETCD_INITIAL_CLUSTER=" + *env.InitialCluster + "\n"); err != nil {
+	if _, err = fp.WriteString("ETCD_INITIAL_CLUSTER=" + env.InitialCluster + "\n"); err != nil {
 		log.WithFields(log.Fields{
 			"error": err,
 			"path":  etcdmgmt.ETCDEnvFile,
 			"key":   "ETCD_INITIAL_CLUSTER",
-			"val":   *env.InitialCluster,
+			"val":   env.InitialCluster,
 		}).Error("Failed to write Environment variable in to etcd conf file")
 		return err
 	}
 
-	if _, err = fp.WriteString("ETCD_INITIAL_CLUSTER_STATE=" + *env.ClusterState + "\n"); err != nil {
+	if _, err = fp.WriteString("ETCD_INITIAL_CLUSTER_STATE=" + env.ClusterState + "\n"); err != nil {
 		log.WithFields(log.Fields{
 			"error": err,
 			"path":  etcdmgmt.ETCDEnvFile,
 			"key":   "ETCD_INITIAL_CLUSTER_STATE",
-			"val":   *env.ClusterState,
+			"val":   env.ClusterState,
 		}).Error("Failed to write Environment variable in to etcd conf file")
 		return err
 	}
@@ -108,7 +120,7 @@ func storeETCDEnv(env *RPCEtcdConfigReq) error {
 }
 
 // storeETCDProxyConf() will store etcd configuration for proxy etcd
-func storeETCDProxyConf(env *RPCEtcdConfigReq) error {
+func storeETCDProxyConf(env *EtcdConfigReq) error {
 	utils.InitDir(etcdmgmt.ETCDConfDir)
 	fp, err := os.OpenFile(etcdmgmt.ETCDProxyFile, os.O_CREATE|os.O_WRONLY, 0666)
 	if err != nil {
@@ -120,12 +132,12 @@ func storeETCDProxyConf(env *RPCEtcdConfigReq) error {
 	}
 	defer fp.Close()
 
-	if _, err = fp.WriteString("ETCD_INITIAL_CLUSTER=" + *env.InitialCluster + "\n"); err != nil {
+	if _, err = fp.WriteString("ETCD_INITIAL_CLUSTER=" + env.InitialCluster + "\n"); err != nil {
 		log.WithFields(log.Fields{
 			"error": err,
 			"path":  etcdmgmt.ETCDProxyFile,
 			"key":   "ETCD_INITIAL_CLUSTER",
-			"val":   *env.InitialCluster,
+			"val":   env.InitialCluster,
 		}).Error("Failed to write configuration in to etcd proxy file")
 		return err
 	}
@@ -134,15 +146,15 @@ func storeETCDProxyConf(env *RPCEtcdConfigReq) error {
 
 // ExportAndStoreETCDConfig() will store & export etcd environment variable along
 // with storing etcd configuration
-func (etcd *PeerService) ExportAndStoreETCDConfig(c *RPCEtcdConfigReq, reply *RPCPeerGenericResp) error {
-	opRet = 0
-	opError = ""
+func (etcd *PeerService) ExportAndStoreETCDConfig(nc netctx.Context, c *EtcdConfigReq) (*PeerGenericResp, error) {
+	var opRet int32
+	var opError string
 
-	if *c.Client == false {
+	if c.Client == false {
 		// Exporting etcd environment variable
-		os.Setenv("ETCD_NAME", *c.Name)
-		os.Setenv("ETCD_INITIAL_CLUSTER", *c.InitialCluster)
-		os.Setenv("ETCD_INITIAL_CLUSTER_STATE", *c.ClusterState)
+		os.Setenv("ETCD_NAME", c.Name)
+		os.Setenv("ETCD_INITIAL_CLUSTER", c.InitialCluster)
+		os.Setenv("ETCD_INITIAL_CLUSTER_STATE", c.ClusterState)
 
 		// Storing etcd envioronment variable in
 		// etcdEnvFile (/var/lib/glusterd/etcdenv.conf) locally. So that upon
@@ -152,7 +164,7 @@ func (etcd *PeerService) ExportAndStoreETCDConfig(c *RPCEtcdConfigReq, reply *RP
 			opRet = -1
 			opError = fmt.Sprintf("Could not able to write etcd configuration")
 			log.WithField("error", err.Error()).Error("Could not able to write etcd configuration")
-			return err
+			return nil, err
 		}
 	} else {
 		err := storeETCDProxyConf(c)
@@ -160,7 +172,7 @@ func (etcd *PeerService) ExportAndStoreETCDConfig(c *RPCEtcdConfigReq, reply *RP
 			opRet = -1
 			opError = fmt.Sprintf("Could not able to write etcd proxy configuration")
 			log.WithField("error", err.Error()).Error("Could not able to write etcd proxy configuration")
-			return err
+			return nil, err
 		}
 	}
 	// Restarting etcd daemon
@@ -172,8 +184,10 @@ func (etcd *PeerService) ExportAndStoreETCDConfig(c *RPCEtcdConfigReq, reply *RP
 	}
 	gdctx.EtcdProcessCtx = etcdCtx
 
-	reply.OpRet = &opRet
-	reply.OpError = &opError
+	reply := &PeerGenericResp{
+		OpRet:   opRet,
+		OpError: opError,
+	}
 
-	return nil
+	return reply, nil
 }

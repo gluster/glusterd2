@@ -78,7 +78,7 @@ func checkETCDHealth(val time.Duration, listenClientUrls string) bool {
 	return true
 }
 
-// StartETCD() is to bring up etcd instance
+// StartETCD will bring up etcd instance
 func StartETCD(args []string) (*os.Process, error) {
 	start, pid := isETCDStartNeeded()
 	if start == false {
@@ -264,7 +264,7 @@ func formETCDArgs() []string {
 	return args
 }
 
-// ETCDStartInit() Check whether etcd environment variable present or not
+// ETCDStartInit checks whether etcd environment variable present or not
 // If it present then start etcd without --initial-cluster flag
 // other wise start etcd normally.
 func ETCDStartInit() (*os.Process, error) {
@@ -313,7 +313,7 @@ func ETCDStartInit() (*os.Process, error) {
 	return nil, err
 }
 
-//StartStandAloneETCD() will Start default etcd by considering single server node
+//StartStandAloneETCD will Start default etcd by considering single server node
 func StartStandAloneETCD() (*os.Process, error) {
 	var args []string
 	if etcdClient == true {
@@ -329,7 +329,7 @@ func StartStandAloneETCD() (*os.Process, error) {
 	return StartETCD(args)
 }
 
-// StopETCD() will Stop etcd process on the node
+// StopETCD will Stop etcd process on the node
 func StopETCD(etcdCtx *os.Process) error {
 	err := etcdCtx.Kill()
 	if err != nil {
@@ -345,7 +345,7 @@ func StopETCD(etcdCtx *os.Process) error {
 	return nil
 }
 
-// ReStartETCD() will restart etcd process
+// ReStartETCD will restart etcd process
 func ReStartETCD() (*os.Process, error) {
 	// Stop etcd process
 	etcdCtx := gdctx.EtcdProcessCtx

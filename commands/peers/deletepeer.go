@@ -6,7 +6,6 @@ import (
 	"github.com/gluster/glusterd2/gdctx"
 	"github.com/gluster/glusterd2/peer"
 	"github.com/gluster/glusterd2/rest"
-	"github.com/gluster/glusterd2/rpc/client"
 
 	log "github.com/Sirupsen/logrus"
 	etcdclient "github.com/coreos/etcd/client"
@@ -31,9 +30,9 @@ func deletePeerHandler(w http.ResponseWriter, r *http.Request) {
 	}
 
 	// Validate whether the peer can be deleted
-	rsp, e := client.ValidateDeletePeer(id, p.Name)
+	rsp, e := ValidateDeletePeer(id, p.Name)
 	if e != nil {
-		rest.SendHTTPError(w, http.StatusInternalServerError, *rsp.OpError)
+		rest.SendHTTPError(w, http.StatusInternalServerError, rsp.OpError)
 		return
 	}
 	// Delete member from etcd cluster

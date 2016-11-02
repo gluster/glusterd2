@@ -12,8 +12,8 @@ import (
 const (
 	defaultLogLevel    = "debug"
 	defaultRestAddress = ":24007"
-	defaultRpcAddress  = ":24008"
-	defaultRpcPort     = 24008
+	defaultRPCAddress  = ":24008"
+	defaultRPCPort     = 24008
 
 	defaultConfName = "glusterd"
 )
@@ -35,7 +35,7 @@ func parseFlags() {
 	flag.String("config", "", "Configuration file for GlusterD. By default looks for glusterd.(yaml|toml|json) in /etc/glusterd and current working directory.")
 	flag.String("loglevel", defaultLogLevel, "Severity of messages to be logged.")
 	flag.String("restaddress", defaultRestAddress, "Address to bind the REST service.")
-	flag.String("rpcaddress", defaultRpcAddress, "Address to bind the RPC service.")
+	flag.String("rpcaddress", defaultRPCAddress, "Address to bind the RPC service.")
 
 	flag.Parse()
 }
@@ -43,11 +43,16 @@ func parseFlags() {
 // setDefaults sets defaults values for config options not available as a flag,
 // and flags which don't have default values
 func setDefaults() {
-	cwd, _ := os.Getwd()
+	cwd, err := os.Getwd()
+	if err != nil {
+		log.WithFields(log.Fields{
+			"error": err,
+		}).Fatal("Failed to get current working directory.")
+	}
 
 	wd := config.GetString("workdir")
 	if wd == "" {
-		config.SetDefault("rundir", cwd)
+		config.SetDefault("workdir", cwd)
 		wd = cwd
 	}
 
@@ -64,7 +69,7 @@ func setDefaults() {
 	}
 
 	// Set the default RpcPort will be used to connect to remote GlusterDs
-	config.SetDefault("rpcport", defaultRpcPort)
+	config.SetDefault("rpcport", defaultRPCPort)
 }
 
 func dumpConfigToLog() {

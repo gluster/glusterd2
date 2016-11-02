@@ -15,7 +15,9 @@ const (
 )
 
 var (
-	ExistsFunc            = Exists
+	//ExistsFunc check whether a given volume exist or not
+	ExistsFunc = Exists
+	// AddOrUpdateVolumeFunc marshals to volume object and passes to store to add/update
 	AddOrUpdateVolumeFunc = AddOrUpdateVolume
 )
 
@@ -60,6 +62,7 @@ func DeleteVolume(name string) error {
 	return gdctx.Store.Delete(volumePrefix + name)
 }
 
+// GetVolumesList returns a map of volume names to their UUIDs
 func GetVolumesList() (map[string]uuid.UUID, error) {
 	pairs, e := gdctx.Store.List(volumePrefix)
 	if e != nil {

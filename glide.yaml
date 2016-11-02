@@ -20,12 +20,12 @@ import:
   subpackages:
   - unix
 - package: gopkg.in/tylerb/graceful.v1
-- package: github.com/kshlm/pbrpc
-  subpackages:
-  - pbcodec
 - package: github.com/heketi/tests
 - package: github.com/spf13/viper
 - package: github.com/spf13/pflag
 - package: github.com/golang/protobuf
   subpackages:
   - proto
+  - protoc-gen-go
+- package: google.golang.org/grpc
+  version: ^1.0.1-GA

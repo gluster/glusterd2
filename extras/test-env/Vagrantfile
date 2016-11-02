@@ -1,0 +1,20 @@
+# This only works if you have a single GOPATH
+#
+Vagrant.configure("2") do |config|
+  (1..4).each do |i|
+    config.vm.define "gd2test-#{i}" do |arch|
+      arch.vm.hostname = "gd2test-#{i}"
+      arch.vm.provider "docker" do |d|
+        # By default uses the latest image.
+        # Change latest to whatever version you want.
+        # Make sure to `docker pull gluster/glusterd2-test` after every release
+        # to get the latest release
+        d.image = 'gluster/glusterd2-test:latest'
+        d.name = "gd2test-#{i}"
+        d.has_ssh = true
+        d.remains_running = true
+        d.create_args = ['--privileged']
+      end
+    end
+  end
+end
