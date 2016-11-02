@@ -12,6 +12,7 @@ const (
 	maxPort = 65535
 )
 
+// IsPortFree returns if the specified port is free or not.
 func IsPortFree(port int) bool {
 	// TODO: Ports can be bound to specific interfaces. This function
 	// should be modified to take a IP/hostname arg as well.
@@ -19,12 +20,12 @@ func IsPortFree(port int) bool {
 	conn, err := net.Listen("tcp", fmt.Sprintf(":%d", port))
 	if err != nil {
 		return false
-	} else {
-		conn.Close()
-		return true
 	}
+	conn.Close()
+	return true
 }
 
+// GetNextAvailableFreePort returns the next available free port in the range minPort to maxPort
 func GetNextAvailableFreePort() int {
 
 	var p int
