@@ -52,7 +52,6 @@ func initOpVersion() {
 
 //initETCDClient will initialize etcd client that will be use during member add/remove in the cluster
 func initETCDClient() error {
-	SetLocalHostIP()
 	c, err := etcdclient.New(etcdclient.Config{Endpoints: []string{"http://" + HostIP + ":2379"}})
 	if err != nil {
 		log.WithField("err", err).Error("Failed to create etcd client")

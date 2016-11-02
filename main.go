@@ -45,6 +45,9 @@ func main() {
 	utils.InitDir(config.GetString("logdir"))
 	gdctx.MyUUID = gdctx.InitMyUUID()
 
+	// Set IP once.
+	gdctx.SetLocalHostIP()
+
 	// Starting etcd daemon upon starting of GlusterD
 	etcdCtx, err := etcdmgmt.ETCDStartInit()
 	if err != nil {

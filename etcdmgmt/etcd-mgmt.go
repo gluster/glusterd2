@@ -203,8 +203,6 @@ func initETCDArgVar() {
 	etcdLogDir = path.Join(config.GetString("logdir"), "etcd")
 	etcdLogFile = path.Join(etcdLogDir, "etcd.log")
 
-	gdctx.SetLocalHostIP()
-
 	listenClientUrls = "http://" + gdctx.HostIP + ":2379"
 	listenClientProxyUrls = listenClientUrls
 	advClientUrls = "http://" + gdctx.HostIP + ":2379"
