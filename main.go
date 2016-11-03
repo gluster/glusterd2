@@ -70,7 +70,7 @@ func main() {
 
 	// Store self information in the store if GlusterD is coming up for
 	// first time
-	if gdctx.Restart {
+	if !gdctx.Restart {
 		peer.AddSelfDetails()
 	}
 
