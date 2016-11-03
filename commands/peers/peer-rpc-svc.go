@@ -3,6 +3,7 @@ package peercommands
 import (
 	"fmt"
 	"os"
+	"path"
 
 	"github.com/gluster/glusterd2/etcdmgmt"
 	"github.com/gluster/glusterd2/gdctx"
@@ -12,16 +13,19 @@ import (
 	"github.com/gluster/glusterd2/volume"
 
 	log "github.com/Sirupsen/logrus"
+	config "github.com/spf13/viper"
 	netctx "golang.org/x/net/context"
 	"google.golang.org/grpc"
 )
 
+// PeerService will be handling client requests on the server side for peer ops
 type PeerService int
 
 func init() {
 	server.Register(new(PeerService))
 }
 
+// RegisterService registers a service
 func (p *PeerService) RegisterService(s *grpc.Server) {
 	RegisterPeerServiceServer(s, p)
 }
@@ -31,7 +35,7 @@ var (
 	etcdConfFile = etcdConfDir + "etcdenv.conf"
 )
 
-// ValidateAdd() will checks all validation for AddPeer at server side
+// ValidateAdd validates AddPeer operation at server side
 func (p *PeerService) ValidateAdd(nc netctx.Context, args *PeerAddReq) (*PeerAddResp, error) {
 	var opRet int32
 	var opError string
@@ -60,7 +64,7 @@ func (p *PeerService) ValidateAdd(nc netctx.Context, args *PeerAddReq) (*PeerAdd
 	return reply, nil
 }
 
-// ValidateDelete() will checks all validation for DeletePeer at server side
+// ValidateDelete validates DeletePeer operation at server side
 func (p *PeerService) ValidateDelete(nc netctx.Context, args *PeerDeleteReq) (*PeerGenericResp, error) {
 	var opRet int32
 	var opError string
@@ -74,7 +78,7 @@ func (p *PeerService) ValidateDelete(nc netctx.Context, args *PeerDeleteReq) (*P
 	return reply, nil
 }
 
-// storeETCDEnv() will store etcd environment in etcdenv config file
+// storeETCDEnv will store etcd environment in etcdenv config file
 func storeETCDEnv(env *EtcdConfigReq) error {
 	utils.InitDir(etcdmgmt.ETCDConfDir)
 	fp, err := os.OpenFile(etcdmgmt.ETCDEnvFile, os.O_CREATE|os.O_WRONLY, 0666)
@@ -119,7 +123,7 @@ func storeETCDEnv(env *EtcdConfigReq) error {
 	return nil
 }
 
-// storeETCDProxyConf() will store etcd configuration for proxy etcd
+// storeETCDProxyConf will store etcd configuration for proxy etcd
 func storeETCDProxyConf(env *EtcdConfigReq) error {
 	utils.InitDir(etcdmgmt.ETCDConfDir)
 	fp, err := os.OpenFile(etcdmgmt.ETCDProxyFile, os.O_CREATE|os.O_WRONLY, 0666)
@@ -144,45 +148,86 @@ func storeETCDProxyConf(env *EtcdConfigReq) error {
 	return nil
 }
 
-// ExportAndStoreETCDConfig() will store & export etcd environment variable along
+// ExportAndStoreETCDConfig will store & export etcd environment variable along
 // with storing etcd configuration
-func (etcd *PeerService) ExportAndStoreETCDConfig(nc netctx.Context, c *EtcdConfigReq) (*PeerGenericResp, error) {
+func (p *PeerService) ExportAndStoreETCDConfig(nc netctx.Context, c *EtcdConfigReq) (*PeerGenericResp, error) {
 	var opRet int32
 	var opError string
 
-	if c.Client == false {
-		// Exporting etcd environment variable
-		os.Setenv("ETCD_NAME", c.Name)
-		os.Setenv("ETCD_INITIAL_CLUSTER", c.InitialCluster)
-		os.Setenv("ETCD_INITIAL_CLUSTER_STATE", c.ClusterState)
+	// TODO: Fix error handling here. In all error cases, we set opRet and
+	// opError. This isn't propagated back to client as peer response.
+	if !c.DeletePeer {
+		if c.Client == false {
+			// Exporting etcd environment variable
+			os.Setenv("ETCD_NAME", c.Name)
+			os.Setenv("ETCD_INITIAL_CLUSTER", c.InitialCluster)
+			os.Setenv("ETCD_INITIAL_CLUSTER_STATE", c.ClusterState)
 
-		// Storing etcd envioronment variable in
-		// etcdEnvFile (/var/lib/glusterd/etcdenv.conf) locally. So that upon
-		// glusterd restart we can restore these environment variable again
-		err := storeETCDEnv(c)
+			// Storing etcd envioronment variable in
+			// etcdEnvFile (/var/lib/glusterd/etcdenv.conf) locally. So that upon
+			// glusterd restart we can restore these environment variable again
+			err := storeETCDEnv(c)
+			if err != nil {
+				opRet = -1
+				opError = fmt.Sprintf("Could not able to write etcd configuration")
+				log.WithField("error", err.Error()).Error("Could not able to write etcd configuration")
+				return nil, err
+			}
+		} else {
+			err := storeETCDProxyConf(c)
+			if err != nil {
+				opRet = -1
+				opError = fmt.Sprintf("Could not able to write etcd proxy configuration")
+				log.WithField("error", err.Error()).Error("Could not able to write etcd proxy configuration")
+				return nil, err
+			}
+		}
+		// Restarting etcd daemon
+		etcdCtx, err := etcdmgmt.ReStartETCD()
 		if err != nil {
 			opRet = -1
-			opError = fmt.Sprintf("Could not able to write etcd configuration")
-			log.WithField("error", err.Error()).Error("Could not able to write etcd configuration")
+			opError = fmt.Sprintf("Could not restart etcd.")
+			log.WithField("error", err.Error()).Error("Could not restart etcd.")
 			return nil, err
 		}
+
+		gdctx.EtcdProcessCtx = etcdCtx
 	} else {
-		err := storeETCDProxyConf(c)
+		// This is a request to reconfigure etcd as part of delete peer
+		etcdCtx := gdctx.EtcdProcessCtx
+		err := etcdmgmt.StopETCD(etcdCtx)
 		if err != nil {
-			opRet = -1
-			opError = fmt.Sprintf("Could not able to write etcd proxy configuration")
-			log.WithField("error", err.Error()).Error("Could not able to write etcd proxy configuration")
+			log.WithField("error", err.Error()).Error("Could not stop etcd daemon.")
 			return nil, err
 		}
+		gdctx.EtcdProcessCtx = nil
+
+		dataDir1 := path.Join(config.GetString("localstatedir"), "ETCD_"+c.Name+".etcd")
+		dataDir2 := path.Join(config.GetString("localstatedir"), "default.etcd")
+		// Remove data dir, conf file and proxy file.
+		thingsToDelete := []string{dataDir1, dataDir2, etcdmgmt.ETCDConfDir}
+		for _, path := range thingsToDelete {
+			log.WithField("path", path).Info("Deleting path.")
+			err = os.RemoveAll(path)
+			if err != nil {
+				return nil, err
+			}
+		}
+
+		// Remove left-over etcd env variables
+		os.Unsetenv("ETCD_NAME")
+		os.Unsetenv("ETCD_INITIAL_CLUSTER")
+		os.Unsetenv("ETCD_INITIAL_CLUSTER_STATE")
+
+		etcdCtx, err = etcdmgmt.ETCDStartInit()
+		if err != nil {
+			return nil, err
+		}
+		gdctx.EtcdProcessCtx = etcdCtx
+
+		gdctx.InitStore(true)
+		peer.AddSelfDetails()
 	}
-	// Restarting etcd daemon
-	etcdCtx, err := etcdmgmt.ReStartETCD()
-	if err != nil {
-		opRet = -1
-		opError = fmt.Sprintf("Could not able to restart etcd at remote node")
-		log.WithField("error", err.Error()).Error("Could not able to restart etcd")
-	}
-	gdctx.EtcdProcessCtx = etcdCtx
 
 	reply := &PeerGenericResp{
 		OpRet:   opRet,

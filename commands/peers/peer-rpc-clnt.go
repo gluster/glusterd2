@@ -99,6 +99,7 @@ func ConfigureRemoteETCD(p *peer.ETCDConfig) (*PeerGenericResp, error) {
 		InitialCluster: p.InitialCluster,
 		ClusterState:   p.ClusterState,
 		Client:         p.Client,
+		DeletePeer:     p.DeletePeer,
 	}
 
 	remoteAddress := fmt.Sprintf("%s:%s", p.PeerName, config.GetString("rpcport"))
