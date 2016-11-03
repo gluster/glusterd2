@@ -30,9 +30,8 @@ func StartListener() error {
 	if e != nil {
 		log.WithField("error", e).Error("net.Listen() error")
 		return e
-	} else {
-		log.WithField("ip:port", listenAddr).Info("Registered RPC Listener")
 	}
+	log.WithField("ip:port", listenAddr).Info("Registered RPC Listener")
 
 	for s, si := range server.GetServiceInfo() {
 		for _, m := range si.Methods {
