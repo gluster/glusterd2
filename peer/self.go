@@ -1,18 +1,17 @@
 package peer
 
 import (
+	"github.com/gluster/glusterd2/etcdmgmt"
 	"github.com/gluster/glusterd2/gdctx"
 
 	log "github.com/Sirupsen/logrus"
-	etcdclient "github.com/coreos/etcd/client"
 	etcdcontext "golang.org/x/net/context"
 )
 
 // AddSelfDetails function adds its own details into the central store
 func AddSelfDetails() {
 	var memberID string
-	c := gdctx.EtcdClient
-	mAPI := etcdclient.NewMembersAPI(c)
+	mAPI := etcdmgmt.GetEtcdMembersAPI()
 
 	mlist, e := mAPI.List(etcdcontext.Background())
 	if e != nil {

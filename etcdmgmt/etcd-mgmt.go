@@ -23,7 +23,7 @@ import (
 // ExecName is to indicate the executable name, useful for mocking in tests
 var (
 	// Indicates whether the etcd instance is proxy or not
-	etcdClient bool
+	etcdProxy bool
 	// arguments used for etcd instance
 	listenClientUrls      string
 	listenClientProxyUrls string
@@ -113,7 +113,7 @@ func StartETCD(args []string) (*os.Process, error) {
 	}
 	// Check the health of node whether etcd have come up properly or not
 	var url string
-	if etcdClient != true {
+	if etcdProxy != true {
 		url = args[1]
 	} else {
 		url = listenClientProxyUrls
@@ -203,8 +203,6 @@ func initETCDArgVar() {
 	etcdLogDir = path.Join(config.GetString("logdir"), "etcd")
 	etcdLogFile = path.Join(etcdLogDir, "etcd.log")
 
-	gdctx.SetLocalHostIP()
-
 	listenClientUrls = "http://" + gdctx.HostIP + ":2379"
 	listenClientProxyUrls = listenClientUrls
 	advClientUrls = "http://" + gdctx.HostIP + ":2379"
@@ -214,7 +212,7 @@ func initETCDArgVar() {
 
 // formETCDArgs constructs the arguments to be passed to etcd binary
 func formETCDArgs() []string {
-	etcdClient = false
+	etcdProxy = false
 	var args []string
 	m := make(map[string]string)
 
@@ -249,9 +247,9 @@ func formETCDArgs() []string {
 		}
 
 		log.Debug("etcd instance will come up with proxy mode")
-		etcdClient = true
+		etcdProxy = true
 	}
-	if etcdClient == true {
+	if etcdProxy == true {
 		args = []string{"-proxy", "on",
 			"-listen-client-urls", listenClientProxyUrls,
 			"-initial-cluster", m["ETCD_INITIAL_CLUSTER"]}
@@ -277,7 +275,7 @@ func ETCDStartInit() (*os.Process, error) {
 			log.Info("Starting/Restarting etcd for a initial node")
 			_, e := os.Stat(ETCDProxyFile)
 			if e == nil {
-				etcdClient = true
+				etcdProxy = true
 			}
 			return StartStandAloneETCD()
 		default:
@@ -316,7 +314,7 @@ func ETCDStartInit() (*os.Process, error) {
 //StartStandAloneETCD will Start default etcd by considering single server node
 func StartStandAloneETCD() (*os.Process, error) {
 	var args []string
-	if etcdClient == true {
+	if etcdProxy == true {
 		args = formETCDArgs()
 	} else {
 		args = []string{"-listen-client-urls", listenClientUrls,
@@ -371,7 +369,7 @@ func ReStartETCD() (*os.Process, error) {
 	}
 	args := formETCDArgs()
 	log.WithField("args", args).Info("Restarting etcd daemon")
-	if etcdClient == true {
+	if etcdProxy == true {
 		log.Info("Removing old etcd configuration")
 		//TODO : this is hardcoded now, with -data-dir coming in this
 		//needs to be configurable

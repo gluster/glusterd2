@@ -45,7 +45,7 @@ install_gometalinter() {
 }
 
 install_etcd() {
-  ETCDVERSION="3.0.8"
+  ETCDVERSION="3.1.0-rc.0"
   ETCDURL="https://github.com/coreos/etcd/releases/download/v${ETCDVERSION}/etcd-v${ETCDVERSION}-linux-amd64.tar.gz"
   type etcd >/dev/null 2>&1
   if [ $? -eq 0 ]; then

@@ -2,7 +2,7 @@ package: github.com/gluster/glusterd2
 import:
 - package: github.com/codegangsta/negroni
 - package: github.com/coreos/etcd
-  version: v3.0.8
+  version: v3.1.0-rc.0
   subpackages:
   - client
 - package: github.com/docker/libkv

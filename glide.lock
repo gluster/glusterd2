@@ -1,10 +1,10 @@
-hash: 78c31a81cf8d4aa9d05bff8041cfdded835006f3bc3cb75e398f86f015abc716
-updated: 2016-09-23T17:33:15.67392395+05:30
+hash: a74c863150928fd0122b7ca617109dbde07e93cba7fad09aa76efe13d950bbf7
+updated: 2016-11-02T14:55:05.491022998+05:30
 imports:
 - name: github.com/codegangsta/negroni
   version: 3f7ce7b928e14ff890b067e5bbbc80af73690a9c
 - name: github.com/coreos/etcd
-  version: d40982fc9160b7471cd832bff34d09e218b12e0e
+  version: 83347907774bf36cbb261c594a32fd7b0f5dd9f6
   subpackages:
   - client
   - pkg/pathutil
@@ -70,25 +70,22 @@ imports:
 - name: github.com/spf13/viper
   version: 16990631d4aa7e38f73dbbbf37fa13e67c648531
 - name: github.com/ugorji/go
-  version: 98ef79d6c615fa258e892ed0b11c6e013712693e
+  version: f1f1a805ed361a0e078bb537e4ea78cd37dcf065
   subpackages:
   - codec
 - name: golang.org/x/crypto
-  version: 81372b2fc2f10bef2a7f338da115c315a56b2726
+  version: 1351f936d976c60a0a48d728281922cf63eafb8d
   subpackages:
-  - curve25519
-  - ed25519
-  - ed25519/internal/edwards25519
+  - bcrypt
+  - blowfish
   - ssh
 - name: golang.org/x/net
-  version: de35ec43e7a9aabd6a9c54d2898220ea7e44de7d
+  version: 6acef71eb69611914f7a30939ea9f6e194c78172
   subpackages:
   - context
   - http2
   - http2/hpack
-  - idna
   - internal/timeseries
-  - lex/httplex
   - trace
 - name: golang.org/x/sys
   version: 30de6d19a3bd89a5f38ae4028e23aaa5582648af
@@ -100,7 +97,7 @@ imports:
   - transform
   - unicode/norm
 - name: google.golang.org/grpc
-  version: 0032a855ba5c8a3c8e0d71c2deef354b70af1584
+  version: b7f1379d3cbbbeb2ca3405852012e237aa05459e
   subpackages:
   - codes
   - credentials
