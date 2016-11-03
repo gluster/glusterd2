@@ -15,6 +15,10 @@ import (
 )
 
 func deletePeerHandler(w http.ResponseWriter, r *http.Request) {
+
+	// FIXME: This is not txn based, yet. Behaviour when multiple simultaneous
+	// delete peer requests are sent to same node is unknown.
+
 	peerReq := mux.Vars(r)
 
 	id := peerReq["peerid"]
@@ -49,7 +53,18 @@ func deletePeerHandler(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	//TODO : Also delete the etcd env from the remote node to be detached?
+	// Remove data dir of etcd on remote machine. Restart etcd on remote machine
+	// in standalone (single cluster) mode.
+	var etcdConf peer.ETCDConfig
+	etcdConf.DeletePeer = true
+	etcdConf.Name = p.Name
+	etcdConf.PeerName = p.Name
+	etcdrsp, e := ConfigureRemoteETCD(&etcdConf)
+	if e != nil {
+		log.WithField("err", e).Error("Failed to configure remote etcd.")
+		rest.SendHTTPError(w, http.StatusInternalServerError, etcdrsp.OpError)
+		return
+	}
 
 	// Remove the peer from the store
 	if e := peer.DeletePeer(id); e != nil {
@@ -61,4 +76,5 @@ func deletePeerHandler(w http.ResponseWriter, r *http.Request) {
 	} else {
 		rest.SendHTTPResponse(w, http.StatusNoContent, nil)
 	}
+
 }

@@ -29,6 +29,7 @@ message EtcdConfigReq {
  string InitialCluster = 3;
  string ClusterState = 4;
  bool Client = 5;
+ bool DeletePeer = 6;
 }
 
 service PeerService {
