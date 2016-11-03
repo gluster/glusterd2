@@ -37,6 +37,7 @@ vendor-update:
 	@echo
 
 verify: check-reqs
+	@./scripts/lint.sh
 	@GO15VENDOREXPERIMENT=1 gometalinter -D gotype -E gofmt --errors --deadline=5m -j 4 $$(GO15VENDOREXPERIMENT=1 glide nv)
 
 test:
