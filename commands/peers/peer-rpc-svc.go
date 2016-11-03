@@ -18,12 +18,14 @@ import (
 	"google.golang.org/grpc"
 )
 
+// PeerService will be handling client requests on the server side for peer ops
 type PeerService int
 
 func init() {
 	server.Register(new(PeerService))
 }
 
+// RegisterService registers a service
 func (p *PeerService) RegisterService(s *grpc.Server) {
 	RegisterPeerServiceServer(s, p)
 }
@@ -33,7 +35,7 @@ var (
 	etcdConfFile = etcdConfDir + "etcdenv.conf"
 )
 
-// ValidateAdd() will checks all validation for AddPeer at server side
+// ValidateAdd validates AddPeer operation at server side
 func (p *PeerService) ValidateAdd(nc netctx.Context, args *PeerAddReq) (*PeerAddResp, error) {
 	var opRet int32
 	var opError string
@@ -62,7 +64,7 @@ func (p *PeerService) ValidateAdd(nc netctx.Context, args *PeerAddReq) (*PeerAdd
 	return reply, nil
 }
 
-// ValidateDelete() will checks all validation for DeletePeer at server side
+// ValidateDelete validates DeletePeer operation at server side
 func (p *PeerService) ValidateDelete(nc netctx.Context, args *PeerDeleteReq) (*PeerGenericResp, error) {
 	var opRet int32
 	var opError string
@@ -76,7 +78,7 @@ func (p *PeerService) ValidateDelete(nc netctx.Context, args *PeerDeleteReq) (*P
 	return reply, nil
 }
 
-// storeETCDEnv() will store etcd environment in etcdenv config file
+// storeETCDEnv will store etcd environment in etcdenv config file
 func storeETCDEnv(env *EtcdConfigReq) error {
 	utils.InitDir(etcdmgmt.ETCDConfDir)
 	fp, err := os.OpenFile(etcdmgmt.ETCDEnvFile, os.O_CREATE|os.O_WRONLY, 0666)
@@ -121,7 +123,7 @@ func storeETCDEnv(env *EtcdConfigReq) error {
 	return nil
 }
 
-// storeETCDProxyConf() will store etcd configuration for proxy etcd
+// storeETCDProxyConf will store etcd configuration for proxy etcd
 func storeETCDProxyConf(env *EtcdConfigReq) error {
 	utils.InitDir(etcdmgmt.ETCDConfDir)
 	fp, err := os.OpenFile(etcdmgmt.ETCDProxyFile, os.O_CREATE|os.O_WRONLY, 0666)
@@ -146,9 +148,9 @@ func storeETCDProxyConf(env *EtcdConfigReq) error {
 	return nil
 }
 
-// ExportAndStoreETCDConfig() will store & export etcd environment variable along
+// ExportAndStoreETCDConfig will store & export etcd environment variable along
 // with storing etcd configuration
-func (etcd *PeerService) ExportAndStoreETCDConfig(nc netctx.Context, c *EtcdConfigReq) (*PeerGenericResp, error) {
+func (p *PeerService) ExportAndStoreETCDConfig(nc netctx.Context, c *EtcdConfigReq) (*PeerGenericResp, error) {
 	var opRet int32
 	var opError string
 
