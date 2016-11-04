@@ -182,6 +182,9 @@ func (p *PeerService) ExportAndStoreETCDConfig(nc netctx.Context, c *EtcdConfigR
 				return nil, err
 			}
 		}
+
+		etcdmgmt.CloseEtcdClient()
+
 		// Restarting etcd daemon
 		etcdCtx, err := etcdmgmt.ReStartETCD()
 		if err != nil {
@@ -190,10 +193,15 @@ func (p *PeerService) ExportAndStoreETCDConfig(nc netctx.Context, c *EtcdConfigR
 			log.WithField("error", err.Error()).Error("Could not restart etcd.")
 			return nil, err
 		}
-
 		gdctx.EtcdProcessCtx = etcdCtx
+
+		// Re-initialize client to talk to the restarted etcd server.
+		etcdmgmt.InitEtcdClient("http://" + gdctx.HostIP + ":2379")
 	} else {
 		// This is a request to reconfigure etcd as part of delete peer
+
+		etcdmgmt.CloseEtcdClient()
+
 		etcdCtx := gdctx.EtcdProcessCtx
 		err := etcdmgmt.StopETCD(etcdCtx)
 		if err != nil {
@@ -225,6 +233,8 @@ func (p *PeerService) ExportAndStoreETCDConfig(nc netctx.Context, c *EtcdConfigR
 		}
 		gdctx.EtcdProcessCtx = etcdCtx
 
+		// Re-initialize client to talk to the restarted etcd server.
+		etcdmgmt.InitEtcdClient("http://" + gdctx.HostIP + ":2379")
 		gdctx.InitStore(true)
 		peer.AddSelfDetails()
 	}
