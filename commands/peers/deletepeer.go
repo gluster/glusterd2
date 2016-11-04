@@ -8,8 +8,6 @@ import (
 	"github.com/gluster/glusterd2/rest"
 
 	log "github.com/Sirupsen/logrus"
-	etcdcontext "golang.org/x/net/context"
-
 	"github.com/gorilla/mux"
 )
 
@@ -39,8 +37,7 @@ func deletePeerHandler(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 	// Delete member from etcd cluster
-	mAPI := etcdmgmt.GetEtcdMembersAPI()
-	e = mAPI.Remove(etcdcontext.Background(), p.MemberID)
+	e = etcdmgmt.EtcdMemberRemove(p.MemberID)
 	if e != nil {
 		log.WithFields(log.Fields{
 			"er":   e,

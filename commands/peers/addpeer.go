@@ -12,8 +12,6 @@ import (
 	"github.com/gluster/glusterd2/utils"
 
 	log "github.com/Sirupsen/logrus"
-	etcdcontext "golang.org/x/net/context"
-
 	"github.com/pborman/uuid"
 )
 
@@ -62,13 +60,12 @@ func addPeerHandler(w http.ResponseWriter, r *http.Request) {
 		ID:        uuid.Parse(rsp.UUID),
 		Name:      req.Name,
 		Addresses: req.Addresses,
-		MemberID:  "",
+		MemberID:  0,
 	}
 
 	if req.Client == false {
 		// Add member to etcd server
-		mAPI := etcdmgmt.GetEtcdMembersAPI()
-		member, e := mAPI.Add(etcdcontext.Background(), "http://"+req.Name+":2380")
+		member, e := etcdmgmt.EtcdMemberAdd("http://" + req.Name + ":2380")
 		if e != nil {
 			log.WithFields(log.Fields{
 				"error":  e,
@@ -86,7 +83,7 @@ func addPeerHandler(w http.ResponseWriter, r *http.Request) {
 			"member Id ":  member.ID,
 		}).Info("New member added to the cluster")
 
-		mlist, e := mAPI.List(etcdcontext.Background())
+		mlist, e := etcdmgmt.EtcdMemberList()
 		if e != nil {
 			log.WithField("err", e).Error("Failed to list member in etcd cluster")
 			rest.SendHTTPError(w, http.StatusInternalServerError, e.Error())
