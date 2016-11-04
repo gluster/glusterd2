@@ -38,6 +38,8 @@ func InitEtcdClient(endpoint string) error {
 	}
 
 	etcdClient.client = c
+	log.Info("InitEtcdClient: Successfully initialized etcd client.")
+
 	return nil
 }
 
@@ -56,6 +58,7 @@ func CloseEtcdClient() error {
 		return err
 	}
 	etcdClient.client = nil
+	log.Info("CloseEtcdClient: Successfully shutdown etcd client.")
 
 	return nil
 }

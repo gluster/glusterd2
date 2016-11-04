@@ -183,7 +183,10 @@ func (p *PeerService) ExportAndStoreETCDConfig(nc netctx.Context, c *EtcdConfigR
 			}
 		}
 
-		etcdmgmt.CloseEtcdClient()
+		err := etcdmgmt.CloseEtcdClient()
+		if err != nil {
+			log.WithField("error", err.Error()).Error("Could not stop etcd client.")
+		}
 
 		// Restarting etcd daemon
 		etcdCtx, err := etcdmgmt.ReStartETCD()
@@ -200,10 +203,13 @@ func (p *PeerService) ExportAndStoreETCDConfig(nc netctx.Context, c *EtcdConfigR
 	} else {
 		// This is a request to reconfigure etcd as part of delete peer
 
-		etcdmgmt.CloseEtcdClient()
+		err := etcdmgmt.CloseEtcdClient()
+		if err != nil {
+			log.WithField("error", err.Error()).Error("Could not stop etcd client.")
+		}
 
 		etcdCtx := gdctx.EtcdProcessCtx
-		err := etcdmgmt.StopETCD(etcdCtx)
+		err = etcdmgmt.StopETCD(etcdCtx)
 		if err != nil {
 			log.WithField("error", err.Error()).Error("Could not stop etcd daemon.")
 			return nil, err
