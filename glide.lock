@@ -1,13 +1,19 @@
 hash: a74c863150928fd0122b7ca617109dbde07e93cba7fad09aa76efe13d950bbf7
-updated: 2016-11-02T14:55:05.491022998+05:30
+updated: 2016-11-03T16:42:51.418698527+05:30
 imports:
 - name: github.com/codegangsta/negroni
   version: 3f7ce7b928e14ff890b067e5bbbc80af73690a9c
 - name: github.com/coreos/etcd
   version: 83347907774bf36cbb261c594a32fd7b0f5dd9f6
   subpackages:
+  - auth/authpb
   - client
+  - clientv3
+  - etcdserver/api/v3rpc/rpctypes
+  - etcdserver/etcdserverpb
+  - mvcc/mvccpb
   - pkg/pathutil
+  - pkg/tlsutil
   - pkg/types
 - name: github.com/docker/libkv
   version: 3fce6a0f26e07da3eac45796a8e255547a47a750
@@ -16,15 +22,24 @@ imports:
   - store/etcd
 - name: github.com/fsnotify/fsnotify
   version: f12c6236fe7b5cf6bcf30e5935d08cb079d78334
+- name: github.com/ghodss/yaml
+  version: 73d445a93680fa1a78ae23a5839bad48f32ba1ee
 - name: github.com/golang/protobuf
-  version: 1f49d83d9aa00e6ce4fc8258c71cc7786aec968a
+  version: 8616e8ee5e20a1704615e6c8d7afcdac06087a67
   subpackages:
+  - jsonpb
   - proto
   - protoc-gen-go
 - name: github.com/gorilla/context
   version: 08b5f424b9271eedf6f9f0ce86cb9396ed337a42
 - name: github.com/gorilla/mux
   version: 0a192a193177452756c362c20087ddafcf6829c4
+- name: github.com/grpc-ecosystem/grpc-gateway
+  version: f52d055dc48aec25854ed7d31862f78913cf17d1
+  subpackages:
+  - runtime
+  - runtime/internal
+  - utilities
 - name: github.com/hashicorp/hcl
   version: 99df0eb941dd8ddbc83d3f3605a34f6a686ac85e
   subpackages:

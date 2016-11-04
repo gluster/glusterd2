@@ -11,7 +11,7 @@ type Peer struct {
 	Name      string    `json:"name"`
 	Addresses []string  `json:"addresses"`
 	Client    bool      `json:"client"`
-	MemberID  string    `json:"memberID"`
+	MemberID  uint64    `json:"memberID"`
 }
 
 // ETCDConfig represents the structure which holds the ETCD env variables &

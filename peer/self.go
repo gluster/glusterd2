@@ -5,25 +5,21 @@ import (
 	"github.com/gluster/glusterd2/gdctx"
 
 	log "github.com/Sirupsen/logrus"
-	etcdcontext "golang.org/x/net/context"
 )
 
 // AddSelfDetails function adds its own details into the central store
 func AddSelfDetails() {
-	var memberID string
-	mAPI := etcdmgmt.GetEtcdMembersAPI()
+	var memberID uint64
 
-	mlist, e := mAPI.List(etcdcontext.Background())
+	mlist, e := etcdmgmt.EtcdMemberList()
 	if e != nil {
 		log.WithField("err", e).Fatal("Failed to list member in etcd cluster")
 	}
 
 	for _, memb := range mlist {
-		for _ = range memb.PeerURLs {
-			if memb.Name == "default" {
-				memberID = memb.ID
-				break
-			}
+		if memb.Name == "default" {
+			memberID = memb.ID
+			break
 		}
 	}
 	p := &Peer{
