@@ -1,5 +1,5 @@
-hash: a74c863150928fd0122b7ca617109dbde07e93cba7fad09aa76efe13d950bbf7
-updated: 2016-11-03T16:42:51.418698527+05:30
+hash: f860485d3caac9ab49282eb4faa6068308df4af5a3e2b66540a034dfecbefa08
+updated: 2016-11-15T12:48:26.883610721+05:30
 imports:
 - name: github.com/codegangsta/negroni
   version: 3f7ce7b928e14ff890b067e5bbbc80af73690a9c
@@ -9,6 +9,7 @@ imports:
   - auth/authpb
   - client
   - clientv3
+  - embed
   - etcdserver/api/v3rpc/rpctypes
   - etcdserver/etcdserverpb
   - mvcc/mvccpb
@@ -112,7 +113,7 @@ imports:
   - transform
   - unicode/norm
 - name: google.golang.org/grpc
-  version: b7f1379d3cbbbeb2ca3405852012e237aa05459e
+  version: 777daa17ff9b5daef1cfdf915088a2ada3332bf0
   subpackages:
   - codes
   - credentials

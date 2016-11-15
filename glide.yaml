@@ -5,6 +5,8 @@ import:
   version: v3.1.0-rc.0
   subpackages:
   - client
+  - clientv3
+  - embed
 - package: github.com/docker/libkv
   subpackages:
   - store
