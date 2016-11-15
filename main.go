@@ -48,20 +48,23 @@ func main() {
 	// Set IP once.
 	gdctx.SetLocalHostIP()
 
-	// Starting etcd daemon upon starting of GlusterD
-	etcdCtx, err := etcdmgmt.ETCDStartInit()
+	// Start embedded etcd server
+	etcdConfig, err := etcdmgmt.GetNewEtcdConfig()
 	if err != nil {
-		log.WithField("Error", err).Fatal("Could not able to start etcd")
+		log.WithField("Error", err).Fatal("Could not fetch config options for etcd.")
 	}
-	gdctx.EtcdProcessCtx = etcdCtx
+	err = etcdmgmt.StartEmbeddedEtcd(etcdConfig)
+	if err != nil {
+		log.WithField("Error", err).Fatal("Could not start embedded etcd server.")
+	}
 
-	gdctx.Init()
-
-	// Initialize etcd client
+	// Initialize etcd client (used only for member add/remove)
 	err = etcdmgmt.InitEtcdClient("http://" + gdctx.HostIP + ":2379")
 	if err != nil {
 		log.WithField("err", err).Fatal("Failed to initialize etcd client")
 	}
+
+	gdctx.Init()
 
 	for _, c := range commands.Commands {
 		gdctx.Rest.SetRoutes(c.Routes())
@@ -89,6 +92,7 @@ func main() {
 			case os.Interrupt:
 				log.WithField("signal", s).Info("Recieved SIGTERM. Stopping GlusterD.")
 				gdctx.Rest.Stop()
+				etcdmgmt.DestroyEmbeddedEtcd()
 				server.StopServer()
 				log.Info("Termintaing GlusterD.")
 				os.Exit(0)
