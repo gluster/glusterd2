@@ -1,5 +1,5 @@
-hash: 800457dfcabb8e7ba8a5e81f989ed636291f1f092591d16273526216f84330ff
-updated: 2016-11-15T15:11:17.76474857+05:30
+hash: f09cedd1ce1ff3d2d96a4e65e43f8871766ecd093ceeb87e30a256d2814ac70e
+updated: 2016-11-15T17:51:34.035138233+05:30
 imports:
 - name: bitbucket.org/ww/goautoneg
   version: 75cd24fc2f2c2a2088577d12123ddee5f54e0675
@@ -82,11 +82,6 @@ imports:
   version: fa29b1d70f0beaddd4c7021607cc3c3be8ce94b8
   subpackages:
   - capnslog
-- name: github.com/docker/libkv
-  version: 3fce6a0f26e07da3eac45796a8e255547a47a750
-  subpackages:
-  - store
-  - store/etcd
 - name: github.com/fsnotify/fsnotify
   version: f12c6236fe7b5cf6bcf30e5935d08cb079d78334
 - name: github.com/ghodss/yaml
@@ -148,6 +143,11 @@ imports:
   version: 17b591df37844cde689f4d5813e5cea0927d8dd2
 - name: github.com/pkg/sftp
   version: 8197a2e580736b78d704be0fc47b2324c0591a32
+- name: github.com/prashanthpai/libkv
+  version: d9c8c8652cc98fac772cb4ee67b83e668d63457b
+  subpackages:
+  - store
+  - store/etcd
 - name: github.com/prometheus/client_golang
   version: e51041b3fa41cece0dca035740ba6411905be473
   subpackages:

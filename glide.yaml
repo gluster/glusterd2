@@ -7,7 +7,8 @@ import:
   - client
   - clientv3
   - embed
-- package: github.com/docker/libkv
+- package: github.com/prashanthpai/libkv
+  version: transport-fix
   subpackages:
   - store
   - store/etcd
