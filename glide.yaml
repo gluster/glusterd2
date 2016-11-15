@@ -30,4 +30,4 @@ import:
   - proto
   - protoc-gen-go
 - package: google.golang.org/grpc
-  version: ^1.0.1-GA
+  version: 1.0.2
