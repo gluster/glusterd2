@@ -56,7 +56,7 @@ func ReadEtcdConfig() (*EtcdMinimalConfig, error) {
 		return nil, err
 	}
 
-	return &cfg, err
+	return &cfg, nil
 }
 
 func init() {
