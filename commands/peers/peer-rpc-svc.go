@@ -80,7 +80,7 @@ func (p *PeerService) ExportAndStoreETCDConfig(nc netctx.Context, c *EtcdConfigR
 	var opRet int32
 	var opError string
 
-	newEtcdConfig, err := etcdmgmt.GetNewEtcdConfig(false)
+	newEtcdConfig, err := etcdmgmt.GetNewEtcdConfig()
 	if err != nil {
 		opRet = -1
 		opError = fmt.Sprintf("Could not fetch etcd configuration.")

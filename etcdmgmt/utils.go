@@ -7,7 +7,6 @@ import (
 
 	"github.com/gluster/glusterd2/gdctx"
 
-	log "github.com/Sirupsen/logrus"
 	"github.com/coreos/etcd/embed"
 	"github.com/ghodss/yaml"
 	config "github.com/spf13/viper"
@@ -26,7 +25,7 @@ type EtcdMinimalConfig struct {
 
 // GetNewEtcdConfig will return reference to embed.Config object. This
 // is to be passed to embed.StartEtcd() function.
-func GetNewEtcdConfig(readConf bool) (*embed.Config, error) {
+func GetNewEtcdConfig() (*embed.Config, error) {
 
 	// NOTE: This sets most of the fields internally with default values.
 	// For example, most of *URL fields are filled with all available IPs
@@ -55,17 +54,6 @@ func GetNewEtcdConfig(readConf bool) (*embed.Config, error) {
 
 	cfg.InitialCluster = cfg.Name + "=" + listenPeerURL.String()
 	cfg.ClusterState = embed.ClusterStateFlagNew
-
-	if readConf {
-		oldCfg, err := ReadEtcdConfig()
-		if err == nil {
-			log.Info("Found saved etcd config file. Using that.")
-			cfg.InitialCluster = oldCfg.InitialCluster
-			cfg.ClusterState = oldCfg.ClusterState
-			cfg.Name = oldCfg.Name
-			cfg.Dir = oldCfg.Dir
-		}
-	}
 
 	return cfg, nil
 }
