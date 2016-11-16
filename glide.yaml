@@ -5,7 +5,10 @@ import:
   version: v3.1.0-rc.0
   subpackages:
   - client
-- package: github.com/docker/libkv
+  - clientv3
+  - embed
+- package: github.com/prashanthpai/libkv
+  version: transport-fix
   subpackages:
   - store
   - store/etcd
@@ -28,4 +31,4 @@ import:
   - proto
   - protoc-gen-go
 - package: google.golang.org/grpc
-  version: ^1.0.1-GA
+  version: 1.0.2

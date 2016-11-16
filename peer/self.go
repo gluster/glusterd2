@@ -17,7 +17,7 @@ func AddSelfDetails() {
 	}
 
 	for _, memb := range mlist {
-		if memb.Name == "default" {
+		if memb.Name == gdctx.HostIP {
 			memberID = memb.ID
 			break
 		}

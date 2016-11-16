@@ -63,8 +63,20 @@ func addPeerHandler(w http.ResponseWriter, r *http.Request) {
 		MemberID:  0,
 	}
 
+	// By default, req.Client is false. This means every new node added via
+	// add peer will be a member in etcd cluster and participate in
+	// consensus. TODO: This name "client" in the REST API should really be
+	// changed! May be to etcdproxy or just proxy ?
 	if req.Client == false {
-		// Add member to etcd server
+
+		// Adding a member is a two step process:
+		// 	1. Add the new member to the cluster via the members API. This is
+		//	   performed on this node i.e the one that just accepted peer add
+		//	   request from the user.
+		//	2. Start the new member on the target node (the new peer) with the new
+		//         cluster configuration, including a list of the updated members
+		//	   (existing members + the new member).
+
 		member, e := etcdmgmt.EtcdMemberAdd("http://" + req.Name + ":2380")
 		if e != nil {
 			log.WithFields(log.Fields{
@@ -76,7 +88,7 @@ func addPeerHandler(w http.ResponseWriter, r *http.Request) {
 		}
 
 		p.MemberID = member.ID
-		newName := "ETCD_" + p.Name
+		newName := p.Name
 
 		log.WithFields(log.Fields{
 			"New member ": newName,
@@ -109,14 +121,7 @@ func addPeerHandler(w http.ResponseWriter, r *http.Request) {
 		etcdConf.InitialCluster = strings.Join(conf, ",")
 		etcdConf.ClusterState = "existing"
 	} else {
-		etcdConf.Name = "ETCD_" + req.Name
-		initialCluster, err := peer.GetInitialCluster()
-		if err != nil {
-			log.WithField("err", e).Error("Failed to construct initialCluster")
-			rest.SendHTTPError(w, http.StatusInternalServerError, e.Error())
-		}
-		etcdConf.InitialCluster = initialCluster
-		etcdConf.ClusterState = ""
+		// Run etcd on remote node in proxy mode. embed does not support this yet.
 	}
 
 	etcdConf.Client = req.Client

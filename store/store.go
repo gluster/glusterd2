@@ -10,9 +10,9 @@ import (
 	"github.com/gluster/glusterd2/utils"
 
 	log "github.com/Sirupsen/logrus"
-	"github.com/docker/libkv"
-	"github.com/docker/libkv/store"
-	"github.com/docker/libkv/store/etcd"
+	"github.com/prashanthpai/libkv"
+	"github.com/prashanthpai/libkv/store"
+	"github.com/prashanthpai/libkv/store/etcd"
 )
 
 const (

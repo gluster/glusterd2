@@ -6,7 +6,6 @@
 package gdctx
 
 import (
-	"os"
 	"sync"
 
 	"github.com/gluster/glusterd2/rest"
@@ -31,12 +30,11 @@ var (
 // Any object that is a part of the GlusterD context and needs to be available
 // to other packages should be declared here as exported global variables
 var (
-	MyUUID         uuid.UUID
-	Restart        bool // Indicates if its a fresh install or not
-	Rest           *rest.GDRest
-	OpVersion      int
-	EtcdProcessCtx *os.Process
-	HostIP         string
+	MyUUID    uuid.UUID
+	Restart   bool // Indicates if its a fresh install or not
+	Rest      *rest.GDRest
+	OpVersion int
+	HostIP    string
 )
 
 var (
