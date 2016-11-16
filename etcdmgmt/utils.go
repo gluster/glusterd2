@@ -2,8 +2,12 @@ package etcdmgmt
 
 import (
 	"io/ioutil"
+	"net/url"
 	"path"
 
+	"github.com/gluster/glusterd2/gdctx"
+
+	log "github.com/Sirupsen/logrus"
 	"github.com/coreos/etcd/embed"
 	"github.com/ghodss/yaml"
 	config "github.com/spf13/viper"
@@ -18,6 +22,52 @@ type EtcdMinimalConfig struct {
 	ClusterState   string `json:"initial-cluster-state" yaml:"initial-cluster-state"`
 	Name           string `json:"name" yaml:"name"`
 	Dir            string `json:"data-dir" yaml:"data-dir"`
+}
+
+// GetNewEtcdConfig will return reference to embed.Config object. This
+// is to be passed to embed.StartEtcd() function.
+func GetNewEtcdConfig(readConf bool) (*embed.Config, error) {
+
+	// NOTE: This sets most of the fields internally with default values.
+	// For example, most of *URL fields are filled with all available IPs
+	// of local node i.e binds on all addresses.
+	cfg := embed.NewConfig()
+
+	// By convention, human-readable etcd instance names are set to
+	// hostname of node. But we need a mapping between peer addresses
+	// and their etcd names to make things simple.
+	cfg.Name = gdctx.HostIP
+	cfg.Dir = cfg.Name + ".etcd"
+
+	listenClientURL, err := url.Parse("http://" + gdctx.HostIP + ":2379")
+	if err != nil {
+		return nil, err
+	}
+	cfg.ACUrls = []url.URL{*listenClientURL}
+	cfg.LCUrls = []url.URL{*listenClientURL}
+
+	listenPeerURL, err := url.Parse("http://" + gdctx.HostIP + ":2380")
+	if err != nil {
+		return nil, err
+	}
+	cfg.APUrls = []url.URL{*listenPeerURL}
+	cfg.LPUrls = []url.URL{*listenPeerURL}
+
+	cfg.InitialCluster = cfg.Name + "=" + listenPeerURL.String()
+	cfg.ClusterState = embed.ClusterStateFlagNew
+
+	if readConf {
+		oldCfg, err := ReadEtcdConfig()
+		if err == nil {
+			log.Info("Found saved etcd config file. Using that.")
+			cfg.InitialCluster = oldCfg.InitialCluster
+			cfg.ClusterState = oldCfg.ClusterState
+			cfg.Name = oldCfg.Name
+			cfg.Dir = oldCfg.Dir
+		}
+	}
+
+	return cfg, nil
 }
 
 // StoreEtcdConfig stores etcd config info into file
