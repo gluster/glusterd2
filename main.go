@@ -49,17 +49,9 @@ func main() {
 	gdctx.SetLocalHostIP()
 
 	// Start embedded etcd server
-	etcdConfig, err := etcdmgmt.GetNewEtcdConfig()
+	etcdConfig, err := etcdmgmt.GetEtcdConfig(true)
 	if err != nil {
 		log.WithField("Error", err).Fatal("Could not fetch config options for etcd.")
-	}
-	oldCfg, err := etcdmgmt.ReadEtcdConfig()
-	if err == nil {
-		log.Info("Found saved etcd config file. Using that.")
-		etcdConfig.InitialCluster = oldCfg.InitialCluster
-		etcdConfig.ClusterState = oldCfg.ClusterState
-		etcdConfig.Name = oldCfg.Name
-		etcdConfig.Dir = oldCfg.Dir
 	}
 	err = etcdmgmt.StartEmbeddedEtcd(etcdConfig)
 	if err != nil {
