@@ -80,7 +80,7 @@ func (p *PeerService) ExportAndStoreETCDConfig(nc netctx.Context, c *EtcdConfigR
 	var opRet int32
 	var opError string
 
-	newEtcdConfig, err := etcdmgmt.GetNewEtcdConfig()
+	newEtcdConfig, err := etcdmgmt.GetEtcdConfig(false)
 	if err != nil {
 		opRet = -1
 		opError = fmt.Sprintf("Could not fetch etcd configuration.")
@@ -95,7 +95,7 @@ func (p *PeerService) ExportAndStoreETCDConfig(nc netctx.Context, c *EtcdConfigR
 			newEtcdConfig.ClusterState = c.ClusterState
 			newEtcdConfig.Name = c.Name
 			newEtcdConfig.Dir = c.Name + ".dir"
-			// TODO: Store config locally for glusterd2 and etcd restarts
+
 		} else {
 			// No proxy support in embeded etcd server yet.
 		}
@@ -143,6 +143,15 @@ func (p *PeerService) ExportAndStoreETCDConfig(nc netctx.Context, c *EtcdConfigR
 		// standalone cluster.
 		gdctx.InitStore(true)
 		peer.AddSelfDetails()
+	} else {
+		// Store the etcd config in a file for use during restarts.
+
+		err = etcdmgmt.StoreEtcdConfig(newEtcdConfig)
+		if err != nil {
+			opRet = -1
+			opError = fmt.Sprintf("Error storing etcd configuration.")
+			goto Out
+		}
 	}
 
 Out:

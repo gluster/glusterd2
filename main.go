@@ -49,7 +49,7 @@ func main() {
 	gdctx.SetLocalHostIP()
 
 	// Start embedded etcd server
-	etcdConfig, err := etcdmgmt.GetNewEtcdConfig()
+	etcdConfig, err := etcdmgmt.GetEtcdConfig(true)
 	if err != nil {
 		log.WithField("Error", err).Fatal("Could not fetch config options for etcd.")
 	}
