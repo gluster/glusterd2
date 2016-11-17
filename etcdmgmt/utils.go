@@ -16,8 +16,7 @@ import (
 // EtcdConfigFile is path to etcd config file
 var EtcdConfigFile string
 
-// EtcdMinimalConfig represents essential etcd parameters.
-type EtcdMinimalConfig struct {
+type etcdMinimalConfig struct {
 	InitialCluster string `json:"initial-cluster" yaml:"initial-cluster"`
 	ClusterState   string `json:"initial-cluster-state" yaml:"initial-cluster-state"`
 	Name           string `json:"name" yaml:"name"`
@@ -57,7 +56,7 @@ func GetEtcdConfig(readConf bool) (*embed.Config, error) {
 	cfg.ClusterState = embed.ClusterStateFlagNew
 
 	if readConf {
-		oldCfg, err := ReadEtcdConfig()
+		oldCfg, err := readEtcdConfig()
 		if err == nil {
 			log.Info("Found saved etcd config file. Using that.")
 			cfg.InitialCluster = oldCfg.InitialCluster
@@ -71,8 +70,16 @@ func GetEtcdConfig(readConf bool) (*embed.Config, error) {
 }
 
 // StoreEtcdConfig stores etcd config info into file
-func StoreEtcdConfig(cfg *EtcdMinimalConfig) error {
-	y, err := yaml.Marshal(cfg)
+func StoreEtcdConfig(cfg *embed.Config) error {
+
+	emcfg := &etcdMinimalConfig{
+		InitialCluster: cfg.InitialCluster,
+		ClusterState:   cfg.ClusterState,
+		Name:           cfg.Name,
+		Dir:            cfg.Dir,
+	}
+
+	y, err := yaml.Marshal(emcfg)
 	if err != nil {
 		return err
 	}
@@ -85,14 +92,13 @@ func StoreEtcdConfig(cfg *EtcdMinimalConfig) error {
 	return nil
 }
 
-// ReadEtcdConfig reads etcd configuration info stored in file
-func ReadEtcdConfig() (*EtcdMinimalConfig, error) {
+func readEtcdConfig() (*etcdMinimalConfig, error) {
 	y, err := ioutil.ReadFile(EtcdConfigFile)
 	if err != nil {
 		return nil, err
 	}
 
-	var cfg EtcdMinimalConfig
+	var cfg etcdMinimalConfig
 
 	err = yaml.Unmarshal(y, &cfg)
 	if err != nil {

@@ -146,14 +146,7 @@ func (p *PeerService) ExportAndStoreETCDConfig(nc netctx.Context, c *EtcdConfigR
 	} else {
 		// Store the etcd config in a file for use during restarts.
 
-		emcfg := &etcdmgmt.EtcdMinimalConfig{
-			InitialCluster: newEtcdConfig.InitialCluster,
-			ClusterState:   newEtcdConfig.ClusterState,
-			Name:           newEtcdConfig.Name,
-			Dir:            newEtcdConfig.Dir,
-		}
-
-		err = etcdmgmt.StoreEtcdConfig(emcfg)
+		err = etcdmgmt.StoreEtcdConfig(newEtcdConfig)
 		if err != nil {
 			opRet = -1
 			opError = fmt.Sprintf("Error storing etcd configuration.")
