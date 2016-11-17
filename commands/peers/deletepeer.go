@@ -43,6 +43,18 @@ func deletePeerHandler(w http.ResponseWriter, r *http.Request) {
 		rest.SendHTTPError(w, http.StatusInternalServerError, rsp.OpError)
 		return
 	}
+
+	// Remove the peer from the store
+	if e := peer.DeletePeer(id); e != nil {
+		log.WithFields(log.Fields{
+			"er":   e,
+			"peer": id,
+		}).Error("Failed to remove peer from the store")
+		rest.SendHTTPError(w, http.StatusInternalServerError, e.Error())
+	} else {
+		rest.SendHTTPResponse(w, http.StatusNoContent, nil)
+	}
+
 	// Delete member from etcd cluster
 	e = etcdmgmt.EtcdMemberRemove(p.MemberID)
 	if e != nil {
@@ -67,16 +79,4 @@ func deletePeerHandler(w http.ResponseWriter, r *http.Request) {
 		rest.SendHTTPError(w, http.StatusInternalServerError, etcdrsp.OpError)
 		return
 	}
-
-	// Remove the peer from the store
-	if e := peer.DeletePeer(id); e != nil {
-		log.WithFields(log.Fields{
-			"er":   e,
-			"peer": id,
-		}).Error("Failed to remove peer from the store")
-		rest.SendHTTPError(w, http.StatusInternalServerError, e.Error())
-	} else {
-		rest.SendHTTPResponse(w, http.StatusNoContent, nil)
-	}
-
 }
