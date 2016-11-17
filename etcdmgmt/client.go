@@ -68,13 +68,7 @@ func EtcdMemberList() ([]*pb.Member, error) {
 
 	resp, err := etcdClient.client.MemberList(etcdcontext.Background())
 	if err != nil {
-		log.WithFields(log.Fields{
-			"error":               err,
-			"ClusterId(Response)": resp.Header.ClusterId,
-			"MemberId(Response)":  resp.Header.MemberId,
-			"Revision":            resp.Header.Revision,
-			"RaftTerm":            resp.Header.RaftTerm,
-		}).Debug("EtcdMemberList: Failed to list etcd members.")
+		log.WithField("error", err).Debug("EtcdMemberList: Failed to list etcd members.")
 		return nil, err
 	}
 
@@ -86,13 +80,7 @@ func EtcdMemberAdd(peerURL string) (*pb.Member, error) {
 
 	resp, err := etcdClient.client.MemberAdd(etcdcontext.Background(), []string{peerURL})
 	if err != nil {
-		log.WithFields(log.Fields{
-			"error":               err,
-			"ClusterId(Response)": resp.Header.ClusterId,
-			"MemberId(Response)":  resp.Header.MemberId,
-			"Revision":            resp.Header.Revision,
-			"RaftTerm":            resp.Header.RaftTerm,
-		}).Debug("EtcdMemberAdd: Failed to add etcd member.")
+		log.WithField("error", err).Debug("EtcdMemberAdd: Failed to add etcd member.")
 		return nil, err
 	}
 
@@ -102,15 +90,9 @@ func EtcdMemberAdd(peerURL string) (*pb.Member, error) {
 // EtcdMemberRemove will remove a member from the etcd cluster.
 func EtcdMemberRemove(memberID uint64) error {
 
-	resp, err := etcdClient.client.MemberRemove(etcdcontext.Background(), memberID)
+	_, err := etcdClient.client.MemberRemove(etcdcontext.Background(), memberID)
 	if err != nil {
-		log.WithFields(log.Fields{
-			"error":               err,
-			"ClusterId(Response)": resp.Header.ClusterId,
-			"MemberId(Response)":  resp.Header.MemberId,
-			"Revision":            resp.Header.Revision,
-			"RaftTerm":            resp.Header.RaftTerm,
-		}).Debug("EtcdMemberRemove: Failed to remove etcd member.")
+		log.WithField("error", err).Debug("EtcdMemberRemove: Failed to remove etcd member.")
 		return err
 	}
 
