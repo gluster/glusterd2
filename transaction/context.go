@@ -93,11 +93,13 @@ func (c *txnCtx) Set(key string, value interface{}) error {
 		}).Error("failed to marshal value")
 		return e
 	}
-	e = gdctx.Store.Put(c.prefix+key, json, nil)
+
+	storeKey := c.prefix + "/" + key
+	e = gdctx.Store.Put(storeKey, json, nil)
 	if e != nil {
 		c.log.WithFields(log.Fields{
 			"error": e,
-			"key":   key,
+			"key":   storeKey,
 		}).Error("failed to set value")
 	}
 	return e
@@ -106,11 +108,12 @@ func (c *txnCtx) Set(key string, value interface{}) error {
 // Get gets the value for the given key if available.
 // Returns error if not found.
 func (c *txnCtx) Get(key string, value interface{}) error {
-	b, e := gdctx.Store.Get(c.prefix + key)
+	storeKey := c.prefix + "/" + key
+	b, e := gdctx.Store.Get(storeKey)
 	if e != nil {
 		c.log.WithFields(log.Fields{
 			"error": e,
-			"key":   key,
+			"key":   storeKey,
 		}).Error("failed to get value")
 		return e
 	}
@@ -126,7 +129,16 @@ func (c *txnCtx) Get(key string, value interface{}) error {
 
 // Delete deletes the key and attached value
 func (c *txnCtx) Delete(key string) error {
-	return gdctx.Store.Delete(c.prefix + key)
+	storeKey := c.prefix + "/" + key
+	e := gdctx.Store.Delete(storeKey)
+	if e != nil {
+		c.log.WithFields(log.Fields{
+			"error": e,
+			"key":   storeKey,
+		}).Error("failed to delete key")
+		return e
+	}
+	return nil
 }
 
 // Logger returns the Logrus logger associated with the context

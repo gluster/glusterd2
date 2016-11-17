@@ -59,7 +59,7 @@ func NewTxnWithLoggingContext(f log.Fields) *Txn {
 
 // Cleanup cleans the leftovers after a transaction ends
 func (t *Txn) Cleanup() {
-	gdctx.Store.Delete(t.Ctx.Prefix())
+	gdctx.Store.DeleteTree(t.Ctx.Prefix())
 }
 
 // Do runs the transaction on the cluster
