@@ -4,6 +4,7 @@ import (
 	"net/http"
 
 	"github.com/gluster/glusterd2/etcdmgmt"
+	"github.com/gluster/glusterd2/gdctx"
 	"github.com/gluster/glusterd2/peer"
 	"github.com/gluster/glusterd2/rest"
 
@@ -27,6 +28,12 @@ func deletePeerHandler(w http.ResponseWriter, r *http.Request) {
 	p, e := peer.GetPeerF(id)
 	if e != nil || p == nil {
 		rest.SendHTTPError(w, http.StatusNotFound, "peer not found in cluster")
+		return
+	}
+
+	// Removing self should be disallowed (like in glusterd1)
+	if id == gdctx.MyUUID.String() {
+		rest.SendHTTPError(w, http.StatusBadRequest, "Removing self is disallowed.")
 		return
 	}
 
