@@ -119,7 +119,18 @@ func EtcdMemberStatus(memberID uint64) (*etcd.StatusResponse, error) {
 		return nil, errors.New("MemberID not found.")
 	}
 
-	mapi := etcd.NewMaintenance(etcdClient.client)
+	// Don't use persistent client. Use a new temporary one.
+	cli, err := etcd.New(etcd.Config{
+		Endpoints:   []string{endpoint},
+		DialTimeout: 5 * time.Second,
+	})
+	if err != nil {
+		log.Error(err)
+		return nil, err
+	}
+	defer cli.Close()
+
+	mapi := etcd.NewMaintenance(cli)
 	resp, err := mapi.Status(etcdcontext.Background(), endpoint)
 	if err != nil {
 		log.WithField("err", err).Debug("Failed to get member status.")
