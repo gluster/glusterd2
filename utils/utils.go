@@ -7,12 +7,10 @@ import (
 	"io/ioutil"
 	"net"
 	"os"
-	"os/exec"
 	"path"
 	"path/filepath"
 	"reflect"
 	"runtime"
-	"strconv"
 	"strings"
 	"syscall"
 
@@ -335,18 +333,6 @@ func InitDir(dir string) {
 	// defer happens in LIFO
 	defer syscall.Unlink(t.Name())
 	defer t.Close()
-}
-
-// CheckProcessExist will check whether the process with given pid exist or not in the system
-func CheckProcessExist(pid int) bool {
-	out, err := exec.Command("kill", "-s", "0", strconv.Itoa(pid)).CombinedOutput()
-	if err != nil {
-		log.WithField("pid", pid).Debug("Requested pid does not exist in the system")
-	}
-	if string(out) == "" {
-		return true
-	}
-	return false
 }
 
 // GetLocalIP will give local IP address of this node
