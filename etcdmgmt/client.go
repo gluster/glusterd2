@@ -99,6 +99,8 @@ func EtcdMemberRemove(memberID uint64) error {
 	return nil
 }
 
+// EtcdMemberStatus will return status of etcd instance running on the node
+// specified by the memberID
 func EtcdMemberStatus(memberID uint64) (*etcd.StatusResponse, error) {
 
 	var endpoint string
