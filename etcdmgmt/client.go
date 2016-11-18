@@ -98,3 +98,33 @@ func EtcdMemberRemove(memberID uint64) error {
 
 	return nil
 }
+
+func EtcdMemberStatus(memberID uint64) (*etcd.StatusResponse, error) {
+
+	var endpoint string
+
+	mlist, err := EtcdMemberList()
+	if err != nil {
+		log.WithField("error", err).Debug("Failed to list members in etcd cluster")
+		return nil, err
+	}
+
+	for _, m := range mlist {
+		if m.ID == memberID {
+			endpoint = m.ClientURLs[0]
+		}
+	}
+
+	if endpoint == "" {
+		return nil, errors.New("MemberID not found.")
+	}
+
+	mapi := etcd.NewMaintenance(etcdClient.client)
+	resp, err := mapi.Status(etcdcontext.Background(), endpoint)
+	if err != nil {
+		log.WithField("err", err).Debug("Failed to get member status.")
+		return nil, err
+	}
+
+	return resp, nil
+}
