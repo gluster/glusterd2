@@ -1,5 +1,5 @@
 hash: f09cedd1ce1ff3d2d96a4e65e43f8871766ecd093ceeb87e30a256d2814ac70e
-updated: 2016-11-15T17:51:34.035138233+05:30
+updated: 2016-11-18T12:08:20.074164721+05:30
 imports:
 - name: bitbucket.org/ww/goautoneg
   version: 75cd24fc2f2c2a2088577d12123ddee5f54e0675
@@ -144,7 +144,7 @@ imports:
 - name: github.com/pkg/sftp
   version: 8197a2e580736b78d704be0fc47b2324c0591a32
 - name: github.com/prashanthpai/libkv
-  version: d9c8c8652cc98fac772cb4ee67b83e668d63457b
+  version: 9045c3138b23b56b002ead25dc1239f69e290f82
   subpackages:
   - store
   - store/etcd
