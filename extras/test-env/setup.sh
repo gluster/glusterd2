@@ -10,8 +10,6 @@ curl -o ${TMPDIR}/${ARCHIVE} -L $URL
 tar -C /usr/sbin --xz -xf ${TMPDIR}/${ARCHIVE}
 setcap cap_sys_admin+ep /usr/sbin/glusterd2
 
-yum install -y etcd
-
 yum clean all
 rm -rf $TMPDIR
 
