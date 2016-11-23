@@ -58,12 +58,6 @@ func main() {
 		log.WithField("Error", err).Fatal("Could not start embedded etcd server.")
 	}
 
-	// Initialize etcd client (used only for member add/remove)
-	err = etcdmgmt.InitEtcdClient("http://" + gdctx.HostIP + ":2379")
-	if err != nil {
-		log.WithField("err", err).Fatal("Failed to initialize etcd client")
-	}
-
 	gdctx.Init()
 
 	for _, c := range commands.Commands {

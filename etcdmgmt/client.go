@@ -1,9 +1,9 @@
 package etcdmgmt
 
 import (
-	"errors"
-	"sync"
 	"time"
+
+	"github.com/gluster/glusterd2/gdctx"
 
 	log "github.com/Sirupsen/logrus"
 	etcd "github.com/coreos/etcd/clientv3"
@@ -11,62 +11,37 @@ import (
 	etcdcontext "golang.org/x/net/context"
 )
 
-var etcdClient struct {
-	client *etcd.Client
-	sync.Mutex
-}
+// initEtcdClient will initialize etcd client. This instance of the client
+// is only used to maintain/modify etcd cluster membership. For storing
+// key-values in etcd store, libkv is used instead.
+func initEtcdClient() (*etcd.Client, error) {
 
-// InitEtcdClient will initialize etcd client. This instance of the client
-// should only be used to maintain/modify cluster membership. For storing
-// key-values in etcd store, one should use libkv instead.
-func InitEtcdClient(endpoint string) error {
+	endpoint := "http://" + gdctx.HostIP + ":2379"
+
 	cfg := etcd.Config{
 		Endpoints:   []string{endpoint},
 		DialTimeout: 5 * time.Second,
 	}
 
-	etcdClient.Lock()
-	defer etcdClient.Unlock()
-
-	if etcdClient.client != nil {
-		return errors.New("An instance of etcd client is already active.")
-	}
-
-	c, err := etcd.New(cfg)
+	client, err := etcd.New(cfg)
 	if err != nil {
-		return err
+		return nil, err
 	}
 
-	etcdClient.client = c
-	log.Info("InitEtcdClient: Successfully initialized etcd client.")
-
-	return nil
-}
-
-// CloseEtcdClient shuts down the client's etcd connections. If the client is
-// not closed, the connection will have leaky goroutines.
-func CloseEtcdClient() error {
-	etcdClient.Lock()
-	defer etcdClient.Unlock()
-
-	if etcdClient.client == nil {
-		return errors.New("Etcd client is not initialized.")
-	}
-
-	err := etcdClient.client.Close()
-	if err != nil {
-		return err
-	}
-	etcdClient.client = nil
-	log.Info("CloseEtcdClient: Successfully shutdown etcd client.")
-
-	return nil
+	return client, nil
 }
 
 // EtcdMemberList returns a list of members in etcd cluster.
 func EtcdMemberList() ([]*pb.Member, error) {
 
-	resp, err := etcdClient.client.MemberList(etcdcontext.Background())
+	client, err := initEtcdClient()
+	if err != nil {
+		log.WithField("error", err).Debug("EtcdMemberList: Failed to create etcd client.")
+		return nil, err
+	}
+	defer client.Close()
+
+	resp, err := client.MemberList(etcdcontext.Background())
 	if err != nil {
 		log.WithField("error", err).Debug("EtcdMemberList: Failed to list etcd members.")
 		return nil, err
@@ -78,7 +53,14 @@ func EtcdMemberList() ([]*pb.Member, error) {
 // EtcdMemberAdd will add a new member to the etcd cluster.
 func EtcdMemberAdd(peerURL string) (*pb.Member, error) {
 
-	resp, err := etcdClient.client.MemberAdd(etcdcontext.Background(), []string{peerURL})
+	client, err := initEtcdClient()
+	if err != nil {
+		log.WithField("error", err).Debug("EtcdMemberAdd: Failed to create etcd client.")
+		return nil, err
+	}
+	defer client.Close()
+
+	resp, err := client.MemberAdd(etcdcontext.Background(), []string{peerURL})
 	if err != nil {
 		log.WithField("error", err).Debug("EtcdMemberAdd: Failed to add etcd member.")
 		return nil, err
@@ -90,7 +72,14 @@ func EtcdMemberAdd(peerURL string) (*pb.Member, error) {
 // EtcdMemberRemove will remove a member from the etcd cluster.
 func EtcdMemberRemove(memberID uint64) error {
 
-	_, err := etcdClient.client.MemberRemove(etcdcontext.Background(), memberID)
+	client, err := initEtcdClient()
+	if err != nil {
+		log.WithField("error", err).Debug("EtcdMemberRemove: Failed to create etcd client.")
+		return err
+	}
+	defer client.Close()
+
+	_, err = client.MemberRemove(etcdcontext.Background(), memberID)
 	if err != nil {
 		log.WithField("error", err).Debug("EtcdMemberRemove: Failed to remove etcd member.")
 		return err
