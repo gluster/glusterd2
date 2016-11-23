@@ -101,15 +101,6 @@ func (p *PeerService) ExportAndStoreETCDConfig(nc netctx.Context, c *EtcdConfigR
 		}
 	}
 
-	// Gracefully shutdown the etcd client
-	err = etcdmgmt.CloseEtcdClient()
-	if err != nil {
-		opRet = -1
-		opError = fmt.Sprintf("Error stopping etcd client.")
-		log.WithField("error", err.Error()).Error("Error stopping etcd client.")
-		goto Out
-	}
-
 	// Gracefully stop embedded etcd server
 	err = etcdmgmt.DestroyEmbeddedEtcd()
 	if err != nil {
@@ -125,15 +116,6 @@ func (p *PeerService) ExportAndStoreETCDConfig(nc netctx.Context, c *EtcdConfigR
 		opRet = -1
 		opError = fmt.Sprintf("Could not start embedded etcd server.")
 		log.WithField("Error", err).Error("Could not start embedded etcd server.")
-		goto Out
-	}
-
-	// Re-initialize etcd client to talk to the restarted etcd server.
-	err = etcdmgmt.InitEtcdClient("http://" + gdctx.HostIP + ":2379")
-	if err != nil {
-		opRet = -1
-		opError = fmt.Sprintf("Error starting etcd client.")
-		log.WithField("error", err.Error()).Error("Error starting etcd client.")
 		goto Out
 	}
 
