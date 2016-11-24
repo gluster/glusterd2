@@ -86,6 +86,13 @@ type Volinfo struct {
 	Bricks   []brick.Brickinfo
 }
 
+// VolStatus represents collective status of the bricks that make up the volume
+type VolStatus struct {
+	Brickstatuses []brick.Brickstatus
+	// TODO: Add further fields like memory usage, brick filesystem, fd consumed,
+	// clients connected etc.
+}
+
 // VolCreateRequest defines the parameters for creating a volume in the volume-create command
 // TODO: This should probably be moved out of here.
 type VolCreateRequest struct {
