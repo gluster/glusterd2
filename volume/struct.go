@@ -17,12 +17,12 @@ import (
 	"github.com/pborman/uuid"
 )
 
-// VolStatus is the current status of a volume
-type VolStatus uint16
+// VolState is the current status of a volume
+type VolState uint16
 
 const (
 	// VolCreated should be set only for a volume that has been just created
-	VolCreated VolStatus = iota
+	VolCreated VolState = iota
 	// VolStarted should be set only for volumes that are running
 	VolStarted
 	// VolStopped should be set only for volumes that are not running, excluding newly created volumes
@@ -79,7 +79,7 @@ type Volinfo struct {
 
 	Options map[string]string
 
-	Status VolStatus
+	Status VolState
 
 	Checksum uint64
 	Version  uint64
