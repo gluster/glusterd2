@@ -6,14 +6,19 @@ import (
 	"github.com/gluster/glusterd2/gdctx"
 
 	log "github.com/Sirupsen/logrus"
+	"github.com/pborman/uuid"
 )
 
 // TxnCtx is used to carry contextual information across the lifetime of a transaction
 type TxnCtx interface {
 	// Set attaches the given key with value to the context. It updates value if key exists already.
 	Set(key string, value interface{}) error
+	// SetNodeResult is similar to Set but prefixes the key with node UUID specified.
+	SetNodeResult(nodeID uuid.UUID, key string, value interface{}) error
 	// Get gets the value for the given key. Returns an error if the key is not present
 	Get(key string, value interface{}) error
+	// GetNodeResult is similar to Get but prefixes the key with node UUID specified.
+	GetNodeResult(nodeID uuid.UUID, key string, value interface{}) error
 	// Delete deletes the key and value
 	Delete(key string) error
 	// Logger returns the Logrus logger associated with the context
@@ -105,6 +110,14 @@ func (c *txnCtx) Set(key string, value interface{}) error {
 	return e
 }
 
+// SetNodeResult is similar to Set but prefixes the key with the node UUID
+// specified. This function can be used by nodes to store results of
+// transaction steps.
+func (c *txnCtx) SetNodeResult(nodeID uuid.UUID, key string, value interface{}) error {
+	storeKey := nodeID.String() + "/" + key
+	return c.Set(storeKey, value)
+}
+
 // Get gets the value for the given key if available.
 // Returns error if not found.
 func (c *txnCtx) Get(key string, value interface{}) error {
@@ -125,6 +138,14 @@ func (c *txnCtx) Get(key string, value interface{}) error {
 		}).Error("failed to unmarshal value")
 	}
 	return e
+}
+
+// GetNodeResult is similar to Get but prefixes the key with node UUID
+// specified. This function can be used by the transaction initiator node to
+// fetch results of transaction step run on remote nodes.
+func (c *txnCtx) GetNodeResult(nodeID uuid.UUID, key string, value interface{}) error {
+	storeKey := nodeID.String() + "/" + key
+	return c.Get(storeKey, value)
 }
 
 // Delete deletes the key and attached value

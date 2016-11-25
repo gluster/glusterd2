@@ -16,6 +16,10 @@ import (
 	"github.com/pborman/uuid"
 )
 
+const (
+	brickStatusTxnKey string = "brickstatuses"
+)
+
 func checkStatus(ctx transaction.TxnCtx) error {
 	var volname string
 
@@ -58,8 +62,7 @@ func checkStatus(ctx transaction.TxnCtx) error {
 
 	// Store the results in transaction context. This will consumed by the
 	// node that initiated the transaction.
-	key := gdctx.MyUUID.String() + "/" + "brickstatuses"
-	ctx.Set(key, brickStatuses)
+	ctx.SetNodeResult(gdctx.MyUUID, brickStatusTxnKey, brickStatuses)
 
 	return nil
 }
@@ -75,8 +78,7 @@ func aggregateVolumeStatus(ctx transaction.TxnCtx, nodes []uuid.UUID) (*volume.V
 	// Fetch brick statuses stored by each node in transaction context.
 	for _, node := range nodes {
 		var tmp []brick.Brickstatus
-		key := node.String() + "/" + "brickstatuses"
-		err := ctx.Get(key, &tmp)
+		err := ctx.GetNodeResult(node, brickStatusTxnKey, &tmp)
 		if err != nil {
 			return nil, goerrors.New("aggregateVolumeStatus: Could not fetch results from transaction context.")
 		}
