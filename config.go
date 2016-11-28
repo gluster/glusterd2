@@ -3,6 +3,8 @@ package main
 import (
 	"os"
 	"path"
+	"strconv"
+	"strings"
 
 	log "github.com/Sirupsen/logrus"
 	flag "github.com/spf13/pflag"
@@ -13,7 +15,6 @@ const (
 	defaultLogLevel    = "debug"
 	defaultRestAddress = ":24007"
 	defaultRPCAddress  = ":24008"
-	defaultRPCPort     = 24008
 
 	defaultConfName = "glusterd"
 )
@@ -68,8 +69,10 @@ func setDefaults() {
 		config.SetDefault("logdir", path.Join(wd, "log"))
 	}
 
-	// Set the default RpcPort will be used to connect to remote GlusterDs
-	config.SetDefault("rpcport", defaultRPCPort)
+	// Set the default rpcport which will be used to connect to remote GlusterDs
+	RPCPortString := strings.Split(config.GetString("rpcaddress"), ":")[1]
+	RPCPortInt, _ := strconv.ParseInt(RPCPortString, 10, 0)
+	config.SetDefault("rpcport", RPCPortInt)
 }
 
 func dumpConfigToLog() {
