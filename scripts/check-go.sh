@@ -1,9 +1,9 @@
 #!/bin/bash
 
-# We require a minimum of Go 1.5 as we make use of the vendor/ directory
+# We require a minimum of Go 1.6 as we make use of the vendor/ directory
 
 REQ_GO_MAJOR_VERSION="1"
-REQ_GO_MINOR_VERSION="5"
+REQ_GO_MINOR_VERSION="6"
 
 REQ_GO_VERSION="$REQ_GO_MAJOR_VERSION.$REQ_GO_MINOR_VERSION"
 
