@@ -60,8 +60,8 @@ func checkStatus(ctx transaction.TxnCtx) error {
 		brickStatuses = append(brickStatuses, fakeStatus)
 	}
 
-	// Store the results in transaction context. This will consumed by the
-	// node that initiated the transaction.
+	// Store the results in transaction context. This will be consumed by
+	// the node that initiated the transaction.
 	ctx.SetNodeResult(gdctx.MyUUID, brickStatusTxnKey, brickStatuses)
 
 	return nil
