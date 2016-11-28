@@ -3,6 +3,7 @@ package transaction
 import (
 	"errors"
 	log "github.com/Sirupsen/logrus"
+	"github.com/pborman/uuid"
 )
 
 // MockCtx implements a dummy context type that can be used in tests
@@ -22,6 +23,12 @@ func (m *mockTxnCtx) Set(key string, value interface{}) error {
 	return nil
 }
 
+// SetNodeResult is similar to Set but prefixes the key with the node UUID specified.
+func (c *mockTxnCtx) SetNodeResult(nodeID uuid.UUID, key string, value interface{}) error {
+	storeKey := nodeID.String() + "/" + key
+	return c.Set(storeKey, value)
+}
+
 // Get gets the value for the given key. Returns an error if the key is not present
 func (m *mockTxnCtx) Get(key string, value interface{}) error {
 	v, ok := m.data[key]
@@ -30,6 +37,12 @@ func (m *mockTxnCtx) Get(key string, value interface{}) error {
 	}
 	value = v
 	return nil
+}
+
+// GetNodeResult is similar to Get but prefixes the key with node UUID specified.
+func (m *mockTxnCtx) GetNodeResult(nodeID uuid.UUID, key string, value interface{}) error {
+	storeKey := nodeID.String() + "/" + key
+	return m.Get(storeKey, value)
 }
 
 // Delete deletes the key and value
