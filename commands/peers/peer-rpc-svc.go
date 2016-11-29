@@ -53,9 +53,10 @@ func (p *PeerService) ValidateAdd(nc netctx.Context, args *PeerAddReq) (*PeerAdd
 	}
 
 	reply := &PeerAddResp{
-		OpRet:   opRet,
-		OpError: opError,
-		UUID:    uuid,
+		OpRet:    opRet,
+		OpError:  opError,
+		UUID:     uuid,
+		PeerName: gdctx.HostName,
 	}
 	return reply, nil
 }
@@ -93,8 +94,8 @@ func (p *PeerService) ExportAndStoreETCDConfig(nc netctx.Context, c *EtcdConfigR
 		if c.Client == false {
 			newEtcdConfig.InitialCluster = c.InitialCluster
 			newEtcdConfig.ClusterState = c.ClusterState
-			newEtcdConfig.Name = c.Name
-			newEtcdConfig.Dir = c.Name + ".dir"
+			newEtcdConfig.Name = c.EtcdName
+			newEtcdConfig.Dir = newEtcdConfig.Name + ".dir"
 
 		} else {
 			// No proxy support in embeded etcd server yet.

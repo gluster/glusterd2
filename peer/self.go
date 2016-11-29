@@ -24,7 +24,7 @@ func AddSelfDetails() {
 	}
 	p := &Peer{
 		ID:        gdctx.MyUUID,
-		Name:      gdctx.HostIP,
+		Name:      gdctx.HostName,
 		Addresses: []string{gdctx.HostIP},
 		MemberID:  memberID,
 	}

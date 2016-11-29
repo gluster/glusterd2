@@ -31,10 +31,6 @@ func addPeerHandler(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	if req.Name == "" {
-		req.Name = req.Addresses[0]
-	}
-
 	localNode := false
 	for _, addr := range req.Addresses {
 		local, _ := utils.IsLocalAddress(addr)
@@ -49,19 +45,24 @@ func addPeerHandler(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	rsp, e := ValidateAddPeer(&req)
+	// This remote call will return the remote peer's ID (UUID) and Name.
+	remotePeer, e := ValidateAddPeer(&req)
 	if e != nil {
-		rest.SendHTTPError(w, http.StatusInternalServerError, rsp.OpError)
+		rest.SendHTTPError(w, http.StatusInternalServerError, remotePeer.OpError)
 		return
 	}
 
-	var etcdConf peer.ETCDConfig
-	p := &peer.Peer{
-		ID:        uuid.Parse(rsp.UUID),
-		Name:      req.Name,
-		Addresses: req.Addresses,
-		MemberID:  0,
+	// If user hasn't specified peer name, use the name returned by remote
+	// peer which defaults to it's hostname.
+	if req.Name == "" {
+		req.Name = remotePeer.PeerName
 	}
+
+	var etcdConf EtcdConfigReq
+	etcdConf.EtcdName = remotePeer.UUID
+	etcdConf.Client = req.Client
+
+	var newMemberID uint64
 
 	// By default, req.Client is false. This means every new node added via
 	// add peer will be a member in etcd cluster and participate in
@@ -77,60 +78,61 @@ func addPeerHandler(w http.ResponseWriter, r *http.Request) {
 		//         cluster configuration, including a list of the updated members
 		//	   (existing members + the new member).
 
-		member, e := etcdmgmt.EtcdMemberAdd("http://" + req.Name + ":2380")
+		newMember, e := etcdmgmt.EtcdMemberAdd("http://" + req.Addresses[0] + ":2380")
 		if e != nil {
 			log.WithFields(log.Fields{
-				"error":  e,
-				"member": req.Name,
-			}).Error("Failed to add member into etcd cluster")
+				"error":   e,
+				"uuid":    remotePeer.UUID,
+				"name":    req.Name,
+				"address": req.Addresses[0],
+			}).Error("Failed to add member to etcd cluster.")
 			rest.SendHTTPError(w, http.StatusInternalServerError, e.Error())
 			return
 		}
+		newMemberID = newMember.ID
 
-		p.MemberID = member.ID
-		newName := p.Name
-
-		log.WithFields(log.Fields{
-			"New member ": newName,
-			"member Id ":  member.ID,
-		}).Info("New member added to the cluster")
+		log.WithField("member-id", newMemberID).Info("Added new member to etcd cluster")
 
 		mlist, e := etcdmgmt.EtcdMemberList()
 		if e != nil {
-			log.WithField("err", e).Error("Failed to list member in etcd cluster")
+			log.WithField("err", e).Error("Failed to list members in etcd cluster")
 			rest.SendHTTPError(w, http.StatusInternalServerError, e.Error())
 			return
 		}
 
+		// Member name of the newly added etcd member has not been set at this point.
 		conf := []string{}
 		for _, memb := range mlist {
 			for _, u := range memb.PeerURLs {
 				n := memb.Name
-				if memb.ID == p.MemberID {
-					n = newName
+				if memb.ID == newMemberID {
+					n = remotePeer.UUID
 				}
 				conf = append(conf, fmt.Sprintf("%s=%s", n, u))
 			}
 		}
 
-		log.WithField("ETCD_NAME", newName).Info("ETCD_NAME")
-		log.WithField("ETCD_INITIAL_CLUSTER", strings.Join(conf, ",")).Info("ETCD_INITIAL_CLUSTER")
-		log.Info("ETCD_INITIAL_CLUSTER_STATE\"existing\"")
-
-		etcdConf.Name = newName
 		etcdConf.InitialCluster = strings.Join(conf, ",")
 		etcdConf.ClusterState = "existing"
 	} else {
 		// Run etcd on remote node in proxy mode. embed does not support this yet.
 	}
 
-	etcdConf.Client = req.Client
-	etcdConf.PeerName = req.Name
-	etcdrsp, e := ConfigureRemoteETCD(&etcdConf)
+	log.WithField("initial-cluster", etcdConf.InitialCluster).Debug("Reconfiguring etcd on remote peer")
+
+	etcdrsp, e := ConfigureRemoteETCD(req.Addresses[0], &etcdConf)
 	if e != nil {
 		log.WithField("err", e).Error("Failed to configure remote etcd")
 		rest.SendHTTPError(w, http.StatusInternalServerError, etcdrsp.OpError)
 		return
+	}
+
+	// Create a new peer object and add it the store,
+	p := &peer.Peer{
+		ID:        uuid.Parse(remotePeer.UUID),
+		Name:      req.Name,
+		Addresses: req.Addresses,
+		MemberID:  newMemberID,
 	}
 	if e = peer.AddOrUpdatePeer(p); e != nil {
 		log.WithFields(log.Fields{

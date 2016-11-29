@@ -11,6 +11,7 @@ message PeerAddResp {
   int32 OpRet = 1;
   string OpError = 2;
   string UUID = 3;
+  string PeerName = 4;
 }
 
 
@@ -24,8 +25,7 @@ message PeerDeleteReq {
 }
 
 message EtcdConfigReq {
- string PeerName = 1;
- string Name = 2;
+ string EtcdName = 2;
  string InitialCluster = 3;
  string ClusterState = 4;
  bool Client = 5;
