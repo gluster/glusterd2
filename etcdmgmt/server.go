@@ -23,7 +23,7 @@ func StartEmbeddedEtcd(cfg *embed.Config) error {
 	defer etcdInstance.Unlock()
 
 	if etcdInstance.etcd != nil {
-		return errors.New("An instance of etcd embedded server is already running.")
+		return errors.New("An instance of etcd embedded server is already running")
 	}
 
 	// Start embedded etcd server
@@ -43,7 +43,7 @@ func StartEmbeddedEtcd(cfg *embed.Config) error {
 		return nil
 	case <-time.After(42 * time.Second):
 		etcd.Server.Stop() // trigger a shutdown
-		return errors.New("Etcd embedded server took too long to start!")
+		return errors.New("Etcd embedded server took too long to start")
 	case err := <-etcd.Err():
 		return err
 	}
@@ -68,12 +68,12 @@ func DestroyEmbeddedEtcd() error {
 
 	err := os.RemoveAll(etcdConfig.Dir)
 	if err != nil {
-		return errors.New("Could not delete etcd data dir.")
+		return errors.New("Could not delete etcd data dir")
 	}
 
 	err = os.RemoveAll(etcdConfig.WalDir)
 	if err != nil {
-		return errors.New("Could not delete etcd WAL dir.")
+		return errors.New("Could not delete etcd WAL dir")
 	}
 
 	os.Remove(EtcdConfigFile)
