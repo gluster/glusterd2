@@ -40,14 +40,14 @@ func GetEtcdConfig(readConf bool) (*embed.Config, error) {
 	cfg.Name = gdctx.MyUUID.String()
 	cfg.Dir = cfg.Name + ".etcd"
 
-	listenClientURL, err := url.Parse("http://" + gdctx.HostIP + ":2379")
+	listenClientURL, err := url.Parse("http://" + config.GetString("etcdclientaddress"))
 	if err != nil {
 		return nil, err
 	}
 	cfg.ACUrls = []url.URL{*listenClientURL}
 	cfg.LCUrls = []url.URL{*listenClientURL}
 
-	listenPeerURL, err := url.Parse("http://" + gdctx.HostIP + ":2380")
+	listenPeerURL, err := url.Parse("http://" + config.GetString("etcdpeeraddress"))
 	if err != nil {
 		return nil, err
 	}
