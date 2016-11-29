@@ -17,7 +17,7 @@ func AddSelfDetails() {
 	}
 
 	for _, memb := range mlist {
-		if memb.Name == gdctx.HostIP {
+		if memb.Name == gdctx.MyUUID.String() {
 			memberID = memb.ID
 			break
 		}
