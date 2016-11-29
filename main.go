@@ -45,8 +45,8 @@ func main() {
 	utils.InitDir(config.GetString("logdir"))
 	gdctx.MyUUID = gdctx.InitMyUUID()
 
-	// Set IP once.
-	gdctx.SetLocalHostIP()
+	// Set IP and hostname once.
+	gdctx.SetHostnameAndIP()
 
 	// Start embedded etcd server
 	etcdConfig, err := etcdmgmt.GetEtcdConfig(true)
