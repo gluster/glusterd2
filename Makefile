@@ -33,14 +33,14 @@ install: check-go check-reqs vendor-update
 
 vendor-update:
 	@echo Updating vendored packages
-	@GO15VENDOREXPERIMENT=1 glide install
+	@glide install
 	@echo
 
 verify: check-reqs
-	@GO15VENDOREXPERIMENT=1 gometalinter -D gotype -E gofmt --errors --deadline=5m -j 4 $$(GO15VENDOREXPERIMENT=1 glide nv)
+	@gometalinter -D gotype -E gofmt --errors --deadline=5m -j 4 $$(glide nv)
 
 test:
-	@GO15VENDOREXPERIMENT=1 go test $$(GO15VENDOREXPERIMENT=1 glide nv)
+	@go test $$(glide nv)
 
 release: check-go check-reqs vendor-update
 	@./scripts/release.sh
