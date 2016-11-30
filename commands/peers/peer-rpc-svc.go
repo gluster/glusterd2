@@ -91,15 +91,10 @@ func (p *PeerService) ExportAndStoreETCDConfig(nc netctx.Context, c *EtcdConfigR
 	if !c.DeletePeer {
 		// This is an add peer request containing information about
 		// which cluster to join.
-		if c.Client == false {
-			newEtcdConfig.InitialCluster = c.InitialCluster
-			newEtcdConfig.ClusterState = c.ClusterState
-			newEtcdConfig.Name = c.EtcdName
-			newEtcdConfig.Dir = newEtcdConfig.Name + ".dir"
-
-		} else {
-			// No proxy support in embeded etcd server yet.
-		}
+		newEtcdConfig.InitialCluster = c.InitialCluster
+		newEtcdConfig.ClusterState = c.ClusterState
+		newEtcdConfig.Name = c.EtcdName
+		newEtcdConfig.Dir = newEtcdConfig.Name + ".dir"
 	}
 
 	// Gracefully stop embedded etcd server
