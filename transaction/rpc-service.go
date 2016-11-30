@@ -19,7 +19,7 @@ func init() {
 
 // RunStep handles the incoming request. It executes the requested step and returns the results
 func (p *txnSvc) RunStep(rpcCtx context.Context, req *TxnStepReq) (*TxnStepResp, error) {
-	var ctx txnCtx
+	var ctx Tctx
 
 	err := json.Unmarshal(req.Context, &ctx)
 	if err != nil {

@@ -78,7 +78,7 @@ func RunStepOn(step string, node uuid.UUID, c TxnCtx) (TxnCtx, error) {
 		return nil, errors.New(rsp.Error)
 	}
 
-	rspCtx := new(txnCtx)
+	rspCtx := new(Tctx)
 	err = json.Unmarshal(rsp.Resp, rspCtx)
 	if err != nil {
 		logger.WithError(err).Error("failed to JSON unmarhsal transaction context")
