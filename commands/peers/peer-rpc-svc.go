@@ -94,7 +94,7 @@ func (p *PeerService) ExportAndStoreETCDConfig(nc netctx.Context, c *EtcdConfigR
 		newEtcdConfig.InitialCluster = c.InitialCluster
 		newEtcdConfig.ClusterState = c.ClusterState
 		newEtcdConfig.Name = c.EtcdName
-		newEtcdConfig.Dir = newEtcdConfig.Name + ".dir"
+		newEtcdConfig.Dir = newEtcdConfig.Name + ".etcd"
 	}
 
 	// Gracefully stop embedded etcd server
