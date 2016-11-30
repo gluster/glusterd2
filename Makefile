@@ -37,6 +37,7 @@ vendor-update:
 	@echo
 
 verify: check-reqs
+	@./scripts/lint-check.sh
 	@gometalinter -D gotype -E gofmt --errors --deadline=5m -j 4 $$(glide nv)
 
 test:
