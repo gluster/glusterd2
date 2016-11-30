@@ -23,10 +23,10 @@ func AddSelfDetails() {
 		}
 	}
 	p := &Peer{
-		ID:        gdctx.MyUUID,
-		Name:      gdctx.HostName,
-		Addresses: []string{gdctx.HostIP},
-		MemberID:  memberID,
+		ID:       gdctx.MyUUID,
+		Name:     gdctx.HostName,
+		Address:  gdctx.HostIP,
+		MemberID: memberID,
 	}
 
 	if e = AddOrUpdatePeer(p); e != nil {

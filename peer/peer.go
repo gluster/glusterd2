@@ -7,11 +7,11 @@ import (
 
 // Peer reperesents a GlusterD
 type Peer struct {
-	ID        uuid.UUID `json:"id"`
-	Name      string    `json:"name"`
-	Addresses []string  `json:"addresses"`
-	Client    bool      `json:"client"`
-	MemberID  uint64    `json:"memberID"`
+	ID       uuid.UUID `json:"id"`
+	Name     string    `json:"name"`
+	Address  string    `json:"address"`
+	Client   bool      `json:"client"`
+	MemberID uint64    `json:"memberID"`
 }
 
 // ETCDConfig represents the structure which holds the ETCD env variables &

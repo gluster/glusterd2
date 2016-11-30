@@ -26,21 +26,13 @@ func addPeerHandler(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	if len(req.Addresses) < 1 {
+	if req.Address == "" {
 		rest.SendHTTPError(w, http.StatusBadRequest, errors.ErrNoHostnamesPresent.Error())
 		return
 	}
 
-	localNode := false
-	for _, addr := range req.Addresses {
-		local, _ := utils.IsLocalAddress(addr)
-		if local == true {
-			localNode = true
-			break
-		}
-	}
-
-	if localNode == true {
+	localNode, _ := utils.IsLocalAddress(req.Address)
+	if localNode {
 		rest.SendHTTPError(w, http.StatusInternalServerError, errors.ErrPeerLocalNode.Error())
 		return
 	}
@@ -78,13 +70,13 @@ func addPeerHandler(w http.ResponseWriter, r *http.Request) {
 		//         cluster configuration, including a list of the updated members
 		//	   (existing members + the new member).
 
-		newMember, e := etcdmgmt.EtcdMemberAdd("http://" + req.Addresses[0] + ":2380")
+		newMember, e := etcdmgmt.EtcdMemberAdd("http://" + req.Address + ":2380")
 		if e != nil {
 			log.WithFields(log.Fields{
 				"error":   e,
 				"uuid":    remotePeer.UUID,
 				"name":    req.Name,
-				"address": req.Addresses[0],
+				"address": req.Address,
 			}).Error("Failed to add member to etcd cluster.")
 			rest.SendHTTPError(w, http.StatusInternalServerError, e.Error())
 			return
@@ -120,7 +112,7 @@ func addPeerHandler(w http.ResponseWriter, r *http.Request) {
 
 	log.WithField("initial-cluster", etcdConf.InitialCluster).Debug("Reconfiguring etcd on remote peer")
 
-	etcdrsp, e := ConfigureRemoteETCD(req.Addresses[0], &etcdConf)
+	etcdrsp, e := ConfigureRemoteETCD(req.Address, &etcdConf)
 	if e != nil {
 		log.WithField("err", e).Error("Failed to configure remote etcd")
 		rest.SendHTTPError(w, http.StatusInternalServerError, etcdrsp.OpError)
@@ -129,10 +121,10 @@ func addPeerHandler(w http.ResponseWriter, r *http.Request) {
 
 	// Create a new peer object and add it the store,
 	p := &peer.Peer{
-		ID:        uuid.Parse(remotePeer.UUID),
-		Name:      req.Name,
-		Addresses: req.Addresses,
-		MemberID:  newMemberID,
+		ID:       uuid.Parse(remotePeer.UUID),
+		Name:     req.Name,
+		Address:  req.Address,
+		MemberID: newMemberID,
 	}
 	if e = peer.AddOrUpdatePeer(p); e != nil {
 		log.WithFields(log.Fields{

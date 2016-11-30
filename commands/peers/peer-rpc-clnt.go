@@ -17,7 +17,7 @@ var (
 // ValidateAddPeer is the validation function for AddPeer to invoke the rpc
 // server call
 func ValidateAddPeer(args *PeerAddReq) (*PeerAddResp, error) {
-	remoteAddress := fmt.Sprintf("%s:%s", args.Addresses[0], config.GetString("rpcport"))
+	remoteAddress := fmt.Sprintf("%s:%s", args.Address, config.GetString("rpcport"))
 	rpcConn, e := grpc.Dial(remoteAddress, grpc.WithInsecure())
 	if e != nil {
 		log.WithFields(log.Fields{
