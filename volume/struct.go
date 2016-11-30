@@ -17,12 +17,12 @@ import (
 	"github.com/pborman/uuid"
 )
 
-// VolStatus is the current status of a volume
-type VolStatus uint16
+// VolState is the current status of a volume
+type VolState uint16
 
 const (
 	// VolCreated should be set only for a volume that has been just created
-	VolCreated VolStatus = iota
+	VolCreated VolState = iota
 	// VolStarted should be set only for volumes that are running
 	VolStarted
 	// VolStopped should be set only for volumes that are not running, excluding newly created volumes
@@ -79,11 +79,18 @@ type Volinfo struct {
 
 	Options map[string]string
 
-	Status VolStatus
+	Status VolState
 
 	Checksum uint64
 	Version  uint64
 	Bricks   []brick.Brickinfo
+}
+
+// VolStatus represents collective status of the bricks that make up the volume
+type VolStatus struct {
+	Brickstatuses []brick.Brickstatus
+	// TODO: Add further fields like memory usage, brick filesystem, fd consumed,
+	// clients connected etc.
 }
 
 // VolCreateRequest defines the parameters for creating a volume in the volume-create command

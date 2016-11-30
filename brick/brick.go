@@ -28,6 +28,17 @@ type Brickinfo struct {
 	ID       uuid.UUID
 }
 
+// Brickstatus represents real-time status of the brick
+// TODO: Consolidate fields of Brickinfo, Brickstatus and Brick structs
+type Brickstatus struct {
+	Hostname string
+	Path     string
+	ID       uuid.UUID
+	Online   bool
+	Pid      int
+	// TODO: Add other fields like filesystem type, statvfs output etc.
+}
+
 // Brick type represents information about the brick daemon
 type Brick struct {
 	// Externally consumable using methods of Daemon interface
