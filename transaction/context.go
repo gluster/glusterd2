@@ -52,14 +52,6 @@ func NewCtxWithLogFields(fields log.Fields) *txnCtx {
 	return c
 }
 
-// NewTxnCtxWithPrefix returns a new context with the store prefix set
-func NewCtxWithPrefix(prefix string) *txnCtx {
-	c := NewCtx()
-	c.prefix = prefix
-
-	return c
-}
-
 // NewTxnCtx returns a new empty TxnCtx with no parent, no associated data and the default logger.
 func (c *txnCtx) NewCtx() *txnCtx {
 	return &txnCtx{
