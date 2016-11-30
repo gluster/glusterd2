@@ -50,11 +50,6 @@ func addPeerHandler(w http.ResponseWriter, r *http.Request) {
 		req.Name = remotePeer.PeerName
 	}
 
-	var etcdConf EtcdConfigReq
-	etcdConf.EtcdName = remotePeer.UUID
-
-	var newMemberID uint64
-
 	// Adding a member is a two step process:
 	// 	1. Add the new member to the cluster via the members API. This is
 	//	   performed on this node i.e the one that just accepted peer add
@@ -74,9 +69,8 @@ func addPeerHandler(w http.ResponseWriter, r *http.Request) {
 		rest.SendHTTPError(w, http.StatusInternalServerError, e.Error())
 		return
 	}
-	newMemberID = newMember.ID
 
-	log.WithField("member-id", newMemberID).Info("Added new member to etcd cluster")
+	log.WithField("member-id", newMember.ID).Info("Added new member to etcd cluster")
 
 	mlist, e := etcdmgmt.EtcdMemberList()
 	if e != nil {
@@ -90,13 +84,15 @@ func addPeerHandler(w http.ResponseWriter, r *http.Request) {
 	for _, memb := range mlist {
 		for _, u := range memb.PeerURLs {
 			n := memb.Name
-			if memb.ID == newMemberID {
+			if memb.ID == newMember.ID {
 				n = remotePeer.UUID
 			}
 			conf = append(conf, fmt.Sprintf("%s=%s", n, u))
 		}
 	}
 
+	var etcdConf EtcdConfigReq
+	etcdConf.EtcdName = remotePeer.UUID
 	etcdConf.InitialCluster = strings.Join(conf, ",")
 	etcdConf.ClusterState = "existing"
 
@@ -109,12 +105,12 @@ func addPeerHandler(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	// Create a new peer object and add it the store,
+	// Create a new peer object and add it to the store.
 	p := &peer.Peer{
 		ID:       uuid.Parse(remotePeer.UUID),
 		Name:     req.Name,
 		Address:  req.Address,
-		MemberID: newMemberID,
+		MemberID: newMember.ID,
 	}
 	if e = peer.AddOrUpdatePeer(p); e != nil {
 		log.WithFields(log.Fields{
