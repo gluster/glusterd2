@@ -6,31 +6,32 @@ import (
 	"github.com/pborman/uuid"
 )
 
-// MockCtx implements a dummy context type that can be used in tests
-type mockTxnCtx struct {
+// MockTctx implements a dummy context type that can be used in tests
+type MockTctx struct {
 	data map[string]interface{}
 }
 
-func NewMockCtx() *mockTxnCtx {
-	return &mockTxnCtx{
+// NewMockCtx returns a new instance of MockTctx
+func NewMockCtx() *MockTctx {
+	return &MockTctx{
 		data: make(map[string]interface{}),
 	}
 }
 
 // Set attaches the given key with value to the context. It updates value if key exists already.
-func (m *mockTxnCtx) Set(key string, value interface{}) error {
+func (m *MockTctx) Set(key string, value interface{}) error {
 	m.data[key] = value
 	return nil
 }
 
 // SetNodeResult is similar to Set but prefixes the key with the node UUID specified.
-func (c *mockTxnCtx) SetNodeResult(nodeID uuid.UUID, key string, value interface{}) error {
+func (m *MockTctx) SetNodeResult(nodeID uuid.UUID, key string, value interface{}) error {
 	storeKey := nodeID.String() + "/" + key
-	return c.Set(storeKey, value)
+	return m.Set(storeKey, value)
 }
 
 // Get gets the value for the given key. Returns an error if the key is not present
-func (m *mockTxnCtx) Get(key string, value interface{}) error {
+func (m *MockTctx) Get(key string, value interface{}) error {
 	v, ok := m.data[key]
 	if !ok {
 		return errors.New("key not present")
@@ -40,23 +41,23 @@ func (m *mockTxnCtx) Get(key string, value interface{}) error {
 }
 
 // GetNodeResult is similar to Get but prefixes the key with node UUID specified.
-func (m *mockTxnCtx) GetNodeResult(nodeID uuid.UUID, key string, value interface{}) error {
+func (m *MockTctx) GetNodeResult(nodeID uuid.UUID, key string, value interface{}) error {
 	storeKey := nodeID.String() + "/" + key
 	return m.Get(storeKey, value)
 }
 
 // Delete deletes the key and value
-func (m *mockTxnCtx) Delete(key string) error {
+func (m *MockTctx) Delete(key string) error {
 	delete(m.data, key)
 	return nil
 }
 
 // Logger returns a dummy logger
-func (m *mockTxnCtx) Logger() log.FieldLogger {
+func (m *MockTctx) Logger() log.FieldLogger {
 	return log.New()
 }
 
 // Prefix returns the prefix to be used for storing values
-func (m mockTxnCtx) Prefix() string {
+func (m MockTctx) Prefix() string {
 	return "mock"
 }

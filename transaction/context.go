@@ -27,8 +27,9 @@ type TxnCtx interface {
 	Prefix() string
 }
 
-type txnCtx struct {
-	parent *txnCtx
+// Tctx represents structure for transaction context
+type Tctx struct {
+	parent *Tctx
 	//data   map[string]interface{}
 	log       log.FieldLogger // Functions which are given this context must use this logger to log their data.
 	logFields log.Fields
@@ -37,14 +38,14 @@ type txnCtx struct {
 }
 
 // NewCtx returns a new empty TxnCtx with no parent, no associated data and the default logger.
-func NewCtx() *txnCtx {
-	return &txnCtx{
+func NewCtx() *Tctx {
+	return &Tctx{
 		log: log.StandardLogger(),
 	}
 }
 
 // NewCtxWithLogFields returns a new context with the logger set to log given fields
-func NewCtxWithLogFields(fields log.Fields) *txnCtx {
+func NewCtxWithLogFields(fields log.Fields) *Tctx {
 	c := NewCtx()
 	c.log = c.log.WithFields(fields)
 	c.logFields = fields
@@ -52,17 +53,9 @@ func NewCtxWithLogFields(fields log.Fields) *txnCtx {
 	return c
 }
 
-// NewTxnCtxWithPrefix returns a new context with the store prefix set
-func NewCtxWithPrefix(prefix string) *txnCtx {
-	c := NewCtx()
-	c.prefix = prefix
-
-	return c
-}
-
-// NewTxnCtx returns a new empty TxnCtx with no parent, no associated data and the default logger.
-func (c *txnCtx) NewCtx() *txnCtx {
-	return &txnCtx{
+// NewCtx returns a new empty TxnCtx with no parent, no associated data and the default logger.
+func (c *Tctx) NewCtx() *Tctx {
+	return &Tctx{
 		parent:    c,
 		log:       c.log,
 		logFields: c.logFields,
@@ -71,7 +64,7 @@ func (c *txnCtx) NewCtx() *txnCtx {
 }
 
 // WithLogFields returns a new context with the logger set to log given fields
-func (c *txnCtx) WithLogFields(fields log.Fields) *txnCtx {
+func (c *Tctx) WithLogFields(fields log.Fields) *Tctx {
 	n := c.NewCtx()
 	n.log = n.log.WithFields(fields)
 	n.logFields = fields
@@ -80,7 +73,7 @@ func (c *txnCtx) WithLogFields(fields log.Fields) *txnCtx {
 }
 
 // WithPrefix returns a new context with the store prefix set
-func (c *txnCtx) WithPrefix(prefix string) *txnCtx {
+func (c *Tctx) WithPrefix(prefix string) *Tctx {
 	n := c.NewCtx()
 	n.prefix = prefix
 
@@ -89,7 +82,7 @@ func (c *txnCtx) WithPrefix(prefix string) *txnCtx {
 
 // Set attaches the given key-value pair to the context.
 // If the key exists, the value will be updated.
-func (c *txnCtx) Set(key string, value interface{}) error {
+func (c *Tctx) Set(key string, value interface{}) error {
 	json, e := json.Marshal(value)
 	if e != nil {
 		c.log.WithFields(log.Fields{
@@ -113,14 +106,14 @@ func (c *txnCtx) Set(key string, value interface{}) error {
 // SetNodeResult is similar to Set but prefixes the key with the node UUID
 // specified. This function can be used by nodes to store results of
 // transaction steps.
-func (c *txnCtx) SetNodeResult(nodeID uuid.UUID, key string, value interface{}) error {
+func (c *Tctx) SetNodeResult(nodeID uuid.UUID, key string, value interface{}) error {
 	storeKey := nodeID.String() + "/" + key
 	return c.Set(storeKey, value)
 }
 
 // Get gets the value for the given key if available.
 // Returns error if not found.
-func (c *txnCtx) Get(key string, value interface{}) error {
+func (c *Tctx) Get(key string, value interface{}) error {
 	storeKey := c.prefix + "/" + key
 	b, e := gdctx.Store.Get(storeKey)
 	if e != nil {
@@ -143,13 +136,13 @@ func (c *txnCtx) Get(key string, value interface{}) error {
 // GetNodeResult is similar to Get but prefixes the key with node UUID
 // specified. This function can be used by the transaction initiator node to
 // fetch results of transaction step run on remote nodes.
-func (c *txnCtx) GetNodeResult(nodeID uuid.UUID, key string, value interface{}) error {
+func (c *Tctx) GetNodeResult(nodeID uuid.UUID, key string, value interface{}) error {
 	storeKey := nodeID.String() + "/" + key
 	return c.Get(storeKey, value)
 }
 
 // Delete deletes the key and attached value
-func (c *txnCtx) Delete(key string) error {
+func (c *Tctx) Delete(key string) error {
 	storeKey := c.prefix + "/" + key
 	e := gdctx.Store.Delete(storeKey)
 	if e != nil {
@@ -163,12 +156,12 @@ func (c *txnCtx) Delete(key string) error {
 }
 
 // Logger returns the Logrus logger associated with the context
-func (c *txnCtx) Logger() log.FieldLogger {
+func (c *Tctx) Logger() log.FieldLogger {
 	return c.log
 }
 
 // Prefix returns the prefix to be used for storing values
-func (c *txnCtx) Prefix() string {
+func (c *Tctx) Prefix() string {
 	return c.prefix
 }
 
@@ -180,13 +173,13 @@ func (c *txnCtx) Prefix() string {
 // but JSON is simpler
 
 type expContext struct {
-	Parent    *txnCtx
+	Parent    *Tctx
 	LogFields log.Fields
 	Prefix    string
 }
 
 // MarshalJSON implements the json.Marshaler interface
-func (c *txnCtx) MarshalJSON() ([]byte, error) {
+func (c *Tctx) MarshalJSON() ([]byte, error) {
 	ac := expContext{
 		Parent:    c.parent,
 		LogFields: c.logFields,
@@ -197,7 +190,7 @@ func (c *txnCtx) MarshalJSON() ([]byte, error) {
 }
 
 // UnmarshalJSON implements the json.Unmarshaler interface
-func (c *txnCtx) UnmarshalJSON(d []byte) error {
+func (c *Tctx) UnmarshalJSON(d []byte) error {
 	var ac expContext
 
 	e := json.Unmarshal(d, &ac)
