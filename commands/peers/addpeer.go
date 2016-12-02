@@ -82,7 +82,7 @@ func addPeerHandler(w http.ResponseWriter, r *http.Request) {
 
 	mlist, e := etcdmgmt.EtcdMemberList()
 	if e != nil {
-		log.WithField("err", e).Error("Failed to list members in etcd cluster")
+		log.WithField("error", e).Error("Failed to list members in etcd cluster")
 		rest.SendHTTPError(w, http.StatusInternalServerError, e.Error())
 		return
 	}
