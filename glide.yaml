@@ -2,7 +2,7 @@ package: github.com/gluster/glusterd2
 import:
 - package: github.com/codegangsta/negroni
 - package: github.com/coreos/etcd
-  version: v3.1.0-rc.0
+  version: v3.1.0-rc.1
   subpackages:
   - client
   - clientv3
@@ -31,4 +31,4 @@ import:
   - proto
   - protoc-gen-go
 - package: google.golang.org/grpc
-  version: 1.0.2
+  version: 1.0.4

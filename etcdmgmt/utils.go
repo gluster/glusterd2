@@ -32,10 +32,12 @@ func GetEtcdConfig(readConf bool) (*embed.Config, error) {
 	// of local node i.e binds on all addresses.
 	cfg := embed.NewConfig()
 
-	// By convention, human-readable etcd instance names are set to
-	// hostname of node. But we need a mapping between peer addresses
-	// and their etcd names to make things simple.
-	cfg.Name = gdctx.HostIP
+	// etcd member names doesn't have to be unique as etcd internally uses
+	// UUIDs for member IDs. In practice, etcd instance names are usually
+	// set to hostname of node. But we also need to keep the mapping
+	// between peers and their etcd names simple. So etcd member names are
+	// set to (peer) UUID of glusterd instance.
+	cfg.Name = gdctx.MyUUID.String()
 	cfg.Dir = cfg.Name + ".etcd"
 
 	listenClientURL, err := url.Parse("http://" + gdctx.HostIP + ":2379")

@@ -74,9 +74,6 @@ func GetInitialCluster() (string, error) {
 	}
 	c := 0
 	for _, peer := range peers {
-		if peer.Client == true {
-			continue
-		}
 		if c > 0 {
 			initialCluster = initialCluster + ", "
 		}

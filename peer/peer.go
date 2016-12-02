@@ -10,7 +10,6 @@ type Peer struct {
 	ID        uuid.UUID `json:"id"`
 	Name      string    `json:"name"`
 	Addresses []string  `json:"addresses"`
-	Client    bool      `json:"client"`
 	MemberID  uint64    `json:"memberID"`
 }
 
@@ -22,6 +21,5 @@ type ETCDConfig struct {
 	Name           string
 	InitialCluster string
 	ClusterState   string
-	Client         bool
 	DeletePeer     bool
 }

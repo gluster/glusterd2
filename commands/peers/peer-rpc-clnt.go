@@ -3,8 +3,6 @@ package peercommands
 import (
 	"fmt"
 
-	"github.com/gluster/glusterd2/peer"
-
 	log "github.com/Sirupsen/logrus"
 	config "github.com/spf13/viper"
 	netctx "golang.org/x/net/context"
@@ -19,7 +17,7 @@ var (
 // ValidateAddPeer is the validation function for AddPeer to invoke the rpc
 // server call
 func ValidateAddPeer(args *PeerAddReq) (*PeerAddResp, error) {
-	remoteAddress := fmt.Sprintf("%s:%s", args.Name, config.GetString("rpcport"))
+	remoteAddress := fmt.Sprintf("%s:%s", args.Addresses[0], config.GetString("rpcport"))
 	rpcConn, e := grpc.Dial(remoteAddress, grpc.WithInsecure())
 	if e != nil {
 		log.WithFields(log.Fields{
@@ -54,10 +52,10 @@ func ValidateAddPeer(args *PeerAddReq) (*PeerAddResp, error) {
 
 // ValidateDeletePeer is the validation function for DeletePeer to invoke the rpc
 // server call
-func ValidateDeletePeer(id string, name string) (*PeerGenericResp, error) {
+func ValidateDeletePeer(id string, ip string) (*PeerGenericResp, error) {
 	args := &PeerDeleteReq{ID: id}
 
-	remoteAddress := fmt.Sprintf("%s:%s", name, config.GetString("rpcport"))
+	remoteAddress := fmt.Sprintf("%s:%s", ip, config.GetString("rpcport"))
 	rpcConn, e := grpc.Dial(remoteAddress, grpc.WithInsecure())
 	if e != nil {
 		log.WithFields(log.Fields{
@@ -90,19 +88,11 @@ func ValidateDeletePeer(id string, name string) (*PeerGenericResp, error) {
 	return rsp, nil
 }
 
-// ConfigureRemoteETCD function is a rpc server call for exporting and storing etcd
-// environment variable & other configuration parameters
-func ConfigureRemoteETCD(p *peer.ETCDConfig) (*PeerGenericResp, error) {
-	args := &EtcdConfigReq{
-		PeerName:       p.PeerName,
-		Name:           p.Name,
-		InitialCluster: p.InitialCluster,
-		ClusterState:   p.ClusterState,
-		Client:         p.Client,
-		DeletePeer:     p.DeletePeer,
-	}
+// ConfigureRemoteETCD will reconfigure etcd server on remote node to either
+// join or remove itself from an etcd cluster.
+func ConfigureRemoteETCD(remotePeer string, args *EtcdConfigReq) (*PeerGenericResp, error) {
 
-	remoteAddress := fmt.Sprintf("%s:%s", p.PeerName, config.GetString("rpcport"))
+	remoteAddress := fmt.Sprintf("%s:%s", remotePeer, config.GetString("rpcport"))
 	rpcConn, e := grpc.Dial(remoteAddress, grpc.WithInsecure())
 	if e != nil {
 		log.WithFields(log.Fields{

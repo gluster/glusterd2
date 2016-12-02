@@ -17,14 +17,14 @@ func AddSelfDetails() {
 	}
 
 	for _, memb := range mlist {
-		if memb.Name == gdctx.HostIP {
+		if memb.Name == gdctx.MyUUID.String() {
 			memberID = memb.ID
 			break
 		}
 	}
 	p := &Peer{
 		ID:        gdctx.MyUUID,
-		Name:      gdctx.HostIP,
+		Name:      gdctx.HostName,
 		Addresses: []string{gdctx.HostIP},
 		MemberID:  memberID,
 	}

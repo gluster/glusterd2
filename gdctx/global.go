@@ -6,6 +6,7 @@
 package gdctx
 
 import (
+	"os"
 	"sync"
 
 	"github.com/gluster/glusterd2/rest"
@@ -35,6 +36,7 @@ var (
 	Rest      *rest.GDRest
 	OpVersion int
 	HostIP    string
+	HostName  string
 )
 
 var (
@@ -69,11 +71,17 @@ func Init() {
 	initOnce.Do(doInit)
 }
 
-// SetLocalHostIP sets the local IP address
-func SetLocalHostIP() {
+// SetHostnameAndIP sets the local IP address and host name
+func SetHostnameAndIP() {
 	hostIP, err := utils.GetLocalIP()
 	if err != nil {
-		log.Fatal("Could not able to get IP address")
+		log.Fatal("SetHostnameAndIP: Could not get IP address")
 	}
 	HostIP = hostIP
+
+	hostName, err := os.Hostname()
+	if err != nil {
+		log.Fatal("SetHostnameAndIP: Could not get hostname")
+	}
+	HostName = hostName
 }

@@ -38,7 +38,7 @@ func deletePeerHandler(w http.ResponseWriter, r *http.Request) {
 	}
 
 	// Validate whether the peer can be deleted
-	rsp, e := ValidateDeletePeer(id, p.Name)
+	rsp, e := ValidateDeletePeer(id, p.Addresses[0])
 	if e != nil {
 		rest.SendHTTPError(w, http.StatusInternalServerError, rsp.OpError)
 		return
@@ -69,11 +69,9 @@ func deletePeerHandler(w http.ResponseWriter, r *http.Request) {
 
 	// Remove data dir of etcd on remote machine. Restart etcd on remote machine
 	// in standalone (single cluster) mode.
-	var etcdConf peer.ETCDConfig
+	var etcdConf EtcdConfigReq
 	etcdConf.DeletePeer = true
-	etcdConf.Name = p.Name
-	etcdConf.PeerName = p.Name
-	etcdrsp, e := ConfigureRemoteETCD(&etcdConf)
+	etcdrsp, e := ConfigureRemoteETCD(p.Addresses[0], &etcdConf)
 	if e != nil {
 		log.WithField("err", e).Error("Failed to configure remote etcd.")
 		rest.SendHTTPError(w, http.StatusInternalServerError, etcdrsp.OpError)
