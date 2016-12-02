@@ -165,8 +165,10 @@ func GetPeerByAddr(addr string) (*Peer, error) {
 			continue
 		}
 
-		if p.Address == addr {
-			return &p, nil
+		for _, paddr := range p.Addresses {
+			if paddr == addr {
+				return &p, nil
+			}
 		}
 	}
 

@@ -31,17 +31,20 @@ func RunStepOn(step string, node uuid.UUID, c TxnCtx) (TxnCtx, error) {
 	var conn *grpc.ClientConn
 	port := config.GetString("rpcport")
 
-	remote := p.Address + ":" + port
-	conn, err = grpc.Dial(remote, grpc.WithInsecure())
-	if err == nil && conn != nil {
-		logger.WithFields(log.Fields{
-			"remote": remote,
-		}).Debug("connected to remote")
+	for _, addr := range p.Addresses {
+		remote := addr + ":" + port
+		conn, err = grpc.Dial(remote, grpc.WithInsecure())
+		if err == nil && conn != nil {
+			logger.WithFields(log.Fields{
+				"remote": remote,
+			}).Debug("connected to remote")
+			break
+		}
 	}
 	if conn == nil {
 		logger.WithFields(log.Fields{
 			"error":  err,
-			"remote": p.Address,
+			"remote": p.Addresses,
 		}).Error("failed to grpc.Dial remote")
 		return nil, err
 	}

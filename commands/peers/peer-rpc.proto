@@ -3,7 +3,7 @@ package peercommands;
 
 message PeerAddReq {
   string Name = 1;
-  string Address = 2;
+  repeated string Addresses = 2;
 }
 
 message PeerAddResp {
