@@ -24,10 +24,10 @@ message PeerDeleteReq {
 }
 
 message EtcdConfigReq {
- string EtcdName = 2;
- string InitialCluster = 3;
- string ClusterState = 4;
- bool DeletePeer = 6;
+ string EtcdName = 1;
+ string InitialCluster = 2;
+ string ClusterState = 3;
+ bool DeletePeer = 4;
 }
 
 service PeerService {
