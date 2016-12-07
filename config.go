@@ -5,9 +5,9 @@ import (
 	"os"
 	"path"
 	"strconv"
-	"strings"
 
 	"github.com/gluster/glusterd2/gdctx"
+	"github.com/gluster/glusterd2/utils"
 
 	log "github.com/Sirupsen/logrus"
 	flag "github.com/spf13/pflag"
@@ -17,7 +17,6 @@ import (
 const (
 	defaultLogLevel          = "debug"
 	defaultRestAddress       = ":24007"
-	defaultRPCAddress        = ":24008"
 	defaultEtcdClientAddress = ":2379"
 	defaultEtcdPeerAddress   = ":2380"
 
@@ -30,6 +29,7 @@ var (
 		"/etc/glusterd",
 		".",
 	}
+	defaultRPCAddress = ":" + strconv.Itoa(utils.DefaultRPCPort)
 )
 
 // parseFlags sets up the flags and parses them, this needs to be called before any other operation
@@ -77,10 +77,19 @@ func setDefaults() {
 		config.SetDefault("logdir", path.Join(wd, "log"))
 	}
 
-	// Set the default rpcport which will be used to connect to remote GlusterDs
-	RPCPortString := strings.Split(config.GetString("rpcaddress"), ":")[1]
-	RPCPortInt, _ := strconv.ParseInt(RPCPortString, 10, 0)
-	config.SetDefault("rpcport", RPCPortInt)
+	// Set rpc address.
+	host, port, err := net.SplitHostPort(config.GetString("rpcaddress"))
+	if err != nil {
+		log.Fatal("Invalid rpc address specified.")
+	} else {
+		if host == "" {
+			host = gdctx.HostIP
+		}
+		if port == "" {
+			port = strconv.Itoa(utils.DefaultRPCPort)
+		}
+		config.SetDefault("rpcaddress", host+":"+port)
+	}
 
 	// If no IP is specified for etcd config options (defaults), set those.
 	etcdConfigOptions := []string{"etcdclientaddress", "etcdpeeraddress"}

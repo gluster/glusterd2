@@ -1,10 +1,7 @@
 package peercommands
 
 import (
-	"fmt"
-
 	log "github.com/Sirupsen/logrus"
-	config "github.com/spf13/viper"
 	netctx "golang.org/x/net/context"
 	"google.golang.org/grpc"
 )
@@ -16,8 +13,7 @@ var (
 
 // ValidateAddPeer is the validation function for AddPeer to invoke the rpc
 // server call
-func ValidateAddPeer(args *PeerAddReq) (*PeerAddResp, error) {
-	remoteAddress := fmt.Sprintf("%s:%s", args.Addresses[0], config.GetString("rpcport"))
+func ValidateAddPeer(remoteAddress string, args *PeerAddReq) (*PeerAddResp, error) {
 	rpcConn, e := grpc.Dial(remoteAddress, grpc.WithInsecure())
 	if e != nil {
 		log.WithFields(log.Fields{
@@ -52,10 +48,9 @@ func ValidateAddPeer(args *PeerAddReq) (*PeerAddResp, error) {
 
 // ValidateDeletePeer is the validation function for DeletePeer to invoke the rpc
 // server call
-func ValidateDeletePeer(id string, ip string) (*PeerGenericResp, error) {
+func ValidateDeletePeer(remoteAddress string, id string) (*PeerGenericResp, error) {
 	args := &PeerDeleteReq{ID: id}
 
-	remoteAddress := fmt.Sprintf("%s:%s", ip, config.GetString("rpcport"))
 	rpcConn, e := grpc.Dial(remoteAddress, grpc.WithInsecure())
 	if e != nil {
 		log.WithFields(log.Fields{
@@ -90,9 +85,8 @@ func ValidateDeletePeer(id string, ip string) (*PeerGenericResp, error) {
 
 // ConfigureRemoteETCD will reconfigure etcd server on remote node to either
 // join or remove itself from an etcd cluster.
-func ConfigureRemoteETCD(remotePeer string, args *EtcdConfigReq) (*PeerGenericResp, error) {
+func ConfigureRemoteETCD(remoteAddress string, args *EtcdConfigReq) (*PeerGenericResp, error) {
 
-	remoteAddress := fmt.Sprintf("%s:%s", remotePeer, config.GetString("rpcport"))
 	rpcConn, e := grpc.Dial(remoteAddress, grpc.WithInsecure())
 	if e != nil {
 		log.WithFields(log.Fields{

@@ -5,6 +5,7 @@ import (
 	"github.com/gluster/glusterd2/gdctx"
 
 	log "github.com/Sirupsen/logrus"
+	config "github.com/spf13/viper"
 )
 
 // AddSelfDetails function adds its own details into the central store
@@ -25,7 +26,7 @@ func AddSelfDetails() {
 	p := &Peer{
 		ID:        gdctx.MyUUID,
 		Name:      gdctx.HostName,
-		Addresses: []string{gdctx.HostIP},
+		Addresses: []string{config.GetString("rpcaddress")},
 		MemberID:  memberID,
 	}
 

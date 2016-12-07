@@ -15,6 +15,23 @@ import (
 	"github.com/pborman/uuid"
 )
 
+func isPeerInCluster(peerID string) bool {
+
+	mlist, err := etcdmgmt.EtcdMemberList()
+	if err != nil {
+		log.WithError(err).Error("isPeerInCluster: Failed to list etcd cluster members.")
+		return false
+	}
+
+	for _, memb := range mlist {
+		if memb.Name == peerID {
+			return true
+		}
+	}
+
+	return false
+}
+
 func addPeerHandler(w http.ResponseWriter, r *http.Request) {
 
 	// FIXME: This is not txn based, yet. Behaviour when multiple simultaneous
@@ -31,24 +48,26 @@ func addPeerHandler(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	localNode := false
-	for _, addr := range req.Addresses {
-		local, _ := utils.IsLocalAddress(addr)
-		if local == true {
-			localNode = true
-			break
-		}
-	}
+	// A peer can have multiple addresses. For now, we use only the first
+	// address present in the req.Addresses list.
 
-	if localNode == true {
-		rest.SendHTTPError(w, http.StatusInternalServerError, errors.ErrPeerLocalNode.Error())
+	remotePeerAddress, err := utils.FormRemotePeerAddress(req.Addresses[0])
+	if err != nil {
+		rest.SendHTTPError(w, http.StatusBadRequest, err.Error())
 		return
 	}
 
-	// This remote call will return the remote peer's ID (UUID) and Name.
-	remotePeer, e := ValidateAddPeer(&req)
+	// This remote call will return the remote peer's ID (UUID), name
+	// and etcd peer url.
+	remotePeer, e := ValidateAddPeer(remotePeerAddress, &req)
 	if e != nil {
 		rest.SendHTTPError(w, http.StatusInternalServerError, remotePeer.OpError)
+		return
+	}
+
+	// TODO: Parse addresses considering ports to figure this out.
+	if isPeerInCluster(remotePeer.UUID) {
+		rest.SendHTTPError(w, http.StatusInternalServerError, errors.ErrPeerLocalNode.Error())
 		return
 	}
 
@@ -66,13 +85,13 @@ func addPeerHandler(w http.ResponseWriter, r *http.Request) {
 	//         cluster configuration, including a list of the updated members
 	//	   (existing members + the new member).
 
-	newMember, e := etcdmgmt.EtcdMemberAdd("http://" + req.Addresses[0] + ":2380")
+	newMember, e := etcdmgmt.EtcdMemberAdd("http://" + remotePeer.EtcdPeerAddress)
 	if e != nil {
 		log.WithFields(log.Fields{
 			"error":   e,
 			"uuid":    remotePeer.UUID,
 			"name":    req.Name,
-			"address": req.Addresses[0],
+			"address": remotePeer.EtcdPeerAddress,
 		}).Error("Failed to add member to etcd cluster.")
 		rest.SendHTTPError(w, http.StatusInternalServerError, e.Error())
 		return
@@ -106,7 +125,7 @@ func addPeerHandler(w http.ResponseWriter, r *http.Request) {
 
 	log.WithField("initial-cluster", etcdConf.InitialCluster).Debug("Reconfiguring etcd on remote peer")
 
-	etcdrsp, e := ConfigureRemoteETCD(req.Addresses[0], &etcdConf)
+	etcdrsp, e := ConfigureRemoteETCD(remotePeerAddress, &etcdConf)
 	if e != nil {
 		log.WithField("err", e).Error("Failed to configure remote etcd")
 		rest.SendHTTPError(w, http.StatusInternalServerError, etcdrsp.OpError)
