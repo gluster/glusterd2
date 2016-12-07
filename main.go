@@ -17,6 +17,10 @@ import (
 )
 
 func main() {
+
+	// Set IP and hostname once.
+	gdctx.SetHostnameAndIP()
+
 	// Parse flags and handle version and logging before continuing
 	parseFlags()
 
@@ -44,9 +48,6 @@ func main() {
 	utils.InitDir(config.GetString("rundir"))
 	utils.InitDir(config.GetString("logdir"))
 	gdctx.MyUUID = gdctx.InitMyUUID()
-
-	// Set IP and hostname once.
-	gdctx.SetHostnameAndIP()
 
 	// Start embedded etcd server
 	etcdConfig, err := etcdmgmt.GetEtcdConfig(true)

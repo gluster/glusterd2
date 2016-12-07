@@ -7,12 +7,11 @@ package store
 import (
 	"time"
 
-	"github.com/gluster/glusterd2/utils"
-
 	log "github.com/Sirupsen/logrus"
 	"github.com/prashanthpai/libkv"
 	"github.com/prashanthpai/libkv/store"
 	"github.com/prashanthpai/libkv/store/etcd"
+	config "github.com/spf13/viper"
 )
 
 const (
@@ -32,8 +31,7 @@ func init() {
 // New creates a new GDStore
 func New() *GDStore {
 	//TODO: Make this configurable
-	ip, _ := utils.GetLocalIP()
-	address := ip + ":2379"
+	address := config.GetString("etcdclientaddress")
 
 	s, err := libkv.NewStore(store.ETCD, []string{address}, &store.Config{ConnectionTimeout: 10 * time.Second})
 	if err != nil {

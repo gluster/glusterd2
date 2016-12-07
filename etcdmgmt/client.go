@@ -3,11 +3,10 @@ package etcdmgmt
 import (
 	"time"
 
-	"github.com/gluster/glusterd2/gdctx"
-
 	log "github.com/Sirupsen/logrus"
 	etcd "github.com/coreos/etcd/clientv3"
 	pb "github.com/coreos/etcd/etcdserver/etcdserverpb"
+	config "github.com/spf13/viper"
 	etcdcontext "golang.org/x/net/context"
 )
 
@@ -16,7 +15,7 @@ import (
 // key-values in etcd store, libkv is used instead.
 func initEtcdClient() (*etcd.Client, error) {
 
-	endpoint := "http://" + gdctx.HostIP + ":2379"
+	endpoint := "http://" + config.GetString("etcdclientaddress")
 
 	cfg := etcd.Config{
 		Endpoints:   []string{endpoint},

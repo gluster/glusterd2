@@ -1,8 +1,13 @@
 package main
 
 import (
+	"net"
 	"os"
 	"path"
+	"strconv"
+	"strings"
+
+	"github.com/gluster/glusterd2/gdctx"
 
 	log "github.com/Sirupsen/logrus"
 	flag "github.com/spf13/pflag"
@@ -10,10 +15,11 @@ import (
 )
 
 const (
-	defaultLogLevel    = "debug"
-	defaultRestAddress = ":24007"
-	defaultRPCAddress  = ":24008"
-	defaultRPCPort     = 24008
+	defaultLogLevel          = "debug"
+	defaultRestAddress       = ":24007"
+	defaultRPCAddress        = ":24008"
+	defaultEtcdClientAddress = ":2379"
+	defaultEtcdPeerAddress   = ":2380"
 
 	defaultConfName = "glusterd"
 )
@@ -34,8 +40,11 @@ func parseFlags() {
 	flag.String("logdir", "", "Directory to store logs. (default: workdir/log)")
 	flag.String("config", "", "Configuration file for GlusterD. By default looks for glusterd.(yaml|toml|json) in /etc/glusterd and current working directory.")
 	flag.String("loglevel", defaultLogLevel, "Severity of messages to be logged.")
+
 	flag.String("restaddress", defaultRestAddress, "Address to bind the REST service.")
 	flag.String("rpcaddress", defaultRPCAddress, "Address to bind the RPC service.")
+	flag.String("etcdclientaddress", defaultEtcdClientAddress, "Address which etcd server will use for peer to peer communication.")
+	flag.String("etcdpeeraddress", defaultEtcdPeerAddress, "Address which etcd server will use to receive etcd client requests.")
 
 	flag.Parse()
 }
@@ -68,8 +77,23 @@ func setDefaults() {
 		config.SetDefault("logdir", path.Join(wd, "log"))
 	}
 
-	// Set the default RpcPort will be used to connect to remote GlusterDs
-	config.SetDefault("rpcport", defaultRPCPort)
+	// Set the default rpcport which will be used to connect to remote GlusterDs
+	RPCPortString := strings.Split(config.GetString("rpcaddress"), ":")[1]
+	RPCPortInt, _ := strconv.ParseInt(RPCPortString, 10, 0)
+	config.SetDefault("rpcport", RPCPortInt)
+
+	// If no IP is specified for etcd config options (defaults), set those.
+	etcdConfigOptions := []string{"etcdclientaddress", "etcdpeeraddress"}
+	for _, option := range etcdConfigOptions {
+		host, port, err := net.SplitHostPort(config.GetString(option))
+		if err != nil {
+			log.Fatal("Invalid etcd addresses specified.")
+		} else {
+			if host == "" {
+				config.SetDefault(option, gdctx.HostIP+":"+port)
+			}
+		}
+	}
 }
 
 func dumpConfigToLog() {
