@@ -157,12 +157,8 @@ func nodesForVolCreate(req *volume.VolCreateRequest) ([]uuid.UUID, error) {
 			return nil, err
 		}
 
-		var id uuid.UUID
-		u := uuid.Parse(host)
-		if u != nil {
-			// Host specified is UUID
-			id = u
-		} else {
+		id := uuid.Parse(host)
+		if id == nil {
 			// Host specified is IP or IP:port
 			id, err = peer.GetPeerIDByAddrF(host)
 			if err != nil {

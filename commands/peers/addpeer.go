@@ -67,7 +67,7 @@ func addPeerHandler(w http.ResponseWriter, r *http.Request) {
 
 	// TODO: Parse addresses considering ports to figure this out.
 	if isPeerInCluster(remotePeer.UUID) {
-		rest.SendHTTPError(w, http.StatusInternalServerError, errors.ErrPeerLocalNode.Error())
+		rest.SendHTTPError(w, http.StatusInternalServerError, "Peer already in cluster")
 		return
 	}
 

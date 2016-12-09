@@ -4,10 +4,8 @@ import (
 	"net"
 	"os"
 	"path"
-	"strconv"
 
 	"github.com/gluster/glusterd2/gdctx"
-	"github.com/gluster/glusterd2/utils"
 
 	log "github.com/Sirupsen/logrus"
 	flag "github.com/spf13/pflag"
@@ -17,6 +15,7 @@ import (
 const (
 	defaultLogLevel          = "debug"
 	defaultRestAddress       = ":24007"
+	defaultRPCAddress        = ":24008"
 	defaultEtcdClientAddress = ":2379"
 	defaultEtcdPeerAddress   = ":2380"
 
@@ -29,7 +28,6 @@ var (
 		"/etc/glusterd",
 		".",
 	}
-	defaultRPCAddress = ":" + strconv.Itoa(utils.DefaultRPCPort)
 )
 
 // parseFlags sets up the flags and parses them, this needs to be called before any other operation
@@ -77,6 +75,9 @@ func setDefaults() {
 		config.SetDefault("logdir", path.Join(wd, "log"))
 	}
 
+	// Set default rpc port. This shouldn't be configurable.
+	config.SetDefault("defaultrpcport", defaultRPCAddress[1:])
+
 	// Set rpc address.
 	host, port, err := net.SplitHostPort(config.GetString("rpcaddress"))
 	if err != nil {
@@ -86,7 +87,7 @@ func setDefaults() {
 			host = gdctx.HostIP
 		}
 		if port == "" {
-			port = strconv.Itoa(utils.DefaultRPCPort)
+			port = config.GetString("defaultrpcport")
 		}
 		config.SetDefault("rpcaddress", host+":"+port)
 	}
