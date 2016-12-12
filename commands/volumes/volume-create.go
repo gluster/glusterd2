@@ -144,14 +144,28 @@ func nodesForVolCreate(req *volume.VolCreateRequest) ([]uuid.UUID, error) {
 	var nodes []uuid.UUID
 
 	for _, b := range req.Bricks {
-		addr, _, err := utils.ParseHostAndBrickPath(b)
+
+		// Bricks specified can have one of the following formats:
+		// <peer-uuid>:<brick-path>
+		// <ip>:<port>:<brick-path>
+		// <ip>:<brick-path>
+		// TODO: Peer names, as of today, aren't unique. Support it ?
+		// TODO: Change API to have host and path as separate fields
+
+		host, _, err := utils.ParseHostAndBrickPath(b)
 		if err != nil {
 			return nil, err
 		}
-		id, err := peer.GetPeerIDByAddrF(addr)
-		if err != nil {
-			return nil, err
+
+		id := uuid.Parse(host)
+		if id == nil {
+			// Host specified is IP or IP:port
+			id, err = peer.GetPeerIDByAddrF(host)
+			if err != nil {
+				return nil, err
+			}
 		}
+
 		nodes = append(nodes, id)
 	}
 	return nodes, nil

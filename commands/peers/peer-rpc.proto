@@ -11,6 +11,7 @@ message PeerAddResp {
   string OpError = 2;
   string UUID = 3;
   string PeerName = 4;
+  string EtcdPeerAddress = 5;
 }
 
 

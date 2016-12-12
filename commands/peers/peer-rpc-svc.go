@@ -10,6 +10,7 @@ import (
 	"github.com/gluster/glusterd2/volume"
 
 	log "github.com/Sirupsen/logrus"
+	config "github.com/spf13/viper"
 	netctx "golang.org/x/net/context"
 	"google.golang.org/grpc"
 )
@@ -41,11 +42,6 @@ func (p *PeerService) ValidateAdd(nc netctx.Context, args *PeerAddReq) (*PeerAdd
 		opRet = -1
 		opError = fmt.Sprintf("GlusterD instance running on %s is not compatible", args.Name)
 	}
-	peers, _ := peer.GetPeersF()
-	if len(peers) != 0 {
-		opRet = -1
-		opError = fmt.Sprintf("Peer %s is already part of another cluster", args.Name)
-	}
 	volumes, _ := volume.GetVolumes()
 	if len(volumes) != 0 {
 		opRet = -1
@@ -53,10 +49,11 @@ func (p *PeerService) ValidateAdd(nc netctx.Context, args *PeerAddReq) (*PeerAdd
 	}
 
 	reply := &PeerAddResp{
-		OpRet:    opRet,
-		OpError:  opError,
-		UUID:     uuid,
-		PeerName: gdctx.HostName,
+		OpRet:           opRet,
+		OpError:         opError,
+		UUID:            uuid,
+		PeerName:        gdctx.HostName,
+		EtcdPeerAddress: config.GetString("etcdpeeraddress"),
 	}
 	return reply, nil
 }

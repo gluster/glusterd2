@@ -4,8 +4,6 @@ import (
 	"net"
 	"os"
 	"path"
-	"strconv"
-	"strings"
 
 	"github.com/gluster/glusterd2/gdctx"
 
@@ -77,10 +75,22 @@ func setDefaults() {
 		config.SetDefault("logdir", path.Join(wd, "log"))
 	}
 
-	// Set the default rpcport which will be used to connect to remote GlusterDs
-	RPCPortString := strings.Split(config.GetString("rpcaddress"), ":")[1]
-	RPCPortInt, _ := strconv.ParseInt(RPCPortString, 10, 0)
-	config.SetDefault("rpcport", RPCPortInt)
+	// Set default rpc port. This shouldn't be configurable.
+	config.SetDefault("defaultrpcport", defaultRPCAddress[1:])
+
+	// Set rpc address.
+	host, port, err := net.SplitHostPort(config.GetString("rpcaddress"))
+	if err != nil {
+		log.Fatal("Invalid rpc address specified.")
+	} else {
+		if host == "" {
+			host = gdctx.HostIP
+		}
+		if port == "" {
+			port = config.GetString("defaultrpcport")
+		}
+		config.SetDefault("rpcaddress", host+":"+port)
+	}
 
 	// If no IP is specified for etcd config options (defaults), set those.
 	etcdConfigOptions := []string{"etcdclientaddress", "etcdpeeraddress"}

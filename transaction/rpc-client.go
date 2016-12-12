@@ -5,10 +5,10 @@ import (
 	"errors"
 
 	"github.com/gluster/glusterd2/peer"
+	"github.com/gluster/glusterd2/utils"
 
 	log "github.com/Sirupsen/logrus"
 	"github.com/pborman/uuid"
-	config "github.com/spf13/viper"
 	netctx "golang.org/x/net/context"
 	"google.golang.org/grpc"
 )
@@ -29,18 +29,19 @@ func RunStepOn(step string, node uuid.UUID, c TxnCtx) (TxnCtx, error) {
 	logger := c.Logger().WithField("remotepeer", p.ID.String()+"("+p.Name+")")
 
 	var conn *grpc.ClientConn
-	port := config.GetString("rpcport")
 
-	for _, addr := range p.Addresses {
-		remote := addr + ":" + port
-		conn, err = grpc.Dial(remote, grpc.WithInsecure())
-		if err == nil && conn != nil {
-			logger.WithFields(log.Fields{
-				"remote": remote,
-			}).Debug("connected to remote")
-			break
-		}
+	remote, err := utils.FormRemotePeerAddress(p.Addresses[0])
+	if err != nil {
+		return nil, err
 	}
+
+	conn, err = grpc.Dial(remote, grpc.WithInsecure())
+	if err == nil && conn != nil {
+		logger.WithFields(log.Fields{
+			"remote": remote,
+		}).Debug("connected to remote")
+	}
+
 	if conn == nil {
 		logger.WithFields(log.Fields{
 			"error":  err,

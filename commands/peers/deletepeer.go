@@ -7,6 +7,7 @@ import (
 	"github.com/gluster/glusterd2/gdctx"
 	"github.com/gluster/glusterd2/peer"
 	"github.com/gluster/glusterd2/rest"
+	"github.com/gluster/glusterd2/utils"
 
 	log "github.com/Sirupsen/logrus"
 	"github.com/gorilla/mux"
@@ -37,8 +38,14 @@ func deletePeerHandler(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
+	remotePeerAddress, err := utils.FormRemotePeerAddress(p.Addresses[0])
+	if err != nil {
+		rest.SendHTTPError(w, http.StatusBadRequest, err.Error())
+		return
+	}
+
 	// Validate whether the peer can be deleted
-	rsp, e := ValidateDeletePeer(id, p.Addresses[0])
+	rsp, e := ValidateDeletePeer(remotePeerAddress, id)
 	if e != nil {
 		rest.SendHTTPError(w, http.StatusInternalServerError, rsp.OpError)
 		return
@@ -71,7 +78,7 @@ func deletePeerHandler(w http.ResponseWriter, r *http.Request) {
 	// in standalone (single cluster) mode.
 	var etcdConf EtcdConfigReq
 	etcdConf.DeletePeer = true
-	etcdrsp, e := ConfigureRemoteETCD(p.Addresses[0], &etcdConf)
+	etcdrsp, e := ConfigureRemoteETCD(remotePeerAddress, &etcdConf)
 	if e != nil {
 		log.WithField("err", e).Error("Failed to configure remote etcd.")
 		rest.SendHTTPError(w, http.StatusInternalServerError, etcdrsp.OpError)

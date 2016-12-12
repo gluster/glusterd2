@@ -145,21 +145,34 @@ func NewVolumeEntry(req *VolCreateRequest) (*Volinfo, error) {
 func NewBrickEntries(bricks []string) ([]brick.Brickinfo, error) {
 	var brickInfos []brick.Brickinfo
 	var binfo brick.Brickinfo
-	var e error
+
 	for _, b := range bricks {
-		hostname, path, err := utils.ParseHostAndBrickPath(b)
-		if err != nil {
-			return nil, err
+		host, path, e := utils.ParseHostAndBrickPath(b)
+		if e != nil {
+			return nil, e
 		}
-		binfo.Hostname = hostname
+
 		binfo.Path, e = absFilePath(path)
 		if e != nil {
 			log.Error("Failed to convert the brickpath to absolute path")
 			return nil, e
 		}
-		binfo.ID, e = peer.GetPeerIDByAddrF(hostname)
-		if e != nil {
-			return nil, e
+
+		u := uuid.Parse(host)
+		if u != nil {
+			// Host specified is UUID
+			binfo.ID = u
+			p, e := peer.GetPeerF(host)
+			if e != nil {
+				return nil, e
+			}
+			binfo.Hostname = p.Addresses[0]
+		} else {
+			binfo.ID, e = peer.GetPeerIDByAddrF(host)
+			if e != nil {
+				return nil, e
+			}
+			binfo.Hostname = host
 		}
 
 		brickInfos = append(brickInfos, binfo)

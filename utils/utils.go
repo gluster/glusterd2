@@ -43,7 +43,13 @@ const PosixPathMax = C._POSIX_PATH_MAX
 
 // IsLocalAddress checks whether a given host/IP is local
 // Does lookup only after string matching IP addresses
-func IsLocalAddress(host string) (bool, error) {
+func IsLocalAddress(address string) (bool, error) {
+	var host string
+
+	host, _, _ = net.SplitHostPort(address)
+	if host == "" {
+		host = address
+	}
 
 	localNames := []string{"127.0.0.1", "localhost", "::1"}
 	for _, name := range localNames {
