@@ -305,7 +305,7 @@ func InitDir(dir string) {
 	if err != nil {
 		switch {
 		case os.IsNotExist(err):
-			if err = os.Mkdir(dir, os.ModeDir|os.ModePerm); err != nil {
+			if err = os.MkdirAll(dir, os.ModeDir|os.ModePerm); err != nil {
 				log.WithFields(log.Fields{
 					"err":  err,
 					"path": dir,
