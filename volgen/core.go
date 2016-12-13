@@ -5,7 +5,9 @@ package volgen
 import (
 	"fmt"
 	"os"
+	"strings"
 
+	"github.com/gluster/glusterd2/brick"
 	"github.com/gluster/glusterd2/utils"
 	"github.com/gluster/glusterd2/volume"
 )
@@ -36,10 +38,10 @@ func GenerateVolfile(vinfo *volume.Volinfo) error {
 	graph.DumpGraph(f)
 	f.Close()
 
-	//Generate volfile for server
+	// Generate brick volfiles
 	for _, b := range vinfo.Bricks {
-		sgraph := GenerateGraph(vinfo, "SERVER")
 
+		// Create 'vols' directory.
 		vdir := utils.GetVolumeDir(vinfo.Name)
 		err := os.MkdirAll(vdir, os.ModeDir|os.ModePerm)
 		if err != nil {
@@ -54,7 +56,16 @@ func GenerateVolfile(vinfo *volume.Volinfo) error {
 			return err
 		}
 
-		sgraph.DumpGraph(f)
+		replacer := strings.NewReplacer(
+			"<volume-name>", vinfo.Name,
+			"<volume-id>", vinfo.ID.String(),
+			"<brick-path>", b.Path)
+
+		_, err = replacer.WriteString(f, brick.VolfileTemplate)
+		if err != nil {
+			return err
+		}
+
 		f.Close()
 	}
 	return nil
