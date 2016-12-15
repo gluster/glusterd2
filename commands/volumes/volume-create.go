@@ -48,31 +48,26 @@ func createVolinfo(msg *volume.VolCreateRequest) (*volume.Volinfo, error) {
 }
 
 func validateVolumeCreate(c transaction.TxnCtx) error {
+
 	var req volume.VolCreateRequest
-	e := c.Get("req", &req)
-	if e != nil {
-		return errors.New("failed to get request from context")
-	}
-
-	if volume.ExistsFunc(req.Name) {
-		c.Logger().WithField("volume", req.Name).Error("volume already exists")
-		return gderrors.ErrVolExists
-	}
-
-	vol, err := createVolinfo(&req)
+	err := c.Get("req", &req)
 	if err != nil {
 		return err
 	}
 
+	var vol volume.Volinfo
+	err = c.Get("volinfo", &vol)
+	if err != nil {
+		return err
+	}
+
+	// FIXME: Return values of this function are inconsistent and unused
 	_, err = volume.ValidateBrickEntriesFunc(vol.Bricks, vol.ID, req.Force)
 	if err != nil {
 		return err
 	}
 
-	// Store volinfo for later usage
-	e = c.Set("volinfo", vol)
-
-	return e
+	return nil
 }
 
 func generateVolfiles(c transaction.TxnCtx) error {
@@ -180,6 +175,11 @@ func volumeCreateHandler(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
+	if volume.ExistsFunc(req.Name) {
+		rest.SendHTTPError(w, http.StatusInternalServerError, gderrors.ErrVolExists.Error())
+		return
+	}
+
 	nodes, e := nodesForVolCreate(req)
 	if e != nil {
 		rest.SendHTTPError(w, http.StatusInternalServerError, e.Error())
@@ -209,13 +209,24 @@ func volumeCreateHandler(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
+	vol, e := createVolinfo(req)
+	if e != nil {
+		rest.SendHTTPError(w, http.StatusInternalServerError, e.Error())
+		return
+	}
+
+	e = txn.Ctx.Set("volinfo", vol)
+	if e != nil {
+		rest.SendHTTPError(w, http.StatusInternalServerError, e.Error())
+		return
+	}
+
 	c, e := txn.Do()
 	if e != nil {
 		rest.SendHTTPError(w, http.StatusInternalServerError, e.Error())
 		return
 	}
 
-	var vol volume.Volinfo
 	e = c.Get("volinfo", &vol)
 	if e == nil {
 		rest.SendHTTPResponse(w, http.StatusCreated, vol)

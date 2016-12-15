@@ -81,29 +81,19 @@ func TestValidateVolumeCreate(t *testing.T) {
 	c := transaction.NewMockCtx()
 	c.Set("req", msg)
 
-	defer heketitests.Patch(&volume.ExistsFunc, func(name string) bool {
-		return false
-	}).Restore()
 	defer heketitests.Patch(&volume.ValidateBrickEntriesFunc, func(bricks []brick.Brickinfo, volID uuid.UUID, force bool) (int, error) {
 		return 0, nil
 	}).Restore()
 	defer heketitests.Patch(&peer.GetPeerIDByAddrF, peer.GetPeerIDByAddrMockGood).Restore()
 
-	e := validateVolumeCreate(c)
+	vol, e := createVolinfo(msg)
+	tests.Assert(t, e == nil)
+	c.Set("volinfo", vol)
+
+	e = validateVolumeCreate(c)
 	tests.Assert(t, e == nil)
 
-	// Mock volume exists failure
-	defer heketitests.Patch(&volume.ExistsFunc, func(name string) bool {
-		return true
-	}).Restore()
-	e = validateVolumeCreate(c)
-	tests.Assert(t, e == gderrors.ErrVolExists)
-
 	// Mock validateBrickEntries failure
-	defer heketitests.Patch(&volume.ExistsFunc, func(name string) bool {
-		return false
-	}).Restore()
-
 	defer heketitests.Patch(&volume.ValidateBrickEntriesFunc, func(bricks []brick.Brickinfo, volID uuid.UUID, force bool) (int, error) {
 		return 0, errBad
 	}).Restore()
