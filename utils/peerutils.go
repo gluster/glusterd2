@@ -30,3 +30,11 @@ func FormRemotePeerAddress(peeraddress string) (string, error) {
 	remotePeerAddress := host + ":" + port
 	return remotePeerAddress, nil
 }
+
+// IsPeerAddressSame checks if two peer addresses are same by normalizing
+// each address to <ip>:<port> form.
+func IsPeerAddressSame(addr1 string, addr2 string) bool {
+	r1, _ := FormRemotePeerAddress(addr1)
+	r2, _ := FormRemotePeerAddress(addr2)
+	return r1 == r2
+}

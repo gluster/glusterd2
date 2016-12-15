@@ -9,6 +9,7 @@ import (
 	"github.com/gluster/glusterd2/errors"
 	"github.com/gluster/glusterd2/gdctx"
 	"github.com/gluster/glusterd2/store"
+	"github.com/gluster/glusterd2/utils"
 
 	log "github.com/Sirupsen/logrus"
 	"github.com/pborman/uuid"
@@ -166,7 +167,7 @@ func GetPeerByAddr(addr string) (*Peer, error) {
 		}
 
 		for _, paddr := range p.Addresses {
-			if paddr == addr {
+			if utils.IsPeerAddressSame(addr, paddr) {
 				return &p, nil
 			}
 		}
