@@ -3,6 +3,7 @@ package main
 import (
 	"os"
 	"os/signal"
+	"path"
 
 	"github.com/gluster/glusterd2/commands"
 	"github.com/gluster/glusterd2/etcdmgmt"
@@ -44,9 +45,13 @@ func main() {
 		log.WithError(e).Fatalf("failed to change working directory")
 	}
 
+	// TODO: This really should go into its own function.
 	utils.InitDir(config.GetString("localstatedir"))
 	utils.InitDir(config.GetString("rundir"))
 	utils.InitDir(config.GetString("logdir"))
+	utils.InitDir(path.Join(config.GetString("rundir"), "gluster"))
+	utils.InitDir(path.Join(config.GetString("logdir"), "glusterfs/bricks"))
+
 	gdctx.MyUUID = gdctx.InitMyUUID()
 
 	// Start embedded etcd server

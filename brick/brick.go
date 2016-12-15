@@ -17,7 +17,7 @@ import (
 
 const (
 	// TODO: Remove hardcoding
-	glusterfsd = "/usr/sbin/glusterfsd"
+	glusterfsd = "/usr/local/sbin/glusterfsd"
 )
 
 // Brickinfo represents the information of a brick
@@ -78,14 +78,14 @@ func (b *Brick) Args() string {
 	volfile := utils.GetBrickVolFilePath(b.volName, b.brickinfo.Hostname, b.brickinfo.Path)
 
 	var buffer bytes.Buffer
-	buffer.WriteString(fmt.Sprintf(" -f %s", volfile))
+	buffer.WriteString(fmt.Sprintf(" --volfile %s", volfile))
 	buffer.WriteString(fmt.Sprintf(" -p %s", b.PidFile()))
 	buffer.WriteString(fmt.Sprintf(" -S %s", b.SocketFile()))
 	buffer.WriteString(fmt.Sprintf(" --brick-name %s", b.brickinfo.Path))
 	buffer.WriteString(fmt.Sprintf(" --brick-port %s", brickPort))
 	buffer.WriteString(fmt.Sprintf(" -l %s", logFile))
 	buffer.WriteString(fmt.Sprintf(" --xlator-option *-posix.glusterd-uuid=%s", gdctx.MyUUID))
-	buffer.WriteString(fmt.Sprintf(" --xlator-option %s-server.listen-port=%s", b.volName, brickPort))
+	buffer.WriteString(fmt.Sprintf(" --xlator-option %s-server.transport.socket.listen-port=%s", b.volName, brickPort))
 
 	b.args = buffer.String()
 	return b.args

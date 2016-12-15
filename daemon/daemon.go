@@ -3,7 +3,9 @@ package daemon
 import (
 	"os"
 	"os/exec"
+	"strings"
 	"syscall"
+	"time"
 
 	"github.com/gluster/glusterd2/errors"
 
@@ -64,7 +66,8 @@ func Start(d Daemon, wait bool) error {
 		}
 	}
 
-	cmd := exec.Command(d.Path(), d.Args())
+	args := strings.Fields(d.Args())
+	cmd := exec.Command(d.Path(), args...)
 	err = cmd.Start()
 	if err != nil {
 		return err
@@ -83,20 +86,23 @@ func Start(d Daemon, wait bool) error {
 			"name":   d.Name(),
 			"pid":    cmd.Process.Pid,
 			"status": err,
-		}).Debug("Daemon died.")
+		}).Debug("Child exited.")
 	}()
 
-	// Check if the daemon is running
-	// TODO: Need some form of waiting period or timeout here before
-	// returning success. The process may die shortly after spawn.
-	_, err = GetProcess(cmd.Process.Pid)
+	// Wait for daemon to be up.
+	// FIXME: When RPC infra is available, use that and make the daemon
+	// tell glusterd2 that it's up and ready.
+	time.Sleep(2 * time.Second)
+
+	// It is assumed that the child (or grandchild) has written to pidfile
+	pid, err = ReadPidFromFile(d.PidFile())
 	if err != nil {
 		return err
 	}
 
 	log.WithFields(log.Fields{
 		"name": d.Name(),
-		"pid":  cmd.Process.Pid,
+		"pid":  pid,
 	}).Debug("Started daemon successfully")
 
 	return nil
