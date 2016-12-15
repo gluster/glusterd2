@@ -236,7 +236,7 @@ func ValidateBrickPathStats(brickPath string, host string, force bool) error {
 //ValidateXattrSupport checks whether the underlying file system has extended
 //attribute support and it also sets some internal xattrs to mark the brick in
 //use
-func ValidateXattrSupport(brickPath string, host string, uuid uuid.UUID, force bool) error {
+func ValidateXattrSupport(brickPath string, host string, volid uuid.UUID, force bool) error {
 	var err error
 	err = Setxattr(brickPath, "trusted.glusterfs.test", []byte("working"), 0)
 	if err != nil {
@@ -262,7 +262,7 @@ func ValidateXattrSupport(brickPath string, host string, uuid uuid.UUID, force b
 			return errors.ErrBrickPathAlreadyInUse
 		}
 	}
-	err = Setxattr(brickPath, "trusted.glusterfs.volume-id", []byte(uuid), 0)
+	err = Setxattr(brickPath, volumeIDXattr, []byte(volid), 0)
 	if err != nil {
 		log.WithFields(log.Fields{"error": err.Error(),
 			"brickPath": brickPath,
