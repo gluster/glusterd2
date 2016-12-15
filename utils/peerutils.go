@@ -3,6 +3,7 @@ package utils
 import (
 	"errors"
 	"net"
+	"strings"
 
 	config "github.com/spf13/viper"
 )
@@ -10,20 +11,22 @@ import (
 // FormRemotePeerAddress will check and validate peeraddress provided. It will
 // return an address of the form <ip:port>
 func FormRemotePeerAddress(peeraddress string) (string, error) {
-	var remotePeerAddress string
 
 	host, port, err := net.SplitHostPort(peeraddress)
-	if err != nil || host == "" {
+	if err != nil {
+		// net.SplitHostPort() returns an error if port is missing.
+		if strings.HasPrefix(err.Error(), "missing port in address") {
+			host = peeraddress
+			port = config.GetString("defaultrpcport")
+		} else {
+			return "", err
+		}
+	}
+
+	if host == "" {
 		return "", errors.New("Invalid peer address")
 	}
 
-	if port == "" {
-		// Assume remote glusterd2 instance is using default rpc port
-		remotePeerAddress = host + ":" + config.GetString("defaultrpcport")
-	} else {
-		// If the address contains a port, just use that
-		remotePeerAddress = peeraddress
-	}
-
+	remotePeerAddress := host + ":" + port
 	return remotePeerAddress, nil
 }
