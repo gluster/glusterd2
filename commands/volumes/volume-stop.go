@@ -41,7 +41,7 @@ func stopBricks(c transaction.TxnCtx) error {
 			c.Logger().WithFields(log.Fields{
 				"volume": volname,
 				"brick":  b.Hostname + ":" + b.Path,
-			}).Info("would stop brick")
+			}).Info("Stopping brick")
 
 			brickDaemon, err := brick.NewDaemon(vol.Name, b)
 			if err != nil {

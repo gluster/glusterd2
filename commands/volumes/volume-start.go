@@ -41,14 +41,14 @@ func startBricks(c transaction.TxnCtx) error {
 			c.Logger().WithFields(log.Fields{
 				"volume": volname,
 				"brick":  b.Hostname + ":" + b.Path,
-			}).Info("would start brick")
+			}).Info("Starting brick")
 
 			brickDaemon, err := brick.NewDaemon(vol.Name, b)
 			if err != nil {
 				return err
 			}
 
-			err = daemon.Start(brickDaemon, false)
+			err = daemon.Start(brickDaemon, true)
 			if err != nil {
 				return err
 			}

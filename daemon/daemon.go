@@ -74,10 +74,37 @@ func Start(d Daemon, wait bool) error {
 	}
 
 	if wait == true {
-		// Wait for the process to exit
-		err = cmd.Wait()
-		return err
+		// Wait for the child to exit
+		errStatus := cmd.Wait()
+		log.WithFields(log.Fields{
+			"pid":    cmd.Process.Pid,
+			"status": errStatus,
+		}).Debug("Child exited")
+
+		if errStatus != nil {
+			// Immediate child exited with error
+			_ = os.Remove(d.PidFile())
+			return errStatus
+		}
+
+		// Wait for daemon to be up. It is assumed that the daemon will
+		// write it's pid to pidfile.
+		// FIXME: When RPC infra is available, use that and make the
+		// daemon tell glusterd2 that it's up and ready.
+		time.Sleep(1 * time.Second)
+		pid, err = ReadPidFromFile(d.PidFile())
+		if err != nil {
+			return err
+		}
+
+		log.WithFields(log.Fields{
+			"name": d.Name(),
+			"pid":  pid,
+		}).Debug("Started daemon successfully")
+
+		return nil
 	}
+
 	// If the process exits at some point later, do read it's
 	// exit status. This should not let it be a zombie.
 	go func() {
@@ -88,22 +115,6 @@ func Start(d Daemon, wait bool) error {
 			"status": err,
 		}).Debug("Child exited.")
 	}()
-
-	// Wait for daemon to be up.
-	// FIXME: When RPC infra is available, use that and make the daemon
-	// tell glusterd2 that it's up and ready.
-	time.Sleep(2 * time.Second)
-
-	// It is assumed that the child (or grandchild) has written to pidfile
-	pid, err = ReadPidFromFile(d.PidFile())
-	if err != nil {
-		return err
-	}
-
-	log.WithFields(log.Fields{
-		"name": d.Name(),
-		"pid":  pid,
-	}).Debug("Started daemon successfully")
 
 	return nil
 }
