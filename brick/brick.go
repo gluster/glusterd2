@@ -4,6 +4,7 @@ import (
 	"bytes"
 	"crypto/md5"
 	"fmt"
+	"os/exec"
 	"path"
 	"strconv"
 	"strings"
@@ -16,8 +17,7 @@ import (
 )
 
 const (
-	// TODO: Remove hardcoding
-	glusterfsd = "/usr/local/sbin/glusterfsd"
+	glusterfsdBin = "glusterfsd"
 )
 
 // Brickinfo represents the information of a brick
@@ -133,6 +133,10 @@ func (b *Brick) PidFile() string {
 
 // NewDaemon returns a new instance of Brick type which implements the Daemon interface
 func NewDaemon(volName string, binfo Brickinfo) (*Brick, error) {
-	brickObject := &Brick{binarypath: glusterfsd, brickinfo: binfo, volName: volName}
+	path, e := exec.LookPath(glusterfsdBin)
+	if e != nil {
+		return nil, e
+	}
+	brickObject := &Brick{binarypath: path, brickinfo: binfo, volName: volName}
 	return brickObject, nil
 }
