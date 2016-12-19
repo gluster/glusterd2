@@ -5,7 +5,6 @@ import (
 	"os/exec"
 	"strings"
 	"syscall"
-	"time"
 
 	"github.com/gluster/glusterd2/errors"
 
@@ -82,18 +81,19 @@ func Start(d Daemon, wait bool) error {
 		}).Debug("Child exited")
 
 		if errStatus != nil {
-			// Immediate child exited with error
-			_ = os.Remove(d.PidFile())
+			// Child exited with error
 			return errStatus
 		}
 
-		// Wait for daemon to be up. It is assumed that the daemon will
-		// write it's pid to pidfile.
+		// It is assumed that the daemon will write it's pid to pidfile.
 		// FIXME: When RPC infra is available, use that and make the
 		// daemon tell glusterd2 that it's up and ready.
-		time.Sleep(1 * time.Second)
 		pid, err = ReadPidFromFile(d.PidFile())
 		if err != nil {
+			log.WithFields(log.Fields{
+				"pidfile": d.PidFile(),
+				"error":   err.Error(),
+			}).Error("Could not read pidfile")
 			return err
 		}
 

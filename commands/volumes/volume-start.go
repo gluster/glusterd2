@@ -2,6 +2,9 @@ package volumecommands
 
 import (
 	"net/http"
+	"os/exec"
+	"syscall"
+	"time"
 
 	"github.com/gluster/glusterd2/brick"
 	"github.com/gluster/glusterd2/daemon"
@@ -48,8 +51,29 @@ func startBricks(c transaction.TxnCtx) error {
 				return err
 			}
 
+			retries := 0
+		RETRY:
 			err = daemon.Start(brickDaemon, true)
 			if err != nil {
+				// Retry iff brick failed to start because of port being in use.
+				if exiterr, ok := err.(*exec.ExitError); ok {
+					if status, ok := exiterr.Sys().(syscall.WaitStatus); ok {
+						if status.ExitStatus() == int(syscall.EADDRINUSE) {
+							retries++
+							if retries <= 3 {
+								c.Logger().Info("Brick port unavailable. Retrying...")
+								// Allow the previous instance to cleanup and exit
+								time.Sleep(1 * time.Second)
+								goto RETRY
+							}
+						}
+					}
+				}
+			}
+			if err != nil {
+				// Don't let any error other than EADDRINUSE slip away.
+				// It's cleaner to do it this way than adding an else
+				// block for every nested if condition in the code above.
 				return err
 			}
 		}
