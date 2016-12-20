@@ -8,8 +8,12 @@ import (
 	"strings"
 
 	"github.com/gluster/glusterd2/brick"
+	"github.com/gluster/glusterd2/gdctx"
 	"github.com/gluster/glusterd2/utils"
 	"github.com/gluster/glusterd2/volume"
+
+	log "github.com/Sirupsen/logrus"
+	"github.com/pborman/uuid"
 )
 
 var (
@@ -19,19 +23,17 @@ var (
 
 // GenerateVolfile function will do all task from graph generation to volfile generation
 func GenerateVolfile(vinfo *volume.Volinfo) error {
-	var cpath string
-	var err error
-	var f *os.File
 
-	graph := GenerateGraph(vinfo, "CLIENT")
-
-	//Generate client volfile
-	err = getClientFilePath(vinfo, &cpath)
+	// Create 'vols' directory.
+	err := os.MkdirAll(utils.GetVolumeDir(vinfo.Name), os.ModeDir|os.ModePerm)
 	if err != nil {
 		return err
 	}
 
-	f, err = os.Create(cpath)
+	// Generate client volfile
+	graph := GenerateGraph(vinfo, "CLIENT")
+	cpath := getClientVolFilePath(vinfo)
+	f, err := os.Create(cpath)
 	if err != nil {
 		return err
 	}
@@ -41,17 +43,15 @@ func GenerateVolfile(vinfo *volume.Volinfo) error {
 	// Generate brick volfiles
 	for _, b := range vinfo.Bricks {
 
-		// Create 'vols' directory.
-		vdir := utils.GetVolumeDir(vinfo.Name)
-		err := os.MkdirAll(vdir, os.ModeDir|os.ModePerm)
-		if err != nil {
-			return err
+		// Generate brick volfiles for only those bricks that belong
+		// to this node/instance.
+		if !uuid.Equal(b.ID, gdctx.MyUUID) {
+			continue
 		}
 
-		// Get brick volfile path
-		cpath = utils.GetBrickVolFilePath(vinfo.Name, b.Hostname, b.Path)
+		bpath := utils.GetBrickVolFilePath(vinfo.Name, b.Hostname, b.Path)
 
-		f, err = os.Create(cpath)
+		f, err := os.Create(bpath)
 		if err != nil {
 			return err
 		}
@@ -71,32 +71,43 @@ func GenerateVolfile(vinfo *volume.Volinfo) error {
 	return nil
 }
 
-// Fix this: Move it to utils and make it return string
-func getClientFilePath(vinfo *volume.Volinfo, path *string) error {
-	vdir := utils.GetVolumeDir(vinfo.Name)
-
-	// Create volume directory (/var/lib/glusterd/vols/<VOLNAME>)
-	err := os.MkdirAll(vdir, os.ModeDir|os.ModePerm)
-	if err != nil {
-		return err
-	}
-
-	*path = fmt.Sprintf("%s/trusted-%s.tcp-fuse.vol", vdir, vinfo.Name)
-	return err
+func getClientVolFilePath(vinfo *volume.Volinfo) string {
+	return fmt.Sprintf("%s/trusted-%s.tcp-fuse.vol", utils.GetVolumeDir(vinfo.Name), vinfo.Name)
 }
 
 // DeleteVolfile deletes the volfiles created for the volume
-// XXX: This is a quick and dirty implementation with no error checking.
-// A proper implementation will be implemented when volgen is re-implemented.
 func DeleteVolfile(vol *volume.Volinfo) error {
-	var path string
 
-	_ = getClientFilePath(vol, &path)
-	_ = os.Remove(path)
+	// TODO: It would be much simpler to remove whole volume directory here ?
+
+	path := getClientVolFilePath(vol)
+	err := os.Remove(path)
+	if err != nil {
+		// TODO: log using txn logger context instead
+		log.WithFields(log.Fields{
+			"path":  path,
+			"error": err,
+		}).Error("DeleteVolfile: Failed to remove client volfile")
+		return err
+	}
 
 	for _, b := range vol.Bricks {
+
+		if !uuid.Equal(b.ID, gdctx.MyUUID) {
+			continue
+		}
+
 		path := utils.GetBrickVolFilePath(vol.Name, b.Hostname, b.Path)
-		_ = os.Remove(path)
+		err := os.Remove(path)
+		if err != nil {
+			// TODO: log using txn logger context instead
+			log.WithFields(log.Fields{
+				"path":  path,
+				"error": err,
+			}).Error("DeleteVolfile: Failed to remove brick volfile")
+			return err
+		}
 	}
+
 	return nil
 }
