@@ -86,6 +86,12 @@ type Volinfo struct {
 	Bricks   []brick.Brickinfo
 }
 
+// VolAuth represents username and password used by trusted/internal clients
+type VolAuth struct {
+	Username string
+	Password string
+}
+
 // VolStatus represents collective status of the bricks that make up the volume
 type VolStatus struct {
 	Brickstatuses []brick.Brickstatus

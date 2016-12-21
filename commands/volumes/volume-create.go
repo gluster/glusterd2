@@ -74,11 +74,17 @@ func generateVolfiles(c transaction.TxnCtx) error {
 	var vol volume.Volinfo
 	e := c.Get("volinfo", &vol)
 	if e != nil {
-		return errors.New("failed to get volinfo from context")
+		return errors.New("generateVolfiles: Failed to get volinfo from context")
+	}
+
+	var volAuth volume.VolAuth
+	e = c.Get("volauth", &volAuth)
+	if e != nil {
+		return errors.New("generateVolfiles: Failed to get volauth from context")
 	}
 
 	// Creating client and server volfile
-	e = volgen.GenerateVolfileFunc(&vol)
+	e = volgen.GenerateVolfileFunc(&vol, &volAuth)
 	if e != nil {
 		c.Logger().WithFields(log.Fields{"error": e.Error(),
 			"volume": vol.Name,
@@ -216,6 +222,17 @@ func volumeCreateHandler(w http.ResponseWriter, r *http.Request) {
 	}
 
 	e = txn.Ctx.Set("volinfo", vol)
+	if e != nil {
+		rest.SendHTTPError(w, http.StatusInternalServerError, e.Error())
+		return
+	}
+
+	// Generate trusted username and password
+	volAuth := volume.VolAuth{
+		Username: uuid.NewRandom().String(),
+		Password: uuid.NewRandom().String(),
+	}
+	e = txn.Ctx.Set("volauth", volAuth)
 	if e != nil {
 		rest.SendHTTPError(w, http.StatusInternalServerError, e.Error())
 		return

@@ -114,7 +114,13 @@ func TestGenerateVolfiles(t *testing.T) {
 	c := transaction.NewMockCtx()
 	c.Set("volinfo", vol)
 
-	defer heketitests.Patch(&volgen.GenerateVolfileFunc, func(vinfo *volume.Volinfo) error {
+	fakeVolauth := volume.VolAuth{
+		Username: uuid.NewRandom().String(),
+		Password: uuid.NewRandom().String(),
+	}
+	c.Set("volauth", fakeVolauth)
+
+	defer heketitests.Patch(&volgen.GenerateVolfileFunc, func(vinfo *volume.Volinfo, vauth *volume.VolAuth) error {
 		return nil
 	}).Restore()
 	defer heketitests.Patch(&volume.AddOrUpdateVolumeFunc, func(vinfo *volume.Volinfo) error {
@@ -125,13 +131,13 @@ func TestGenerateVolfiles(t *testing.T) {
 	tests.Assert(t, e == nil)
 
 	// Mock volgen failure
-	defer heketitests.Patch(&volgen.GenerateVolfileFunc, func(vinfo *volume.Volinfo) error {
+	defer heketitests.Patch(&volgen.GenerateVolfileFunc, func(vinfo *volume.Volinfo, vauth *volume.VolAuth) error {
 		return errBad
 	}).Restore()
 	e = generateVolfiles(c)
 	tests.Assert(t, e == errBad)
 
-	defer heketitests.Patch(&volgen.GenerateVolfileFunc, func(vinfo *volume.Volinfo) error {
+	defer heketitests.Patch(&volgen.GenerateVolfileFunc, func(vinfo *volume.Volinfo, vauth *volume.VolAuth) error {
 		return nil
 	}).Restore()
 }

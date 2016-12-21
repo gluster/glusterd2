@@ -22,7 +22,7 @@ var (
 )
 
 // GenerateVolfile function will do all task from graph generation to volfile generation
-func GenerateVolfile(vinfo *volume.Volinfo) error {
+func GenerateVolfile(vinfo *volume.Volinfo, vauth *volume.VolAuth) error {
 
 	// Create 'vols' directory.
 	err := os.MkdirAll(utils.GetVolumeDir(vinfo.Name), os.ModeDir|os.ModePerm)
@@ -59,7 +59,9 @@ func GenerateVolfile(vinfo *volume.Volinfo) error {
 		replacer := strings.NewReplacer(
 			"<volume-name>", vinfo.Name,
 			"<volume-id>", vinfo.ID.String(),
-			"<brick-path>", b.Path)
+			"<brick-path>", b.Path,
+			"<trusted-username>", vauth.Username,
+			"<trusted-password>", vauth.Password)
 
 		_, err = replacer.WriteString(f, brick.VolfileTemplate)
 		if err != nil {
