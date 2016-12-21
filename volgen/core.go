@@ -5,6 +5,7 @@ package volgen
 import (
 	"fmt"
 	"os"
+	"path"
 	"strings"
 
 	"github.com/gluster/glusterd2/brick"
@@ -74,7 +75,8 @@ func GenerateVolfile(vinfo *volume.Volinfo, vauth *volume.VolAuth) error {
 }
 
 func getClientVolFilePath(vinfo *volume.Volinfo) string {
-	return fmt.Sprintf("%s/trusted-%s.tcp-fuse.vol", utils.GetVolumeDir(vinfo.Name), vinfo.Name)
+	volfileName := fmt.Sprintf("trusted-%s.tcp-fuse.vol", vinfo.Name)
+	return path.Join(utils.GetVolumeDir(vinfo.Name), volfileName)
 }
 
 // DeleteVolfile deletes the volfiles created for the volume
