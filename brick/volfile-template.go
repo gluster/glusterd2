@@ -2,8 +2,7 @@ package brick
 
 // VolfileTemplate contains bare minimum set of xlators required to start
 // brick process.
-var VolfileTemplate = `
-volume <volume-name>-posix
+var VolfileTemplate = `volume <volume-name>-posix
     type storage/posix
     option volume-id <volume-id>
     option directory <brick-path>
@@ -41,6 +40,8 @@ volume <volume-name>-server
     type protocol/server
     option auth.addr.<brick-path>.allow *
     option auth-path <brick-path>
+    option auth.login.<trusted-username>.password <trusted-password>
+    option auth.login.<brick-path>.allow <trusted-username>
     option transport.address-family inet
     option transport-type tcp
     subvolumes <brick-path>
