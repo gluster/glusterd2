@@ -11,7 +11,6 @@ import (
 	"strconv"
 	"strings"
 
-	"github.com/gluster/glusterd2/brick"
 	"github.com/gluster/glusterd2/gdctx"
 	"github.com/gluster/glusterd2/utils"
 	"github.com/gluster/glusterd2/volume"
@@ -161,7 +160,7 @@ func GenerateVolfile(vinfo *volume.Volinfo, vauth *volume.VolAuth) error {
 			"<trusted-username>", vauth.Username,
 			"<trusted-password>", vauth.Password)
 
-		_, err = replacer.WriteString(f, brick.VolfileTemplate)
+		_, err = replacer.WriteString(f, brickVolfileTemplate)
 		if err != nil {
 			return err
 		}

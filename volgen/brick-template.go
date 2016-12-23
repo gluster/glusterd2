@@ -1,8 +1,6 @@
-package brick
+package volgen
 
-// VolfileTemplate contains bare minimum set of xlators required to start
-// brick process.
-var VolfileTemplate = `volume <volume-name>-posix
+var brickVolfileTemplate = `volume <volume-name>-posix
     type storage/posix
     option volume-id <volume-id>
     option directory <brick-path>
