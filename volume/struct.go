@@ -71,11 +71,11 @@ type Volinfo struct {
 	Type VolType
 
 	Transport       string
-	DistCount       uint64
-	ReplicaCount    uint16
-	StripeCount     uint16
-	DisperseCount   uint16
-	RedundancyCount uint16
+	DistCount       int
+	ReplicaCount    int
+	StripeCount     int
+	DisperseCount   int
+	RedundancyCount int
 
 	Options map[string]string
 
@@ -104,11 +104,11 @@ type VolStatus struct {
 type VolCreateRequest struct {
 	Name            string   `json:"name"`
 	Transport       string   `json:"transport,omitempty"`
-	DistCount       uint64   `json:"distcount,omitempty"`
-	ReplicaCount    uint16   `json:"replica,omitempty"`
-	StripeCount     uint16   `json:"stripecount,omitempty"`
-	DisperseCount   uint16   `json:"dispersecount,omitempty"`
-	RedundancyCount uint16   `json:"redundancycount,omitempty"`
+	DistCount       int      `json:"distcount,omitempty"`
+	ReplicaCount    int      `json:"replica,omitempty"`
+	StripeCount     int      `json:"stripecount,omitempty"`
+	DisperseCount   int      `json:"dispersecount,omitempty"`
+	RedundancyCount int      `json:"redundancycount,omitempty"`
 	Bricks          []string `json:"bricks"`
 	Force           bool     `json:"force,omitempty"`
 }
@@ -142,7 +142,6 @@ func NewVolumeEntry(req *VolCreateRequest) (*Volinfo, error) {
 	v.StripeCount = req.StripeCount
 	v.DisperseCount = req.DisperseCount
 	v.RedundancyCount = req.RedundancyCount
-	//TODO : Generate internal username & password
 
 	return v, nil
 }
