@@ -1,5 +1,3 @@
-//Core file for graph and volfile generation
-
 package volgen
 
 import (
