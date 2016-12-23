@@ -65,9 +65,6 @@ func (b *Brick) Path() string {
 
 // Args returns arguments to be passed to brick process during spawn.
 func (b *Brick) Args() string {
-	if b.args != "" {
-		return b.args
-	}
 
 	brickPathWithoutSlashes := strings.Trim(strings.Replace(b.brickinfo.Path, "/", "-", -1), "-")
 	logFile := path.Join(config.GetString("logdir"), "glusterfs", "bricks", fmt.Sprintf("%s.log", brickPathWithoutSlashes))

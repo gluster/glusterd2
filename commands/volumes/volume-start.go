@@ -2,6 +2,9 @@ package volumecommands
 
 import (
 	"net/http"
+	"os/exec"
+	"syscall"
+	"time"
 
 	"github.com/gluster/glusterd2/brick"
 	"github.com/gluster/glusterd2/daemon"
@@ -15,6 +18,21 @@ import (
 	"github.com/gorilla/mux"
 	"github.com/pborman/uuid"
 )
+
+// BrickStartMaxRetries represents maximum no. of attempts that will be made
+// to start brick processes in case of port clashes.
+const BrickStartMaxRetries = 3
+
+func errorContainsErrno(err error, errno syscall.Errno) bool {
+	if exiterr, ok := err.(*exec.ExitError); ok {
+		if status, ok := exiterr.Sys().(syscall.WaitStatus); ok {
+			if status.ExitStatus() == int(errno) {
+				return true
+			}
+		}
+	}
+	return false
+}
 
 func startBricks(c transaction.TxnCtx) error {
 	var volname string
@@ -41,16 +59,27 @@ func startBricks(c transaction.TxnCtx) error {
 			c.Logger().WithFields(log.Fields{
 				"volume": volname,
 				"brick":  b.Hostname + ":" + b.Path,
-			}).Info("would start brick")
+			}).Info("Starting brick")
 
 			brickDaemon, err := brick.NewDaemon(vol.Name, b)
 			if err != nil {
 				return err
 			}
 
-			err = daemon.Start(brickDaemon, false)
-			if err != nil {
-				return err
+			for i := 0; i < BrickStartMaxRetries; i++ {
+				err = daemon.Start(brickDaemon, true)
+				if err != nil {
+					if errorContainsErrno(err, syscall.EADDRINUSE) {
+						// Retry iff brick failed to start because of port being in use.
+						c.Logger().Info("Brick port unavailable. Retrying...")
+						// Allow the previous instance to cleanup and exit
+						time.Sleep(1 * time.Second)
+					} else {
+						return err
+					}
+				} else {
+					break
+				}
 			}
 		}
 	}
