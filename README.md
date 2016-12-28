@@ -1,7 +1,5 @@
 # GlusterD-2.0
-[![wercker status](https://app.wercker.com/status/8d3e2cd9852aac02259ba18878eed860/m "wercker status")](https://app.wercker.com/project/bykey/8d3e2cd9852aac02259ba18878eed860)
 [![Build Status](https://ci.centos.org/view/Gluster/job/gluster_glusterd2/badge/icon)](https://ci.centos.org/view/Gluster/job/gluster_glusterd2/)
-[![Stories in Progress](https://badge.waffle.io/gluster/glusterd2.svg?label=in%20progress&title=In%20Progress)](http://waffle.io/gluster/glusterd2)
 
 GlusterD-2.0 (GD2) is a re-implementation of GlusterD. It attempts to have better
 consistency, scalability and performance when compared with the current
