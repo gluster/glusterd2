@@ -14,8 +14,8 @@ import (
 
 const (
 	defaultLogLevel          = "debug"
-	defaultRestAddress       = ":24007"
-	defaultRPCAddress        = ":24008"
+	defaultClientAddress     = ":24007"
+	defaultPeerAddress       = ":24008"
 	defaultEtcdClientAddress = ":2379"
 	defaultEtcdPeerAddress   = ":2380"
 
@@ -39,8 +39,8 @@ func parseFlags() {
 	flag.String("config", "", "Configuration file for GlusterD. By default looks for glusterd.(yaml|toml|json) in /etc/glusterd and current working directory.")
 	flag.String("loglevel", defaultLogLevel, "Severity of messages to be logged.")
 
-	flag.String("restaddress", defaultRestAddress, "Address to bind the REST service.")
-	flag.String("rpcaddress", defaultRPCAddress, "Address to bind the RPC service.")
+	flag.String("clientaddress", defaultClientAddress, "Address to bind the REST service.")
+	flag.String("peeraddress", defaultPeerAddress, "Address to bind the inter glusterd2 RPC service.")
 	flag.String("etcdclientaddress", defaultEtcdClientAddress, "Address which etcd server will use for peer to peer communication.")
 	flag.String("etcdpeeraddress", defaultEtcdPeerAddress, "Address which etcd server will use to receive etcd client requests.")
 
@@ -75,21 +75,21 @@ func setDefaults() {
 		config.SetDefault("logdir", path.Join(wd, "log"))
 	}
 
-	// Set default rpc port. This shouldn't be configurable.
-	config.SetDefault("defaultrpcport", defaultRPCAddress[1:])
+	// Set default peer port. This shouldn't be configurable.
+	config.SetDefault("defaultpeerport", defaultPeerAddress[1:])
 
-	// Set rpc address.
-	host, port, err := net.SplitHostPort(config.GetString("rpcaddress"))
+	// Set peer address.
+	host, port, err := net.SplitHostPort(config.GetString("peeraddress"))
 	if err != nil {
-		log.Fatal("Invalid rpc address specified.")
+		log.Fatal("Invalid peer address specified.")
 	} else {
 		if host == "" {
 			host = gdctx.HostIP
 		}
 		if port == "" {
-			port = config.GetString("defaultrpcport")
+			port = config.GetString("defaultpeerport")
 		}
-		config.SetDefault("rpcaddress", host+":"+port)
+		config.SetDefault("peeraddress", host+":"+port)
 	}
 
 	// If no IP is specified for etcd config options (defaults), set those.
