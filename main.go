@@ -1,6 +1,7 @@
 package main
 
 import (
+	"net"
 	"os"
 	"os/signal"
 	"path"
@@ -13,6 +14,7 @@ import (
 	"github.com/gluster/glusterd2/utils"
 
 	log "github.com/Sirupsen/logrus"
+	"github.com/soheilhy/cmux"
 	flag "github.com/spf13/pflag"
 	config "github.com/spf13/viper"
 )
@@ -77,7 +79,7 @@ func main() {
 		peer.AddSelfDetails()
 	}
 
-	// Start listening for incoming RPC requests
+	// Start listening for incoming RPC requests from other peers
 	err = server.StartListener()
 	if err != nil {
 		log.Fatal("Could not register RPC listener. Aborting")
@@ -103,10 +105,26 @@ func main() {
 		}
 	}()
 
-	// Start GlusterD REST server
-	err = gdctx.Rest.Listen()
+	// Main listener for all client requests
+	l, err := net.Listen("tcp", config.GetString("clientaddress"))
+	if err != nil {
+		log.Fatal(err)
+	}
+
+	// Create a mux
+	m := cmux.New(l)
+
+	// Match connections
+	httpL := m.Match(cmux.HTTP1Fast())
+	// TODO: Add Sun RPC matcher / Any matcher here
+
+	// Start REST server and listen to HTTP requests from clients
+	err = gdctx.Rest.Serve(httpL)
 	if err != nil {
 		log.Fatal("Could not start GlusterD Rest Server. Aborting.")
 	}
 
+	// Start serving client requests. This will start multiplexing the
+	// listener and shall block.
+	m.Serve()
 }
