@@ -1,5 +1,5 @@
-hash: cb94d5eb9b27a507dd872dc6c6a6ad788b44daa2d192fc3180bb22ef2fb60f16
-updated: 2016-11-29T17:25:07.008266302+05:30
+hash: 44b704baca33519072d34ee720bbb5d45ca784fca36c83d442f207ff4324fa99
+updated: 2017-01-18T16:15:03.807719078+05:30
 imports:
 - name: bitbucket.org/ww/goautoneg
   version: 75cd24fc2f2c2a2088577d12123ddee5f54e0675
@@ -167,6 +167,8 @@ imports:
   version: 454a56f35412459b5e684fd5ec0f9211b94f002a
 - name: github.com/Sirupsen/logrus
   version: 4b6ea7319e214d98c938f12692336f7ca9348d6b
+- name: github.com/soheilhy/cmux
+  version: bf4a8ede9e87c006fe1d4278c6c7f2b8be1fa84c
 - name: github.com/spf13/afero
   version: 20500e2abd0d1f4564a499e83d11d6c73cd58c27
   subpackages:
