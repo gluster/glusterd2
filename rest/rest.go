@@ -24,7 +24,7 @@ type GDRest struct {
 func New() *GDRest {
 	rest := &GDRest{}
 
-	rest.addr = config.GetString("restaddress")
+	rest.addr = config.GetString("clientaddress")
 
 	rest.Routes = mux.NewRouter()
 

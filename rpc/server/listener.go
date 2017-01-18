@@ -24,7 +24,7 @@ func StartListener() error {
 	server = grpc.NewServer()
 	registerServices(server)
 
-	listenAddr := config.GetString("rpcaddress")
+	listenAddr := config.GetString("peeraddress")
 
 	l, e := net.Listen("tcp", listenAddr)
 	if e != nil {

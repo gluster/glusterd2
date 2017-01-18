@@ -26,7 +26,7 @@ func AddSelfDetails() {
 	p := &Peer{
 		ID:        gdctx.MyUUID,
 		Name:      gdctx.HostName,
-		Addresses: []string{config.GetString("rpcaddress")},
+		Addresses: []string{config.GetString("peeraddress")},
 		MemberID:  memberID,
 	}
 

@@ -17,7 +17,7 @@ func FormRemotePeerAddress(peeraddress string) (string, error) {
 		// net.SplitHostPort() returns an error if port is missing.
 		if strings.HasPrefix(err.Error(), "missing port in address") {
 			host = peeraddress
-			port = config.GetString("defaultrpcport")
+			port = config.GetString("defaultpeerport")
 		} else {
 			return "", err
 		}
