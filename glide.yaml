@@ -32,3 +32,4 @@ import:
   - protoc-gen-go
 - package: google.golang.org/grpc
   version: 1.0.4
+- package: github.com/soheilhy/cmux
