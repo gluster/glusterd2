@@ -1,5 +1,5 @@
-hash: 44b704baca33519072d34ee720bbb5d45ca784fca36c83d442f207ff4324fa99
-updated: 2017-01-18T16:15:03.807719078+05:30
+hash: b56b0ffeb2bdad0d0875ffec3d234dc6584c527ae95509810c92c71d619409b0
+updated: 2017-01-19T14:39:05.768712601+05:30
 imports:
 - name: bitbucket.org/ww/goautoneg
   version: 75cd24fc2f2c2a2088577d12123ddee5f54e0675
@@ -182,6 +182,8 @@ imports:
   version: 7b17cc4658ef5ca157b986ea5c0b43af7938532b
 - name: github.com/spf13/viper
   version: 16990631d4aa7e38f73dbbbf37fa13e67c648531
+- name: github.com/thejerf/suture
+  version: fe1c0d795ff7a7e54fc54ef6afb36ee0adf0c276
 - name: github.com/ugorji/go
   version: f1f1a805ed361a0e078bb537e4ea78cd37dcf065
   subpackages:
@@ -225,5 +227,5 @@ imports:
 - name: gopkg.in/tylerb/graceful.v1
   version: 50a48b6e73fcc75b45e22c05b79629a67c79e938
 - name: gopkg.in/yaml.v2
-  version: 31c299268d302dd0aa9a0dcf765a3d58971ac83f
+  version: 53feefa2559fb8dfa8d81baad31be332c97d6c77
 testImports: []
