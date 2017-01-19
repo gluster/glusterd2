@@ -1,4 +1,4 @@
-package server
+package peerrpc
 
 import (
 	"google.golang.org/grpc"

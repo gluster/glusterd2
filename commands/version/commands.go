@@ -2,7 +2,7 @@
 package versioncommands
 
 import (
-	"github.com/gluster/glusterd2/rest"
+	"github.com/gluster/glusterd2/servers/rest"
 )
 
 // Command is a holding struct used to implement the GlusterD Command interface

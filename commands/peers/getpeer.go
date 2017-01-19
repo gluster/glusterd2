@@ -4,7 +4,7 @@ import (
 	"net/http"
 
 	"github.com/gluster/glusterd2/peer"
-	"github.com/gluster/glusterd2/rest"
+	"github.com/gluster/glusterd2/servers/rest"
 
 	"github.com/gorilla/mux"
 )

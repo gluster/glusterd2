@@ -9,7 +9,7 @@ import (
 	"os"
 	"sync"
 
-	"github.com/gluster/glusterd2/rest"
+	"github.com/gluster/glusterd2/servers/rest"
 	"github.com/gluster/glusterd2/utils"
 
 	log "github.com/Sirupsen/logrus"

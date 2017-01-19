@@ -5,7 +5,7 @@ import (
 	"net/http"
 
 	"github.com/gluster/glusterd2/gdctx"
-	"github.com/gluster/glusterd2/rest"
+	"github.com/gluster/glusterd2/servers/rest"
 )
 
 // Response represents the structure of the response object for /version

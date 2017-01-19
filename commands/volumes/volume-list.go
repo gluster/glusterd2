@@ -3,7 +3,7 @@ package volumecommands
 import (
 	"net/http"
 
-	"github.com/gluster/glusterd2/rest"
+	"github.com/gluster/glusterd2/servers/rest"
 	"github.com/gluster/glusterd2/volume"
 
 	log "github.com/Sirupsen/logrus"

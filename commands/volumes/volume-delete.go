@@ -6,7 +6,7 @@ import (
 
 	gderrors "github.com/gluster/glusterd2/errors"
 	"github.com/gluster/glusterd2/gdctx"
-	"github.com/gluster/glusterd2/rest"
+	"github.com/gluster/glusterd2/servers/rest"
 	"github.com/gluster/glusterd2/transaction"
 	"github.com/gluster/glusterd2/volgen"
 	"github.com/gluster/glusterd2/volume"

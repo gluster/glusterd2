@@ -10,7 +10,7 @@ import (
 	"github.com/gluster/glusterd2/etcdmgmt"
 	"github.com/gluster/glusterd2/gdctx"
 	"github.com/gluster/glusterd2/peer"
-	"github.com/gluster/glusterd2/rpc/server"
+	"github.com/gluster/glusterd2/servers/peerrpc"
 	"github.com/gluster/glusterd2/utils"
 
 	log "github.com/Sirupsen/logrus"
@@ -80,7 +80,7 @@ func main() {
 	}
 
 	// Start listening for incoming RPC requests from other peers
-	err = server.StartListener()
+	err = peerrpc.StartListener()
 	if err != nil {
 		log.Fatal("Could not register RPC listener. Aborting")
 	}
@@ -95,7 +95,7 @@ func main() {
 				log.WithField("signal", s).Info("Recieved SIGTERM. Stopping GlusterD.")
 				gdctx.Rest.Stop()
 				etcdmgmt.DestroyEmbeddedEtcd()
-				server.StopServer()
+				peerrpc.StopServer()
 				log.Info("Termintaing GlusterD.")
 				os.Exit(0)
 

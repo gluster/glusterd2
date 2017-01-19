@@ -6,7 +6,7 @@ import (
 	"github.com/gluster/glusterd2/etcdmgmt"
 	"github.com/gluster/glusterd2/gdctx"
 	"github.com/gluster/glusterd2/peer"
-	"github.com/gluster/glusterd2/rpc/server"
+	"github.com/gluster/glusterd2/servers/peerrpc"
 	"github.com/gluster/glusterd2/volume"
 
 	log "github.com/Sirupsen/logrus"
@@ -19,7 +19,7 @@ import (
 type PeerService int
 
 func init() {
-	server.Register(new(PeerService))
+	peerrpc.Register(new(PeerService))
 }
 
 // RegisterService registers a service
