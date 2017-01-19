@@ -10,13 +10,14 @@ import (
 	"github.com/gluster/glusterd2/etcdmgmt"
 	"github.com/gluster/glusterd2/gdctx"
 	"github.com/gluster/glusterd2/peer"
-	"github.com/gluster/glusterd2/servers/peerrpc"
+	"github.com/gluster/glusterd2/servers"
 	"github.com/gluster/glusterd2/utils"
 
 	log "github.com/Sirupsen/logrus"
 	"github.com/soheilhy/cmux"
 	flag "github.com/spf13/pflag"
 	config "github.com/spf13/viper"
+	"github.com/thejerf/suture"
 )
 
 func main() {
@@ -79,11 +80,10 @@ func main() {
 		peer.AddSelfDetails()
 	}
 
-	// Start listening for incoming RPC requests from other peers
-	err = peerrpc.StartListener()
-	if err != nil {
-		log.Fatal("Could not register RPC listener. Aborting")
-	}
+	super := initGD2Supervisor()
+	super.Add(servers.New())
+
+	go super.ServeBackground()
 
 	sigCh := make(chan os.Signal)
 	signal.Notify(sigCh)
@@ -95,7 +95,7 @@ func main() {
 				log.WithField("signal", s).Info("Recieved SIGTERM. Stopping GlusterD.")
 				gdctx.Rest.Stop()
 				etcdmgmt.DestroyEmbeddedEtcd()
-				peerrpc.StopServer()
+				super.Stop()
 				log.Info("Termintaing GlusterD.")
 				os.Exit(0)
 
@@ -127,4 +127,13 @@ func main() {
 	// Start serving client requests. This will start multiplexing the
 	// listener and shall block.
 	m.Serve()
+}
+
+func initGD2Supervisor() *suture.Supervisor {
+	superlogger := func(msg string) {
+		log.WithField("supervisor", "gd2-main").Println(msg)
+	}
+	super := suture.New("gd2-main", suture.Spec{Log: superlogger})
+
+	return super
 }
