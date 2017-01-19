@@ -2,7 +2,7 @@
 package volumecommands
 
 import (
-	"github.com/gluster/glusterd2/servers/rest"
+	"github.com/gluster/glusterd2/servers/rest/route"
 )
 
 // Command is a holding struct used to implement the GlusterD Command interface
@@ -10,45 +10,45 @@ type Command struct {
 }
 
 // Routes returns command routes. Required for the Command interface.
-func (c *Command) Routes() rest.Routes {
-	return rest.Routes{
-		rest.Route{
+func (c *Command) Routes() route.Routes {
+	return route.Routes{
+		route.Route{
 			Name:        "VolumeCreate",
 			Method:      "POST",
 			Pattern:     "/volumes",
 			Version:     1,
 			HandlerFunc: volumeCreateHandler},
-		rest.Route{
+		route.Route{
 			Name:        "VolumeDelete",
 			Method:      "DELETE",
 			Pattern:     "/volumes/{volname}",
 			Version:     1,
 			HandlerFunc: volumeDeleteHandler},
-		rest.Route{
+		route.Route{
 			Name:        "VolumeInfo",
 			Method:      "GET",
 			Pattern:     "/volumes/{volname}",
 			Version:     1,
 			HandlerFunc: volumeInfoHandler},
-		rest.Route{
+		route.Route{
 			Name:        "VolumeStatus",
 			Method:      "GET",
 			Pattern:     "/volumes/{volname}/status",
 			Version:     1,
 			HandlerFunc: volumeStatusHandler},
-		rest.Route{
+		route.Route{
 			Name:        "VolumeList",
 			Method:      "GET",
 			Pattern:     "/volumes",
 			Version:     1,
 			HandlerFunc: volumeListHandler},
-		rest.Route{
+		route.Route{
 			Name:        "VolumeStart",
 			Method:      "POST",
 			Pattern:     "/volumes/{volname}/start",
 			Version:     1,
 			HandlerFunc: volumeStartHandler},
-		rest.Route{
+		route.Route{
 			Name:        "VolumeStop",
 			Method:      "POST",
 			Pattern:     "/volumes/{volname}/stop",
