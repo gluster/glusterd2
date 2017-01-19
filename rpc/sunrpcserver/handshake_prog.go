@@ -8,6 +8,7 @@ import (
 
 	"github.com/gluster/glusterd2/utils"
 
+	log "github.com/Sirupsen/logrus"
 	"github.com/prashanthpai/sunrpc"
 )
 
@@ -100,14 +101,14 @@ func (t *GfHandshake) ServerGetspec(args *GfGetspecReq, reply *GfGetspecRsp) err
 
 	_, err = DictUnserialize(args.Xdata)
 	if err != nil {
-		fmt.Println(err)
+		log.WithError(err).Error("ServerGetspec(): DictUnserialize() failed")
 		goto Out
 	}
 
 	volFilePath = path.Join(utils.GetVolumeDir(args.Key), fmt.Sprintf("trusted-%s.tcp-fuse.vol", args.Key))
 	fileContents, err = ioutil.ReadFile(volFilePath)
 	if err != nil {
-		fmt.Println(err)
+		log.WithError(err).Error("ServerGetspec(): Could not read client volfile")
 		goto Out
 	}
 	reply.Spec = string(fileContents)
