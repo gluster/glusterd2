@@ -8,7 +8,6 @@ import:
   - clientv3
   - embed
 - package: github.com/prashanthpai/libkv
-  version: transport-fix
   subpackages:
   - store
   - store/etcd
