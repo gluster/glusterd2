@@ -15,20 +15,20 @@ func init() {
 	grpclog.SetLogger(log.StandardLogger().WithField("module", "gRPC"))
 }
 
-// PeerRPCServer is the gRPC server
+// Server is the gRPC server
 // It provides an implementation of github.com/thejerf/suture.Service interface
-type PeerRPCServer struct {
+type Server struct {
 	server *grpc.Server
 }
 
-// New returns a new PeerRPCServer
-func New() *PeerRPCServer {
-	return new(PeerRPCServer)
+// New returns a new peerrpc.Server
+func New() *Server {
+	return new(Server)
 }
 
 // Serve registers gRCP services and starts a gRPC listener
 // TODO: This should be able to listen on multiple listeners
-func (s *PeerRPCServer) Serve() {
+func (s *Server) Serve() {
 	s.server = grpc.NewServer()
 	registerServices(s.server)
 
@@ -55,7 +55,7 @@ func (s *PeerRPCServer) Serve() {
 }
 
 // Stop stops the server
-func (s *PeerRPCServer) Stop() {
+func (s *Server) Stop() {
 	s.server.GracefulStop()
 	return
 }
