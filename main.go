@@ -1,7 +1,6 @@
 package main
 
 import (
-	"net"
 	"os"
 	"os/signal"
 	"path"
@@ -14,7 +13,6 @@ import (
 	"github.com/gluster/glusterd2/utils"
 
 	log "github.com/Sirupsen/logrus"
-	"github.com/soheilhy/cmux"
 	flag "github.com/spf13/pflag"
 	config "github.com/spf13/viper"
 	"github.com/thejerf/suture"
@@ -70,7 +68,6 @@ func main() {
 	gdctx.Init()
 
 	for _, c := range commands.Commands {
-		gdctx.Rest.SetRoutes(c.Routes())
 		c.RegisterStepFuncs()
 	}
 
@@ -81,52 +78,26 @@ func main() {
 	}
 
 	super := initGD2Supervisor()
-	super.Add(servers.New())
-
 	go super.ServeBackground()
+
+	super.Add(servers.New())
 
 	sigCh := make(chan os.Signal)
 	signal.Notify(sigCh)
-	go func() {
-		for s := range sigCh {
-			log.WithField("signal", s).Debug("Signal recieved")
-			switch s {
-			case os.Interrupt:
-				log.WithField("signal", s).Info("Recieved SIGTERM. Stopping GlusterD.")
-				gdctx.Rest.Stop()
-				etcdmgmt.DestroyEmbeddedEtcd()
-				super.Stop()
-				log.Info("Termintaing GlusterD.")
-				os.Exit(0)
-
-			default:
-				continue
-			}
+	for s := range sigCh {
+		log.WithField("signal", s).Debug("Signal recieved")
+		switch s {
+		case os.Interrupt:
+			log.WithField("signal", s).Info("Recieved SIGTERM. Stopping GlusterD.")
+			etcdmgmt.DestroyEmbeddedEtcd()
+			super.Stop()
+			log.Info("Termintaing GlusterD.")
+			break
+		default:
+			continue
 		}
-	}()
-
-	// Main listener for all client requests
-	l, err := net.Listen("tcp", config.GetString("clientaddress"))
-	if err != nil {
-		log.Fatal(err)
 	}
-
-	// Create a mux
-	m := cmux.New(l)
-
-	// Match connections
-	httpL := m.Match(cmux.HTTP1Fast())
-	// TODO: Add Sun RPC matcher / Any matcher here
-
-	// Start REST server and listen to HTTP requests from clients
-	err = gdctx.Rest.Serve(httpL)
-	if err != nil {
-		log.Fatal("Could not start GlusterD Rest Server. Aborting.")
-	}
-
-	// Start serving client requests. This will start multiplexing the
-	// listener and shall block.
-	m.Serve()
+	return
 }
 
 func initGD2Supervisor() *suture.Supervisor {

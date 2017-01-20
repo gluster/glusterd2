@@ -3,13 +3,14 @@ package rest
 import (
 	"fmt"
 
+	"github.com/gluster/glusterd2/commands"
 	"github.com/gluster/glusterd2/servers/rest/route"
 
 	log "github.com/Sirupsen/logrus"
 )
 
-// SetRoutes adds the given routes to the GlusterD Rest server
-func (r *GDRest) SetRoutes(routes route.Routes) {
+// setRoutes adds the given routes to the GlusterD Rest server
+func (r *GDRest) setRoutes(routes route.Routes) {
 	for _, route := range routes {
 		var urlPattern string
 		if route.Name == "GetVersion" {
@@ -28,5 +29,11 @@ func (r *GDRest) SetRoutes(routes route.Routes) {
 			Path(urlPattern).
 			Name(route.Name).
 			Handler(route.HandlerFunc)
+	}
+}
+
+func (r *GDRest) registerRoutes() {
+	for _, c := range commands.Commands {
+		r.setRoutes(c.Routes())
 	}
 }

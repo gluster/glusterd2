@@ -9,7 +9,6 @@ import (
 	"os"
 	"sync"
 
-	"github.com/gluster/glusterd2/servers/rest"
 	"github.com/gluster/glusterd2/utils"
 
 	log "github.com/Sirupsen/logrus"
@@ -33,7 +32,6 @@ var (
 var (
 	MyUUID    uuid.UUID
 	Restart   bool // Indicates if its a fresh install or not
-	Rest      *rest.GDRest
 	OpVersion int
 	HostIP    string
 	HostName  string
@@ -54,8 +52,6 @@ func doInit() {
 	utils.InitDir(config.GetString("localstatedir"))
 
 	initOpVersion()
-
-	Rest = rest.New()
 
 	// When glusterd is started for the first time, we will have Restart set to
 	// false. That is when we'll have to initialize prefixes by passing true to
