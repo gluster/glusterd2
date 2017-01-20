@@ -3,7 +3,7 @@ package volumecommands
 import (
 	"net/http"
 
-	"github.com/gluster/glusterd2/servers/rest"
+	restutils "github.com/gluster/glusterd2/servers/rest/utils"
 	"github.com/gluster/glusterd2/volume"
 
 	log "github.com/Sirupsen/logrus"
@@ -18,8 +18,8 @@ func volumeListHandler(w http.ResponseWriter, r *http.Request) {
 	volumes, e := volume.GetVolumesList()
 
 	if e != nil {
-		rest.SendHTTPError(w, http.StatusNotFound, e.Error())
+		restutils.SendHTTPError(w, http.StatusNotFound, e.Error())
 	} else {
-		rest.SendHTTPResponse(w, http.StatusOK, volumes)
+		restutils.SendHTTPResponse(w, http.StatusOK, volumes)
 	}
 }

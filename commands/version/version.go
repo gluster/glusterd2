@@ -5,7 +5,7 @@ import (
 	"net/http"
 
 	"github.com/gluster/glusterd2/gdctx"
-	"github.com/gluster/glusterd2/servers/rest"
+	restutils "github.com/gluster/glusterd2/servers/rest/utils"
 )
 
 // Response represents the structure of the response object for /version
@@ -19,5 +19,5 @@ func getVersionHandler(w http.ResponseWriter, r *http.Request) {
 	var v Response
 	v.GlusterdVersion = gdctx.GlusterdVersion
 	v.APIVersion = gdctx.APIVersion
-	rest.SendHTTPResponse(w, http.StatusOK, v)
+	restutils.SendHTTPResponse(w, http.StatusOK, v)
 }

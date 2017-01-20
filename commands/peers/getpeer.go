@@ -4,7 +4,7 @@ import (
 	"net/http"
 
 	"github.com/gluster/glusterd2/peer"
-	"github.com/gluster/glusterd2/servers/rest"
+	restutils "github.com/gluster/glusterd2/servers/rest/utils"
 
 	"github.com/gorilla/mux"
 )
@@ -14,13 +14,13 @@ func getPeerHandler(w http.ResponseWriter, r *http.Request) {
 
 	id := p["peerid"]
 	if id == "" {
-		rest.SendHTTPError(w, http.StatusBadRequest, "peerid not present in request")
+		restutils.SendHTTPError(w, http.StatusBadRequest, "peerid not present in request")
 		return
 	}
 
 	if peer, err := peer.GetPeerF(id); err != nil {
-		rest.SendHTTPError(w, http.StatusNotFound, err.Error())
+		restutils.SendHTTPError(w, http.StatusNotFound, err.Error())
 	} else {
-		rest.SendHTTPResponse(w, http.StatusOK, peer)
+		restutils.SendHTTPResponse(w, http.StatusOK, peer)
 	}
 }

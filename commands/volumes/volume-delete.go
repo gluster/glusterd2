@@ -6,7 +6,7 @@ import (
 
 	gderrors "github.com/gluster/glusterd2/errors"
 	"github.com/gluster/glusterd2/gdctx"
-	"github.com/gluster/glusterd2/servers/rest"
+	restutils "github.com/gluster/glusterd2/servers/rest/utils"
 	"github.com/gluster/glusterd2/transaction"
 	"github.com/gluster/glusterd2/volgen"
 	"github.com/gluster/glusterd2/volume"
@@ -74,18 +74,18 @@ func volumeDeleteHandler(w http.ResponseWriter, r *http.Request) {
 	log.Info("In Volume delete API")
 
 	if !volume.Exists(volname) {
-		rest.SendHTTPError(w, http.StatusBadRequest, gderrors.ErrVolNotFound.Error())
+		restutils.SendHTTPError(w, http.StatusBadRequest, gderrors.ErrVolNotFound.Error())
 		return
 	}
 	vol, err := volume.GetVolume(volname)
 	if err != nil {
 		// this shouldn't happen
-		rest.SendHTTPError(w, http.StatusInternalServerError, err.Error())
+		restutils.SendHTTPError(w, http.StatusInternalServerError, err.Error())
 		return
 	}
 
 	if vol.Status == volume.VolStarted {
-		rest.SendHTTPError(w, http.StatusForbidden, errors.New("volume is not stopped").Error())
+		restutils.SendHTTPError(w, http.StatusForbidden, errors.New("volume is not stopped").Error())
 		return
 	}
 
@@ -95,7 +95,7 @@ func volumeDeleteHandler(w http.ResponseWriter, r *http.Request) {
 	defer txn.Cleanup()
 	lock, unlock, err := transaction.CreateLockSteps(volname)
 	if err != nil {
-		rest.SendHTTPError(w, http.StatusInternalServerError, err.Error())
+		restutils.SendHTTPError(w, http.StatusInternalServerError, err.Error())
 		return
 	}
 	txn.Nodes = vol.Nodes()
@@ -119,8 +119,8 @@ func volumeDeleteHandler(w http.ResponseWriter, r *http.Request) {
 			"error":  e.Error(),
 			"volume": volname,
 		}).Error("Failed to delete the volume")
-		rest.SendHTTPError(w, http.StatusInternalServerError, e.Error())
+		restutils.SendHTTPError(w, http.StatusInternalServerError, e.Error())
 		return
 	}
-	rest.SendHTTPResponse(w, http.StatusOK, nil)
+	restutils.SendHTTPResponse(w, http.StatusOK, nil)
 }
