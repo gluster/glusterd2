@@ -11,9 +11,11 @@ import (
 	"github.com/gluster/glusterd2/gdctx"
 	"github.com/gluster/glusterd2/peer"
 	"github.com/gluster/glusterd2/rpc/server"
+	"github.com/gluster/glusterd2/rpc/sunrpcserver"
 	"github.com/gluster/glusterd2/utils"
 
 	log "github.com/Sirupsen/logrus"
+	"github.com/prashanthpai/sunrpc"
 	"github.com/soheilhy/cmux"
 	flag "github.com/spf13/pflag"
 	config "github.com/spf13/viper"
@@ -116,12 +118,18 @@ func main() {
 
 	// Match connections
 	httpL := m.Match(cmux.HTTP1Fast())
-	// TODO: Add Sun RPC matcher / Any matcher here
+	sunrpcL := m.Match(sunrpc.CmuxMatcher())
 
 	// Start REST server and listen to HTTP requests from clients
 	err = gdctx.Rest.Serve(httpL)
 	if err != nil {
 		log.Fatal("Could not start GlusterD Rest Server. Aborting.")
+	}
+
+	// Start Sun RPC server and listen to requests from glusterfs clients
+	err = sunrpcserver.Start(sunrpcL)
+	if err != nil {
+		log.Fatal("Could not start Sun RPC server. Aborting.")
 	}
 
 	// Start serving client requests. This will start multiplexing the
