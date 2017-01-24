@@ -1,4 +1,4 @@
-package sunrpcserver
+package sunrpc
 
 /* TODO:
 The rpc/* directory needs a more elegant subpackage structuring.
