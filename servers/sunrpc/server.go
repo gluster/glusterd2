@@ -1,18 +1,5 @@
 package sunrpc
 
-/* TODO:
-The rpc/* directory needs a more elegant subpackage structuring.
-Something like shown below but without package names conflicting with
-imported package names.
-
-    server -
-           |- grpc
-           |- sunrpc
-           |- rest
-
-Each subpackage will implement the server for that protocol.
-*/
-
 import (
 	"net"
 	"net/rpc"
@@ -21,7 +8,35 @@ import (
 	"github.com/prashanthpai/sunrpc"
 
 	log "github.com/Sirupsen/logrus"
+	"github.com/soheilhy/cmux"
 )
+
+type SunRPC struct {
+	server   *rpc.Server
+	listener net.Listener
+	stop     chan bool
+}
+
+// New returns a SunRPC server configured to listen on the given listener
+func New(l net.Listener) *SunRPC {
+	srv := &SunRPC{
+		server:   rpc.NewServer(),
+		listener: l,
+		stop:     make(chan bool, 1),
+	}
+
+	err := registerHandshakeProgram(srv.server, getPortFromListener(srv.listener))
+	if err != nil {
+		log.WithError(err).Error("Could not register handshake program")
+		return nil
+	}
+	return srv
+}
+
+// NewMuxed returns a SunRPC server configured to listen on a CMux multiplexed connection
+func NewMuxed(m cmux.CMux) *SunRPC {
+	return New(m.Match(sunrpc.CmuxMatcher()))
+}
 
 func getPortFromListener(listener net.Listener) int {
 
@@ -43,39 +58,36 @@ func getPortFromListener(listener net.Listener) int {
 	return port
 }
 
-// Start will start accepting Sun RPC client connections on the listener
+// Serve will start accepting Sun RPC client connections on the listener
 // provided.
-func Start(listener net.Listener) error {
-
-	// There is no graceful shutdown of Sun RPC server yet. So this
-	// instance doesn't have to be global variable or attached to gdctx.
-	server := rpc.NewServer()
-
-	err := registerHandshakeProgram(server, getPortFromListener(listener))
-	if err != nil {
-		log.WithError(err).Error("Could not register handshake program")
-		return err
-	}
-
-	go func() {
-		for {
-			// TODO: The net.Conn instance here should be exposed
-			// externally for:
-			//     1. Sending notifications to glusterfs clients
-			//        (example: volfile changed)
-			//     2. Tracking number of glusterfs clients that
-			//        are connected to glusterd2.
-			// Multiple goroutines can safely invoke write on an
-			// instance of net.Conn simultaneously.
-			conn, err := listener.Accept()
-			if err != nil {
-				// TODO: Handle error ?
-				return
-			}
-			log.WithField("address", conn.RemoteAddr().String()).Info("glusterfs client connected")
-			go server.ServeRequest(sunrpc.NewServerCodec(conn))
+func (s *SunRPC) Serve() {
+	for {
+		select {
+		case <-s.stop:
+			return
+		default:
 		}
-	}()
+		// TODO: The net.Conn instance here should be exposed
+		// externally for:
+		//     1. Sending notifications to glusterfs clients
+		//        (example: volfile changed)
+		//     2. Tracking number of glusterfs clients that
+		//        are connected to glusterd2.
+		// Multiple goroutines can safely invoke write on an
+		// instance of net.Conn simultaneously.
+		conn, err := s.listener.Accept()
+		if err != nil {
+			// TODO: Handle error ?
+			continue
+		}
+		log.WithField("address", conn.RemoteAddr().String()).Info("glusterfs client connected")
+		go s.server.ServeRequest(sunrpc.NewServerCodec(conn))
+	}
+	return
+}
 
-	return nil
+// Stop stops the SunRPC server
+func (s *SunRPC) Stop() {
+	close(s.stop)
+	// TODO: Gracefully stop the server
 }

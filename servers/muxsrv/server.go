@@ -5,6 +5,7 @@ import (
 	"net"
 
 	"github.com/gluster/glusterd2/servers/rest"
+	"github.com/gluster/glusterd2/servers/sunrpc"
 
 	log "github.com/Sirupsen/logrus"
 	"github.com/soheilhy/cmux"
@@ -35,6 +36,7 @@ func New() *MuxSrv {
 	mux.m = cmux.New(l)
 
 	mux.Supervisor.Add(rest.NewMuxed(mux.m))
+	mux.Supervisor.Add(sunrpc.NewMuxed(mux.m))
 
 	return mux
 }
