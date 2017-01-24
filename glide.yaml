@@ -34,3 +34,4 @@ import:
 - package: github.com/soheilhy/cmux
 - package: github.com/thejerf/suture
   version: ^2.0.0
+- package: github.com/prashanthpai/sunrpc

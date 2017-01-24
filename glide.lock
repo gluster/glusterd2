@@ -1,5 +1,5 @@
-hash: 6c45ee3e9b43877dfa6373b015cf875e74bb2a673b2a487aa27f5cf1561a3791
-updated: 2017-01-20T17:48:21.898491264+05:30
+hash: 69de4aace5aceb62fdb184721463e909d07cb5692469beb8a905e18bfe267dca
+updated: 2017-01-24T23:28:33.533014582+05:30
 imports:
 - name: bitbucket.org/ww/goautoneg
   version: 75cd24fc2f2c2a2088577d12123ddee5f54e0675
@@ -150,6 +150,8 @@ imports:
   subpackages:
   - store
   - store/etcd
+- name: github.com/prashanthpai/sunrpc
+  version: b391efc699c0959743a585ad935ae75bc3414a5f
 - name: github.com/prometheus/client_golang
   version: e51041b3fa41cece0dca035740ba6411905be473
   subpackages:
@@ -165,6 +167,10 @@ imports:
   - model
 - name: github.com/prometheus/procfs
   version: 454a56f35412459b5e684fd5ec0f9211b94f002a
+- name: github.com/rasky/go-xdr
+  version: 1a41d1a06c93bf8a0e0385be3847a277bb793187
+  subpackages:
+  - xdr2
 - name: github.com/Sirupsen/logrus
   version: 4b6ea7319e214d98c938f12692336f7ca9348d6b
 - name: github.com/soheilhy/cmux
