@@ -57,6 +57,7 @@ func Start(listener net.Listener) error {
 
 	programsList = append(programsList, newGfHandshake())
 	programsList = append(programsList, newGfDump())
+	programsList = append(programsList, newGfPortmap())
 
 	// Register all programs
 	for _, program := range programsList {
