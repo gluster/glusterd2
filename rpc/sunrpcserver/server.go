@@ -63,7 +63,7 @@ func Start(listener net.Listener) error {
 	for _, program := range programsList {
 		err := registerProgram(server, program, port)
 		if err != nil {
-			log.WithError(err).Error("Could not register RPC program %s", program.Name())
+			log.WithError(err).Error("Could not register RPC program " + program.Name())
 			return err
 		}
 	}
