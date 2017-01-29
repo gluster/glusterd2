@@ -3,72 +3,46 @@ package sunrpc
 import (
 	"fmt"
 	"io/ioutil"
-	"net/rpc"
 	"path"
 
 	"github.com/gluster/glusterd2/utils"
 
 	log "github.com/Sirupsen/logrus"
-	"github.com/prashanthpai/sunrpc"
 )
 
-// TODO: The enum names here are copied from gluster code for simplicity.
-// golint checks will fail.
+// GfHandshake is a type for GlusterFS Handshake RPC program
+type GfHandshake genericProgram
 
-const (
-	GLUSTER_HNDSK_PROGRAM uint32 = 14398633
-	GLUSTER_HNDSK_VERSION uint32 = 2
-)
-
-const (
+func newGfHandshake() *GfHandshake {
 	// rpc/rpc-lib/src/protocol-common.h
-	GF_HNDSK_NULL uint32 = iota
-	GF_HNDSK_SETVOLUME
-	GF_HNDSK_GETSPEC // 2
-	GF_HNDSK_PING
-	GF_HNDSK_SET_LK_VER
-	GF_HNDSK_EVENT_NOTIFY
-	GF_HNDSK_GET_VOLUME_INFO
-	GF_HNDSK_GET_SNAPSHOT_INFO
-	GF_HNDSK_MAXVALUE
-)
-
-func registerHandshakeProgram(server *rpc.Server, port int) error {
-
-	err := server.Register(new(GfHandshake))
-	if err != nil {
-		return err
-	}
-
-	// TODO: As the number of procedures to be registered grows, we need
-	// to make this boilerplate code less verbose by following some
-	// naming conventions for the enums or procedures themselves.
-	err = sunrpc.RegisterProcedure(
-		sunrpc.ProcedureID{
-			GLUSTER_HNDSK_PROGRAM,
-			GLUSTER_HNDSK_VERSION,
-			GF_HNDSK_GETSPEC,
+	return &GfHandshake{
+		name:        "Gluster Handshake",
+		progNum:     uint32(14398633),
+		progVersion: uint32(2),
+		procedures: []Procedure{
+			Procedure{uint32(2), "ServerGetspec"}, // GF_HNDSK_GETSPEC
 		},
-		"GfHandshake.ServerGetspec")
-	if err != nil {
-		return err
 	}
+}
 
-	if port != 0 {
-		_, err = sunrpc.PmapUnset(GLUSTER_HNDSK_PROGRAM, GLUSTER_HNDSK_VERSION)
-		if err != nil {
-			return err
-		}
+// Name returns the name of the RPC program
+func (p *GfHandshake) Name() string {
+	return p.name
+}
 
-		_, err = sunrpc.PmapSet(
-			GLUSTER_HNDSK_PROGRAM, GLUSTER_HNDSK_VERSION,
-			sunrpc.IPProtoTCP, uint32(port))
-		if err != nil {
-			return err
-		}
-	}
+// Number returns the RPC Program number
+func (p *GfHandshake) Number() uint32 {
+	return p.progNum
+}
 
-	return nil
+// Version returns the RPC program version number
+func (p *GfHandshake) Version() uint32 {
+	return p.progVersion
+}
+
+// Procedures returns a list of procedures provided by the RPC program
+func (p *GfHandshake) Procedures() []Procedure {
+	return p.procedures
 }
 
 // GfGetspecReq is sent by glusterfs client and primarily contains volume name.
@@ -88,13 +62,9 @@ type GfGetspecRsp struct {
 	Xdata   []byte // serialized dict
 }
 
-// GfHandshake is a placeholder type for all functions of GlusterFS Handshake
-// RPC program
-type GfHandshake int32
-
 // ServerGetspec returns the content of client volfile for the volume
 // specified by the client
-func (t *GfHandshake) ServerGetspec(args *GfGetspecReq, reply *GfGetspecRsp) error {
+func (p *GfHandshake) ServerGetspec(args *GfGetspecReq, reply *GfGetspecRsp) error {
 	var err error
 	var fileContents []byte
 	var volFilePath string

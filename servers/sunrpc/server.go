@@ -17,6 +17,8 @@ type SunRPC struct {
 	stop     chan bool
 }
 
+var programsList []Program
+
 // New returns a SunRPC server configured to listen on the given listener
 func New(l net.Listener) *SunRPC {
 	srv := &SunRPC{
@@ -25,10 +27,19 @@ func New(l net.Listener) *SunRPC {
 		stop:     make(chan bool, 1),
 	}
 
-	err := registerHandshakeProgram(srv.server, getPortFromListener(srv.listener))
-	if err != nil {
-		log.WithError(err).Error("Could not register handshake program")
-		return nil
+	programsList = []Program{
+		newGfHandshake(),
+		newGfDump(),
+		newGfPortmap(),
+	}
+	port := getPortFromListener(srv.listener)
+
+	for _, prog := range programsList {
+		err := registerProgram(srv.server, prog, port)
+		if err != nil {
+			log.WithError(err).WithField("program", prog.Name()).Error("could not register SunRPC program")
+			return nil
+		}
 	}
 	return srv
 }
