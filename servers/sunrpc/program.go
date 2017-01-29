@@ -60,9 +60,9 @@ func registerProgram(server *rpc.Server, program Program, port int) error {
 
 		err = sunrpc.RegisterProcedure(
 			sunrpc.ProcedureID{
-				program.Number(),
-				program.Version(),
-				procedure.Number,
+				ProgramNumber:   program.Number(),
+				ProgramVersion:  program.Version(),
+				ProcedureNumber: procedure.Number,
 			}, typeName+"."+procedure.Name)
 		if err != nil {
 			llogger.WithError(err).Error("failed to register sunrpc procedure")

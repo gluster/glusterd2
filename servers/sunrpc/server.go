@@ -11,6 +11,7 @@ import (
 	"github.com/soheilhy/cmux"
 )
 
+// SunRPC implements a suture service
 type SunRPC struct {
 	server   *rpc.Server
 	listener net.Listener
@@ -95,7 +96,6 @@ func (s *SunRPC) Serve() {
 		log.WithField("address", conn.RemoteAddr().String()).Info("glusterfs client connected")
 		go s.server.ServeRequest(sunrpc.NewServerCodec(conn))
 	}
-	return
 }
 
 // Stop stops the SunRPC server
