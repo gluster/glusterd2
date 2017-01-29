@@ -23,6 +23,8 @@ import (
 	log "github.com/Sirupsen/logrus"
 )
 
+var programsList []Program
+
 func getPortFromListener(listener net.Listener) int {
 
 	if listener == nil {
@@ -51,10 +53,19 @@ func Start(listener net.Listener) error {
 	// instance doesn't have to be global variable or attached to gdctx.
 	server := rpc.NewServer()
 
-	err := registerHandshakeProgram(server, getPortFromListener(listener))
-	if err != nil {
-		log.WithError(err).Error("Could not register handshake program")
-		return err
+	port := getPortFromListener(listener)
+
+	programsList = append(programsList, newGfHandshake())
+	programsList = append(programsList, newGfDump())
+	programsList = append(programsList, newGfPortmap())
+
+	// Register all programs
+	for _, program := range programsList {
+		err := registerProgram(server, program, port)
+		if err != nil {
+			log.WithError(err).Error("Could not register RPC program " + program.Name())
+			return err
+		}
 	}
 
 	go func() {

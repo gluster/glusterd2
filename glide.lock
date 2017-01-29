@@ -168,7 +168,7 @@ imports:
 - name: github.com/prometheus/procfs
   version: 454a56f35412459b5e684fd5ec0f9211b94f002a
 - name: github.com/rasky/go-xdr
-  version: 0c28d859a3605aff6d82194ed425b9a85e5dbfee
+  version: 1a41d1a06c93bf8a0e0385be3847a277bb793187
   subpackages:
   - xdr2
 - name: github.com/Sirupsen/logrus
