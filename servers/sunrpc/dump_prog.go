@@ -1,5 +1,14 @@
 package sunrpc
 
+const (
+	dumpProgNum     = 123451501
+	dumpProgVersion = 1
+
+	_ = iota
+	gfDumpDump
+	gfDumpPing
+)
+
 // GfDump is a type for GlusterFS Dump RPC program
 type GfDump genericProgram
 
@@ -7,11 +16,11 @@ func newGfDump() *GfDump {
 	// rpc/rpc-lib/src/xdr-common.h
 	return &GfDump{
 		name:        "GF-DUMP",
-		progNum:     uint32(123451501),
-		progVersion: uint32(1),
+		progNum:     dumpProgNum,
+		progVersion: dumpProgVersion,
 		procedures: []Procedure{
-			Procedure{uint32(1), "Dump"}, // GF_DUMP_DUMP
-			Procedure{uint32(2), "Ping"}, // GF_DUMP_PING
+			Procedure{gfDumpDump, "Dump"}, // GF_DUMP_DUMP
+			Procedure{gfDumpPing, "Ping"}, // GF_DUMP_PING
 		},
 	}
 }
