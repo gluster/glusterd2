@@ -72,6 +72,7 @@ func getPortFromListener(listener net.Listener) int {
 // Serve will start accepting Sun RPC client connections on the listener
 // provided.
 func (s *SunRPC) Serve() {
+	log.WithField("ip:port", s.listener.Addr().String()).Info("started GlusterD SunRPC server")
 	for {
 		select {
 		case <-s.stop:
@@ -100,5 +101,6 @@ func (s *SunRPC) Serve() {
 // Stop stops the SunRPC server
 func (s *SunRPC) Stop() {
 	close(s.stop)
+	log.Info("Stopped GlusterD SunRPC server")
 	// TODO: Gracefully stop the server
 }

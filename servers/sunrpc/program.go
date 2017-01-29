@@ -4,6 +4,7 @@ import (
 	"net/rpc"
 	"reflect"
 
+	log "github.com/Sirupsen/logrus"
 	"github.com/prashanthpai/sunrpc"
 )
 
@@ -30,6 +31,13 @@ type genericProgram struct {
 }
 
 func registerProgram(server *rpc.Server, program Program, port int) error {
+	logger := log.WithFields(log.Fields{
+		"program": program.Name(),
+		"prognum": program.Number(),
+		"progver": program.Version(),
+	})
+
+	logger.Info("registering sunrpc program")
 
 	// NOTE: This will throw some benign log messages complaining about
 	// signatures of methods in Program interface. rpc.Server.Register()
@@ -44,6 +52,12 @@ func registerProgram(server *rpc.Server, program Program, port int) error {
 	// Create procedure number to procedure name mappings for sunrpc codec
 	typeName := reflect.Indirect(reflect.ValueOf(program)).Type().Name()
 	for _, procedure := range program.Procedures() {
+		llogger := logger.WithFields(log.Fields{
+			"proc":    procedure.Name,
+			"procnum": procedure.Number,
+		})
+		llogger.Debug("registering sunrpc procedure")
+
 		err = sunrpc.RegisterProcedure(
 			sunrpc.ProcedureID{
 				program.Number(),
@@ -51,6 +65,7 @@ func registerProgram(server *rpc.Server, program Program, port int) error {
 				procedure.Number,
 			}, typeName+"."+procedure.Name)
 		if err != nil {
+			llogger.WithError(err).Error("failed to register sunrpc procedure")
 			return err
 		}
 	}
