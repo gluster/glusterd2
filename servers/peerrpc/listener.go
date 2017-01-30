@@ -21,17 +21,19 @@ type Server struct {
 	server *grpc.Server
 }
 
-// New returns a new peerrpc.Server
+// New returns a new peerrpc.Server with registered gRPC services
 func New() *Server {
-	return new(Server)
-}
-
-// Serve registers gRCP services and starts a gRPC listener
-// TODO: This should be able to listen on multiple listeners
-func (s *Server) Serve() {
-	s.server = grpc.NewServer()
+	s := &Server{
+		grpc.NewServer(),
+	}
 	registerServices(s.server)
 
+	return s
+}
+
+// Serve starts a gRPC server
+// TODO: This should be able to listen on multiple listeners
+func (s *Server) Serve() {
 	listenAddr := config.GetString("peeraddress")
 
 	l, e := net.Listen("tcp", listenAddr)

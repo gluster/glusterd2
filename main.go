@@ -92,12 +92,11 @@ func main() {
 			etcdmgmt.DestroyEmbeddedEtcd()
 			super.Stop()
 			log.Info("Termintaing GlusterD.")
-			break
+			return
 		default:
 			continue
 		}
 	}
-	return
 }
 
 func initGD2Supervisor() *suture.Supervisor {
