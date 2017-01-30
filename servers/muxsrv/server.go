@@ -4,29 +4,20 @@ package muxsrv
 import (
 	"net"
 
-	"github.com/gluster/glusterd2/servers/rest"
-	"github.com/gluster/glusterd2/servers/sunrpc"
-
 	log "github.com/Sirupsen/logrus"
 	"github.com/soheilhy/cmux"
 	config "github.com/spf13/viper"
-	"github.com/thejerf/suture"
 )
 
 // MuxSrv implements the suture.Sever for the GD2 multiplexed server
-type MuxSrv struct {
-	*suture.Supervisor
+type muxSrv struct {
 	l net.Listener
 	m cmux.CMux
 }
 
-// New returns a multiplexed server with the multiplexed listeners already setup
-func New() *MuxSrv {
-	mux := &MuxSrv{}
-	logger := func(msg string) {
-		log.WithField("supervisor", "gd2-muxserver").Println(msg)
-	}
-	mux.Supervisor = suture.New("gd2-muxserver", suture.Spec{Log: logger})
+// newMuxSrv returns a multiplexed server with the multiplexed listeners already setup
+func newMuxSrv() *muxSrv {
+	mux := &muxSrv{}
 
 	l, err := net.Listen("tcp", config.GetString("clientaddress"))
 	if err != nil {
@@ -35,21 +26,16 @@ func New() *MuxSrv {
 	mux.l = l
 	mux.m = cmux.New(l)
 
-	mux.Supervisor.Add(rest.NewMuxed(mux.m))
-	mux.Supervisor.Add(sunrpc.NewMuxed(mux.m))
-
 	return mux
 }
 
 // Serve starts the handlers and the multiplexed listener
-func (m *MuxSrv) Serve() {
-	go m.Supervisor.ServeBackground()
+func (m *muxSrv) Serve() {
 	m.m.Serve()
 	return
 }
 
 // Stop stops the multiplexed listener and the handlers
-func (m *MuxSrv) Stop() {
+func (m *muxSrv) Stop() {
 	m.l.Close()
-	m.Supervisor.Stop()
 }
