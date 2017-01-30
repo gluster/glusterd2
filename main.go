@@ -78,7 +78,7 @@ func main() {
 	}
 
 	super := initGD2Supervisor()
-	go super.ServeBackground()
+	super.ServeBackground()
 
 	super.Add(servers.New())
 
