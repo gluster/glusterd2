@@ -21,7 +21,7 @@ func newMuxSrv() *muxSrv {
 
 	l, err := net.Listen("tcp", config.GetString("clientaddress"))
 	if err != nil {
-		log.Fatal(err)
+		log.WithError(err).Fatal("failed to create gd2-muxsrv listener")
 	}
 	mux.l = l
 	mux.m = cmux.New(l)
@@ -31,11 +31,12 @@ func newMuxSrv() *muxSrv {
 
 // Serve starts the handlers and the multiplexed listener
 func (m *muxSrv) Serve() {
+	log.Info("started muxsrv listener")
 	m.m.Serve()
-	return
 }
 
 // Stop stops the multiplexed listener and the handlers
 func (m *muxSrv) Stop() {
+	log.Info("stopped muxsrv listener")
 	m.l.Close()
 }
