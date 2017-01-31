@@ -45,11 +45,7 @@ func (r *GDRest) Serve() {
 
 // Stop stops the GlusterD Rest server
 func (r *GDRest) Stop() {
-	log.Debug("stopping the GlusterD Rest server")
-	if err := r.listener.Close(); err != nil {
-		log.WithError(err).Error("stopping GlusterD Rest server failed")
-	} else {
-		log.Info("stopped GlusterD Rest server")
-	}
+	log.Debug("stopping the GlusterD ReST server")
 	// TODO: Graceful shutdown here
+	log.Info("stopped GlusterD ReST server")
 }
