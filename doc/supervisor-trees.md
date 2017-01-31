@@ -54,5 +54,7 @@ The strucutre of the GD2 supervisor tree currently is as shown below.
 - `rest` is the GD2 rest server used for serving the management api.
 - `sunrpc` is the GD2 sunrpc server used for serving mount and portmap requests for clients.
 
+The supervisors and services are started top-down, as and when they get added to the tree and in parallel. Stopping also happens top-down, and in parallel. The root supervisor only returns once all its children have stoped.
+
 [1]: https://github.com/thejerf/suture
 [2]: http://www.jerf.org/iri/post/2930
