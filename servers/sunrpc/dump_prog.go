@@ -3,7 +3,9 @@ package sunrpc
 const (
 	dumpProgNum     = 123451501
 	dumpProgVersion = 1
+)
 
+const (
 	_ = iota
 	gfDumpDump
 	gfDumpPing
