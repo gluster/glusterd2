@@ -84,7 +84,7 @@ func Start(listener net.Listener) error {
 				return
 			}
 			log.WithField("address", conn.RemoteAddr().String()).Info("glusterfs client connected")
-			go server.ServeRequest(sunrpc.NewServerCodec(conn))
+			go server.ServeCodec(sunrpc.NewServerCodec(conn))
 		}
 	}()
 
