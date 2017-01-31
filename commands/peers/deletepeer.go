@@ -6,7 +6,7 @@ import (
 	"github.com/gluster/glusterd2/etcdmgmt"
 	"github.com/gluster/glusterd2/gdctx"
 	"github.com/gluster/glusterd2/peer"
-	"github.com/gluster/glusterd2/rest"
+	restutils "github.com/gluster/glusterd2/servers/rest/utils"
 	"github.com/gluster/glusterd2/utils"
 
 	log "github.com/Sirupsen/logrus"
@@ -22,32 +22,32 @@ func deletePeerHandler(w http.ResponseWriter, r *http.Request) {
 
 	id := peerReq["peerid"]
 	if id == "" {
-		rest.SendHTTPError(w, http.StatusBadRequest, "peerid not present in the request")
+		restutils.SendHTTPError(w, http.StatusBadRequest, "peerid not present in the request")
 		return
 	}
 	// Check whether the member exists
 	p, e := peer.GetPeerF(id)
 	if e != nil || p == nil {
-		rest.SendHTTPError(w, http.StatusNotFound, "peer not found in cluster")
+		restutils.SendHTTPError(w, http.StatusNotFound, "peer not found in cluster")
 		return
 	}
 
 	// Removing self should be disallowed (like in glusterd1)
 	if id == gdctx.MyUUID.String() {
-		rest.SendHTTPError(w, http.StatusBadRequest, "Removing self is disallowed.")
+		restutils.SendHTTPError(w, http.StatusBadRequest, "Removing self is disallowed.")
 		return
 	}
 
 	remotePeerAddress, err := utils.FormRemotePeerAddress(p.Addresses[0])
 	if err != nil {
-		rest.SendHTTPError(w, http.StatusBadRequest, err.Error())
+		restutils.SendHTTPError(w, http.StatusBadRequest, err.Error())
 		return
 	}
 
 	// Validate whether the peer can be deleted
 	rsp, e := ValidateDeletePeer(remotePeerAddress, id)
 	if e != nil {
-		rest.SendHTTPError(w, http.StatusInternalServerError, rsp.OpError)
+		restutils.SendHTTPError(w, http.StatusInternalServerError, rsp.OpError)
 		return
 	}
 
@@ -57,9 +57,9 @@ func deletePeerHandler(w http.ResponseWriter, r *http.Request) {
 			"er":   e,
 			"peer": id,
 		}).Error("Failed to remove peer from the store")
-		rest.SendHTTPError(w, http.StatusInternalServerError, e.Error())
+		restutils.SendHTTPError(w, http.StatusInternalServerError, e.Error())
 	} else {
-		rest.SendHTTPResponse(w, http.StatusNoContent, nil)
+		restutils.SendHTTPResponse(w, http.StatusNoContent, nil)
 	}
 
 	// Delete member from etcd cluster
@@ -70,7 +70,7 @@ func deletePeerHandler(w http.ResponseWriter, r *http.Request) {
 			"peer": id,
 		}).Error("Failed to remove member from etcd cluster")
 
-		rest.SendHTTPError(w, http.StatusInternalServerError, e.Error())
+		restutils.SendHTTPError(w, http.StatusInternalServerError, e.Error())
 		return
 	}
 
@@ -81,7 +81,7 @@ func deletePeerHandler(w http.ResponseWriter, r *http.Request) {
 	etcdrsp, e := ConfigureRemoteETCD(remotePeerAddress, &etcdConf)
 	if e != nil {
 		log.WithField("err", e).Error("Failed to configure remote etcd.")
-		rest.SendHTTPError(w, http.StatusInternalServerError, etcdrsp.OpError)
+		restutils.SendHTTPError(w, http.StatusInternalServerError, etcdrsp.OpError)
 		return
 	}
 }

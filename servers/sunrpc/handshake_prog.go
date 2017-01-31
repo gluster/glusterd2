@@ -1,4 +1,4 @@
-package sunrpcserver
+package sunrpc
 
 import (
 	"fmt"
@@ -10,6 +10,13 @@ import (
 	log "github.com/Sirupsen/logrus"
 )
 
+const (
+	hndskProgNum     = 14398633
+	hndskProgVersion = 2
+
+	gfHndskGetSpec = 2
+)
+
 // GfHandshake is a type for GlusterFS Handshake RPC program
 type GfHandshake genericProgram
 
@@ -17,10 +24,10 @@ func newGfHandshake() *GfHandshake {
 	// rpc/rpc-lib/src/protocol-common.h
 	return &GfHandshake{
 		name:        "Gluster Handshake",
-		progNum:     uint32(14398633),
-		progVersion: uint32(2),
+		progNum:     hndskProgNum,
+		progVersion: hndskProgVersion,
 		procedures: []Procedure{
-			Procedure{uint32(2), "ServerGetspec"}, // GF_HNDSK_GETSPEC
+			Procedure{gfHndskGetSpec, "ServerGetspec"}, // GF_HNDSK_GETSPEC
 		},
 	}
 }

@@ -7,7 +7,7 @@ import (
 	"github.com/gluster/glusterd2/brick"
 	"github.com/gluster/glusterd2/errors"
 	"github.com/gluster/glusterd2/gdctx"
-	"github.com/gluster/glusterd2/rest"
+	restutils "github.com/gluster/glusterd2/servers/rest/utils"
 	"github.com/gluster/glusterd2/transaction"
 	"github.com/gluster/glusterd2/volume"
 
@@ -95,7 +95,7 @@ func volumeStatusHandler(w http.ResponseWriter, r *http.Request) {
 	// Ensure that the volume exists.
 	vol, err := volume.GetVolume(volname)
 	if err != nil {
-		rest.SendHTTPError(w, http.StatusNotFound, errors.ErrVolNotFound.Error())
+		restutils.SendHTTPError(w, http.StatusNotFound, errors.ErrVolNotFound.Error())
 	}
 
 	// A very simple free-form transaction to query each node for brick
@@ -124,7 +124,7 @@ func volumeStatusHandler(w http.ResponseWriter, r *http.Request) {
 			"error":  err.Error(),
 			"volume": volname,
 		}).Error("volumeStatusHandler: Failed to get volume status.")
-		rest.SendHTTPError(w, http.StatusInternalServerError, err.Error())
+		restutils.SendHTTPError(w, http.StatusInternalServerError, err.Error())
 		return
 	}
 
@@ -135,10 +135,10 @@ func volumeStatusHandler(w http.ResponseWriter, r *http.Request) {
 	if err != nil {
 		errMsg := "Failed to aggregate brick status results from multiple nodes."
 		log.WithField("error", err.Error()).Error("volumeStatusHandler:" + errMsg)
-		rest.SendHTTPError(w, http.StatusInternalServerError, errMsg)
+		restutils.SendHTTPError(w, http.StatusInternalServerError, errMsg)
 		return
 	}
 
 	// Send aggregated result back to the client.
-	rest.SendHTTPResponse(w, http.StatusOK, result)
+	restutils.SendHTTPResponse(w, http.StatusOK, result)
 }

@@ -4,13 +4,13 @@ import (
 	"net/http"
 
 	"github.com/gluster/glusterd2/peer"
-	"github.com/gluster/glusterd2/rest"
+	restutils "github.com/gluster/glusterd2/servers/rest/utils"
 )
 
 func getPeersHandler(w http.ResponseWriter, r *http.Request) {
 	if peers, err := peer.GetPeersF(); err != nil {
-		rest.SendHTTPError(w, http.StatusNotFound, err.Error())
+		restutils.SendHTTPError(w, http.StatusNotFound, err.Error())
 	} else {
-		rest.SendHTTPResponse(w, http.StatusOK, peers)
+		restutils.SendHTTPResponse(w, http.StatusOK, peers)
 	}
 }

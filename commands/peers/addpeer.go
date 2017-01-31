@@ -8,7 +8,7 @@ import (
 	"github.com/gluster/glusterd2/errors"
 	"github.com/gluster/glusterd2/etcdmgmt"
 	"github.com/gluster/glusterd2/peer"
-	"github.com/gluster/glusterd2/rest"
+	restutils "github.com/gluster/glusterd2/servers/rest/utils"
 	"github.com/gluster/glusterd2/utils"
 
 	log "github.com/Sirupsen/logrus"
@@ -39,12 +39,12 @@ func addPeerHandler(w http.ResponseWriter, r *http.Request) {
 
 	var req PeerAddReq
 	if e := utils.GetJSONFromRequest(r, &req); e != nil {
-		rest.SendHTTPError(w, http.StatusBadRequest, e.Error())
+		restutils.SendHTTPError(w, http.StatusBadRequest, e.Error())
 		return
 	}
 
 	if len(req.Addresses) < 1 {
-		rest.SendHTTPError(w, http.StatusBadRequest, errors.ErrNoHostnamesPresent.Error())
+		restutils.SendHTTPError(w, http.StatusBadRequest, errors.ErrNoHostnamesPresent.Error())
 		return
 	}
 
@@ -53,7 +53,7 @@ func addPeerHandler(w http.ResponseWriter, r *http.Request) {
 
 	remotePeerAddress, err := utils.FormRemotePeerAddress(req.Addresses[0])
 	if err != nil {
-		rest.SendHTTPError(w, http.StatusBadRequest, err.Error())
+		restutils.SendHTTPError(w, http.StatusBadRequest, err.Error())
 		return
 	}
 
@@ -61,13 +61,13 @@ func addPeerHandler(w http.ResponseWriter, r *http.Request) {
 	// and etcd peer url.
 	remotePeer, e := ValidateAddPeer(remotePeerAddress, &req)
 	if e != nil {
-		rest.SendHTTPError(w, http.StatusInternalServerError, remotePeer.OpError)
+		restutils.SendHTTPError(w, http.StatusInternalServerError, remotePeer.OpError)
 		return
 	}
 
 	// TODO: Parse addresses considering ports to figure this out.
 	if isPeerInCluster(remotePeer.UUID) {
-		rest.SendHTTPError(w, http.StatusInternalServerError, "Peer already in cluster")
+		restutils.SendHTTPError(w, http.StatusInternalServerError, "Peer already in cluster")
 		return
 	}
 
@@ -93,7 +93,7 @@ func addPeerHandler(w http.ResponseWriter, r *http.Request) {
 			"name":    req.Name,
 			"address": remotePeer.EtcdPeerAddress,
 		}).Error("Failed to add member to etcd cluster.")
-		rest.SendHTTPError(w, http.StatusInternalServerError, e.Error())
+		restutils.SendHTTPError(w, http.StatusInternalServerError, e.Error())
 		return
 	}
 
@@ -102,7 +102,7 @@ func addPeerHandler(w http.ResponseWriter, r *http.Request) {
 	mlist, e := etcdmgmt.EtcdMemberList()
 	if e != nil {
 		log.WithField("error", e).Error("Failed to list members in etcd cluster")
-		rest.SendHTTPError(w, http.StatusInternalServerError, e.Error())
+		restutils.SendHTTPError(w, http.StatusInternalServerError, e.Error())
 		return
 	}
 
@@ -128,7 +128,7 @@ func addPeerHandler(w http.ResponseWriter, r *http.Request) {
 	etcdrsp, e := ConfigureRemoteETCD(remotePeerAddress, &etcdConf)
 	if e != nil {
 		log.WithField("err", e).Error("Failed to configure remote etcd")
-		rest.SendHTTPError(w, http.StatusInternalServerError, etcdrsp.OpError)
+		restutils.SendHTTPError(w, http.StatusInternalServerError, etcdrsp.OpError)
 		return
 	}
 
@@ -144,10 +144,10 @@ func addPeerHandler(w http.ResponseWriter, r *http.Request) {
 			"error":     e,
 			"peer/node": p.Name,
 		}).Error("Failed to add peer into the etcd store")
-		rest.SendHTTPError(w, http.StatusInternalServerError, e.Error())
+		restutils.SendHTTPError(w, http.StatusInternalServerError, e.Error())
 		return
 	}
 
 	body := map[string]uuid.UUID{"id": p.ID}
-	rest.SendHTTPResponse(w, http.StatusCreated, body)
+	restutils.SendHTTPResponse(w, http.StatusCreated, body)
 }

@@ -1,4 +1,5 @@
-package rest
+// Package utils provides utility functions for working with the GD2 rest server
+package utils
 
 import (
 	"encoding/json"

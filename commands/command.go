@@ -5,13 +5,13 @@ import (
 	"github.com/gluster/glusterd2/commands/peers"
 	"github.com/gluster/glusterd2/commands/version"
 	"github.com/gluster/glusterd2/commands/volumes"
-	"github.com/gluster/glusterd2/rest"
+	"github.com/gluster/glusterd2/servers/rest/route"
 )
 
 // Command is the interface that needs to be implemented by the GlusterD commands
 type Command interface {
 	// Routes should return a table of REST API endpoints and handlers for the command
-	Routes() rest.Routes
+	Routes() route.Routes
 	// RegisterStepFuncs will register the transaction StepFuncs for the command
 	RegisterStepFuncs()
 }

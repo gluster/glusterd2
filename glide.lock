@@ -1,5 +1,5 @@
-hash: a51607528ea804e610964a7488894bc01fec018763a5917e9d5bea7e0d83b1b4
-updated: 2017-01-20T18:04:12.05669937+05:30
+hash: 38c3f58b273d37f80ef907a5eff25b8ad61db07e3ef6db77b3f0d814286015e2
+updated: 2017-01-30T18:13:38.046511822+05:30
 imports:
 - name: bitbucket.org/ww/goautoneg
   version: 75cd24fc2f2c2a2088577d12123ddee5f54e0675
@@ -11,8 +11,6 @@ imports:
   version: 583e8937c61f1af6513608ccc75c97b6abdf4ff9
 - name: github.com/cockroachdb/cmux
   version: 112f0506e7743d64a6eb8fedbcff13d9979bbf92
-- name: github.com/codegangsta/negroni
-  version: 3f7ce7b928e14ff890b067e5bbbc80af73690a9c
 - name: github.com/coreos/etcd
   version: 3d5ba43211beec7fbb1472634a9c3b464581658a
   subpackages:
@@ -188,6 +186,8 @@ imports:
   version: 7b17cc4658ef5ca157b986ea5c0b43af7938532b
 - name: github.com/spf13/viper
   version: 16990631d4aa7e38f73dbbbf37fa13e67c648531
+- name: github.com/thejerf/suture
+  version: fe1c0d795ff7a7e54fc54ef6afb36ee0adf0c276
 - name: github.com/ugorji/go
   version: f1f1a805ed361a0e078bb537e4ea78cd37dcf065
   subpackages:
@@ -228,8 +228,6 @@ imports:
   - naming
   - peer
   - transport
-- name: gopkg.in/tylerb/graceful.v1
-  version: 50a48b6e73fcc75b45e22c05b79629a67c79e938
 - name: gopkg.in/yaml.v2
-  version: 31c299268d302dd0aa9a0dcf765a3d58971ac83f
+  version: 53feefa2559fb8dfa8d81baad31be332c97d6c77
 testImports: []

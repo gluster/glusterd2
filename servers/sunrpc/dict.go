@@ -1,4 +1,4 @@
-package sunrpcserver
+package sunrpc
 
 import (
 	"bytes"

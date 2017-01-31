@@ -6,7 +6,7 @@ import (
 
 	gderrors "github.com/gluster/glusterd2/errors"
 	"github.com/gluster/glusterd2/peer"
-	"github.com/gluster/glusterd2/rest"
+	restutils "github.com/gluster/glusterd2/servers/rest/utils"
 	"github.com/gluster/glusterd2/transaction"
 	"github.com/gluster/glusterd2/utils"
 	"github.com/gluster/glusterd2/volgen"
@@ -177,18 +177,18 @@ func volumeCreateHandler(w http.ResponseWriter, r *http.Request) {
 
 	httpStatus, e := unmarshalVolCreateRequest(req, r)
 	if e != nil {
-		rest.SendHTTPError(w, httpStatus, e.Error())
+		restutils.SendHTTPError(w, httpStatus, e.Error())
 		return
 	}
 
 	if volume.ExistsFunc(req.Name) {
-		rest.SendHTTPError(w, http.StatusInternalServerError, gderrors.ErrVolExists.Error())
+		restutils.SendHTTPError(w, http.StatusInternalServerError, gderrors.ErrVolExists.Error())
 		return
 	}
 
 	nodes, e := nodesForVolCreate(req)
 	if e != nil {
-		rest.SendHTTPError(w, http.StatusInternalServerError, e.Error())
+		restutils.SendHTTPError(w, http.StatusInternalServerError, e.Error())
 		return
 	}
 
@@ -204,26 +204,26 @@ func volumeCreateHandler(w http.ResponseWriter, r *http.Request) {
 		},
 	}).NewTxn()
 	if e != nil {
-		rest.SendHTTPError(w, http.StatusInternalServerError, e.Error())
+		restutils.SendHTTPError(w, http.StatusInternalServerError, e.Error())
 		return
 	}
 	defer txn.Cleanup()
 
 	e = txn.Ctx.Set("req", req)
 	if e != nil {
-		rest.SendHTTPError(w, http.StatusInternalServerError, e.Error())
+		restutils.SendHTTPError(w, http.StatusInternalServerError, e.Error())
 		return
 	}
 
 	vol, e := createVolinfo(req)
 	if e != nil {
-		rest.SendHTTPError(w, http.StatusInternalServerError, e.Error())
+		restutils.SendHTTPError(w, http.StatusInternalServerError, e.Error())
 		return
 	}
 
 	e = txn.Ctx.Set("volinfo", vol)
 	if e != nil {
-		rest.SendHTTPError(w, http.StatusInternalServerError, e.Error())
+		restutils.SendHTTPError(w, http.StatusInternalServerError, e.Error())
 		return
 	}
 
@@ -234,22 +234,22 @@ func volumeCreateHandler(w http.ResponseWriter, r *http.Request) {
 	}
 	e = txn.Ctx.Set("volauth", volAuth)
 	if e != nil {
-		rest.SendHTTPError(w, http.StatusInternalServerError, e.Error())
+		restutils.SendHTTPError(w, http.StatusInternalServerError, e.Error())
 		return
 	}
 
 	c, e := txn.Do()
 	if e != nil {
-		rest.SendHTTPError(w, http.StatusInternalServerError, e.Error())
+		restutils.SendHTTPError(w, http.StatusInternalServerError, e.Error())
 		return
 	}
 
 	e = c.Get("volinfo", &vol)
 	if e == nil {
-		rest.SendHTTPResponse(w, http.StatusCreated, vol)
+		restutils.SendHTTPResponse(w, http.StatusCreated, vol)
 		c.Logger().WithField("volname", vol.Name).Info("new volume created")
 	} else {
-		rest.SendHTTPError(w, http.StatusInternalServerError, "failed to get volinfo")
+		restutils.SendHTTPError(w, http.StatusInternalServerError, "failed to get volinfo")
 	}
 
 	return

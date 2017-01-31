@@ -1,6 +1,5 @@
 package: github.com/gluster/glusterd2
 import:
-- package: github.com/codegangsta/negroni
 - package: github.com/coreos/etcd
   version: v3.1.0-rc.1
   subpackages:
@@ -21,7 +20,6 @@ import:
 - package: golang.org/x/sys
   subpackages:
   - unix
-- package: gopkg.in/tylerb/graceful.v1
 - package: github.com/heketi/tests
 - package: github.com/spf13/viper
 - package: github.com/spf13/pflag
@@ -32,4 +30,6 @@ import:
 - package: google.golang.org/grpc
   version: 1.0.4
 - package: github.com/soheilhy/cmux
+- package: github.com/thejerf/suture
+  version: ^2.0.0
 - package: github.com/prashanthpai/sunrpc

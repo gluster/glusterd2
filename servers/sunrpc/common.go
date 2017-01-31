@@ -1,4 +1,4 @@
-package sunrpcserver
+package sunrpc
 
 // GfCommonRsp is a generic RPC response type
 type GfCommonRsp struct {

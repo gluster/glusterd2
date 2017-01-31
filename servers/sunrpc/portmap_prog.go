@@ -1,4 +1,11 @@
-package sunrpcserver
+package sunrpc
+
+const (
+	portmapProgNum     = 34123456
+	portmapProgVersion = 1
+
+	gfPmapPortByBrick = 1
+)
 
 // GfPortmap is a type for GlusterFS Portmap RPC program
 type GfPortmap genericProgram
@@ -7,10 +14,10 @@ func newGfPortmap() *GfPortmap {
 	// rpc/rpc-lib/src/protocol-common.h
 	return &GfPortmap{
 		name:        "Gluster Portmap",
-		progNum:     uint32(34123456),
-		progVersion: uint32(1),
+		progNum:     portmapProgNum,
+		progVersion: portmapProgVersion,
 		procedures: []Procedure{
-			Procedure{uint32(1), "PortByBrick"}, // GF_PMAP_PORTBYBRICK
+			Procedure{gfPmapPortByBrick, "PortByBrick"}, // GF_PMAP_PORTBYBRICK
 		},
 	}
 }

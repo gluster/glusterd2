@@ -2,27 +2,15 @@ package rest
 
 import (
 	"fmt"
-	"net/http"
+
+	"github.com/gluster/glusterd2/commands"
+	"github.com/gluster/glusterd2/servers/rest/route"
 
 	log "github.com/Sirupsen/logrus"
 )
 
-// Route models a route to be set on the GlusterD Rest server
-// This route style comes from the tutorial on
-// http://thenewstack.io/make-a-restful-json-api-go/
-type Route struct {
-	Name        string
-	Method      string
-	Pattern     string
-	Version     int
-	HandlerFunc http.HandlerFunc
-}
-
-// Routes is a table of many Route's
-type Routes []Route
-
-// SetRoutes adds the given routes to the GlusterD Rest server
-func (r *GDRest) SetRoutes(routes Routes) {
+// setRoutes adds the given routes to the GlusterD Rest server
+func (r *GDRest) setRoutes(routes route.Routes) {
 	for _, route := range routes {
 		var urlPattern string
 		if route.Name == "GetVersion" {
@@ -41,5 +29,14 @@ func (r *GDRest) SetRoutes(routes Routes) {
 			Path(urlPattern).
 			Name(route.Name).
 			Handler(route.HandlerFunc)
+	}
+}
+
+func (r *GDRest) registerRoutes() {
+	for _, c := range commands.Commands {
+		r.setRoutes(c.Routes())
+		//XXX: This doesn't feel like the right place to be register step
+		//functions, but until we have a better place it can stay here.
+		c.RegisterStepFuncs()
 	}
 }

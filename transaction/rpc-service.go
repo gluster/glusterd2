@@ -4,7 +4,7 @@ import (
 	"encoding/json"
 	"errors"
 
-	"github.com/gluster/glusterd2/rpc/server"
+	"github.com/gluster/glusterd2/servers/peerrpc"
 
 	log "github.com/Sirupsen/logrus"
 	"golang.org/x/net/context"
@@ -14,7 +14,7 @@ import (
 type txnSvc int
 
 func init() {
-	server.Register(new(txnSvc))
+	peerrpc.Register(new(txnSvc))
 }
 
 // RunStep handles the incoming request. It executes the requested step and returns the results

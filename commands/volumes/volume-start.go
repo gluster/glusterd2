@@ -10,7 +10,7 @@ import (
 	"github.com/gluster/glusterd2/daemon"
 	"github.com/gluster/glusterd2/errors"
 	"github.com/gluster/glusterd2/gdctx"
-	"github.com/gluster/glusterd2/rest"
+	restutils "github.com/gluster/glusterd2/servers/rest/utils"
 	"github.com/gluster/glusterd2/transaction"
 	"github.com/gluster/glusterd2/volume"
 
@@ -141,11 +141,11 @@ func volumeStartHandler(w http.ResponseWriter, r *http.Request) {
 
 	vol, e := volume.GetVolume(volname)
 	if e != nil {
-		rest.SendHTTPError(w, http.StatusBadRequest, errors.ErrVolNotFound.Error())
+		restutils.SendHTTPError(w, http.StatusBadRequest, errors.ErrVolNotFound.Error())
 		return
 	}
 	if vol.Status == volume.VolStarted {
-		rest.SendHTTPError(w, http.StatusBadRequest, errors.ErrVolAlreadyStarted.Error())
+		restutils.SendHTTPError(w, http.StatusBadRequest, errors.ErrVolAlreadyStarted.Error())
 		return
 	}
 
@@ -154,7 +154,7 @@ func volumeStartHandler(w http.ResponseWriter, r *http.Request) {
 	defer txn.Cleanup()
 	lock, unlock, err := transaction.CreateLockSteps(volname)
 	if err != nil {
-		rest.SendHTTPError(w, http.StatusInternalServerError, err.Error())
+		restutils.SendHTTPError(w, http.StatusInternalServerError, err.Error())
 		return
 	}
 	txn.Nodes = vol.Nodes()
@@ -175,7 +175,7 @@ func volumeStartHandler(w http.ResponseWriter, r *http.Request) {
 			"error":  e.Error(),
 			"volume": volname,
 		}).Error("failed to start volume")
-		rest.SendHTTPError(w, http.StatusInternalServerError, e.Error())
+		restutils.SendHTTPError(w, http.StatusInternalServerError, e.Error())
 		return
 	}
 
@@ -183,9 +183,9 @@ func volumeStartHandler(w http.ResponseWriter, r *http.Request) {
 
 	e = volume.AddOrUpdateVolumeFunc(vol)
 	if e != nil {
-		rest.SendHTTPError(w, http.StatusInternalServerError, e.Error())
+		restutils.SendHTTPError(w, http.StatusInternalServerError, e.Error())
 		return
 	}
 	log.WithField("volume", vol.Name).Debug("Volume updated into the store")
-	rest.SendHTTPResponse(w, http.StatusOK, vol)
+	restutils.SendHTTPResponse(w, http.StatusOK, vol)
 }
