@@ -5,7 +5,6 @@ import (
 	"os/signal"
 	"path"
 
-	"github.com/gluster/glusterd2/commands"
 	"github.com/gluster/glusterd2/etcdmgmt"
 	"github.com/gluster/glusterd2/gdctx"
 	"github.com/gluster/glusterd2/peer"
@@ -66,10 +65,6 @@ func main() {
 	}
 
 	gdctx.Init()
-
-	for _, c := range commands.Commands {
-		c.RegisterStepFuncs()
-	}
 
 	// Store self information in the store if GlusterD is coming up for
 	// first time

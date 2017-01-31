@@ -35,5 +35,8 @@ func (r *GDRest) setRoutes(routes route.Routes) {
 func (r *GDRest) registerRoutes() {
 	for _, c := range commands.Commands {
 		r.setRoutes(c.Routes())
+		//XXX: This doesn't feel like the right place to be register step
+		//functions, but until we have a better place it can stay here.
+		c.RegisterStepFuncs()
 	}
 }
