@@ -94,7 +94,7 @@ func (s *SunRPC) Serve() {
 			continue
 		}
 		log.WithField("address", conn.RemoteAddr().String()).Info("glusterfs client connected")
-		go s.server.ServeRequest(sunrpc.NewServerCodec(conn))
+		go s.server.ServeCodec(sunrpc.NewServerCodec(conn))
 	}
 }
 

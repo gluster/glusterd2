@@ -87,7 +87,7 @@ func buildClientVolfile(vinfo *volume.Volinfo, vauth *volume.VolAuth) (*bytes.Bu
 	}
 
 	// Create DHT xlator entry
-	if vinfo.ReplicaCount != len(vinfo.Bricks) {
+	if (vinfo.ReplicaCount != len(vinfo.Bricks)) || (len(vinfo.Bricks) == 1) {
 		wbSubvol = "dht"
 		if vinfo.ReplicaCount > 1 {
 			// AFR instances are children of DHT (dist-rep)
