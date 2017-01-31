@@ -91,7 +91,7 @@ func main() {
 			log.WithField("signal", s).Info("Recieved SIGTERM. Stopping GlusterD.")
 			etcdmgmt.DestroyEmbeddedEtcd()
 			super.Stop()
-			log.Info("Termintaing GlusterD.")
+			log.Info("Terminating GlusterD.")
 			return
 		default:
 			continue

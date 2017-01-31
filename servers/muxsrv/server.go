@@ -32,11 +32,18 @@ func newMuxSrv() *muxSrv {
 // Serve starts the handlers and the multiplexed listener
 func (m *muxSrv) Serve() {
 	log.Info("started muxsrv listener")
-	m.m.Serve()
+	if err := m.m.Serve(); err != nil {
+		//TODO: Correctly handle valid errors. We could also be having errors when stopping
+		log.WithError(err).Error("mux listener failed")
+	}
 }
 
 // Stop stops the multiplexed listener and the handlers
 func (m *muxSrv) Stop() {
-	log.Info("stopped muxsrv listener")
-	m.l.Close()
+	log.Debug("stopping muxsrv listener")
+	if err := m.l.Close(); err != nil {
+		log.WithError(err).Error("failed to stop muxsrv listener")
+	} else {
+		log.Info("stopped muxsrv listener")
+	}
 }

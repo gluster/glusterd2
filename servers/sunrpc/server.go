@@ -90,7 +90,7 @@ func (s *SunRPC) Serve() {
 		// instance of net.Conn simultaneously.
 		conn, err := s.listener.Accept()
 		if err != nil {
-			// TODO: Handle error ?
+			log.WithError(err).Error("failed to accept incoming connection")
 			continue
 		}
 		log.WithField("address", conn.RemoteAddr().String()).Info("glusterfs client connected")

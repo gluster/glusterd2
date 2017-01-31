@@ -52,11 +52,10 @@ func registerProgram(server *rpc.Server, program Program, port int) error {
 	// Create procedure number to procedure name mappings for sunrpc codec
 	typeName := reflect.Indirect(reflect.ValueOf(program)).Type().Name()
 	for _, procedure := range program.Procedures() {
-		llogger := logger.WithFields(log.Fields{
+		logger.WithFields(log.Fields{
 			"proc":    procedure.Name,
 			"procnum": procedure.Number,
-		})
-		llogger.Debug("registering sunrpc procedure")
+		}).Debug("registering sunrpc procedure")
 
 		err = sunrpc.RegisterProcedure(
 			sunrpc.ProcedureID{
@@ -65,7 +64,6 @@ func registerProgram(server *rpc.Server, program Program, port int) error {
 				ProcedureNumber: procedure.Number,
 			}, typeName+"."+procedure.Name)
 		if err != nil {
-			llogger.WithError(err).Error("failed to register sunrpc procedure")
 			return err
 		}
 	}
