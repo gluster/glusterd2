@@ -37,7 +37,7 @@ func registerProgram(server *rpc.Server, program Program, port int) error {
 		"progver": program.Version(),
 	})
 
-	logger.Info("registering sunrpc program")
+	logger.Debug("registering sunrpc program")
 
 	// NOTE: This will throw some benign log messages complaining about
 	// signatures of methods in Program interface. rpc.Server.Register()

@@ -35,7 +35,7 @@ func InitMyUUID() uuid.UUID {
 	}
 
 	u := uuid.Parse(string(ubytes))
-	log.WithField("myuuid", u.String()).Info("restored uuid")
+	log.WithField("uuid", u.String()).Info("Found existing UUID")
 	Restart = true
 
 	return u
@@ -45,7 +45,7 @@ func genMyUUID() uuid.UUID {
 	u := uuid.NewRandom()
 
 	writeMyUUIDFile(u)
-	log.WithField("myuuid", u.String()).Info("generated new MyUUID")
+	log.WithField("uuid", u.String()).Info("Generated new UUID")
 	return u
 }
 

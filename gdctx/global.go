@@ -13,7 +13,6 @@ import (
 
 	log "github.com/Sirupsen/logrus"
 	"github.com/pborman/uuid"
-	config "github.com/spf13/viper"
 )
 
 // Various version constants that will be used by GD2
@@ -47,10 +46,6 @@ func initOpVersion() {
 }
 
 func doInit() {
-	log.Debug("Initializing GlusterD context")
-
-	utils.InitDir(config.GetString("localstatedir"))
-
 	initOpVersion()
 
 	// When glusterd is started for the first time, we will have Restart set to
@@ -58,8 +53,6 @@ func doInit() {
 	// InitStore(). On subsequent restarts of glusterd, we would want to skip
 	// initializing prefixes by passing false to InitStore()
 	InitStore(!Restart)
-
-	log.Debug("Initialized GlusterD context")
 }
 
 // Init initializes the GlusterD context. This should be called once before doing anything else.

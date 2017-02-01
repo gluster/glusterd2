@@ -19,14 +19,12 @@ import (
 
 func main() {
 
-	// Set IP and hostname once.
 	gdctx.SetHostnameAndIP()
 
-	// Parse flags and handle version and logging before continuing
+	// Parse command-line arguments
 	parseFlags()
 
-	showvers, _ := flag.CommandLine.GetBool("version")
-	if showvers {
+	if showvers, _ := flag.CommandLine.GetBool("version"); showvers {
 		dumpVersionInfo()
 		return
 	}
@@ -34,60 +32,56 @@ func main() {
 	logLevel, _ := flag.CommandLine.GetString("loglevel")
 	initLog(logLevel, os.Stderr)
 
-	log.WithField("pid", os.Getpid()).Info("GlusterD starting")
+	log.WithField("pid", os.Getpid()).Info("Starting GlusterD")
 
-	// Read in config
+	// Read config file
 	confFile, _ := flag.CommandLine.GetString("config")
 	initConfig(confFile)
 
-	// Change to working directory before continuing
-	if e := os.Chdir(config.GetString("workdir")); e != nil {
-		log.WithError(e).Fatalf("failed to change working directory")
+	workdir := config.GetString("workdir")
+	if err := os.Chdir(workdir); err != nil {
+		log.WithError(err).Fatalf("Failed to change working directory to %s", workdir)
 	}
 
-	// TODO: This really should go into its own function.
-	utils.InitDir(config.GetString("localstatedir"))
-	utils.InitDir(config.GetString("rundir"))
-	utils.InitDir(config.GetString("logdir"))
-	utils.InitDir(path.Join(config.GetString("rundir"), "gluster"))
-	utils.InitDir(path.Join(config.GetString("logdir"), "glusterfs/bricks"))
+	// Create directories inside workdir - run dir, logdir etc
+	createDirectories()
 
+	// Generate UUID if it doesn't exist
 	gdctx.MyUUID = gdctx.InitMyUUID()
 
 	// Start embedded etcd server
 	etcdConfig, err := etcdmgmt.GetEtcdConfig(true)
 	if err != nil {
-		log.WithField("Error", err).Fatal("Could not fetch config options for etcd.")
+		log.WithError(err).Fatal("Could not fetch config options for etcd")
 	}
 	err = etcdmgmt.StartEmbeddedEtcd(etcdConfig)
 	if err != nil {
-		log.WithField("Error", err).Fatal("Could not start embedded etcd server.")
+		log.WithError(err).Fatal("Could not start embedded etcd server")
 	}
 
+	// Initialize op version and etcd store
 	gdctx.Init()
-
-	// Store self information in the store if GlusterD is coming up for
-	// first time
 	if !gdctx.Restart {
 		peer.AddSelfDetails()
 	}
 
+	// Start all servers (rest, peerrpc, sunrpc) managed by suture supervisor
 	super := initGD2Supervisor()
 	super.ServeBackground()
-
 	super.Add(servers.New())
 
+	// Use the main goroutine as signal handling loop
 	sigCh := make(chan os.Signal)
 	signal.Notify(sigCh)
 	for s := range sigCh {
-		log.WithField("signal", s).Debug("Signal recieved")
+		log.WithField("signal", s).Debug("Signal received")
 		switch s {
 		case os.Interrupt:
-			log.WithField("signal", s).Info("Recieved SIGTERM. Stopping GlusterD.")
+			log.Info("Received SIGTERM. Stopping GlusterD")
 			// Stop embedded etcd server, but don't wipe local etcd data
 			etcdmgmt.DestroyEmbeddedEtcd(false)
 			super.Stop()
-			log.Info("Terminating GlusterD.")
+			log.Info("Stopped GlusterD")
 			return
 		default:
 			continue
@@ -99,7 +93,13 @@ func initGD2Supervisor() *suture.Supervisor {
 	superlogger := func(msg string) {
 		log.WithField("supervisor", "gd2-main").Println(msg)
 	}
-	super := suture.New("gd2-main", suture.Spec{Log: superlogger})
+	return suture.New("gd2-main", suture.Spec{Log: superlogger})
+}
 
-	return super
+func createDirectories() {
+	utils.InitDir(config.GetString("localstatedir"))
+	utils.InitDir(config.GetString("rundir"))
+	utils.InitDir(config.GetString("logdir"))
+	utils.InitDir(path.Join(config.GetString("rundir"), "gluster"))
+	utils.InitDir(path.Join(config.GetString("logdir"), "glusterfs/bricks"))
 }
