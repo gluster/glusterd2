@@ -94,8 +94,8 @@ func (p *PeerService) ExportAndStoreETCDConfig(nc netctx.Context, c *EtcdConfigR
 		newEtcdConfig.Dir = newEtcdConfig.Name + ".etcd"
 	}
 
-	// Gracefully stop embedded etcd server
-	err = etcdmgmt.DestroyEmbeddedEtcd()
+	// Gracefully stop embedded etcd server and remove local etcd data
+	err = etcdmgmt.DestroyEmbeddedEtcd(true)
 	if err != nil {
 		opRet = -1
 		opError = fmt.Sprintf("Error stopping embedded etcd server.")

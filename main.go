@@ -84,7 +84,8 @@ func main() {
 		switch s {
 		case os.Interrupt:
 			log.WithField("signal", s).Info("Recieved SIGTERM. Stopping GlusterD.")
-			etcdmgmt.DestroyEmbeddedEtcd()
+			// Stop embedded etcd server, but don't wipe local etcd data
+			etcdmgmt.DestroyEmbeddedEtcd(false)
 			super.Stop()
 			log.Info("Terminating GlusterD.")
 			return
