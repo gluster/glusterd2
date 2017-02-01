@@ -50,8 +50,8 @@ func StartEmbeddedEtcd(cfg *embed.Config) error {
 }
 
 // DestroyEmbeddedEtcd will gracefully shut down the embedded etcd server and
-// deletes the etcd data directory.
-func DestroyEmbeddedEtcd() error {
+// optionally deletes the etcd data directory.
+func DestroyEmbeddedEtcd(deleteData bool) error {
 
 	etcdInstance.Lock()
 	defer etcdInstance.Unlock()
@@ -66,17 +66,21 @@ func DestroyEmbeddedEtcd() error {
 	etcdInstance.etcd = nil
 	log.Info("Etcd embedded server is stopped.")
 
-	err := os.RemoveAll(etcdConfig.Dir)
-	if err != nil {
-		return errors.New("Could not delete etcd data dir")
-	}
+	if deleteData {
+		err := os.RemoveAll(etcdConfig.Dir)
+		if err != nil {
+			return errors.New("Could not delete etcd data dir")
+		}
 
-	err = os.RemoveAll(etcdConfig.WalDir)
-	if err != nil {
-		return errors.New("Could not delete etcd WAL dir")
-	}
+		err = os.RemoveAll(etcdConfig.WalDir)
+		if err != nil {
+			return errors.New("Could not delete etcd WAL dir")
+		}
 
-	os.Remove(EtcdConfigFile)
+		os.Remove(EtcdConfigFile)
+
+		log.Info("Etcd data dir, WAL dir and config file removed")
+	}
 
 	return nil
 }
