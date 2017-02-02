@@ -76,6 +76,7 @@ func (b *Brick) Args() string {
 
 	var buffer bytes.Buffer
 	buffer.WriteString(fmt.Sprintf(" --volfile %s", volfile))
+	buffer.WriteString(fmt.Sprintf(" --volfile-id %s", b.volName))
 	buffer.WriteString(fmt.Sprintf(" -p %s", b.PidFile()))
 	buffer.WriteString(fmt.Sprintf(" -S %s", b.SocketFile()))
 	buffer.WriteString(fmt.Sprintf(" --brick-name %s", b.brickinfo.Path))
