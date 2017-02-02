@@ -23,6 +23,10 @@ import (
 // to start brick processes in case of port clashes.
 const BrickStartMaxRetries = 3
 
+// Until https://review.gluster.org/#/c/16200/ gets into a release.
+// And this is fully safe too as no other well-known errno exists after 132
+const anotherEADDRINUSE = syscall.Errno(0x9E) // 158
+
 func errorContainsErrno(err error, errno syscall.Errno) bool {
 	if exiterr, ok := err.(*exec.ExitError); ok {
 		if status, ok := exiterr.Sys().(syscall.WaitStatus); ok {
@@ -69,7 +73,7 @@ func startBricks(c transaction.TxnCtx) error {
 			for i := 0; i < BrickStartMaxRetries; i++ {
 				err = daemon.Start(brickDaemon, true)
 				if err != nil {
-					if errorContainsErrno(err, syscall.EADDRINUSE) {
+					if errorContainsErrno(err, syscall.EADDRINUSE) || errorContainsErrno(err, anotherEADDRINUSE) {
 						// Retry iff brick failed to start because of port being in use.
 						c.Logger().Info("Brick port unavailable. Retrying...")
 						// Allow the previous instance to cleanup and exit
