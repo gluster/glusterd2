@@ -1,9 +1,11 @@
 package sunrpc
 
 import (
+	"io"
 	"net"
 	"net/rpc"
 	"strconv"
+	"sync"
 
 	"github.com/prashanthpai/sunrpc"
 
@@ -19,6 +21,14 @@ type SunRPC struct {
 }
 
 var programsList []Program
+
+var clientsList = struct {
+	sync.RWMutex
+	c map[net.Conn]bool
+}{
+	// This map is used as a set. Values are not consumed.
+	c: make(map[net.Conn]bool),
+}
 
 // New returns a SunRPC server configured to listen on the given listener
 func New(l net.Listener) *SunRPC {
@@ -73,6 +83,21 @@ func getPortFromListener(listener net.Listener) int {
 // Serve will start accepting Sun RPC client connections on the listener
 // provided.
 func (s *SunRPC) Serve() {
+
+	// Detect client disconnections
+	notifyClose := make(chan io.ReadWriteCloser, 10)
+	go func() {
+		for rwc := range notifyClose {
+			conn := rwc.(net.Conn)
+			log.WithField("address", conn.RemoteAddr().String()).Info("glusterfs client disconnected")
+
+			// Update list of clients
+			clientsList.Lock()
+			delete(clientsList.c, conn)
+			clientsList.Unlock()
+		}
+	}()
+
 	log.WithField("ip:port", s.listener.Addr().String()).Info("started GlusterD SunRPC server")
 	for {
 		select {
@@ -80,21 +105,20 @@ func (s *SunRPC) Serve() {
 			return
 		default:
 		}
-		// TODO: The net.Conn instance here should be exposed
-		// externally for:
-		//     1. Sending notifications to glusterfs clients
-		//        (example: volfile changed)
-		//     2. Tracking number of glusterfs clients that
-		//        are connected to glusterd2.
-		// Multiple goroutines can safely invoke write on an
-		// instance of net.Conn simultaneously.
+
 		conn, err := s.listener.Accept()
 		if err != nil {
 			log.WithError(err).Error("failed to accept incoming connection")
 			continue
 		}
+
+		// Update list of clients
+		clientsList.Lock()
+		clientsList.c[conn] = true
+		clientsList.Unlock()
 		log.WithField("address", conn.RemoteAddr().String()).Info("glusterfs client connected")
-		go s.server.ServeCodec(sunrpc.NewServerCodec(conn))
+
+		go s.server.ServeCodec(sunrpc.NewServerCodec(conn, notifyClose))
 	}
 }
 
