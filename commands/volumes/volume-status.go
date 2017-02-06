@@ -44,18 +44,14 @@ func checkStatus(ctx transaction.TxnCtx) error {
 
 	for _, binfo := range vol.Bricks {
 		// Skip bricks that aren't on this node.
-		// TODO: Rename Brickinfo field 'ID' to 'NodeUUID'
-		if uuid.Equal(binfo.ID, gdctx.MyUUID) == false {
+		if uuid.Equal(binfo.NodeID, gdctx.MyUUID) == false {
 			continue
 		}
 
 		// TODO: Check actual brick status when we get them running.
 		fakeStatus := &brick.Brickstatus{
-			Hostname: binfo.Hostname,
-			Path:     binfo.Path,
-			ID:       binfo.ID,
-			Online:   false,
-			Pid:      1234,
+			Online: false,
+			Pid:    1234,
 		}
 		brickStatuses = append(brickStatuses, fakeStatus)
 	}

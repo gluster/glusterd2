@@ -141,7 +141,7 @@ func GenerateVolfile(vinfo *volume.Volinfo, vauth *volume.VolAuth) error {
 
 		// Generate brick volfiles for only those bricks that belong
 		// to this node/instance.
-		if !uuid.Equal(b.ID, gdctx.MyUUID) {
+		if !uuid.Equal(b.NodeID, gdctx.MyUUID) {
 			continue
 		}
 
@@ -191,7 +191,7 @@ func DeleteVolfile(vol *volume.Volinfo) error {
 
 	for _, b := range vol.Bricks {
 
-		if !uuid.Equal(b.ID, gdctx.MyUUID) {
+		if !uuid.Equal(b.NodeID, gdctx.MyUUID) {
 			continue
 		}
 

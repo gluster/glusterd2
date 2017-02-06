@@ -147,7 +147,7 @@ func NewVolumeEntry(req *VolCreateRequest) (*Volinfo, error) {
 }
 
 // NewBrickEntries creates the brick list
-func NewBrickEntries(bricks []string) ([]brick.Brickinfo, error) {
+func NewBrickEntries(bricks []string, volName string) ([]brick.Brickinfo, error) {
 	var brickInfos []brick.Brickinfo
 	var binfo brick.Brickinfo
 
@@ -166,19 +166,21 @@ func NewBrickEntries(bricks []string) ([]brick.Brickinfo, error) {
 		u := uuid.Parse(host)
 		if u != nil {
 			// Host specified is UUID
-			binfo.ID = u
+			binfo.NodeID = u
 			p, e := peer.GetPeerF(host)
 			if e != nil {
 				return nil, e
 			}
 			binfo.Hostname = p.Addresses[0]
 		} else {
-			binfo.ID, e = peer.GetPeerIDByAddrF(host)
+			binfo.NodeID, e = peer.GetPeerIDByAddrF(host)
 			if e != nil {
 				return nil, e
 			}
 			binfo.Hostname = host
 		}
+
+		binfo.VolumeName = volName
 
 		brickInfos = append(brickInfos, binfo)
 	}
@@ -189,7 +191,7 @@ func NewBrickEntries(bricks []string) ([]brick.Brickinfo, error) {
 func ValidateBrickEntries(bricks []brick.Brickinfo, volID uuid.UUID, force bool) (int, error) {
 
 	for _, b := range bricks {
-		if !uuid.Equal(b.ID, gdctx.MyUUID) {
+		if !uuid.Equal(b.NodeID, gdctx.MyUUID) {
 			continue
 		}
 
@@ -247,14 +249,14 @@ func (v *Volinfo) Nodes() []uuid.UUID {
 		// Add node to the slice only if it isn't present already
 		present = false
 		for _, n := range nodes {
-			if uuid.Equal(b.ID, n) == true {
+			if uuid.Equal(b.NodeID, n) == true {
 				present = true
 				break
 			}
 		}
 
 		if present == false {
-			nodes = append(nodes, b.ID)
+			nodes = append(nodes, b.NodeID)
 		}
 	}
 	return nodes

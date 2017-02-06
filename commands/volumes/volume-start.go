@@ -59,13 +59,13 @@ func startBricks(c transaction.TxnCtx) error {
 	}
 
 	for _, b := range vol.Bricks {
-		if uuid.Equal(b.ID, gdctx.MyUUID) {
+		if uuid.Equal(b.NodeID, gdctx.MyUUID) {
 			c.Logger().WithFields(log.Fields{
 				"volume": volname,
 				"brick":  b.Hostname + ":" + b.Path,
 			}).Info("Starting brick")
 
-			brickDaemon, err := brick.NewDaemon(vol.Name, b)
+			brickDaemon, err := brick.NewGlusterfsd(b)
 			if err != nil {
 				return err
 			}
@@ -111,14 +111,14 @@ func undoStartBricks(c transaction.TxnCtx) error {
 	}
 
 	for _, b := range vol.Bricks {
-		if uuid.Equal(b.ID, gdctx.MyUUID) {
+		if uuid.Equal(b.NodeID, gdctx.MyUUID) {
 			c.Logger().WithFields(log.Fields{
 				"volume": volname,
 				"brick":  b.Hostname + ":" + b.Path,
 			}).Info("volume start failed, stopping bricks")
 			//TODO: Stop started brick processes once the daemon management package is ready
 
-			brickDaemon, err := brick.NewDaemon(vol.Name, b)
+			brickDaemon, err := brick.NewGlusterfsd(b)
 			if err != nil {
 				return err
 			}
