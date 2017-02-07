@@ -4,33 +4,20 @@ import (
 	"net/rpc"
 	"reflect"
 
+	"github.com/gluster/glusterd2/servers/sunrpc/program"
 	log "github.com/Sirupsen/logrus"
 	"github.com/prashanthpai/sunrpc"
 )
-
-// Procedure represents a procedure number, procedure name pair
-type Procedure struct {
-	Number uint32
-	Name   string
-}
-
-// Program is an interface that every RPC program should implement
-type Program interface {
-	Name() string
-	Number() uint32
-	Version() uint32
-	Procedures() []Procedure
-}
 
 // RPC program implementations can use this type for convenience
 type genericProgram struct {
 	name        string
 	progNum     uint32
 	progVersion uint32
-	procedures  []Procedure
+	procedures  []program.Procedure
 }
 
-func registerProgram(server *rpc.Server, program Program, port int) error {
+func registerProgram(server *rpc.Server, program program.Program, port int) error {
 	logger := log.WithFields(log.Fields{
 		"program": program.Name(),
 		"prognum": program.Number(),

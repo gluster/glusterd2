@@ -1,6 +1,12 @@
-package sunrpc
+package dumpplugin
+
+import (
+	"github.com/gluster/glusterd2/servers/sunrpc/program"
+	"github.com/gluster/glusterd2/servers/sunrpc/common"
+)
 
 const (
+	dumpProgName    = "GF-DUMP"
 	dumpProgNum     = 123451501
 	dumpProgVersion = 1
 )
@@ -12,39 +18,30 @@ const (
 )
 
 // GfDump is a type for GlusterFS Dump RPC program
-type GfDump genericProgram
-
-func newGfDump() *GfDump {
-	// rpc/rpc-lib/src/xdr-common.h
-	return &GfDump{
-		name:        "GF-DUMP",
-		progNum:     dumpProgNum,
-		progVersion: dumpProgVersion,
-		procedures: []Procedure{
-			Procedure{gfDumpDump, "Dump"}, // GF_DUMP_DUMP
-			Procedure{gfDumpPing, "Ping"}, // GF_DUMP_PING
-		},
-	}
-}
+// rpc/rpc-lib/src/xdr-common.h
+type GfDump struct{}
 
 // Name returns the name of the RPC program
 func (p *GfDump) Name() string {
-	return p.name
+	return dumpProgName
 }
 
 // Number returns the RPC Program number
 func (p *GfDump) Number() uint32 {
-	return p.progNum
+	return dumpProgNum
 }
 
 // Version returns the RPC program version number
 func (p *GfDump) Version() uint32 {
-	return p.progVersion
+	return dumpProgVersion
 }
 
 // Procedures returns a list of procedures provided by the RPC program
-func (p *GfDump) Procedures() []Procedure {
-	return p.procedures
+func (p *GfDump) Procedures() []program.Procedure {
+	return []program.Procedure{
+		program.Procedure{gfDumpDump, "Dump"}, // GF_DUMP_DUMP
+		program.Procedure{gfDumpPing, "Ping"}, // GF_DUMP_PING
+	}
 }
 
 // GfDumpReq is request sent by the client
@@ -75,7 +72,7 @@ func (p *GfDump) Dump(args *GfDumpReq, reply *GfDumpRsp) error {
 	var list *GfProcDetail
 	var trav *GfProcDetail
 
-	for _, p := range programsList {
+	for _, p := range program.ProgramsList {
 		tmp := &GfProcDetail{
 			ProgName: p.Name(),
 			ProgNum:  uint64(p.Number()),
@@ -95,7 +92,7 @@ func (p *GfDump) Dump(args *GfDumpReq, reply *GfDumpRsp) error {
 }
 
 // Ping is for availability check
-func (p *GfDump) Ping(_ *struct{}, reply *GfCommonRsp) error {
+func (p *GfDump) Ping(_ *struct{}, reply *common.GfCommonRsp) error {
 
 	return nil
 }

@@ -1,5 +1,6 @@
 GOPATH := $(shell go env GOPATH)
 GOBIN := '$(GOPATH)/bin'
+PLUGINSDIR = "plugins"
 
 .PHONY: all build check check-go check-reqs install vendor-update verify glusterd2 release check-protoc
 
@@ -22,6 +23,7 @@ check-reqs:
 	@echo
 
 glusterd2:
+	@./scripts/detect-plugins.sh > $(PLUGINSDIR)/plugins.go
 	@./scripts/build.sh
 	@echo
 

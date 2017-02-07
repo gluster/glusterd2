@@ -1,4 +1,4 @@
-package sunrpc
+package serialize
 
 import (
 	"bytes"

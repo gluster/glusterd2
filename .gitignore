@@ -11,3 +11,7 @@ _projects/
 # Ignore build and release directories
 build/
 releases/
+# Generated file
+plugins/plugins.go
+*.etcd
+uuid

@@ -1,5 +1,9 @@
 package sunrpc
 
+import (
+	"github.com/gluster/glusterd2/servers/sunrpc/program"
+)
+
 const (
 	portmapProgNum     = 34123456
 	portmapProgVersion = 1
@@ -16,8 +20,8 @@ func newGfPortmap() *GfPortmap {
 		name:        "Gluster Portmap",
 		progNum:     portmapProgNum,
 		progVersion: portmapProgVersion,
-		procedures: []Procedure{
-			Procedure{gfPmapPortByBrick, "PortByBrick"}, // GF_PMAP_PORTBYBRICK
+		procedures: []program.Procedure{
+			program.Procedure{gfPmapPortByBrick, "PortByBrick"}, // GF_PMAP_PORTBYBRICK
 		},
 	}
 }
@@ -38,7 +42,7 @@ func (p *GfPortmap) Version() uint32 {
 }
 
 // Procedures returns a list of procedures provided by the RPC program
-func (p *GfPortmap) Procedures() []Procedure {
+func (p *GfPortmap) Procedures() []program.Procedure {
 	return p.procedures
 }
 
