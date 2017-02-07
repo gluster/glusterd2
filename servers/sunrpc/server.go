@@ -7,9 +7,10 @@ import (
 	"strconv"
 	"sync"
 
-	"github.com/prashanthpai/sunrpc"
+	"github.com/gluster/glusterd2/pmap"
 
 	log "github.com/Sirupsen/logrus"
+	"github.com/prashanthpai/sunrpc"
 	"github.com/soheilhy/cmux"
 )
 
@@ -41,7 +42,7 @@ func New(l net.Listener) *SunRPC {
 	programsList = []Program{
 		newGfHandshake(),
 		newGfDump(),
-		newGfPortmap(),
+		pmap.NewGfPortmap(),
 	}
 	port := getPortFromListener(srv.listener)
 
