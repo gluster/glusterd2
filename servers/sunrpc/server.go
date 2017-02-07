@@ -4,9 +4,11 @@ import (
 	"net"
 	"net/rpc"
 	"strconv"
+	"reflect"
 
 	"github.com/prashanthpai/sunrpc"
-
+	"github.com/gluster/glusterd2/servers/sunrpc/program"
+	"github.com/gluster/glusterd2/plugins"
 	log "github.com/Sirupsen/logrus"
 	"github.com/soheilhy/cmux"
 )
@@ -18,8 +20,6 @@ type SunRPC struct {
 	stop     chan bool
 }
 
-var programsList []Program
-
 // New returns a SunRPC server configured to listen on the given listener
 func New(l net.Listener) *SunRPC {
 	srv := &SunRPC{
@@ -28,14 +28,21 @@ func New(l net.Listener) *SunRPC {
 		stop:     make(chan bool, 1),
 	}
 
-	programsList = []Program{
+	program.ProgramsList = []program.Program{
 		newGfHandshake(),
-		newGfDump(),
 		newGfPortmap(),
 	}
+	for _, p := range plugins.PluginsList{
+		rpcProcs := p.SunRpcProcedures()
+		if rpcProcs != nil{
+			program.ProgramsList = append(program.ProgramsList, rpcProcs)
+			log.WithField("plugin", reflect.TypeOf(p)).Debug("loaded sunrpc procedures from plugin")
+		}
+	}
+
 	port := getPortFromListener(srv.listener)
 
-	for _, prog := range programsList {
+	for _, prog := range program.ProgramsList {
 		err := registerProgram(srv.server, prog, port)
 		if err != nil {
 			log.WithError(err).WithField("program", prog.Name()).Error("could not register SunRPC program")

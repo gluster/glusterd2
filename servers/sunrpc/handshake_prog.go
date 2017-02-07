@@ -6,7 +6,8 @@ import (
 	"path"
 
 	"github.com/gluster/glusterd2/utils"
-
+	"github.com/gluster/glusterd2/servers/sunrpc/program"
+	"github.com/gluster/glusterd2/servers/sunrpc/serialize"
 	log "github.com/Sirupsen/logrus"
 )
 
@@ -26,8 +27,8 @@ func newGfHandshake() *GfHandshake {
 		name:        "Gluster Handshake",
 		progNum:     hndskProgNum,
 		progVersion: hndskProgVersion,
-		procedures: []Procedure{
-			Procedure{gfHndskGetSpec, "ServerGetspec"}, // GF_HNDSK_GETSPEC
+		procedures: []program.Procedure{
+			program.Procedure{gfHndskGetSpec, "ServerGetspec"}, // GF_HNDSK_GETSPEC
 		},
 	}
 }
@@ -48,7 +49,7 @@ func (p *GfHandshake) Version() uint32 {
 }
 
 // Procedures returns a list of procedures provided by the RPC program
-func (p *GfHandshake) Procedures() []Procedure {
+func (p *GfHandshake) Procedures() []program.Procedure {
 	return p.procedures
 }
 
@@ -76,7 +77,7 @@ func (p *GfHandshake) ServerGetspec(args *GfGetspecReq, reply *GfGetspecRsp) err
 	var fileContents []byte
 	var volFilePath string
 
-	_, err = DictUnserialize(args.Xdata)
+	_, err = serialize.DictUnserialize(args.Xdata)
 	if err != nil {
 		log.WithError(err).Error("ServerGetspec(): DictUnserialize() failed")
 		goto Out
