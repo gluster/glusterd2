@@ -8,13 +8,16 @@ import (
 	"github.com/gluster/glusterd2/utils"
 
 	log "github.com/Sirupsen/logrus"
+	"github.com/prashanthpai/sunrpc"
 )
 
 const (
-	hndskProgNum     = 14398633
-	hndskProgVersion = 2
+	hndskProgNum     = 14398633 // GLUSTER_HNDSK_PROGRAM
+	hndskProgVersion = 2        // GLUSTER_HNDSK_VERSION
+)
 
-	gfHndskGetSpec = 2
+const (
+	gfHndskGetSpec = 2 // GF_HNDSK_GETSPEC
 )
 
 // GfHandshake is a type for GlusterFS Handshake RPC program
@@ -26,8 +29,10 @@ func newGfHandshake() *GfHandshake {
 		name:        "Gluster Handshake",
 		progNum:     hndskProgNum,
 		progVersion: hndskProgVersion,
-		procedures: []Procedure{
-			Procedure{gfHndskGetSpec, "ServerGetspec"}, // GF_HNDSK_GETSPEC
+		procedures: []sunrpc.Procedure{
+			sunrpc.Procedure{
+				sunrpc.ProcedureID{hndskProgNum, hndskProgVersion, gfHndskGetSpec},
+				"ServerGetspec"},
 		},
 	}
 }
@@ -48,7 +53,7 @@ func (p *GfHandshake) Version() uint32 {
 }
 
 // Procedures returns a list of procedures provided by the RPC program
-func (p *GfHandshake) Procedures() []Procedure {
+func (p *GfHandshake) Procedures() []sunrpc.Procedure {
 	return p.procedures
 }
 

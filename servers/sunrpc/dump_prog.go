@@ -1,14 +1,18 @@
 package sunrpc
 
-const (
-	dumpProgNum     = 123451501
-	dumpProgVersion = 1
+import (
+	"github.com/prashanthpai/sunrpc"
 )
 
 const (
-	_ = iota
-	gfDumpDump
-	gfDumpPing
+	dumpProgNum     = 123451501 // GLUSTER_DUMP_PROGRAM
+	dumpProgVersion = 1         // GLUSTER_DUMP_VERSION
+)
+
+const (
+	_          = iota
+	gfDumpDump // GF_DUMP_DUMP
+	gfDumpPing // GF_DUMP_PING
 )
 
 // GfDump is a type for GlusterFS Dump RPC program
@@ -20,9 +24,13 @@ func newGfDump() *GfDump {
 		name:        "GF-DUMP",
 		progNum:     dumpProgNum,
 		progVersion: dumpProgVersion,
-		procedures: []Procedure{
-			Procedure{gfDumpDump, "Dump"}, // GF_DUMP_DUMP
-			Procedure{gfDumpPing, "Ping"}, // GF_DUMP_PING
+		procedures: []sunrpc.Procedure{
+			sunrpc.Procedure{
+				sunrpc.ProcedureID{dumpProgNum, dumpProgVersion, gfDumpDump},
+				"Dump"},
+			sunrpc.Procedure{
+				sunrpc.ProcedureID{dumpProgNum, dumpProgVersion, gfDumpPing},
+				"Ping"},
 		},
 	}
 }
@@ -43,7 +51,7 @@ func (p *GfDump) Version() uint32 {
 }
 
 // Procedures returns a list of procedures provided by the RPC program
-func (p *GfDump) Procedures() []Procedure {
+func (p *GfDump) Procedures() []sunrpc.Procedure {
 	return p.procedures
 }
 

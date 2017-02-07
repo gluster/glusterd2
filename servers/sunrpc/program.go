@@ -3,31 +3,26 @@ package sunrpc
 import (
 	"net/rpc"
 	"reflect"
+	"strings"
 
 	log "github.com/Sirupsen/logrus"
 	"github.com/prashanthpai/sunrpc"
 )
-
-// Procedure represents a procedure number, procedure name pair
-type Procedure struct {
-	Number uint32
-	Name   string
-}
 
 // Program is an interface that every RPC program should implement
 type Program interface {
 	Name() string
 	Number() uint32
 	Version() uint32
-	Procedures() []Procedure
+	Procedures() []sunrpc.Procedure
 }
 
-// RPC program implementations can use this type for convenience
+// RPC program implementations inside this package can use this type for convenience
 type genericProgram struct {
 	name        string
 	progNum     uint32
 	progVersion uint32
-	procedures  []Procedure
+	procedures  []sunrpc.Procedure
 }
 
 func registerProgram(server *rpc.Server, program Program, port int) error {
@@ -52,17 +47,19 @@ func registerProgram(server *rpc.Server, program Program, port int) error {
 	// Create procedure number to procedure name mappings for sunrpc codec
 	typeName := reflect.Indirect(reflect.ValueOf(program)).Type().Name()
 	for _, procedure := range program.Procedures() {
-		logger.WithFields(log.Fields{
-			"proc":    procedure.Name,
-			"procnum": procedure.Number,
+		log.WithFields(log.Fields{
+			"procId":   procedure.ID,
+			"procName": procedure.Name,
 		}).Debug("registering sunrpc procedure")
 
+		if !strings.HasPrefix(procedure.Name, typeName+".") {
+			procedure.Name = typeName + "." + procedure.Name
+		}
 		err = sunrpc.RegisterProcedure(
-			sunrpc.ProcedureID{
-				ProgramNumber:   program.Number(),
-				ProgramVersion:  program.Version(),
-				ProcedureNumber: procedure.Number,
-			}, typeName+"."+procedure.Name)
+			sunrpc.Procedure{
+				ID:   procedure.ID,
+				Name: procedure.Name,
+			})
 		if err != nil {
 			return err
 		}

@@ -1,10 +1,16 @@
 package sunrpc
 
-const (
-	portmapProgNum     = 34123456
-	portmapProgVersion = 1
+import (
+	"github.com/prashanthpai/sunrpc"
+)
 
-	gfPmapPortByBrick = 1
+const (
+	portmapProgNum     = 34123456 // GLUSTER_PMAP_PROGRAM
+	portmapProgVersion = 1        // GLUSTER_PMAP_VERSION
+)
+
+const (
+	gfPmapPortByBrick = 1 //GF_PMAP_PORTBYBRICK
 )
 
 // GfPortmap is a type for GlusterFS Portmap RPC program
@@ -16,8 +22,10 @@ func newGfPortmap() *GfPortmap {
 		name:        "Gluster Portmap",
 		progNum:     portmapProgNum,
 		progVersion: portmapProgVersion,
-		procedures: []Procedure{
-			Procedure{gfPmapPortByBrick, "PortByBrick"}, // GF_PMAP_PORTBYBRICK
+		procedures: []sunrpc.Procedure{
+			sunrpc.Procedure{
+				sunrpc.ProcedureID{portmapProgNum, portmapProgVersion, gfPmapPortByBrick},
+				"PortByBrick"},
 		},
 	}
 }
@@ -38,7 +46,7 @@ func (p *GfPortmap) Version() uint32 {
 }
 
 // Procedures returns a list of procedures provided by the RPC program
-func (p *GfPortmap) Procedures() []Procedure {
+func (p *GfPortmap) Procedures() []sunrpc.Procedure {
 	return p.procedures
 }
 
