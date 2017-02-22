@@ -40,7 +40,7 @@ func createVolinfo(msg *volume.VolCreateRequest) (*volume.Volinfo, error) {
 	if err != nil {
 		return nil, err
 	}
-	vol.Bricks, err = volume.NewBrickEntriesFunc(msg.Bricks)
+	vol.Bricks, err = volume.NewBrickEntriesFunc(msg.Bricks, vol.Name)
 	if err != nil {
 		return nil, err
 	}

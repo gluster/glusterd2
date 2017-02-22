@@ -11,7 +11,6 @@ import (
 
 	"github.com/gluster/glusterd2/gdctx"
 	"github.com/gluster/glusterd2/utils"
-	"github.com/pborman/uuid"
 
 	config "github.com/spf13/viper"
 )
@@ -20,28 +19,9 @@ const (
 	glusterfsdBin = "glusterfsd"
 )
 
-// Brickinfo represents the information of a brick
-// TODO: Move this into Brick struct ?
-type Brickinfo struct {
-	Hostname string
-	Path     string
-	ID       uuid.UUID
-}
-
-// Brickstatus represents real-time status of the brick
-// TODO: Consolidate fields of Brickinfo, Brickstatus and Brick structs
-type Brickstatus struct {
-	Hostname string
-	Path     string
-	ID       uuid.UUID
-	Online   bool
-	Pid      int
-	// TODO: Add other fields like filesystem type, statvfs output etc.
-}
-
-// Brick type represents information about the brick daemon
-type Brick struct {
-	// Externally consumable using methods of Daemon interface
+// Glusterfsd type represents information about the brick daemon
+type Glusterfsd struct {
+	// Externally consumable using methods of Glusterfsd interface
 	binarypath     string
 	args           string
 	socketfilepath string
@@ -49,48 +29,54 @@ type Brick struct {
 
 	// For internal use
 	brickinfo Brickinfo
-	volName   string // Introduce this in Brickinfo itself ?
 	port      int
 }
 
 // Name returns human-friendly name of the brick process. This is used for logging.
-func (b *Brick) Name() string {
+func (b *Glusterfsd) Name() string {
 	return "glusterfsd"
 }
 
 // Path returns absolute path to the binary of brick process
-func (b *Brick) Path() string {
+func (b *Glusterfsd) Path() string {
 	return b.binarypath
 }
 
+// Port returns the port used by brick process during spawn.
+// TODO: This is workaround only until brick to glusterd communication comes along
+func (b *Glusterfsd) Port() int {
+	return b.port
+}
+
 // Args returns arguments to be passed to brick process during spawn.
-func (b *Brick) Args() string {
+func (b *Glusterfsd) Args() string {
 
 	brickPathWithoutSlashes := strings.Trim(strings.Replace(b.brickinfo.Path, "/", "-", -1), "-")
 	logFile := path.Join(config.GetString("logdir"), "glusterfs", "bricks", fmt.Sprintf("%s.log", brickPathWithoutSlashes))
 	//TODO: For now, getting next available port. Use portmap ?
-	brickPort := strconv.Itoa(GetNextAvailableFreePort())
+	b.port = GetNextAvailableFreePort()
+	brickPort := strconv.Itoa(b.port)
 	//TODO: Passing volfile directly for now.
 	//Change this once we have volfile fetch support in GD2.
-	volfile := utils.GetBrickVolFilePath(b.volName, b.brickinfo.Hostname, b.brickinfo.Path)
+	volfile := utils.GetBrickVolFilePath(b.brickinfo.VolumeName, b.brickinfo.NodeID.String(), b.brickinfo.Path)
 
 	var buffer bytes.Buffer
 	buffer.WriteString(fmt.Sprintf(" --volfile %s", volfile))
-	buffer.WriteString(fmt.Sprintf(" --volfile-id %s", b.volName))
+	buffer.WriteString(fmt.Sprintf(" --volfile-id %s", b.brickinfo.VolumeName))
 	buffer.WriteString(fmt.Sprintf(" -p %s", b.PidFile()))
 	buffer.WriteString(fmt.Sprintf(" -S %s", b.SocketFile()))
 	buffer.WriteString(fmt.Sprintf(" --brick-name %s", b.brickinfo.Path))
 	buffer.WriteString(fmt.Sprintf(" --brick-port %s", brickPort))
 	buffer.WriteString(fmt.Sprintf(" -l %s", logFile))
 	buffer.WriteString(fmt.Sprintf(" --xlator-option *-posix.glusterd-uuid=%s", gdctx.MyUUID))
-	buffer.WriteString(fmt.Sprintf(" --xlator-option %s-server.transport.socket.listen-port=%s", b.volName, brickPort))
+	buffer.WriteString(fmt.Sprintf(" --xlator-option %s-server.transport.socket.listen-port=%s", b.brickinfo.VolumeName, brickPort))
 
 	b.args = buffer.String()
 	return b.args
 }
 
 // SocketFile returns path to the brick socket file used for IPC.
-func (b *Brick) SocketFile() string {
+func (b *Glusterfsd) SocketFile() string {
 
 	if b.socketfilepath != "" {
 		return b.socketfilepath
@@ -102,7 +88,7 @@ func (b *Brick) SocketFile() string {
 	// Example: /var/lib/glusterd/vols/<vol-name>/run/<host-name>-<brick-path>
 	brickPathWithoutSlashes := strings.Trim(strings.Replace(b.brickinfo.Path, "/", "-", -1), "-")
 	fakeSockFileName := fmt.Sprintf("%s-%s", b.brickinfo.Hostname, brickPathWithoutSlashes)
-	volumedir := utils.GetVolumeDir(b.volName)
+	volumedir := utils.GetVolumeDir(b.brickinfo.VolumeName)
 	fakeSockFilePath := path.Join(volumedir, "run", fakeSockFileName)
 
 	// Then md5sum of the above path shall be the name of socket file.
@@ -115,7 +101,7 @@ func (b *Brick) SocketFile() string {
 }
 
 // PidFile returns path to the pid file of the brick process
-func (b *Brick) PidFile() string {
+func (b *Glusterfsd) PidFile() string {
 
 	if b.pidfilepath != "" {
 		return b.pidfilepath
@@ -129,12 +115,12 @@ func (b *Brick) PidFile() string {
 	return b.pidfilepath
 }
 
-// NewDaemon returns a new instance of Brick type which implements the Daemon interface
-func NewDaemon(volName string, binfo Brickinfo) (*Brick, error) {
+// NewGlusterfsd returns a new instance of Glusterfsd type which implements the Daemon interface
+func NewGlusterfsd(binfo Brickinfo) (*Glusterfsd, error) {
 	path, e := exec.LookPath(glusterfsdBin)
 	if e != nil {
 		return nil, e
 	}
-	brickObject := &Brick{binarypath: path, brickinfo: binfo, volName: volName}
+	brickObject := &Glusterfsd{binarypath: path, brickinfo: binfo}
 	return brickObject, nil
 }

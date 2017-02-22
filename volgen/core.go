@@ -141,11 +141,11 @@ func GenerateVolfile(vinfo *volume.Volinfo, vauth *volume.VolAuth) error {
 
 		// Generate brick volfiles for only those bricks that belong
 		// to this node/instance.
-		if !uuid.Equal(b.ID, gdctx.MyUUID) {
+		if !uuid.Equal(b.NodeID, gdctx.MyUUID) {
 			continue
 		}
 
-		bpath := utils.GetBrickVolFilePath(vinfo.Name, b.Hostname, b.Path)
+		bpath := utils.GetBrickVolFilePath(vinfo.Name, b.NodeID.String(), b.Path)
 
 		f, err := os.Create(bpath)
 		if err != nil {
@@ -191,11 +191,11 @@ func DeleteVolfile(vol *volume.Volinfo) error {
 
 	for _, b := range vol.Bricks {
 
-		if !uuid.Equal(b.ID, gdctx.MyUUID) {
+		if !uuid.Equal(b.NodeID, gdctx.MyUUID) {
 			continue
 		}
 
-		path := utils.GetBrickVolFilePath(vol.Name, b.Hostname, b.Path)
+		path := utils.GetBrickVolFilePath(vol.Name, b.NodeID.String(), b.Path)
 		err := os.Remove(path)
 		if err != nil {
 			// TODO: log using txn logger context instead

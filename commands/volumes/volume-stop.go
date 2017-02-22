@@ -37,13 +37,13 @@ func stopBricks(c transaction.TxnCtx) error {
 	}
 
 	for _, b := range vol.Bricks {
-		if uuid.Equal(b.ID, gdctx.MyUUID) {
+		if uuid.Equal(b.NodeID, gdctx.MyUUID) {
 			c.Logger().WithFields(log.Fields{
 				"volume": volname,
 				"brick":  b.Hostname + ":" + b.Path,
 			}).Info("Stopping brick")
 
-			brickDaemon, err := brick.NewDaemon(vol.Name, b)
+			brickDaemon, err := brick.NewGlusterfsd(b)
 			if err != nil {
 				return err
 			}
