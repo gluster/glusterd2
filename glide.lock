@@ -1,5 +1,5 @@
 hash: 38c3f58b273d37f80ef907a5eff25b8ad61db07e3ef6db77b3f0d814286015e2
-updated: 2017-02-07T06:09:06.754520623+05:30
+updated: 2017-02-22T06:49:08.754520623+05:30
 imports:
 - name: bitbucket.org/ww/goautoneg
   version: 75cd24fc2f2c2a2088577d12123ddee5f54e0675
@@ -149,7 +149,7 @@ imports:
   - store
   - store/etcd
 - name: github.com/prashanthpai/sunrpc
-  version: 628e7a95e2aa0d3b8c8723cdd2f3297518b9d341
+  version: 4c574af9889b29d781c148e89252d314d305f638
 - name: github.com/prometheus/client_golang
   version: e51041b3fa41cece0dca035740ba6411905be473
   subpackages:
