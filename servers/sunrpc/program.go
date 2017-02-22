@@ -9,14 +9,6 @@ import (
 	"github.com/prashanthpai/sunrpc"
 )
 
-// Program is an interface that every RPC program should implement
-type Program interface {
-	Name() string
-	Number() uint32
-	Version() uint32
-	Procedures() []sunrpc.Procedure
-}
-
 // RPC program implementations inside this package can use this type for convenience
 type genericProgram struct {
 	name        string
@@ -25,7 +17,7 @@ type genericProgram struct {
 	procedures  []sunrpc.Procedure
 }
 
-func registerProgram(server *rpc.Server, program Program, port int) error {
+func registerProgram(server *rpc.Server, program sunrpc.Program, port int) error {
 	logger := log.WithFields(log.Fields{
 		"program": program.Name(),
 		"prognum": program.Number(),

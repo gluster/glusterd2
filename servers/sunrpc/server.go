@@ -21,7 +21,7 @@ type SunRPC struct {
 	stop     chan bool
 }
 
-var programsList []Program
+var programsList []sunrpc.Program
 
 var clientsList = struct {
 	sync.RWMutex
@@ -39,7 +39,7 @@ func New(l net.Listener) *SunRPC {
 		stop:     make(chan bool, 1),
 	}
 
-	programsList = []Program{
+	programsList = []sunrpc.Program{
 		newGfHandshake(),
 		newGfDump(),
 		pmap.NewGfPortmap(),
