@@ -80,7 +80,7 @@ func TestNewBrickEntry(t *testing.T) {
 	brickPaths := []string{"/tmp/b1", "/tmp/b2"}
 	host, _ := os.Hostname()
 
-	b, err := NewBrickEntriesFunc(bricks)
+	b, err := NewBrickEntriesFunc(bricks, "volume")
 	tests.Assert(t, err == nil)
 	tests.Assert(t, b != nil)
 	for _, brick := range b {
@@ -90,7 +90,7 @@ func TestNewBrickEntry(t *testing.T) {
 
 	// Some negative tests
 	mockBricks := []string{"/tmp/b1", "/tmp/b2"} //with out IPs
-	_, err = NewBrickEntriesFunc(mockBricks)
+	_, err = NewBrickEntriesFunc(mockBricks, "volume")
 	tests.Assert(t, err != nil)
 
 	//Now mock filepath.Abs()
@@ -98,7 +98,7 @@ func TestNewBrickEntry(t *testing.T) {
 		return "", errors.ErrBrickPathConvertFail
 	}).Restore()
 
-	_, err = NewBrickEntriesFunc(bricks)
+	_, err = NewBrickEntriesFunc(bricks, "volume")
 	tests.Assert(t, err == errors.ErrBrickPathConvertFail)
 
 }
@@ -127,7 +127,7 @@ func TestNewVolumeEntryFromRequest(t *testing.T) {
 	tests.Assert(t, v.Transport == "tcp")
 	tests.Assert(t, v.ReplicaCount == 1)
 	tests.Assert(t, len(v.ID) != 0)
-	v.Bricks, err = NewBrickEntriesFunc(req.Bricks)
+	v.Bricks, err = NewBrickEntriesFunc(req.Bricks, "vol1")
 	tests.Assert(t, err == nil)
 	tests.Assert(t, v.Bricks != nil)
 	tests.Assert(t, len(v.Bricks) != 0)
@@ -211,7 +211,7 @@ func TestRemoveBrickPaths(t *testing.T) {
 	req.Name = "vol1"
 	req.Bricks = getSampleBricks("/tmp/b1", "/tmp/b2")
 	v, e := NewVolumeEntry(req)
-	v.Bricks, e = NewBrickEntriesFunc(req.Bricks)
+	v.Bricks, e = NewBrickEntriesFunc(req.Bricks, "vol1")
 	e = RemoveBrickPaths(v.Bricks)
 	tests.Assert(t, e == nil)
 }

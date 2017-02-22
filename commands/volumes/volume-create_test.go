@@ -64,7 +64,7 @@ func TestCreateVolinfo(t *testing.T) {
 	tests.Assert(t, e == nil && vol != nil)
 
 	// Mock failure in NewBrickEntries(), createVolume() should fail
-	defer heketitests.Patch(&volume.NewBrickEntriesFunc, func(bricks []string) ([]brick.Brickinfo, error) {
+	defer heketitests.Patch(&volume.NewBrickEntriesFunc, func(bricks []string, volName string) ([]brick.Brickinfo, error) {
 		return nil, errBad
 	}).Restore()
 	vol, e = createVolinfo(msg)
