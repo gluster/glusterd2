@@ -58,7 +58,7 @@ func (b *Glusterfsd) Args() string {
 	brickPort := strconv.Itoa(b.port)
 	//TODO: Passing volfile directly for now.
 	//Change this once we have volfile fetch support in GD2.
-	volfile := utils.GetBrickVolFilePath(b.brickinfo.VolumeName, b.brickinfo.Hostname, b.brickinfo.Path)
+	volfile := utils.GetBrickVolFilePath(b.brickinfo.VolumeName, b.brickinfo.NodeID.String(), b.brickinfo.Path)
 
 	var buffer bytes.Buffer
 	buffer.WriteString(fmt.Sprintf(" --volfile %s", volfile))

@@ -14,9 +14,9 @@ func GetVolumeDir(volumeName string) string {
 }
 
 // GetBrickVolFilePath returns path to brick volfile
-func GetBrickVolFilePath(volumeName string, brickHostName string, brickPath string) string {
+func GetBrickVolFilePath(volumeName string, brickNodeID string, brickPath string) string {
 	volumeDir := GetVolumeDir(volumeName)
-	brickPathWithoutSlashes := strings.Replace(brickPath, "/", "-", -1)
-	volFileName := fmt.Sprintf("%s.%s.%s.vol", volumeName, brickHostName, brickPathWithoutSlashes)
+	brickPathWithoutSlashes := strings.Trim(strings.Replace(brickPath, "/", "-", -1), "-")
+	volFileName := fmt.Sprintf("%s.%s.%s.vol", volumeName, brickNodeID, brickPathWithoutSlashes)
 	return path.Join(volumeDir, volFileName)
 }
