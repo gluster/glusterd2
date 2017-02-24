@@ -1,5 +1,5 @@
-hash: 38c3f58b273d37f80ef907a5eff25b8ad61db07e3ef6db77b3f0d814286015e2
-updated: 2017-02-22T06:49:08.754520623+05:30
+hash: 453ce6128eba352d26f7ede37ce38a8d9217e17e8b98b92f12571a080c0bccc1
+updated: 2017-02-24T11:05:30.864251644+05:30
 imports:
 - name: bitbucket.org/ww/goautoneg
   version: 75cd24fc2f2c2a2088577d12123ddee5f54e0675
@@ -165,6 +165,8 @@ imports:
   - model
 - name: github.com/prometheus/procfs
   version: 454a56f35412459b5e684fd5ec0f9211b94f002a
+- name: github.com/purpleidea/mgmt
+  version: e5198118934d503a7c4825af55a993aa3a0d7127
 - name: github.com/rasky/go-xdr
   version: 1a41d1a06c93bf8a0e0385be3847a277bb793187
   subpackages:
