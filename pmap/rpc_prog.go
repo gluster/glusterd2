@@ -12,7 +12,7 @@ const (
 const (
 	gfPmapNull        = iota
 	gfPmapPortByBrick // GF_PMAP_PORTBYBRICK
-	gfPmapBrickByPort // GF_PMAP_BRICKBYPORT
+	gfPmapBrickByPort // GF_PMAP_BRICKBYPORT, Not Implemented
 	gfPmapSignUp      // Don't use
 	gfPmapSignIn      // GF_PMAP_SIGNIN
 	gfPmapSignOut     // GF_PMAP_SIGNOUT
@@ -37,9 +37,6 @@ func NewGfPortmap() *GfPortmap {
 			sunrpc.Procedure{
 				sunrpc.ProcedureID{ProgramNumber: portmapProgNum, ProgramVersion: portmapProgVersion,
 					ProcedureNumber: gfPmapPortByBrick}, "PortByBrick"},
-			sunrpc.Procedure{
-				sunrpc.ProcedureID{ProgramNumber: portmapProgNum, ProgramVersion: portmapProgVersion,
-					ProcedureNumber: gfPmapBrickByPort}, "BrickByPort"},
 			sunrpc.Procedure{
 				sunrpc.ProcedureID{ProgramNumber: portmapProgNum, ProgramVersion: portmapProgVersion,
 					ProcedureNumber: gfPmapSignIn}, "SignIn"},
@@ -86,40 +83,14 @@ type PortByBrickRsp struct {
 
 // PortByBrick will return port number for the brick specified
 func (p *GfPortmap) PortByBrick(args *PortByBrickReq, reply *PortByBrickRsp) error {
-	// TODO: Do the real thing. Glusterd2 as of now, doesn't store brick
-	// port information in brickinfo. So can't return the ports. The
-	// following code just demonstrates that when glusterd2 does have
-	// that information, this will just work.
 
-	switch {
-	case args.Brick == "/export/brick1/data":
-		reply.Port = 49152
-	case args.Brick == "/export/brick2/data":
-		reply.Port = 49153
-	case args.Brick == "/export/brick3/data":
-		reply.Port = 49154
-	case args.Brick == "/export/brick4/data":
-		reply.Port = 49155
+	port := registrySearch(args.Brick, GfPmapPortBrickserver)
+	if port <= 0 {
+		reply.OpRet = -1
+	} else {
+		reply.Port = port
 	}
 
-	return nil
-}
-
-// BrickByPortReq is the request containing brick's port
-type BrickByPortReq struct {
-	Port int
-}
-
-// BrickByPortRsp is the response to a BrickByPortReq request
-type BrickByPortRsp struct {
-	OpRet   int
-	OpErrno int
-	Status  int
-	Brick   string
-}
-
-// BrickByPort will return the brick given the brick port
-func (p *GfPortmap) BrickByPort(args *BrickByPortReq, reply *BrickByPortRsp) error {
 	return nil
 }
 
@@ -137,6 +108,11 @@ type SignInRsp struct {
 
 // SignIn stores the brick and port mapping in registry
 func (p *GfPortmap) SignIn(args *SignInReq, reply *SignInRsp) error {
+
+	// FIXME: Xprt (net.Conn instance) isn't available here yet.
+	// Passing nil for now.
+	registryBind(args.Port, args.Brick, GfPmapPortBrickserver, nil)
+
 	return nil
 }
 
@@ -155,5 +131,10 @@ type SignOutRsp struct {
 
 // SignOut removes the brick and port mapping in registry
 func (p *GfPortmap) SignOut(args *SignOutReq, reply *SignOutRsp) error {
+
+	// FIXME: Xprt (net.Conn instance) isn't available here yet.
+	// Passing nil for now.
+	registryRemove(args.Port, args.Brick, GfPmapPortBrickserver, nil)
+
 	return nil
 }

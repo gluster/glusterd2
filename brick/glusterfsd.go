@@ -4,12 +4,14 @@ import (
 	"bytes"
 	"crypto/md5"
 	"fmt"
+	"net"
 	"os/exec"
 	"path"
 	"strconv"
 	"strings"
 
 	"github.com/gluster/glusterd2/gdctx"
+	"github.com/gluster/glusterd2/pmap"
 	"github.com/gluster/glusterd2/utils"
 
 	config "github.com/spf13/viper"
@@ -29,7 +31,6 @@ type Glusterfsd struct {
 
 	// For internal use
 	brickinfo Brickinfo
-	port      int
 }
 
 // Name returns human-friendly name of the brick process. This is used for logging.
@@ -42,27 +43,26 @@ func (b *Glusterfsd) Path() string {
 	return b.binarypath
 }
 
-// Port returns the port used by brick process during spawn.
-// TODO: This is workaround only until brick to glusterd communication comes along
-func (b *Glusterfsd) Port() int {
-	return b.port
-}
-
 // Args returns arguments to be passed to brick process during spawn.
 func (b *Glusterfsd) Args() string {
 
 	brickPathWithoutSlashes := strings.Trim(strings.Replace(b.brickinfo.Path, "/", "-", -1), "-")
+
 	logFile := path.Join(config.GetString("logdir"), "glusterfs", "bricks", fmt.Sprintf("%s.log", brickPathWithoutSlashes))
-	//TODO: For now, getting next available port. Use portmap ?
-	b.port = GetNextAvailableFreePort()
-	brickPort := strconv.Itoa(b.port)
-	//TODO: Passing volfile directly for now.
-	//Change this once we have volfile fetch support in GD2.
-	volfile := utils.GetBrickVolFilePath(b.brickinfo.VolumeName, b.brickinfo.NodeID.String(), b.brickinfo.Path)
+
+	brickPort := strconv.Itoa(pmap.AssignPort(0, b.brickinfo.Path))
+
+	volFileID := b.brickinfo.VolumeName + "." + gdctx.MyUUID.String() + "." + brickPathWithoutSlashes
+
+	shost, sport, _ := net.SplitHostPort(config.GetString("clientaddress"))
+	if shost == "" {
+		shost = "127.0.0.1"
+	}
 
 	var buffer bytes.Buffer
-	buffer.WriteString(fmt.Sprintf(" --volfile %s", volfile))
-	buffer.WriteString(fmt.Sprintf(" --volfile-id %s", b.brickinfo.VolumeName))
+	buffer.WriteString(fmt.Sprintf(" --volfile-server %s", shost))
+	buffer.WriteString(fmt.Sprintf(" --volfile-server-port %s", sport))
+	buffer.WriteString(fmt.Sprintf(" --volfile-id %s", volFileID))
 	buffer.WriteString(fmt.Sprintf(" -p %s", b.PidFile()))
 	buffer.WriteString(fmt.Sprintf(" -S %s", b.SocketFile()))
 	buffer.WriteString(fmt.Sprintf(" --brick-name %s", b.brickinfo.Path))

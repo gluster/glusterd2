@@ -90,7 +90,7 @@ func (s *SunRPC) Serve() {
 	go func() {
 		for rwc := range notifyClose {
 			conn := rwc.(net.Conn)
-			log.WithField("address", conn.RemoteAddr().String()).Info("glusterfs client disconnected")
+			log.WithField("address", conn.RemoteAddr().String()).Info("sunrpc client disconnected")
 
 			// Update list of clients
 			clientsList.Lock()
@@ -117,7 +117,7 @@ func (s *SunRPC) Serve() {
 		clientsList.Lock()
 		clientsList.c[conn] = true
 		clientsList.Unlock()
-		log.WithField("address", conn.RemoteAddr().String()).Info("glusterfs client connected")
+		log.WithField("address", conn.RemoteAddr().String()).Info("sunrpc client connected")
 
 		go s.server.ServeCodec(sunrpc.NewServerCodec(conn, notifyClose))
 	}
