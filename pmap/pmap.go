@@ -83,9 +83,6 @@ func registrySearch(brickname string, ptype PortType) int {
 
 	for p := registry.LastAlloc; p >= registry.BasePort; p-- {
 
-		if registry.Ports[p].Type != GfPmapPortFree {
-		}
-
 		if len(registry.Ports[p].Bricknames) == 0 || registry.Ports[p].Type != ptype {
 			continue
 		}
@@ -176,31 +173,7 @@ func deleteFromSlice(list []string, query string) []string {
 	return list
 }
 
-func registryRemove(port int, brickname string, ptype PortType, xprt interface{}) {
-	if port > 0 {
-		if port > gfPortMax {
-			return
-		}
-	}
-
-	if brickname != "" {
-		port = registrySearch(brickname, ptype)
-		if port != 0 {
-			goto REMOVE
-		}
-	}
-
-	if xprt != nil {
-		port = registrySearchByXprt(xprt, ptype)
-		if port != 0 {
-			goto REMOVE
-		}
-	}
-
-	goto OUT
-
-REMOVE:
-
+func doRemove(port int, brickname string, xprt interface{}) {
 	// TODO: This code below needs some more careful attention and actual
 	// testing; especially around presence/absence of Xprt in case of
 	// multiplexed bricks, tierd and snapd - all of which seem to use the
@@ -222,9 +195,29 @@ REMOVE:
 			registry.Ports[port].Xprt = nil
 		}
 	}
+}
 
-OUT:
-	return
+func registryRemove(port int, brickname string, ptype PortType, xprt interface{}) {
+	if port > 0 {
+		if port > gfPortMax {
+			return
+		}
+	}
+
+	if brickname != "" {
+		port = registrySearch(brickname, ptype)
+		if port != 0 {
+			doRemove(port, brickname, xprt)
+			return
+		}
+	}
+
+	if xprt != nil {
+		port = registrySearchByXprt(xprt, ptype)
+		if port != 0 {
+			doRemove(port, brickname, xprt)
+		}
+	}
 }
 
 var registryInit sync.Once
