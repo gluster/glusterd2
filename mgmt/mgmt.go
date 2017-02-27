@@ -3,6 +3,7 @@ package mgmt
 import (
 	"path"
 
+	"github.com/gluster/glusterd2/gdctx"
 	"github.com/gluster/glusterd2/utils"
 
 	log "github.com/Sirupsen/logrus"
@@ -19,6 +20,7 @@ type Mgmt struct {
 func New() *Mgmt {
 	m := &mgmt.Main{}
 	m.Program = "glusterd2"
+	m.Version = gdctx.GlusterdVersion
 
 	prefix := path.Join(config.GetString("localstatedir"), "mgmt")
 	utils.InitDir(prefix)
