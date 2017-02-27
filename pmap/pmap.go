@@ -3,7 +3,6 @@ package pmap
 import (
 	"fmt"
 	"net"
-	"strings"
 	"sync"
 )
 
@@ -48,26 +47,6 @@ func isPortFree(port int) bool {
 	}
 	conn.Close()
 	return true
-}
-
-func registrySearchByPort(port int) string {
-
-	if port > gfPortMax {
-		return ""
-	}
-
-	registry.RLock()
-	defer registry.RUnlock()
-
-	if registry.Ports[port].Type == GfPmapPortBrickserver {
-		// TODO:
-		// This is what glusterd1's implementation returns after brick
-		// multiplexing feature got in. But who's really using the
-		// 'BRICKBYPORT' RPC call (calls this method) anyway ?
-		return strings.Join(registry.Ports[port].Bricknames, " ")
-	}
-
-	return ""
 }
 
 func registrySearchByXprt(xprt interface{}, ptype PortType) int {

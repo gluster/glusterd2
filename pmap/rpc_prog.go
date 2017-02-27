@@ -12,7 +12,7 @@ const (
 const (
 	gfPmapNull        = iota
 	gfPmapPortByBrick // GF_PMAP_PORTBYBRICK
-	gfPmapBrickByPort // GF_PMAP_BRICKBYPORT
+	gfPmapBrickByPort // GF_PMAP_BRICKBYPORT, Not Implemented
 	gfPmapSignUp      // Don't use
 	gfPmapSignIn      // GF_PMAP_SIGNIN
 	gfPmapSignOut     // GF_PMAP_SIGNOUT
@@ -37,9 +37,6 @@ func NewGfPortmap() *GfPortmap {
 			sunrpc.Procedure{
 				sunrpc.ProcedureID{ProgramNumber: portmapProgNum, ProgramVersion: portmapProgVersion,
 					ProcedureNumber: gfPmapPortByBrick}, "PortByBrick"},
-			sunrpc.Procedure{
-				sunrpc.ProcedureID{ProgramNumber: portmapProgNum, ProgramVersion: portmapProgVersion,
-					ProcedureNumber: gfPmapBrickByPort}, "BrickByPort"},
 			sunrpc.Procedure{
 				sunrpc.ProcedureID{ProgramNumber: portmapProgNum, ProgramVersion: portmapProgVersion,
 					ProcedureNumber: gfPmapSignIn}, "SignIn"},
@@ -92,30 +89,6 @@ func (p *GfPortmap) PortByBrick(args *PortByBrickReq, reply *PortByBrickRsp) err
 		reply.OpRet = -1
 	} else {
 		reply.Port = port
-	}
-
-	return nil
-}
-
-// BrickByPortReq is the request containing brick's port
-type BrickByPortReq struct {
-	Port int
-}
-
-// BrickByPortRsp is the response to a BrickByPortReq request
-type BrickByPortRsp struct {
-	OpRet   int
-	OpErrno int
-	Status  int
-	Brick   string
-}
-
-// BrickByPort will return the brick given the brick port
-func (p *GfPortmap) BrickByPort(args *BrickByPortReq, reply *BrickByPortRsp) error {
-
-	reply.Brick = registrySearchByPort(args.Port)
-	if reply.Brick == "" {
-		reply.OpRet = -1
 	}
 
 	return nil
