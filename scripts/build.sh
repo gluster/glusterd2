@@ -16,7 +16,7 @@ BIN=$(basename $(go list -f '{{.ImportPath}}'))
 
 ## This so that mgmt builds without the libvirt and augeas resrouces on centos-ci
 ## TODO Remove this once mgmt can be built engine only without resources
-export GOTAGS'novirt noaugeas'
+export GOTAGS='novirt noaugeas'
 
 echo "Building $BIN $VERSION"
 go build -ldflags "${LDFLAGS}" -o $OUTDIR/$BIN || exit 1
