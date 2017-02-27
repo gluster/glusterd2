@@ -21,10 +21,10 @@ type GlusterGAPI struct {
 // Init initializes the GlusterGAPI struct.
 func (obj *GlusterGAPI) Init(data gapi.Data) error {
 	if obj.initialized {
-		return fmt.Errorf("Already initialized!")
+		return fmt.Errorf("already initialized")
 	}
 	if obj.Name == "" {
-		return fmt.Errorf("The graph name must be specified!")
+		return fmt.Errorf("the graph name must be specified")
 	}
 	obj.data = data // store for later
 	obj.closeChan = make(chan struct{})
@@ -46,7 +46,7 @@ func (obj *GlusterGAPI) Graph() (*pgraph.Graph, error) {
 	return g, nil
 }
 
-// SwitchStream returns nil errors every time there could be a new graph.
+// Next returns nil errors every time there could be a new graph.
 func (obj *GlusterGAPI) Next() chan error {
 	if obj.data.NoWatch {
 		return nil
