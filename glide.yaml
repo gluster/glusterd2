@@ -1,7 +1,7 @@
 package: github.com/gluster/glusterd2
 import:
 - package: github.com/coreos/etcd
-  version: v3.1.0-rc.1
+  version: ~v3.1.0
   subpackages:
   - client
   - clientv3
@@ -13,7 +13,7 @@ import:
 - package: github.com/pborman/uuid
 - package: github.com/gorilla/mux
 - package: github.com/Sirupsen/logrus
-  version: v0.10.0
+  version: ~v0.10.0
 - package: golang.org/x/net
   subpackages:
   - context
@@ -28,7 +28,7 @@ import:
   - proto
   - protoc-gen-go
 - package: google.golang.org/grpc
-  version: 1.0.4
+  version: ^1.0.0
 - package: github.com/soheilhy/cmux
 - package: github.com/thejerf/suture
   version: ^2.0.0
