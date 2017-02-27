@@ -4,6 +4,7 @@ import (
 	"fmt"
 	"io/ioutil"
 	"path"
+	"strings"
 
 	"github.com/gluster/glusterd2/utils"
 
@@ -81,16 +82,25 @@ func (p *GfHandshake) ServerGetspec(args *GfGetspecReq, reply *GfGetspecRsp) err
 	var fileContents []byte
 	var volFilePath string
 
-	_, err = DictUnserialize(args.Xdata)
+	xdata, err := DictUnserialize(args.Xdata)
 	if err != nil {
 		log.WithError(err).Error("ServerGetspec(): DictUnserialize() failed")
 		goto Out
 	}
 
-	volFilePath = path.Join(utils.GetVolumeDir(args.Key), fmt.Sprintf("trusted-%s.tcp-fuse.vol", args.Key))
+	if _, ok := xdata["brick_name"]; ok {
+		// brick volfile
+		s := strings.Split(args.Key, ".")
+		volName := s[0]
+		volFilePath = path.Join(utils.GetVolumeDir(volName), fmt.Sprintf("%s.vol", args.Key))
+	} else {
+		// client volfile
+		volFilePath = path.Join(utils.GetVolumeDir(args.Key), fmt.Sprintf("trusted-%s.tcp-fuse.vol", args.Key))
+	}
+
 	fileContents, err = ioutil.ReadFile(volFilePath)
 	if err != nil {
-		log.WithError(err).Error("ServerGetspec(): Could not read client volfile")
+		log.WithError(err).Error("ServerGetspec(): Could not read volfile")
 		goto Out
 	}
 	reply.Spec = string(fileContents)
