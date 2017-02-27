@@ -56,7 +56,11 @@ func main() {
 	gdctx.Init()
 
 	// Start mgmt and the embedded etcd
-	super.Add(mgmt.New())
+	m := mgmt.New()
+	if m == nil {
+		log.Fatal("could not create mgmt service")
+	}
+	super.Add(m)
 
 	// TODO: Fix once we correctly connect to the store
 	//if !gdctx.Restart {
