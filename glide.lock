@@ -1,5 +1,5 @@
-hash: 153d58fc9fe3e990047cfa289635c5aa9fd647c44be810019d5090f3c223dd42
-updated: 2017-02-27T19:02:53.562725452+05:30
+hash: 8aa8fd97565d609a16799614c4509567d2510068cb7b2672cd40a8f265f919cb
+updated: 2017-02-27T19:50:55.115222432+05:30
 imports:
 - name: github.com/beorn7/perks
   version: 4c0e84591b9aa9e6dcfdf3e020114cd81f89d5f9
@@ -169,7 +169,7 @@ imports:
 - name: github.com/prashanthpai/sunrpc
   version: 4c574af9889b29d781c148e89252d314d305f638
 - name: github.com/prometheus/client_golang
-  version: c5b7fccd204277076155f10851dad72b76a49317
+  version: 69bb3870645f63c67a8dc9c9ef94585fd0d98c80
   subpackages:
   - prometheus
   - prometheus/promhttp
@@ -188,7 +188,7 @@ imports:
   subpackages:
   - xfs
 - name: github.com/purpleidea/go-systemd
-  version: 48702e0da86bd25e76cfef347e2adeb434a0d0a6
+  version: 6192533ebb4662c3bc0ce60c1d33dfc6702a1eac
   subpackages:
   - machine1
 - name: github.com/purpleidea/mgmt
@@ -240,11 +240,14 @@ imports:
 - name: github.com/xiang90/probing
   version: 07dd2e8dfe18522e9c447ba95f2fe95262f63bb2
 - name: golang.org/x/crypto
-  version: 1351f936d976c60a0a48d728281922cf63eafb8d
+  version: 453249f01cfeb54c3d549ddb75ff152ca243f9d8
   subpackages:
   - bcrypt
   - blowfish
   - cast5
+  - curve25519
+  - ed25519
+  - ed25519/internal/edwards25519
   - openpgp
   - openpgp/armor
   - openpgp/elgamal
