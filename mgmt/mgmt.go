@@ -32,6 +32,11 @@ func New() *Mgmt {
 	m.ConvergedTimeout = -1
 	m.Noop = false
 
+	clientURL := "http://" + config.GetString("etcdclientaddress")
+	serverURL := "http://" + config.GetString("etcdpeeraddress")
+	m.ClientURLs = []string{clientURL}
+	m.ServerURLs = []string{serverURL}
+
 	m.GAPI = &GlusterGAPI{
 		Name: "glusterd2",
 	}
