@@ -35,7 +35,7 @@ vendor-update:
 	@echo Updating vendored packages
 	@glide install
 	@echo Pulling latest mgmt
-	@go get -u github.com/purpleidea/mgmt
+	@go get -u github.com/purpleidea/mgmt -tags "noaugeas novirt"
 	@echo
 
 verify: check-reqs
