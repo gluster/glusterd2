@@ -34,6 +34,8 @@ install: check-go check-reqs vendor-update
 vendor-update:
 	@echo Updating vendored packages
 	@glide install
+	@echo Pulling latest mgmt
+	@go get -u github.com/purpleidea/mgmt
 	@echo
 
 verify: check-reqs
