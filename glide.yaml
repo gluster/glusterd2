@@ -33,19 +33,3 @@ import:
 - package: github.com/thejerf/suture
   version: ^2.0.0
 - package: github.com/prashanthpai/sunrpc
-- package: github.com/purpleidea/mgmt
-## The stuff below are to get mgmt to build. It fails otherwise.
-# Pinning prometheus to master/HEAD on 20170227, as etcd has pinned it 0.8.0, which mgmt does not work with.
-# XXX: Is this really required for libmgmt to work? GD2 just requires the engine, not anything else.
-# If libmgmt could not depend on this, we'll be good.
-- package: github.com/prometheus/client_golang
-  version: 69bb3870645f63c67a8dc9c9ef94585fd0d98c80
-  subpackages:
-  - prometheus
-# The default HEAD of purpleidea/go-systemd isn't the right one
-- package: github.com/purpleidea/go-systemd
-  version: 6192533ebb4662c3bc0ce60c1d33dfc6702a1eac # HEAD of branch feat/wip
-# Pinning crypto to it's current HEAD on 20170227. etcd pins it to an older version that mgmt doesn't work with.
-# XXX: This is needed by the ssh executioner(?) used by mgmt. GD2 doesn't actually require this feature.
-- package: golang.org/x/crypto
-  version: 453249f01cfeb54c3d549ddb75ff152ca243f9d8
