@@ -5,8 +5,10 @@ import (
 	"net/http"
 
 	"github.com/gluster/glusterd2/brick"
+	"github.com/gluster/glusterd2/daemon"
 	"github.com/gluster/glusterd2/errors"
 	"github.com/gluster/glusterd2/gdctx"
+	"github.com/gluster/glusterd2/pmap"
 	restutils "github.com/gluster/glusterd2/servers/rest/utils"
 	"github.com/gluster/glusterd2/transaction"
 	"github.com/gluster/glusterd2/volume"
@@ -49,11 +51,32 @@ func checkStatus(ctx transaction.TxnCtx) error {
 		}
 
 		// TODO: Check actual brick status when we get them running.
-		fakeStatus := &brick.Brickstatus{
-			Online: false,
-			Pid:    1234,
+
+		port := pmap.RegistrySearch(binfo.Path, pmap.GfPmapPortBrickserver)
+
+		brickDaemon, err := brick.NewGlusterfsd(binfo)
+		if err != nil {
+			return err
 		}
-		brickStatuses = append(brickStatuses, fakeStatus)
+
+		online := false
+
+		pid, err := daemon.ReadPidFromFile(brickDaemon.PidFile())
+		if err == nil {
+			// Check if process is running
+			_, err := daemon.GetProcess(pid)
+			if err == nil {
+				online = true
+			}
+		}
+
+		brickStatus := &brick.Brickstatus{
+			BInfo:  binfo,
+			Online: online,
+			Pid:    pid,
+			Port:   port,
+		}
+		brickStatuses = append(brickStatuses, brickStatus)
 	}
 
 	// Store the results in transaction context. This will be consumed by

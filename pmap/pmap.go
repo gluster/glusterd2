@@ -77,7 +77,7 @@ func stringInSlice(query string, list []string) bool {
 
 // NOTE: Unlike glusterd1's implementation, the search here is not overloaded
 // with delete operation. This is intentionally kept simple
-func registrySearch(brickname string, ptype PortType) int {
+func RegistrySearch(brickname string, ptype PortType) int {
 	registry.RLock()
 	defer registry.RUnlock()
 
@@ -205,7 +205,7 @@ func registryRemove(port int, brickname string, ptype PortType, xprt interface{}
 	}
 
 	if brickname != "" {
-		port = registrySearch(brickname, ptype)
+		port = RegistrySearch(brickname, ptype)
 		if port != 0 {
 			doRemove(port, brickname, xprt)
 			return
