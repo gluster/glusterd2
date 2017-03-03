@@ -4,9 +4,10 @@ import (
 	"os"
 	"os/signal"
 	"path"
+	"time"
 
-	"github.com/gluster/glusterd2/etcdmgmt"
 	"github.com/gluster/glusterd2/gdctx"
+	"github.com/gluster/glusterd2/mgmt"
 	"github.com/gluster/glusterd2/peer"
 	"github.com/gluster/glusterd2/servers"
 	"github.com/gluster/glusterd2/utils"
@@ -49,25 +50,29 @@ func main() {
 	// Generate UUID if it doesn't exist
 	gdctx.MyUUID = gdctx.InitMyUUID()
 
-	// Start embedded etcd server
-	etcdConfig, err := etcdmgmt.GetEtcdConfig(true)
-	if err != nil {
-		log.WithError(err).Fatal("Could not fetch config options for etcd")
+	// Start the main supervisor
+	super := initGD2Supervisor()
+	super.ServeBackground()
+
+	// Start mgmt and the embedded etcd
+	m := mgmt.New()
+	if m == nil {
+		log.Fatal("could not create mgmt service")
 	}
-	err = etcdmgmt.StartEmbeddedEtcd(etcdConfig)
-	if err != nil {
-		log.WithError(err).Fatal("Could not start embedded etcd server")
-	}
+	super.Add(m)
+
+	// Sleeping here to allow the etcd in mgmt to startup
+	// TODO: Remove this and have a proper way to detect etcd is up
+	time.Sleep(5 * time.Second)
 
 	// Initialize op version and etcd store
 	gdctx.Init()
+
 	if !gdctx.Restart {
 		peer.AddSelfDetails()
 	}
 
 	// Start all servers (rest, peerrpc, sunrpc) managed by suture supervisor
-	super := initGD2Supervisor()
-	super.ServeBackground()
 	super.Add(servers.New())
 
 	// Use the main goroutine as signal handling loop
@@ -78,8 +83,6 @@ func main() {
 		switch s {
 		case os.Interrupt:
 			log.Info("Received SIGTERM. Stopping GlusterD")
-			// Stop embedded etcd server, but don't wipe local etcd data
-			etcdmgmt.DestroyEmbeddedEtcd(false)
 			super.Stop()
 			log.Info("Stopped GlusterD")
 			return

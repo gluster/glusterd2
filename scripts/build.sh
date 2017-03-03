@@ -15,7 +15,9 @@ LDFLAGS="-X github.com/gluster/glusterd2/gdctx.GlusterdVersion=$VERSION"
 BIN=$(basename $(go list -f '{{.ImportPath}}'))
 
 echo "Building $BIN $VERSION"
-go build -ldflags "${LDFLAGS}" -o $OUTDIR/$BIN || exit 1
+## Adding GOTAGS so that mgmt builds without the libvirt and augeas resrouces on centos-ci
+## TODO Remove this once mgmt can be built engine only without resources
+go build -ldflags "${LDFLAGS}" -o $OUTDIR/$BIN -tags "novirt noaugeas" || exit 1
 echo "Built $BIN $VERSION at $OUTDIR/$BIN"
 
 
