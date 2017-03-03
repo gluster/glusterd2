@@ -1,5 +1,6 @@
 GOPATH := $(shell go env GOPATH)
 GOBIN := '$(GOPATH)/bin'
+BUILD_FLAGS := -tags "novirt noaugeas"
 
 .PHONY: all build check check-go check-reqs install vendor-update verify glusterd2 release check-protoc
 
@@ -35,7 +36,7 @@ vendor-update:
 	@echo Updating vendored packages
 	@glide install
 	@echo Pulling latest mgmt
-	@go get -tags "noaugeas novirt" -u github.com/purpleidea/mgmt
+	@go get $(BUILD_FLAGS) -u github.com/purpleidea/mgmt
 	@echo
 
 verify: check-reqs
@@ -43,7 +44,7 @@ verify: check-reqs
 	@gometalinter -D gotype -E gofmt --errors --deadline=5m -j 4 $$(glide nv)
 
 test:
-	@go test $$(glide nv)
+	@go test $(BUILD_FLAGS) $$(glide nv)
 
 release: check-go check-reqs vendor-update
 	@./scripts/release.sh
