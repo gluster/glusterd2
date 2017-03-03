@@ -4,9 +4,11 @@ import (
 	"os"
 	"os/signal"
 	"path"
+	"time"
 
 	"github.com/gluster/glusterd2/gdctx"
 	"github.com/gluster/glusterd2/mgmt"
+	"github.com/gluster/glusterd2/peer"
 	"github.com/gluster/glusterd2/servers"
 	"github.com/gluster/glusterd2/utils"
 
@@ -52,9 +54,6 @@ func main() {
 	super := initGD2Supervisor()
 	super.ServeBackground()
 
-	// Initialize op version and etcd store
-	gdctx.Init()
-
 	// Start mgmt and the embedded etcd
 	m := mgmt.New()
 	if m == nil {
@@ -62,10 +61,16 @@ func main() {
 	}
 	super.Add(m)
 
-	// TODO: Fix once we correctly connect to the store
-	//if !gdctx.Restart {
-	//peer.AddSelfDetails()
-	//}
+	// Sleeping here to allow the etcd in mgmt to startup
+	// TODO: Remove this and have a proper way to detect etcd is up
+	time.Sleep(5 * time.Second)
+
+	// Initialize op version and etcd store
+	gdctx.Init()
+
+	if !gdctx.Restart {
+		peer.AddSelfDetails()
+	}
 
 	// Start all servers (rest, peerrpc, sunrpc) managed by suture supervisor
 	super.Add(servers.New())
