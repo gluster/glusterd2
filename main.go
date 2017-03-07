@@ -4,6 +4,7 @@ import (
 	"os"
 	"os/signal"
 	"path"
+	"syscall"
 
 	"github.com/gluster/glusterd2/etcdmgmt"
 	"github.com/gluster/glusterd2/gdctx"
@@ -30,7 +31,20 @@ func main() {
 	}
 
 	logLevel, _ := flag.CommandLine.GetString("loglevel")
-	initLog(logLevel, os.Stderr)
+	logdir, _ := flag.CommandLine.GetString("logdir")
+	logFileName, _ := flag.CommandLine.GetString("logfile")
+
+	if logFileName == "-" {
+		initLog(logLevel, os.Stderr)
+	} else {
+		logFilePath := path.Join(logdir, logFileName)
+		logFile, logFileErr := openLogFile(logFilePath)
+		if logFileErr != nil {
+			initLog(logLevel, os.Stderr)
+			log.WithError(logFileErr).Fatalf("Failed to open log file %s", logFilePath)
+		}
+		initLog(logLevel, logFile)
+	}
 
 	log.WithField("pid", os.Getpid()).Info("Starting GlusterD")
 
@@ -83,6 +97,11 @@ func main() {
 			super.Stop()
 			log.Info("Stopped GlusterD")
 			return
+		case syscall.SIGHUP:
+			// Logrotate case, when Log rotated, Reopen the log file and
+			// re-initiate the logger instance.
+			log.Info("Received SIGHUP, Reloading log file")
+			reloadLog(logdir, logFileName, logLevel)
 		default:
 			continue
 		}

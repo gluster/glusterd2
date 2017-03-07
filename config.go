@@ -36,6 +36,7 @@ func parseFlags() {
 	flag.String("localstatedir", "", "Directory to store local state information. (default: workdir)")
 	flag.String("rundir", "", "Directory to store runtime data. (default: workdir/run)")
 	flag.String("logdir", "", "Directory to store logs. (default: workdir/log)")
+	flag.String("logfile", "-", "Log file name. (default: -)")
 	flag.String("config", "", "Configuration file for GlusterD. By default looks for glusterd.(yaml|toml|json) in /etc/glusterd and current working directory.")
 	flag.String("loglevel", defaultLogLevel, "Severity of messages to be logged.")
 
