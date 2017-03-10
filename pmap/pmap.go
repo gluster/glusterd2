@@ -75,6 +75,8 @@ func stringInSlice(query string, list []string) bool {
 	return false
 }
 
+// RegistrySearch searches for a brick process in the portmap registry and
+// returns the port assigned to it.
 // NOTE: Unlike glusterd1's implementation, the search here is not overloaded
 // with delete operation. This is intentionally kept simple
 func RegistrySearch(brickname string, ptype PortType) int {
