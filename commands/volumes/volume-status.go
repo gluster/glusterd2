@@ -50,7 +50,7 @@ func checkStatus(ctx transaction.TxnCtx) error {
 			continue
 		}
 
-		port := pmap.RegistrySearch(binfo.Path, pmap.GfPmapPortBrickserver)
+		var port int
 
 		brickDaemon, err := brick.NewGlusterfsd(binfo)
 		if err != nil {
@@ -65,10 +65,8 @@ func checkStatus(ctx transaction.TxnCtx) error {
 			_, err := daemon.GetProcess(pid)
 			if err == nil {
 				online = true
+				port = pmap.RegistrySearch(binfo.Path, pmap.GfPmapPortBrickserver)
 			}
-			// Set port to 0 in case the brick process is not running
-			// but pmap.RegistrySearch() returns stale port information
-			port = 0
 		}
 
 		brickStatus := &brick.Brickstatus{
