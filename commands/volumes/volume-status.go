@@ -50,8 +50,6 @@ func checkStatus(ctx transaction.TxnCtx) error {
 			continue
 		}
 
-		// TODO: Check actual brick status when we get them running.
-
 		port := pmap.RegistrySearch(binfo.Path, pmap.GfPmapPortBrickserver)
 
 		brickDaemon, err := brick.NewGlusterfsd(binfo)
@@ -68,6 +66,9 @@ func checkStatus(ctx transaction.TxnCtx) error {
 			if err == nil {
 				online = true
 			}
+			// Set port to 0 in case the brick process is not running
+			// but pmap.RegistrySearch() returns stale port information
+			port = 0
 		}
 
 		brickStatus := &brick.Brickstatus{
