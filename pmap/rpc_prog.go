@@ -84,7 +84,7 @@ type PortByBrickRsp struct {
 // PortByBrick will return port number for the brick specified
 func (p *GfPortmap) PortByBrick(args *PortByBrickReq, reply *PortByBrickRsp) error {
 
-	port := registrySearch(args.Brick, GfPmapPortBrickserver)
+	port := RegistrySearch(args.Brick, GfPmapPortBrickserver)
 	if port <= 0 {
 		reply.OpRet = -1
 	} else {
