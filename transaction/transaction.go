@@ -2,10 +2,13 @@
 package transaction
 
 import (
+	"context"
+
 	"github.com/gluster/glusterd2/gdctx"
 	"github.com/gluster/glusterd2/store"
 
 	log "github.com/Sirupsen/logrus"
+	"github.com/coreos/etcd/clientv3"
 	"github.com/pborman/uuid"
 )
 
@@ -59,7 +62,7 @@ func NewTxnWithLoggingContext(f log.Fields) *Txn {
 
 // Cleanup cleans the leftovers after a transaction ends
 func (t *Txn) Cleanup() {
-	gdctx.Store.DeleteTree(t.Ctx.Prefix())
+	gdctx.Store.Delete(context.TODO(), t.Ctx.Prefix(), clientv3.WithPrefix())
 }
 
 // Do runs the transaction on the cluster

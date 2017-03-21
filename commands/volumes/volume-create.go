@@ -186,8 +186,12 @@ func volumeCreateHandler(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
+	reqid := uuid.NewRandom().String()
+	logger := log.WithField("reqid", reqid)
+
 	nodes, e := nodesForVolCreate(req)
 	if e != nil {
+		log.WithError(e).Error("could not prepare node list")
 		restutils.SendHTTPError(w, http.StatusInternalServerError, e.Error())
 		return
 	}
@@ -200,10 +204,11 @@ func volumeCreateHandler(w http.ResponseWriter, r *http.Request) {
 		Store:    "vol-create.Store",
 		Rollback: "vol-create.Rollback",
 		LogFields: &log.Fields{
-			"reqid": uuid.NewRandom().String(),
+			"reqid": reqid,
 		},
 	}).NewTxn()
 	if e != nil {
+		logger.WithError(e).Error("failed to create transaction")
 		restutils.SendHTTPError(w, http.StatusInternalServerError, e.Error())
 		return
 	}
@@ -211,18 +216,21 @@ func volumeCreateHandler(w http.ResponseWriter, r *http.Request) {
 
 	e = txn.Ctx.Set("req", req)
 	if e != nil {
+		logger.WithError(e).Error("failed to set request in transaction context")
 		restutils.SendHTTPError(w, http.StatusInternalServerError, e.Error())
 		return
 	}
 
 	vol, e := createVolinfo(req)
 	if e != nil {
+		logger.WithError(e).Error("failed to create volinfo")
 		restutils.SendHTTPError(w, http.StatusInternalServerError, e.Error())
 		return
 	}
 
 	e = txn.Ctx.Set("volinfo", vol)
 	if e != nil {
+		logger.WithError(e).Error("failed to set volinfo in transaction context")
 		restutils.SendHTTPError(w, http.StatusInternalServerError, e.Error())
 		return
 	}
@@ -234,12 +242,14 @@ func volumeCreateHandler(w http.ResponseWriter, r *http.Request) {
 	}
 	e = txn.Ctx.Set("volauth", volAuth)
 	if e != nil {
+		logger.WithError(e).Error("failed to set trusted credentials in transaction context")
 		restutils.SendHTTPError(w, http.StatusInternalServerError, e.Error())
 		return
 	}
 
 	c, e := txn.Do()
 	if e != nil {
+		logger.WithError(e).Error("volume create transaction failed")
 		restutils.SendHTTPError(w, http.StatusInternalServerError, e.Error())
 		return
 	}

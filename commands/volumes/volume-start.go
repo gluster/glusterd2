@@ -145,7 +145,7 @@ func volumeStartHandler(w http.ResponseWriter, r *http.Request) {
 
 	vol, e := volume.GetVolume(volname)
 	if e != nil {
-		restutils.SendHTTPError(w, http.StatusBadRequest, errors.ErrVolNotFound.Error())
+		restutils.SendHTTPError(w, http.StatusNotFound, errors.ErrVolNotFound.Error())
 		return
 	}
 	if vol.Status == volume.VolStarted {

@@ -6,6 +6,7 @@ import:
   - client
   - clientv3
   - embed
+  - clientv3/concurrency
 - package: github.com/prashanthpai/libkv
   subpackages:
   - store
