@@ -24,10 +24,6 @@ var (
 	AddOrUpdateVolumeFunc = AddOrUpdateVolume
 )
 
-func init() {
-	gdctx.RegisterStorePrefix(volumePrefix)
-}
-
 // AddOrUpdateVolume marshals to volume object and passes to store to add/update
 func AddOrUpdateVolume(v *Volinfo) error {
 	json, e := json.Marshal(v)

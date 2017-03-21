@@ -34,10 +34,6 @@ var (
 	GetPeerIDByAddrF = GetPeerIDByAddr
 )
 
-func init() {
-	gdctx.RegisterStorePrefix(peerPrefix)
-}
-
 // AddOrUpdatePeer adds/updates given peer in the store
 func AddOrUpdatePeer(p *Peer) error {
 	json, err := json.Marshal(p)

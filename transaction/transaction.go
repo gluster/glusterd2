@@ -16,10 +16,6 @@ const (
 	txnPrefix = store.GlusterPrefix + "transaction/"
 )
 
-func init() {
-	gdctx.RegisterStorePrefix(txnPrefix)
-}
-
 // Txn is a set of steps
 //
 // Nodes is a union of the all the TxnStep.Nodes
@@ -40,8 +36,6 @@ func NewTxn() *Txn {
 		"txnid": t.ID.String(),
 	}).WithPrefix(prefix)
 
-	gdctx.Store.InitPrefix(prefix)
-
 	return t
 }
 
@@ -54,8 +48,6 @@ func NewTxnWithLoggingContext(f log.Fields) *Txn {
 	t.Ctx = NewCtxWithLogFields(log.Fields{
 		"txnid": t.ID.String(),
 	}).WithPrefix(prefix).WithLogFields(f)
-
-	gdctx.Store.InitPrefix(prefix)
 
 	return t
 }
