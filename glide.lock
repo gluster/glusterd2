@@ -1,5 +1,5 @@
-hash: f16f08a1137c6aa37f0e4535f68e9fe08097a4f11db63f99b8737b9b604aa7e5
-updated: 2017-03-21T16:16:05.592161897+05:30
+hash: a64e09c2a711dbb10cab3ec85db0bcabef3bf95ad625175b6a1bd292112ac365
+updated: 2017-03-21T18:37:46.813623731+05:30
 imports:
 - name: github.com/beorn7/perks
   version: 4c0e84591b9aa9e6dcfdf3e020114cd81f89d5f9
@@ -138,11 +138,6 @@ imports:
   version: df1e16fde7fc330a0ca68167c23bf7ed6ac31d6d
 - name: github.com/pelletier/go-toml
   version: 22139eb5469018e7374b3e7ef653de37ffb44f72
-- name: github.com/prashanthpai/libkv
-  version: b58d949e2049ef86c527d213d27ed5367edd0e0e
-  subpackages:
-  - store
-  - store/etcd
 - name: github.com/prashanthpai/sunrpc
   version: 4c574af9889b29d781c148e89252d314d305f638
 - name: github.com/prometheus/client_golang
