@@ -42,8 +42,11 @@ func parseFlags() {
 
 	flag.String("clientaddress", defaultClientAddress, "Address to bind the REST service.")
 	flag.String("peeraddress", defaultPeerAddress, "Address to bind the inter glusterd2 RPC service.")
+
+	// Etcd config options
 	flag.String("etcdclientaddress", defaultEtcdClientAddress, "Address which etcd server will use for peer to peer communication.")
 	flag.String("etcdpeeraddress", defaultEtcdPeerAddress, "Address which etcd server will use to receive etcd client requests.")
+	flag.String("etcdlogfile", "etcd.log", "Log file name for logging embedded etcd logs")
 
 	flag.Parse()
 }
