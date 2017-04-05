@@ -114,6 +114,7 @@ func volumeStatusHandler(w http.ResponseWriter, r *http.Request) {
 	vol, err := volume.GetVolume(volname)
 	if err != nil {
 		restutils.SendHTTPError(w, http.StatusNotFound, errors.ErrVolNotFound.Error())
+		return
 	}
 
 	// A very simple free-form transaction to query each node for brick
