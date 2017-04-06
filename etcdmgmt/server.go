@@ -26,6 +26,8 @@ func StartEmbeddedEtcd(cfg *embed.Config) error {
 		return errors.New("An instance of etcd embedded server is already running")
 	}
 
+	initEtcdLogging()
+
 	// Start embedded etcd server
 	etcd, err := embed.StartEtcd(cfg)
 	if err != nil {
@@ -65,6 +67,11 @@ func DestroyEmbeddedEtcd(deleteData bool) error {
 	etcdInstance.etcd.Close()
 	etcdInstance.etcd = nil
 	log.Info("Etcd embedded server is stopped.")
+
+	if etcdLogWriter != nil {
+		etcdLogWriter.Close()
+		etcdLogWriter = nil
+	}
 
 	if deleteData {
 		err := os.RemoveAll(etcdConfig.Dir)

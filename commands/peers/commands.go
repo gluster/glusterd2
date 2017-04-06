@@ -27,6 +27,20 @@ func (c *Command) Routes() route.Routes {
 			HandlerFunc: getPeersHandler,
 		},
 		route.Route{
+			Name:        "EtcdHealthPeer",
+			Method:      "GET",
+			Pattern:     "/peers/{peerid}/etcdhealth",
+			Version:     1,
+			HandlerFunc: peerEtcdHealthHandler,
+		},
+		route.Route{
+			Name:        "EtcdStatusPeer",
+			Method:      "GET",
+			Pattern:     "/peers/{peerid}/etcdstatus",
+			Version:     1,
+			HandlerFunc: peerEtcdStatusHandler,
+		},
+		route.Route{
 			Name:        "DeletePeer",
 			Method:      "DELETE",
 			Pattern:     "/peers/{peerid}",
