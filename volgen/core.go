@@ -17,6 +17,7 @@ import (
 
 	log "github.com/Sirupsen/logrus"
 	"github.com/pborman/uuid"
+	config "github.com/spf13/viper"
 )
 
 var (
@@ -158,7 +159,8 @@ func GenerateVolfile(vinfo *volume.Volinfo, vauth *volume.VolAuth) error {
 			"<volume-id>", vinfo.ID.String(),
 			"<brick-path>", b.Path,
 			"<trusted-username>", vauth.Username,
-			"<trusted-password>", vauth.Password)
+			"<trusted-password>", vauth.Password,
+			"<local-state-dir>", config.GetString("localstatedir"))
 
 		_, err = replacer.WriteString(f, brickVolfileTemplate)
 		if err != nil {
