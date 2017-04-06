@@ -78,6 +78,9 @@ func (p *PeerService) ExportAndStoreETCDConfig(nc netctx.Context, c *EtcdConfigR
 	var opRet int32
 	var opError string
 
+	// Stop the store first
+	gdctx.Store.Close()
+
 	newEtcdConfig, err := etcdmgmt.GetEtcdConfig(false)
 	if err != nil {
 		opRet = -1
@@ -112,15 +115,16 @@ func (p *PeerService) ExportAndStoreETCDConfig(nc netctx.Context, c *EtcdConfigR
 		goto Out
 	}
 
+	// Reinitialize the store now that a new etcd instance is running
+	gdctx.InitStore()
+
 	if c.DeletePeer {
 		// After being detached from the cluster, this glusterd instance
 		// now should get back to clean slate i.e state of a single node
 		// standalone cluster.
-		gdctx.InitStore(true)
 		peer.AddSelfDetails()
 	} else {
 		// Store the etcd config in a file for use during restarts.
-
 		err = etcdmgmt.StoreEtcdConfig(newEtcdConfig)
 		if err != nil {
 			opRet = -1

@@ -49,3 +49,9 @@ func New() *GDStore {
 
 	return &GDStore{c, s}
 }
+
+// Close closes the store connections
+func (s *GDStore) Close() {
+	s.Session.Close()
+	s.Client.Close()
+}

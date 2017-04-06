@@ -11,6 +11,6 @@ var (
 )
 
 // InitStore is to initialize the store
-func InitStore(initPrefix bool) {
+func InitStore() {
 	Store = store.New()
 }
