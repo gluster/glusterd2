@@ -59,7 +59,7 @@ func GetPeer(id string) (*Peer, error) {
 
 	// We cannot have more than one peer with a given ID
 	// TODO: Fix this to return a proper error
-	if len(resp.Kvs) > 1 {
+	if resp.Count != 1 {
 		return nil, errors.ErrPeerNotFound
 	}
 
