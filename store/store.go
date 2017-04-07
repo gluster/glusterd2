@@ -1,7 +1,4 @@
 // Package store implements the centralized store for GlusterD
-//
-// We use etcd as the store backend, and use libkv as the frontend to etcd.
-// libkv should allow us to change backends easily if required.
 package store
 
 import (
@@ -16,7 +13,6 @@ import (
 const (
 	// GlusterPrefix prefixes all paths in the store
 	GlusterPrefix string = "gluster/"
-	directoryVal         = "thisisadirectory"
 )
 
 // GDStore is the GlusterD centralized store
