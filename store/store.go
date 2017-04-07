@@ -48,6 +48,10 @@ func New() *GDStore {
 
 // Close closes the store connections
 func (s *GDStore) Close() {
-	s.Session.Close()
-	s.Client.Close()
+	if e := s.Session.Close(); e != nil {
+		log.WithError(e).Warn("failed to close etcd session")
+	}
+	if e := s.Client.Close(); e != nil {
+		log.WithError(e).Warn("failed to close etcd client connection")
+	}
 }
