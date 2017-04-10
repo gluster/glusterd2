@@ -4,6 +4,7 @@ import (
 	"github.com/gluster/glusterd2/plugins/hello"
 )
 
-var PluginsList = []Gd2Plugin{
-	&helloplugin.HelloPlugin{},
+// PluginsList is a list of plugins which implements GlusterdPlugin interface
+var PluginsList = []GlusterdPlugin{
+	&hello.Plugin{},
 }

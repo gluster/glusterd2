@@ -48,7 +48,7 @@ func New(l net.Listener) *SunRPC {
 	}
 
 	for _, p := range plugins.PluginsList {
-		rpcProcs := p.SunRpcProgram()
+		rpcProcs := p.SunRPCProgram()
 		if rpcProcs != nil {
 			programsList = append(programsList, rpcProcs)
 			log.WithField("plugin", reflect.TypeOf(p)).Debug("loaded sunrpc procedures from plugin")

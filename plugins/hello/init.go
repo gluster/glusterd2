@@ -1,18 +1,21 @@
-package helloplugin
+package hello
 
 import (
 	"github.com/gluster/glusterd2/servers/rest/route"
 	"github.com/prashanthpai/sunrpc"
 )
 
-type HelloPlugin struct {
+// Plugin is a structure which implements GlusterdPlugin interface
+type Plugin struct {
 }
 
-func (p *HelloPlugin) SunRpcProgram() sunrpc.Program {
+// SunRPCProgram returns sunrpc program to register with Glusterd
+func (p *Plugin) SunRPCProgram() sunrpc.Program {
 	return nil
 }
 
-func (p *HelloPlugin) RestRoutes() route.Routes {
+// RestRoutes returns list of REST API routes to register with Glusterd
+func (p *Plugin) RestRoutes() route.Routes {
 	return route.Routes{
 		route.Route{
 			Name:        "HelloGet",
@@ -29,6 +32,8 @@ func (p *HelloPlugin) RestRoutes() route.Routes {
 	}
 }
 
-func (p *HelloPlugin) RegisterStepFuncs() {
+// RegisterStepFuncs registers transaction step functions with
+// Glusterd Transaction framework
+func (p *Plugin) RegisterStepFuncs() {
 	return
 }

@@ -5,8 +5,11 @@ import (
 	"github.com/prashanthpai/sunrpc"
 )
 
-type Gd2Plugin interface {
-	SunRpcProgram() sunrpc.Program
+// GlusterdPlugin is an interface that every Glusterd plugin will
+// implement to add sunrpc program, REST routes and Transaction step
+// functions
+type GlusterdPlugin interface {
+	SunRPCProgram() sunrpc.Program
 	RestRoutes() route.Routes
 	RegisterStepFuncs()
 }
