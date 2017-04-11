@@ -1,5 +1,5 @@
-hash: a64e09c2a711dbb10cab3ec85db0bcabef3bf95ad625175b6a1bd292112ac365
-updated: 2017-03-21T18:37:46.813623731+05:30
+hash: adf01988e5ed54443a12558b56bf4a932959a06c90aea734e1a226a8f71bc4e1
+updated: 2017-04-10T15:19:03.432489462+05:30
 imports:
 - name: github.com/beorn7/perks
   version: 4c0e84591b9aa9e6dcfdf3e020114cd81f89d5f9
@@ -10,7 +10,7 @@ imports:
 - name: github.com/cockroachdb/cmux
   version: 112f0506e7743d64a6eb8fedbcff13d9979bbf92
 - name: github.com/coreos/etcd
-  version: 21fdcc6443f3267111051240f0eca839acc96a39
+  version: 20490caaf0dcd96bb4a95e40625559def8ef5b04
   subpackages:
   - alarm
   - auth
@@ -211,7 +211,7 @@ imports:
   - transform
   - unicode/norm
 - name: google.golang.org/grpc
-  version: cdee119ee21e61eef7093a41ba148fa83585e143
+  version: 8050b9cbc271307e5a716a9d782803d09b0d6f2d
   subpackages:
   - codes
   - credentials
