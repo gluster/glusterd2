@@ -2,7 +2,6 @@ package rest
 
 import (
 	"fmt"
-	"reflect"
 
 	"github.com/gluster/glusterd2/commands"
 	"github.com/gluster/glusterd2/plugins"
@@ -47,7 +46,7 @@ func (r *GDRest) registerRoutes() {
 		restRoutes := p.RestRoutes()
 		if restRoutes != nil {
 			r.setRoutes(restRoutes)
-			log.WithField("plugin", reflect.TypeOf(p)).Debug("loaded REST routes from plugin")
+			log.WithField("plugin", p.Name()).Debug("loaded REST routes from plugin")
 		}
 		p.RegisterStepFuncs()
 	}

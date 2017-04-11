@@ -4,7 +4,6 @@ import (
 	"io"
 	"net"
 	"net/rpc"
-	"reflect"
 	"strconv"
 	"sync"
 
@@ -51,7 +50,7 @@ func New(l net.Listener) *SunRPC {
 		rpcProcs := p.SunRPCProgram()
 		if rpcProcs != nil {
 			programsList = append(programsList, rpcProcs)
-			log.WithField("plugin", reflect.TypeOf(p)).Debug("loaded sunrpc procedures from plugin")
+			log.WithField("plugin", p.Name()).Debug("loaded sunrpc procedures from plugin")
 		}
 	}
 

@@ -9,6 +9,7 @@ import (
 // implement to add sunrpc program, REST routes and Transaction step
 // functions
 type GlusterdPlugin interface {
+	Name() string
 	SunRPCProgram() sunrpc.Program
 	RestRoutes() route.Routes
 	RegisterStepFuncs()

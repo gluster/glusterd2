@@ -9,6 +9,11 @@ import (
 type Plugin struct {
 }
 
+// Name returns name of plugin
+func (p *Plugin) Name() string {
+	return "hello"
+}
+
 // SunRPCProgram returns sunrpc program to register with Glusterd
 func (p *Plugin) SunRPCProgram() sunrpc.Program {
 	return nil

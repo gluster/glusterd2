@@ -1,5 +1,6 @@
 GOPATH := $(shell go env GOPATH)
 GOBIN := '$(GOPATH)/bin'
+PLUGINS ?= yes
 
 .PHONY: all build check check-go check-reqs install vendor-update verify glusterd2 release check-protoc
 
@@ -22,11 +23,11 @@ check-reqs:
 	@echo
 
 glusterd2:
-	@./scripts/build.sh
+	@PLUGINS=$(PLUGINS) ./scripts/build.sh
 	@echo
 
 install: check-go check-reqs vendor-update
-	@./scripts/build.sh $(GOBIN)
+	@PLUGINS=$(PLUGINS) ./scripts/build.sh $(GOBIN)
 	@echo Setting CAP_SYS_ADMIN for glusterd2 \(requires sudo\)
 	sudo setcap cap_sys_admin+ep $(GOBIN)/glusterd2
 	@echo
