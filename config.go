@@ -13,11 +13,9 @@ import (
 )
 
 const (
-	defaultLogLevel          = "debug"
-	defaultClientAddress     = ":24007"
-	defaultPeerAddress       = ":24008"
-	defaultEtcdClientAddress = ":2379"
-	defaultEtcdPeerAddress   = ":2380"
+	defaultLogLevel      = "debug"
+	defaultClientAddress = ":24007"
+	defaultPeerAddress   = ":24008"
 
 	defaultConfName = "glusterd"
 )
@@ -28,6 +26,9 @@ var (
 		"/etc/glusterd",
 		".",
 	}
+	defaultEtcdClientAddress = []string{"http://:2379"}
+	defaultEtcdPeerAddress   = []string{"http://:2380"}
+	defaultEtcdEndpoints     = []string{}
 )
 
 // parseFlags sets up the flags and parses them, this needs to be called before any other operation
@@ -44,9 +45,10 @@ func parseFlags() {
 	flag.String("peeraddress", defaultPeerAddress, "Address to bind the inter glusterd2 RPC service.")
 
 	// Etcd config options
-	flag.String("etcdclientaddress", defaultEtcdClientAddress, "Address which etcd server will use for peer to peer communication.")
-	flag.String("etcdpeeraddress", defaultEtcdPeerAddress, "Address which etcd server will use to receive etcd client requests.")
+	flag.StringSlice("etcdclientaddress", defaultEtcdClientAddress, "Address which etcd server will use for peer to peer communication.")
+	flag.StringSlice("etcdpeeraddress", defaultEtcdPeerAddress, "Address which etcd server will use to receive etcd client requests.")
 	flag.String("etcdlogfile", "etcd.log", "Log file name for logging embedded etcd logs")
+	flag.StringSlice("etcdendpoints", defaultEtcdEndpoints, "")
 
 	flag.Parse()
 }
@@ -97,17 +99,17 @@ func setDefaults() {
 	}
 
 	// If no IP is specified for etcd config options (defaults), set those.
-	etcdConfigOptions := []string{"etcdclientaddress", "etcdpeeraddress"}
-	for _, option := range etcdConfigOptions {
-		host, port, err := net.SplitHostPort(config.GetString(option))
-		if err != nil {
-			log.Fatal("Invalid etcd addresses specified.")
-		} else {
-			if host == "" {
-				config.SetDefault(option, gdctx.HostIP+":"+port)
-			}
-		}
-	}
+	//etcdConfigOptions := []string{"etcdclientaddress", "etcdpeeraddress"}
+	//for _, option := range etcdConfigOptions {
+	//host, port, err := net.SplitHostPort(config.GetString(option))
+	//if err != nil {
+	//log.Fatal("Invalid etcd addresses specified.")
+	//} else {
+	//if host == "" {
+	//config.SetDefault(option, gdctx.HostIP+":"+port)
+	//}
+	//}
+	//}
 }
 
 func dumpConfigToLog() {

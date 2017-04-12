@@ -6,21 +6,20 @@ import (
 	"path"
 	"strings"
 	"syscall"
+	"time"
 
-	"github.com/gluster/glusterd2/gapi"
 	"github.com/gluster/glusterd2/gdctx"
+	"github.com/gluster/glusterd2/mgmt"
 	"github.com/gluster/glusterd2/servers"
 	"github.com/gluster/glusterd2/utils"
 
 	log "github.com/Sirupsen/logrus"
-	mgmt "github.com/purpleidea/mgmt/lib"
 	flag "github.com/spf13/pflag"
 	config "github.com/spf13/viper"
 	"github.com/thejerf/suture"
 )
 
 func main() {
-
 	gdctx.SetHostnameAndIP()
 
 	// Parse command-line arguments
@@ -54,32 +53,19 @@ func main() {
 	// Generate UUID if it doesn't exist
 	gdctx.MyUUID = gdctx.InitMyUUID()
 
-	// set all the options we want here...
-	libmgmt := &mgmt.Main{}
-	libmgmt.Program = "glusterd2"
-	libmgmt.Version = "testing" // TODO: set on compilation
-	libmgmt.TmpPrefix = true    // prod things probably don't want this on
-	//prefix := "/tmp/testprefix/"
-	//libmgmt.Prefix = &p // enable for easy debugging
-	libmgmt.IdealClusterSize = -1
-	libmgmt.ConvergedTimeout = -1
-	libmgmt.Noop = false // FIXME: careful!
+	// Start the global supervisor
+	super := initGD2Supervisor()
+	super.ServeBackground()
 
-	libmgmt.GAPI = &gapi.Gd3GAPI{ // graph API
-		Program: "gd2",
-		Version: "testing",
-	}
-
-	if err := libmgmt.Init(); err != nil {
-		log.WithError(err).Fatal("Init failed")
-	}
+	// Start mgmt
+	super.Add(mgmt.New())
+	// TODO: Wait properly here for mgmt to startup
+	time.Sleep(5 * time.Second)
 
 	// Initialize op version and etcd store
 	gdctx.Init()
 
-	// Start all servers (rest, peerrpc, sunrpc) managed by suture supervisor
-	super := initGD2Supervisor()
-	super.ServeBackground()
+	// Start all servers (rest, peerrpc, sunrpc)
 	super.Add(servers.New())
 
 	// Use the main goroutine as signal handling loop
