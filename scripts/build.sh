@@ -15,7 +15,7 @@ LDFLAGS="-X github.com/gluster/glusterd2/gdctx.GlusterdVersion=$VERSION"
 BIN=$(basename $(go list -f '{{.ImportPath}}'))
 
 echo "Building $BIN $VERSION"
-go build -ldflags "${LDFLAGS}" -o $OUTDIR/$BIN || exit 1
+go build -ldflags "${LDFLAGS}" -tags "noaugeas novirt" -o $OUTDIR/$BIN || exit 1
 echo "Built $BIN $VERSION at $OUTDIR/$BIN"
 
 

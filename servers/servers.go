@@ -3,7 +3,7 @@ package servers
 
 import (
 	"github.com/gluster/glusterd2/servers/muxsrv"
-	"github.com/gluster/glusterd2/servers/peerrpc"
+	//"github.com/gluster/glusterd2/servers/peerrpc"
 
 	log "github.com/Sirupsen/logrus"
 	"github.com/thejerf/suture"
@@ -16,7 +16,7 @@ func New() *suture.Supervisor {
 	}
 	s := suture.New("gd2-servers", suture.Spec{Log: logger})
 
-	s.Add(peerrpc.New())
+	//s.Add(peerrpc.New())
 	s.Add(muxsrv.New())
 
 	return s

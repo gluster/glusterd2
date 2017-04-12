@@ -57,8 +57,8 @@ func main() {
 	// set all the options we want here...
 	libmgmt := &mgmt.Main{}
 	libmgmt.Program = "glusterd2"
-	//libmgmt.Version = "0.0.1"   // TODO: set on compilation
-	libmgmt.TmpPrefix = true // prod things probably don't want this on
+	libmgmt.Version = "testing" // TODO: set on compilation
+	libmgmt.TmpPrefix = true    // prod things probably don't want this on
 	//prefix := "/tmp/testprefix/"
 	//libmgmt.Prefix = &p // enable for easy debugging
 	libmgmt.IdealClusterSize = -1
@@ -71,7 +71,7 @@ func main() {
 	}
 
 	if err := libmgmt.Init(); err != nil {
-		log.Fatal("Init failed")
+		log.WithError(err).Fatal("Init failed")
 	}
 
 	// Initialize op version and etcd store
