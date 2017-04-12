@@ -59,9 +59,4 @@ func (c *Command) Routes() route.Routes {
 
 // RegisterStepFuncs implements a required function for the Command interface
 func (c *Command) RegisterStepFuncs() {
-	registerVolCreateStepFuncs()
-	registerVolDeleteStepFuncs()
-	registerVolStartStepFuncs()
-	registerVolStopStepFuncs()
-	registerVolStatusStepFuncs()
 }
