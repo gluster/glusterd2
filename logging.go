@@ -2,6 +2,7 @@ package main
 
 import (
 	"io"
+	stdlog "log"
 	"os"
 	"path"
 	"strings"
@@ -47,4 +48,6 @@ func initLog(logdir string, logFileName string, logLevel string) {
 		log.SetOutput(logFile)
 		logWriter = logFile
 	}
+
+	stdlog.SetOutput(log.WithField("source", "stdlog").Writer())
 }
