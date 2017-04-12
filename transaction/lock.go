@@ -4,6 +4,7 @@ import (
 	"github.com/gluster/glusterd2/gdctx"
 	"github.com/gluster/glusterd2/store"
 
+	"github.com/coreos/etcd/clientv3/concurrency"
 	"github.com/pborman/uuid"
 )
 
@@ -25,42 +26,27 @@ func CreateLockStepFunc(key string) (string, string, error) {
 	}
 
 	key = lockPrefix + key
-	locker, err := gdctx.Store.NewLock(key, nil)
-	if err != nil {
-		return "", "", err
+	locker := concurrency.NewLocker(gdctx.Store.Session, key)
+
+	lockFunc := func(c TxnCtx) error {
+		log := c.Logger().WithField("key", key)
+
+		locker.Lock()
+		log.Debug("locked obtained")
+
+		return nil
 	}
+	RegisterStepFunc(lockFunc, lockFuncID)
 
-	if !lockFuncFound {
-		lockFunc := func(c TxnCtx) error {
-			log := c.Logger().WithField("key", key)
+	unlockFunc := func(c TxnCtx) error {
+		log := c.Logger().WithField("key", key)
 
-			_, err := locker.Lock(nil)
-			if err != nil {
-				log.WithError(err).Debug("failed to lock")
-			} else {
-				log.Debug("locked obtained")
-			}
+		locker.Unlock()
+		log.Debug("lock released")
 
-			return err
-		}
-		RegisterStepFunc(lockFunc, lockFuncID)
+		return nil
 	}
-
-	if !unlockFuncFound {
-		unlockFunc := func(c TxnCtx) error {
-			log := c.Logger().WithField("key", key)
-
-			err := locker.Unlock()
-			if err != nil {
-				log.WithError(err).Error("failed to release lock")
-			} else {
-				log.Debug("lock released")
-			}
-
-			return err
-		}
-		RegisterStepFunc(unlockFunc, unlockFuncID)
-	}
+	RegisterStepFunc(unlockFunc, unlockFuncID)
 
 	return lockFuncID, unlockFuncID, nil
 }

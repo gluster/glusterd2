@@ -52,7 +52,7 @@ func doInit() {
 	// false. That is when we'll have to initialize prefixes by passing true to
 	// InitStore(). On subsequent restarts of glusterd, we would want to skip
 	// initializing prefixes by passing false to InitStore()
-	InitStore(!Restart)
+	InitStore()
 }
 
 // Init initializes the GlusterD context. This should be called once before doing anything else.
