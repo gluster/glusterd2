@@ -1,5 +1,5 @@
-hash: f166b3a6f9702ca889272f6136924ea443f80b3c1ec4ab936c17994a5079819f
-updated: 2017-02-27T17:06:22.34675988+05:30
+hash: 2cef3720b0292b8febed13dfa7cb3e0675a2d839f4c6efe33fe4acecb7c7aa65
+updated: 2017-04-12T13:49:14.716550821+05:30
 imports:
 - name: github.com/beorn7/perks
   version: 4c0e84591b9aa9e6dcfdf3e020114cd81f89d5f9
@@ -10,7 +10,7 @@ imports:
 - name: github.com/cockroachdb/cmux
   version: 112f0506e7743d64a6eb8fedbcff13d9979bbf92
 - name: github.com/coreos/etcd
-  version: 714e7ec8db7f8398880197be10771fe89c480ee5
+  version: 20490caaf0dcd96bb4a95e40625559def8ef5b04
   subpackages:
   - alarm
   - auth
@@ -167,7 +167,7 @@ imports:
   subpackages:
   - xdr2
 - name: github.com/Sirupsen/logrus
-  version: 4b6ea7319e214d98c938f12692336f7ca9348d6b
+  version: ba1b36c82c5e05c4f912a88eab0dcd91a171688f
 - name: github.com/soheilhy/cmux
   version: bf4a8ede9e87c006fe1d4278c6c7f2b8be1fa84c
 - name: github.com/spf13/afero
@@ -183,7 +183,7 @@ imports:
 - name: github.com/spf13/viper
   version: 7538d73b4eb9511d85a9f1dfef202eeb8ac260f4
 - name: github.com/thejerf/suture
-  version: fe1c0d795ff7a7e54fc54ef6afb36ee0adf0c276
+  version: 0ac47afae95ad5bc5184ed346bc945168e883f5d
 - name: github.com/ugorji/go
   version: ded73eae5db7e7a0ef6f55aace87a2873c5d2b74
   subpackages:
@@ -215,12 +215,13 @@ imports:
   - transform
   - unicode/norm
 - name: google.golang.org/grpc
-  version: 708a7f9f3283aa2d4f6132d287d78683babe55c8
+  version: 8050b9cbc271307e5a716a9d782803d09b0d6f2d
   subpackages:
   - codes
   - credentials
   - grpclog
   - internal
+  - keepalive
   - metadata
   - naming
   - peer
