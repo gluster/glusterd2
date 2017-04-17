@@ -20,6 +20,7 @@ const (
 //
 // Nodes is a union of the all the TxnStep.Nodes
 type Txn struct {
+	// TODO: Any good reason for this to be not just string ?
 	ID    uuid.UUID
 	Ctx   TxnCtx
 	Steps []*Step
@@ -27,26 +28,29 @@ type Txn struct {
 }
 
 // NewTxn returns an initialized Txn without any steps
-func NewTxn() *Txn {
+func NewTxn(id string) *Txn {
 	t := new(Txn)
-	t.ID = uuid.NewRandom()
-	prefix := txnPrefix + t.ID.String()
 
+	if uuid.Parse(id) != nil {
+		t.ID = uuid.Parse(id)
+	} else {
+		t.ID = uuid.NewRandom()
+	}
+
+	prefix := txnPrefix + t.ID.String()
 	t.Ctx = NewCtxWithLogFields(log.Fields{
-		"txnid": t.ID.String(),
+		"reqid": t.ID.String(),
 	}).WithPrefix(prefix)
 
 	return t
 }
 
 // NewTxnWithLoggingContext creates a Txn with a Context with given logging fields
-func NewTxnWithLoggingContext(f log.Fields) *Txn {
-	t := new(Txn)
-	t.ID = uuid.NewRandom()
+func NewTxnWithLoggingContext(f log.Fields, id string) *Txn {
+	t := NewTxn(id)
 	prefix := txnPrefix + t.ID.String()
-
 	t.Ctx = NewCtxWithLogFields(log.Fields{
-		"txnid": t.ID.String(),
+		"reqid": t.ID.String(),
 	}).WithPrefix(prefix).WithLogFields(f)
 
 	return t

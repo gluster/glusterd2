@@ -1,5 +1,5 @@
-hash: adf01988e5ed54443a12558b56bf4a932959a06c90aea734e1a226a8f71bc4e1
-updated: 2017-04-10T15:19:03.432489462+05:30
+hash: c6cca88412810d810420798792e96ffef1a26e52e3081e882ffed320f3389087
+updated: 2017-04-13T19:44:54.706601251+05:30
 imports:
 - name: github.com/beorn7/perks
   version: 4c0e84591b9aa9e6dcfdf3e020114cd81f89d5f9
@@ -99,6 +99,8 @@ imports:
   version: 925471ac9e2131377a91e1595defec898166fe49
 - name: github.com/gorilla/context
   version: 08b5f424b9271eedf6f9f0ce86cb9396ed337a42
+- name: github.com/gorilla/handlers
+  version: 13d73096a474cac93275c679c7b8a2dc17ddba82
 - name: github.com/gorilla/mux
   version: 999ef73f5d50979cf6d12afed1726325b63f9570
 - name: github.com/grpc-ecosystem/go-grpc-prometheus
@@ -124,6 +126,8 @@ imports:
   version: f3775cbcefd6822086c729e3ce4b70ca85a5bd21
 - name: github.com/jonboulle/clockwork
   version: 2eee05ed794112d45db504eb05aa693efd2b8b09
+- name: github.com/justinas/alice
+  version: 1051eaf52fcafdd87ead59d28b065f1fcb8274ec
 - name: github.com/magiconair/properties
   version: b3b15ef068fd0b17ddf408a23669f20811d194d2
 - name: github.com/matttproud/golang_protobuf_extensions
