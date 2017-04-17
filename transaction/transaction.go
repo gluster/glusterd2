@@ -31,10 +31,12 @@ type Txn struct {
 func NewTxn(id string) *Txn {
 	t := new(Txn)
 
-	if uuid.Parse(id) != nil {
+	parsedID := uuid.Parse(id)
+	if parsedID != nil {
 		t.ID = uuid.Parse(id)
 	} else {
 		t.ID = uuid.NewRandom()
+		log.WithField("reqid", t.ID.String()).Warn("Invalid UUID set as request ID. Generated new request ID")
 	}
 
 	prefix := txnPrefix + t.ID.String()
