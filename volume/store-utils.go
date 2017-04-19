@@ -1,13 +1,16 @@
 package volume
 
 import (
+	"context"
 	"encoding/json"
+	"errors"
 
 	"github.com/gluster/glusterd2/gdctx"
 	"github.com/gluster/glusterd2/store"
 	"github.com/pborman/uuid"
 
 	log "github.com/Sirupsen/logrus"
+	"github.com/coreos/etcd/clientv3"
 )
 
 const (
@@ -21,10 +24,6 @@ var (
 	AddOrUpdateVolumeFunc = AddOrUpdateVolume
 )
 
-func init() {
-	gdctx.RegisterStorePrefix(volumePrefix)
-}
-
 // AddOrUpdateVolume marshals to volume object and passes to store to add/update
 func AddOrUpdateVolume(v *Volinfo) error {
 	json, e := json.Marshal(v)
@@ -33,9 +32,9 @@ func AddOrUpdateVolume(v *Volinfo) error {
 		return e
 	}
 
-	e = gdctx.Store.Put(volumePrefix+v.Name, json, nil)
+	_, e = gdctx.Store.Put(context.TODO(), volumePrefix+v.Name, string(json))
 	if e != nil {
-		log.WithField("error", e).Error("Couldn't add volume to store")
+		log.WithError(e).Error("Couldn't add volume to store")
 		return e
 	}
 	return nil
@@ -45,13 +44,19 @@ func AddOrUpdateVolume(v *Volinfo) error {
 // volinfo object
 func GetVolume(name string) (*Volinfo, error) {
 	var v Volinfo
-	b, e := gdctx.Store.Get(volumePrefix + name)
+	resp, e := gdctx.Store.Get(context.TODO(), volumePrefix+name)
 	if e != nil {
-		log.WithField("error", e).Error("Couldn't retrive volume from store")
+		log.WithError(e).Error("Couldn't retrive volume from store")
 		return nil, e
 	}
-	if e = json.Unmarshal(b.Value, &v); e != nil {
-		log.WithField("error", e).Error("Failed to unmarshal the data into volinfo object")
+
+	if resp.Count != 1 {
+		log.WithField("volume", name).Error("volume not found")
+		return nil, errors.New("volume not found")
+	}
+
+	if e = json.Unmarshal(resp.Kvs[0].Value, &v); e != nil {
+		log.WithError(e).Error("Failed to unmarshal the data into volinfo object")
 		return nil, e
 	}
 	return &v, nil
@@ -59,24 +64,25 @@ func GetVolume(name string) (*Volinfo, error) {
 
 //DeleteVolume passes the volname to store to delete the volume object
 func DeleteVolume(name string) error {
-	return gdctx.Store.Delete(volumePrefix + name)
+	_, e := gdctx.Store.Delete(context.TODO(), volumePrefix+name)
+	return e
 }
 
 // GetVolumesList returns a map of volume names to their UUIDs
 func GetVolumesList() (map[string]uuid.UUID, error) {
-	pairs, e := gdctx.Store.List(volumePrefix)
+	resp, e := gdctx.Store.Get(context.TODO(), volumePrefix, clientv3.WithPrefix())
 	if e != nil {
 		return nil, e
 	}
 
 	volumes := make(map[string]uuid.UUID)
 
-	for _, pair := range pairs {
+	for _, kv := range resp.Kvs {
 		var vol Volinfo
 
-		if err := json.Unmarshal(pair.Value, &vol); err != nil {
+		if err := json.Unmarshal(kv.Value, &vol); err != nil {
 			log.WithFields(log.Fields{
-				"volume": pair.Key,
+				"volume": string(kv.Key),
 				"error":  err,
 			}).Error("Failed to unmarshal volume")
 			continue
@@ -91,36 +97,36 @@ func GetVolumesList() (map[string]uuid.UUID, error) {
 //GetVolumes retrives the json objects from the store and converts them into
 //respective volinfo objects
 func GetVolumes() ([]Volinfo, error) {
-	pairs, e := gdctx.Store.List(volumePrefix)
+	resp, e := gdctx.Store.Get(context.TODO(), volumePrefix, clientv3.WithPrefix())
 	if e != nil {
 		return nil, e
 	}
 
-	volumes := make([]Volinfo, len(pairs))
+	volumes := make([]Volinfo, len(resp.Kvs))
 
-	for index, pair := range pairs {
+	for i, kv := range resp.Kvs {
 		var vol Volinfo
 
-		if err := json.Unmarshal(pair.Value, &vol); err != nil {
+		if err := json.Unmarshal(kv.Value, &vol); err != nil {
 			log.WithFields(log.Fields{
-				"volume": pair.Key,
+				"volume": string(kv.Key),
 				"error":  err,
 			}).Error("Failed to unmarshal volume")
 			continue
 		}
-		volumes[index] = vol
+
+		volumes[i] = vol
 	}
 
 	return volumes, nil
-
 }
 
 //Exists check whether a given volume exist or not
 func Exists(name string) bool {
-	b, e := gdctx.Store.Exists(volumePrefix + name)
+	resp, e := gdctx.Store.Get(context.TODO(), volumePrefix+name)
 	if e != nil {
 		return false
 	}
 
-	return b
+	return resp.Count == 1
 }

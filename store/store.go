@@ -1,16 +1,12 @@
 // Package store implements the centralized store for GlusterD
-//
-// We use etcd as the store backend, and use libkv as the frontend to etcd.
-// libkv should allow us to change backends easily if required.
 package store
 
 import (
 	"time"
 
 	log "github.com/Sirupsen/logrus"
-	"github.com/prashanthpai/libkv"
-	"github.com/prashanthpai/libkv/store"
-	"github.com/prashanthpai/libkv/store/etcd"
+	"github.com/coreos/etcd/clientv3"
+	"github.com/coreos/etcd/clientv3/concurrency"
 	config "github.com/spf13/viper"
 )
 
@@ -21,48 +17,41 @@ const (
 
 // GDStore is the GlusterD centralized store
 type GDStore struct {
-	store.Store
-}
-
-func init() {
-	etcd.Register()
+	*clientv3.Client
+	*concurrency.Session
 }
 
 // New creates a new GDStore
 func New() *GDStore {
-	//TODO: Make this configurable
 	address := config.GetString("etcdclientaddress")
 
-	s, err := libkv.NewStore(store.ETCD, []string{address}, &store.Config{ConnectionTimeout: 10 * time.Second})
-	if err != nil {
-		log.WithField("error", err).Fatal("Failed to create libkv store.")
+	c, e := clientv3.New(clientv3.Config{
+		Endpoints:        []string{address},
+		AutoSyncInterval: 1 * time.Minute,
+		DialTimeout:      10 * time.Second,
+	})
+	if e != nil {
+		log.WithError(e).Fatal("failed to create etcd client")
+		return nil
 	}
-	log.WithFields(log.Fields{"backend": "etcd", "client": address}).Debug("Created libkv store.")
+	log.Debug("etcd client connection created")
 
-	gds := &GDStore{s}
-	return gds
+	// Create a new locking session to be used for locking in transaction and other places
+	s, e := concurrency.NewSession(c)
+	if e != nil {
+		log.WithError(e).Fatal("failed to create an etcd session")
+		return nil
+	}
+
+	return &GDStore{c, s}
 }
 
-// InitPrefix initializes the given prefix `p` in the store so that GETs on empty prefixes don't fail
-// Returns error on failure, nil on success
-func (s *GDStore) InitPrefix(p string) error {
-	// Create the prefix if the prefix is not found. If any other error occurs
-	// return it. Don't do anything if prefix is found
-	if _, e := s.Get(p); e != nil {
-		switch e {
-		case store.ErrKeyNotFound:
-			log.WithField("prefix", p).Debug("Prefix not found.")
-			if e := s.Put(p, nil, &store.WriteOptions{IsDir: true}); e != nil {
-				return e
-			}
-			log.WithField("prefix", p).Debug("Created prefix.")
-
-		default:
-			return e
-		}
-	} else {
-		log.WithField("prefix", p).Debug("Prefix found.")
+// Close closes the store connections
+func (s *GDStore) Close() {
+	if e := s.Client.Close(); e != nil {
+		log.WithError(e).Warn("failed to close etcd client connection")
 	}
-
-	return nil
+	if e := s.Session.Close(); e != nil {
+		log.WithError(e).Warn("failed to close etcd session")
+	}
 }

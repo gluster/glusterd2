@@ -1,15 +1,12 @@
 package: github.com/gluster/glusterd2
 import:
 - package: github.com/coreos/etcd
-  version: ~v3.1.0
+  version: ~v3.1.5
   subpackages:
   - client
   - clientv3
   - embed
-- package: github.com/prashanthpai/libkv
-  subpackages:
-  - store
-  - store/etcd
+  - clientv3/concurrency
 - package: github.com/pborman/uuid
 - package: github.com/gorilla/mux
 - package: github.com/Sirupsen/logrus
