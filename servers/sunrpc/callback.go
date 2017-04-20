@@ -5,6 +5,8 @@ import (
 	"net"
 	"sync/atomic"
 
+	"github.com/gluster/glusterd2/utils"
+
 	log "github.com/Sirupsen/logrus"
 	"github.com/prashanthpai/sunrpc"
 	"github.com/rasky/go-xdr/xdr2"
@@ -26,7 +28,7 @@ import (
 // Stuff from glusterd1 that uses RPC callbacks:
 // - glusterd_fetchspec_notify()
 // - glusterd_fetchsnap_notify()
-// - (TODO) glusterd_client_statedump_submit_req()->rpcsvc_request_submit()
+// - glusterd_client_statedump_submit_req()->rpcsvc_request_submit()
 
 // TODO:
 // Glusterd2 (and glusterd1) cannot yet recognize clients (as glusterfsd,
@@ -78,10 +80,13 @@ func callbackClient(conn net.Conn, p sunrpc.ProcedureID, args interface{}) error
 
 type fetchOp uint8
 
+// rpc/rpc-lib/src/protocol-common.h:gf_cbk_procnum
 const (
-	// rpc/rpc-lib/src/protocol-common.h:gf_cbk_procnum
 	gfCbkFetchSpec fetchOp = 1
 	gfCbkGetSnaps  fetchOp = 4
+)
+const (
+	gfCbkStatedump = 9
 )
 
 func fetchNotify(op fetchOp) {
@@ -118,4 +123,39 @@ func FetchSpecNotify() {
 // has been created or modified.
 func FetchSnapNotify() {
 	fetchNotify(gfCbkGetSnaps)
+}
+
+type gfStatedump struct {
+	Pid uint32
+}
+
+// ClientStatedump sends notification to all connected RPC clients on the
+// specified host to take statedump. The clients will examine if the PID
+// it recieved in notification is same as it's own PID. If yes, it will
+// take it's own statedump.
+func ClientStatedump(host string, pid int) {
+	clientsList.RLock()
+	defer clientsList.RUnlock()
+
+	p := sunrpc.ProcedureID{
+		ProgramNumber:   glusterCbkProgram,
+		ProgramVersion:  glusterCbkVersion,
+		ProcedureNumber: gfCbkStatedump,
+	}
+
+	for conn := range clientsList.c {
+		h, _, _ := net.SplitHostPort(conn.RemoteAddr().String())
+		if utils.IsAddressSame(h, host) {
+			go func(c net.Conn) {
+				if err := callbackClient(c, p, &gfStatedump{uint32(pid)}); err != nil {
+					// TODO: Use context logger if this is part of a user triggered operation
+					log.WithError(err).WithFields(log.Fields{
+						"client":    c.RemoteAddr().String(),
+						"procedure": gfCbkStatedump,
+					}).Warn("Failed to notify RPC client")
+				}
+				// TODO: goroutine leak ?
+			}(conn)
+		}
+	}
 }
