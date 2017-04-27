@@ -64,8 +64,7 @@ func registerVolStopStepFuncs() {
 func volumeStopHandler(w http.ResponseWriter, r *http.Request) {
 	p := mux.Vars(r)
 	volname := p["volname"]
-	reqID := r.Header.Get("X-Request-ID")
-	logger := log.WithField("reqid", reqID)
+	reqID, logger := restutils.GetReqIDandLogger(r)
 
 	vol, e := volume.GetVolume(volname)
 	if e != nil {

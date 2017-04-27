@@ -169,8 +169,7 @@ func nodesForVolCreate(req *volume.VolCreateRequest) ([]uuid.UUID, error) {
 
 func volumeCreateHandler(w http.ResponseWriter, r *http.Request) {
 	req := new(volume.VolCreateRequest)
-	reqID := r.Header.Get("X-Request-ID")
-	logger := log.WithField("reqid", reqID)
+	reqID, logger := restutils.GetReqIDandLogger(r)
 
 	httpStatus, e := unmarshalVolCreateRequest(req, r)
 	if e != nil {

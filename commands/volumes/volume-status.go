@@ -109,8 +109,7 @@ func aggregateVolumeStatus(ctx transaction.TxnCtx, nodes []uuid.UUID) (*volume.V
 func volumeStatusHandler(w http.ResponseWriter, r *http.Request) {
 	p := mux.Vars(r)
 	volname := p["volname"]
-	reqID := r.Header.Get("X-Request-ID")
-	logger := log.WithField("reqid", reqID)
+	reqID, logger := restutils.GetReqIDandLogger(r)
 
 	// Ensure that the volume exists.
 	vol, err := volume.GetVolume(volname)

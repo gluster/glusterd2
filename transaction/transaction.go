@@ -31,10 +31,7 @@ type Txn struct {
 func NewTxn(id string) *Txn {
 	t := new(Txn)
 
-	parsedID := uuid.Parse(id)
-	if parsedID != nil {
-		t.ID = uuid.Parse(id)
-	} else {
+	if t.ID = uuid.Parse(id); t.ID == nil {
 		t.ID = uuid.NewRandom()
 		log.WithField("reqid", t.ID.String()).Warn("Invalid UUID set as request ID. Generated new request ID")
 	}

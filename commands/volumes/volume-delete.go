@@ -70,8 +70,7 @@ func registerVolDeleteStepFuncs() {
 func volumeDeleteHandler(w http.ResponseWriter, r *http.Request) {
 	p := mux.Vars(r)
 	volname := p["volname"]
-	reqID := r.Header.Get("X-Request-ID")
-	logger := log.WithField("reqid", reqID)
+	reqID, logger := restutils.GetReqIDandLogger(r)
 
 	if !volume.Exists(volname) {
 		restutils.SendHTTPError(w, http.StatusBadRequest, gderrors.ErrVolNotFound.Error())
