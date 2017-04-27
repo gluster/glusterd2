@@ -39,12 +39,16 @@ func GetClusterOption(key string) (interface{}, error) {
 	}
 
 	// Else return error
-	return "", errors.New("Invalid Option")
+	return nil, errors.New("Invalid Option")
 }
 
 // SetClusterOption validates and saves the cluster configuration in
 // etcd store.
 func SetClusterOption(key string, value interface{}) error {
+	if _, ok := clusterDefaultOptions[key]; !ok {
+		return errors.New("Invalid Key")
+	}
+
 	clusterKey := clusterOptsPrefix + key
 	if clusterOptValidate(key, value) {
 		d, err := json.Marshal(value)
@@ -59,6 +63,10 @@ func SetClusterOption(key string, value interface{}) error {
 
 // ResetClusterOption deletes cluster configurations stored in etcd store.
 func ResetClusterOption(key string) error {
+	if _, ok := clusterDefaultOptions[key]; !ok {
+		return errors.New("Invalid Key")
+	}
+
 	clusterKey := clusterOptsPrefix + key
 	_, e := gdctx.Store.Delete(context.TODO(), clusterKey)
 	return e
@@ -88,12 +96,16 @@ func GetVolumeOption(volname string, key string) (interface{}, error) {
 	}
 
 	// Else return error
-	return "", errors.New("Invalid Option")
+	return nil, errors.New("Invalid Option")
 }
 
 // SetVolumeOption validates and saves the volume configuration in
 // etcd store.
 func SetVolumeOption(volname string, key string, value interface{}) error {
+	if _, ok := volumeDefaultOptions[key]; !ok {
+		return errors.New("Invalid Key")
+	}
+
 	volumeKey := volumeOptsPrefix + volname + "/" + key
 	if volumeOptValidate(key, value) {
 		d, err := json.Marshal(value)
@@ -108,6 +120,10 @@ func SetVolumeOption(volname string, key string, value interface{}) error {
 
 // ResetVolumeOption deletes volume configurations stored in etcd store.
 func ResetVolumeOption(volname string, key string) error {
+	if _, ok := volumeDefaultOptions[key]; !ok {
+		return errors.New("Invalid Key")
+	}
+
 	volumeKey := volumeOptsPrefix + volname + "/" + key
 	_, e := gdctx.Store.Delete(context.TODO(), volumeKey)
 	return e
