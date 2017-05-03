@@ -109,6 +109,7 @@ func aggregateVolumeStatus(ctx transaction.TxnCtx, nodes []uuid.UUID) (*volume.V
 func volumeStatusHandler(w http.ResponseWriter, r *http.Request) {
 	p := mux.Vars(r)
 	volname := p["volname"]
+	reqID, logger := restutils.GetReqIDandLogger(r)
 
 	// Ensure that the volume exists.
 	vol, err := volume.GetVolume(volname)
@@ -120,7 +121,7 @@ func volumeStatusHandler(w http.ResponseWriter, r *http.Request) {
 	// A very simple free-form transaction to query each node for brick
 	// status. Fetching volume status does not modify state/data on the
 	// remote node. So there's no need for locks.
-	txn := transaction.NewTxn()
+	txn := transaction.NewTxn(reqID)
 	defer txn.Cleanup()
 	txn.Nodes = vol.Nodes()
 	txn.Steps = []*transaction.Step{
@@ -139,7 +140,7 @@ func volumeStatusHandler(w http.ResponseWriter, r *http.Request) {
 	// a way for the nodes store the results of the step runs.
 	rtxn, err := txn.Do()
 	if err != nil {
-		log.WithFields(log.Fields{
+		logger.WithFields(log.Fields{
 			"error":  err.Error(),
 			"volume": volname,
 		}).Error("volumeStatusHandler: Failed to get volume status.")
@@ -153,7 +154,7 @@ func volumeStatusHandler(w http.ResponseWriter, r *http.Request) {
 	result, err := aggregateVolumeStatus(rtxn, txn.Nodes)
 	if err != nil {
 		errMsg := "Failed to aggregate brick status results from multiple nodes."
-		log.WithField("error", err.Error()).Error("volumeStatusHandler:" + errMsg)
+		logger.WithField("error", err.Error()).Error("volumeStatusHandler:" + errMsg)
 		restutils.SendHTTPError(w, http.StatusInternalServerError, errMsg)
 		return
 	}

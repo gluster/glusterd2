@@ -5,8 +5,11 @@ import (
 	"net"
 	"net/http"
 
+	"github.com/gluster/glusterd2/middleware"
+
 	log "github.com/Sirupsen/logrus"
 	"github.com/gorilla/mux"
+	"github.com/justinas/alice"
 	"github.com/soheilhy/cmux"
 )
 
@@ -35,8 +38,9 @@ func NewMuxed(m cmux.CMux) *GDRest {
 
 // Serve begins serving client HTTP requests served by REST server
 func (r *GDRest) Serve() {
+	chain := alice.New(middleware.LogRequest, middleware.ReqIDGenerator).Then(r.Routes)
 	log.WithField("ip:port", r.listener.Addr().String()).Info("Started GlusterD ReST server")
-	if err := http.Serve(r.listener, r.Routes); err != nil {
+	if err := http.Serve(r.listener, chain); err != nil {
 		//TODO: Correctly handle valid errors. We could also be having errors when stopping
 		log.WithError(err).Error("GlusterD ReST server failed")
 	}
