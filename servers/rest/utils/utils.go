@@ -37,3 +37,10 @@ func SendHTTPError(rw http.ResponseWriter, statusCode int, errMsg string) {
 	rw.WriteHeader(statusCode)
 	rw.Write(bytes)
 }
+
+// GetReqIDandLogger returns a request ID and a request-scoped logger having
+// the request ID as a logging field.
+func GetReqIDandLogger(r *http.Request) (string, *log.Entry) {
+	reqID := r.Header.Get("X-Request-ID")
+	return reqID, log.WithField("reqid", reqID)
+}

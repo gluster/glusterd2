@@ -363,3 +363,40 @@ func GetLocalIP() (string, error) {
 func GetFuncName(fn interface{}) string {
 	return runtime.FuncForPC(reflect.ValueOf(fn).Pointer()).Name()
 }
+
+// StringInSlice will return true if the given string is present in the
+// list of strings provided. Will return false otherwise.
+func StringInSlice(query string, list []string) bool {
+	for _, s := range list {
+		if s == query {
+			return true
+		}
+	}
+	return false
+}
+
+// IsAddressSame checks is two host addresses are same
+func IsAddressSame(host1, host2 string) bool {
+
+	if host1 == host2 {
+		return true
+	}
+
+	addrs1, err := net.LookupHost(host1)
+	if err != nil {
+		return false
+	}
+
+	addrs2, err := net.LookupHost(host2)
+	if err != nil {
+		return false
+	}
+
+	for _, a := range addrs1 {
+		if StringInSlice(a, addrs2) {
+			return true
+		}
+	}
+
+	return false
+}

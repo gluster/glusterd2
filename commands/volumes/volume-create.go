@@ -19,16 +19,13 @@ import (
 func unmarshalVolCreateRequest(msg *volume.VolCreateRequest, r *http.Request) (int, error) {
 	e := utils.GetJSONFromRequest(r, msg)
 	if e != nil {
-		log.WithField("error", e).Error("Failed to parse the JSON Request")
 		return 422, gderrors.ErrJSONParsingFailed
 	}
 
 	if msg.Name == "" {
-		log.Error("Volume name is empty")
 		return http.StatusBadRequest, gderrors.ErrEmptyVolName
 	}
 	if len(msg.Bricks) <= 0 {
-		log.WithField("volume", msg.Name).Error("Brick list is empty")
 		return http.StatusBadRequest, gderrors.ErrEmptyBrickList
 	}
 	return 0, nil
@@ -150,8 +147,6 @@ func nodesForVolCreate(req *volume.VolCreateRequest) ([]uuid.UUID, error) {
 		// <peer-uuid>:<brick-path>
 		// <ip>:<port>:<brick-path>
 		// <ip>:<brick-path>
-		// TODO: Peer names, as of today, aren't unique. Support it ?
-		// TODO: Change API to have host and path as separate fields
 
 		host, _, err := utils.ParseHostAndBrickPath(b)
 		if err != nil {
@@ -174,9 +169,11 @@ func nodesForVolCreate(req *volume.VolCreateRequest) ([]uuid.UUID, error) {
 
 func volumeCreateHandler(w http.ResponseWriter, r *http.Request) {
 	req := new(volume.VolCreateRequest)
+	reqID, logger := restutils.GetReqIDandLogger(r)
 
 	httpStatus, e := unmarshalVolCreateRequest(req, r)
 	if e != nil {
+		logger.WithError(e).Error("Failed to unmarshal volume request")
 		restutils.SendHTTPError(w, httpStatus, e.Error())
 		return
 	}
@@ -186,12 +183,9 @@ func volumeCreateHandler(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	reqid := uuid.NewRandom().String()
-	logger := log.WithField("reqid", reqid)
-
 	nodes, e := nodesForVolCreate(req)
 	if e != nil {
-		log.WithError(e).Error("could not prepare node list")
+		logger.WithError(e).Error("could not prepare node list")
 		restutils.SendHTTPError(w, http.StatusInternalServerError, e.Error())
 		return
 	}
@@ -203,10 +197,7 @@ func volumeCreateHandler(w http.ResponseWriter, r *http.Request) {
 		Commit:   "vol-create.Commit",
 		Store:    "vol-create.Store",
 		Rollback: "vol-create.Rollback",
-		LogFields: &log.Fields{
-			"reqid": reqid,
-		},
-	}).NewTxn()
+	}).NewTxn(reqID)
 	if e != nil {
 		logger.WithError(e).Error("failed to create transaction")
 		restutils.SendHTTPError(w, http.StatusInternalServerError, e.Error())

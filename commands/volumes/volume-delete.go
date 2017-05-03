@@ -70,8 +70,7 @@ func registerVolDeleteStepFuncs() {
 func volumeDeleteHandler(w http.ResponseWriter, r *http.Request) {
 	p := mux.Vars(r)
 	volname := p["volname"]
-
-	log.Info("In Volume delete API")
+	reqID, logger := restutils.GetReqIDandLogger(r)
 
 	if !volume.Exists(volname) {
 		restutils.SendHTTPError(w, http.StatusBadRequest, gderrors.ErrVolNotFound.Error())
@@ -79,7 +78,6 @@ func volumeDeleteHandler(w http.ResponseWriter, r *http.Request) {
 	}
 	vol, err := volume.GetVolume(volname)
 	if err != nil {
-		// this shouldn't happen
 		restutils.SendHTTPError(w, http.StatusInternalServerError, err.Error())
 		return
 	}
@@ -89,9 +87,7 @@ func volumeDeleteHandler(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	// This is an example of a freeform transaction, that doesn't use the simple transaction framework
-
-	txn := transaction.NewTxn()
+	txn := transaction.NewTxn(reqID)
 	defer txn.Cleanup()
 	lock, unlock, err := transaction.CreateLockSteps(volname)
 	if err != nil {
@@ -115,7 +111,7 @@ func volumeDeleteHandler(w http.ResponseWriter, r *http.Request) {
 
 	_, e := txn.Do()
 	if e != nil {
-		log.WithFields(log.Fields{
+		logger.WithFields(log.Fields{
 			"error":  e.Error(),
 			"volume": volname,
 		}).Error("Failed to delete the volume")

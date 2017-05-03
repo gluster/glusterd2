@@ -140,8 +140,7 @@ func registerVolStartStepFuncs() {
 func volumeStartHandler(w http.ResponseWriter, r *http.Request) {
 	p := mux.Vars(r)
 	volname := p["volname"]
-
-	log.Info("In Volume start API")
+	reqID, logger := restutils.GetReqIDandLogger(r)
 
 	vol, e := volume.GetVolume(volname)
 	if e != nil {
@@ -154,7 +153,7 @@ func volumeStartHandler(w http.ResponseWriter, r *http.Request) {
 	}
 
 	// A simple one-step transaction to start the brick processes
-	txn := transaction.NewTxn()
+	txn := transaction.NewTxn(reqID)
 	defer txn.Cleanup()
 	lock, unlock, err := transaction.CreateLockSteps(volname)
 	if err != nil {
@@ -175,7 +174,7 @@ func volumeStartHandler(w http.ResponseWriter, r *http.Request) {
 
 	_, e = txn.Do()
 	if e != nil {
-		log.WithFields(log.Fields{
+		logger.WithFields(log.Fields{
 			"error":  e.Error(),
 			"volume": volname,
 		}).Error("failed to start volume")
@@ -190,6 +189,5 @@ func volumeStartHandler(w http.ResponseWriter, r *http.Request) {
 		restutils.SendHTTPError(w, http.StatusInternalServerError, e.Error())
 		return
 	}
-	log.WithField("volume", vol.Name).Debug("Volume updated into the store")
 	restutils.SendHTTPResponse(w, http.StatusOK, vol)
 }

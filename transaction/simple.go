@@ -33,12 +33,12 @@ type SimpleTxn struct {
 }
 
 // NewTxn creates and returns a Txn using SimpleTxn as a template
-func (s *SimpleTxn) NewTxn() (*Txn, error) {
+func (s *SimpleTxn) NewTxn(id string) (*Txn, error) {
 	var simple *Txn
 	if s.LogFields == nil {
-		simple = NewTxn()
+		simple = NewTxn(id)
 	} else {
-		simple = NewTxnWithLoggingContext(*s.LogFields)
+		simple = NewTxnWithLoggingContext(*s.LogFields, id)
 	}
 	simple.Nodes = s.Nodes
 	simple.Steps = make([]*Step, 5)
@@ -72,14 +72,4 @@ func (s *SimpleTxn) NewTxn() (*Txn, error) {
 	simple.Steps[4] = unlockstep
 
 	return simple, nil
-}
-
-// Do runs the SimpleTxn on the cluster
-func (s *SimpleTxn) Do() (TxnCtx, error) {
-	t, err := s.NewTxn()
-	if err != nil {
-		return nil, err
-	}
-
-	return t.Do()
 }
