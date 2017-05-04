@@ -138,7 +138,7 @@ func (obj *Gd3GAPI) Graph() (*pgraph.Graph, error) {
 
 	log.Printf("%s: Want %d hosts (%d bricks each) for a dist x repl cluster of %d x %d", obj.Program, totalHosts, brickCount, distribute, replicate)
 
-	keyMap, err := obj.data.World.StrGet(worldNamespace) // map: hostname->state
+	keyMap, err := obj.data.World.StrMapGet(worldNamespace) // map: hostname->state
 	if err != nil {
 		return nil, errwrap.Wrapf(err, "the Graph can't StrGet the namespace of %s", worldNamespace)
 	}
@@ -247,7 +247,7 @@ func (obj *Gd3GAPI) Graph() (*pgraph.Graph, error) {
 			Name:       "reload systemd user units",
 			MetaParams: defaultMetaParams,
 		},
-		Cmd:   "/usr/bin/systemctl --user daemon-reload",
+		Cmd: "/usr/bin/systemctl --user daemon-reload",
 	})
 	g.AddVertex(dr)
 
