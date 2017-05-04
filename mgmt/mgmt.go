@@ -10,10 +10,12 @@ import (
 	config "github.com/spf13/viper"
 )
 
+// Mgmt implements a libmgmt service interface for suture
 type Mgmt struct {
 	*mgmt.Main
 }
 
+// New returns a configure Mgmt object
 func New() *Mgmt {
 	// set all the options we want here...
 	libmgmt := &mgmt.Main{}
@@ -39,10 +41,12 @@ func New() *Mgmt {
 	return &Mgmt{libmgmt}
 }
 
+// Serve starts the mgmt service
 func (m *Mgmt) Serve() {
 	m.Main.Run()
 }
 
+// Stop stops the mgmt service
 func (m *Mgmt) Stop() {
 	m.Main.Exit(nil)
 }
