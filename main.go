@@ -9,6 +9,7 @@ import (
 
 	"github.com/gluster/glusterd2/etcdmgmt"
 	"github.com/gluster/glusterd2/gdctx"
+	"github.com/gluster/glusterd2/mgmt"
 	"github.com/gluster/glusterd2/peer"
 	"github.com/gluster/glusterd2/servers"
 	"github.com/gluster/glusterd2/utils"
@@ -74,6 +75,7 @@ func main() {
 	super := initGD2Supervisor()
 	super.ServeBackground()
 	super.Add(servers.New())
+	super.Add(mgmt.New())
 
 	// Use the main goroutine as signal handling loop
 	sigCh := make(chan os.Signal)

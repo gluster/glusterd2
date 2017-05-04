@@ -32,3 +32,6 @@ import:
 - package: github.com/prashanthpai/sunrpc
 - package: github.com/justinas/alice
 - package: github.com/gorilla/handlers
+
+ignore:
+- github.com/purpleidea/mgmt
