@@ -46,7 +46,7 @@ verify: check-reqs
 	@gometalinter -D gotype -E gofmt --errors --deadline=5m -j 4 $$(glide nv)
 
 test:
-	@go test $$(glide nv)
+	@go test -tags 'novirt noaugeas' $$(glide nv)
 
 release: check-go check-reqs vendor-install
 	@./scripts/release.sh
