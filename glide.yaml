@@ -38,6 +38,9 @@ import:
   - gapi
   - pgraph
   - resources
+# Pinning specific version required by mgmt as mgmt/vendor is stripped
+- package: github.com/purpleidea/go-systemd
+  version: 6192533ebb4662c3bc0ce60c1d33dfc6702a1eac
 # The two packages below are pinned to master. If they are not pinned to
 # master, glide selects the pinned versions from etcd, which are not compatible
 # with mgmt.

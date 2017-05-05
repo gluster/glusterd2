@@ -1,5 +1,5 @@
-hash: 12b2c6bfa3a625087d9054e6a06f49a3b0e99ae58ecd353d3632a3a91cb95333
-updated: 2017-05-05T14:04:09.624578757+05:30
+hash: 5493d5f256fc89022332537094115e89ac11dfc3cb756506d585dd4185611de9
+updated: 2017-05-05T14:48:02.306162471+05:30
 imports:
 - name: github.com/beorn7/perks
   version: 4c0e84591b9aa9e6dcfdf3e020114cd81f89d5f9
@@ -189,7 +189,7 @@ imports:
   subpackages:
   - xfs
 - name: github.com/purpleidea/go-systemd
-  version: 48702e0da86bd25e76cfef347e2adeb434a0d0a6
+  version: 6192533ebb4662c3bc0ce60c1d33dfc6702a1eac
   subpackages:
   - machine1
 - name: github.com/purpleidea/mgmt
