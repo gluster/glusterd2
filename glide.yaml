@@ -25,13 +25,23 @@ import:
   - proto
   - protoc-gen-go
 - package: google.golang.org/grpc
-  version: ^1.0.0
+  version: 1.0.4
 - package: github.com/soheilhy/cmux
 - package: github.com/thejerf/suture
   version: ^2.0.0
 - package: github.com/prashanthpai/sunrpc
 - package: github.com/justinas/alice
 - package: github.com/gorilla/handlers
-
-ignore:
-- github.com/purpleidea/mgmt
+- package: github.com/purpleidea/mgmt
+  subpackages:
+  - lib
+  - gapi
+  - pgraph
+  - resources
+# The two packages below are pinned to master. If they are not pinned to
+# master, glide selects the pinned versions from etcd, which are not compatible
+# with mgmt.
+- package: github.com/prometheus/client_golang
+  version: master
+- package: golang.org/x/crypto
+  version: master
