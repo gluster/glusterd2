@@ -29,9 +29,6 @@ cd $GD2SRC
 # update vendored dependencies
 make vendor-update
 
-# get mgmt
-go get -d github.com/purpleidea/mgmt
-
 # run linters
 make verify
 
