@@ -74,6 +74,7 @@ func main() {
 	super := initGD2Supervisor()
 	super.ServeBackground()
 	super.Add(servers.New())
+	addMgmtService(super)
 
 	// Use the main goroutine as signal handling loop
 	sigCh := make(chan os.Signal)

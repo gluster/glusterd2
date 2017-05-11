@@ -2,11 +2,11 @@ GOPATH := $(shell go env GOPATH)
 GOBIN := '$(GOPATH)/bin'
 PLUGINS ?= yes
 
-.PHONY: all build check check-go check-reqs install vendor-update verify glusterd2 release check-protoc
+.PHONY: all build check check-go check-reqs install vendor-update vendor-install verify glusterd2 release check-protoc
 
 all: build
 
-build: check-go check-reqs vendor-update glusterd2
+build: check-go check-reqs vendor-install glusterd2
 
 check: check-go check-reqs check-protoc
 
@@ -26,7 +26,7 @@ glusterd2:
 	@PLUGINS=$(PLUGINS) ./scripts/build.sh
 	@echo
 
-install: check-go check-reqs vendor-update
+install: check-go check-reqs vendor-install
 	@PLUGINS=$(PLUGINS) ./scripts/build.sh $(GOBIN)
 	@echo Setting CAP_SYS_ADMIN for glusterd2 \(requires sudo\)
 	sudo setcap cap_sys_admin+ep $(GOBIN)/glusterd2
@@ -34,7 +34,12 @@ install: check-go check-reqs vendor-update
 
 vendor-update:
 	@echo Updating vendored packages
-	@glide install
+	@glide update --strip-vendor
+	@echo
+
+vendor-install:
+	@echo Installing vendored packages
+	@glide install --strip-vendor
 	@echo
 
 verify: check-reqs
@@ -42,7 +47,7 @@ verify: check-reqs
 	@gometalinter -D gotype -E gofmt --errors --deadline=5m -j 4 $$(glide nv)
 
 test:
-	@go test $$(glide nv)
+	@go test -tags 'novirt noaugeas' $$(glide nv)
 
-release: check-go check-reqs vendor-update
+release: check-go check-reqs vendor-install
 	@./scripts/release.sh

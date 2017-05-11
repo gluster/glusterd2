@@ -26,8 +26,8 @@ cd $GD2SRC
 # install the build and test requirements
 ./scripts/install-reqs.sh
 
-# update vendored dependencies
-make vendor-update
+# install vendored dependencies
+make vendor-install
 
 # run linters
 make verify
