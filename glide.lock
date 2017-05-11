@@ -1,5 +1,5 @@
-hash: c6cca88412810d810420798792e96ffef1a26e52e3081e882ffed320f3389087
-updated: 2017-04-19T17:35:16.371614315+05:30
+hash: 5493d5f256fc89022332537094115e89ac11dfc3cb756506d585dd4185611de9
+updated: 2017-05-05T14:48:02.306162471+05:30
 imports:
 - name: github.com/beorn7/perks
   version: 4c0e84591b9aa9e6dcfdf3e020114cd81f89d5f9
@@ -10,7 +10,7 @@ imports:
 - name: github.com/cockroachdb/cmux
   version: 112f0506e7743d64a6eb8fedbcff13d9979bbf92
 - name: github.com/coreos/etcd
-  version: 20490caaf0dcd96bb4a95e40625559def8ef5b04
+  version: 43b75072bfaca5a7c35c718179defbcabd9a0886
   subpackages:
   - alarm
   - auth
@@ -75,16 +75,21 @@ imports:
   version: 48702e0da86bd25e76cfef347e2adeb434a0d0a6
   subpackages:
   - daemon
+  - dbus
   - journal
+  - unit
   - util
 - name: github.com/coreos/pkg
   version: 3ac0863d7acf3bc44daf49afef8919af12f704ef
   subpackages:
   - capnslog
+  - dlopen
 - name: github.com/fsnotify/fsnotify
   version: a904159b9206978bb6d53fcc7a769e5cd726c737
 - name: github.com/ghodss/yaml
   version: 73d445a93680fa1a78ae23a5839bad48f32ba1ee
+- name: github.com/godbus/dbus
+  version: b038411ec341afd52c6d36d8baae92a29e6e8a9e
 - name: github.com/gogo/protobuf
   version: 909568be09de550ed094403c2bf8a261b5bb730a
   subpackages:
@@ -111,6 +116,10 @@ imports:
   - runtime
   - runtime/internal
   - utilities
+- name: github.com/hashicorp/errwrap
+  version: 7554cd9344cec97297fa6649b055a8c98c2a1e55
+- name: github.com/hashicorp/go-multierror
+  version: ed905158d87462226a13fe39ddf685ea65f1c11f
 - name: github.com/hashicorp/hcl
   version: 630949a3c5fa3c613328e1b8256052cbc2327c9b
   subpackages:
@@ -124,10 +133,22 @@ imports:
   - json/token
 - name: github.com/heketi/tests
   version: f3775cbcefd6822086c729e3ce4b70ca85a5bd21
+- name: github.com/hnakamur/group
+  version: f12c6310ec235d7876823716677d048f1afdf195
+- name: github.com/howeyc/gopass
+  version: bf9dde6d0d2c004a008c27aaee91170c786f6db8
 - name: github.com/jonboulle/clockwork
   version: 2eee05ed794112d45db504eb05aa693efd2b8b09
 - name: github.com/justinas/alice
   version: 1051eaf52fcafdd87ead59d28b065f1fcb8274ec
+- name: github.com/kardianos/osext
+  version: 9d302b58e975387d0b4d9be876622c86cefe64be
+- name: github.com/kr/fs
+  version: 2788f0dbd16903de03cb8186e5c7d97b69ad387b
+- name: github.com/libvirt/libvirt-go
+  version: d1dd72b576736b3726d7f754bedcdd287c377e15
+- name: github.com/libvirt/libvirt-go-xml
+  version: 203f83ce066e8b6d32bf99254016e871a7c17b4c
 - name: github.com/magiconair/properties
   version: b3b15ef068fd0b17ddf408a23669f20811d194d2
 - name: github.com/matttproud/golang_protobuf_extensions
@@ -142,12 +163,17 @@ imports:
   version: df1e16fde7fc330a0ca68167c23bf7ed6ac31d6d
 - name: github.com/pelletier/go-toml
   version: 22139eb5469018e7374b3e7ef653de37ffb44f72
+- name: github.com/pkg/errors
+  version: ff09b135c25aae272398c51a07235b90a75aa4f0
+- name: github.com/pkg/sftp
+  version: dddd9cf3c7889aa0fefd2e8a529367a3e1f3b669
 - name: github.com/prashanthpai/sunrpc
   version: 9279be9f0b6b8e88fd1cecbfed8681c1f1aaad51
 - name: github.com/prometheus/client_golang
-  version: c5b7fccd204277076155f10851dad72b76a49317
+  version: 7d9484283ebefa862b5b7727d4344cfdf9a0d138
   subpackages:
   - prometheus
+  - prometheus/promhttp
 - name: github.com/prometheus/client_model
   version: 6f3806018612930941127f2a7c6c453ba2c527d2
   subpackages:
@@ -162,6 +188,30 @@ imports:
   version: a1dba9ce8baed984a2495b658c82687f8157b98f
   subpackages:
   - xfs
+- name: github.com/purpleidea/go-systemd
+  version: 6192533ebb4662c3bc0ce60c1d33dfc6702a1eac
+  subpackages:
+  - machine1
+- name: github.com/purpleidea/mgmt
+  version: 0af9af44e5bf92c57e2e968859588e16ad8382bb
+  subpackages:
+  - converger
+  - etcd
+  - event
+  - gapi
+  - lib
+  - pgp
+  - pgraph
+  - prometheus
+  - puppet
+  - recwatch
+  - remote
+  - resources
+  - resources/packagekit
+  - util
+  - util/semaphore
+  - yamlgraph
+  - yamlgraph2
 - name: github.com/rasky/go-xdr
   version: 1a41d1a06c93bf8a0e0385be3847a277bb793187
   subpackages:
@@ -188,13 +238,27 @@ imports:
   version: ded73eae5db7e7a0ef6f55aace87a2873c5d2b74
   subpackages:
   - codec
+- name: github.com/urfave/cli
+  version: 1efa31f08b9333f1bd4882d61f9d668a70cd902e
 - name: github.com/xiang90/probing
   version: 07dd2e8dfe18522e9c447ba95f2fe95262f63bb2
 - name: golang.org/x/crypto
-  version: 1351f936d976c60a0a48d728281922cf63eafb8d
+  version: c7af5bf2638a1164f2eb5467c39c6cffbd13a02e
   subpackages:
   - bcrypt
   - blowfish
+  - cast5
+  - curve25519
+  - ed25519
+  - ed25519/internal/edwards25519
+  - openpgp
+  - openpgp/armor
+  - openpgp/elgamal
+  - openpgp/errors
+  - openpgp/packet
+  - openpgp/s2k
+  - ssh
+  - ssh/terminal
 - name: golang.org/x/net
   version: f2499483f923065a842d38eb4c7f1927e6fc6e6d
   subpackages:
@@ -214,20 +278,25 @@ imports:
   subpackages:
   - transform
   - unicode/norm
+- name: golang.org/x/time
+  version: a4bde12657593d5e90d0533a3e4fd95e635124cb
+  subpackages:
+  - rate
 - name: google.golang.org/grpc
-  version: 8050b9cbc271307e5a716a9d782803d09b0d6f2d
+  version: 777daa17ff9b5daef1cfdf915088a2ada3332bf0
   subpackages:
   - codes
   - credentials
   - grpclog
   - internal
-  - keepalive
   - metadata
   - naming
   - peer
-  - stats
-  - tap
   - transport
+- name: gopkg.in/fsnotify.v1
+  version: 629574ca2a5df945712d3079857300b5e4da0236
 - name: gopkg.in/yaml.v2
   version: 53feefa2559fb8dfa8d81baad31be332c97d6c77
+- name: honnef.co/go/augeas
+  version: ca62e35ed6b86f1959cee0860aeb9ce94368aaf0
 testImports: []
