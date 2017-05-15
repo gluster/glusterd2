@@ -7,6 +7,7 @@ import (
 	"strconv"
 	"sync"
 
+	"github.com/gluster/glusterd2/plugins"
 	"github.com/gluster/glusterd2/pmap"
 
 	log "github.com/Sirupsen/logrus"
@@ -44,6 +45,15 @@ func New(l net.Listener) *SunRPC {
 		newGfDump(),
 		pmap.NewGfPortmap(),
 	}
+
+	for _, p := range plugins.PluginsList {
+		rpcProcs := p.SunRPCProgram()
+		if rpcProcs != nil {
+			programsList = append(programsList, rpcProcs)
+			log.WithField("plugin", p.Name()).Debug("loaded sunrpc procedures from plugin")
+		}
+	}
+
 	port := getPortFromListener(srv.listener)
 
 	for _, prog := range programsList {

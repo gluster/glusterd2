@@ -4,6 +4,7 @@ import (
 	"fmt"
 
 	"github.com/gluster/glusterd2/commands"
+	"github.com/gluster/glusterd2/plugins"
 	"github.com/gluster/glusterd2/servers/rest/route"
 
 	log "github.com/Sirupsen/logrus"
@@ -38,5 +39,15 @@ func (r *GDRest) registerRoutes() {
 		//XXX: This doesn't feel like the right place to be register step
 		//functions, but until we have a better place it can stay here.
 		c.RegisterStepFuncs()
+	}
+
+	// Load routes and Step functions from Plugins
+	for _, p := range plugins.PluginsList {
+		restRoutes := p.RestRoutes()
+		if restRoutes != nil {
+			r.setRoutes(restRoutes)
+			log.WithField("plugin", p.Name()).Debug("loaded REST routes from plugin")
+		}
+		p.RegisterStepFuncs()
 	}
 }
