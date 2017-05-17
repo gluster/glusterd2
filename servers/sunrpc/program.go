@@ -51,7 +51,7 @@ func registerProgram(server *rpc.Server, program sunrpc.Program, port int) error
 			sunrpc.Procedure{
 				ID:   procedure.ID,
 				Name: procedure.Name,
-			})
+			}, true)
 		if err != nil {
 			return err
 		}
