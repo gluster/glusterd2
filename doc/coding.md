@@ -15,9 +15,12 @@ Please follow coding conventions and guidelines described in the following docum
 
 **Error Handling:**
 
-* Use variable name `err` to denote error variable.
+* Use variable name `err` to denote error variable during a function call
 * Do not panic()
-* Do not ignore errors using `_` variable
+* Do not ignore errors using `_` variable unless you know what you're doing
+* Error strings should not start with a capital letter
+* If error requires passing of extra information, you can define a new type
+* Error types should end in `Error` and error variables should have `Err` as prefix
 
 **Logging:**
 

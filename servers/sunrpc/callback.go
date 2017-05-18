@@ -108,7 +108,6 @@ func fetchNotify(op fetchOp) {
 					"procedure": op,
 				}).Warn("Failed to notify RPC client")
 			}
-			// TODO: goroutine leak ?
 		}(conn)
 	}
 }
@@ -154,7 +153,6 @@ func ClientStatedump(host string, pid int) {
 						"procedure": gfCbkStatedump,
 					}).Warn("Failed to notify RPC client")
 				}
-				// TODO: goroutine leak ?
 			}(conn)
 		}
 	}

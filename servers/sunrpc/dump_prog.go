@@ -79,7 +79,6 @@ type GfDumpRsp struct {
 // Dump will return a list of all available RPC programs
 func (p *GfDump) Dump(args *GfDumpReq, reply *GfDumpRsp) error {
 
-	// TODO: I don't like doing this in Go. Should abstract it.
 	var list *GfProcDetail
 	var trav *GfProcDetail
 

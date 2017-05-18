@@ -38,7 +38,6 @@ var registry = struct {
 
 // NOTE: Export the functions defined here only when other parts of glusterd2
 //       actually starts using them.
-// TODO: There is no RDMA specific handling yet.
 
 func isPortFree(port int) bool {
 	conn, err := net.Listen("tcp", fmt.Sprintf(":%d", port))
