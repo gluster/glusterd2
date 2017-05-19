@@ -1,6 +1,7 @@
 package main
 
 import (
+	"errors"
 	"net"
 	"os"
 	"path"
@@ -53,12 +54,10 @@ func parseFlags() {
 
 // setDefaults sets defaults values for config options not available as a flag,
 // and flags which don't have default values
-func setDefaults() {
+func setDefaults() error {
 	cwd, err := os.Getwd()
 	if err != nil {
-		log.WithFields(log.Fields{
-			"error": err,
-		}).Fatal("Failed to get current working directory.")
+		return err
 	}
 
 	wd := config.GetString("workdir")
@@ -85,29 +84,28 @@ func setDefaults() {
 	// Set peer address.
 	host, port, err := net.SplitHostPort(config.GetString("peeraddress"))
 	if err != nil {
-		log.Fatal("Invalid peer address specified.")
-	} else {
-		if host == "" {
-			host = gdctx.HostIP
-		}
-		if port == "" {
-			port = config.GetString("defaultpeerport")
-		}
-		config.SetDefault("peeraddress", host+":"+port)
+		return errors.New("invalid peer address specified")
 	}
+	if host == "" {
+		host = gdctx.HostIP
+	}
+	if port == "" {
+		port = config.GetString("defaultpeerport")
+	}
+	config.SetDefault("peeraddress", host+":"+port)
 
 	// If no IP is specified for etcd config options (defaults), set those.
 	etcdConfigOptions := []string{"etcdclientaddress", "etcdpeeraddress"}
 	for _, option := range etcdConfigOptions {
 		host, port, err := net.SplitHostPort(config.GetString(option))
 		if err != nil {
-			log.Fatal("Invalid etcd addresses specified.")
-		} else {
-			if host == "" {
-				config.SetDefault(option, gdctx.HostIP+":"+port)
-			}
+			return errors.New("invalid etcd addresses specified")
+		}
+		if host == "" {
+			config.SetDefault(option, gdctx.HostIP+":"+port)
 		}
 	}
+	return nil
 }
 
 func dumpConfigToLog() {
@@ -119,11 +117,12 @@ func dumpConfigToLog() {
 	l.Debug("running with configuration")
 }
 
-func initConfig(confFile string) {
+func initConfig(confFile string) error {
 	// Read in configuration from file
 	// If a config file is not given try to read from default paths
 	// If a config file was given, read in configration from that file.
 	// If the file is not present panic.
+
 	if confFile == "" {
 		config.SetConfigName(defaultConfName)
 		for _, p := range defaultConfPaths {
@@ -133,29 +132,30 @@ func initConfig(confFile string) {
 		config.SetConfigFile(confFile)
 	}
 
-	e := config.ReadInConfig()
-	if e != nil {
+	if err := config.ReadInConfig(); err != nil {
 		if confFile == "" {
 			log.WithFields(log.Fields{
 				"paths":  defaultConfPaths,
 				"config": defaultConfName + ".(toml|yaml|json)",
-				"error":  e,
+				"error":  err,
 			}).Debug("failed to read any config files, continuing with defaults")
 		} else {
-			log.WithFields(log.Fields{
-				"config": confFile,
-				"error":  e,
-			}).Fatal("failed to read given config file")
+			log.WithError(err).WithField("file", confFile).Error(
+				"failed to read given config file")
+			return err
 		}
 	} else {
-		log.WithField("config", config.ConfigFileUsed()).Info("loaded configuration from file")
+		log.WithField("file", config.ConfigFileUsed()).Info("loaded configuration from file")
 	}
 
 	// Use config given by flags
 	config.BindPFlags(flag.CommandLine)
 
 	// Finally initialize missing config with defaults
-	setDefaults()
+	if err := setDefaults(); err != nil {
+		return err
+	}
 
 	dumpConfigToLog()
+	return nil
 }

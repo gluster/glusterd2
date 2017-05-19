@@ -26,9 +26,10 @@ func StartEmbeddedEtcd(cfg *embed.Config) error {
 		return errors.New("An instance of etcd embedded server is already running")
 	}
 
-	initEtcdLogging()
+	if err := initEtcdLogging(); err != nil {
+		return err
+	}
 
-	// Start embedded etcd server
 	etcd, err := embed.StartEtcd(cfg)
 	if err != nil {
 		return err

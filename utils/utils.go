@@ -4,7 +4,6 @@ package utils
 import "C"
 
 import (
-	"io/ioutil"
 	"net"
 	"os"
 	"path"
@@ -251,7 +250,7 @@ func ValidateXattrSupport(brickPath string, host string, volid uuid.UUID, force 
 		log.WithFields(log.Fields{"error": err.Error(),
 			"brickPath": brickPath,
 			"host":      host,
-			"xattr":     testXattr}).Fatal("removexattr failed")
+			"xattr":     testXattr}).Error("removexattr failed")
 		return err
 	}
 	if !force {
@@ -295,50 +294,24 @@ func isBrickPathAlreadyInUse(brickPath string) bool {
 	return false
 }
 
-// InitDir checks if the input directory is present, a direcotry and is accessible.
-// @ If the directory is not present, it will create directory.
-// @ If it is not a directory, initDir panics.
-// @ If the directory is not accessible, initDir panics.
-func InitDir(dir string) {
-	di, err := os.Stat(dir)
+// InitDir creates directory path and checks if files can be created in it.
+// Returns error if path is not a directory or if directory doesn't have
+// write permission.
+func InitDir(path string) error {
 
-	if err != nil {
-		switch {
-		case os.IsNotExist(err):
-			if err = os.MkdirAll(dir, os.ModeDir|os.ModePerm); err != nil {
-				log.WithFields(log.Fields{
-					"err":  err,
-					"path": dir,
-				}).Fatal("failed to create directory")
-			}
-			return
-
-		case os.IsPermission(err):
-			log.WithFields(log.Fields{
-				"err":  err,
-				"path": dir,
-			}).Fatal("failed to access directory")
-		}
+	if err := os.MkdirAll(path, os.ModeDir|os.ModePerm); err != nil {
+		log.WithError(err).WithField("path", path).Debug(
+			"failed to create directory")
+		return err
 	}
 
-	if !di.IsDir() {
-		log.WithFields(log.Fields{
-			"err":  syscall.ENOTDIR,
-			"path": dir,
-		}).Fatal("directory path is not a directory")
+	if err := unix.Access(path, unix.W_OK); err != nil {
+		log.WithError(err).WithField("path", path).Debug(
+			"directory does not have write permission")
+		return err
 	}
 
-	// Check if you can create entries in the input directory
-	t, err := ioutil.TempFile(dir, "")
-	if err != nil {
-		log.WithFields(log.Fields{
-			"err":  err,
-			"path": dir,
-		}).Fatal("directory path is not a writable")
-	}
-	// defer happens in LIFO
-	defer syscall.Unlink(t.Name())
-	defer t.Close()
+	return nil
 }
 
 // GetLocalIP will give local IP address of this node

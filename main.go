@@ -21,7 +21,9 @@ import (
 
 func main() {
 
-	gdctx.SetHostnameAndIP()
+	if err := gdctx.SetHostnameAndIP(); err != nil {
+		log.WithError(err).Fatal("Failed to get and set hostname or IP")
+	}
 
 	// Parse command-line arguments
 	parseFlags()
@@ -35,13 +37,17 @@ func main() {
 	logdir, _ := flag.CommandLine.GetString("logdir")
 	logFileName, _ := flag.CommandLine.GetString("logfile")
 
-	initLog(logdir, logFileName, logLevel)
+	if err := initLog(logdir, logFileName, logLevel); err != nil {
+		log.WithError(err).Fatal("Failed to initialize logging")
+	}
 
 	log.WithField("pid", os.Getpid()).Info("Starting GlusterD")
 
 	// Read config file
 	confFile, _ := flag.CommandLine.GetString("config")
-	initConfig(confFile)
+	if err := initConfig(confFile); err != nil {
+		log.WithError(err).Fatal("Failed to initialize config")
+	}
 
 	workdir := config.GetString("workdir")
 	if err := os.Chdir(workdir); err != nil {
@@ -49,25 +55,33 @@ func main() {
 	}
 
 	// Create directories inside workdir - run dir, logdir etc
-	createDirectories()
+	if err := createDirectories(); err != nil {
+		log.WithError(err).Fatal("Failed to create or access directories")
+	}
 
-	// Generate UUID if it doesn't exist
-	gdctx.MyUUID = gdctx.InitMyUUID()
+	if err := gdctx.SetUUID(); err != nil {
+		log.WithError(err).Fatal("Failed to initialize UUID")
+	}
 
 	// Start embedded etcd server
 	etcdConfig, err := etcdmgmt.GetEtcdConfig(true)
 	if err != nil {
 		log.WithError(err).Fatal("Could not fetch config options for etcd")
 	}
-	err = etcdmgmt.StartEmbeddedEtcd(etcdConfig)
-	if err != nil {
+	if err := etcdmgmt.StartEmbeddedEtcd(etcdConfig); err != nil {
 		log.WithError(err).Fatal("Could not start embedded etcd server")
 	}
 
-	// Initialize op version and etcd store
-	gdctx.Init()
+	// Initialize etcd store (etcd client connection)
+	if err := gdctx.InitStore(); err != nil {
+		log.WithError(err).Fatal("Failed to initialize store (etcd client)")
+	}
+
 	if !gdctx.Restart {
-		peer.AddSelfDetails()
+		err = peer.AddSelfDetails()
+		if err != nil {
+			log.WithError(err).Fatal("Could not add self details into etcd")
+		}
 	}
 
 	// Start all servers (rest, peerrpc, sunrpc) managed by suture supervisor
@@ -94,7 +108,9 @@ func main() {
 			// re-initiate the logger instance.
 			if strings.ToLower(logFileName) != "stderr" && strings.ToLower(logFileName) != "stdout" && logFileName != "-" {
 				log.Info("Received SIGHUP, Reloading log file")
-				initLog(logdir, logFileName, logLevel)
+				if err := initLog(logdir, logFileName, logLevel); err != nil {
+					log.WithError(err).Fatal("Could not re-initialize logging")
+				}
 			}
 		default:
 			continue
@@ -109,10 +125,16 @@ func initGD2Supervisor() *suture.Supervisor {
 	return suture.New("gd2-main", suture.Spec{Log: superlogger})
 }
 
-func createDirectories() {
-	utils.InitDir(config.GetString("localstatedir"))
-	utils.InitDir(config.GetString("rundir"))
-	utils.InitDir(config.GetString("logdir"))
-	utils.InitDir(path.Join(config.GetString("rundir"), "gluster"))
-	utils.InitDir(path.Join(config.GetString("logdir"), "glusterfs/bricks"))
+func createDirectories() error {
+	dirs := []string{config.GetString("localstatedir"),
+		config.GetString("rundir"), config.GetString("logdir"),
+		path.Join(config.GetString("rundir"), "gluster"),
+		path.Join(config.GetString("logdir"), "glusterfs/bricks"),
+	}
+	for _, dirpath := range dirs {
+		if err := utils.InitDir(dirpath); err != nil {
+			return err
+		}
+	}
+	return nil
 }
