@@ -17,43 +17,55 @@ import (
 )
 
 func stopBricks(c transaction.TxnCtx) error {
+
 	var volname string
-	if e := c.Get("volname", &volname); e != nil {
-		c.Logger().WithFields(log.Fields{
-			"error": e,
-			"key":   "volname",
-		}).Error("failed to get value for key from context")
-		return e
+	if err := c.Get("volname", &volname); err != nil {
+		c.Logger().WithError(err).WithField(
+			"key", "volname").Error("failed to get value for key from context")
+		return err
 	}
 
-	vol, e := volume.GetVolume(volname)
-	if e != nil {
-		// this shouldn't happen
-		c.Logger().WithFields(log.Fields{
-			"error":   e,
-			"volname": volname,
-		}).Error("failed to get volinfo for volume")
-		return e
+	vol, err := volume.GetVolume(volname)
+	if err != nil {
+		c.Logger().WithError(err).WithField(
+			"volume", volname).Error("failed to get volinfo for volume")
+		return err
 	}
 
 	for _, b := range vol.Bricks {
 		if uuid.Equal(b.NodeID, gdctx.MyUUID) {
-			c.Logger().WithFields(log.Fields{
-				"volume": volname,
-				"brick":  b.Hostname + ":" + b.Path,
-			}).Info("Stopping brick")
 
 			brickDaemon, err := brick.NewGlusterfsd(b)
 			if err != nil {
 				return err
 			}
 
-			err = daemon.Stop(brickDaemon, false)
+			brickname := b.Hostname + ":" + b.Path
+			c.Logger().WithFields(log.Fields{
+				"volume": volname, "brick": brickname}).Info("Stopping brick")
+
+			client, err := daemon.GetRPCClient(brickDaemon)
 			if err != nil {
-				return err
+				c.Logger().WithError(err).WithField(
+					"brick", brickname).Error("failed to connect to brick, sending SIGTERM")
+				daemon.Stop(brickDaemon, false)
+				continue
+			}
+
+			req := &brick.GfBrickOpReq{
+				Name: b.Path,
+				Op:   brick.OpBrickTerminate,
+			}
+			var rsp brick.GfBrickOpRsp
+			err = client.Call("BrickOp", req, &rsp)
+			if err != nil || rsp.OpRet != 0 {
+				c.Logger().WithError(err).WithField(
+					"brick", brickname).Error("failed to send terminate RPC, sending SIGTERM")
+				daemon.Stop(brickDaemon, false)
 			}
 		}
 	}
+
 	return nil
 }
 

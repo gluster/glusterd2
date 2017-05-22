@@ -39,6 +39,9 @@ type Daemon interface {
 	// process. For now, it is the responsibility of the process to create
 	// the pid file.
 	PidFile() string
+
+	// ID should return a unique identifier for the daemon.
+	ID() string
 }
 
 // Start function starts the daemon located at path returned by Path() with
@@ -152,7 +155,8 @@ func Stop(d Daemon, force bool) error {
 
 	if err != nil {
 		log.WithFields(log.Fields{
-			"pid": pid,
+			"name": d.Name(),
+			"pid":  pid,
 		}).Error("Stopping daemon failed.")
 	}
 
