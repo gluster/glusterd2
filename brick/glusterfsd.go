@@ -124,3 +124,9 @@ func NewGlusterfsd(binfo Brickinfo) (*Glusterfsd, error) {
 	brickObject := &Glusterfsd{binarypath: path, brickinfo: binfo}
 	return brickObject, nil
 }
+
+// ID returns the unique identifier of the brick. The brick path is unique
+// on a node.
+func (b *Glusterfsd) ID() string {
+	return b.brickinfo.Path
+}
