@@ -138,4 +138,5 @@ func (s *SunRPC) Stop() {
 	close(s.stop)
 	log.Info("Stopped GlusterD SunRPC server")
 	// TODO: Gracefully stop the server
+	// Also refer to: https://github.com/golang/go/issues/17239
 }
