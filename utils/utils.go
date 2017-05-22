@@ -95,7 +95,7 @@ func ParseHostAndBrickPath(brickPath string) (string, string, error) {
 		return "", "", errors.ErrInvalidBrickPath
 	}
 	hostname := brickPath[0:i]
-	path := brickPath[i+1 : len(brickPath)]
+	path := brickPath[i+1:]
 
 	return hostname, path, nil
 }

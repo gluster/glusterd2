@@ -125,7 +125,7 @@ func volumeStatusHandler(w http.ResponseWriter, r *http.Request) {
 	defer txn.Cleanup()
 	txn.Nodes = vol.Nodes()
 	txn.Steps = []*transaction.Step{
-		&transaction.Step{
+		{
 			DoFunc: "vol-status.Check",
 			Nodes:  txn.Nodes,
 		},

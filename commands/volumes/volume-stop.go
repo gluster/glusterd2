@@ -99,7 +99,7 @@ func volumeStopHandler(w http.ResponseWriter, r *http.Request) {
 	txn.Nodes = vol.Nodes()
 	txn.Steps = []*transaction.Step{
 		lock,
-		&transaction.Step{
+		{
 			DoFunc: "vol-stop.Commit",
 			Nodes:  txn.Nodes,
 		},

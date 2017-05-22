@@ -1,6 +1,6 @@
 # Ignore built binaries
 glusterd2
-# Ignore vagrant direcotry
+# Ignore vagrant directory
 .vagrant/
 # Ignore vendored dependencies
 vendor/

@@ -51,7 +51,7 @@ func CreateLockStepFunc(key string) (string, string, error) {
 	return lockFuncID, unlockFuncID, nil
 }
 
-// CreateLockSteps retuns a lock and an unlock Step which lock/unlock the given key
+// CreateLockSteps returns a lock and an unlock Step which lock/unlock the given key
 func CreateLockSteps(key string) (*Step, *Step, error) {
 	lockFunc, unlockFunc, err := CreateLockStepFunc(key)
 	if err != nil {

@@ -25,10 +25,10 @@ func newGfDump() *GfDump {
 		progNum:     dumpProgNum,
 		progVersion: dumpProgVersion,
 		procedures: []sunrpc.Procedure{
-			sunrpc.Procedure{
+			{
 				sunrpc.ProcedureID{ProgramNumber: dumpProgNum, ProgramVersion: dumpProgVersion,
 					ProcedureNumber: gfDumpDump}, "Dump"},
-			sunrpc.Procedure{
+			{
 				sunrpc.ProcedureID{ProgramNumber: dumpProgNum, ProgramVersion: dumpProgVersion,
 					ProcedureNumber: gfDumpPing}, "Ping"},
 		},

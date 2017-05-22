@@ -163,7 +163,7 @@ func volumeStartHandler(w http.ResponseWriter, r *http.Request) {
 	txn.Nodes = vol.Nodes()
 	txn.Steps = []*transaction.Step{
 		lock,
-		&transaction.Step{
+		{
 			DoFunc:   "vol-start.Commit",
 			UndoFunc: "vol-start.Undo",
 			Nodes:    txn.Nodes,

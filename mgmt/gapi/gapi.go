@@ -273,12 +273,12 @@ func (obj *Gd3GAPI) Graph() (*pgraph.Graph, error) {
 		cmd = append(cmd, fmt.Sprintf("--xlator-option %s-server.listen-port=%d", volumeName, brickPort))
 
 		options := []*systemdUnit.UnitOption{
-			&systemdUnit.UnitOption{"Unit", "Description", fmt.Sprintf("Gd3 brick %d", i)},
-			&systemdUnit.UnitOption{"Service", "ExecStart", strings.Join(cmd, " ")},
+			{"Unit", "Description", fmt.Sprintf("Gd3 brick %d", i)},
+			{"Service", "ExecStart", strings.Join(cmd, " ")},
 			//&systemdUnit.UnitOption{"Unit", "BindsTo", "bar.service"},
 			//&systemdUnit.UnitOption{"X-Foo", "Bar", "baz"},
 			//&systemdUnit.UnitOption{"Service", "ExecStop", "/usr/bin/sleep 1"},
-			&systemdUnit.UnitOption{"Unit", "Documentation", "https://github.com/purpleidea/gd3"},
+			{"Unit", "Documentation", "https://github.com/purpleidea/gd3"},
 		}
 
 		outReader := systemdUnit.Serialize(options)

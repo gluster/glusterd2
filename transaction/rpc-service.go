@@ -28,7 +28,7 @@ func (p *txnSvc) RunStep(rpcCtx context.Context, req *TxnStepReq) (*TxnStepResp,
 	}
 
 	logger := ctx.Logger().WithField("stepfunc", req.StepFunc)
-	logger.Debug("RunStep request recieved")
+	logger.Debug("RunStep request received")
 
 	f, ok := GetStepFunc(req.StepFunc)
 	if !ok {

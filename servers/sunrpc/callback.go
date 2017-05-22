@@ -130,7 +130,7 @@ type gfStatedump struct {
 
 // ClientStatedump sends notification to all connected RPC clients on the
 // specified host to take statedump. The clients will examine if the PID
-// it recieved in notification is same as it's own PID. If yes, it will
+// it received in notification is same as it's own PID. If yes, it will
 // take it's own statedump.
 func ClientStatedump(host string, pid int) {
 	clientsList.RLock()

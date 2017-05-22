@@ -67,7 +67,7 @@ func TestCreateVolinfo(t *testing.T) {
 	defer heketitests.Patch(&volume.NewBrickEntriesFunc, func(bricks []string, volName string) ([]brick.Brickinfo, error) {
 		return nil, errBad
 	}).Restore()
-	vol, e = createVolinfo(msg)
+	_, e = createVolinfo(msg)
 	tests.Assert(t, e == errBad)
 }
 

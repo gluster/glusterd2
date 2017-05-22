@@ -34,13 +34,13 @@ func NewGfPortmap() *GfPortmap {
 		progNum:     portmapProgNum,
 		progVersion: portmapProgVersion,
 		procedures: []sunrpc.Procedure{
-			sunrpc.Procedure{
+			{
 				sunrpc.ProcedureID{ProgramNumber: portmapProgNum, ProgramVersion: portmapProgVersion,
 					ProcedureNumber: gfPmapPortByBrick}, "PortByBrick"},
-			sunrpc.Procedure{
+			{
 				sunrpc.ProcedureID{ProgramNumber: portmapProgNum, ProgramVersion: portmapProgVersion,
 					ProcedureNumber: gfPmapSignIn}, "SignIn"},
-			sunrpc.Procedure{
+			{
 				sunrpc.ProcedureID{ProgramNumber: portmapProgNum, ProgramVersion: portmapProgVersion,
 					ProcedureNumber: gfPmapSignOut}, "SignOut"},
 		},
