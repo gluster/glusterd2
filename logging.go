@@ -35,7 +35,7 @@ func initLog(logdir string, logFileName string, logLevel string) error {
 	l, err := log.ParseLevel(strings.ToLower(logLevel))
 	if err != nil {
 		setLogOutput(os.Stderr)
-		log.WithField("error", err).Debug("Failed to parse log level")
+		log.WithError(err).Debug("Failed to parse log level")
 		return err
 	}
 	log.SetLevel(l)

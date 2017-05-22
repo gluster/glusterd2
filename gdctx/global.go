@@ -81,7 +81,7 @@ func SetUUID() error {
 	// use the UUID found in file
 	MyUUID = uuid.Parse(string(ubytes))
 	if MyUUID == nil {
-		return errors.New("Failed to parse UUID found in file")
+		return errors.New("failed to parse UUID found in file")
 	}
 	log.WithField("uuid", MyUUID.String()).Info("Found existing UUID")
 
