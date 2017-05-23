@@ -1,0 +1,5 @@
+workdir: "/tmp/gd2_func_test/w2"
+peeraddress: "127.0.0.1:23008"
+clientaddress: "127.0.0.1:23007"
+etcdclientaddress: "127.0.0.1:2379"
+etcdpeeraddress: "127.0.0.1:2380"
