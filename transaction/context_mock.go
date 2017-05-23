@@ -32,11 +32,10 @@ func (m *MockTctx) SetNodeResult(nodeID uuid.UUID, key string, value interface{}
 
 // Get gets the value for the given key. Returns an error if the key is not present
 func (m *MockTctx) Get(key string, value interface{}) error {
-	v, ok := m.data[key]
+	_, ok := m.data[key]
 	if !ok {
 		return errors.New("key not present")
 	}
-	value = v
 	return nil
 }
 

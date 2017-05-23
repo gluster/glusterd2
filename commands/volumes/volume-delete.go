@@ -97,11 +97,11 @@ func volumeDeleteHandler(w http.ResponseWriter, r *http.Request) {
 	txn.Nodes = vol.Nodes()
 	txn.Steps = []*transaction.Step{
 		lock,
-		&transaction.Step{
+		{
 			DoFunc: "vol-delete.Commit",
 			Nodes:  txn.Nodes,
 		},
-		&transaction.Step{
+		{
 			DoFunc: "vol-delete.Store",
 			Nodes:  []uuid.UUID{gdctx.MyUUID},
 		},

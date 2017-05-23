@@ -14,10 +14,10 @@ func New() *suture.Supervisor {
 	logger := func(msg string) {
 		log.WithField("supervisor", "gd2-servers").Println(msg)
 	}
-	s := suture.New("gd2-servers", suture.Spec{Log: logger})
 
-	s.Add(peerrpc.New())
-	s.Add(muxsrv.New())
+	s := suture.New("gd2-servers", suture.Spec{Log: logger})
+	s.Add(peerrpc.New()) // grpc
+	s.Add(muxsrv.New())  // sunrpc + http
 
 	return s
 }

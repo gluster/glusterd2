@@ -25,7 +25,7 @@ Only the top-most (root) supervisor in a supervisor tree is started manually. Al
 
 Currently, supervisor trees are to manage the network services provides by GD2 (rest, grpc, sunrpc). In the future, services like etcd, plugins etc. can also be managed using supervisor trees.
 
-The strucutre of the GD2 supervisor tree currently is as shown below.
+The structure of the GD2 supervisor tree currently is as shown below.
 
 ```
 

@@ -25,7 +25,7 @@ func setLogOutput(w io.Writer) {
 	stdlog.SetOutput(log.StandardLogger().Writer())
 }
 
-func initLog(logdir string, logFileName string, logLevel string) {
+func initLog(logdir string, logFileName string, logLevel string) error {
 	// Close the previously opened Log file
 	if logWriter != nil {
 		logWriter.Close()
@@ -34,8 +34,9 @@ func initLog(logdir string, logFileName string, logLevel string) {
 
 	l, err := log.ParseLevel(strings.ToLower(logLevel))
 	if err != nil {
-		log.SetOutput(os.Stderr)
-		log.WithField("error", err).Fatal("Failed to parse log level")
+		setLogOutput(os.Stderr)
+		log.WithError(err).Debug("Failed to parse log level")
+		return err
 	}
 	log.SetLevel(l)
 	log.SetFormatter(&log.TextFormatter{FullTimestamp: true})
@@ -46,13 +47,14 @@ func initLog(logdir string, logFileName string, logLevel string) {
 		setLogOutput(os.Stdout)
 	} else {
 		logFilePath := path.Join(logdir, logFileName)
-		logFile, logFileErr := openLogFile(logFilePath)
-		if logFileErr != nil {
+		logFile, err := openLogFile(logFilePath)
+		if err != nil {
 			setLogOutput(os.Stderr)
-			log.WithError(logFileErr).Fatalf("Failed to open log file %s", logFilePath)
-			return
+			log.WithError(err).Debug("Failed to open log file %s", logFilePath)
+			return err
 		}
 		setLogOutput(logFile)
 		logWriter = logFile
 	}
+	return nil
 }

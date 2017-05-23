@@ -6,13 +6,16 @@
 package gdctx
 
 import (
+	"errors"
+	"io/ioutil"
 	"os"
-	"sync"
+	"path"
 
 	"github.com/gluster/glusterd2/utils"
 
 	log "github.com/Sirupsen/logrus"
 	"github.com/pborman/uuid"
+	config "github.com/spf13/viper"
 )
 
 // Various version constants that will be used by GD2
@@ -30,47 +33,63 @@ var (
 // to other packages should be declared here as exported global variables
 var (
 	MyUUID    uuid.UUID
-	Restart   bool // Indicates if its a fresh install or not
+	Restart   bool // Indicates if its a fresh install or not (based on presence/absence of UUID file)
 	OpVersion int
 	HostIP    string
 	HostName  string
 )
 
-var (
-	initOnce sync.Once
-)
-
-func initOpVersion() {
-	//TODO : Need cluster awareness and then decide the op-version
-	OpVersion = MaxOpVersion
-}
-
-func doInit() {
-	initOpVersion()
-
-	// When glusterd is started for the first time, we will have Restart set to
-	// false. That is when we'll have to initialize prefixes by passing true to
-	// InitStore(). On subsequent restarts of glusterd, we would want to skip
-	// initializing prefixes by passing false to InitStore()
-	InitStore()
-}
-
-// Init initializes the GlusterD context. This should be called once before doing anything else.
-func Init() {
-	initOnce.Do(doInit)
-}
-
-// SetHostnameAndIP sets the local IP address and host name
-func SetHostnameAndIP() {
+// SetHostnameAndIP will initialize HostIP and HostName global variables
+func SetHostnameAndIP() error {
 	hostIP, err := utils.GetLocalIP()
 	if err != nil {
-		log.Fatal("SetHostnameAndIP: Could not get IP address")
+		return err
 	}
 	HostIP = hostIP
 
 	hostName, err := os.Hostname()
 	if err != nil {
-		log.Fatal("SetHostnameAndIP: Could not get hostname")
+		return err
 	}
 	HostName = hostName
+
+	return nil
+}
+
+// SetUUID will generate (or use if present) and set MyUUID global variable
+func SetUUID() error {
+	uuidFile := path.Join(config.GetString("localstatedir"), "uuid")
+	ubytes, err := ioutil.ReadFile(uuidFile)
+	if err != nil {
+		switch {
+		case os.IsNotExist(err):
+			// generate new UUID and write to file
+			MyUUID = uuid.NewRandom()
+			if err := ioutil.WriteFile(uuidFile, []byte(MyUUID.String()), 0644); err != nil {
+				log.WithError(err).WithField("path", uuidFile).Debug(
+					"failed to write UUID to file")
+				return err
+			}
+			log.WithField("uuid", MyUUID.String()).Info("Generated new UUID")
+			return nil
+		default:
+			log.WithError(err).WithField("path", uuidFile).Debug(
+				"failed to read UUID from file")
+			return err
+		}
+	}
+	// use the UUID found in file
+	MyUUID = uuid.Parse(string(ubytes))
+	if MyUUID == nil {
+		return errors.New("failed to parse UUID found in file")
+	}
+	log.WithField("uuid", MyUUID.String()).Info("Found existing UUID")
+
+	Restart = true
+
+	return nil
+}
+
+func init() {
+	OpVersion = MaxOpVersion
 }

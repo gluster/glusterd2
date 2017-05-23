@@ -98,38 +98,44 @@ func (p *PeerService) ExportAndStoreETCDConfig(nc netctx.Context, c *EtcdConfigR
 	}
 
 	// Gracefully stop embedded etcd server and remove local etcd data
-	err = etcdmgmt.DestroyEmbeddedEtcd(true)
-	if err != nil {
+	if err := etcdmgmt.DestroyEmbeddedEtcd(true); err != nil {
 		opRet = -1
 		opError = fmt.Sprintf("Error stopping embedded etcd server.")
-		log.WithField("Error", err).Error("Error stopping embedded etcd server.")
+		log.WithError(err).Error("Error stopping embedded etcd server.")
 		goto Out
 	}
 
 	// Start embedded etcd server
-	err = etcdmgmt.StartEmbeddedEtcd(newEtcdConfig)
-	if err != nil {
+	if err = etcdmgmt.StartEmbeddedEtcd(newEtcdConfig); err != nil {
 		opRet = -1
 		opError = fmt.Sprintf("Could not start embedded etcd server.")
-		log.WithField("Error", err).Error("Could not start embedded etcd server.")
+		log.WithError(err).Error("Could not start embedded etcd server.")
 		goto Out
 	}
 
 	// Reinitialize the store now that a new etcd instance is running
-	gdctx.InitStore()
+	if err := gdctx.InitStore(); err != nil {
+		opRet = -1
+		opError = fmt.Sprintf("Failed to initialize store (etcd client)")
+		log.WithError(err).Error("Failed to initialize store (etcd client)")
+		goto Out
+	}
 
 	if c.DeletePeer {
 		// After being detached from the cluster, this glusterd instance
 		// now should get back to clean slate i.e state of a single node
 		// standalone cluster.
-		peer.AddSelfDetails()
+		err = peer.AddSelfDetails()
+		if err != nil {
+			opRet = -1
+			opError = fmt.Sprintf("Could not add self details into etcd")
+		}
 	} else {
 		// Store the etcd config in a file for use during restarts.
 		err = etcdmgmt.StoreEtcdConfig(newEtcdConfig)
 		if err != nil {
 			opRet = -1
 			opError = fmt.Sprintf("Error storing etcd configuration.")
-			goto Out
 		}
 	}
 

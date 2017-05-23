@@ -4,13 +4,12 @@ import (
 	"github.com/gluster/glusterd2/store"
 )
 
-// If someone needs to use the GD2 store, all they need to do is just import context and use context.Store
-var (
-	Store    *store.GDStore
-	prefixes []string
-)
+// Store variable can be imported by packages which need access to the store
+var Store *store.GDStore
 
 // InitStore is to initialize the store
-func InitStore() {
-	Store = store.New()
+func InitStore() error {
+	var err error
+	Store, err = store.New()
+	return err
 }

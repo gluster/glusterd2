@@ -4,25 +4,25 @@ import (
 	"github.com/gluster/glusterd2/etcdmgmt"
 	"github.com/gluster/glusterd2/gdctx"
 
-	log "github.com/Sirupsen/logrus"
 	config "github.com/spf13/viper"
 )
 
-// AddSelfDetails function adds its own details into the central store
-func AddSelfDetails() {
-	var memberID uint64
+// AddSelfDetails results in the peer adding its own details into etcd
+func AddSelfDetails() error {
 
-	mlist, e := etcdmgmt.EtcdMemberList()
-	if e != nil {
-		log.WithField("err", e).Fatal("Failed to list member in etcd cluster")
+	mlist, err := etcdmgmt.EtcdMemberList()
+	if err != nil {
+		return err
 	}
 
+	var memberID uint64
 	for _, memb := range mlist {
 		if memb.Name == gdctx.MyUUID.String() {
 			memberID = memb.ID
 			break
 		}
 	}
+
 	p := &Peer{
 		ID:        gdctx.MyUUID,
 		Name:      gdctx.HostName,
@@ -30,10 +30,5 @@ func AddSelfDetails() {
 		MemberID:  memberID,
 	}
 
-	if e = AddOrUpdatePeer(p); e != nil {
-		log.WithFields(log.Fields{
-			"error":     e,
-			"peer/node": p.Name,
-		}).Fatal("Failed to add peer into the etcd store")
-	}
+	return AddOrUpdatePeer(p)
 }

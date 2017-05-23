@@ -1,4 +1,6 @@
 # GlusterD-2.0
+
+[![Go Report Card](https://goreportcard.com/badge/github.com/gluster/glusterd2)](https://goreportcard.com/report/github.com/gluster/glusterd2)
 [![Build Status](https://ci.centos.org/view/Gluster/job/gluster_glusterd2/badge/icon)](https://ci.centos.org/view/Gluster/job/gluster_glusterd2/)
 
 GlusterD-2.0 (GD2) is a re-implementation of GlusterD. It attempts to have better
