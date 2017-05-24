@@ -1,4 +1,4 @@
-package func_test
+package e2e
 
 import (
 	"io/ioutil"

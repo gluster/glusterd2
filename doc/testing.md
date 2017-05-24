@@ -24,8 +24,9 @@ $ make test
 
 ## Functional Tests
 
-Functional tests (a.k.a black-box testing) are to be placed in the `func_test`
-package in the root of the source repo. These tests will interact with live
+Functional tests (a.k.a black-box testing) are to be placed in the `e2e`
+package in the root of the source repo. `e2e` stands for end to end testing
+(borrowed from etcd and kubernetes). These tests will interact with live
 instances of glusterd2 process or cluster just like how a user would. These
 tests should not import any of glusterd's packages or make assumptions about
 implementation details.
@@ -37,5 +38,5 @@ tests.
 
 **Running functional tests:**
 ```sh
-$ go test -tags 'novirt noaugeas' ./func_test -v -functest
+$ go test -tags 'novirt noaugeas' ./e2e -v -functest
 ```

@@ -1,4 +1,4 @@
-package func_test
+package e2e
 
 import (
 	"flag"
@@ -21,7 +21,7 @@ func TestMain(m *testing.M) {
 
 	if !functest {
 		// Run only if -functest flag is passed to go test command
-		// go test -tags 'novirt noaugeas' ./func_test -v -functest
+		// go test -tags 'novirt noaugeas' ./e2e -v -functest
 		return
 	}
 
