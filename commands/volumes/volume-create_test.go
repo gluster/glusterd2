@@ -26,7 +26,7 @@ var (
 //TestUnmarshalVolCreateRequest validates the JSON request of volume
 //create request
 func TestUnmarshalVolCreateRequest(t *testing.T) {
-	msg := new(volume.VolCreateRequest)
+	msg := new(VolCreateRequest)
 	tests.Assert(t, msg != nil)
 
 	// Request with invalid JSON format
@@ -56,7 +56,7 @@ func TestUnmarshalVolCreateRequest(t *testing.T) {
 func TestCreateVolinfo(t *testing.T) {
 	defer heketitests.Patch(&peer.GetPeerIDByAddrF, peer.GetPeerIDByAddrMockGood).Restore()
 
-	msg := new(volume.VolCreateRequest)
+	msg := new(VolCreateRequest)
 
 	msg.Name = "vol"
 	msg.Bricks = []string{"127.0.0.1:/tmp/b1", "127.0.0.1:/tmp/b2"}
@@ -73,7 +73,7 @@ func TestCreateVolinfo(t *testing.T) {
 
 // TestValidateVolumeCreate validates validateVolumeCreate()
 func TestValidateVolumeCreate(t *testing.T) {
-	msg := new(volume.VolCreateRequest)
+	msg := new(VolCreateRequest)
 
 	msg.Name = "vol"
 	msg.Bricks = []string{"127.0.0.1:/tmp/b1", "127.0.0.1:/tmp/b2"}
@@ -104,7 +104,7 @@ func TestValidateVolumeCreate(t *testing.T) {
 // TestGenerateVolfiles validates generateVolfiles
 func TestGenerateVolfiles(t *testing.T) {
 	defer heketitests.Patch(&peer.GetPeerIDByAddrF, peer.GetPeerIDByAddrMockGood).Restore()
-	msg := new(volume.VolCreateRequest)
+	msg := new(VolCreateRequest)
 
 	msg.Name = "vol"
 	msg.Bricks = []string{"127.0.0.1:/tmp/b1", "127.0.0.1:/tmp/b2"}
@@ -145,7 +145,7 @@ func TestGenerateVolfiles(t *testing.T) {
 // TestStoreVolume tests storeVolume
 func TestStoreVolume(t *testing.T) {
 	defer heketitests.Patch(&peer.GetPeerIDByAddrF, peer.GetPeerIDByAddrMockGood).Restore()
-	msg := new(volume.VolCreateRequest)
+	msg := new(VolCreateRequest)
 
 	msg.Name = "vol"
 	msg.Bricks = []string{"127.0.0.1:/tmp/b1", "127.0.0.1:/tmp/b2"}

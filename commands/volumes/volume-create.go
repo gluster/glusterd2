@@ -16,7 +16,46 @@ import (
 	"github.com/pborman/uuid"
 )
 
-func unmarshalVolCreateRequest(msg *volume.VolCreateRequest, r *http.Request) (int, error) {
+// VolCreateRequest defines the parameters for creating a volume in the volume-create command
+type VolCreateRequest struct {
+	Name            string   `json:"name"`
+	Transport       string   `json:"transport,omitempty"`
+	DistCount       int      `json:"distcount,omitempty"`
+	ReplicaCount    int      `json:"replica,omitempty"`
+	StripeCount     int      `json:"stripecount,omitempty"`
+	DisperseCount   int      `json:"dispersecount,omitempty"`
+	RedundancyCount int      `json:"redundancycount,omitempty"`
+	Bricks          []string `json:"bricks"`
+	Force           bool     `json:"force,omitempty"`
+}
+
+func newVolumeEntry(req *VolCreateRequest) *volume.Volinfo {
+
+	v := new(volume.Volinfo)
+	v.Options = make(map[string]string)
+	v.ID = uuid.NewRandom()
+	v.Name = req.Name
+
+	if len(req.Transport) > 0 {
+		v.Transport = req.Transport
+	} else {
+		v.Transport = "tcp"
+	}
+
+	if req.ReplicaCount == 0 {
+		v.ReplicaCount = 1
+	} else {
+		v.ReplicaCount = req.ReplicaCount
+	}
+
+	v.StripeCount = req.StripeCount
+	v.DisperseCount = req.DisperseCount
+	v.RedundancyCount = req.RedundancyCount
+
+	return v
+}
+
+func unmarshalVolCreateRequest(msg *VolCreateRequest, r *http.Request) (int, error) {
 	e := utils.GetJSONFromRequest(r, msg)
 	if e != nil {
 		return 422, gderrors.ErrJSONParsingFailed
@@ -32,13 +71,10 @@ func unmarshalVolCreateRequest(msg *volume.VolCreateRequest, r *http.Request) (i
 
 }
 
-func createVolinfo(msg *volume.VolCreateRequest) (*volume.Volinfo, error) {
-	vol, err := volume.NewVolumeEntry(msg)
-	if err != nil {
-		return nil, err
-	}
-	vol.Bricks, err = volume.NewBrickEntriesFunc(msg.Bricks, vol.Name)
-	if err != nil {
+func createVolinfo(msg *VolCreateRequest) (*volume.Volinfo, error) {
+	var err error
+	vol := newVolumeEntry(msg)
+	if vol.Bricks, err = volume.NewBrickEntriesFunc(msg.Bricks, vol.Name); err != nil {
 		return nil, err
 	}
 	return vol, nil
@@ -46,7 +82,7 @@ func createVolinfo(msg *volume.VolCreateRequest) (*volume.Volinfo, error) {
 
 func validateVolumeCreate(c transaction.TxnCtx) error {
 
-	var req volume.VolCreateRequest
+	var req VolCreateRequest
 	err := c.Get("req", &req)
 	if err != nil {
 		return err
@@ -138,7 +174,7 @@ func registerVolCreateStepFuncs() {
 }
 
 // nodesForVolCreate returns a list of Nodes which volume create touches
-func nodesForVolCreate(req *volume.VolCreateRequest) ([]uuid.UUID, error) {
+func nodesForVolCreate(req *VolCreateRequest) ([]uuid.UUID, error) {
 	var nodes []uuid.UUID
 
 	for _, b := range req.Bricks {
@@ -168,7 +204,7 @@ func nodesForVolCreate(req *volume.VolCreateRequest) ([]uuid.UUID, error) {
 }
 
 func volumeCreateHandler(w http.ResponseWriter, r *http.Request) {
-	req := new(volume.VolCreateRequest)
+	req := new(VolCreateRequest)
 	reqID, logger := restutils.GetReqIDandLogger(r)
 
 	httpStatus, e := unmarshalVolCreateRequest(req, r)
