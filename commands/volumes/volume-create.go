@@ -18,41 +18,13 @@ import (
 
 // VolCreateRequest defines the parameters for creating a volume in the volume-create command
 type VolCreateRequest struct {
-	Name            string   `json:"name"`
-	Transport       string   `json:"transport,omitempty"`
-	DistCount       int      `json:"distcount,omitempty"`
-	ReplicaCount    int      `json:"replica,omitempty"`
-	StripeCount     int      `json:"stripecount,omitempty"`
-	DisperseCount   int      `json:"dispersecount,omitempty"`
-	RedundancyCount int      `json:"redundancycount,omitempty"`
-	Bricks          []string `json:"bricks"`
-	Force           bool     `json:"force,omitempty"`
-}
-
-func newVolumeEntry(req *VolCreateRequest) *volume.Volinfo {
-
-	v := new(volume.Volinfo)
-	v.Options = make(map[string]string)
-	v.ID = uuid.NewRandom()
-	v.Name = req.Name
-
-	if len(req.Transport) > 0 {
-		v.Transport = req.Transport
-	} else {
-		v.Transport = "tcp"
-	}
-
-	if req.ReplicaCount == 0 {
-		v.ReplicaCount = 1
-	} else {
-		v.ReplicaCount = req.ReplicaCount
-	}
-
-	v.StripeCount = req.StripeCount
-	v.DisperseCount = req.DisperseCount
-	v.RedundancyCount = req.RedundancyCount
-
-	return v
+	Name         string   `json:"name"`
+	Transport    string   `json:"transport,omitempty"`
+	ReplicaCount int      `json:"replica,omitempty"`
+	Bricks       []string `json:"bricks"`
+	Force        bool     `json:"force,omitempty"`
+	// Bricks list is ordered (like in glusterd1) and decides which bricks
+	// form replica sets.
 }
 
 func unmarshalVolCreateRequest(msg *VolCreateRequest, r *http.Request) (int, error) {
@@ -71,13 +43,50 @@ func unmarshalVolCreateRequest(msg *VolCreateRequest, r *http.Request) (int, err
 
 }
 
-func createVolinfo(msg *VolCreateRequest) (*volume.Volinfo, error) {
+func createVolinfo(req *VolCreateRequest) (*volume.Volinfo, error) {
+
 	var err error
-	vol := newVolumeEntry(msg)
-	if vol.Bricks, err = volume.NewBrickEntriesFunc(msg.Bricks, vol.Name); err != nil {
+
+	v := new(volume.Volinfo)
+	v.Options = make(map[string]string)
+	v.ID = uuid.NewRandom()
+	v.Name = req.Name
+
+	if len(req.Transport) > 0 {
+		v.Transport = req.Transport
+	} else {
+		v.Transport = "tcp"
+	}
+
+	if req.ReplicaCount == 0 {
+		v.ReplicaCount = 1
+	} else {
+		v.ReplicaCount = req.ReplicaCount
+	}
+
+	if (len(req.Bricks) % v.ReplicaCount) != 0 {
+		return nil, errors.New("Invalid number of bricks")
+	}
+
+	v.DistCount = len(req.Bricks) / v.ReplicaCount
+
+	switch len(req.Bricks) {
+	case 1:
+		fallthrough
+	case v.DistCount:
+		v.Type = volume.Distribute
+	case v.ReplicaCount:
+		v.Type = volume.Replicate
+	default:
+		v.Type = volume.DistReplicate
+	}
+
+	v.Bricks, err = volume.NewBrickEntriesFunc(req.Bricks, v.Name)
+	if err != nil {
 		return nil, err
 	}
-	return vol, nil
+
+	return v, nil
 }
 
 func validateVolumeCreate(c transaction.TxnCtx) error {

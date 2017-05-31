@@ -2,7 +2,6 @@ package volgen
 
 import (
 	"bytes"
-	"errors"
 	"fmt"
 	"io/ioutil"
 	"net"
@@ -30,12 +29,6 @@ func buildClientVolfile(vinfo *volume.Volinfo, vauth *volume.VolAuth) (*bytes.Bu
 	// be replaced when real volgen with dependency resolution is ready.
 	// This is not complete either - works only for dist, rep and dist-rep
 	// volumes.
-
-	if len(vinfo.Bricks)%vinfo.ReplicaCount != 0 {
-		// For replicate, distributed or distributed-replicated:
-		// No. of bricks must be a multiple of replica count.
-		return nil, errors.New("Brick count should be a multiple of replica count")
-	}
 
 	volfile := new(bytes.Buffer)
 

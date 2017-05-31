@@ -46,42 +46,27 @@ const (
 	Distribute VolType = iota
 	// Replicate is plain replicate volume
 	Replicate
-	// Stripe is a plain stripe volume
-	Stripe
 	// Disperse is a plain erasure coded volume
 	Disperse
 	// DistReplicate is a distribute-replicate volume
 	DistReplicate
-	// DistStripe is  a distribute-stripe volume
-	DistStripe
 	// DistDisperse is a distribute-'erasure coded' volume
 	DistDisperse
-	// DistRepStripe is a distribute-replicate-stripe volume
-	DistRepStripe
-	// DistDispStripe is distrbute-'erasure coded'-stripe volume
-	DistDispStripe
 )
 
 // Volinfo repesents a volume
 type Volinfo struct {
-	ID   uuid.UUID
-	Name string
-	Type VolType
-
-	Transport       string
-	DistCount       int
-	ReplicaCount    int
-	StripeCount     int
-	DisperseCount   int
-	RedundancyCount int
-
-	Options map[string]string
-
-	Status VolState
-
-	Checksum uint64
-	Version  uint64
-	Bricks   []brick.Brickinfo
+	ID           uuid.UUID
+	Name         string
+	Type         VolType
+	Transport    string
+	DistCount    int
+	ReplicaCount int
+	Options      map[string]string
+	Status       VolState
+	Checksum     uint64
+	Version      uint64
+	Bricks       []brick.Brickinfo
 }
 
 // VolAuth represents username and password used by trusted/internal clients
