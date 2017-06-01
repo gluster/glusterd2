@@ -1,5 +1,5 @@
-hash: 667a70fec6320c75009684f10c9c3d939261ce952b6a449b35519bae854986a9
-updated: 2017-05-15T12:22:45.206956252+05:30
+hash: 615542e05bb87024179fb99c04c6ec978746f8652067750402f8ff52b5481f4b
+updated: 2017-05-23T17:03:22.514977132+05:30
 imports:
 - name: github.com/beorn7/perks
   version: 4c0e84591b9aa9e6dcfdf3e020114cd81f89d5f9
@@ -10,7 +10,7 @@ imports:
 - name: github.com/cockroachdb/cmux
   version: 112f0506e7743d64a6eb8fedbcff13d9979bbf92
 - name: github.com/coreos/etcd
-  version: 43b75072bfaca5a7c35c718179defbcabd9a0886
+  version: d267ca9c184e953554257d0acdd1dc9c47d38229
   subpackages:
   - alarm
   - auth
@@ -170,7 +170,7 @@ imports:
 - name: github.com/prashanthpai/sunrpc
   version: 8b1e9b0138a37e93705639161d846baed18290c7
 - name: github.com/prometheus/client_golang
-  version: 7d9484283ebefa862b5b7727d4344cfdf9a0d138
+  version: 42552c195dd3f3089fbf9cf26e139da150af35aa
   subpackages:
   - prometheus
   - prometheus/promhttp
@@ -232,6 +232,10 @@ imports:
   version: 9ff6c6923cfffbcd502984b8e0c80539a94968b7
 - name: github.com/spf13/viper
   version: 7538d73b4eb9511d85a9f1dfef202eeb8ac260f4
+- name: github.com/stretchr/testify
+  version: 69483b4bd14f5845b5a1e55bca19e954e827f1d0
+  subpackages:
+  - assert
 - name: github.com/thejerf/suture
   version: 0ac47afae95ad5bc5184ed346bc945168e883f5d
 - name: github.com/ugorji/go
@@ -243,7 +247,7 @@ imports:
 - name: github.com/xiang90/probing
   version: 07dd2e8dfe18522e9c447ba95f2fe95262f63bb2
 - name: golang.org/x/crypto
-  version: c7af5bf2638a1164f2eb5467c39c6cffbd13a02e
+  version: 7e9105388ebff089b3f99f0ef676ea55a6da3a7e
   subpackages:
   - bcrypt
   - blowfish
@@ -299,4 +303,12 @@ imports:
   version: 53feefa2559fb8dfa8d81baad31be332c97d6c77
 - name: honnef.co/go/augeas
   version: ca62e35ed6b86f1959cee0860aeb9ce94368aaf0
-testImports: []
+testImports:
+- name: github.com/davecgh/go-spew
+  version: 6d212800a42e8ab5c146b8ace3490ee17e5225f9
+  subpackages:
+  - spew
+- name: github.com/pmezard/go-difflib
+  version: d8ed2627bdf02c080bf22230dbb337003b7aba2d
+  subpackages:
+  - difflib
