@@ -11,7 +11,6 @@ import (
 	"github.com/gluster/glusterd2/peer"
 	"github.com/gluster/glusterd2/tests"
 	"github.com/gluster/glusterd2/transaction"
-	"github.com/gluster/glusterd2/volgen"
 	"github.com/gluster/glusterd2/volume"
 
 	"github.com/pborman/uuid"
@@ -99,47 +98,6 @@ func TestValidateVolumeCreate(t *testing.T) {
 	}).Restore()
 	e = validateVolumeCreate(c)
 	tests.Assert(t, e == errBad)
-}
-
-// TestGenerateVolfiles validates generateVolfiles
-func TestGenerateVolfiles(t *testing.T) {
-	defer heketitests.Patch(&peer.GetPeerIDByAddrF, peer.GetPeerIDByAddrMockGood).Restore()
-	msg := new(VolCreateRequest)
-
-	msg.Name = "vol"
-	msg.Bricks = []string{"127.0.0.1:/tmp/b1", "127.0.0.1:/tmp/b2"}
-
-	vol, e := createVolinfo(msg)
-
-	c := transaction.NewMockCtx()
-	c.Set("volinfo", vol)
-
-	fakeVolauth := volume.VolAuth{
-		Username: uuid.NewRandom().String(),
-		Password: uuid.NewRandom().String(),
-	}
-	c.Set("volauth", fakeVolauth)
-
-	defer heketitests.Patch(&volgen.GenerateVolfileFunc, func(vinfo *volume.Volinfo, vauth *volume.VolAuth) error {
-		return nil
-	}).Restore()
-	defer heketitests.Patch(&volume.AddOrUpdateVolumeFunc, func(vinfo *volume.Volinfo) error {
-		return nil
-	}).Restore()
-
-	e = generateVolfiles(c)
-	tests.Assert(t, e == nil)
-
-	// Mock volgen failure
-	defer heketitests.Patch(&volgen.GenerateVolfileFunc, func(vinfo *volume.Volinfo, vauth *volume.VolAuth) error {
-		return errBad
-	}).Restore()
-	e = generateVolfiles(c)
-	tests.Assert(t, e == errBad)
-
-	defer heketitests.Patch(&volgen.GenerateVolfileFunc, func(vinfo *volume.Volinfo, vauth *volume.VolAuth) error {
-		return nil
-	}).Restore()
 }
 
 // TestStoreVolume tests storeVolume

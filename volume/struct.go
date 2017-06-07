@@ -67,6 +67,7 @@ type Volinfo struct {
 	Checksum     uint64
 	Version      uint64
 	Bricks       []brick.Brickinfo
+	Auth         VolAuth
 }
 
 // VolAuth represents username and password used by trusted/internal clients

@@ -10,25 +10,25 @@ import (
 	"strconv"
 	"strings"
 
-	"github.com/gluster/glusterd2/gdctx"
+	"github.com/gluster/glusterd2/brick"
 	"github.com/gluster/glusterd2/utils"
 	"github.com/gluster/glusterd2/volume"
 
-	log "github.com/Sirupsen/logrus"
-	"github.com/pborman/uuid"
 	config "github.com/spf13/viper"
 )
 
-var (
-	// GenerateVolfileFunc will do all task from graph generation to volfile generation
-	GenerateVolfileFunc = GenerateVolfile
-)
+// TODO: This is a quick and dirty reference implementation that should
+// be replaced when real volgen with dependency resolution is ready.
+// This is not complete either - works only for dist, rep and dist-rep
+// volumes.
 
-func buildClientVolfile(vinfo *volume.Volinfo, vauth *volume.VolAuth) (*bytes.Buffer, error) {
-	// TODO: This is a quick and dirty reference implementation that should
-	// be replaced when real volgen with dependency resolution is ready.
-	// This is not complete either - works only for dist, rep and dist-rep
-	// volumes.
+func getClientVolFilePath(vinfo *volume.Volinfo) string {
+	volfileName := fmt.Sprintf("trusted-%s.tcp-fuse.vol", vinfo.Name)
+	return path.Join(utils.GetVolumeDir(vinfo.Name), volfileName)
+}
+
+// GenerateClientVolfile generates the client volfile (duh!)
+func GenerateClientVolfile(vinfo *volume.Volinfo) error {
 
 	volfile := new(bytes.Buffer)
 
@@ -37,7 +37,7 @@ func buildClientVolfile(vinfo *volume.Volinfo, vauth *volume.VolAuth) (*bytes.Bu
 
 		address, err := utils.FormRemotePeerAddress(b.Hostname)
 		if err != nil {
-			return nil, err
+			return err
 		}
 		remoteHost, _, _ := net.SplitHostPort(address)
 
@@ -45,8 +45,8 @@ func buildClientVolfile(vinfo *volume.Volinfo, vauth *volume.VolAuth) (*bytes.Bu
 			"<child-index>", strconv.Itoa(index),
 			"<brick-path>", b.Path,
 			"<volume-name>", vinfo.Name,
-			"<trusted-username>", vauth.Username,
-			"<trusted-password>", vauth.Password,
+			"<trusted-username>", vinfo.Auth.Username,
+			"<trusted-password>", vinfo.Auth.Password,
 			"<remote-host>", remoteHost)
 
 		volfile.WriteString(replacer.Replace(clientLeafTemplate))
@@ -107,99 +107,64 @@ func buildClientVolfile(vinfo *volume.Volinfo, vauth *volume.VolAuth) (*bytes.Bu
 	replacer := strings.NewReplacer("<volume-name>", vinfo.Name, "<wb-subvol>", wbSubvol)
 	volfile.WriteString(replacer.Replace(clientVolfileBaseTemplate))
 
-	return volfile, nil
-}
-
-// GenerateVolfile function will do all task from graph generation to volfile generation
-func GenerateVolfile(vinfo *volume.Volinfo, vauth *volume.VolAuth) error {
-
-	// Create 'vols' directory.
-	err := os.MkdirAll(utils.GetVolumeDir(vinfo.Name), os.ModeDir|os.ModePerm)
-	if err != nil {
-		return err
-	}
-
-	// Generate client volfile
 	cpath := getClientVolFilePath(vinfo)
-	volfileContent, err := buildClientVolfile(vinfo, vauth)
-	if err != nil {
-		return err
-	}
-	err = ioutil.WriteFile(cpath, volfileContent.Bytes(), 0644)
-	if err != nil {
+	if err := ioutil.WriteFile(cpath, volfile.Bytes(), 0644); err != nil {
 		return err
 	}
 
-	// Generate brick volfiles
-	for _, b := range vinfo.Bricks {
-
-		// Generate brick volfiles for only those bricks that belong
-		// to this node/instance.
-		if !uuid.Equal(b.NodeID, gdctx.MyUUID) {
-			continue
-		}
-
-		bpath := utils.GetBrickVolFilePath(vinfo.Name, b.NodeID.String(), b.Path)
-
-		f, err := os.Create(bpath)
-		if err != nil {
-			return err
-		}
-		defer f.Close()
-
-		replacer := strings.NewReplacer(
-			"<volume-name>", vinfo.Name,
-			"<volume-id>", vinfo.ID.String(),
-			"<brick-path>", b.Path,
-			"<trusted-username>", vauth.Username,
-			"<trusted-password>", vauth.Password,
-			"<local-state-dir>", config.GetString("localstatedir"))
-
-		_, err = replacer.WriteString(f, brickVolfileTemplate)
-		if err != nil {
-			return err
-		}
-	}
 	return nil
 }
 
-func getClientVolFilePath(vinfo *volume.Volinfo) string {
-	volfileName := fmt.Sprintf("trusted-%s.tcp-fuse.vol", vinfo.Name)
-	return path.Join(utils.GetVolumeDir(vinfo.Name), volfileName)
-}
-
-// DeleteVolfile deletes the volfiles created for the volume
-func DeleteVolfile(vol *volume.Volinfo) error {
-
-	// TODO: It would be much simpler to remove whole volume directory here ?
+// DeleteClientVolfile deletes the client volfile (duh!)
+func DeleteClientVolfile(vol *volume.Volinfo) error {
 
 	path := getClientVolFilePath(vol)
-	err := os.Remove(path)
-	if err != nil {
-		// TODO: log using txn logger context instead
-		log.WithFields(log.Fields{
-			"path":  path,
-			"error": err,
-		}).Error("DeleteVolfile: Failed to remove client volfile")
+	if err := os.Remove(path); err != nil {
 		return err
 	}
 
-	for _, b := range vol.Bricks {
+	return nil
+}
 
-		if !uuid.Equal(b.NodeID, gdctx.MyUUID) {
-			continue
-		}
+func getBrickVolFilePath(volumeName string, brickNodeID string, brickPath string) string {
+	volumeDir := utils.GetVolumeDir(volumeName)
+	brickPathWithoutSlashes := strings.Trim(strings.Replace(brickPath, "/", "-", -1), "-")
+	volFileName := fmt.Sprintf("%s.%s.%s.vol", volumeName, brickNodeID, brickPathWithoutSlashes)
+	return path.Join(volumeDir, volFileName)
+}
 
-		path := utils.GetBrickVolFilePath(vol.Name, b.NodeID.String(), b.Path)
-		err := os.Remove(path)
-		if err != nil {
-			// TODO: log using txn logger context instead
-			log.WithFields(log.Fields{
-				"path":  path,
-				"error": err,
-			}).Error("DeleteVolfile: Failed to remove brick volfile")
-			return err
-		}
+// GenerateBrickVolfile generates the brick volfile for a single brick
+func GenerateBrickVolfile(vinfo *volume.Volinfo, binfo *brick.Brickinfo) error {
+
+	bpath := getBrickVolFilePath(vinfo.Name, binfo.NodeID.String(), binfo.Path)
+	f, err := os.Create(bpath)
+	if err != nil {
+		return err
+	}
+	defer f.Close()
+
+	replacer := strings.NewReplacer(
+		"<volume-name>", vinfo.Name,
+		"<volume-id>", vinfo.ID.String(),
+		"<brick-path>", binfo.Path,
+		"<trusted-username>", vinfo.Auth.Username,
+		"<trusted-password>", vinfo.Auth.Password,
+		"<local-state-dir>", config.GetString("localstatedir"))
+
+	if _, err = replacer.WriteString(f, brickVolfileTemplate); err != nil {
+		return err
+	}
+	f.Sync()
+
+	return nil
+}
+
+// DeleteBrickVolfile deletes the brick volfile of a single brick
+func DeleteBrickVolfile(vol *volume.Volinfo, binfo *brick.Brickinfo) error {
+
+	path := getBrickVolFilePath(vol.Name, binfo.NodeID.String(), binfo.Path)
+	if err := os.Remove(path); err != nil {
+		return err
 	}
 
 	return nil
