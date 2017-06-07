@@ -81,7 +81,7 @@ func createVolinfo(req *VolCreateRequest) (*volume.Volinfo, error) {
 		v.Type = volume.DistReplicate
 	}
 
-	v.Bricks, err = volume.NewBrickEntriesFunc(req.Bricks, v.Name)
+	v.Bricks, err = volume.NewBrickEntriesFunc(req.Bricks, v.Name, v.ID)
 	if err != nil {
 		return nil, err
 	}

@@ -83,7 +83,7 @@ type VolStatus struct {
 }
 
 // NewBrickEntries creates the brick list
-func NewBrickEntries(bricks []string, volName string) ([]brick.Brickinfo, error) {
+func NewBrickEntries(bricks []string, volName string, volID uuid.UUID) ([]brick.Brickinfo, error) {
 	var brickInfos []brick.Brickinfo
 	var binfo brick.Brickinfo
 
@@ -117,6 +117,7 @@ func NewBrickEntries(bricks []string, volName string) ([]brick.Brickinfo, error)
 		}
 
 		binfo.VolumeName = volName
+		binfo.VolumeID = volID
 
 		brickInfos = append(brickInfos, binfo)
 	}

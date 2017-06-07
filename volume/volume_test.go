@@ -44,7 +44,7 @@ func TestNewBrickEntry(t *testing.T) {
 	brickPaths := []string{"/tmp/b1", "/tmp/b2"}
 	host, _ := os.Hostname()
 
-	b, err := NewBrickEntriesFunc(bricks, "volume")
+	b, err := NewBrickEntriesFunc(bricks, "volume", nil)
 	tests.Assert(t, err == nil)
 	tests.Assert(t, b != nil)
 	for _, brick := range b {
@@ -54,7 +54,7 @@ func TestNewBrickEntry(t *testing.T) {
 
 	// Some negative tests
 	mockBricks := []string{"/tmp/b1", "/tmp/b2"} //with out IPs
-	_, err = NewBrickEntriesFunc(mockBricks, "volume")
+	_, err = NewBrickEntriesFunc(mockBricks, "volume", nil)
 	tests.Assert(t, err != nil)
 
 	//Now mock filepath.Abs()
@@ -62,7 +62,7 @@ func TestNewBrickEntry(t *testing.T) {
 		return "", errors.ErrBrickPathConvertFail
 	}).Restore()
 
-	_, err = NewBrickEntriesFunc(bricks, "volume")
+	_, err = NewBrickEntriesFunc(bricks, "volume", nil)
 	tests.Assert(t, err == errors.ErrBrickPathConvertFail)
 
 }

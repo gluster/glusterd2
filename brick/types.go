@@ -10,6 +10,7 @@ type Brickinfo struct {
 	NodeID     uuid.UUID
 	Path       string
 	VolumeName string
+	VolumeID   uuid.UUID
 }
 
 // Brickstatus represents real-time status of the brick and contains dynamic
