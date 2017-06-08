@@ -107,13 +107,14 @@ func volumeStopHandler(w http.ResponseWriter, r *http.Request) {
 	}
 	txn.Ctx.Set("volname", volname)
 
-	_, e = txn.Do()
-	if e != nil {
-		logger.WithFields(log.Fields{
-			"error":  e.Error(),
-			"volume": volname,
-		}).Error("failed to stop volume")
-		restutils.SendHTTPError(w, http.StatusInternalServerError, e.Error())
+	if _, err = txn.Do(); err != nil {
+		logger.WithError(err).WithField(
+			"volume", volname).Error("failed to stop volume")
+		if err == transaction.ErrLockTimeout {
+			restutils.SendHTTPError(w, http.StatusConflict, err.Error())
+		} else {
+			restutils.SendHTTPError(w, http.StatusInternalServerError, err.Error())
+		}
 		return
 	}
 

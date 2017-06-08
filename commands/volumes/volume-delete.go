@@ -110,7 +110,11 @@ func volumeDeleteHandler(w http.ResponseWriter, r *http.Request) {
 	if _, err = txn.Do(); err != nil {
 		logger.WithError(err).WithField(
 			"volume", volname).Error("failed to delete the volume")
-		restutils.SendHTTPError(w, http.StatusInternalServerError, err.Error())
+		if err == transaction.ErrLockTimeout {
+			restutils.SendHTTPError(w, http.StatusConflict, err.Error())
+		} else {
+			restutils.SendHTTPError(w, http.StatusInternalServerError, err.Error())
+		}
 		return
 	}
 

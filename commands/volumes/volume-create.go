@@ -289,7 +289,11 @@ func volumeCreateHandler(w http.ResponseWriter, r *http.Request) {
 	c, err := txn.Do()
 	if err != nil {
 		logger.WithError(err).Error("volume create transaction failed")
-		restutils.SendHTTPError(w, http.StatusInternalServerError, err.Error())
+		if err == transaction.ErrLockTimeout {
+			restutils.SendHTTPError(w, http.StatusConflict, err.Error())
+		} else {
+			restutils.SendHTTPError(w, http.StatusInternalServerError, err.Error())
+		}
 		return
 	}
 
