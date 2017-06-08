@@ -7,7 +7,6 @@ import (
 
 	gderrors "github.com/gluster/glusterd2/errors"
 	"github.com/gluster/glusterd2/gdctx"
-	"github.com/gluster/glusterd2/peer"
 	restutils "github.com/gluster/glusterd2/servers/rest/utils"
 	"github.com/gluster/glusterd2/transaction"
 	"github.com/gluster/glusterd2/utils"
@@ -197,36 +196,6 @@ func registerVolCreateStepFuncs() {
 	}
 }
 
-// nodesForVolCreate returns a list of Nodes which volume create touches
-func nodesForVolCreate(req *VolCreateRequest) ([]uuid.UUID, error) {
-	var nodes []uuid.UUID
-
-	for _, b := range req.Bricks {
-
-		// Bricks specified can have one of the following formats:
-		// <peer-uuid>:<brick-path>
-		// <ip>:<port>:<brick-path>
-		// <ip>:<brick-path>
-
-		host, _, err := utils.ParseHostAndBrickPath(b)
-		if err != nil {
-			return nil, err
-		}
-
-		id := uuid.Parse(host)
-		if id == nil {
-			// Host specified is IP or IP:port
-			id, err = peer.GetPeerIDByAddrF(host)
-			if err != nil {
-				return nil, err
-			}
-		}
-
-		nodes = append(nodes, id)
-	}
-	return nodes, nil
-}
-
 func volumeCreateHandler(w http.ResponseWriter, r *http.Request) {
 	req := new(VolCreateRequest)
 	reqID, logger := restutils.GetReqIDandLogger(r)
@@ -243,7 +212,7 @@ func volumeCreateHandler(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	nodes, err := nodesForVolCreate(req)
+	nodes, err := nodesFromBricks(req.Bricks)
 	if err != nil {
 		logger.WithError(err).Error("could not prepare node list")
 		restutils.SendHTTPError(w, http.StatusInternalServerError, err.Error())
