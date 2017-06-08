@@ -3,8 +3,10 @@ package volumecommands
 import (
 	"errors"
 	"net/http"
+	"os"
 
 	gderrors "github.com/gluster/glusterd2/errors"
+	"github.com/gluster/glusterd2/gdctx"
 	"github.com/gluster/glusterd2/peer"
 	restutils "github.com/gluster/glusterd2/servers/rest/utils"
 	"github.com/gluster/glusterd2/transaction"
@@ -12,13 +14,22 @@ import (
 	"github.com/gluster/glusterd2/volgen"
 	"github.com/gluster/glusterd2/volume"
 
-	log "github.com/Sirupsen/logrus"
 	"github.com/pborman/uuid"
 )
 
-func unmarshalVolCreateRequest(msg *volume.VolCreateRequest, r *http.Request) (int, error) {
-	e := utils.GetJSONFromRequest(r, msg)
-	if e != nil {
+// VolCreateRequest defines the parameters for creating a volume in the volume-create command
+type VolCreateRequest struct {
+	Name         string   `json:"name"`
+	Transport    string   `json:"transport,omitempty"`
+	ReplicaCount int      `json:"replica,omitempty"`
+	Bricks       []string `json:"bricks"`
+	Force        bool     `json:"force,omitempty"`
+	// Bricks list is ordered (like in glusterd1) and decides which bricks
+	// form replica sets.
+}
+
+func unmarshalVolCreateRequest(msg *VolCreateRequest, r *http.Request) (int, error) {
+	if err := utils.GetJSONFromRequest(r, msg); err != nil {
 		return 422, gderrors.ErrJSONParsingFailed
 	}
 
@@ -32,35 +43,75 @@ func unmarshalVolCreateRequest(msg *volume.VolCreateRequest, r *http.Request) (i
 
 }
 
-func createVolinfo(msg *volume.VolCreateRequest) (*volume.Volinfo, error) {
-	vol, err := volume.NewVolumeEntry(msg)
+func createVolinfo(req *VolCreateRequest) (*volume.Volinfo, error) {
+
+	var err error
+
+	v := new(volume.Volinfo)
+	v.Options = make(map[string]string)
+	v.ID = uuid.NewRandom()
+	v.Name = req.Name
+
+	if len(req.Transport) > 0 {
+		v.Transport = req.Transport
+	} else {
+		v.Transport = "tcp"
+	}
+
+	if req.ReplicaCount == 0 {
+		v.ReplicaCount = 1
+	} else {
+		v.ReplicaCount = req.ReplicaCount
+	}
+
+	if (len(req.Bricks) % v.ReplicaCount) != 0 {
+		return nil, errors.New("Invalid number of bricks")
+	}
+
+	v.DistCount = len(req.Bricks) / v.ReplicaCount
+
+	switch len(req.Bricks) {
+	case 1:
+		fallthrough
+	case v.DistCount:
+		v.Type = volume.Distribute
+	case v.ReplicaCount:
+		v.Type = volume.Replicate
+	default:
+		v.Type = volume.DistReplicate
+	}
+
+	v.Bricks, err = volume.NewBrickEntriesFunc(req.Bricks, v.Name, v.ID)
 	if err != nil {
 		return nil, err
 	}
-	vol.Bricks, err = volume.NewBrickEntriesFunc(msg.Bricks, vol.Name)
-	if err != nil {
-		return nil, err
+
+	v.Auth = volume.VolAuth{
+		Username: uuid.NewRandom().String(),
+		Password: uuid.NewRandom().String(),
 	}
-	return vol, nil
+
+	return v, nil
 }
 
 func validateVolumeCreate(c transaction.TxnCtx) error {
 
-	var req volume.VolCreateRequest
+	var req VolCreateRequest
 	err := c.Get("req", &req)
 	if err != nil {
 		return err
 	}
 
-	var vol volume.Volinfo
-	err = c.Get("volinfo", &vol)
+	var volinfo volume.Volinfo
+	err = c.Get("volinfo", &volinfo)
 	if err != nil {
 		return err
 	}
 
 	// FIXME: Return values of this function are inconsistent and unused
-	_, err = volume.ValidateBrickEntriesFunc(vol.Bricks, vol.ID, req.Force)
-	if err != nil {
+	if _, err = volume.ValidateBrickEntriesFunc(volinfo.Bricks, volinfo.ID, req.Force); err != nil {
+		c.Logger().WithError(err).WithField(
+			"volume", volinfo.Name).Debug("validateVolumeCreate: failed to validate bricks")
 		return err
 	}
 
@@ -68,57 +119,66 @@ func validateVolumeCreate(c transaction.TxnCtx) error {
 }
 
 func generateVolfiles(c transaction.TxnCtx) error {
-	var vol volume.Volinfo
-	e := c.Get("volinfo", &vol)
-	if e != nil {
-		return errors.New("generateVolfiles: Failed to get volinfo from context")
+
+	var volinfo volume.Volinfo
+	if err := c.Get("volinfo", &volinfo); err != nil {
+		return err
 	}
 
-	var volAuth volume.VolAuth
-	e = c.Get("volauth", &volAuth)
-	if e != nil {
-		return errors.New("generateVolfiles: Failed to get volauth from context")
+	// Create 'vols' directory.
+	err := os.MkdirAll(utils.GetVolumeDir(volinfo.Name), os.ModeDir|os.ModePerm)
+	if err != nil {
+		c.Logger().WithError(err).WithField(
+			"volume", volinfo.Name).Debug("generateVolfiles: failed to create vol directory")
+		return err
 	}
 
-	// Creating client and server volfile
-	e = volgen.GenerateVolfileFunc(&vol, &volAuth)
-	if e != nil {
-		c.Logger().WithFields(log.Fields{"error": e.Error(),
-			"volume": vol.Name,
-		}).Error("failed to generate volfile")
-		return e
+	// Generate brick volfiles
+	for _, b := range volinfo.Bricks {
+		if !uuid.Equal(b.NodeID, gdctx.MyUUID) {
+			continue
+		}
+		if err := volgen.GenerateBrickVolfile(&volinfo, &b); err != nil {
+			c.Logger().WithError(err).WithField(
+				"brick", b.Path).Debug("generateVolfiles: failed to create brick volfile")
+			return err
+		}
 	}
+
+	// Generate client volfile
+	if err := volgen.GenerateClientVolfile(&volinfo); err != nil {
+		c.Logger().WithError(err).WithField(
+			"volume", volinfo.Name).Debug("generateVolfiles: failed to create client volfile")
+		return err
+	}
+
 	return nil
 }
 
 func storeVolume(c transaction.TxnCtx) error {
-	var vol volume.Volinfo
-	e := c.Get("volinfo", &vol)
-	if e != nil {
-		return errors.New("failed to get volinfo from context")
+
+	var volinfo volume.Volinfo
+	if err := c.Get("volinfo", &volinfo); err != nil {
+		return err
 	}
 
-	e = volume.AddOrUpdateVolumeFunc(&vol)
-	if e != nil {
-		c.Logger().WithFields(log.Fields{"error": e.Error(),
-			"volume": vol.Name,
-		}).Error("Failed to create volume")
-		return e
+	if err := volume.AddOrUpdateVolumeFunc(&volinfo); err != nil {
+		c.Logger().WithError(err).WithField(
+			"volume", volinfo.Name).Debug("storeVolume: failed to store volume info")
+		return err
 	}
 
-	log.WithField("volume", vol.Name).Debug("new volume added")
 	return nil
 }
 
 func rollBackVolumeCreate(c transaction.TxnCtx) error {
-	var vol volume.Volinfo
-	e := c.Get("volinfo", &vol)
-	if e != nil {
-		return errors.New("failed to get volinfo from context")
+
+	var volinfo volume.Volinfo
+	if err := c.Get("volinfo", &volinfo); err != nil {
+		return err
 	}
 
-	_ = volume.RemoveBrickPaths(vol.Bricks)
-
+	_ = volume.RemoveBrickPaths(volinfo.Bricks)
 	return nil
 }
 
@@ -138,7 +198,7 @@ func registerVolCreateStepFuncs() {
 }
 
 // nodesForVolCreate returns a list of Nodes which volume create touches
-func nodesForVolCreate(req *volume.VolCreateRequest) ([]uuid.UUID, error) {
+func nodesForVolCreate(req *VolCreateRequest) ([]uuid.UUID, error) {
 	var nodes []uuid.UUID
 
 	for _, b := range req.Bricks {
@@ -168,13 +228,13 @@ func nodesForVolCreate(req *volume.VolCreateRequest) ([]uuid.UUID, error) {
 }
 
 func volumeCreateHandler(w http.ResponseWriter, r *http.Request) {
-	req := new(volume.VolCreateRequest)
+	req := new(VolCreateRequest)
 	reqID, logger := restutils.GetReqIDandLogger(r)
 
-	httpStatus, e := unmarshalVolCreateRequest(req, r)
-	if e != nil {
-		logger.WithError(e).Error("Failed to unmarshal volume request")
-		restutils.SendHTTPError(w, httpStatus, e.Error())
+	httpStatus, err := unmarshalVolCreateRequest(req, r)
+	if err != nil {
+		logger.WithError(err).Error("Failed to unmarshal volume request")
+		restutils.SendHTTPError(w, httpStatus, err.Error())
 		return
 	}
 
@@ -183,14 +243,14 @@ func volumeCreateHandler(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	nodes, e := nodesForVolCreate(req)
-	if e != nil {
-		logger.WithError(e).Error("could not prepare node list")
-		restutils.SendHTTPError(w, http.StatusInternalServerError, e.Error())
+	nodes, err := nodesForVolCreate(req)
+	if err != nil {
+		logger.WithError(err).Error("could not prepare node list")
+		restutils.SendHTTPError(w, http.StatusInternalServerError, err.Error())
 		return
 	}
 
-	txn, e := (&transaction.SimpleTxn{
+	txn, err := (&transaction.SimpleTxn{
 		Nodes:    nodes,
 		LockKey:  req.Name,
 		Stage:    "vol-create.Stage",
@@ -198,60 +258,46 @@ func volumeCreateHandler(w http.ResponseWriter, r *http.Request) {
 		Store:    "vol-create.Store",
 		Rollback: "vol-create.Rollback",
 	}).NewTxn(reqID)
-	if e != nil {
-		logger.WithError(e).Error("failed to create transaction")
-		restutils.SendHTTPError(w, http.StatusInternalServerError, e.Error())
+	if err != nil {
+		logger.WithError(err).Error("failed to create transaction")
+		restutils.SendHTTPError(w, http.StatusInternalServerError, err.Error())
 		return
 	}
 	defer txn.Cleanup()
 
-	e = txn.Ctx.Set("req", req)
-	if e != nil {
-		logger.WithError(e).Error("failed to set request in transaction context")
-		restutils.SendHTTPError(w, http.StatusInternalServerError, e.Error())
+	err = txn.Ctx.Set("req", req)
+	if err != nil {
+		logger.WithError(err).Error("failed to set request in transaction context")
+		restutils.SendHTTPError(w, http.StatusInternalServerError, err.Error())
 		return
 	}
 
-	vol, e := createVolinfo(req)
-	if e != nil {
-		logger.WithError(e).Error("failed to create volinfo")
-		restutils.SendHTTPError(w, http.StatusInternalServerError, e.Error())
+	vol, err := createVolinfo(req)
+	if err != nil {
+		logger.WithError(err).Error("failed to create volinfo")
+		restutils.SendHTTPError(w, http.StatusInternalServerError, err.Error())
 		return
 	}
 
-	e = txn.Ctx.Set("volinfo", vol)
-	if e != nil {
-		logger.WithError(e).Error("failed to set volinfo in transaction context")
-		restutils.SendHTTPError(w, http.StatusInternalServerError, e.Error())
+	err = txn.Ctx.Set("volinfo", vol)
+	if err != nil {
+		logger.WithError(err).Error("failed to set volinfo in transaction context")
+		restutils.SendHTTPError(w, http.StatusInternalServerError, err.Error())
 		return
 	}
 
-	// Generate trusted username and password
-	volAuth := volume.VolAuth{
-		Username: uuid.NewRandom().String(),
-		Password: uuid.NewRandom().String(),
-	}
-	e = txn.Ctx.Set("volauth", volAuth)
-	if e != nil {
-		logger.WithError(e).Error("failed to set trusted credentials in transaction context")
-		restutils.SendHTTPError(w, http.StatusInternalServerError, e.Error())
+	c, err := txn.Do()
+	if err != nil {
+		logger.WithError(err).Error("volume create transaction failed")
+		restutils.SendHTTPError(w, http.StatusInternalServerError, err.Error())
 		return
 	}
 
-	c, e := txn.Do()
-	if e != nil {
-		logger.WithError(e).Error("volume create transaction failed")
-		restutils.SendHTTPError(w, http.StatusInternalServerError, e.Error())
-		return
-	}
-
-	e = c.Get("volinfo", &vol)
-	if e == nil {
-		restutils.SendHTTPResponse(w, http.StatusCreated, vol)
-		c.Logger().WithField("volname", vol.Name).Info("new volume created")
-	} else {
+	if err = c.Get("volinfo", &vol); err != nil {
 		restutils.SendHTTPError(w, http.StatusInternalServerError, "failed to get volinfo")
+		return
 	}
 
-	return
+	c.Logger().WithField("volname", vol.Name).Info("new volume created")
+	restutils.SendHTTPResponse(w, http.StatusCreated, vol)
 }

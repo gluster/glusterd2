@@ -33,9 +33,7 @@ var (
 	// ValidateBrickEntriesFunc validates the brick list
 	ValidateBrickEntriesFunc   = ValidateBrickEntries
 	validateBrickPathStatsFunc = utils.ValidateBrickPathStats
-	// NewVolinfoFunc returns an empty Volinfo
-	NewVolinfoFunc = NewVolinfo
-	absFilePath    = filepath.Abs
+	absFilePath                = filepath.Abs
 	// NewBrickEntriesFunc creates the brick list
 	NewBrickEntriesFunc = NewBrickEntries
 )
@@ -48,42 +46,28 @@ const (
 	Distribute VolType = iota
 	// Replicate is plain replicate volume
 	Replicate
-	// Stripe is a plain stripe volume
-	Stripe
 	// Disperse is a plain erasure coded volume
 	Disperse
 	// DistReplicate is a distribute-replicate volume
 	DistReplicate
-	// DistStripe is  a distribute-stripe volume
-	DistStripe
 	// DistDisperse is a distribute-'erasure coded' volume
 	DistDisperse
-	// DistRepStripe is a distribute-replicate-stripe volume
-	DistRepStripe
-	// DistDispStripe is distrbute-'erasure coded'-stripe volume
-	DistDispStripe
 )
 
 // Volinfo repesents a volume
 type Volinfo struct {
-	ID   uuid.UUID
-	Name string
-	Type VolType
-
-	Transport       string
-	DistCount       int
-	ReplicaCount    int
-	StripeCount     int
-	DisperseCount   int
-	RedundancyCount int
-
-	Options map[string]string
-
-	Status VolState
-
-	Checksum uint64
-	Version  uint64
-	Bricks   []brick.Brickinfo
+	ID           uuid.UUID
+	Name         string
+	Type         VolType
+	Transport    string
+	DistCount    int
+	ReplicaCount int
+	Options      map[string]string
+	Status       VolState
+	Checksum     uint64
+	Version      uint64
+	Bricks       []brick.Brickinfo
+	Auth         VolAuth
 }
 
 // VolAuth represents username and password used by trusted/internal clients
@@ -99,55 +83,8 @@ type VolStatus struct {
 	// clients connected etc.
 }
 
-// VolCreateRequest defines the parameters for creating a volume in the volume-create command
-// TODO: This should probably be moved out of here.
-type VolCreateRequest struct {
-	Name            string   `json:"name"`
-	Transport       string   `json:"transport,omitempty"`
-	DistCount       int      `json:"distcount,omitempty"`
-	ReplicaCount    int      `json:"replica,omitempty"`
-	StripeCount     int      `json:"stripecount,omitempty"`
-	DisperseCount   int      `json:"dispersecount,omitempty"`
-	RedundancyCount int      `json:"redundancycount,omitempty"`
-	Bricks          []string `json:"bricks"`
-	Force           bool     `json:"force,omitempty"`
-}
-
-// NewVolinfo returns an empty Volinfo
-func NewVolinfo() *Volinfo {
-	v := new(Volinfo)
-	v.Options = make(map[string]string)
-
-	return v
-}
-
-// NewVolumeEntry returns an initialized Volinfo using the given parameters
-func NewVolumeEntry(req *VolCreateRequest) (*Volinfo, error) {
-	v := NewVolinfoFunc()
-	if v == nil {
-		return nil, errors.ErrVolCreateFail
-	}
-	v.ID = uuid.NewRandom()
-	v.Name = req.Name
-	if len(req.Transport) > 0 {
-		v.Transport = req.Transport
-	} else {
-		v.Transport = "tcp"
-	}
-	if req.ReplicaCount == 0 {
-		v.ReplicaCount = 1
-	} else {
-		v.ReplicaCount = req.ReplicaCount
-	}
-	v.StripeCount = req.StripeCount
-	v.DisperseCount = req.DisperseCount
-	v.RedundancyCount = req.RedundancyCount
-
-	return v, nil
-}
-
 // NewBrickEntries creates the brick list
-func NewBrickEntries(bricks []string, volName string) ([]brick.Brickinfo, error) {
+func NewBrickEntries(bricks []string, volName string, volID uuid.UUID) ([]brick.Brickinfo, error) {
 	var brickInfos []brick.Brickinfo
 	var binfo brick.Brickinfo
 
@@ -181,6 +118,7 @@ func NewBrickEntries(bricks []string, volName string) ([]brick.Brickinfo, error)
 		}
 
 		binfo.VolumeName = volName
+		binfo.VolumeID = volID
 
 		brickInfos = append(brickInfos, binfo)
 	}

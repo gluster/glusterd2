@@ -1,54 +1,56 @@
 package volumecommands
 
 import (
-	"errors"
 	"net/http"
 
-	gderrors "github.com/gluster/glusterd2/errors"
 	"github.com/gluster/glusterd2/gdctx"
 	restutils "github.com/gluster/glusterd2/servers/rest/utils"
 	"github.com/gluster/glusterd2/transaction"
 	"github.com/gluster/glusterd2/volgen"
 	"github.com/gluster/glusterd2/volume"
 
-	log "github.com/Sirupsen/logrus"
 	"github.com/gorilla/mux"
 	"github.com/pborman/uuid"
 )
 
 func deleteVolfiles(c transaction.TxnCtx) error {
+
 	var volname string
-
-	if e := c.Get("volname", &volname); e != nil {
-		c.Logger().WithFields(log.Fields{
-			"error": e,
-			"key":   "volname",
-		}).Error("failed to get value for key from context")
-		return e
+	if err := c.Get("volname", &volname); err != nil {
+		return err
 	}
 
-	vol, e := volume.GetVolume(volname)
-	if e != nil {
-		// this shouldn't happen
-		c.Logger().WithFields(log.Fields{
-			"error":   e,
-			"volname": volname,
-		}).Error("failed to get volinfo for volume")
-		return e
+	volinfo, err := volume.GetVolume(volname)
+	if err != nil {
+		return err
 	}
 
-	return volgen.DeleteVolfile(vol)
+	if err := volgen.DeleteClientVolfile(volinfo); err != nil {
+		c.Logger().WithError(err).WithField(
+			"volume", volinfo.Name).Debug("deleteVolfiles: failed to delete client volfile")
+		return err
+	}
+
+	for _, b := range volinfo.Bricks {
+		if !uuid.Equal(b.NodeID, gdctx.MyUUID) {
+			continue
+		}
+
+		if err := volgen.DeleteBrickVolfile(volinfo, &b); err != nil {
+			c.Logger().WithError(err).WithField(
+				"brick", b.Path).Debug("deleteVolfiles: failed to delete brick volfile")
+			return err
+		}
+	}
+
+	return nil
 }
 
 func deleteVolume(c transaction.TxnCtx) error {
-	var volname string
 
-	if e := c.Get("volname", &volname); e != nil {
-		c.Logger().WithFields(log.Fields{
-			"error": e,
-			"key":   "volname",
-		}).Error("failed to get value for key from context")
-		return e
+	var volname string
+	if err := c.Get("volname", &volname); err != nil {
+		return err
 	}
 
 	return volume.DeleteVolume(volname)
@@ -72,18 +74,14 @@ func volumeDeleteHandler(w http.ResponseWriter, r *http.Request) {
 	volname := p["volname"]
 	reqID, logger := restutils.GetReqIDandLogger(r)
 
-	if !volume.Exists(volname) {
-		restutils.SendHTTPError(w, http.StatusBadRequest, gderrors.ErrVolNotFound.Error())
-		return
-	}
 	vol, err := volume.GetVolume(volname)
 	if err != nil {
-		restutils.SendHTTPError(w, http.StatusInternalServerError, err.Error())
+		restutils.SendHTTPError(w, http.StatusNotFound, err.Error())
 		return
 	}
 
 	if vol.Status == volume.VolStarted {
-		restutils.SendHTTPError(w, http.StatusForbidden, errors.New("volume is not stopped").Error())
+		restutils.SendHTTPError(w, http.StatusForbidden, "volume is not stopped")
 		return
 	}
 
@@ -107,16 +105,14 @@ func volumeDeleteHandler(w http.ResponseWriter, r *http.Request) {
 		},
 		unlock,
 	}
-	txn.Ctx.Set("volname", volname)
 
-	_, e := txn.Do()
-	if e != nil {
-		logger.WithFields(log.Fields{
-			"error":  e.Error(),
-			"volume": volname,
-		}).Error("Failed to delete the volume")
-		restutils.SendHTTPError(w, http.StatusInternalServerError, e.Error())
+	txn.Ctx.Set("volname", volname)
+	if _, err = txn.Do(); err != nil {
+		logger.WithError(err).WithField(
+			"volume", volname).Error("failed to delete the volume")
+		restutils.SendHTTPError(w, http.StatusInternalServerError, err.Error())
 		return
 	}
+
 	restutils.SendHTTPResponse(w, http.StatusOK, nil)
 }
