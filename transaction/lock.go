@@ -1,6 +1,10 @@
 package transaction
 
 import (
+	"context"
+	"errors"
+	"time"
+
 	"github.com/gluster/glusterd2/gdctx"
 	"github.com/gluster/glusterd2/store"
 
@@ -9,12 +13,17 @@ import (
 )
 
 const (
-	lockPrefix = store.GlusterPrefix + "locks/"
+	lockPrefix        = store.GlusterPrefix + "locks/"
+	lockObtainTimeout = 5 * time.Second
 )
 
-// CreateLockStepFunc returns the registry IDs ofr StepFuncs which lock/unlock the given key
+// ErrLockTimeout is the error returned when lock could not be obtained
+// and the request timed out
+var ErrLockTimeout = errors.New("could not obtain lock: another conflicting transaction may be in progress")
+
+// createLockStepFunc returns the registry IDs of StepFuncs which lock/unlock the given key.
 // If existing StepFuncs are not found, new funcs are created and registered.
-func CreateLockStepFunc(key string) (string, string, error) {
+func createLockStepFunc(key string) (string, string, error) {
 	lockFuncID := key + ".Lock"
 	unlockFuncID := key + ".Unlock"
 
@@ -26,25 +35,37 @@ func CreateLockStepFunc(key string) (string, string, error) {
 	}
 
 	key = lockPrefix + key
-	locker := concurrency.NewLocker(gdctx.Store.Session, key)
+	locker := concurrency.NewMutex(gdctx.Store.Session, key)
 
 	lockFunc := func(c TxnCtx) error {
-		log := c.Logger().WithField("key", key)
 
-		locker.Lock()
-		log.Debug("locked obtained")
+		ctx, cancel := context.WithTimeout(context.Background(), lockObtainTimeout)
+		defer cancel()
 
-		return nil
+		c.Logger().WithField("key", key).Debug("attempting to lock")
+		err := locker.Lock(ctx)
+		switch err {
+		case nil:
+			c.Logger().WithField("key", key).Debug("lock obtained")
+		case context.DeadlineExceeded:
+			// Propagate this all the way back to the client as a HTTP 409 response
+			c.Logger().WithField("key", key).Debug("timeout: failed to obtain lock")
+			err = ErrLockTimeout
+		}
+
+		return err
 	}
 	RegisterStepFunc(lockFunc, lockFuncID)
 
 	unlockFunc := func(c TxnCtx) error {
-		log := c.Logger().WithField("key", key)
 
-		locker.Unlock()
-		log.Debug("lock released")
+		c.Logger().WithField("key", key).Debug("attempting to unlock")
+		err := locker.Unlock(context.Background())
+		if err == nil {
+			c.Logger().WithField("key", key).Debug("lock unlocked")
+		}
 
-		return nil
+		return err
 	}
 	RegisterStepFunc(unlockFunc, unlockFuncID)
 
@@ -53,7 +74,7 @@ func CreateLockStepFunc(key string) (string, string, error) {
 
 // CreateLockSteps returns a lock and an unlock Step which lock/unlock the given key
 func CreateLockSteps(key string) (*Step, *Step, error) {
-	lockFunc, unlockFunc, err := CreateLockStepFunc(key)
+	lockFunc, unlockFunc, err := createLockStepFunc(key)
 	if err != nil {
 		return nil, nil, err
 	}
