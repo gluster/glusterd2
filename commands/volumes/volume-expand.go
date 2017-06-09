@@ -141,7 +141,24 @@ func updateVolinfoOnExpand(c transaction.TxnCtx) error {
 	if err := c.Get("oldvolinfo", &volinfo); err != nil {
 		return err
 	}
+
+	var newReplicaCount int
+	if err := c.Get("newreplicacount", &newReplicaCount); err != nil {
+		return err
+	}
+
+	volinfo.ReplicaCount = newReplicaCount
 	volinfo.Bricks = append(volinfo.Bricks, newBricks...)
+	volinfo.DistCount = len(volinfo.Bricks) / volinfo.ReplicaCount
+
+	switch len(volinfo.Bricks) {
+	case volinfo.DistCount:
+		volinfo.Type = volume.Distribute
+	case volinfo.ReplicaCount:
+		volinfo.Type = volume.Replicate
+	default:
+		volinfo.Type = volume.DistReplicate
+	}
 
 	// update new volinfo in txn ctx
 	if err := c.Set("newvolinfo", volinfo); err != nil {
@@ -233,14 +250,14 @@ func volumeExpandHandler(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	// TODO: Only pure distribute is handled now. Should handle other volume
-	// type and also conversion from one vol type to another type which
-	// implicitly occurs during add brick
-	if req.ReplicaCount == 0 && volinfo.Type == volume.Distribute {
-		// expand a pure distribute volume linearly
-	} else {
-		restutils.SendHTTPError(w, http.StatusUnprocessableEntity, "Volume type not supported")
-		return
+	if volinfo.Type == volume.Replicate && req.ReplicaCount != 0 {
+		if req.ReplicaCount < volinfo.ReplicaCount {
+			restutils.SendHTTPError(w, http.StatusUnprocessableEntity, "Invalid number of bricks")
+			return
+		} else if req.ReplicaCount == volinfo.ReplicaCount {
+			restutils.SendHTTPError(w, http.StatusUnprocessableEntity, "Replica count is same")
+			return
+		}
 	}
 
 	lock, unlock, err := transaction.CreateLockSteps(volinfo.Name)
@@ -294,13 +311,16 @@ func volumeExpandHandler(w http.ResponseWriter, r *http.Request) {
 	}
 
 	if err := txn.Ctx.Set("newbricks", newBricks); err != nil {
-		logger.WithError(err).Error("failed to set request in transaction context")
+		restutils.SendHTTPError(w, http.StatusInternalServerError, err.Error())
+		return
+	}
+
+	if err := txn.Ctx.Set("newreplicacount", newReplicaCount); err != nil {
 		restutils.SendHTTPError(w, http.StatusInternalServerError, err.Error())
 		return
 	}
 
 	if err := txn.Ctx.Set("oldvolinfo", volinfo); err != nil {
-		logger.WithError(err).Error("failed to set volinfo in transaction context")
 		restutils.SendHTTPError(w, http.StatusInternalServerError, err.Error())
 		return
 	}
