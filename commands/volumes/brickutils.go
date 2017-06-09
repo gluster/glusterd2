@@ -22,14 +22,18 @@ const BrickStartMaxRetries = 3
 const anotherEADDRINUSE = syscall.Errno(0x9E) // 158
 
 func errorContainsErrno(err error, errno syscall.Errno) bool {
-	if exiterr, ok := err.(*exec.ExitError); ok {
-		if status, ok := exiterr.Sys().(syscall.WaitStatus); ok {
-			if status.ExitStatus() == int(errno) {
-				return true
-			}
-		}
+	exiterr, ok := err.(*exec.ExitError)
+	if !ok {
+		return false
 	}
-	return false
+	status, ok := exiterr.Sys().(syscall.WaitStatus)
+	if !ok {
+		return false
+	}
+	if status.ExitStatus() != int(errno) {
+		return false
+	}
+	return true
 }
 
 // These functions are used in vol-create, vol-expand and vol-shrink (TBD)
