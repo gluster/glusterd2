@@ -67,7 +67,7 @@ type Volinfo struct {
 	Checksum     uint64
 	Version      uint64
 	Bricks       []brick.Brickinfo
-	Auth         VolAuth
+	Auth         VolAuth // TODO: should not be returned to client
 }
 
 // VolAuth represents username and password used by trusted/internal clients
