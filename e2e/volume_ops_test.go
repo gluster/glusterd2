@@ -29,7 +29,7 @@ func TestVolumeCreateDelete(t *testing.T) {
 	assert.Nil(err)
 	defer teardownCluster(gds)
 
-	brickDir, err := ioutil.TempDir("", t.Name())
+	brickDir, err := ioutil.TempDir("", "TestVolumeCreateDelete")
 	defer os.RemoveAll(brickDir)
 
 	var brickPaths []string
