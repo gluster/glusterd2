@@ -1,13 +1,16 @@
 package e2e
 
 import (
+	"errors"
+	"fmt"
 	"io/ioutil"
+	"net/http"
 	"os"
 	"os/exec"
 	"path"
 	"syscall"
+	"time"
 
-	log "github.com/Sirupsen/logrus"
 	"gopkg.in/yaml.v2"
 )
 
@@ -55,6 +58,20 @@ func (g *gdProcess) PeerID() string {
 	return g.uuid
 }
 
+func (g *gdProcess) IsRestServerUp() bool {
+	healthEndpoint := fmt.Sprintf("http://%s/v1/peers/%s/etcdhealth", g.ClientAddress, g.PeerID())
+	resp, err := http.Get(healthEndpoint)
+	if err != nil {
+		return false
+	}
+	defer resp.Body.Close()
+	if resp.StatusCode != 200 {
+		return false
+	}
+
+	return true
+}
+
 func spawnGlusterd(configFilePath string) (*gdProcess, error) {
 
 	fContent, err := ioutil.ReadFile(configFilePath)
@@ -83,12 +100,23 @@ func spawnGlusterd(configFilePath string) (*gdProcess, error) {
 	}
 
 	go func() {
-		err := g.Cmd.Wait()
-		log.WithFields(log.Fields{
-			"pid":    g.Cmd.Process.Pid,
-			"status": err,
-		}).Error("Child exited.")
+		g.Cmd.Wait()
 	}()
+
+	retries := 4
+	waitTime := 1000
+	for i := 0; i < retries; i++ {
+		// opposite of exponential backoff; max sleep time = 1.875s
+		time.Sleep(time.Duration(waitTime) * time.Millisecond)
+		if g.IsRestServerUp() {
+			break
+		}
+		waitTime = waitTime / 2
+	}
+
+	if !g.IsRestServerUp() {
+		return nil, errors.New("timeout: could not query rest server")
+	}
 
 	return &g, nil
 }
