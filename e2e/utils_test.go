@@ -8,6 +8,7 @@ import (
 	"os"
 	"os/exec"
 	"path"
+	"strings"
 	"syscall"
 	"time"
 
@@ -119,4 +120,50 @@ func spawnGlusterd(configFilePath string) (*gdProcess, error) {
 	}
 
 	return &g, nil
+}
+
+func setupCluster(configFiles ...string) ([]*gdProcess, error) {
+
+	var gds []*gdProcess
+
+	cleanup := func() {
+		for _, p := range gds {
+			p.Stop()
+			p.EraseWorkdir()
+		}
+	}
+
+	for _, configFile := range configFiles {
+		g, err := spawnGlusterd(configFile)
+		if err != nil {
+			cleanup()
+			return nil, err
+		}
+		gds = append(gds, g)
+	}
+
+	// first gd2 that comes up shall add other nodes as its peers
+	firstNode := gds[0].ClientAddress
+	for i, gd := range gds {
+		if i == 0 {
+			continue
+		}
+		reqBody := strings.NewReader(fmt.Sprintf(`{"addresses": ["%s"]}`, gd.PeerAddress))
+		resp, err := http.Post("http://"+firstNode+"/v1/peers", "application/json", reqBody)
+		if err != nil || resp.StatusCode != 201 {
+			cleanup()
+			return nil, err
+		}
+		resp.Body.Close()
+	}
+
+	return gds, nil
+}
+
+func teardownCluster(gds []*gdProcess) error {
+	for _, gd := range gds {
+		gd.Stop()
+		gd.EraseWorkdir()
+	}
+	return nil
 }
