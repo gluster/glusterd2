@@ -7,6 +7,7 @@ import (
 	"github.com/gluster/glusterd2/gdctx"
 	"github.com/gluster/glusterd2/peer"
 	"github.com/gluster/glusterd2/servers/peerrpc"
+	"github.com/gluster/glusterd2/store"
 	"github.com/gluster/glusterd2/volume"
 
 	log "github.com/Sirupsen/logrus"
@@ -79,7 +80,7 @@ func (p *PeerService) ExportAndStoreETCDConfig(nc netctx.Context, c *EtcdConfigR
 	var opError string
 
 	// Stop the store first
-	gdctx.Store.Close()
+	store.Store.Close()
 
 	newEtcdConfig, err := etcdmgmt.GetEtcdConfig(false)
 	if err != nil {
@@ -114,7 +115,7 @@ func (p *PeerService) ExportAndStoreETCDConfig(nc netctx.Context, c *EtcdConfigR
 	}
 
 	// Reinitialize the store now that a new etcd instance is running
-	if err := gdctx.InitStore(); err != nil {
+	if err := store.InitStore(); err != nil {
 		opRet = -1
 		opError = fmt.Sprintf("Failed to initialize store (etcd client)")
 		log.WithError(err).Error("Failed to initialize store (etcd client)")

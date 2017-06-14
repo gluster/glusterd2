@@ -15,14 +15,17 @@ const (
 	GlusterPrefix string = "gluster/"
 )
 
+// Store variable can be imported by packages which need access to the store
+var Store *GDStore
+
 // GDStore is the GlusterD centralized store
 type GDStore struct {
 	*clientv3.Client
 	*concurrency.Session
 }
 
-// New creates a new GDStore
-func New() (*GDStore, error) {
+// InitStore creates and initializes the store
+func InitStore() error {
 	address := config.GetString("etcdclientaddress")
 
 	c, e := clientv3.New(clientv3.Config{
@@ -32,7 +35,7 @@ func New() (*GDStore, error) {
 	})
 	if e != nil {
 		log.WithError(e).Error("failed to create etcd client")
-		return nil, e
+		return e
 	}
 	log.Debug("etcd client connection created")
 
@@ -40,10 +43,11 @@ func New() (*GDStore, error) {
 	s, e := concurrency.NewSession(c)
 	if e != nil {
 		log.WithError(e).Error("failed to create an etcd session")
-		return nil, e
+		return e
 	}
 
-	return &GDStore{c, s}, nil
+	Store = &GDStore{c, s}
+	return nil
 }
 
 // Close closes the store connections
