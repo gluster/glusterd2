@@ -2,7 +2,10 @@
 package store
 
 import (
+	"context"
 	"time"
+
+	"github.com/gluster/glusterd2/gdctx"
 
 	log "github.com/Sirupsen/logrus"
 	"github.com/coreos/etcd/clientv3"
@@ -46,12 +49,29 @@ func InitStore() error {
 		return e
 	}
 
+	// publish liveness of this instance into the store
+	livenessLeaseID, livenessStopRenewal, e = publishLiveness(c, gdctx.MyUUID.String())
+	if e != nil {
+		log.WithError(e).Debug("failed to publish liveness")
+		return e
+	}
+
 	Store = &GDStore{c, s}
 	return nil
 }
 
 // Close closes the store connections
 func (s *GDStore) Close() {
+
+	// revoke the liveness lease
+	if _, err := s.Revoke(context.TODO(), livenessLeaseID); err != nil {
+		log.WithError(err).WithField(
+			"lease-id", livenessLeaseID).Warn("failed to revoke liveness lease")
+	} else {
+		log.WithField("lease-id", livenessLeaseID).Info("revoked liveness lease")
+	}
+	close(livenessStopRenewal) // exit the liveness lease renewal goroutine
+
 	if e := s.Client.Close(); e != nil {
 		log.WithError(e).Warn("failed to close etcd client connection")
 	}
