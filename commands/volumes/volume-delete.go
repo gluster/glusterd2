@@ -36,7 +36,7 @@ func deleteVolfiles(c transaction.TxnCtx) error {
 			continue
 		}
 
-		if err := volgen.DeleteBrickVolfile(volinfo, &b); err != nil {
+		if err := volgen.DeleteBrickVolfile(&b); err != nil {
 			c.Logger().WithError(err).WithField(
 				"brick", b.Path).Debug("deleteVolfiles: failed to delete brick volfile")
 			return err

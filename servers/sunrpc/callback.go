@@ -5,6 +5,7 @@ import (
 	"net"
 	"sync/atomic"
 
+	"github.com/gluster/glusterd2/transaction"
 	"github.com/gluster/glusterd2/utils"
 
 	log "github.com/Sirupsen/logrus"
@@ -89,7 +90,7 @@ const (
 	gfCbkStatedump = 9
 )
 
-func fetchNotify(op fetchOp) {
+func fetchNotify(t transaction.TxnCtx, op fetchOp) {
 	clientsList.RLock()
 	defer clientsList.RUnlock()
 
@@ -102,8 +103,7 @@ func fetchNotify(op fetchOp) {
 	for conn := range clientsList.c {
 		go func(c net.Conn) {
 			if err := callbackClient(c, p, nil); err != nil {
-				// TODO: Use context logger if this is part of a user triggered operation
-				log.WithError(err).WithFields(log.Fields{
+				t.Logger().WithError(err).WithFields(log.Fields{
 					"client":    c.RemoteAddr().String(),
 					"procedure": op,
 				}).Warn("Failed to notify RPC client")
@@ -114,14 +114,14 @@ func fetchNotify(op fetchOp) {
 
 // FetchSpecNotify notifies all clients connected to glusterd that the volfile
 // has changed and the clients should fetch the new volfile.
-func FetchSpecNotify() {
-	fetchNotify(gfCbkFetchSpec)
+func FetchSpecNotify(t transaction.TxnCtx) {
+	fetchNotify(t, gfCbkFetchSpec)
 }
 
 // FetchSnapNotify notifies all clients connected to glusterd that a snapshot
 // has been created or modified.
-func FetchSnapNotify() {
-	fetchNotify(gfCbkGetSnaps)
+func FetchSnapNotify(t transaction.TxnCtx) {
+	fetchNotify(t, gfCbkGetSnaps)
 }
 
 type gfStatedump struct {

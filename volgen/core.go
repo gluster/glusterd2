@@ -160,9 +160,9 @@ func GenerateBrickVolfile(vinfo *volume.Volinfo, binfo *brick.Brickinfo) error {
 }
 
 // DeleteBrickVolfile deletes the brick volfile of a single brick
-func DeleteBrickVolfile(vol *volume.Volinfo, binfo *brick.Brickinfo) error {
+func DeleteBrickVolfile(binfo *brick.Brickinfo) error {
 
-	path := getBrickVolFilePath(vol.Name, binfo.NodeID.String(), binfo.Path)
+	path := getBrickVolFilePath(binfo.VolumeName, binfo.NodeID.String(), binfo.Path)
 	if err := os.Remove(path); err != nil {
 		return err
 	}
