@@ -19,6 +19,12 @@ func (c *Command) Routes() route.Routes {
 			Version:     1,
 			HandlerFunc: volumeCreateHandler},
 		route.Route{
+			Name:        "VolumeExpand",
+			Method:      "POST",
+			Pattern:     "/volumes/{volname}/expand",
+			Version:     1,
+			HandlerFunc: volumeExpandHandler},
+		route.Route{
 			Name:        "VolumeDelete",
 			Method:      "DELETE",
 			Pattern:     "/volumes/{volname}",
@@ -64,4 +70,5 @@ func (c *Command) RegisterStepFuncs() {
 	registerVolStartStepFuncs()
 	registerVolStopStepFuncs()
 	registerVolStatusStepFuncs()
+	registerVolExpandStepFuncs()
 }

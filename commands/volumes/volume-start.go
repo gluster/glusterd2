@@ -2,12 +2,7 @@ package volumecommands
 
 import (
 	"net/http"
-	"os/exec"
-	"syscall"
-	"time"
 
-	"github.com/gluster/glusterd2/brick"
-	"github.com/gluster/glusterd2/daemon"
 	"github.com/gluster/glusterd2/errors"
 	"github.com/gluster/glusterd2/gdctx"
 	restutils "github.com/gluster/glusterd2/servers/rest/utils"
@@ -19,78 +14,37 @@ import (
 	"github.com/pborman/uuid"
 )
 
-// BrickStartMaxRetries represents maximum no. of attempts that will be made
-// to start brick processes in case of port clashes.
-const BrickStartMaxRetries = 3
-
-// Until https://review.gluster.org/#/c/16200/ gets into a release.
-// And this is fully safe too as no other well-known errno exists after 132
-const anotherEADDRINUSE = syscall.Errno(0x9E) // 158
-
-func errorContainsErrno(err error, errno syscall.Errno) bool {
-	if exiterr, ok := err.(*exec.ExitError); ok {
-		if status, ok := exiterr.Sys().(syscall.WaitStatus); ok {
-			if status.ExitStatus() == int(errno) {
-				return true
-			}
-		}
-	}
-	return false
-}
-
-func startBricks(c transaction.TxnCtx) error {
+func startAllBricks(c transaction.TxnCtx) error {
 	var volname string
-	if e := c.Get("volname", &volname); e != nil {
-		c.Logger().WithFields(log.Fields{
-			"error": e,
-			"key":   "volname",
-		}).Error("failed to get value for key from context")
-		return e
+	if err := c.Get("volname", &volname); err != nil {
+		return err
 	}
 
-	vol, e := volume.GetVolume(volname)
-	if e != nil {
-		// this shouldn't happen
-		c.Logger().WithFields(log.Fields{
-			"error":   e,
-			"volname": volname,
-		}).Error("failed to get volinfo for volume")
-		return e
+	volinfo, err := volume.GetVolume(volname)
+	if err != nil {
+		return err
 	}
 
-	for _, b := range vol.Bricks {
-		if uuid.Equal(b.NodeID, gdctx.MyUUID) {
-			c.Logger().WithFields(log.Fields{
-				"volume": volname,
-				"brick":  b.Hostname + ":" + b.Path,
-			}).Info("Starting brick")
+	for _, b := range volinfo.Bricks {
 
-			brickDaemon, err := brick.NewGlusterfsd(b)
-			if err != nil {
-				return err
-			}
+		if !uuid.Equal(b.NodeID, gdctx.MyUUID) {
+			continue
+		}
 
-			for i := 0; i < BrickStartMaxRetries; i++ {
-				err = daemon.Start(brickDaemon, true)
-				if err != nil {
-					if errorContainsErrno(err, syscall.EADDRINUSE) || errorContainsErrno(err, anotherEADDRINUSE) {
-						// Retry iff brick failed to start because of port being in use.
-						c.Logger().Info("Brick port unavailable. Retrying...")
-						// Allow the previous instance to cleanup and exit
-						time.Sleep(1 * time.Second)
-					} else {
-						return err
-					}
-				} else {
-					break
-				}
-			}
+		c.Logger().WithFields(log.Fields{
+			"volume": b.VolumeName,
+			"brick":  b.Hostname + ":" + b.Path,
+		}).Info("Starting brick")
+
+		if err := startBrick(b); err != nil {
+			return err
 		}
 	}
+
 	return nil
 }
 
-func undoStartBricks(c transaction.TxnCtx) error {
+func stopAllBricks(c transaction.TxnCtx) error {
 	var volname string
 	if e := c.Get("volname", &volname); e != nil {
 		c.Logger().WithFields(log.Fields{
@@ -111,30 +65,27 @@ func undoStartBricks(c transaction.TxnCtx) error {
 	}
 
 	for _, b := range vol.Bricks {
-		if uuid.Equal(b.NodeID, gdctx.MyUUID) {
-			c.Logger().WithFields(log.Fields{
-				"volume": volname,
-				"brick":  b.Hostname + ":" + b.Path,
-			}).Info("volume start failed, stopping bricks")
-			//TODO: Stop started brick processes once the daemon management package is ready
 
-			brickDaemon, err := brick.NewGlusterfsd(b)
-			if err != nil {
-				return err
-			}
+		if !uuid.Equal(b.NodeID, gdctx.MyUUID) {
+			continue
+		}
 
-			err = daemon.Stop(brickDaemon, true)
-			if err != nil {
-				return err
-			}
+		c.Logger().WithFields(log.Fields{
+			"volume": b.VolumeName,
+			"brick":  b.Hostname + ":" + b.Path,
+		}).Info("volume start failed, stopping brick")
+
+		if err := stopBrick(b); err != nil {
+			return err
 		}
 	}
+
 	return nil
 }
 
 func registerVolStartStepFuncs() {
-	transaction.RegisterStepFunc(startBricks, "vol-start.Commit")
-	transaction.RegisterStepFunc(undoStartBricks, "vol-start.Undo")
+	transaction.RegisterStepFunc(startAllBricks, "vol-start.Commit")
+	transaction.RegisterStepFunc(stopAllBricks, "vol-start.Undo")
 }
 
 func volumeStartHandler(w http.ResponseWriter, r *http.Request) {
