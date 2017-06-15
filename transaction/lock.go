@@ -35,7 +35,7 @@ func createLockStepFunc(key string) (string, string, error) {
 	}
 
 	key = lockPrefix + key
-	locker := concurrency.NewMutex(gdctx.Store.Session, key)
+	locker := concurrency.NewMutex(store.Store.Session, key)
 
 	lockFunc := func(c TxnCtx) error {
 

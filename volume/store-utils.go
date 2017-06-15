@@ -5,7 +5,6 @@ import (
 	"encoding/json"
 	"errors"
 
-	"github.com/gluster/glusterd2/gdctx"
 	"github.com/gluster/glusterd2/store"
 	"github.com/pborman/uuid"
 
@@ -32,7 +31,7 @@ func AddOrUpdateVolume(v *Volinfo) error {
 		return e
 	}
 
-	_, e = gdctx.Store.Put(context.TODO(), volumePrefix+v.Name, string(json))
+	_, e = store.Store.Put(context.TODO(), volumePrefix+v.Name, string(json))
 	if e != nil {
 		log.WithError(e).Error("Couldn't add volume to store")
 		return e
@@ -44,7 +43,7 @@ func AddOrUpdateVolume(v *Volinfo) error {
 // volinfo object
 func GetVolume(name string) (*Volinfo, error) {
 	var v Volinfo
-	resp, e := gdctx.Store.Get(context.TODO(), volumePrefix+name)
+	resp, e := store.Store.Get(context.TODO(), volumePrefix+name)
 	if e != nil {
 		log.WithError(e).Error("Couldn't retrive volume from store")
 		return nil, e
@@ -64,13 +63,13 @@ func GetVolume(name string) (*Volinfo, error) {
 
 //DeleteVolume passes the volname to store to delete the volume object
 func DeleteVolume(name string) error {
-	_, e := gdctx.Store.Delete(context.TODO(), volumePrefix+name)
+	_, e := store.Store.Delete(context.TODO(), volumePrefix+name)
 	return e
 }
 
 // GetVolumesList returns a map of volume names to their UUIDs
 func GetVolumesList() (map[string]uuid.UUID, error) {
-	resp, e := gdctx.Store.Get(context.TODO(), volumePrefix, clientv3.WithPrefix())
+	resp, e := store.Store.Get(context.TODO(), volumePrefix, clientv3.WithPrefix())
 	if e != nil {
 		return nil, e
 	}
@@ -97,7 +96,7 @@ func GetVolumesList() (map[string]uuid.UUID, error) {
 //GetVolumes retrives the json objects from the store and converts them into
 //respective volinfo objects
 func GetVolumes() ([]Volinfo, error) {
-	resp, e := gdctx.Store.Get(context.TODO(), volumePrefix, clientv3.WithPrefix())
+	resp, e := store.Store.Get(context.TODO(), volumePrefix, clientv3.WithPrefix())
 	if e != nil {
 		return nil, e
 	}
@@ -123,7 +122,7 @@ func GetVolumes() ([]Volinfo, error) {
 
 //Exists check whether a given volume exist or not
 func Exists(name string) bool {
-	resp, e := gdctx.Store.Get(context.TODO(), volumePrefix+name)
+	resp, e := store.Store.Get(context.TODO(), volumePrefix+name)
 	if e != nil {
 		return false
 	}
