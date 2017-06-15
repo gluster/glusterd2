@@ -15,7 +15,9 @@ import (
 
 const (
 	// GlusterPrefix prefixes all paths in the store
-	GlusterPrefix string = "gluster/"
+	GlusterPrefix     = "gluster/"
+	sessionTTL        = 30 // used for etcd mutexes and liveness key
+	livenessKeyPrefix = GlusterPrefix + "alive/"
 )
 
 // Store variable can be imported by packages which need access to the store
@@ -42,17 +44,19 @@ func InitStore() error {
 	}
 	log.Debug("etcd client connection created")
 
-	// Create a new locking session to be used for locking in transaction and other places
-	s, e := concurrency.NewSession(c)
+	// Create a new session (lease kept alive for the lifetime of a client)
+	// This is currently used for:
+	// * distributed locking (Mutex)
+	// * representing liveness of the client
+	s, e := concurrency.NewSession(c, concurrency.WithTTL(sessionTTL))
 	if e != nil {
 		log.WithError(e).Error("failed to create an etcd session")
 		return e
 	}
 
 	// publish liveness of this instance into the store
-	livenessLeaseID, livenessStopRenewal, e = publishLiveness(c, gdctx.MyUUID.String())
-	if e != nil {
-		log.WithError(e).Debug("failed to publish liveness")
+	key := livenessKeyPrefix + gdctx.MyUUID.String()
+	if _, e = c.Put(context.TODO(), key, "", clientv3.WithLease(s.Lease())); e != nil {
 		return e
 	}
 
@@ -62,19 +66,13 @@ func InitStore() error {
 
 // Close closes the store connections
 func (s *GDStore) Close() {
-
-	// revoke the liveness lease
-	if _, err := s.Revoke(context.TODO(), livenessLeaseID); err != nil {
-		log.WithError(err).WithField(
-			"lease-id", livenessLeaseID).Warn("failed to revoke liveness lease")
-	} else {
-		log.WithField("lease-id", livenessLeaseID).Info("revoked liveness lease")
-	}
-	close(livenessStopRenewal) // exit the liveness lease renewal goroutine
-
+	s.Session.Orphan()
 	if e := s.Client.Close(); e != nil {
 		log.WithError(e).Warn("failed to close etcd client connection")
 	}
+	// FIXME: We should close the session first and then the client but it
+	// doesn't work because restart of embedded etcd server when using v3
+	// has issues.
 	if e := s.Session.Close(); e != nil {
 		log.WithError(e).Warn("failed to close etcd session")
 	}
