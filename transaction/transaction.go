@@ -3,6 +3,7 @@ package transaction
 
 import (
 	"context"
+	"fmt"
 
 	"github.com/gluster/glusterd2/store"
 
@@ -63,13 +64,11 @@ func (t *Txn) Cleanup() {
 func (t *Txn) Do() (TxnCtx, error) {
 	t.Ctx.Logger().Debug("Starting transaction")
 
-	//First verify all nodes are online
-	for range t.Nodes {
-		/*
-			if !Online(n) {
-				return error
-			}
-		*/
+	// verify that all nodes are online
+	for _, node := range t.Nodes {
+		if !store.Store.IsNodeAlive(node) {
+			return nil, fmt.Errorf("node %s is probably down", node.String())
+		}
 	}
 
 	//Do the steps

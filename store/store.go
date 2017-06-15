@@ -10,6 +10,7 @@ import (
 	log "github.com/Sirupsen/logrus"
 	"github.com/coreos/etcd/clientv3"
 	"github.com/coreos/etcd/clientv3/concurrency"
+	"github.com/pborman/uuid"
 	config "github.com/spf13/viper"
 )
 
@@ -76,4 +77,33 @@ func (s *GDStore) Close() {
 	if e := s.Session.Close(); e != nil {
 		log.WithError(e).Warn("failed to close etcd session")
 	}
+}
+
+// IsNodeAlive returns true if the node specified is alive as seen by the store
+func (s *GDStore) IsNodeAlive(nodeID interface{}) bool {
+
+	var keySuffix string
+
+	switch nodeID.(type) {
+	case uuid.UUID:
+		keySuffix = nodeID.(uuid.UUID).String()
+	case string:
+		keySuffix = nodeID.(string)
+		if uuid.Parse(keySuffix) == nil {
+			return false
+		}
+	default:
+		return false
+	}
+
+	ctx, cancel := context.WithTimeout(context.Background(), 5*time.Second)
+	defer cancel()
+
+	key := livenessKeyPrefix + keySuffix
+	resp, err := s.Client.Get(ctx, key)
+	if err != nil {
+		return false
+	}
+
+	return resp.Count == 1
 }
