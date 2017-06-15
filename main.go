@@ -11,6 +11,7 @@ import (
 	"github.com/gluster/glusterd2/gdctx"
 	"github.com/gluster/glusterd2/peer"
 	"github.com/gluster/glusterd2/servers"
+	"github.com/gluster/glusterd2/store"
 	"github.com/gluster/glusterd2/utils"
 
 	log "github.com/Sirupsen/logrus"
@@ -73,7 +74,7 @@ func main() {
 	}
 
 	// Initialize etcd store (etcd client connection)
-	if err := gdctx.InitStore(); err != nil {
+	if err := store.InitStore(); err != nil {
 		log.WithError(err).Fatal("Failed to initialize store (etcd client)")
 	}
 

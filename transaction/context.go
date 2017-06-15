@@ -4,7 +4,7 @@ import (
 	"context"
 	"encoding/json"
 
-	"github.com/gluster/glusterd2/gdctx"
+	"github.com/gluster/glusterd2/store"
 
 	log "github.com/Sirupsen/logrus"
 	"github.com/pborman/uuid"
@@ -94,7 +94,7 @@ func (c *Tctx) Set(key string, value interface{}) error {
 	}
 
 	storeKey := c.prefix + "/" + key
-	_, e = gdctx.Store.Put(context.TODO(), storeKey, string(json))
+	_, e = store.Store.Put(context.TODO(), storeKey, string(json))
 	if e != nil {
 		c.log.WithFields(log.Fields{
 			"error": e,
@@ -116,7 +116,7 @@ func (c *Tctx) SetNodeResult(nodeID uuid.UUID, key string, value interface{}) er
 // Returns error if not found.
 func (c *Tctx) Get(key string, value interface{}) error {
 	storeKey := c.prefix + "/" + key
-	r, e := gdctx.Store.Get(context.TODO(), storeKey)
+	r, e := store.Store.Get(context.TODO(), storeKey)
 	if e != nil {
 		c.log.WithFields(log.Fields{
 			"error": e,
@@ -145,7 +145,7 @@ func (c *Tctx) GetNodeResult(nodeID uuid.UUID, key string, value interface{}) er
 // Delete deletes the key and attached value
 func (c *Tctx) Delete(key string) error {
 	storeKey := c.prefix + "/" + key
-	_, e := gdctx.Store.Delete(context.TODO(), storeKey)
+	_, e := store.Store.Delete(context.TODO(), storeKey)
 	if e != nil {
 		c.log.WithFields(log.Fields{
 			"error": e,

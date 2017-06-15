@@ -3,8 +3,8 @@ package transaction
 
 import (
 	"context"
+	"fmt"
 
-	"github.com/gluster/glusterd2/gdctx"
 	"github.com/gluster/glusterd2/store"
 
 	log "github.com/Sirupsen/logrus"
@@ -57,20 +57,18 @@ func NewTxnWithLoggingContext(f log.Fields, id string) *Txn {
 
 // Cleanup cleans the leftovers after a transaction ends
 func (t *Txn) Cleanup() {
-	gdctx.Store.Delete(context.TODO(), t.Ctx.Prefix(), clientv3.WithPrefix())
+	store.Store.Delete(context.TODO(), t.Ctx.Prefix(), clientv3.WithPrefix())
 }
 
 // Do runs the transaction on the cluster
 func (t *Txn) Do() (TxnCtx, error) {
 	t.Ctx.Logger().Debug("Starting transaction")
 
-	//First verify all nodes are online
-	for range t.Nodes {
-		/*
-			if !Online(n) {
-				return error
-			}
-		*/
+	// verify that all nodes are online
+	for _, node := range t.Nodes {
+		if !store.Store.IsNodeAlive(node) {
+			return nil, fmt.Errorf("node %s is probably down", node.String())
+		}
 	}
 
 	//Do the steps
