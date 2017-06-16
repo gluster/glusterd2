@@ -5,7 +5,6 @@ import (
 	"net/http"
 	"strings"
 	"testing"
-	"time"
 
 	"github.com/stretchr/testify/assert"
 )
@@ -25,16 +24,12 @@ func TestAddRemovePeer(t *testing.T) {
 	defer g2.EraseWorkdir()
 	assert.True(g2.IsRunning())
 
-	time.Sleep(3 * time.Second)
-
 	// add peer: ask g1 to add g2 as peer
 	reqBody := strings.NewReader(fmt.Sprintf(`{"addresses": ["%s"]}`, g2.PeerAddress))
 	resp, err := http.Post("http://"+g1.ClientAddress+"/v1/peers", "application/json", reqBody)
 	assert.Nil(err)
 	defer resp.Body.Close()
 	assert.Equal(resp.StatusCode, 201)
-
-	time.Sleep(3 * time.Second)
 
 	// remove peer: ask g1 to remove g2 as peer
 	delURL := fmt.Sprintf("http://%s/v1/peers/%s", g1.ClientAddress, g2.PeerID())
