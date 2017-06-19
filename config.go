@@ -7,6 +7,7 @@ import (
 	"path"
 
 	"github.com/gluster/glusterd2/gdctx"
+	"github.com/gluster/glusterd2/store"
 
 	log "github.com/Sirupsen/logrus"
 	flag "github.com/spf13/pflag"
@@ -14,11 +15,9 @@ import (
 )
 
 const (
-	defaultLogLevel          = "debug"
-	defaultClientAddress     = ":24007"
-	defaultPeerAddress       = ":24008"
-	defaultEtcdClientAddress = ":2379"
-	defaultEtcdPeerAddress   = ":2380"
+	defaultLogLevel      = "debug"
+	defaultClientAddress = ":24007"
+	defaultPeerAddress   = ":24008"
 
 	defaultConfName = "glusterd"
 )
@@ -44,10 +43,7 @@ func parseFlags() {
 	flag.String("clientaddress", defaultClientAddress, "Address to bind the REST service.")
 	flag.String("peeraddress", defaultPeerAddress, "Address to bind the inter glusterd2 RPC service.")
 
-	// Etcd config options
-	flag.String("etcdclientaddress", defaultEtcdClientAddress, "Address which etcd server will use for peer to peer communication.")
-	flag.String("etcdpeeraddress", defaultEtcdPeerAddress, "Address which etcd server will use to receive etcd client requests.")
-	flag.String("etcdlogfile", "etcd.log", "Log file name for logging embedded etcd logs")
+	store.InitFlags()
 
 	flag.Parse()
 }
@@ -94,17 +90,6 @@ func setDefaults() error {
 	}
 	config.SetDefault("peeraddress", host+":"+port)
 
-	// If no IP is specified for etcd config options (defaults), set those.
-	etcdConfigOptions := []string{"etcdclientaddress", "etcdpeeraddress"}
-	for _, option := range etcdConfigOptions {
-		host, port, err := net.SplitHostPort(config.GetString(option))
-		if err != nil {
-			return errors.New("invalid etcd addresses specified")
-		}
-		if host == "" {
-			config.SetDefault(option, gdctx.HostIP+":"+port)
-		}
-	}
 	return nil
 }
 
