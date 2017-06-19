@@ -3,7 +3,6 @@ package peercommands
 import (
 	"net/http"
 
-	"github.com/gluster/glusterd2/etcdmgmt"
 	"github.com/gluster/glusterd2/gdctx"
 	"github.com/gluster/glusterd2/peer"
 	restutils "github.com/gluster/glusterd2/servers/rest/utils"
@@ -44,8 +43,15 @@ func deletePeerHandler(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
+	client, err := GetPeerServiceClient(remotePeerAddress)
+	if err != nil {
+		restutils.SendHTTPError(w, http.StatusInternalServerError, err.Error())
+		return
+	}
+	defer client.conn.Close()
+
 	// Validate whether the peer can be deleted
-	rsp, e := ValidateDeletePeer(remotePeerAddress, id)
+	rsp, e := client.ValidateDeletePeer(id)
 	if e != nil {
 		restutils.SendHTTPError(w, http.StatusInternalServerError, rsp.OpError)
 		return
@@ -62,26 +68,10 @@ func deletePeerHandler(w http.ResponseWriter, r *http.Request) {
 		restutils.SendHTTPResponse(w, http.StatusNoContent, nil)
 	}
 
-	// Delete member from etcd cluster
-	e = etcdmgmt.EtcdMemberRemove(p.MemberID)
-	if e != nil {
-		log.WithFields(log.Fields{
-			"er":   e,
-			"peer": id,
-		}).Error("Failed to remove member from etcd cluster")
-
-		restutils.SendHTTPError(w, http.StatusInternalServerError, e.Error())
-		return
-	}
-
-	// Remove data dir of etcd on remote machine. Restart etcd on remote machine
-	// in standalone (single cluster) mode.
-	var etcdConf EtcdConfigReq
-	etcdConf.DeletePeer = true
-	etcdrsp, e := ConfigureRemoteETCD(remotePeerAddress, &etcdConf)
-	if e != nil {
-		log.WithField("err", e).Error("Failed to configure remote etcd.")
-		restutils.SendHTTPError(w, http.StatusInternalServerError, etcdrsp.OpError)
-		return
+	rsp, err = client.JoinCluster(&StoreConfig{})
+	if err != nil {
+		restutils.SendHTTPError(w, http.StatusInternalServerError, err.Error())
+	} else if rsp.OpRet != 0 {
+		restutils.SendHTTPError(w, http.StatusInternalServerError, rsp.OpError)
 	}
 }

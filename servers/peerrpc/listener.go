@@ -7,13 +7,7 @@ import (
 	log "github.com/Sirupsen/logrus"
 	config "github.com/spf13/viper"
 	"google.golang.org/grpc"
-	"google.golang.org/grpc/grpclog"
 )
-
-func init() {
-	// The GD2 logger for gRPC
-	grpclog.SetLogger(log.StandardLogger().WithField("module", "gRPC"))
-}
 
 // Server is the gRPC server
 // It provides an implementation of github.com/thejerf/suture.Service interface

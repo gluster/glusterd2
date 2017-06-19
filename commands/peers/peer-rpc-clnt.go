@@ -1,8 +1,9 @@
 package peercommands
 
 import (
+	"context"
+
 	log "github.com/Sirupsen/logrus"
-	netctx "golang.org/x/net/context"
 	"google.golang.org/grpc"
 )
 
@@ -11,31 +12,33 @@ var (
 	opError string
 )
 
+type peerSvcClnt struct { // this is not really a good name as it can be confused with PeerServiceClient, but there isn't anything better
+	conn    *grpc.ClientConn
+	client  PeerServiceClient
+	address string
+}
+
+// GetPeerServiceClient returns a PeerServiceClient for the given address and the underlying grpc.ClientConn
+func GetPeerServiceClient(address string) (*peerSvcClnt, error) {
+	conn, err := grpc.Dial(address, grpc.WithInsecure())
+	if err != nil {
+		return nil, err
+	}
+
+	clnt := NewPeerServiceClient(conn)
+
+	return &peerSvcClnt{conn, clnt, address}, nil
+}
+
 // ValidateAddPeer is the validation function for AddPeer to invoke the rpc
 // server call
-func ValidateAddPeer(remoteAddress string, args *PeerAddReq) (*PeerAddResp, error) {
-	rpcConn, e := grpc.Dial(remoteAddress, grpc.WithInsecure())
-	if e != nil {
-		log.WithFields(log.Fields{
-			"error":  e,
-			"remote": remoteAddress,
-		}).Error("failed to grpc.Dial remote")
-		rsp := &PeerAddResp{
-			OpRet:   -1,
-			OpError: e.Error(),
-		}
-		return rsp, e
-	}
-	defer rpcConn.Close()
-
-	client := NewPeerServiceClient(rpcConn)
-
-	rsp, e := client.ValidateAdd(netctx.TODO(), args)
+func (pc *peerSvcClnt) ValidateAddPeer(args *PeerAddReq) (*PeerAddResp, error) {
+	rsp, e := pc.client.ValidateAdd(context.TODO(), args)
 	if e != nil {
 		log.WithFields(log.Fields{
 			"error":  e,
 			"rpc":    "PeerService.ValidateAdd",
-			"remote": remoteAddress,
+			"remote": pc.address,
 		}).Error("failed RPC call")
 		rsp := &PeerAddResp{
 			OpRet:   -1,
@@ -48,31 +51,15 @@ func ValidateAddPeer(remoteAddress string, args *PeerAddReq) (*PeerAddResp, erro
 
 // ValidateDeletePeer is the validation function for DeletePeer to invoke the rpc
 // server call
-func ValidateDeletePeer(remoteAddress string, id string) (*PeerGenericResp, error) {
+func (pc *peerSvcClnt) ValidateDeletePeer(id string) (*PeerGenericResp, error) {
 	args := &PeerDeleteReq{ID: id}
 
-	rpcConn, e := grpc.Dial(remoteAddress, grpc.WithInsecure())
-	if e != nil {
-		log.WithFields(log.Fields{
-			"error":  e,
-			"remote": remoteAddress,
-		}).Error("failed to grpc.Dial remote")
-		rsp := &PeerGenericResp{
-			OpRet:   -1,
-			OpError: e.Error(),
-		}
-		return rsp, e
-	}
-	defer rpcConn.Close()
-
-	client := NewPeerServiceClient(rpcConn)
-
-	rsp, e := client.ValidateDelete(netctx.TODO(), args)
+	rsp, e := pc.client.ValidateDelete(context.TODO(), args)
 	if e != nil {
 		log.WithFields(log.Fields{
 			"error":  e,
 			"rpc":    "PeerService.ValidateDelete",
-			"remote": remoteAddress,
+			"remote": pc.address,
 		}).Error("failed RPC call")
 		rsp := &PeerGenericResp{
 			OpRet:   -1,
@@ -83,32 +70,14 @@ func ValidateDeletePeer(remoteAddress string, id string) (*PeerGenericResp, erro
 	return rsp, nil
 }
 
-// ConfigureRemoteETCD will reconfigure etcd server on remote node to either
-// join or remove itself from an etcd cluster.
-func ConfigureRemoteETCD(remoteAddress string, args *EtcdConfigReq) (*PeerGenericResp, error) {
-
-	rpcConn, e := grpc.Dial(remoteAddress, grpc.WithInsecure())
+// JoinCluster reconfigures the store of the newpeer to add it to the cluster
+func (pc *peerSvcClnt) JoinCluster(args *StoreConfig) (*PeerGenericResp, error) {
+	rsp, e := pc.client.ReconfigureStore(context.TODO(), args)
 	if e != nil {
 		log.WithFields(log.Fields{
 			"error":  e,
-			"remote": remoteAddress,
-		}).Error("failed to grpc.Dial remote")
-		rsp := &PeerGenericResp{
-			OpRet:   -1,
-			OpError: e.Error(),
-		}
-		return rsp, e
-	}
-	defer rpcConn.Close()
-
-	client := NewPeerServiceClient(rpcConn)
-
-	rsp, e := client.ExportAndStoreETCDConfig(netctx.TODO(), args)
-	if e != nil {
-		log.WithFields(log.Fields{
-			"error":  e,
-			"rpc":    "PeerService.ExportAndStoreETCDConfig",
-			"remote": remoteAddress,
+			"rpc":    "PeerService.ReconfigureStore",
+			"remote": pc.address,
 		}).Error("failed RPC call")
 		rsp := &PeerGenericResp{
 			OpRet:   -1,

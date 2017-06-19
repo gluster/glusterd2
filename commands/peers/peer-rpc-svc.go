@@ -3,7 +3,6 @@ package peercommands
 import (
 	"fmt"
 
-	"github.com/gluster/glusterd2/etcdmgmt"
 	"github.com/gluster/glusterd2/gdctx"
 	"github.com/gluster/glusterd2/peer"
 	"github.com/gluster/glusterd2/servers/peerrpc"
@@ -11,12 +10,11 @@ import (
 	"github.com/gluster/glusterd2/volume"
 
 	log "github.com/Sirupsen/logrus"
-	config "github.com/spf13/viper"
-	netctx "golang.org/x/net/context"
+	"golang.org/x/net/context"
 	"google.golang.org/grpc"
 )
 
-// PeerService will be handling client requests on the server side for peer ops
+// PeerService implements the PeerService gRPC service
 type PeerService int
 
 func init() {
@@ -28,123 +26,82 @@ func (p *PeerService) RegisterService(s *grpc.Server) {
 	RegisterPeerServiceServer(s, p)
 }
 
-var (
-	etcdConfDir  = "/var/lib/glusterd/"
-	etcdConfFile = etcdConfDir + "etcdenv.conf"
-)
-
 // ValidateAdd validates AddPeer operation at server side
-func (p *PeerService) ValidateAdd(nc netctx.Context, args *PeerAddReq) (*PeerAddResp, error) {
+func (p *PeerService) ValidateAdd(ctx context.Context, args *PeerAddReq) (*PeerAddResp, error) {
 	var opRet int32
 	var opError string
 	uuid := gdctx.MyUUID.String()
 
-	if gdctx.MaxOpVersion < 40000 {
-		opRet = -1
-		opError = fmt.Sprintf("GlusterD instance running on %s is not compatible", args.Name)
-	}
+	log.Debug("recieved Validateadd peer request")
+
 	volumes, _ := volume.GetVolumes()
 	if len(volumes) != 0 {
 		opRet = -1
 		opError = fmt.Sprintf("Peer %s already has existing volumes", args.Name)
+		log.Info("rejecting peer add, we already have volumes")
 	}
 
 	reply := &PeerAddResp{
-		OpRet:           opRet,
-		OpError:         opError,
-		UUID:            uuid,
-		PeerName:        gdctx.HostName,
-		EtcdPeerAddress: config.GetString("etcdpeeraddress"),
+		OpRet:   opRet,
+		OpError: opError,
+		UUID:    uuid,
 	}
 	return reply, nil
 }
 
 // ValidateDelete validates DeletePeer operation at server side
-func (p *PeerService) ValidateDelete(nc netctx.Context, args *PeerDeleteReq) (*PeerGenericResp, error) {
-	var opRet int32
-	var opError string
+func (p *PeerService) ValidateDelete(ctx context.Context, args *PeerDeleteReq) (*PeerGenericResp, error) {
+	resp := &PeerGenericResp{}
 	// TODO : Validate if this guy has any volume configured where the brick(s) is
 	// hosted in some other node, in that case the validation should fail
 
-	reply := &PeerGenericResp{
-		OpRet:   opRet,
-		OpError: opError,
-	}
-	return reply, nil
+	return resp, nil
 }
 
-// ExportAndStoreETCDConfig will store & export etcd environment variable along
-// with storing etcd configuration
-func (p *PeerService) ExportAndStoreETCDConfig(nc netctx.Context, c *EtcdConfigReq) (*PeerGenericResp, error) {
-	var opRet int32
-	var opError string
+// ReconfigureStore reconfigures the store with the recieved store config
+func (p *PeerService) ReconfigureStore(ctx context.Context, c *StoreConfig) (*PeerGenericResp, error) {
+	resp := &PeerGenericResp{}
+
+	log.WithField("endpoints", c.Endpoints).Debug("recieved new reconfigure store request with new endpoints")
 
 	// Stop the store first
-	store.Store.Close()
+	log.Debug("destroying store")
+	store.Destroy()
 
-	newEtcdConfig, err := etcdmgmt.GetEtcdConfig(false)
-	if err != nil {
-		opRet = -1
-		opError = fmt.Sprintf("Could not fetch etcd configuration.")
-		goto Out
+	cfg := store.NewConfig()
+	cfg.Endpoints = c.Endpoints
+
+	log.Debug("restarting store with new endpoints")
+	if err := store.Init(cfg); err != nil {
+		resp.OpRet = -1
+		resp.OpError = fmt.Sprintf("failed to restart store: %s", err.Error())
+		// Restart store with default config
+		defer peer.AddSelfDetails()
+		defer store.Init(nil)
+		return resp, nil
 	}
+	log.Debug("store restarted with new endpoints")
 
-	if !c.DeletePeer {
-		// This is an add peer request containing information about
-		// which cluster to join.
-		newEtcdConfig.InitialCluster = c.InitialCluster
-		newEtcdConfig.ClusterState = c.ClusterState
-		newEtcdConfig.Name = c.EtcdName
-		newEtcdConfig.Dir = newEtcdConfig.Name + ".etcd"
+	if err := cfg.Save(); err != nil {
+		resp.OpRet = -1
+		resp.OpError = fmt.Sprintf("failed to save new store config: %s", err.Error())
+		// Destroy newly started store and restart with default config
+		defer peer.AddSelfDetails()
+		defer store.Init(nil)
+		defer store.Destroy()
+		return resp, nil
 	}
+	log.Debug("saved new store config")
 
-	// Gracefully stop embedded etcd server and remove local etcd data
-	if err := etcdmgmt.DestroyEmbeddedEtcd(true); err != nil {
-		opRet = -1
-		opError = fmt.Sprintf("Error stopping embedded etcd server.")
-		log.WithError(err).Error("Error stopping embedded etcd server.")
-		goto Out
+	if err := peer.AddSelfDetails(); err != nil {
+		resp.OpRet = -1
+		resp.OpError = fmt.Sprintf("could not add self details into etcd: %s", err.Error())
+		// Destroy newly started store and restart with default config
+		defer peer.AddSelfDetails()
+		defer store.Init(nil)
+		defer store.Destroy()
 	}
+	log.Debug("added details of self to store")
 
-	// Start embedded etcd server
-	if err = etcdmgmt.StartEmbeddedEtcd(newEtcdConfig); err != nil {
-		opRet = -1
-		opError = fmt.Sprintf("Could not start embedded etcd server.")
-		log.WithError(err).Error("Could not start embedded etcd server.")
-		goto Out
-	}
-
-	// Reinitialize the store now that a new etcd instance is running
-	if err := store.InitStore(); err != nil {
-		opRet = -1
-		opError = fmt.Sprintf("Failed to initialize store (etcd client)")
-		log.WithError(err).Error("Failed to initialize store (etcd client)")
-		goto Out
-	}
-
-	if c.DeletePeer {
-		// After being detached from the cluster, this glusterd instance
-		// now should get back to clean slate i.e state of a single node
-		// standalone cluster.
-		err = peer.AddSelfDetails()
-		if err != nil {
-			opRet = -1
-			opError = fmt.Sprintf("Could not add self details into etcd")
-		}
-	} else {
-		// Store the etcd config in a file for use during restarts.
-		err = etcdmgmt.StoreEtcdConfig(newEtcdConfig)
-		if err != nil {
-			opRet = -1
-			opError = fmt.Sprintf("Error storing etcd configuration.")
-		}
-	}
-
-Out:
-	reply := &PeerGenericResp{
-		OpRet:   opRet,
-		OpError: opError,
-	}
-
-	return reply, nil
+	return resp, nil
 }
