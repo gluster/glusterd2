@@ -11,3 +11,4 @@ _projects/
 # Ignore build and release directories
 build/
 releases/
+pkg/elasticetcd/example/example
