@@ -8,12 +8,14 @@ import (
 	"github.com/coreos/etcd/clientv3/concurrency"
 )
 
+// Client returns the etcd client of ElasticEtcd
 func (ee *ElasticEtcd) Client() *clientv3.Client {
 	ee.lock.RLock()
 	defer ee.lock.RUnlock()
 	return ee.cli
 }
 
+// Session returns the etcd session used by ElasticEtcd
 func (ee *ElasticEtcd) Session() *concurrency.Session {
 	ee.lock.RLock()
 	defer ee.lock.RUnlock()

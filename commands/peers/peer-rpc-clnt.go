@@ -18,8 +18,8 @@ type peerSvcClnt struct { // this is not really a good name as it can be confuse
 	address string
 }
 
-// GetPeerServiceClient returns a PeerServiceClient for the given address and the underlying grpc.ClientConn
-func GetPeerServiceClient(address string) (*peerSvcClnt, error) {
+// getPeerServiceClient returns a PeerServiceClient for the given address and the underlying grpc.ClientConn
+func getPeerServiceClient(address string) (*peerSvcClnt, error) {
 	conn, err := grpc.Dial(address, grpc.WithInsecure())
 	if err != nil {
 		return nil, err
