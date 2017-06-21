@@ -6,6 +6,7 @@ import (
 	"github.com/coreos/etcd/pkg/types"
 )
 
+// Default values for the various ElasticEtcd config options
 const (
 	DefaultCURL      = "http://0.0.0.0:2379"
 	DefaultPURL      = "http://0.0.0.0:2380"
@@ -45,7 +46,7 @@ func init() {
 		}
 		str := i.String()
 		// Enclose IPv6 adresses with '[]' or the formed URLs will fail parsing
-		if i.To4 != nil {
+		if i.To4() == nil {
 			str = "[" + str + "]"
 		}
 		curl := "http://" + str + ":2379"
@@ -67,6 +68,7 @@ type Config struct {
 	DisableLogging          bool
 }
 
+// NewConfig returns an ElasticEtcd config with defaults filled
 func NewConfig() *Config {
 	return &Config{
 		Name:      DefaultName,

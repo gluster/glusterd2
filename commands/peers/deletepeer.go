@@ -43,7 +43,7 @@ func deletePeerHandler(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	client, err := GetPeerServiceClient(remotePeerAddress)
+	client, err := getPeerServiceClient(remotePeerAddress)
 	if err != nil {
 		restutils.SendHTTPError(w, http.StatusInternalServerError, err.Error())
 		return

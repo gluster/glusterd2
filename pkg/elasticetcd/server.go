@@ -13,11 +13,6 @@ import (
 	"github.com/coreos/pkg/capnslog"
 )
 
-var (
-	ErrClientNotAvailable = errors.New("etcd client not available")
-	ErrAddingToServerList = errors.New("failed to add self to server list")
-)
-
 type server struct {
 	srv     *embed.Etcd
 	conf    *embed.Config
