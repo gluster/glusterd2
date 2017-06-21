@@ -22,6 +22,7 @@ func (ee *ElasticEtcd) Session() *concurrency.Session {
 	return ee.session
 }
 
+// startClient starts the etcd client and connects the ElasticEtcd instance to the elastic cluster.
 func (ee *ElasticEtcd) startClient() error {
 	if ee.cli != nil {
 		return errors.New("client already exists")
@@ -33,8 +34,10 @@ func (ee *ElasticEtcd) startClient() error {
 	}
 
 	ee.cli = cli
+	// Immediately sync and update your list of endpoints
 	ee.cli.Sync(ee.cli.Ctx())
 
+	// Begin a new session, which is needed for the watchers
 	session, err := concurrency.NewSession(ee.cli)
 	if err != nil {
 		ee.cli.Close()
@@ -50,13 +53,16 @@ func (ee *ElasticEtcd) stopClient() error {
 		return errors.New("no client present")
 	}
 
+	// First stop all the watchers
 	close(ee.stopwatching)
 	ee.watchers.Wait()
 
+	// Then close the session
 	if err := ee.session.Close(); err != nil {
 		return err
 	}
 
+	// Then close the etcd client
 	if err := ee.cli.Close(); err != nil {
 		return err
 	}
@@ -65,14 +71,18 @@ func (ee *ElasticEtcd) stopClient() error {
 	return nil
 }
 
+// newClientConfig returns a new etcd clientv3.Config from the ElasticEtcd config
 func (ee *ElasticEtcd) newClientConfig() clientv3.Config {
 	return clientv3.Config{
 		Endpoints:        ee.conf.Endpoints.StringSlice(),
-		AutoSyncInterval: 30 * time.Second,
+		AutoSyncInterval: 30 * time.Second, // Update list of endpoints ever 30s.
 		DialTimeout:      10 * time.Second,
 	}
 }
 
+// watch watches for changes the given key and runs the handler when changes happen.
+// watch also waits on the stopwatching channel and stops watching when notified.
+// All watchers in ElasticEtcd must to use this instead of using starting their own etcd watchers.
 func (ee *ElasticEtcd) watch(key string, handler func(clientv3.WatchResponse), watchopts ...clientv3.OpOption) {
 	ee.watchers.Add(1)
 	go func() {

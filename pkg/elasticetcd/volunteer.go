@@ -10,6 +10,8 @@ import (
 func (ee *ElasticEtcd) volunteerSelf() error {
 	key := volunteerPrefix + ee.conf.Name
 	var val string
+	// Need to set advertisable CURLs here as the initial cluster lists for new
+	// servers will be formed from this, the default CURL is not advertisable.
 	if isDefaultCURL(ee.conf.CURLs) {
 		val = defaultACURLs.String()
 	} else {
@@ -43,6 +45,7 @@ func (ee *ElasticEtcd) handleNomination() {
 
 	ee.log.Debug("handling nomination")
 
+	// Get the current list of nominees
 	nomineesResp, err := ee.cli.Get(ee.cli.Ctx(), nomineePrefix, clientv3.WithPrefix(), clientv3.WithSort(clientv3.SortByKey, clientv3.SortAscend))
 	if err != nil {
 		ee.log.WithError(err).Error("could not get nominees")
@@ -54,6 +57,8 @@ func (ee *ElasticEtcd) handleNomination() {
 		ee.log.WithError(err).Error("could not prepare nominees map")
 	}
 
+	// Check if you are in the nominees, and start/stop you embedded server as
+	// required
 	if _, ok := nominees[ee.conf.Name]; ok {
 		ee.log.Debug("nominated, starting server")
 		// Sleeping to allow leader to add me as a etcd cluster member

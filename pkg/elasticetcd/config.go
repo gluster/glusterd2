@@ -17,6 +17,8 @@ const (
 )
 
 var (
+	// These are the defaults as types.URLs instead of the constant strings.
+	// defaultA*URLs and defaultEndpoints are intialized from the available interfaces.
 	defaultCURLs, defaultACURLs, defaultPURLs, defaultAPURLs, defaultEndpoints types.URLs
 )
 
