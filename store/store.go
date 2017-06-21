@@ -19,7 +19,7 @@ const (
 )
 
 var (
-	// Store variable can be imported by packages which need access to the store
+	// Store is the default GDStore that must to be used by the packages in GD2
 	Store *GDStore
 	lock  sync.Mutex
 
@@ -71,7 +71,8 @@ func Destroy() {
 	return
 }
 
-// New creates a new GDStore
+// New creates a new GDStore from the given Config.
+// If the given Config is nil, the saved store config is used.
 func New(conf *Config) (*GDStore, error) {
 	if conf == nil {
 		conf = getConf()
