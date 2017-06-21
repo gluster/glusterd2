@@ -66,7 +66,6 @@ func (ee *ElasticEtcd) startServer(initialCluster string) error {
 	case err := <-etcd.Err():
 		return err
 	}
-
 }
 
 // stopServer stops the embedded etcd server.
@@ -82,23 +81,26 @@ func (ee *ElasticEtcd) stopServer() error {
 	return nil
 }
 
+// newEmbedConfig returns a filled embed.Config based on the ElasticEtcd Config and the passed InitialCluster.
+// Defaults are filled in as required.
 func (ee *ElasticEtcd) newEmbedConfig(initialCluster string) *embed.Config {
 	conf := embed.NewConfig()
 	conf.Name = ee.conf.Name
 	conf.Dir = path.Join(ee.conf.Dir, "etcd.data")
 
 	conf.LCUrls = ee.conf.CURLs
-	if isDefaultCURL(ee.conf.CURLs) {
-		conf.ACUrls = defaultACURLs
-	} else {
-		conf.ACUrls = ee.conf.CURLs
-	}
-
+	conf.ACUrls = ee.conf.CURLs
 	conf.LPUrls = ee.conf.PURLs
-	if isDefaultPURL(ee.conf.PURLs) {
+	conf.APUrls = ee.conf.PURLs
+
+	// The default CURL and PURL cannot be used for advertisement, so set the
+	// ACurls and APurls to defaultACURLs and defaultAPURLs which are generated
+	// from the list of available interfaces
+	if isDefaultCURL(conf.ACUrls) {
+		conf.ACUrls = defaultACURLs
+	}
+	if isDefaultPURL(conf.APUrls) {
 		conf.APUrls = defaultAPURLs
-	} else {
-		conf.APUrls = ee.conf.PURLs
 	}
 
 	if initialCluster != "" {

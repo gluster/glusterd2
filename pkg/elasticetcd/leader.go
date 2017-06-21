@@ -43,7 +43,8 @@ func (ee *ElasticEtcd) startCampaign() {
 				election.Resign(ee.cli.Ctx())
 				continue
 			}
-			// You are the leader till you die. So stop campaigning
+			// You are the leader till. So stop campaigning
+			// XXX: Do we need to check for leadership periodically, or are we the leader till we die?
 			// XXX: What happens during cluster splits? Etcd should handle that, but need to verify.
 			return
 		}
@@ -99,6 +100,8 @@ func (ee *ElasticEtcd) doNominations() {
 
 	ee.log.Debug("doing nominations")
 
+	// First prepare lists of the current nominees and volunteers.
+
 	nomineesResp, err := ee.cli.Get(ee.cli.Ctx(), nomineePrefix, clientv3.WithPrefix(), clientv3.WithSort(clientv3.SortByKey, clientv3.SortAscend))
 	if err != nil {
 		ee.log.WithError(err).Error("could not get nominees")
@@ -126,15 +129,12 @@ func (ee *ElasticEtcd) doNominations() {
 		}
 	}
 
+	// Update the nominee list after the nominee removals
 	nominees = diffStringSlices(nominees, unvolunteered)
 	nomineeCount := len(nominees)
 	ee.log.WithField("nominees", nominees).Debug("updated nominees list")
 
-	if compareStringSlices(nominees, volunteers) {
-		ee.log.Debug("all available volunteers have been nominated")
-		return
-	}
-
+	// Prepare a map of volunteers names and their published CURLs
 	volunteersMap, err := urlsMapFromGetResp(volunteersResp, volunteerPrefix)
 	if err != nil {
 		ee.log.WithError(err).Error("could not prepare volunteers map")
@@ -142,9 +142,18 @@ func (ee *ElasticEtcd) doNominations() {
 	}
 
 	switch {
+	// If idealSize is not met, nominate more servers till the size is met
 	case nomineeCount < ee.conf.IdealSize:
+		// You cannot do nominations if all volunteers have been nominated
+		if compareStringSlices(nominees, volunteers) {
+			ee.log.Debug("all available volunteers have been nominated")
+			return
+		}
+
+		// Filter out already nominated servers
 		available := diffStringSlices(volunteers, nominees)
 
+		// Keep nominating in a round-robin fashion till the required nominations are done
 		for _, h := range available {
 			err := ee.nominate(h, volunteersMap[h])
 			if err != nil {
@@ -158,7 +167,9 @@ func (ee *ElasticEtcd) doNominations() {
 			}
 		}
 
+		// If idealSize is exceeded, remove server nominations till idealSize is reached
 	case nomineeCount > ee.conf.IdealSize:
+		// Remove nominations in a round-robin fashion till the required nominations are removed
 		for _, h := range nominees {
 			if h == ee.conf.Name {
 				// skip yourself
@@ -194,6 +205,7 @@ func (ee *ElasticEtcd) nominate(host string, urls types.URLs) error {
 	// This is only required for the first nominee added. When more than one
 	// server is present the etcd cluster will serve requests when a member is
 	// added.
+	// TODO: Try to figure a way to avoid the sleeping
 
 	ee.addToNominees(host, urls)
 

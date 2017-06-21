@@ -7,6 +7,8 @@ import (
 	"github.com/Sirupsen/logrus"
 )
 
+// TODO: Allow custom logging locations
+
 type nilWriteCloser struct{}
 
 func (n *nilWriteCloser) Write(p []byte) (int, error) {
