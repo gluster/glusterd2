@@ -34,7 +34,6 @@ func addPeerHandler(w http.ResponseWriter, r *http.Request) {
 
 	// A peer can have multiple addresses. For now, we use only the first
 	// address present in the req.Addresses list.
-
 	remotePeerAddress, err := utils.FormRemotePeerAddress(req.Addresses[0])
 	if err != nil {
 		log.WithError(err).WithField("remote", remotePeerAddress).Error("failed to grpc.Dial remote")
@@ -42,12 +41,16 @@ func addPeerHandler(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
+	// TODO: Try all addresses till the first one connects
 	client, err := getPeerServiceClient(remotePeerAddress)
 	if err != nil {
 		restutils.SendHTTPError(w, http.StatusInternalServerError, err.Error())
 		return
 	}
 	defer client.conn.Close()
+
+	// XXX: We could do this with just a single step, just send the Join request
+	//      directly. This will avoid TOCTOU on the remote peer.
 
 	// This remote call will return the remote peer's ID (UUID), name
 	remotePeer, err := client.ValidateAddPeer(&req)
@@ -64,6 +67,8 @@ func addPeerHandler(w http.ResponseWriter, r *http.Request) {
 		"peer":      remotePeer.UUID,
 		"endpoints": newconfig.Endpoints,
 	}).Debug("asking new peer to join cluster with given endpoints")
+
+	// Ask the peer to join the cluster
 	rsp, err := client.JoinCluster(newconfig)
 	if err != nil {
 		restutils.SendHTTPError(w, http.StatusInternalServerError, err.Error())
@@ -73,9 +78,10 @@ func addPeerHandler(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
+	// Get the new peer information to reply back with
 	newpeer, err := peer.GetPeer(remotePeer.UUID)
 	if err != nil {
-		restutils.SendHTTPError(w, http.StatusInternalServerError, "new peer was added, but could not find peer in store. Try againg later.")
+		restutils.SendHTTPError(w, http.StatusInternalServerError, "new peer was added, but could not find peer in store. Try again later.")
 	} else {
 		restutils.SendHTTPResponse(w, http.StatusCreated, newpeer)
 	}
