@@ -1,8 +1,12 @@
 package peercommands
 
+// Error is the error type returned by this package
+type Error int32
+
+// Errors returned by this package
+// TODO: Add more errors
 const (
-	// Errors returned during peer operations
-	ErrNone PeerError = iota
+	ErrNone Error = iota
 	ErrAnotherCluster
 	ErrHaveVolumes
 	ErrStoreReconfigFailed
@@ -20,15 +24,13 @@ func init() {
 	errorStrings[ErrUnknownPeer] = "request recieved from unknown peer"
 }
 
-type PeerError int32
-
-func (p PeerError) String() string {
-	if p <= ErrNone || p >= ErrMax {
+func (e Error) String() string {
+	if e <= ErrNone || e >= ErrMax {
 		return "unknown error"
 	}
-	return errorStrings[p]
+	return errorStrings[e]
 }
 
-func (p PeerError) Error() string {
-	return p.String()
+func (e Error) Error() string {
+	return e.String()
 }

@@ -13,12 +13,12 @@ import (
 	log "github.com/Sirupsen/logrus"
 )
 
-type PeerAddReq struct {
+type peerAddReq struct {
 	Addresses []string
 }
 
 func addPeerHandler(w http.ResponseWriter, r *http.Request) {
-	var req PeerAddReq
+	var req peerAddReq
 	if e := utils.GetJSONFromRequest(r, &req); e != nil {
 		restutils.SendHTTPError(w, http.StatusBadRequest, e.Error())
 		return
@@ -63,8 +63,8 @@ func addPeerHandler(w http.ResponseWriter, r *http.Request) {
 		log.WithError(err).Error("sending Join request failed")
 		restutils.SendHTTPError(w, http.StatusInternalServerError, "failed to send join cluster request")
 		return
-	} else if PeerError(rsp.Err) != ErrNone {
-		err = PeerError(rsp.Err)
+	} else if Error(rsp.Err) != ErrNone {
+		err = Error(rsp.Err)
 		logger.WithError(err).Error("join request failed")
 		restutils.SendHTTPError(w, http.StatusInternalServerError, err.Error())
 		return
