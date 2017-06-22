@@ -170,7 +170,7 @@ func GetPeerByAddrs(addrs []string) (*Peer, error) {
 	for _, a := range addrs {
 		for _, p := range peers {
 			for _, paddr := range p.Addresses {
-				if utils.IsPeerAddressSame(addr, paddr) {
+				if utils.IsPeerAddressSame(a, paddr) {
 					return &p, nil
 				}
 			}
