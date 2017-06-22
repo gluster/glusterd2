@@ -13,6 +13,10 @@ import (
 	log "github.com/Sirupsen/logrus"
 )
 
+type PeerAddReq struct {
+	Addresses []string
+}
+
 func addPeerHandler(w http.ResponseWriter, r *http.Request) {
 	var req PeerAddReq
 	if e := utils.GetJSONFromRequest(r, &req); e != nil {
@@ -48,39 +52,30 @@ func addPeerHandler(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 	defer client.conn.Close()
-
-	// XXX: We could do this with just a single step, just send the Join request
-	//      directly. This will avoid TOCTOU on the remote peer.
-
-	// This remote call will return the remote peer's ID (UUID), name
-	remotePeer, err := client.ValidateAddPeer(&req)
-	if err != nil {
-		restutils.SendHTTPError(w, http.StatusInternalServerError, err.Error())
-		return
-	} else if remotePeer.OpRet != 0 {
-		restutils.SendHTTPError(w, http.StatusInternalServerError, remotePeer.OpError)
-		return
-	}
+	logger := log.WithField("peer", remotePeerAddress)
 
 	newconfig := &StoreConfig{store.Store.Endpoints()}
-	log.WithFields(log.Fields{
-		"peer":      remotePeer.UUID,
-		"endpoints": newconfig.Endpoints,
-	}).Debug("asking new peer to join cluster with given endpoints")
+	logger.WithField("endpoints", newconfig.Endpoints).Debug("asking new peer to join cluster with given endpoints")
 
 	// Ask the peer to join the cluster
 	rsp, err := client.JoinCluster(newconfig)
 	if err != nil {
+		log.WithError(err).Error("sending Join request failed")
+		restutils.SendHTTPError(w, http.StatusInternalServerError, "failed to send join cluster request")
+		return
+	} else if PeerError(rsp.Err) != ErrNone {
+		err = PeerError(rsp.Err)
+		logger.WithError(err).Error("join request failed")
 		restutils.SendHTTPError(w, http.StatusInternalServerError, err.Error())
 		return
-	} else if rsp.OpRet != 0 {
-		restutils.SendHTTPError(w, http.StatusInternalServerError, rsp.OpError)
-		return
 	}
+	logger = logger.WithField("peerid", rsp.PeerID)
+	logger.Info("new peer joined our cluster")
 
 	// Get the new peer information to reply back with
-	newpeer, err := peer.GetPeer(remotePeer.UUID)
+	newpeer, err := peer.GetPeer(rsp.PeerID)
 	if err != nil {
+		// XXX: Don't know the correct error to send here
 		restutils.SendHTTPError(w, http.StatusInternalServerError, "new peer was added, but could not find peer in store. Try again later.")
 	} else {
 		restutils.SendHTTPResponse(w, http.StatusCreated, newpeer)

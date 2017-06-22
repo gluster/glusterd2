@@ -1,8 +1,6 @@
 package peercommands
 
 import (
-	"fmt"
-
 	"github.com/gluster/glusterd2/gdctx"
 	"github.com/gluster/glusterd2/peer"
 	"github.com/gluster/glusterd2/servers/peerrpc"
@@ -26,82 +24,124 @@ func (p *PeerService) RegisterService(s *grpc.Server) {
 	RegisterPeerServiceServer(s, p)
 }
 
-// ValidateAdd validates AddPeer operation at server side
-func (p *PeerService) ValidateAdd(ctx context.Context, args *PeerAddReq) (*PeerAddResp, error) {
-	var opRet int32
-	var opError string
-	uuid := gdctx.MyUUID.String()
+// Join makes the peer join the cluster of the requester
+func (p *PeerService) Join(ctx context.Context, req *JoinReq) (*JoinRsp, error) {
+	logger := log.WithField("remotepeer", req.PeerID)
 
-	log.Debug("recieved Validateadd peer request")
+	logger.Info("handling new incoming join cluster request")
+
+	// Handling a Join request happens as follows,
+	// 	- TODO: Ensure no ongoing operations (transactions/other peer requests) are happening
+	// 	- TODO: Check is peer is part of another cluster
+	// 	- Check if the peer has volumes
+	//	- Reconfigure the store with recieved configuration
+	// 	- Return your ID
+
+	// TODO: Ensure no other operations are happening
+
+	// TODO: Check if we are part of another cluster
 
 	volumes, _ := volume.GetVolumes()
 	if len(volumes) != 0 {
-		opRet = -1
-		opError = fmt.Sprintf("Peer %s already has existing volumes", args.Name)
-		log.Info("rejecting peer add, we already have volumes")
+		logger.Info("rejecting join, we already have volumes")
+		return &JoinRsp{"", int32(ErrAnotherCluster)}, nil
 	}
 
-	reply := &PeerAddResp{
-		OpRet:   opRet,
-		OpError: opError,
-		UUID:    uuid,
+	logger.Debug("all checks passed, joining new cluster")
+
+	if err := ReconfigureStore(req.Config); err != nil {
+		logger.WithError(err).Error("reconfigure store failed, failed to join new cluster")
+		return &JoinRsp{"", int32(ErrStoreReconfigFailed)}, nil
 	}
-	return reply, nil
+	logger.Debug("reconfigured store to join new cluster")
+
+	logger.Info("joined new cluster")
+	return &JoinRsp{gdctx.MyUUID.String(), int32(ErrNone)}, nil
 }
 
-// ValidateDelete validates DeletePeer operation at server side
-func (p *PeerService) ValidateDelete(ctx context.Context, args *PeerDeleteReq) (*PeerGenericResp, error) {
-	resp := &PeerGenericResp{}
-	// TODO : Validate if this guy has any volume configured where the brick(s) is
-	// hosted in some other node, in that case the validation should fail
+// Leave makes the peer leave its current cluster, and restart as a single node cluster
+func (p *PeerService) Leave(ctx context.Context, req *LeaveReq) (*LeaveRsp, error) {
+	logger := log.WithField("remotepeer", req.PeerID)
 
-	return resp, nil
+	logger.Info("handling incoming leave cluster request")
+
+	// Leaving a cluster happens in the following steps,
+	// 	- TODO: Ensure no ongoing operations (transactions/other peer requests)
+	// 	are happening
+	// 	- Check if the request came from a known peer
+	// 	- TODO: Check if you can leave the cluster
+	// 	- Reconfigure the store with you defaults
+
+	// TODO: Ensure no other operations are happening
+
+	if p, err := peer.GetPeer(req.PeerID); err != nil {
+		logger.Info("could not verify peer")
+		return &LeaveRsp{int32(ErrUnknownPeer)}, nil
+	} else if p == nil {
+		logger.Info("rejecting leave, request recieved from unknown peer")
+		return &LeaveRsp{int32(ErrUnknownPeer)}, nil
+	}
+	logger.Debug("request recieved from known peer")
+
+	// TODO: Check if you can leave the cluster
+	// The peer sending the leave request should have done the check, but check
+	// again shouldn't hurt
+
+	logger.Debug("all checks passed, leaving cluster")
+
+	logger.Debug("reconfiguring store with defaults")
+	if err := ReconfigureStore(nil); err != nil {
+		logger.WithError(err).Warn("failed to reconfigure store with defaults")
+		// XXX: We should probably keep retrying here?
+	}
+	return &LeaveRsp{int32(ErrNone)}, nil
 }
 
-// ReconfigureStore reconfigures the store with the recieved store config
-func (p *PeerService) ReconfigureStore(ctx context.Context, c *StoreConfig) (*PeerGenericResp, error) {
-	resp := &PeerGenericResp{}
+// ReconfigureStore reconfigures the store with the given store config, if no
+// store config is given uses the default
+func ReconfigureStore(c *StoreConfig) error {
 
-	log.WithField("endpoints", c.Endpoints).Debug("recieved new reconfigure store request with new endpoints")
-
-	// Stop the store first
-	log.Debug("destroying store")
+	// Destroy the current store first
+	log.Debug("destroying current store")
 	store.Destroy()
+	// TODO: Also need to destroy any old files in localstatedir (eg. volfiles)
 
+	// Restart the store with recieved configuration
 	cfg := store.NewConfig()
-	cfg.Endpoints = c.Endpoints
+	if c != nil {
+		cfg.Endpoints = c.Endpoints
+	}
 
-	log.Debug("restarting store with new endpoints")
 	if err := store.Init(cfg); err != nil {
-		resp.OpRet = -1
-		resp.OpError = fmt.Sprintf("failed to restart store: %s", err.Error())
+		log.WithError(err).WithField("endpoints", cfg.Endpoints).Error("failed to restart store with new endpoints")
 		// Restart store with default config
 		defer peer.AddSelfDetails()
 		defer store.Init(nil)
-		return resp, nil
+		return err
 	}
-	log.Debug("store restarted with new endpoints")
+	log.WithField("endpoints", cfg.Endpoints).Debug("store restarted with new endpoints")
 
+	// Save the new config if you successfully start the new store
 	if err := cfg.Save(); err != nil {
-		resp.OpRet = -1
-		resp.OpError = fmt.Sprintf("failed to save new store config: %s", err.Error())
+		log.WithError(err).Error("failed to save new store configs")
 		// Destroy newly started store and restart with default config
 		defer peer.AddSelfDetails()
 		defer store.Init(nil)
 		defer store.Destroy()
-		return resp, nil
+		return err
 	}
 	log.Debug("saved new store config")
 
+	// Add yourself to the peer list in the new store/cluster
 	if err := peer.AddSelfDetails(); err != nil {
-		resp.OpRet = -1
-		resp.OpError = fmt.Sprintf("could not add self details into etcd: %s", err.Error())
+		log.WithError(err).Error("failed to add self to peer list")
 		// Destroy newly started store and restart with default config
 		defer peer.AddSelfDetails()
 		defer store.Init(nil)
 		defer store.Destroy()
+		return err
 	}
 	log.Debug("added details of self to store")
 
-	return resp, nil
+	return nil
 }

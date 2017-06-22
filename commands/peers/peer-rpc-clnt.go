@@ -3,6 +3,8 @@ package peercommands
 import (
 	"context"
 
+	"github.com/gluster/glusterd2/gdctx"
+
 	log "github.com/Sirupsen/logrus"
 	"google.golang.org/grpc"
 )
@@ -30,60 +32,34 @@ func getPeerServiceClient(address string) (*peerSvcClnt, error) {
 	return &peerSvcClnt{conn, clnt, address}, nil
 }
 
-// ValidateAddPeer is the validation function for AddPeer to invoke the rpc
-// server call
-func (pc *peerSvcClnt) ValidateAddPeer(args *PeerAddReq) (*PeerAddResp, error) {
-	rsp, e := pc.client.ValidateAdd(context.TODO(), args)
-	if e != nil {
-		log.WithFields(log.Fields{
-			"error":  e,
-			"rpc":    "PeerService.ValidateAdd",
+// JoinCluster asks the remote peer to join the current cluster by reconfiguring the store with the given config
+func (pc *peerSvcClnt) JoinCluster(conf *StoreConfig) (*JoinRsp, error) {
+	args := &JoinReq{
+		gdctx.MyUUID.String(),
+		conf,
+	}
+	rsp, err := pc.client.Join(context.TODO(), args)
+	if err != nil {
+		log.WithError(err).WithFields(log.Fields{
+			"rpc":    "PeerService.Join",
 			"remote": pc.address,
 		}).Error("failed RPC call")
-		rsp := &PeerAddResp{
-			OpRet:   -1,
-			OpError: e.Error(),
-		}
-		return rsp, e
+		return nil, err
 	}
 	return rsp, nil
 }
 
-// ValidateDeletePeer is the validation function for DeletePeer to invoke the rpc
-// server call
-func (pc *peerSvcClnt) ValidateDeletePeer(id string) (*PeerGenericResp, error) {
-	args := &PeerDeleteReq{ID: id}
+// LeaveCluster asks the remote peer to leave the current cluster
+func (pc *peerSvcClnt) LeaveCluster() (*LeaveRsp, error) {
+	args := &LeaveReq{gdctx.MyUUID.String()}
 
-	rsp, e := pc.client.ValidateDelete(context.TODO(), args)
-	if e != nil {
-		log.WithFields(log.Fields{
-			"error":  e,
-			"rpc":    "PeerService.ValidateDelete",
+	rsp, err := pc.client.Leave(context.TODO(), args)
+	if err != nil {
+		log.WithError(err).WithFields(log.Fields{
+			"rpc":    "PeerService.Leave",
 			"remote": pc.address,
 		}).Error("failed RPC call")
-		rsp := &PeerGenericResp{
-			OpRet:   -1,
-			OpError: e.Error(),
-		}
-		return rsp, e
-	}
-	return rsp, nil
-}
-
-// JoinCluster reconfigures the store of the newpeer to add it to the cluster
-func (pc *peerSvcClnt) JoinCluster(args *StoreConfig) (*PeerGenericResp, error) {
-	rsp, e := pc.client.ReconfigureStore(context.TODO(), args)
-	if e != nil {
-		log.WithFields(log.Fields{
-			"error":  e,
-			"rpc":    "PeerService.ReconfigureStore",
-			"remote": pc.address,
-		}).Error("failed RPC call")
-		rsp := &PeerGenericResp{
-			OpRet:   -1,
-			OpError: e.Error(),
-		}
-		return rsp, e
+		return nil, err
 	}
 	return rsp, nil
 }
