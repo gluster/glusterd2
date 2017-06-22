@@ -80,4 +80,7 @@ func addPeerHandler(w http.ResponseWriter, r *http.Request) {
 	} else {
 		restutils.SendHTTPResponse(w, http.StatusCreated, newpeer)
 	}
+
+	// Save updated store endpoints for restarts
+	store.Store.UpdateEndpoints()
 }

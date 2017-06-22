@@ -43,7 +43,8 @@ type Config struct {
 	PURLs     []string
 	NoEmbed   bool
 
-	Dir string
+	Dir      string
+	ConfFile string
 }
 
 // NewConfig returns a new store Config with defaults
@@ -54,6 +55,7 @@ func NewConfig() *Config {
 		[]string{elasticetcd.DefaultPURL},
 		false,
 		path.Join(config.GetString("localstatedir"), "store"),
+		path.Join(config.GetString("localstatedir"), storeConfFile),
 	}
 }
 
@@ -63,8 +65,7 @@ func (c *Config) Save() error {
 	if err != nil {
 		return err
 	}
-	storeconfpath := path.Join(config.GetString("localstatedir"), storeConfFile)
-	f, err := os.OpenFile(storeconfpath, os.O_CREATE|os.O_WRONLY|os.O_TRUNC, 0644)
+	f, err := os.OpenFile(c.ConfFile, os.O_CREATE|os.O_WRONLY|os.O_TRUNC, 0644)
 	if err != nil {
 		return err
 	}
@@ -80,9 +81,9 @@ func (c *Config) Save() error {
 
 // getConf returns a filled store config
 // The config is filled with values from the following sources in order of preference,
-// - GD2 config
-// - Store config file
-// - Defaults
+// 	- GD2 config
+// 	- Store config file
+// 	- Defaults
 func getConf() *Config {
 	conf, err := readConfigFile()
 	if err != nil {

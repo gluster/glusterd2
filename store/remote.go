@@ -36,7 +36,7 @@ func newRemoteStore(conf *Config) (*GDStore, error) {
 		return nil, e
 	}
 
-	return &GDStore{conf, c, s, nil}, nil
+	return &GDStore{*conf, c, s, nil}, nil
 }
 
 func (s *GDStore) closeRemoteStore() {

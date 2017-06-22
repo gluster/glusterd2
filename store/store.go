@@ -31,7 +31,8 @@ var (
 
 // GDStore is the GlusterD centralized store
 type GDStore struct {
-	conf *Config
+	conf Config
+
 	*clientv3.Client
 	*concurrency.Session
 
@@ -111,4 +112,14 @@ func (s *GDStore) Close() {
 func (s *GDStore) Destroy() {
 	s.Close()
 	os.RemoveAll(s.conf.Dir)
+}
+
+// UpdateEndpoints updates the configured endpoints and saves them
+func (s *GDStore) UpdateEndpoints() error {
+	if err := s.Sync(s.Ctx()); err != nil {
+		return err
+	}
+
+	s.conf.Endpoints = s.Client.Endpoints()
+	return s.conf.Save()
 }
