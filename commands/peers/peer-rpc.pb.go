@@ -8,11 +8,11 @@ It is generated from these files:
 	commands/peers/peer-rpc.proto
 
 It has these top-level messages:
-	PeerAddReq
-	PeerAddResp
-	PeerGenericResp
-	PeerDeleteReq
 	StoreConfig
+	JoinReq
+	JoinRsp
+	LeaveReq
+	LeaveRsp
 */
 package peercommands
 
@@ -36,102 +36,6 @@ var _ = math.Inf
 // proto package needs to be updated.
 const _ = proto.ProtoPackageIsVersion2 // please upgrade the proto package
 
-type PeerAddReq struct {
-	Name      string   `protobuf:"bytes,1,opt,name=Name" json:"Name,omitempty"`
-	Addresses []string `protobuf:"bytes,2,rep,name=Addresses" json:"Addresses,omitempty"`
-}
-
-func (m *PeerAddReq) Reset()                    { *m = PeerAddReq{} }
-func (m *PeerAddReq) String() string            { return proto.CompactTextString(m) }
-func (*PeerAddReq) ProtoMessage()               {}
-func (*PeerAddReq) Descriptor() ([]byte, []int) { return fileDescriptor0, []int{0} }
-
-func (m *PeerAddReq) GetName() string {
-	if m != nil {
-		return m.Name
-	}
-	return ""
-}
-
-func (m *PeerAddReq) GetAddresses() []string {
-	if m != nil {
-		return m.Addresses
-	}
-	return nil
-}
-
-type PeerAddResp struct {
-	OpRet   int32  `protobuf:"varint,1,opt,name=OpRet" json:"OpRet,omitempty"`
-	OpError string `protobuf:"bytes,2,opt,name=OpError" json:"OpError,omitempty"`
-	UUID    string `protobuf:"bytes,3,opt,name=UUID" json:"UUID,omitempty"`
-}
-
-func (m *PeerAddResp) Reset()                    { *m = PeerAddResp{} }
-func (m *PeerAddResp) String() string            { return proto.CompactTextString(m) }
-func (*PeerAddResp) ProtoMessage()               {}
-func (*PeerAddResp) Descriptor() ([]byte, []int) { return fileDescriptor0, []int{1} }
-
-func (m *PeerAddResp) GetOpRet() int32 {
-	if m != nil {
-		return m.OpRet
-	}
-	return 0
-}
-
-func (m *PeerAddResp) GetOpError() string {
-	if m != nil {
-		return m.OpError
-	}
-	return ""
-}
-
-func (m *PeerAddResp) GetUUID() string {
-	if m != nil {
-		return m.UUID
-	}
-	return ""
-}
-
-type PeerGenericResp struct {
-	OpRet   int32  `protobuf:"varint,1,opt,name=OpRet" json:"OpRet,omitempty"`
-	OpError string `protobuf:"bytes,2,opt,name=OpError" json:"OpError,omitempty"`
-}
-
-func (m *PeerGenericResp) Reset()                    { *m = PeerGenericResp{} }
-func (m *PeerGenericResp) String() string            { return proto.CompactTextString(m) }
-func (*PeerGenericResp) ProtoMessage()               {}
-func (*PeerGenericResp) Descriptor() ([]byte, []int) { return fileDescriptor0, []int{2} }
-
-func (m *PeerGenericResp) GetOpRet() int32 {
-	if m != nil {
-		return m.OpRet
-	}
-	return 0
-}
-
-func (m *PeerGenericResp) GetOpError() string {
-	if m != nil {
-		return m.OpError
-	}
-	return ""
-}
-
-type PeerDeleteReq struct {
-	ID string `protobuf:"bytes,1,opt,name=ID" json:"ID,omitempty"`
-}
-
-func (m *PeerDeleteReq) Reset()                    { *m = PeerDeleteReq{} }
-func (m *PeerDeleteReq) String() string            { return proto.CompactTextString(m) }
-func (*PeerDeleteReq) ProtoMessage()               {}
-func (*PeerDeleteReq) Descriptor() ([]byte, []int) { return fileDescriptor0, []int{3} }
-
-func (m *PeerDeleteReq) GetID() string {
-	if m != nil {
-		return m.ID
-	}
-	return ""
-}
-
 type StoreConfig struct {
 	Endpoints []string `protobuf:"bytes,1,rep,name=Endpoints" json:"Endpoints,omitempty"`
 }
@@ -139,7 +43,7 @@ type StoreConfig struct {
 func (m *StoreConfig) Reset()                    { *m = StoreConfig{} }
 func (m *StoreConfig) String() string            { return proto.CompactTextString(m) }
 func (*StoreConfig) ProtoMessage()               {}
-func (*StoreConfig) Descriptor() ([]byte, []int) { return fileDescriptor0, []int{4} }
+func (*StoreConfig) Descriptor() ([]byte, []int) { return fileDescriptor0, []int{0} }
 
 func (m *StoreConfig) GetEndpoints() []string {
 	if m != nil {
@@ -148,12 +52,92 @@ func (m *StoreConfig) GetEndpoints() []string {
 	return nil
 }
 
+type JoinReq struct {
+	PeerID string       `protobuf:"bytes,1,opt,name=PeerID" json:"PeerID,omitempty"`
+	Config *StoreConfig `protobuf:"bytes,2,opt,name=Config" json:"Config,omitempty"`
+}
+
+func (m *JoinReq) Reset()                    { *m = JoinReq{} }
+func (m *JoinReq) String() string            { return proto.CompactTextString(m) }
+func (*JoinReq) ProtoMessage()               {}
+func (*JoinReq) Descriptor() ([]byte, []int) { return fileDescriptor0, []int{1} }
+
+func (m *JoinReq) GetPeerID() string {
+	if m != nil {
+		return m.PeerID
+	}
+	return ""
+}
+
+func (m *JoinReq) GetConfig() *StoreConfig {
+	if m != nil {
+		return m.Config
+	}
+	return nil
+}
+
+type JoinRsp struct {
+	PeerID string `protobuf:"bytes,1,opt,name=PeerID" json:"PeerID,omitempty"`
+	Err    int32  `protobuf:"varint,2,opt,name=Err" json:"Err,omitempty"`
+}
+
+func (m *JoinRsp) Reset()                    { *m = JoinRsp{} }
+func (m *JoinRsp) String() string            { return proto.CompactTextString(m) }
+func (*JoinRsp) ProtoMessage()               {}
+func (*JoinRsp) Descriptor() ([]byte, []int) { return fileDescriptor0, []int{2} }
+
+func (m *JoinRsp) GetPeerID() string {
+	if m != nil {
+		return m.PeerID
+	}
+	return ""
+}
+
+func (m *JoinRsp) GetErr() int32 {
+	if m != nil {
+		return m.Err
+	}
+	return 0
+}
+
+type LeaveReq struct {
+	PeerID string `protobuf:"bytes,1,opt,name=PeerID" json:"PeerID,omitempty"`
+}
+
+func (m *LeaveReq) Reset()                    { *m = LeaveReq{} }
+func (m *LeaveReq) String() string            { return proto.CompactTextString(m) }
+func (*LeaveReq) ProtoMessage()               {}
+func (*LeaveReq) Descriptor() ([]byte, []int) { return fileDescriptor0, []int{3} }
+
+func (m *LeaveReq) GetPeerID() string {
+	if m != nil {
+		return m.PeerID
+	}
+	return ""
+}
+
+type LeaveRsp struct {
+	Err int32 `protobuf:"varint,1,opt,name=Err" json:"Err,omitempty"`
+}
+
+func (m *LeaveRsp) Reset()                    { *m = LeaveRsp{} }
+func (m *LeaveRsp) String() string            { return proto.CompactTextString(m) }
+func (*LeaveRsp) ProtoMessage()               {}
+func (*LeaveRsp) Descriptor() ([]byte, []int) { return fileDescriptor0, []int{4} }
+
+func (m *LeaveRsp) GetErr() int32 {
+	if m != nil {
+		return m.Err
+	}
+	return 0
+}
+
 func init() {
-	proto.RegisterType((*PeerAddReq)(nil), "peercommands.PeerAddReq")
-	proto.RegisterType((*PeerAddResp)(nil), "peercommands.PeerAddResp")
-	proto.RegisterType((*PeerGenericResp)(nil), "peercommands.PeerGenericResp")
-	proto.RegisterType((*PeerDeleteReq)(nil), "peercommands.PeerDeleteReq")
 	proto.RegisterType((*StoreConfig)(nil), "peercommands.StoreConfig")
+	proto.RegisterType((*JoinReq)(nil), "peercommands.JoinReq")
+	proto.RegisterType((*JoinRsp)(nil), "peercommands.JoinRsp")
+	proto.RegisterType((*LeaveReq)(nil), "peercommands.LeaveReq")
+	proto.RegisterType((*LeaveRsp)(nil), "peercommands.LeaveRsp")
 }
 
 // Reference imports to suppress errors if they are not otherwise used.
@@ -167,9 +151,8 @@ const _ = grpc.SupportPackageIsVersion4
 // Client API for PeerService service
 
 type PeerServiceClient interface {
-	ValidateAdd(ctx context.Context, in *PeerAddReq, opts ...grpc.CallOption) (*PeerAddResp, error)
-	ValidateDelete(ctx context.Context, in *PeerDeleteReq, opts ...grpc.CallOption) (*PeerGenericResp, error)
-	ReconfigureStore(ctx context.Context, in *StoreConfig, opts ...grpc.CallOption) (*PeerGenericResp, error)
+	Join(ctx context.Context, in *JoinReq, opts ...grpc.CallOption) (*JoinRsp, error)
+	Leave(ctx context.Context, in *LeaveReq, opts ...grpc.CallOption) (*LeaveRsp, error)
 }
 
 type peerServiceClient struct {
@@ -180,27 +163,18 @@ func NewPeerServiceClient(cc *grpc.ClientConn) PeerServiceClient {
 	return &peerServiceClient{cc}
 }
 
-func (c *peerServiceClient) ValidateAdd(ctx context.Context, in *PeerAddReq, opts ...grpc.CallOption) (*PeerAddResp, error) {
-	out := new(PeerAddResp)
-	err := grpc.Invoke(ctx, "/peercommands.PeerService/ValidateAdd", in, out, c.cc, opts...)
+func (c *peerServiceClient) Join(ctx context.Context, in *JoinReq, opts ...grpc.CallOption) (*JoinRsp, error) {
+	out := new(JoinRsp)
+	err := grpc.Invoke(ctx, "/peercommands.PeerService/Join", in, out, c.cc, opts...)
 	if err != nil {
 		return nil, err
 	}
 	return out, nil
 }
 
-func (c *peerServiceClient) ValidateDelete(ctx context.Context, in *PeerDeleteReq, opts ...grpc.CallOption) (*PeerGenericResp, error) {
-	out := new(PeerGenericResp)
-	err := grpc.Invoke(ctx, "/peercommands.PeerService/ValidateDelete", in, out, c.cc, opts...)
-	if err != nil {
-		return nil, err
-	}
-	return out, nil
-}
-
-func (c *peerServiceClient) ReconfigureStore(ctx context.Context, in *StoreConfig, opts ...grpc.CallOption) (*PeerGenericResp, error) {
-	out := new(PeerGenericResp)
-	err := grpc.Invoke(ctx, "/peercommands.PeerService/ReconfigureStore", in, out, c.cc, opts...)
+func (c *peerServiceClient) Leave(ctx context.Context, in *LeaveReq, opts ...grpc.CallOption) (*LeaveRsp, error) {
+	out := new(LeaveRsp)
+	err := grpc.Invoke(ctx, "/peercommands.PeerService/Leave", in, out, c.cc, opts...)
 	if err != nil {
 		return nil, err
 	}
@@ -210,65 +184,46 @@ func (c *peerServiceClient) ReconfigureStore(ctx context.Context, in *StoreConfi
 // Server API for PeerService service
 
 type PeerServiceServer interface {
-	ValidateAdd(context.Context, *PeerAddReq) (*PeerAddResp, error)
-	ValidateDelete(context.Context, *PeerDeleteReq) (*PeerGenericResp, error)
-	ReconfigureStore(context.Context, *StoreConfig) (*PeerGenericResp, error)
+	Join(context.Context, *JoinReq) (*JoinRsp, error)
+	Leave(context.Context, *LeaveReq) (*LeaveRsp, error)
 }
 
 func RegisterPeerServiceServer(s *grpc.Server, srv PeerServiceServer) {
 	s.RegisterService(&_PeerService_serviceDesc, srv)
 }
 
-func _PeerService_ValidateAdd_Handler(srv interface{}, ctx context.Context, dec func(interface{}) error, interceptor grpc.UnaryServerInterceptor) (interface{}, error) {
-	in := new(PeerAddReq)
+func _PeerService_Join_Handler(srv interface{}, ctx context.Context, dec func(interface{}) error, interceptor grpc.UnaryServerInterceptor) (interface{}, error) {
+	in := new(JoinReq)
 	if err := dec(in); err != nil {
 		return nil, err
 	}
 	if interceptor == nil {
-		return srv.(PeerServiceServer).ValidateAdd(ctx, in)
+		return srv.(PeerServiceServer).Join(ctx, in)
 	}
 	info := &grpc.UnaryServerInfo{
 		Server:     srv,
-		FullMethod: "/peercommands.PeerService/ValidateAdd",
+		FullMethod: "/peercommands.PeerService/Join",
 	}
 	handler := func(ctx context.Context, req interface{}) (interface{}, error) {
-		return srv.(PeerServiceServer).ValidateAdd(ctx, req.(*PeerAddReq))
+		return srv.(PeerServiceServer).Join(ctx, req.(*JoinReq))
 	}
 	return interceptor(ctx, in, info, handler)
 }
 
-func _PeerService_ValidateDelete_Handler(srv interface{}, ctx context.Context, dec func(interface{}) error, interceptor grpc.UnaryServerInterceptor) (interface{}, error) {
-	in := new(PeerDeleteReq)
+func _PeerService_Leave_Handler(srv interface{}, ctx context.Context, dec func(interface{}) error, interceptor grpc.UnaryServerInterceptor) (interface{}, error) {
+	in := new(LeaveReq)
 	if err := dec(in); err != nil {
 		return nil, err
 	}
 	if interceptor == nil {
-		return srv.(PeerServiceServer).ValidateDelete(ctx, in)
+		return srv.(PeerServiceServer).Leave(ctx, in)
 	}
 	info := &grpc.UnaryServerInfo{
 		Server:     srv,
-		FullMethod: "/peercommands.PeerService/ValidateDelete",
+		FullMethod: "/peercommands.PeerService/Leave",
 	}
 	handler := func(ctx context.Context, req interface{}) (interface{}, error) {
-		return srv.(PeerServiceServer).ValidateDelete(ctx, req.(*PeerDeleteReq))
-	}
-	return interceptor(ctx, in, info, handler)
-}
-
-func _PeerService_ReconfigureStore_Handler(srv interface{}, ctx context.Context, dec func(interface{}) error, interceptor grpc.UnaryServerInterceptor) (interface{}, error) {
-	in := new(StoreConfig)
-	if err := dec(in); err != nil {
-		return nil, err
-	}
-	if interceptor == nil {
-		return srv.(PeerServiceServer).ReconfigureStore(ctx, in)
-	}
-	info := &grpc.UnaryServerInfo{
-		Server:     srv,
-		FullMethod: "/peercommands.PeerService/ReconfigureStore",
-	}
-	handler := func(ctx context.Context, req interface{}) (interface{}, error) {
-		return srv.(PeerServiceServer).ReconfigureStore(ctx, req.(*StoreConfig))
+		return srv.(PeerServiceServer).Leave(ctx, req.(*LeaveReq))
 	}
 	return interceptor(ctx, in, info, handler)
 }
@@ -278,16 +233,12 @@ var _PeerService_serviceDesc = grpc.ServiceDesc{
 	HandlerType: (*PeerServiceServer)(nil),
 	Methods: []grpc.MethodDesc{
 		{
-			MethodName: "ValidateAdd",
-			Handler:    _PeerService_ValidateAdd_Handler,
+			MethodName: "Join",
+			Handler:    _PeerService_Join_Handler,
 		},
 		{
-			MethodName: "ValidateDelete",
-			Handler:    _PeerService_ValidateDelete_Handler,
-		},
-		{
-			MethodName: "ReconfigureStore",
-			Handler:    _PeerService_ReconfigureStore_Handler,
+			MethodName: "Leave",
+			Handler:    _PeerService_Leave_Handler,
 		},
 	},
 	Streams:  []grpc.StreamDesc{},
@@ -297,25 +248,21 @@ var _PeerService_serviceDesc = grpc.ServiceDesc{
 func init() { proto.RegisterFile("commands/peers/peer-rpc.proto", fileDescriptor0) }
 
 var fileDescriptor0 = []byte{
-	// 311 bytes of a gzipped FileDescriptorProto
-	0x1f, 0x8b, 0x08, 0x00, 0x00, 0x00, 0x00, 0x00, 0x02, 0xff, 0x9c, 0x92, 0x51, 0x4b, 0xfb, 0x30,
-	0x10, 0xc0, 0xff, 0xed, 0xfe, 0x53, 0x76, 0xd3, 0x29, 0xc1, 0x87, 0x38, 0x1d, 0x8e, 0x3e, 0x0d,
-	0xc4, 0x09, 0xfa, 0x2e, 0x14, 0x3b, 0x64, 0x2f, 0x9b, 0x66, 0xcc, 0xf7, 0xda, 0x9c, 0x52, 0xd8,
-	0x9a, 0x78, 0x89, 0x7e, 0x71, 0xbf, 0x80, 0x24, 0x71, 0x5b, 0x71, 0x88, 0xe0, 0x4b, 0xc9, 0xe5,
-	0xae, 0xbf, 0xbb, 0xdf, 0x11, 0xe8, 0x15, 0x6a, 0xb9, 0xcc, 0x2b, 0x69, 0x2e, 0x35, 0x22, 0x85,
-	0xef, 0x05, 0xe9, 0x62, 0xa8, 0x49, 0x59, 0xc5, 0xf6, 0x5c, 0xbc, 0x2a, 0x49, 0x6e, 0x00, 0xee,
-	0x11, 0x29, 0x95, 0x52, 0xe0, 0x2b, 0x63, 0xf0, 0x7f, 0x92, 0x2f, 0x91, 0x47, 0xfd, 0x68, 0xd0,
-	0x12, 0xfe, 0xcc, 0x4e, 0xa1, 0x95, 0x4a, 0x49, 0x68, 0x0c, 0x1a, 0x1e, 0xf7, 0x1b, 0x83, 0x96,
-	0xd8, 0x5c, 0x24, 0x0f, 0xd0, 0x5e, 0xff, 0x6f, 0x34, 0x3b, 0x82, 0xe6, 0x54, 0x0b, 0xb4, 0x9e,
-	0xd0, 0x14, 0x21, 0x60, 0x1c, 0x76, 0xa7, 0x7a, 0x44, 0xa4, 0x88, 0xc7, 0x9e, 0xbc, 0x0a, 0x5d,
-	0xc3, 0xf9, 0x7c, 0x9c, 0xf1, 0x46, 0x68, 0xe8, 0xce, 0x49, 0x0a, 0x07, 0x0e, 0x79, 0x87, 0x15,
-	0x52, 0x59, 0xfc, 0x05, 0x9b, 0x9c, 0xc1, 0xbe, 0x43, 0x64, 0xb8, 0x40, 0x8b, 0x4e, 0xac, 0x03,
-	0xf1, 0x38, 0xfb, 0xd2, 0x8a, 0xc7, 0x59, 0x72, 0x0e, 0xed, 0x99, 0x55, 0x84, 0xb7, 0xaa, 0x7a,
-	0x2e, 0x5f, 0x9c, 0xe3, 0xa8, 0x92, 0x5a, 0x95, 0x95, 0x35, 0x3c, 0x0a, 0x8e, 0xeb, 0x8b, 0xab,
-	0x8f, 0x28, 0x48, 0xce, 0x90, 0xde, 0xcb, 0x02, 0x59, 0x06, 0xed, 0xc7, 0x7c, 0x51, 0xca, 0xdc,
-	0x62, 0x2a, 0x25, 0xe3, 0xc3, 0xfa, 0x46, 0x87, 0x9b, 0x75, 0x76, 0x8f, 0x7f, 0xc8, 0x18, 0x9d,
-	0xfc, 0x63, 0x13, 0xe8, 0xac, 0x28, 0x61, 0x4e, 0x76, 0xb2, 0x5d, 0xbe, 0x36, 0xe8, 0xf6, 0xb6,
-	0x93, 0xb5, 0x0d, 0x79, 0xde, 0xa1, 0xc0, 0xc2, 0xfb, 0xbc, 0x11, 0x7a, 0x3b, 0xf6, 0x6d, 0x80,
-	0x9a, 0xf2, 0xaf, 0xbc, 0xa7, 0x1d, 0xff, 0x5c, 0xae, 0x3f, 0x03, 0x00, 0x00, 0xff, 0xff, 0x42,
-	0x69, 0x9d, 0x06, 0x4f, 0x02, 0x00, 0x00,
+	// 247 bytes of a gzipped FileDescriptorProto
+	0x1f, 0x8b, 0x08, 0x00, 0x00, 0x00, 0x00, 0x00, 0x02, 0xff, 0xe2, 0x92, 0x4d, 0xce, 0xcf, 0xcd,
+	0x4d, 0xcc, 0x4b, 0x29, 0xd6, 0x2f, 0x48, 0x4d, 0x2d, 0x82, 0x90, 0xba, 0x45, 0x05, 0xc9, 0x7a,
+	0x05, 0x45, 0xf9, 0x25, 0xf9, 0x42, 0x3c, 0x20, 0x3e, 0x4c, 0x89, 0x92, 0x36, 0x17, 0x77, 0x70,
+	0x49, 0x7e, 0x51, 0xaa, 0x73, 0x7e, 0x5e, 0x5a, 0x66, 0xba, 0x90, 0x0c, 0x17, 0xa7, 0x6b, 0x5e,
+	0x4a, 0x41, 0x7e, 0x66, 0x5e, 0x49, 0xb1, 0x04, 0xa3, 0x02, 0xb3, 0x06, 0x67, 0x10, 0x42, 0x40,
+	0x29, 0x84, 0x8b, 0xdd, 0x2b, 0x3f, 0x33, 0x2f, 0x28, 0xb5, 0x50, 0x48, 0x8c, 0x8b, 0x2d, 0x20,
+	0x35, 0xb5, 0xc8, 0xd3, 0x45, 0x82, 0x51, 0x81, 0x51, 0x83, 0x33, 0x08, 0xca, 0x13, 0x32, 0xe4,
+	0x62, 0x83, 0x18, 0x25, 0xc1, 0xa4, 0xc0, 0xa8, 0xc1, 0x6d, 0x24, 0xa9, 0x87, 0x6c, 0x9d, 0x1e,
+	0x92, 0x5d, 0x41, 0x50, 0x85, 0x4a, 0xc6, 0x50, 0x53, 0x8b, 0x0b, 0x70, 0x9a, 0x2a, 0xc0, 0xc5,
+	0xec, 0x5a, 0x54, 0x04, 0x36, 0x92, 0x35, 0x08, 0xc4, 0x54, 0x52, 0xe2, 0xe2, 0xf0, 0x49, 0x4d,
+	0x2c, 0x4b, 0xc5, 0xe3, 0x16, 0x25, 0x19, 0x98, 0x9a, 0xe2, 0x02, 0x98, 0x09, 0x8c, 0x70, 0x13,
+	0x8c, 0x1a, 0x18, 0xb9, 0xb8, 0x41, 0x0a, 0x83, 0x53, 0x8b, 0xca, 0x32, 0x93, 0x53, 0x85, 0xcc,
+	0xb8, 0x58, 0x40, 0xce, 0x10, 0x12, 0x45, 0x75, 0x31, 0xd4, 0xc3, 0x52, 0xd8, 0x84, 0x8b, 0x0b,
+	0x94, 0x18, 0x84, 0x2c, 0xb9, 0x58, 0xc1, 0xb6, 0x08, 0x89, 0xa1, 0xaa, 0x80, 0x39, 0x4f, 0x0a,
+	0xab, 0x38, 0x48, 0x6b, 0x12, 0x1b, 0x38, 0x46, 0x8c, 0x01, 0x01, 0x00, 0x00, 0xff, 0xff, 0x88,
+	0x1d, 0x73, 0x8f, 0xb2, 0x01, 0x00, 0x00,
 }
