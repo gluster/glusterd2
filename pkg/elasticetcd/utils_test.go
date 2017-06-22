@@ -36,6 +36,7 @@ func TestDiffStringSlices(t *testing.T) {
 		{a, b, a},
 		{a, a[0:2], []string{"3", "4"}},
 		{a, append(a, b...), []string{}},
+		{[]string{"3"}, a, []string{}},
 	}
 
 	for _, i := range tests {
