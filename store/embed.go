@@ -29,7 +29,7 @@ func newEmbedStore(sconf *Config) (*GDStore, error) {
 		return nil, err
 	}
 
-	return &GDStore{sconf, ee.Client(), ee.Session(), ee}, nil
+	return &GDStore{*sconf, ee.Client(), ee.Session(), ee}, nil
 }
 
 func (s *GDStore) closeEmbedStore() {

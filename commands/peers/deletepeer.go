@@ -6,6 +6,7 @@ import (
 	"github.com/gluster/glusterd2/gdctx"
 	"github.com/gluster/glusterd2/peer"
 	restutils "github.com/gluster/glusterd2/servers/rest/utils"
+	"github.com/gluster/glusterd2/store"
 	"github.com/gluster/glusterd2/utils"
 	"github.com/gluster/glusterd2/volume"
 
@@ -52,13 +53,13 @@ func deletePeerHandler(w http.ResponseWriter, r *http.Request) {
 	}
 
 	// Check if any volumes exist with bricks on this peer
-	if ok, err := bricksExist(id); err != nil {
+	if exists, err := bricksExist(id); err != nil {
 		logger.WithError(err).Error("failed to check if bricks exist on peer")
 		restutils.SendHTTPError(w, http.StatusInternalServerError, "could not validate delete request")
 		return
-	} else if !ok {
+	} else if exists {
 		logger.Debug("request denied, peer has bricks")
-		restutils.SendHTTPError(w, http.StatusForbidden, "request denied, peer has bricks")
+		restutils.SendHTTPError(w, http.StatusForbidden, "cannot delete peer, peer has bricks")
 		return
 	}
 
@@ -95,6 +96,9 @@ func deletePeerHandler(w http.ResponseWriter, r *http.Request) {
 	} else {
 		restutils.SendHTTPResponse(w, http.StatusNoContent, nil)
 	}
+
+	// Save updated store endpoints for restarts
+	store.Store.UpdateEndpoints()
 }
 
 // bricksExist checks if the given peer has any bricks on it
