@@ -163,10 +163,17 @@ func GetPeerByAddr(addr string) (*Peer, error) {
 
 // GetPeerByAddrs returns a peer that matches any one of the given addresses
 func GetPeerByAddrs(addrs []string) (*Peer, error) {
+	peers, err := GetPeers()
+	if err != nil {
+		return nil, err
+	}
 	for _, a := range addrs {
-		p, _ := GetPeerByAddr(a)
-		if p != nil {
-			return p, nil
+		for _, p := range peers {
+			for _, paddr := range p.Addresses {
+				if utils.IsPeerAddressSame(addr, paddr) {
+					return &p, nil
+				}
+			}
 		}
 	}
 	return nil, errors.ErrPeerNotFound
