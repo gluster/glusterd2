@@ -65,7 +65,8 @@ func deletePeerHandler(w http.ResponseWriter, r *http.Request) {
 
 	remotePeerAddress, err := utils.FormRemotePeerAddress(p.Addresses[0])
 	if err != nil {
-		restutils.SendHTTPError(w, http.StatusBadRequest, err.Error())
+		log.WithError(err).WithField("address", req.Addresses[0]).Error("failed to parse peer address")
+		restutils.SendHTTPError(w, http.StatusBadRequest, "failed to parse remote address")
 		return
 	}
 
