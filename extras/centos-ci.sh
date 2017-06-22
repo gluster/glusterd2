@@ -6,7 +6,7 @@
 # if anything fails, we'll abort
 set -e
 
-REQ_GO_VERSION='1.8.0'
+REQ_GO_VERSION='1.8.3'
 # install Go
 if ! yum -y install "golang >= $REQ_GO_VERSION"
 then
