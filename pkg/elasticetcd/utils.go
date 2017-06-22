@@ -65,17 +65,18 @@ func compareStringSlices(a, b []string) bool {
 }
 
 // diffStringSlices returns a slice with items which are unique to the first
-// Only works when the given slices are both sorted
 func diffStringSlices(a, b []string) []string {
 	var diff []string
 
-	j := 0
+	bmap := make(map[string]bool)
+	for _, v := range b {
+		bmap[v] = true
+	}
+
 	for _, v := range a {
-		if j < len(b) && v == b[j] {
-			j++
-			continue
+		if _, in := bmap[v]; !in {
+			diff = append(diff, v)
 		}
-		diff = append(diff, v)
 	}
 
 	return diff
