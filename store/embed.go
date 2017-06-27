@@ -1,11 +1,14 @@
 package store
 
 import (
+	"path"
+
 	"github.com/gluster/glusterd2/gdctx"
 	"github.com/gluster/glusterd2/pkg/elasticetcd"
 
 	log "github.com/Sirupsen/logrus"
 	"github.com/coreos/etcd/pkg/types"
+	config "github.com/spf13/viper"
 )
 
 func newEmbedStore(sconf *Config) (*GDStore, error) {
@@ -18,6 +21,7 @@ func newEmbedStore(sconf *Config) (*GDStore, error) {
 	log.WithFields(log.Fields{
 		"name":      econf.Name,
 		"datadir":   econf.Dir,
+		"logdir":    econf.LogDir,
 		"endpoints": econf.Endpoints.String(),
 		"curls":     econf.CURLs.String(),
 		"purls":     econf.PURLs.String(),
@@ -43,6 +47,7 @@ func getElasticConfig(sconf *Config) (*elasticetcd.Config, error) {
 
 	econf.Name = gdctx.MyUUID.String()
 	econf.Dir = sconf.Dir
+	econf.LogDir = path.Join(config.GetString("logdir"), "store")
 
 	endpoints, err := types.NewURLs(sconf.Endpoints)
 	if err != nil {

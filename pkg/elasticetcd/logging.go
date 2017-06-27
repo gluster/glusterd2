@@ -26,14 +26,19 @@ func (ee *ElasticEtcd) initLogging() {
 	ee.logFile = new(nilWriteCloser)
 
 	if !ee.conf.DisableLogging {
-		f, err := os.OpenFile(path.Join(ee.conf.Dir, "elastic.log"), os.O_CREATE|os.O_WRONLY|os.O_APPEND, 0644)
+		if err := os.MkdirAll(ee.conf.LogDir, 0755); err != nil {
+			// Log to stdout if you can create log file
+			ee.log.Out = os.Stdout
+			return
+		}
+		f, err := os.OpenFile(path.Join(ee.conf.LogDir, "elastic.log"), os.O_CREATE|os.O_WRONLY|os.O_APPEND, 0644)
 		if err != nil {
+			// Log to stdout if you can create log file
 			ee.log.Out = os.Stdout
 			return
 		}
 		ee.log.Out = f
 		ee.logFile = f
 	}
-
-	ee.log.Info("beginning etcd logging logging")
+	return
 }

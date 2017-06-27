@@ -116,7 +116,7 @@ func (ee *ElasticEtcd) newEmbedConfig(initialCluster string) *embed.Config {
 func (ee *ElasticEtcd) initEtcdLogging() {
 	ee.server.logFile = new(nilWriteCloser)
 	if !ee.conf.DisableLogging {
-		f, err := os.OpenFile(path.Join(ee.conf.Dir, "etcd.log"), os.O_CREATE|os.O_WRONLY|os.O_APPEND, 0644)
+		f, err := os.OpenFile(path.Join(ee.conf.LogDir, "etcd.log"), os.O_CREATE|os.O_WRONLY|os.O_APPEND, 0644)
 		if err == nil {
 			ee.server.logFile = f
 		}

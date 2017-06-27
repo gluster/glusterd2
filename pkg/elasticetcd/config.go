@@ -2,6 +2,7 @@ package elasticetcd
 
 import (
 	"net"
+	"path"
 
 	"github.com/coreos/etcd/pkg/types"
 )
@@ -64,7 +65,7 @@ func init() {
 
 // Config is holds the configuration for an ElasticEtcd
 type Config struct {
-	Name, Dir               string
+	Name, Dir, LogDir       string
 	Endpoints, CURLs, PURLs types.URLs
 	IdealSize               int
 	DisableLogging          bool
@@ -75,6 +76,7 @@ func NewConfig() *Config {
 	return &Config{
 		Name:      DefaultName,
 		Dir:       DefaultDir,
+		LogDir:    path.Join(DefaultDir, "log"),
 		Endpoints: defaultEndpoints,
 		CURLs:     defaultCURLs,
 		PURLs:     defaultPURLs,
