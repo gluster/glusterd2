@@ -21,4 +21,8 @@
 // TODO: Allow the ability to select alternative selection algorithms
 //
 // TODO: Add functional tests
+//
+// TODO: Add rate limiting for nominations, trying to do many nominations at once will lead to a bad cluster
+//
+// TODO: Protect access to elastic namespace in etcd
 package elasticetcd
