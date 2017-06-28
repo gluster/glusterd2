@@ -9,7 +9,7 @@ import (
 	"strings"
 	"testing"
 
-	"github.com/stretchr/testify/assert"
+	"github.com/stretchr/testify/require"
 )
 
 // It'll be a good idea to create a separate subpackage in glusterd2 source
@@ -23,10 +23,10 @@ type volCreateReq struct {
 }
 
 func TestVolumeCreateDelete(t *testing.T) {
-	assert := assert.New(t)
+	r := require.New(t)
 
 	gds, err := setupCluster("./config/1.yaml", "./config/2.yaml")
-	assert.Nil(err)
+	r.Nil(err)
 	defer teardownCluster(gds)
 
 	brickDir, err := ioutil.TempDir("", "TestVolumeCreateDelete")
@@ -35,7 +35,7 @@ func TestVolumeCreateDelete(t *testing.T) {
 	var brickPaths []string
 	for i := 1; i <= 4; i++ {
 		brickPath, err := ioutil.TempDir(brickDir, "brick")
-		assert.Nil(err)
+		r.Nil(err)
 		brickPaths = append(brickPaths, brickPath)
 	}
 
@@ -52,20 +52,20 @@ func TestVolumeCreateDelete(t *testing.T) {
 		Force: true,
 	}
 	reqBody, err := json.Marshal(createReq)
-	assert.Nil(err)
+	r.Nil(err)
 
 	volCreateURL := fmt.Sprintf("http://%s/v1/volumes", gds[0].ClientAddress)
 	resp, err := http.Post(volCreateURL, "application/json", strings.NewReader(string(reqBody)))
-	assert.Nil(err)
+	r.Nil(err)
 	defer resp.Body.Close()
-	assert.Equal(resp.StatusCode, 201)
+	r.Equal(resp.StatusCode, 201)
 
 	// delete volume
 	volDelURL := fmt.Sprintf("http://%s/v1/volumes/%s", gds[0].ClientAddress, volname)
 	delReq, err := http.NewRequest("DELETE", volDelURL, nil)
-	assert.Nil(err)
+	r.Nil(err)
 	resp, err = http.DefaultClient.Do(delReq)
-	assert.Nil(err)
+	r.Nil(err)
 	defer resp.Body.Close()
-	assert.Equal(resp.StatusCode, 200)
+	r.Equal(resp.StatusCode, 200)
 }
