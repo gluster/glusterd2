@@ -25,7 +25,7 @@ type ElasticEtcd struct {
 
 	stopping bool
 
-	stopwatching chan bool
+	stopwatching chan struct{}
 	watchers     sync.WaitGroup
 
 	lock sync.RWMutex
@@ -37,7 +37,7 @@ func New(conf *Config) (*ElasticEtcd, error) {
 
 	ee := new(ElasticEtcd)
 	ee.conf = conf
-	ee.stopwatching = make(chan bool)
+	ee.stopwatching = make(chan struct{})
 	ee.initLogging()
 
 	// If no endpoints are given or if the default endpoint is set, assume that there is no existing server
@@ -45,6 +45,7 @@ func New(conf *Config) (*ElasticEtcd, error) {
 		ee.log.Debug("no configured endpoints, starting own server")
 
 		if err := ee.startServer(""); err != nil && err != ErrClientNotAvailable {
+			ee.Stop()
 			ee.log.WithError(err).Debug("failed to start server")
 			return nil, err
 		}
