@@ -17,8 +17,9 @@ func newRemoteStore(conf *Config) (*GDStore, error) {
 
 	c, e := clientv3.New(clientv3.Config{
 		Endpoints:        conf.Endpoints,
-		AutoSyncInterval: 1 * time.Minute,
-		DialTimeout:      10 * time.Second,
+		AutoSyncInterval: 30 * time.Second,
+		DialTimeout:      5 * time.Second,
+		RejectOldCluster: true,
 	})
 	if e != nil {
 		log.WithError(e).Error("failed to create etcd client")
