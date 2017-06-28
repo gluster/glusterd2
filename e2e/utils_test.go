@@ -60,12 +60,14 @@ func (g *gdProcess) PeerID() string {
 }
 
 func (g *gdProcess) IsRestServerUp() bool {
-	healthEndpoint := fmt.Sprintf("http://%s/v1/peers/%s/etcdhealth", g.ClientAddress, g.PeerID())
-	resp, err := http.Get(healthEndpoint)
+
+	endpoint := fmt.Sprintf("http://%s/v1/peers", g.ClientAddress)
+	resp, err := http.Get(endpoint)
 	if err != nil {
 		return false
 	}
 	defer resp.Body.Close()
+
 	if resp.StatusCode != 200 {
 		return false
 	}
@@ -105,9 +107,9 @@ func spawnGlusterd(configFilePath string) (*gdProcess, error) {
 	}()
 
 	retries := 4
-	waitTime := 1000
+	waitTime := 1500
 	for i := 0; i < retries; i++ {
-		// opposite of exponential backoff; max sleep time = 1.875s
+		// opposite of exponential backoff
 		time.Sleep(time.Duration(waitTime) * time.Millisecond)
 		if g.IsRestServerUp() {
 			break
