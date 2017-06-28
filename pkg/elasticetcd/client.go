@@ -76,7 +76,8 @@ func (ee *ElasticEtcd) newClientConfig() clientv3.Config {
 	return clientv3.Config{
 		Endpoints:        ee.conf.Endpoints.StringSlice(),
 		AutoSyncInterval: 30 * time.Second, // Update list of endpoints ever 30s.
-		DialTimeout:      10 * time.Second,
+		DialTimeout:      5 * time.Second,
+		RejectOldCluster: true,
 	}
 }
 
