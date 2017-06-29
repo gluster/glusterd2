@@ -27,8 +27,8 @@ func deletePeerHandler(w http.ResponseWriter, r *http.Request) {
 	// Deleting a peer from the cluster happens as follows,
 	// 	- Check if the peer is a member of the cluster
 	// 	- Check if the peer can be removed
-	//	- Send the Leave request
 	//	- Delete the peer info from the store
+	//	- Send the Leave request
 
 	logger := log.WithField("peerid", id)
 	logger.Debug("recieved delete peer request")
@@ -63,6 +63,13 @@ func deletePeerHandler(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
+	// Remove the peer details from the store
+	if err := peer.DeletePeer(id); err != nil {
+		log.WithError(err).WithField("peer", id).Error("failed to remove peer from the store")
+		restutils.SendHTTPError(w, http.StatusInternalServerError, err.Error())
+		return
+	}
+
 	remotePeerAddress, err := utils.FormRemotePeerAddress(p.Addresses[0])
 	if err != nil {
 		log.WithError(err).WithField("address", p.Addresses[0]).Error("failed to parse peer address")
@@ -77,6 +84,9 @@ func deletePeerHandler(w http.ResponseWriter, r *http.Request) {
 	}
 	defer client.conn.Close()
 
+	// TODO: Need to do a better job of handling failures here. If this fails the
+	// peer being removed still thinks it's a part of the cluster, and could
+	// potentially still send commands to the cluster
 	rsp, err := client.LeaveCluster()
 	if err != nil {
 		logger.WithError(err).Error("sending Leave request failed")
@@ -90,13 +100,7 @@ func deletePeerHandler(w http.ResponseWriter, r *http.Request) {
 	}
 	logger.Debug("peer left cluster")
 
-	// Remove the peer details from the store
-	if err := peer.DeletePeer(id); err != nil {
-		log.WithError(err).WithField("peer", id).Error("failed to remove peer from the store")
-		restutils.SendHTTPError(w, http.StatusInternalServerError, err.Error())
-	} else {
-		restutils.SendHTTPResponse(w, http.StatusNoContent, nil)
-	}
+	restutils.SendHTTPResponse(w, http.StatusNoContent, nil)
 
 	// Save updated store endpoints for restarts
 	store.Store.UpdateEndpoints()
