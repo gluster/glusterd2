@@ -1,38 +1,29 @@
 syntax = "proto3";
 package peercommands;
 
-message PeerAddReq {
-  string Name = 1;
-  repeated string Addresses = 2;
+message StoreConfig {
+ repeated string Endpoints = 1;
 }
 
-message PeerAddResp {
-  int32 OpRet = 1;
-  string OpError = 2;
-  string UUID = 3;
-  string PeerName = 4;
-  string EtcdPeerAddress = 5;
+message JoinReq {
+  string PeerID = 1; // ID of the peer sending the request
+  StoreConfig Config = 2;
 }
 
-
-message PeerGenericResp {
-  int32 OpRet = 1;
-  string OpError = 2;
+message JoinRsp {
+  string PeerID = 1; // ID of the peer responding
+  int32 Err = 2;
 }
 
-message PeerDeleteReq {
-  string ID = 1;
+message LeaveReq {
+  string PeerID = 1;
 }
 
-message EtcdConfigReq {
- string EtcdName = 1;
- string InitialCluster = 2;
- string ClusterState = 3;
- bool DeletePeer = 4;
+message LeaveRsp {
+  int32 Err = 1;
 }
 
 service PeerService {
-  rpc ValidateAdd(PeerAddReq) returns(PeerAddResp) {}
-  rpc ValidateDelete(PeerDeleteReq) returns(PeerGenericResp) {}
-  rpc ExportAndStoreETCDConfig(EtcdConfigReq) returns(PeerGenericResp) {}
+  rpc Join(JoinReq) returns(JoinRsp) {}
+  rpc Leave(LeaveReq) returns(LeaveRsp) {}
 }

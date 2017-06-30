@@ -5,9 +5,7 @@ import (
 	"os/signal"
 	"path"
 	"strings"
-	"syscall"
 
-	"github.com/gluster/glusterd2/etcdmgmt"
 	"github.com/gluster/glusterd2/gdctx"
 	"github.com/gluster/glusterd2/peer"
 	"github.com/gluster/glusterd2/servers"
@@ -18,6 +16,7 @@ import (
 	flag "github.com/spf13/pflag"
 	config "github.com/spf13/viper"
 	"github.com/thejerf/suture"
+	"golang.org/x/sys/unix"
 )
 
 func main() {
@@ -64,25 +63,13 @@ func main() {
 		log.WithError(err).Fatal("Failed to initialize UUID")
 	}
 
-	// Start embedded etcd server
-	etcdConfig, err := etcdmgmt.GetEtcdConfig(true)
-	if err != nil {
-		log.WithError(err).Fatal("Could not fetch config options for etcd")
-	}
-	if err := etcdmgmt.StartEmbeddedEtcd(etcdConfig); err != nil {
-		log.WithError(err).Fatal("Could not start embedded etcd server")
-	}
-
 	// Initialize etcd store (etcd client connection)
-	if err := store.InitStore(); err != nil {
+	if err := store.Init(nil); err != nil {
 		log.WithError(err).Fatal("Failed to initialize store (etcd client)")
 	}
 
-	if !gdctx.Restart {
-		err = peer.AddSelfDetails()
-		if err != nil {
-			log.WithError(err).Fatal("Could not add self details into etcd")
-		}
+	if err := peer.AddSelfDetails(); err != nil {
+		log.WithError(err).Fatal("Could not add self details into etcd")
 	}
 
 	// Start all servers (rest, peerrpc, sunrpc) managed by suture supervisor
@@ -97,14 +84,15 @@ func main() {
 	for s := range sigCh {
 		log.WithField("signal", s).Debug("Signal received")
 		switch s {
-		case os.Interrupt:
+		case unix.SIGTERM:
+			fallthrough
+		case unix.SIGINT:
 			log.Info("Received SIGTERM. Stopping GlusterD")
-			// Stop embedded etcd server, but don't wipe local etcd data
-			etcdmgmt.DestroyEmbeddedEtcd(false)
 			super.Stop()
+			store.Close()
 			log.Info("Stopped GlusterD")
 			return
-		case syscall.SIGHUP:
+		case unix.SIGHUP:
 			// Logrotate case, when Log rotated, Reopen the log file and
 			// re-initiate the logger instance.
 			if strings.ToLower(logFileName) != "stderr" && strings.ToLower(logFileName) != "stdout" && logFileName != "-" {

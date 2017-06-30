@@ -1,8 +1,11 @@
 package peercommands
 
 import (
+	"context"
+
+	"github.com/gluster/glusterd2/gdctx"
+
 	log "github.com/Sirupsen/logrus"
-	netctx "golang.org/x/net/context"
 	"google.golang.org/grpc"
 )
 
@@ -11,110 +14,52 @@ var (
 	opError string
 )
 
-// ValidateAddPeer is the validation function for AddPeer to invoke the rpc
-// server call
-func ValidateAddPeer(remoteAddress string, args *PeerAddReq) (*PeerAddResp, error) {
-	rpcConn, e := grpc.Dial(remoteAddress, grpc.WithInsecure())
-	if e != nil {
-		log.WithFields(log.Fields{
-			"error":  e,
-			"remote": remoteAddress,
-		}).Error("failed to grpc.Dial remote")
-		rsp := &PeerAddResp{
-			OpRet:   -1,
-			OpError: e.Error(),
-		}
-		return rsp, e
+type peerSvcClnt struct { // this is not really a good name as it can be confused with PeerServiceClient, but there isn't anything better
+	conn    *grpc.ClientConn
+	client  PeerServiceClient
+	address string
+}
+
+// getPeerServiceClient returns a PeerServiceClient for the given address and the underlying grpc.ClientConn
+func getPeerServiceClient(address string) (*peerSvcClnt, error) {
+	conn, err := grpc.Dial(address, grpc.WithInsecure())
+	if err != nil {
+		return nil, err
 	}
-	defer rpcConn.Close()
 
-	client := NewPeerServiceClient(rpcConn)
+	clnt := NewPeerServiceClient(conn)
 
-	rsp, e := client.ValidateAdd(netctx.TODO(), args)
-	if e != nil {
-		log.WithFields(log.Fields{
-			"error":  e,
-			"rpc":    "PeerService.ValidateAdd",
-			"remote": remoteAddress,
+	return &peerSvcClnt{conn, clnt, address}, nil
+}
+
+// JoinCluster asks the remote peer to join the current cluster by reconfiguring the store with the given config
+func (pc *peerSvcClnt) JoinCluster(conf *StoreConfig) (*JoinRsp, error) {
+	args := &JoinReq{
+		gdctx.MyUUID.String(),
+		conf,
+	}
+	rsp, err := pc.client.Join(context.TODO(), args)
+	if err != nil {
+		log.WithError(err).WithFields(log.Fields{
+			"rpc":    "PeerService.Join",
+			"remote": pc.address,
 		}).Error("failed RPC call")
-		rsp := &PeerAddResp{
-			OpRet:   -1,
-			OpError: e.Error(),
-		}
-		return rsp, e
+		return nil, err
 	}
 	return rsp, nil
 }
 
-// ValidateDeletePeer is the validation function for DeletePeer to invoke the rpc
-// server call
-func ValidateDeletePeer(remoteAddress string, id string) (*PeerGenericResp, error) {
-	args := &PeerDeleteReq{ID: id}
+// LeaveCluster asks the remote peer to leave the current cluster
+func (pc *peerSvcClnt) LeaveCluster() (*LeaveRsp, error) {
+	args := &LeaveReq{gdctx.MyUUID.String()}
 
-	rpcConn, e := grpc.Dial(remoteAddress, grpc.WithInsecure())
-	if e != nil {
-		log.WithFields(log.Fields{
-			"error":  e,
-			"remote": remoteAddress,
-		}).Error("failed to grpc.Dial remote")
-		rsp := &PeerGenericResp{
-			OpRet:   -1,
-			OpError: e.Error(),
-		}
-		return rsp, e
-	}
-	defer rpcConn.Close()
-
-	client := NewPeerServiceClient(rpcConn)
-
-	rsp, e := client.ValidateDelete(netctx.TODO(), args)
-	if e != nil {
-		log.WithFields(log.Fields{
-			"error":  e,
-			"rpc":    "PeerService.ValidateDelete",
-			"remote": remoteAddress,
+	rsp, err := pc.client.Leave(context.TODO(), args)
+	if err != nil {
+		log.WithError(err).WithFields(log.Fields{
+			"rpc":    "PeerService.Leave",
+			"remote": pc.address,
 		}).Error("failed RPC call")
-		rsp := &PeerGenericResp{
-			OpRet:   -1,
-			OpError: e.Error(),
-		}
-		return rsp, e
-	}
-	return rsp, nil
-}
-
-// ConfigureRemoteETCD will reconfigure etcd server on remote node to either
-// join or remove itself from an etcd cluster.
-func ConfigureRemoteETCD(remoteAddress string, args *EtcdConfigReq) (*PeerGenericResp, error) {
-
-	rpcConn, e := grpc.Dial(remoteAddress, grpc.WithInsecure())
-	if e != nil {
-		log.WithFields(log.Fields{
-			"error":  e,
-			"remote": remoteAddress,
-		}).Error("failed to grpc.Dial remote")
-		rsp := &PeerGenericResp{
-			OpRet:   -1,
-			OpError: e.Error(),
-		}
-		return rsp, e
-	}
-	defer rpcConn.Close()
-
-	client := NewPeerServiceClient(rpcConn)
-
-	rsp, e := client.ExportAndStoreETCDConfig(netctx.TODO(), args)
-	if e != nil {
-		log.WithFields(log.Fields{
-			"error":  e,
-			"rpc":    "PeerService.ExportAndStoreETCDConfig",
-			"remote": remoteAddress,
-		}).Error("failed RPC call")
-		rsp := &PeerGenericResp{
-			OpRet:   -1,
-			OpError: e.Error(),
-		}
-		return rsp, e
+		return nil, err
 	}
 	return rsp, nil
 }

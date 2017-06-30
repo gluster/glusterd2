@@ -143,7 +143,7 @@ func Exists(id string) bool {
 	return resp.Count == 1
 }
 
-//GetPeerByAddr returns the peer with the given address from the store
+// GetPeerByAddr returns the peer with the given address from the store
 func GetPeerByAddr(addr string) (*Peer, error) {
 	peers, e := GetPeers()
 	if e != nil {
@@ -161,12 +161,29 @@ func GetPeerByAddr(addr string) (*Peer, error) {
 	return nil, errors.ErrPeerNotFound
 }
 
-//GetPeerIDByAddr returns the ID of the peer with the given address
+// GetPeerByAddrs returns a peer that matches any one of the given addresses
+func GetPeerByAddrs(addrs []string) (*Peer, error) {
+	peers, err := GetPeers()
+	if err != nil {
+		return nil, err
+	}
+	for _, a := range addrs {
+		for _, p := range peers {
+			for _, paddr := range p.Addresses {
+				if utils.IsPeerAddressSame(a, paddr) {
+					return &p, nil
+				}
+			}
+		}
+	}
+	return nil, errors.ErrPeerNotFound
+}
+
+// GetPeerIDByAddr returns the ID of the peer with the given address
 func GetPeerIDByAddr(addr string) (uuid.UUID, error) {
 	p, e := GetPeerByAddrF(addr)
 	if e != nil {
 		return nil, errors.ErrPeerNotFound
 	}
 	return p.ID, nil
-
 }

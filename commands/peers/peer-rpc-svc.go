@@ -1,9 +1,6 @@
 package peercommands
 
 import (
-	"fmt"
-
-	"github.com/gluster/glusterd2/etcdmgmt"
 	"github.com/gluster/glusterd2/gdctx"
 	"github.com/gluster/glusterd2/peer"
 	"github.com/gluster/glusterd2/servers/peerrpc"
@@ -11,12 +8,11 @@ import (
 	"github.com/gluster/glusterd2/volume"
 
 	log "github.com/Sirupsen/logrus"
-	config "github.com/spf13/viper"
-	netctx "golang.org/x/net/context"
+	"golang.org/x/net/context"
 	"google.golang.org/grpc"
 )
 
-// PeerService will be handling client requests on the server side for peer ops
+// PeerService implements the PeerService gRPC service
 type PeerService int
 
 func init() {
@@ -28,123 +24,124 @@ func (p *PeerService) RegisterService(s *grpc.Server) {
 	RegisterPeerServiceServer(s, p)
 }
 
-var (
-	etcdConfDir  = "/var/lib/glusterd/"
-	etcdConfFile = etcdConfDir + "etcdenv.conf"
-)
+// Join makes the peer join the cluster of the requester
+func (p *PeerService) Join(ctx context.Context, req *JoinReq) (*JoinRsp, error) {
+	logger := log.WithField("remotepeer", req.PeerID)
 
-// ValidateAdd validates AddPeer operation at server side
-func (p *PeerService) ValidateAdd(nc netctx.Context, args *PeerAddReq) (*PeerAddResp, error) {
-	var opRet int32
-	var opError string
-	uuid := gdctx.MyUUID.String()
+	logger.Info("handling new incoming join cluster request")
 
-	if gdctx.MaxOpVersion < 40000 {
-		opRet = -1
-		opError = fmt.Sprintf("GlusterD instance running on %s is not compatible", args.Name)
-	}
+	// Handling a Join request happens as follows,
+	// 	- TODO: Ensure no ongoing operations (transactions/other peer requests) are happening
+	// 	- TODO: Check is peer is part of another cluster
+	// 	- Check if the peer has volumes
+	//	- Reconfigure the store with recieved configuration
+	// 	- Return your ID
+
+	// TODO: Ensure no other operations are happening
+
+	// TODO: Check if we are part of another cluster
+
 	volumes, _ := volume.GetVolumes()
 	if len(volumes) != 0 {
-		opRet = -1
-		opError = fmt.Sprintf("Peer %s already has existing volumes", args.Name)
+		logger.Info("rejecting join, we already have volumes")
+		return &JoinRsp{"", int32(ErrAnotherCluster)}, nil
 	}
 
-	reply := &PeerAddResp{
-		OpRet:           opRet,
-		OpError:         opError,
-		UUID:            uuid,
-		PeerName:        gdctx.HostName,
-		EtcdPeerAddress: config.GetString("etcdpeeraddress"),
+	logger.Debug("all checks passed, joining new cluster")
+
+	if err := ReconfigureStore(req.Config); err != nil {
+		logger.WithError(err).Error("reconfigure store failed, failed to join new cluster")
+		return &JoinRsp{"", int32(ErrStoreReconfigFailed)}, nil
 	}
-	return reply, nil
+	logger.Debug("reconfigured store to join new cluster")
+
+	logger.Info("joined new cluster")
+	return &JoinRsp{gdctx.MyUUID.String(), int32(ErrNone)}, nil
 }
 
-// ValidateDelete validates DeletePeer operation at server side
-func (p *PeerService) ValidateDelete(nc netctx.Context, args *PeerDeleteReq) (*PeerGenericResp, error) {
-	var opRet int32
-	var opError string
-	// TODO : Validate if this guy has any volume configured where the brick(s) is
-	// hosted in some other node, in that case the validation should fail
+// Leave makes the peer leave its current cluster, and restart as a single node cluster
+func (p *PeerService) Leave(ctx context.Context, req *LeaveReq) (*LeaveRsp, error) {
+	logger := log.WithField("remotepeer", req.PeerID)
 
-	reply := &PeerGenericResp{
-		OpRet:   opRet,
-		OpError: opError,
+	logger.Info("handling incoming leave cluster request")
+
+	// Leaving a cluster happens in the following steps,
+	// 	- TODO: Ensure no ongoing operations (transactions/other peer requests)
+	// 	are happening
+	// 	- Check if the request came from a known peer
+	// 	- TODO: Check if you can leave the cluster
+	// 	- Reconfigure the store with you defaults
+
+	// TODO: Ensure no other operations are happening
+
+	if p, err := peer.GetPeer(req.PeerID); err != nil {
+		logger.Info("could not verify peer")
+		return &LeaveRsp{int32(ErrUnknownPeer)}, nil
+	} else if p == nil {
+		logger.Info("rejecting leave, request recieved from unknown peer")
+		return &LeaveRsp{int32(ErrUnknownPeer)}, nil
 	}
-	return reply, nil
+	logger.Debug("request recieved from known peer")
+
+	// TODO: Check if you can leave the cluster
+	// The peer sending the leave request should have done the check, but check
+	// again shouldn't hurt
+
+	logger.Debug("all checks passed, leaving cluster")
+
+	logger.Debug("reconfiguring store with defaults")
+	if err := ReconfigureStore(nil); err != nil {
+		logger.WithError(err).Warn("failed to reconfigure store with defaults")
+		// XXX: We should probably keep retrying here?
+	}
+	return &LeaveRsp{int32(ErrNone)}, nil
 }
 
-// ExportAndStoreETCDConfig will store & export etcd environment variable along
-// with storing etcd configuration
-func (p *PeerService) ExportAndStoreETCDConfig(nc netctx.Context, c *EtcdConfigReq) (*PeerGenericResp, error) {
-	var opRet int32
-	var opError string
+// ReconfigureStore reconfigures the store with the given store config, if no
+// store config is given uses the default
+func ReconfigureStore(c *StoreConfig) error {
 
-	// Stop the store first
-	store.Store.Close()
+	// Destroy the current store first
+	log.Debug("destroying current store")
+	store.Destroy()
+	// TODO: Also need to destroy any old files in localstatedir (eg. volfiles)
 
-	newEtcdConfig, err := etcdmgmt.GetEtcdConfig(false)
-	if err != nil {
-		opRet = -1
-		opError = fmt.Sprintf("Could not fetch etcd configuration.")
-		goto Out
+	// Restart the store with recieved configuration
+	cfg := store.NewConfig()
+	if c != nil {
+		cfg.Endpoints = c.Endpoints
 	}
 
-	if !c.DeletePeer {
-		// This is an add peer request containing information about
-		// which cluster to join.
-		newEtcdConfig.InitialCluster = c.InitialCluster
-		newEtcdConfig.ClusterState = c.ClusterState
-		newEtcdConfig.Name = c.EtcdName
-		newEtcdConfig.Dir = newEtcdConfig.Name + ".etcd"
+	if err := store.Init(cfg); err != nil {
+		log.WithError(err).WithField("endpoints", cfg.Endpoints).Error("failed to restart store with new endpoints")
+		// Restart store with default config
+		defer peer.AddSelfDetails()
+		defer store.Init(nil)
+		return err
 	}
+	log.WithField("endpoints", cfg.Endpoints).Debug("store restarted with new endpoints")
 
-	// Gracefully stop embedded etcd server and remove local etcd data
-	if err := etcdmgmt.DestroyEmbeddedEtcd(true); err != nil {
-		opRet = -1
-		opError = fmt.Sprintf("Error stopping embedded etcd server.")
-		log.WithError(err).Error("Error stopping embedded etcd server.")
-		goto Out
+	// Save the new config if you successfully start the new store
+	if err := cfg.Save(); err != nil {
+		log.WithError(err).Error("failed to save new store configs")
+		// Destroy newly started store and restart with default config
+		defer peer.AddSelfDetails()
+		defer store.Init(nil)
+		defer store.Destroy()
+		return err
 	}
+	log.Debug("saved new store config")
 
-	// Start embedded etcd server
-	if err = etcdmgmt.StartEmbeddedEtcd(newEtcdConfig); err != nil {
-		opRet = -1
-		opError = fmt.Sprintf("Could not start embedded etcd server.")
-		log.WithError(err).Error("Could not start embedded etcd server.")
-		goto Out
+	// Add yourself to the peer list in the new store/cluster
+	if err := peer.AddSelfDetails(); err != nil {
+		log.WithError(err).Error("failed to add self to peer list")
+		// Destroy newly started store and restart with default config
+		defer peer.AddSelfDetails()
+		defer store.Init(nil)
+		defer store.Destroy()
+		return err
 	}
+	log.Debug("added details of self to store")
 
-	// Reinitialize the store now that a new etcd instance is running
-	if err := store.InitStore(); err != nil {
-		opRet = -1
-		opError = fmt.Sprintf("Failed to initialize store (etcd client)")
-		log.WithError(err).Error("Failed to initialize store (etcd client)")
-		goto Out
-	}
-
-	if c.DeletePeer {
-		// After being detached from the cluster, this glusterd instance
-		// now should get back to clean slate i.e state of a single node
-		// standalone cluster.
-		err = peer.AddSelfDetails()
-		if err != nil {
-			opRet = -1
-			opError = fmt.Sprintf("Could not add self details into etcd")
-		}
-	} else {
-		// Store the etcd config in a file for use during restarts.
-		err = etcdmgmt.StoreEtcdConfig(newEtcdConfig)
-		if err != nil {
-			opRet = -1
-			opError = fmt.Sprintf("Error storing etcd configuration.")
-		}
-	}
-
-Out:
-	reply := &PeerGenericResp{
-		OpRet:   opRet,
-		OpError: opError,
-	}
-
-	return reply, nil
+	return nil
 }
