@@ -6,7 +6,6 @@ Before=network-online.target
 Conflicts=glusterd.service
 
 [Service]
-Type=forking
 ExecStart=/usr/sbin/glusterd2
 KillMode=process
 
