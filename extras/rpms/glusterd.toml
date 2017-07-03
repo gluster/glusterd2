@@ -1,5 +1,3 @@
 localstatedir = "/var/lib/glusterd2"
 logdir = "/var/log/glusterd2"
 logfile = "glusterd2.log"
-peeraddress = ":24008"
-clientaddress = ":24007"
