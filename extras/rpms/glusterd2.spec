@@ -49,7 +49,7 @@ popd
 
 %install
 #Install glusterd2 binary
-install -D -p -m 0755 build/%{name} %{buildroot}%{_bindir}/%{name}
+install -D -p -m 0755 build/%{name} %{buildroot}%{_sbindir}/%{name}
 #Install systemd unit
 install -D -p -m 0644 extras/systemd/%{name}.service %{buildroot}%{_unitdir}/%{name}.service
 #Install glusterd config into etc
@@ -70,7 +70,7 @@ install -d -m 0755 %{buildroot}%{_localstatedir}/log/%{name}
 %systemd_postun %{name}.service
 
 %files
-%{_bindir}/%{name}
+%{_sbindir}/%{name}
 %config(noreplace) %{_sysconfdir}/glusterd
 %{_unitdir}/%{name}.service
 %dir %{_sharedstatedir}/%{name}
