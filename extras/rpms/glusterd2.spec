@@ -13,7 +13,7 @@ Release: 7
 Summary: The GlusterFS management daemon (preview)
 License: GPLv2 or LGPLv3+
 URL: https://%{provider_prefix}
-Source0: https://%{provider_prefix}/archive/%{version}-%{release}/%{name}-%{version}-%{release}.tar.gz
+Source0: https://%{provider_prefix}/archive/v%{version}-%{release}/%{name}-v%{version}-%{release}.tar.gz
 Source1: glusterd.toml
 
 ExclusiveArch: x86_64
