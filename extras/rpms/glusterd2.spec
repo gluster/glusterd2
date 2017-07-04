@@ -36,6 +36,8 @@ Preview release of the next generation GlusterFS management framework and daemon
 %setup -q -n %{name}-v%{version}-%{release}
 
 %build
+export GOPATH=$(pwd):%{gopath}
+
 mkdir -p src/%(dirname %{import_path})
 ln -s ../../../ src/%{import_path}
 
