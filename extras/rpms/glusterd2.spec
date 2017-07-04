@@ -33,7 +33,7 @@ Requires(postun): systemd
 Preview release of the next generation GlusterFS management framework and daemon, coming with GlusterFS-4.0
 
 %prep
-%setup -q -n %{name}-%{commit}
+%setup -q -n %{name}-v%{version}-%{release}
 
 %build
 mkdir -p src/%(dirname %{import_path})
