@@ -1,7 +1,6 @@
 package restclient
 
 import (
-	"fmt"
 	"io"
 	"io/ioutil"
 	"net/http"
@@ -9,12 +8,14 @@ import (
 
 const baseURL = "http://localhost:24007"
 
+// RESTClient represents Glusterd2 REST Client
 type RESTClient struct {
 	baseURL  string
 	username string
 	password string
 }
 
+// NewRESTClient creates new instance of RESTClient
 func NewRESTClient(baseURL string, username string, password string) *RESTClient {
 	return &RESTClient{baseURL, username, password}
 }
@@ -34,7 +35,7 @@ func httpRequest(method string, url string, respType string, body io.Reader, exp
 	}
 
 	if resp.StatusCode == 404 {
-		return "", NewAPIUnsupportedError()
+		return "", raiseAPIUnsupportedError()
 	}
 	defer resp.Body.Close()
 	output, err2 := ioutil.ReadAll(resp.Body)
@@ -42,7 +43,7 @@ func httpRequest(method string, url string, respType string, body io.Reader, exp
 		return "", err2
 	}
 	if resp.StatusCode != expectStatusCode {
-		return "", NewAPIUnexpectedStatusCode(expectStatusCode, resp.StatusCode, string(output))
+		return "", raiseAPIUnexpectedStatusCodeError(expectStatusCode, resp.StatusCode, string(output))
 	}
 	return string(output), nil
 }

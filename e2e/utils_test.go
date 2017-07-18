@@ -1,6 +1,7 @@
 package e2e
 
 import (
+	"encoding/json"
 	"errors"
 	"fmt"
 	"io/ioutil"
@@ -12,6 +13,7 @@ import (
 	"syscall"
 	"time"
 
+	"github.com/gluster/glusterd2/pkg/api"
 	"gopkg.in/yaml.v2"
 )
 
@@ -150,8 +152,16 @@ func setupCluster(configFiles ...string) ([]*gdProcess, error) {
 		if i == 0 {
 			continue
 		}
-		reqBody := strings.NewReader(fmt.Sprintf(`{"addresses": ["%s"]}`, gd.PeerAddress))
-		resp, err := http.Post("http://"+firstNode+"/v1/peers", "application/json", reqBody)
+		peerAddReq := api.PeerAddReq{
+			Addresses: []string{gd.PeerAddress},
+		}
+		reqBody, errJSONMarshal := json.Marshal(peerAddReq)
+		if errJSONMarshal != nil {
+			cleanup()
+			return nil, errJSONMarshal
+		}
+
+		resp, err := http.Post("http://"+firstNode+"/v1/peers", "application/json", strings.NewReader(string(reqBody)))
 		if err != nil || resp.StatusCode != 201 {
 			cleanup()
 			return nil, err

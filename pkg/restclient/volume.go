@@ -4,18 +4,13 @@ import (
 	"encoding/json"
 	"fmt"
 	"strings"
+
+	"github.com/gluster/glusterd2/pkg/api"
 )
 
-type volCreateReq struct {
-	Name      string   `json:"name"`
-	Transport string   `json:"transport,omitempty"`
-	Replica   int      `json:"replica,omitempty"`
-	Bricks    []string `json:"bricks"`
-	Force     bool     `json:"force,omitempty"`
-}
-
+// VolumeCreate creates Gluster Volume
 func (c *RESTClient) VolumeCreate(volname string, bricks []string, replica int, force bool) error {
-	createReq := volCreateReq{
+	createReq := api.VolCreateReq{
 		Name:    volname,
 		Replica: replica,
 		Bricks:  bricks,
@@ -28,16 +23,19 @@ func (c *RESTClient) VolumeCreate(volname string, bricks []string, replica int, 
 	return httpRESTAction("POST", c.baseURL+"/v1/volumes", strings.NewReader(string(reqBody)), 201)
 }
 
+// VolumeStart starts a Gluster Volume
 func (c *RESTClient) VolumeStart(volname string) error {
 	url := fmt.Sprintf(c.baseURL+"/v1/volumes/%s/start", volname)
 	return httpRESTAction("POST", url, nil, 200)
 }
 
+// VolumeStop stops a Gluster Volume
 func (c *RESTClient) VolumeStop(volname string) error {
 	url := fmt.Sprintf(c.baseURL+"/v1/volumes/%s/stop", volname)
 	return httpRESTAction("POST", url, nil, 200)
 }
 
+// VolumeDelete deletes a Gluster Volume
 func (c *RESTClient) VolumeDelete(volname string) error {
 	url := fmt.Sprintf(c.baseURL+"/v1/volumes/%s", volname)
 	return httpRESTAction("DELETE", url, nil, 200)

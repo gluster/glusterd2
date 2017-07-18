@@ -9,18 +9,9 @@ import (
 	"strings"
 	"testing"
 
+	"github.com/gluster/glusterd2/pkg/api"
 	"github.com/stretchr/testify/require"
 )
-
-// It'll be a good idea to create a separate subpackage in glusterd2 source
-// with these request types so that clients can also make use of them.
-type volCreateReq struct {
-	Name      string   `json:"name"`
-	Transport string   `json:"transport,omitempty"`
-	Replica   int      `json:"replica,omitempty"`
-	Bricks    []string `json:"bricks"`
-	Force     bool     `json:"force,omitempty"`
-}
 
 func TestVolumeCreateDelete(t *testing.T) {
 	r := require.New(t)
@@ -41,7 +32,7 @@ func TestVolumeCreateDelete(t *testing.T) {
 
 	// create 2x2 dist-rep volume
 	volname := "testvol"
-	createReq := volCreateReq{
+	createReq := api.VolCreateReq{
 		Name:    volname,
 		Replica: 2,
 		Bricks: []string{
