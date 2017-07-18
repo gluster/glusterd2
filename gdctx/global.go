@@ -12,21 +12,11 @@ import (
 	"path"
 
 	"github.com/gluster/glusterd2/utils"
+	"github.com/gluster/glusterd2/version"
 
 	log "github.com/Sirupsen/logrus"
 	"github.com/pborman/uuid"
 	config "github.com/spf13/viper"
-)
-
-// Various version constants that will be used by GD2
-const (
-	MaxOpVersion = 40000
-	APIVersion   = 1
-)
-
-var (
-	// GlusterdVersion is the version of the glusterd daemon
-	GlusterdVersion = "4.0-dev"
 )
 
 // Any object that is a part of the GlusterD context and needs to be available
@@ -91,5 +81,5 @@ func SetUUID() error {
 }
 
 func init() {
-	OpVersion = MaxOpVersion
+	OpVersion = version.MaxOpVersion
 }
