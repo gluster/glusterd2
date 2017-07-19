@@ -11,6 +11,7 @@ import (
 	"github.com/gluster/glusterd2/servers"
 	"github.com/gluster/glusterd2/store"
 	"github.com/gluster/glusterd2/utils"
+	"github.com/gluster/glusterd2/xlator"
 
 	log "github.com/Sirupsen/logrus"
 	flag "github.com/spf13/pflag"
@@ -61,6 +62,13 @@ func main() {
 
 	if err := gdctx.SetUUID(); err != nil {
 		log.WithError(err).Fatal("Failed to initialize UUID")
+	}
+
+	// Load all possible xlator options
+	if err := xlator.InitOptions(); err != nil {
+		// TODO: Move this elsewhere and make it log.Fatal when we're
+		// sure that the machine will always have gluster xlators installed.
+		log.WithError(err).Warn("Failed to load xlator options")
 	}
 
 	// Initialize etcd store (etcd client connection)
