@@ -2,7 +2,7 @@ package main
 
 import (
 	"fmt"
-	"github.com/gluster/glusterd2/restclient"
+	"github.com/gluster/glusterd2/pkg/restclient"
 )
 
 const (
