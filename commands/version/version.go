@@ -4,20 +4,21 @@ package versioncommands
 import (
 	"net/http"
 
-	"github.com/gluster/glusterd2/gdctx"
 	restutils "github.com/gluster/glusterd2/servers/rest/utils"
+	"github.com/gluster/glusterd2/version"
 )
 
-// Response represents the structure of the response object for /version
-// end point
-type Response struct {
+// VersionResponse represents the structure of the response object for
+// /version end point. TODO: Move this 'pkg/api'
+type VersionResponse struct {
 	GlusterdVersion string
 	APIVersion      int
 }
 
 func getVersionHandler(w http.ResponseWriter, r *http.Request) {
-	var v Response
-	v.GlusterdVersion = gdctx.GlusterdVersion
-	v.APIVersion = gdctx.APIVersion
+	v := VersionResponse{
+		GlusterdVersion: version.GlusterdVersion,
+		APIVersion:      version.APIVersion,
+	}
 	restutils.SendHTTPResponse(w, http.StatusOK, v)
 }
