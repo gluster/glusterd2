@@ -11,6 +11,7 @@ import (
 	"github.com/gluster/glusterd2/servers"
 	"github.com/gluster/glusterd2/store"
 	"github.com/gluster/glusterd2/utils"
+	"github.com/gluster/glusterd2/version"
 	"github.com/gluster/glusterd2/xlator"
 
 	log "github.com/Sirupsen/logrus"
@@ -30,7 +31,7 @@ func main() {
 	parseFlags()
 
 	if showvers, _ := flag.CommandLine.GetBool("version"); showvers {
-		dumpVersionInfo()
+		version.DumpVersionInfo()
 		return
 	}
 
@@ -42,7 +43,10 @@ func main() {
 		log.WithError(err).Fatal("Failed to initialize logging")
 	}
 
-	log.WithField("pid", os.Getpid()).Info("Starting GlusterD")
+	log.WithFields(log.Fields{
+		"pid":     os.Getpid(),
+		"version": version.GlusterdVersion,
+	}).Debug("Starting GlusterD")
 
 	// Read config file
 	confFile, _ := flag.CommandLine.GetString("config")
