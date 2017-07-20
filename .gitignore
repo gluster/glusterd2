@@ -12,3 +12,5 @@ _projects/
 build/
 releases/
 pkg/elasticetcd/example/example
+# ctags (if you use them)
+tags
