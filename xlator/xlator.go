@@ -137,7 +137,8 @@ func getAllOptions() (map[string][]Option, error) {
 					opsMap[path[len(xlatorsDir)+1:len(path)-len(".so")]] = xopts
 				} else {
 					// non-xlators .SOs present in rpc-transport/ and auth/ dirs
-					opsMap[path[len(xlatorsParentDir)+1:len(path)-len(".so")]] = xopts
+					// FIXME: Uncomment this line once glusterfs 3.12 release gets out
+					// opsMap[path[len(xlatorsParentDir)+1:len(path)-len(".so")]] = xopts
 				}
 			}
 		}
