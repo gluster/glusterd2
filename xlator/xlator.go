@@ -19,7 +19,7 @@ import (
 )
 
 const (
-	maxXlatorOptions = 100
+	maxOptions = 100
 )
 
 func structifyOption(option *C.volume_option_t) Option {
@@ -47,15 +47,15 @@ func structifyOption(option *C.volume_option_t) Option {
 	return x
 }
 
-func loadXlatorOptions(xlator string) ([]Option, error) {
+func loadSharedObjectOptions(soPath string) ([]Option, error) {
 
-	csXlator := C.CString(xlator)
-	defer C.free(unsafe.Pointer(csXlator))
+	csSoPath := C.CString(soPath)
+	defer C.free(unsafe.Pointer(csSoPath))
 
-	handle := C.dlopen(csXlator, C.RTLD_LAZY|C.RTLD_LOCAL)
+	handle := C.dlopen(csSoPath, C.RTLD_LAZY|C.RTLD_LOCAL)
 	if handle == nil {
 		return nil, fmt.Errorf("dlopen(%s) failed; dlerror = %s",
-			xlator, C.GoString((*C.char)(C.dlerror())))
+			soPath, C.GoString((*C.char)(C.dlerror())))
 	}
 	defer C.dlclose(handle)
 
@@ -64,13 +64,12 @@ func loadXlatorOptions(xlator string) ([]Option, error) {
 
 	p := C.dlsym(handle, csSym)
 	if p == nil {
-		// .so is not an xlator
 		return nil, nil
 	}
 
-	xlatorOptions := (*[maxXlatorOptions]C.volume_option_t)(p)
+	soOptions := (*[maxOptions]C.volume_option_t)(p)
 	var vopts []Option
-	for _, option := range xlatorOptions {
+	for _, option := range soOptions {
 
 		// identify sentinel NULL key which marks the end of options
 		if option.key[0] == nil {
@@ -105,7 +104,7 @@ func getXlatorsDir() string {
 	return strings.TrimSpace(string(out))
 }
 
-func getAllXlatorOptions() (map[string][]Option, error) {
+func getAllOptions() (map[string][]Option, error) {
 
 	xlatorsDir := getXlatorsDir()
 	s, err := os.Stat(xlatorsDir)
@@ -115,8 +114,9 @@ func getAllXlatorOptions() (map[string][]Option, error) {
 	if !s.IsDir() {
 		return nil, fmt.Errorf("%s is not a directory", xlatorsDir)
 	}
+	xlatorsParentDir := filepath.Dir(xlatorsDir)
 
-	xlatorsOpMap := make(map[string][]Option)
+	opsMap := make(map[string][]Option)
 
 	// NOTE: The following shared objects are symlinks and hence duplicated
 	// disperse.so -> ec.so
@@ -127,24 +127,27 @@ func getAllXlatorOptions() (map[string][]Option, error) {
 	// access-control.so -> ../system/posix-acl.so
 
 	actor := func(path string, f os.FileInfo, err error) error {
-		if strings.HasSuffix(path, ".so") {
-			xopts, err := loadXlatorOptions(path)
+		// skipping non-xlators till glusterfs 3.12 gets out
+		if strings.HasSuffix(path, ".so") && strings.Contains(path, "/xlator/") {
+			xopts, err := loadSharedObjectOptions(path)
 			if err != nil {
-				// Can also skip over instead. Should we ?
 				return err
 			}
 			if xopts != nil {
-				// only include xlators that does have options
-				xlatorsOpMap[path[len(xlatorsDir)+1:len(path)-len(".so")]] = xopts
-				// example of key usage: xlatorsOpMap["features/upcall"]
+				if strings.Contains(path, "/xlator/") {
+					opsMap[path[len(xlatorsDir)+1:len(path)-len(".so")]] = xopts
+				} else {
+					// non-xlators .SOs present in rpc-transport/ and auth/ dirs
+					opsMap[path[len(xlatorsParentDir)+1:len(path)-len(".so")]] = xopts
+				}
 			}
 		}
 		return nil
 	}
 
-	if err := filepath.Walk(xlatorsDir, actor); err != nil {
+	if err := filepath.Walk(xlatorsParentDir, actor); err != nil {
 		return nil, err
 	}
 
-	return xlatorsOpMap, nil
+	return opsMap, nil
 }

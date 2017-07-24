@@ -6,7 +6,7 @@ var AllOptions map[string][]Option
 
 // InitOptions initializes the global variable xlator.AllOptions
 func InitOptions() error {
-	xopts, err := getAllXlatorOptions()
+	xopts, err := getAllOptions()
 	if err != nil {
 		return err
 	}
