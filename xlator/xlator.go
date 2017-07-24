@@ -127,7 +127,8 @@ func getAllOptions() (map[string][]Option, error) {
 	// access-control.so -> ../system/posix-acl.so
 
 	actor := func(path string, f os.FileInfo, err error) error {
-		if strings.HasSuffix(path, ".so") {
+		// skipping non-xlators till glusterfs 3.12 gets out
+		if strings.HasSuffix(path, ".so") && strings.Contains(path, "/xlator/") {
 			xopts, err := loadSharedObjectOptions(path)
 			if err != nil {
 				return err
@@ -137,8 +138,7 @@ func getAllOptions() (map[string][]Option, error) {
 					opsMap[path[len(xlatorsDir)+1:len(path)-len(".so")]] = xopts
 				} else {
 					// non-xlators .SOs present in rpc-transport/ and auth/ dirs
-					// FIXME: Uncomment this line once glusterfs 3.12 release gets out
-					// opsMap[path[len(xlatorsParentDir)+1:len(path)-len(".so")]] = xopts
+					opsMap[path[len(xlatorsParentDir)+1:len(path)-len(".so")]] = xopts
 				}
 			}
 		}
