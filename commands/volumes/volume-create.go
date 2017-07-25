@@ -18,11 +18,12 @@ import (
 
 // VolCreateRequest defines the parameters for creating a volume in the volume-create command
 type VolCreateRequest struct {
-	Name         string   `json:"name"`
-	Transport    string   `json:"transport,omitempty"`
-	ReplicaCount int      `json:"replica,omitempty"`
-	Bricks       []string `json:"bricks"`
-	Force        bool     `json:"force,omitempty"`
+	Name         string            `json:"name"`
+	Transport    string            `json:"transport,omitempty"`
+	ReplicaCount int               `json:"replica,omitempty"`
+	Bricks       []string          `json:"bricks"`
+	Force        bool              `json:"force,omitempty"`
+	Options      map[string]string `json:"options,omitempty"`
 	// Bricks list is ordered (like in glusterd1) and decides which bricks
 	// form replica sets.
 }
@@ -47,7 +48,7 @@ func createVolinfo(req *VolCreateRequest) (*volume.Volinfo, error) {
 	var err error
 
 	v := new(volume.Volinfo)
-	v.Options = make(map[string]string)
+	v.Options = req.Options
 	v.ID = uuid.NewRandom()
 	v.Name = req.Name
 
@@ -218,6 +219,12 @@ func volumeCreateHandler(w http.ResponseWriter, r *http.Request) {
 	if err != nil {
 		logger.WithError(err).Error("could not prepare node list")
 		restutils.SendHTTPError(w, http.StatusInternalServerError, err.Error())
+		return
+	}
+
+	if !areOptionNamesValid(req.Options) {
+		logger.Error("invalid volume options provided")
+		restutils.SendHTTPError(w, http.StatusBadRequest, "invalid volume options provided")
 		return
 	}
 
