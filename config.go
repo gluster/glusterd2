@@ -8,6 +8,7 @@ import (
 
 	"github.com/gluster/glusterd2/gdctx"
 	"github.com/gluster/glusterd2/store"
+	"github.com/gluster/glusterd2/volgen"
 
 	log "github.com/Sirupsen/logrus"
 	flag "github.com/spf13/pflag"
@@ -44,6 +45,7 @@ func parseFlags() {
 	flag.String("peeraddress", defaultPeerAddress, "Address to bind the inter glusterd2 RPC service.")
 
 	store.InitFlags()
+	volgen.InitFlags()
 
 	flag.Parse()
 }
@@ -89,6 +91,8 @@ func setDefaults() error {
 		port = config.GetString("defaultpeerport")
 	}
 	config.SetDefault("peeraddress", host+":"+port)
+
+	volgen.SetDefaults()
 
 	return nil
 }

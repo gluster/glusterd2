@@ -12,6 +12,7 @@ import (
 	"github.com/gluster/glusterd2/store"
 	"github.com/gluster/glusterd2/utils"
 	"github.com/gluster/glusterd2/version"
+	"github.com/gluster/glusterd2/volgen"
 	"github.com/gluster/glusterd2/xlator"
 
 	log "github.com/Sirupsen/logrus"
@@ -73,6 +74,11 @@ func main() {
 		// TODO: Move this elsewhere and make it log.Fatal when we're
 		// sure that the machine will always have gluster xlators installed.
 		log.WithError(err).Warn("Failed to load xlator options")
+	}
+
+	// Load volgen templates
+	if err := volgen.LoadTemplates(); err != nil {
+		log.WithError(err).Fatal("Failed to load volgen templates")
 	}
 
 	// Initialize etcd store (etcd client connection)

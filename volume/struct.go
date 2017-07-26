@@ -5,6 +5,7 @@ import (
 	"bytes"
 	"encoding/json"
 	"errors"
+	"net"
 	"net/http"
 	"path/filepath"
 
@@ -39,6 +40,7 @@ var (
 )
 
 // VolType is the status of the volume
+//go:generate stringer -type=VolType
 type VolType uint16
 
 const (
@@ -99,11 +101,14 @@ func NewBrickEntries(bricks []string, volName string, volID uuid.UUID) ([]brick.
 			return nil, errors.New("Invalid UUID specified as host for brick")
 		}
 
-		if _, e := peer.GetPeerF(node); e != nil {
+		p, e := peer.GetPeerF(node)
+		if e != nil {
 			return nil, e
 		}
 
 		binfo.NodeID = u
+		// TODO: Have a better way to select peer address here
+		binfo.Hostname, _, _ = net.SplitHostPort(p.Addresses[0])
 
 		binfo.Path, e = absFilePath(path)
 		if e != nil {
@@ -113,6 +118,8 @@ func NewBrickEntries(bricks []string, volName string, volID uuid.UUID) ([]brick.
 
 		binfo.VolumeName = volName
 		binfo.VolumeID = volID
+		binfo.ID = uuid.NewRandom()
+
 		brickInfos = append(brickInfos, binfo)
 	}
 	return brickInfos, nil
