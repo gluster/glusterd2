@@ -3,14 +3,11 @@ package volumecommands
 import (
 	"errors"
 	"net/http"
-	"os"
 
 	gderrors "github.com/gluster/glusterd2/errors"
-	"github.com/gluster/glusterd2/gdctx"
 	restutils "github.com/gluster/glusterd2/servers/rest/utils"
 	"github.com/gluster/glusterd2/transaction"
 	"github.com/gluster/glusterd2/utils"
-	"github.com/gluster/glusterd2/volgen"
 	"github.com/gluster/glusterd2/volume"
 
 	"github.com/pborman/uuid"
@@ -114,59 +111,6 @@ func validateVolumeCreate(c transaction.TxnCtx) error {
 	if _, err = volume.ValidateBrickEntriesFunc(volinfo.Bricks, volinfo.ID, req.Force); err != nil {
 		c.Logger().WithError(err).WithField(
 			"volume", volinfo.Name).Debug("validateVolumeCreate: failed to validate bricks")
-		return err
-	}
-
-	return nil
-}
-
-func generateVolfiles(c transaction.TxnCtx) error {
-
-	var volinfo volume.Volinfo
-	if err := c.Get("volinfo", &volinfo); err != nil {
-		return err
-	}
-
-	// Create 'vols' directory.
-	err := os.MkdirAll(utils.GetVolumeDir(volinfo.Name), os.ModeDir|os.ModePerm)
-	if err != nil {
-		c.Logger().WithError(err).WithField(
-			"volume", volinfo.Name).Debug("generateVolfiles: failed to create vol directory")
-		return err
-	}
-
-	// Generate brick volfiles
-	for _, b := range volinfo.Bricks {
-		if !uuid.Equal(b.NodeID, gdctx.MyUUID) {
-			continue
-		}
-		if err := volgen.GenerateBrickVolfile(&volinfo, &b); err != nil {
-			c.Logger().WithError(err).WithField(
-				"brick", b.Path).Debug("generateVolfiles: failed to create brick volfile")
-			return err
-		}
-	}
-
-	// Generate client volfile
-	if err := volgen.GenerateClientVolfile(&volinfo); err != nil {
-		c.Logger().WithError(err).WithField(
-			"volume", volinfo.Name).Debug("generateVolfiles: failed to create client volfile")
-		return err
-	}
-
-	return nil
-}
-
-func storeVolume(c transaction.TxnCtx) error {
-
-	var volinfo volume.Volinfo
-	if err := c.Get("volinfo", &volinfo); err != nil {
-		return err
-	}
-
-	if err := volume.AddOrUpdateVolumeFunc(&volinfo); err != nil {
-		c.Logger().WithError(err).WithField(
-			"volume", volinfo.Name).Debug("storeVolume: failed to store volume info")
 		return err
 	}
 
