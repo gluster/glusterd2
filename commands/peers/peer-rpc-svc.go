@@ -107,7 +107,7 @@ func ReconfigureStore(c *StoreConfig) error {
 	// TODO: Also need to destroy any old files in localstatedir (eg. volfiles)
 
 	// Restart the store with recieved configuration
-	cfg := store.NewConfig()
+	cfg := store.GetConfig()
 	if c != nil {
 		cfg.Endpoints = c.Endpoints
 	}
