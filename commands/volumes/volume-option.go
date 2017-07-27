@@ -5,6 +5,7 @@ import (
 
 	"github.com/gluster/glusterd2/errors"
 	"github.com/gluster/glusterd2/gdctx"
+	"github.com/gluster/glusterd2/peer"
 	restutils "github.com/gluster/glusterd2/servers/rest/utils"
 	"github.com/gluster/glusterd2/transaction"
 	"github.com/gluster/glusterd2/utils"
@@ -82,7 +83,15 @@ func volumeOptionsHandler(w http.ResponseWriter, r *http.Request) {
 	txn := transaction.NewTxn(reqID)
 	defer txn.Cleanup()
 
+	// thes txn framework checks if these nodes are online before txn starts
 	txn.Nodes = volinfo.Nodes()
+
+	allNodes, err := peer.GetPeerIDs()
+	if err != nil {
+		restutils.SendHTTPError(w, http.StatusInternalServerError, err.Error())
+		return
+	}
+
 	txn.Steps = []*transaction.Step{
 		lock,
 		{
@@ -91,16 +100,16 @@ func volumeOptionsHandler(w http.ResponseWriter, r *http.Request) {
 		},
 		{
 			DoFunc: "vol-option.RegenerateVolfiles",
-			// BUG: Should be all nodes ideally as currently
-			// we can't know if it's a brick option or client
-			// option. Even better if volfile is stored in etcd
-			// and not disk.
-			Nodes: txn.Nodes,
+			// BUG: Shouldn't be on all nodes ideally. Currently we
+			// can't know if it's a brick option or client option.
+			// If it's a brick option, the nodes list here should
+			// should be only volinfo.Nodes(). Moving client
+			// volfiles from disk to store should also be done.
+			Nodes: allNodes,
 		},
 		{
 			DoFunc: "vol-option.NotifyVolfileChange",
-			// TODO: Should also be all nodes here
-			Nodes: txn.Nodes,
+			Nodes:  allNodes,
 		},
 		unlock,
 	}

@@ -111,6 +111,29 @@ func GetPeers() ([]Peer, error) {
 	return peers, nil
 }
 
+// GetPeerIDs returns peer id (uuid) of all peers in the store
+func GetPeerIDs() ([]uuid.UUID, error) {
+	resp, err := store.Store.Get(context.TODO(), peerPrefix, clientv3.WithPrefix())
+	if err != nil {
+		return nil, err
+	}
+
+	uuids := make([]uuid.UUID, len(resp.Kvs))
+	for i, kv := range resp.Kvs {
+		var p Peer
+		if err := json.Unmarshal(kv.Value, &p); err != nil {
+			log.WithFields(log.Fields{
+				"peer":  string(kv.Key),
+				"error": err,
+			}).Error("Failed to unmarshal peer")
+			continue
+		}
+		uuids[i] = p.ID
+	}
+
+	return uuids, nil
+}
+
 // GetPeerByName returns the peer with the given name from store
 func GetPeerByName(name string) (*Peer, error) {
 	peers, err := GetPeers()
