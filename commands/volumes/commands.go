@@ -24,6 +24,15 @@ func (c *Command) Routes() route.Routes {
 			Pattern:     "/volumes/{volname}/expand",
 			Version:     1,
 			HandlerFunc: volumeExpandHandler},
+		// TODO: Should we use the same or different API for volume reset ?
+		// /volumes/{volname}/options/set
+		// /volumes/{volname}/options/reset
+		route.Route{
+			Name:        "VolumeOptions",
+			Method:      "POST",
+			Pattern:     "/volumes/{volname}/options",
+			Version:     1,
+			HandlerFunc: volumeOptionsHandler},
 		route.Route{
 			Name:        "VolumeDelete",
 			Method:      "DELETE",
@@ -71,4 +80,5 @@ func (c *Command) RegisterStepFuncs() {
 	registerVolStopStepFuncs()
 	registerVolStatusStepFuncs()
 	registerVolExpandStepFuncs()
+	registerVolOptionStepFuncs()
 }

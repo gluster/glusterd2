@@ -45,7 +45,11 @@ func createVolinfo(req *VolCreateRequest) (*volume.Volinfo, error) {
 	var err error
 
 	v := new(volume.Volinfo)
-	v.Options = req.Options
+	if req.Options != nil {
+		v.Options = req.Options
+	} else {
+		v.Options = make(map[string]string)
+	}
 	v.ID = uuid.NewRandom()
 	v.Name = req.Name
 
