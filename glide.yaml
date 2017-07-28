@@ -1,7 +1,7 @@
 package: github.com/gluster/glusterd2
 import:
 - package: github.com/coreos/etcd
-  version: ~v3.2.0
+  version: ~v3.2.4
   subpackages:
   - client
   - clientv3
