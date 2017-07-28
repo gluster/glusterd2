@@ -9,14 +9,8 @@ import (
 )
 
 // VolumeCreate creates Gluster Volume
-func (c *RESTClient) VolumeCreate(volname string, bricks []string, replica int, force bool) error {
-	createReq := api.VolCreateReq{
-		Name:    volname,
-		Replica: replica,
-		Bricks:  bricks,
-		Force:   force,
-	}
-	reqBody, err := json.Marshal(createReq)
+func (c *RESTClient) VolumeCreate(req api.VolCreateReq) error {
+	reqBody, err := json.Marshal(req)
 	if err != nil {
 		return err
 	}

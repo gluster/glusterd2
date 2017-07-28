@@ -14,7 +14,7 @@ func (c *RESTClient) PeerProbe(host string) error {
 		Addresses: []string{host},
 	}
 	reqBody, err := json.Marshal(peerAddReq)
-	if err != nil{
+	if err != nil {
 		return err
 	}
 	return httpRESTAction("POST", c.baseURL+"/v1/peers", strings.NewReader(string(reqBody)), 201)

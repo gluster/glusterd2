@@ -14,3 +14,4 @@ releases/
 pkg/elasticetcd/example/example
 # ctags (if you use them)
 tags
+pkg/restclient/examples/examples

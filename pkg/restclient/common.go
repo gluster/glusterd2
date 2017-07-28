@@ -1,6 +1,7 @@
 package restclient
 
 import (
+	"encoding/json"
 	"io"
 	"io/ioutil"
 	"net/http"
@@ -15,9 +16,22 @@ type RESTClient struct {
 	password string
 }
 
+type httpError struct {
+	Error string `json:"Error"`
+}
+
 // NewRESTClient creates new instance of RESTClient
 func NewRESTClient(baseURL string, username string, password string) *RESTClient {
 	return &RESTClient{baseURL, username, password}
+}
+
+func parseHTTPError(jsonData []byte) string {
+	var errstr httpError
+	err := json.Unmarshal(jsonData, &errstr)
+	if err != nil {
+		return ""
+	}
+	return errstr.Error
 }
 
 func httpRequest(method string, url string, respType string, body io.Reader, expectStatusCode int) (string, error) {
@@ -34,18 +48,15 @@ func httpRequest(method string, url string, respType string, body io.Reader, exp
 		return "", err1
 	}
 
-	if resp.StatusCode == 404 {
-		return "", raiseAPIUnsupportedError()
-	}
 	defer resp.Body.Close()
 	output, err2 := ioutil.ReadAll(resp.Body)
 	if err2 != nil {
 		return "", err2
 	}
 	if resp.StatusCode != expectStatusCode {
-		return "", raiseAPIUnexpectedStatusCodeError(expectStatusCode, resp.StatusCode, string(output))
+		return "", raiseAPIUnexpectedStatusCodeError(expectStatusCode, resp.StatusCode, parseHTTPError(output))
 	}
-	return string(output), nil
+	return parseHTTPError(output), nil
 }
 
 func httpRESTAction(method string, url string, body io.Reader, expectStatusCode int) error {

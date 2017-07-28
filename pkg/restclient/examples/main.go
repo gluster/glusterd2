@@ -2,6 +2,7 @@ package main
 
 import (
 	"fmt"
+	"github.com/gluster/glusterd2/pkg/api"
 	"github.com/gluster/glusterd2/pkg/restclient"
 )
 
@@ -21,7 +22,13 @@ func main() {
 	restClient := restclient.NewRESTClient(baseURL, username, password)
 	fmt.Println(restClient.PeerProbe(peerNode))
 	fmt.Println(restClient.PeerDetach(peerNode))
-	fmt.Println(restClient.VolumeCreate(volname, []string{brick1, brick2}, replica, force))
+	req := api.VolCreateReq{
+		Name:    volname,
+		Bricks:  []string{brick1, brick2},
+		Replica: replica,
+		Force:   force,
+	}
+	fmt.Println(restClient.VolumeCreate(req))
 	fmt.Println(restClient.VolumeStart(volname))
 	fmt.Println(restClient.VolumeStop(volname))
 	fmt.Println(restClient.VolumeDelete(volname))
