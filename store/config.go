@@ -79,12 +79,12 @@ func (c *Config) Save() error {
 	return nil
 }
 
-// getConf returns a filled store config
+// GetConfig returns a filled store config
 // The config is filled with values from the following sources in order of preference,
 // 	- GD2 config
 // 	- Store config file
 // 	- Defaults
-func getConf() *Config {
+func GetConfig() *Config {
 	conf, err := readConfigFile()
 	if err != nil {
 		log.WithError(err).Warn("could not read store config file, continuing with defaults")

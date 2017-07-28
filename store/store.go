@@ -74,7 +74,7 @@ func Destroy() {
 // If the given Config is nil, the saved store config is used.
 func New(conf *Config) (*GDStore, error) {
 	if conf == nil {
-		conf = getConf()
+		conf = GetConfig()
 	}
 	var (
 		store *GDStore
