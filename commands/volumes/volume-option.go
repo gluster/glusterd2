@@ -58,7 +58,7 @@ func volumeOptionsHandler(w http.ResponseWriter, r *http.Request) {
 
 	volinfo, err := volume.GetVolume(volname)
 	if err != nil {
-		restutils.SendHTTPError(w, http.StatusNotFound, errors.ErrVolNotFound.Error())
+		restutils.SendHTTPError(w, http.StatusBadRequest, errors.ErrVolNotFound.Error())
 		return
 	}
 
