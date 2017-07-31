@@ -38,9 +38,14 @@ func (ee *ElasticEtcd) startServer(initialCluster string) error {
 		"datadir":        ee.server.conf.Dir,
 	}).Debug("prepared embedded etcd config")
 
-	// Delete the datadir if it exists. The etcdserver will be brought up as a
-	// new server and old data being present will prevent it.
-	os.RemoveAll(ee.server.conf.Dir)
+	// If starting with non-empty initial cluster, delete the datadir if it
+	// exists. The etcdserver will be brought up as a new server and old data
+	// being present will prevent it.
+	// Starting with an empty initial cluster implies that we are in a single
+	// node cluster, so we need to keep the etcd data.
+	if initialCluster != "" {
+		os.RemoveAll(ee.server.conf.Dir)
+	}
 
 	ee.initEtcdLogging()
 
