@@ -23,8 +23,6 @@ var (
 	Store *GDStore
 	lock  sync.Mutex
 
-	// ErrEndpointsRequired is returned when endpoints are required but none are given
-	ErrEndpointsRequired = errors.New("etcd endpoints for remote etcd cluster required with no-embed")
 	// ErrStoreInitedAlready is returned when the store is already intialized
 	ErrStoreInitedAlready = errors.New("store has been intialized already")
 )
