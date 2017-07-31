@@ -3,17 +3,12 @@ package store
 import (
 	"time"
 
-	"github.com/gluster/glusterd2/pkg/elasticetcd"
-
 	log "github.com/Sirupsen/logrus"
 	"github.com/coreos/etcd/clientv3"
 	"github.com/coreos/etcd/clientv3/concurrency"
 )
 
 func newRemoteStore(conf *Config) (*GDStore, error) {
-	if len(conf.Endpoints) == 1 && conf.Endpoints[1] == elasticetcd.DefaultEndpoint {
-		return nil, ErrEndpointsRequired
-	}
 
 	c, e := clientv3.New(clientv3.Config{
 		Endpoints:        conf.Endpoints,

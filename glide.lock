@@ -1,5 +1,5 @@
-hash: 13a2b1d387fd998c460b8ff818310635acc3254404ffc38a291c536b7acee7c6
-updated: 2017-06-16T13:57:33.232246104+05:30
+hash: a57234017317f401adaca55e4ed11dc6d9b18107b7950e9f55e4efacb4825d17
+updated: 2017-07-28T12:17:49.200749485+05:30
 imports:
 - name: github.com/beorn7/perks
   version: 4c0e84591b9aa9e6dcfdf3e020114cd81f89d5f9
@@ -10,7 +10,7 @@ imports:
 - name: github.com/cockroachdb/cmux
   version: 112f0506e7743d64a6eb8fedbcff13d9979bbf92
 - name: github.com/coreos/etcd
-  version: 66722b1ada68fcd5227db853ee92003169a975c8
+  version: c31bec0f29facff13f7c3e3d948e55dd6689ed42
   subpackages:
   - alarm
   - auth
@@ -85,7 +85,6 @@ imports:
 - name: github.com/coreos/go-systemd
   version: 48702e0da86bd25e76cfef347e2adeb434a0d0a6
   subpackages:
-  - daemon
   - dbus
   - journal
   - unit
@@ -183,7 +182,7 @@ imports:
 - name: github.com/prashanthpai/sunrpc
   version: 8b1e9b0138a37e93705639161d846baed18290c7
 - name: github.com/prometheus/client_golang
-  version: de4d4ffe63b9eff7f27484fdef6e421597e6abb4
+  version: 42552c195dd3f3089fbf9cf26e139da150af35aa
   subpackages:
   - prometheus
   - prometheus/promhttp
@@ -249,6 +248,7 @@ imports:
   version: 69483b4bd14f5845b5a1e55bca19e954e827f1d0
   subpackages:
   - assert
+  - require
 - name: github.com/thejerf/suture
   version: 0ac47afae95ad5bc5184ed346bc945168e883f5d
 - name: github.com/ugorji/go
@@ -260,7 +260,7 @@ imports:
 - name: github.com/xiang90/probing
   version: 07dd2e8dfe18522e9c447ba95f2fe95262f63bb2
 - name: golang.org/x/crypto
-  version: 850760c427c516be930bc91280636328f1a62286
+  version: 7e9105388ebff089b3f99f0ef676ea55a6da3a7e
   subpackages:
   - bcrypt
   - blowfish
