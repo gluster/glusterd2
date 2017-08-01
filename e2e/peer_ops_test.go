@@ -17,13 +17,13 @@ import (
 func TestAddRemovePeer(t *testing.T) {
 	r := require.New(t)
 
-	g1, err := spawnGlusterd("./config/1.yaml")
+	g1, err := spawnGlusterd("./config/1.yaml", true)
 	r.Nil(err)
 	defer g1.Stop()
 	defer g1.EraseWorkdir()
 	r.True(g1.IsRunning())
 
-	g2, err := spawnGlusterd("./config/2.yaml")
+	g2, err := spawnGlusterd("./config/2.yaml", true)
 	r.Nil(err)
 	defer g2.Stop()
 	defer g2.EraseWorkdir()

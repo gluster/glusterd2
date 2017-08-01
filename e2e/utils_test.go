@@ -75,7 +75,7 @@ func (g *gdProcess) IsRestServerUp() bool {
 	return true
 }
 
-func spawnGlusterd(configFilePath string) (*gdProcess, error) {
+func spawnGlusterd(configFilePath string, cleanStart bool) (*gdProcess, error) {
 
 	fContent, err := ioutil.ReadFile(configFilePath)
 	if err != nil {
@@ -87,7 +87,9 @@ func spawnGlusterd(configFilePath string) (*gdProcess, error) {
 		return nil, err
 	}
 
-	g.EraseWorkdir() // cleanup leftovers from previous test
+	if cleanStart {
+		g.EraseWorkdir() // cleanup leftovers from previous test
+	}
 
 	if err := os.MkdirAll(path.Join(g.Workdir, "log"), os.ModeDir|os.ModePerm); err != nil {
 		return nil, err
@@ -136,7 +138,7 @@ func setupCluster(configFiles ...string) ([]*gdProcess, error) {
 	}
 
 	for _, configFile := range configFiles {
-		g, err := spawnGlusterd(configFile)
+		g, err := spawnGlusterd(configFile, true)
 		if err != nil {
 			cleanup()
 			return nil, err
