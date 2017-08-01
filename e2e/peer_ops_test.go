@@ -29,7 +29,7 @@ func TestAddRemovePeer(t *testing.T) {
 	defer g2.EraseWorkdir()
 	r.True(g2.IsRunning())
 
-	g3, err := spawnGlusterd("./config/3.yaml")
+	g3, err := spawnGlusterd("./config/3.yaml", true)
 	r.Nil(err)
 	defer g3.Stop()
 	defer g3.EraseWorkdir()
