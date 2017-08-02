@@ -53,7 +53,7 @@ func TestAddRemovePeer(t *testing.T) {
 
 	time.Sleep(5 * time.Second)
 
-	// list and check you have 2 peers in cluster
+	// list and check you have 3 peers in cluster
 	resp, err = http.Get("http://" + g1.ClientAddress + "/v1/peers")
 	r.Nil(err)
 	defer resp.Body.Close()
