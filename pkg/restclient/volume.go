@@ -1,36 +1,31 @@
 package restclient
 
 import (
-	"encoding/json"
 	"fmt"
-	"strings"
+	"net/http"
 
 	"github.com/gluster/glusterd2/pkg/api"
 )
 
 // VolumeCreate creates Gluster Volume
-func (c *RESTClient) VolumeCreate(req api.VolCreateReq) error {
-	reqBody, err := json.Marshal(req)
-	if err != nil {
-		return err
-	}
-	return httpRESTAction("POST", c.baseURL+"/v1/volumes", strings.NewReader(string(reqBody)), 201)
+func (c *Client) VolumeCreate(req api.VolCreateReq) error {
+	return c.action("POST", "/v1/volumes", req, http.StatusCreated)
 }
 
 // VolumeStart starts a Gluster Volume
-func (c *RESTClient) VolumeStart(volname string) error {
-	url := fmt.Sprintf(c.baseURL+"/v1/volumes/%s/start", volname)
-	return httpRESTAction("POST", url, nil, 200)
+func (c *Client) VolumeStart(volname string) error {
+	url := fmt.Sprintf("/v1/volumes/%s/start", volname)
+	return c.action("POST", url, nil, http.StatusOK)
 }
 
 // VolumeStop stops a Gluster Volume
-func (c *RESTClient) VolumeStop(volname string) error {
-	url := fmt.Sprintf(c.baseURL+"/v1/volumes/%s/stop", volname)
-	return httpRESTAction("POST", url, nil, 200)
+func (c *Client) VolumeStop(volname string) error {
+	url := fmt.Sprintf("/v1/volumes/%s/stop", volname)
+	return c.action("POST", url, nil, http.StatusOK)
 }
 
 // VolumeDelete deletes a Gluster Volume
-func (c *RESTClient) VolumeDelete(volname string) error {
-	url := fmt.Sprintf(c.baseURL+"/v1/volumes/%s", volname)
-	return httpRESTAction("DELETE", url, nil, 200)
+func (c *Client) VolumeDelete(volname string) error {
+	url := fmt.Sprintf("/v1/volumes/%s", volname)
+	return c.action("DELETE", url, nil, http.StatusOK)
 }

@@ -2,31 +2,29 @@ package restclient
 
 import (
 	"encoding/json"
+	"fmt"
 	"io"
 	"io/ioutil"
 	"net/http"
+	"strings"
+
+	"github.com/gluster/glusterd2/pkg/api"
 )
 
-const baseURL = "http://localhost:24007"
-
-// RESTClient represents Glusterd2 REST Client
-type RESTClient struct {
+// Client represents Glusterd2 REST Client
+type Client struct {
 	baseURL  string
 	username string
 	password string
 }
 
-type httpError struct {
-	Error string `json:"Error"`
-}
-
-// NewRESTClient creates new instance of RESTClient
-func NewRESTClient(baseURL string, username string, password string) *RESTClient {
-	return &RESTClient{baseURL, username, password}
+// New creates new instance of Glusterd REST Client
+func New(baseURL string, username string, password string) *Client {
+	return &Client{baseURL, username, password}
 }
 
 func parseHTTPError(jsonData []byte) string {
-	var errstr httpError
+	var errstr api.HttpError
 	err := json.Unmarshal(jsonData, &errstr)
 	if err != nil {
 		return ""
@@ -34,7 +32,18 @@ func parseHTTPError(jsonData []byte) string {
 	return errstr.Error
 }
 
-func httpRequest(method string, url string, respType string, body io.Reader, expectStatusCode int) (string, error) {
+func (c *Client) do(method string, url string, respType string, data interface{}, expectStatusCode int) (string, error) {
+	url = fmt.Sprintf("%s%s", c.baseURL, url)
+
+	var body io.Reader
+	if data != nil {
+		reqBody, marshalErr := json.Marshal(data)
+		if marshalErr != nil {
+			return "", marshalErr
+		}
+		body = strings.NewReader(string(reqBody))
+	}
+
 	req, err := http.NewRequest(method, url, body)
 	if err != nil {
 		return "", err
@@ -54,20 +63,20 @@ func httpRequest(method string, url string, respType string, body io.Reader, exp
 		return "", err2
 	}
 	if resp.StatusCode != expectStatusCode {
-		return "", raiseAPIUnexpectedStatusCodeError(expectStatusCode, resp.StatusCode, parseHTTPError(output))
+		return "", &UnexpectedStatusError{"Unexpected Status", expectStatusCode, resp.StatusCode, parseHTTPError(output)}
 	}
 	return parseHTTPError(output), nil
 }
 
-func httpRESTAction(method string, url string, body io.Reader, expectStatusCode int) error {
-	_, err := httpRequest(method, url, "", body, expectStatusCode)
+func (c *Client) action(method string, url string, data interface{}, expectStatusCode int) error {
+	_, err := c.do(method, url, "", data, expectStatusCode)
 	return err
 }
 
-func httpGETJSON(url string) (string, error) {
-	return httpRequest("GET", url, "json", nil, 200)
+func (c *Client) getJSON(url string) (string, error) {
+	return c.do("GET", url, "json", nil, http.StatusOK)
 }
 
-func httpGETXML(url string) (string, error) {
-	return httpRequest("GET", url, "xml", nil, 200)
+func (c *Client) getXML(url string) (string, error) {
+	return c.do("GET", url, "xml", nil, http.StatusOK)
 }

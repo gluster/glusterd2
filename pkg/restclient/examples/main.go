@@ -19,17 +19,17 @@ const (
 )
 
 func main() {
-	restClient := restclient.NewRESTClient(baseURL, username, password)
-	fmt.Println(restClient.PeerProbe(peerNode))
-	fmt.Println(restClient.PeerDetach(peerNode))
+	client := restclient.New(baseURL, username, password)
+	fmt.Println(client.PeerProbe(peerNode))
+	fmt.Println(client.PeerDetach(peerNode))
 	req := api.VolCreateReq{
 		Name:    volname,
 		Bricks:  []string{brick1, brick2},
 		Replica: replica,
 		Force:   force,
 	}
-	fmt.Println(restClient.VolumeCreate(req))
-	fmt.Println(restClient.VolumeStart(volname))
-	fmt.Println(restClient.VolumeStop(volname))
-	fmt.Println(restClient.VolumeDelete(volname))
+	fmt.Println(client.VolumeCreate(req))
+	fmt.Println(client.VolumeStart(volname))
+	fmt.Println(client.VolumeStop(volname))
+	fmt.Println(client.VolumeDelete(volname))
 }
