@@ -90,7 +90,7 @@ func (p *PeerService) Leave(ctx context.Context, req *LeaveReq) (*LeaveRsp, erro
 	logger.Debug("all checks passed, leaving cluster")
 
 	logger.Debug("reconfiguring store with defaults")
-	if err := ReconfigureStore(nil); err != nil {
+	if err := ReconfigureStore(&StoreConfig{store.NewConfig().Endpoints}); err != nil {
 		logger.WithError(err).Warn("failed to reconfigure store with defaults")
 		// XXX: We should probably keep retrying here?
 	}
@@ -107,10 +107,8 @@ func ReconfigureStore(c *StoreConfig) error {
 	// TODO: Also need to destroy any old files in localstatedir (eg. volfiles)
 
 	// Restart the store with recieved configuration
-	cfg := store.NewConfig()
-	if c != nil {
-		cfg.Endpoints = c.Endpoints
-	}
+	cfg := store.GetConfig()
+	cfg.Endpoints = c.Endpoints
 
 	if err := store.Init(cfg); err != nil {
 		log.WithError(err).WithField("endpoints", cfg.Endpoints).Error("failed to restart store with new endpoints")

@@ -10,12 +10,12 @@ import (
 func (ee *ElasticEtcd) volunteerSelf() error {
 	key := volunteerPrefix + ee.conf.Name
 	var val string
-	// Need to set advertisable CURLs here as the initial cluster lists for new
-	// servers will be formed from this, the default CURL is not advertisable.
-	if isDefaultCURL(ee.conf.CURLs) {
-		val = defaultACURLs.String()
+	// Need to set advertisable PURLs here as the initial cluster lists for new
+	// servers will be formed from this, the default PURL is not advertisable.
+	if isDefaultPURL(ee.conf.PURLs) {
+		val = defaultAPURLs.String()
 	} else {
-		val = ee.conf.CURLs.String()
+		val = ee.conf.PURLs.String()
 	}
 
 	_, err := ee.cli.Put(ee.cli.Ctx(), key, val, clientv3.WithLease(ee.session.Lease()))
