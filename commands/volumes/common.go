@@ -15,7 +15,15 @@ import (
 	"github.com/pborman/uuid"
 )
 
-func areOptionNamesValid(optsFromReq map[string]string) bool {
+type invalidOptionError struct {
+	option string
+}
+
+func (e invalidOptionError) Error() string {
+	return e.option
+}
+
+func areOptionNamesValid(optsFromReq map[string]string) error {
 
 	var xlOptFound bool
 	for o := range optsFromReq {
@@ -27,14 +35,14 @@ func areOptionNamesValid(optsFromReq map[string]string) bool {
 
 		tmp := strings.Split(strings.TrimSpace(o), ".")
 		if len(tmp) != 2 {
-			return false
+			return invalidOptionError{option: o}
 		}
 		xlatorType := tmp[0]
 		xlatorOption := tmp[1]
 
 		options, ok := xlator.AllOptions[xlatorType]
 		if !ok {
-			return false
+			return invalidOptionError{option: o}
 		}
 
 		xlOptFound = false
@@ -46,11 +54,11 @@ func areOptionNamesValid(optsFromReq map[string]string) bool {
 			}
 		}
 		if !xlOptFound {
-			return false
+			return invalidOptionError{option: o}
 		}
 	}
 
-	return true
+	return nil
 }
 
 func generateVolfiles(c transaction.TxnCtx) error {

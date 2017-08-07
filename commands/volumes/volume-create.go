@@ -2,6 +2,7 @@ package volumecommands
 
 import (
 	"errors"
+	"fmt"
 	"net/http"
 
 	gderrors "github.com/gluster/glusterd2/errors"
@@ -170,9 +171,9 @@ func volumeCreateHandler(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	if !areOptionNamesValid(req.Options) {
-		logger.Error("invalid volume options provided")
-		restutils.SendHTTPError(w, http.StatusBadRequest, "invalid volume options provided")
+	if err := areOptionNamesValid(req.Options); err != nil {
+		logger.WithField("option", err.Error()).Error("invalid option specified")
+		restutils.SendHTTPError(w, http.StatusBadRequest, fmt.Sprintf("invalid option specified: %s", err.Error()))
 		return
 	}
 
