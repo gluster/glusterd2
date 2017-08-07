@@ -7,7 +7,6 @@ import (
 	"github.com/gluster/glusterd2/errors"
 	"github.com/gluster/glusterd2/gdctx"
 	restutils "github.com/gluster/glusterd2/servers/rest/utils"
-	"github.com/gluster/glusterd2/servers/sunrpc"
 	"github.com/gluster/glusterd2/transaction"
 	"github.com/gluster/glusterd2/utils"
 	"github.com/gluster/glusterd2/volgen"
@@ -161,7 +160,7 @@ func updateVolinfoOnExpand(c transaction.TxnCtx) error {
 	}
 
 	// update new volinfo in txn ctx
-	if err := c.Set("newvolinfo", volinfo); err != nil {
+	if err := c.Set("volinfo", volinfo); err != nil {
 		return err
 	}
 
@@ -191,22 +190,6 @@ func generateClientVolfileOnExpand(c transaction.TxnCtx) error {
 	return nil
 }
 
-func notifyClientsOnExpand(c transaction.TxnCtx) error {
-
-	var volinfo volume.Volinfo
-	if err := c.Get("newvolinfo", &volinfo); err != nil {
-		return err
-	}
-
-	if volinfo.Status != volume.VolStarted {
-		return nil
-	}
-
-	sunrpc.FetchSpecNotify(c)
-
-	return nil
-}
-
 func registerVolExpandStepFuncs() {
 	// NOTE: If txn steps are more granular, then the entire txn becomes more
 	// resilient to recovery from failures i.e easier/better undo, but at
@@ -216,7 +199,7 @@ func registerVolExpandStepFuncs() {
 	transaction.RegisterStepFunc(undoStartBricksOnExpand, "vol-expand.UndoStartBrick")
 	transaction.RegisterStepFunc(updateVolinfoOnExpand, "vol-expand.UpdateVolinfo") // only on initiator node
 	transaction.RegisterStepFunc(generateClientVolfileOnExpand, "vol-expand.GenerateClientVolfile")
-	transaction.RegisterStepFunc(notifyClientsOnExpand, "vol-expand.NotifyClients")
+	transaction.RegisterStepFunc(notifyVolfileChange, "vol-expand.NotifyClients")
 }
 
 func volumeExpandHandler(w http.ResponseWriter, r *http.Request) {

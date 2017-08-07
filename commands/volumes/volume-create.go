@@ -2,15 +2,13 @@ package volumecommands
 
 import (
 	"errors"
+	"fmt"
 	"net/http"
-	"os"
 
 	gderrors "github.com/gluster/glusterd2/errors"
-	"github.com/gluster/glusterd2/gdctx"
 	restutils "github.com/gluster/glusterd2/servers/rest/utils"
 	"github.com/gluster/glusterd2/transaction"
 	"github.com/gluster/glusterd2/utils"
-	"github.com/gluster/glusterd2/volgen"
 	"github.com/gluster/glusterd2/volume"
 
 	"github.com/pborman/uuid"
@@ -18,11 +16,12 @@ import (
 
 // VolCreateRequest defines the parameters for creating a volume in the volume-create command
 type VolCreateRequest struct {
-	Name         string   `json:"name"`
-	Transport    string   `json:"transport,omitempty"`
-	ReplicaCount int      `json:"replica,omitempty"`
-	Bricks       []string `json:"bricks"`
-	Force        bool     `json:"force,omitempty"`
+	Name         string            `json:"name"`
+	Transport    string            `json:"transport,omitempty"`
+	ReplicaCount int               `json:"replica,omitempty"`
+	Bricks       []string          `json:"bricks"`
+	Force        bool              `json:"force,omitempty"`
+	Options      map[string]string `json:"options,omitempty"`
 	// Bricks list is ordered (like in glusterd1) and decides which bricks
 	// form replica sets.
 }
@@ -47,7 +46,11 @@ func createVolinfo(req *VolCreateRequest) (*volume.Volinfo, error) {
 	var err error
 
 	v := new(volume.Volinfo)
-	v.Options = make(map[string]string)
+	if req.Options != nil {
+		v.Options = req.Options
+	} else {
+		v.Options = make(map[string]string)
+	}
 	v.ID = uuid.NewRandom()
 	v.Name = req.Name
 
@@ -119,59 +122,6 @@ func validateVolumeCreate(c transaction.TxnCtx) error {
 	return nil
 }
 
-func generateVolfiles(c transaction.TxnCtx) error {
-
-	var volinfo volume.Volinfo
-	if err := c.Get("volinfo", &volinfo); err != nil {
-		return err
-	}
-
-	// Create 'vols' directory.
-	err := os.MkdirAll(utils.GetVolumeDir(volinfo.Name), os.ModeDir|os.ModePerm)
-	if err != nil {
-		c.Logger().WithError(err).WithField(
-			"volume", volinfo.Name).Debug("generateVolfiles: failed to create vol directory")
-		return err
-	}
-
-	// Generate brick volfiles
-	for _, b := range volinfo.Bricks {
-		if !uuid.Equal(b.NodeID, gdctx.MyUUID) {
-			continue
-		}
-		if err := volgen.GenerateBrickVolfile(&volinfo, &b); err != nil {
-			c.Logger().WithError(err).WithField(
-				"brick", b.Path).Debug("generateVolfiles: failed to create brick volfile")
-			return err
-		}
-	}
-
-	// Generate client volfile
-	if err := volgen.GenerateClientVolfile(&volinfo); err != nil {
-		c.Logger().WithError(err).WithField(
-			"volume", volinfo.Name).Debug("generateVolfiles: failed to create client volfile")
-		return err
-	}
-
-	return nil
-}
-
-func storeVolume(c transaction.TxnCtx) error {
-
-	var volinfo volume.Volinfo
-	if err := c.Get("volinfo", &volinfo); err != nil {
-		return err
-	}
-
-	if err := volume.AddOrUpdateVolumeFunc(&volinfo); err != nil {
-		c.Logger().WithError(err).WithField(
-			"volume", volinfo.Name).Debug("storeVolume: failed to store volume info")
-		return err
-	}
-
-	return nil
-}
-
 func rollBackVolumeCreate(c transaction.TxnCtx) error {
 
 	var volinfo volume.Volinfo
@@ -218,6 +168,12 @@ func volumeCreateHandler(w http.ResponseWriter, r *http.Request) {
 	if err != nil {
 		logger.WithError(err).Error("could not prepare node list")
 		restutils.SendHTTPError(w, http.StatusInternalServerError, err.Error())
+		return
+	}
+
+	if err := areOptionNamesValid(req.Options); err != nil {
+		logger.WithField("option", err.Error()).Error("invalid option specified")
+		restutils.SendHTTPError(w, http.StatusBadRequest, fmt.Sprintf("invalid option specified: %s", err.Error()))
 		return
 	}
 
