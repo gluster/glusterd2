@@ -21,7 +21,7 @@ func init() {
 	errorStrings[ErrAnotherCluster] = "peer is part of another cluster"
 	errorStrings[ErrHaveVolumes] = "peer has existing volumes"
 	errorStrings[ErrStoreReconfigFailed] = "store reconfigure failed on peer"
-	errorStrings[ErrUnknownPeer] = "request recieved from unknown peer"
+	errorStrings[ErrUnknownPeer] = "request received from unknown peer"
 }
 
 func (e Error) String() string {
