@@ -21,29 +21,13 @@ type VolOptionRequest struct {
 	Options map[string]string `json:"options"`
 }
 
-func updateVolinfoOnOptionChange(c transaction.TxnCtx) error {
-
-	var volinfo volume.Volinfo
-	if err := c.Get("volinfo", &volinfo); err != nil {
-		return err
-	}
-
-	if err := volume.AddOrUpdateVolumeFunc(&volinfo); err != nil {
-		c.Logger().WithError(err).WithField(
-			"volume", volinfo.Name).Debug("failed to store volume info")
-		return err
-	}
-
-	return nil
-}
-
 func registerVolOptionStepFuncs() {
 	var sfs = []struct {
 		name string
 		sf   transaction.StepFunc
 	}{
-		{"vol-option.UpdateVolinfo", updateVolinfoOnOptionChange},
-		{"vol-option.RegenerateVolfiles", generateVolfiles},
+		{"vol-option.UpdateVolinfo", storeVolume},
+		{"vol-option.RegenerateVolfiles", generateBrickVolfiles},
 		{"vol-option.NotifyVolfileChange", notifyVolfileChange},
 	}
 	for _, sf := range sfs {
