@@ -21,6 +21,7 @@ const (
 func main() {
 	client := restclient.New(baseURL, username, password)
 	fmt.Println(client.PeerProbe(peerNode))
+	fmt.Println(client.Peers())
 	fmt.Println(client.PeerDetach(peerNode))
 	req := api.VolCreateReq{
 		Name:    volname,

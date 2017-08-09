@@ -8,24 +8,26 @@ import (
 )
 
 // VolumeCreate creates Gluster Volume
-func (c *Client) VolumeCreate(req api.VolCreateReq) error {
-	return c.action("POST", "/v1/volumes", req, http.StatusCreated)
+func (c *Client) VolumeCreate(req api.VolCreateReq) (api.Volinfo, error) {
+	var vol api.Volinfo
+	err := c.post("/v1/volumes", req, http.StatusCreated, &vol)
+	return vol, err
 }
 
 // VolumeStart starts a Gluster Volume
 func (c *Client) VolumeStart(volname string) error {
 	url := fmt.Sprintf("/v1/volumes/%s/start", volname)
-	return c.action("POST", url, nil, http.StatusOK)
+	return c.post(url, nil, http.StatusOK, nil)
 }
 
 // VolumeStop stops a Gluster Volume
 func (c *Client) VolumeStop(volname string) error {
 	url := fmt.Sprintf("/v1/volumes/%s/stop", volname)
-	return c.action("POST", url, nil, http.StatusOK)
+	return c.post(url, nil, http.StatusOK, nil)
 }
 
 // VolumeDelete deletes a Gluster Volume
 func (c *Client) VolumeDelete(volname string) error {
 	url := fmt.Sprintf("/v1/volumes/%s", volname)
-	return c.action("DELETE", url, nil, http.StatusOK)
+	return c.del(url, nil, http.StatusOK, nil)
 }

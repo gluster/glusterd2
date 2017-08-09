@@ -1,6 +1,7 @@
 package restclient
 
 import (
+	"errors"
 	"fmt"
 	"net/http"
 
@@ -8,15 +9,56 @@ import (
 )
 
 // PeerProbe adds a peer to the Cluster
-func (c *Client) PeerProbe(host string) error {
+func (c *Client) PeerProbe(host string) (api.Peer, error) {
+
 	peerAddReq := api.PeerAddReq{
 		Addresses: []string{host},
 	}
-	return c.action("POST", "/v1/peers", peerAddReq, http.StatusCreated)
+
+	var resp api.Peer
+	err := c.post("/v1/peers", peerAddReq, http.StatusCreated, &resp)
+	return resp, err
 }
 
 // PeerDetach detaches a peer from the Cluster
 func (c *Client) PeerDetach(host string) error {
-	delURL := fmt.Sprintf("/v1/peers/%s", host)
-	return c.action("DELETE", delURL, nil, http.StatusNoContent)
+	// Get Peers list to find Peer ID
+	peers, err := c.Peers()
+	if err != nil {
+		return err
+	}
+
+	peerID := ""
+
+	// Find Peer ID using available information
+	for _, p := range peers {
+		for _, h := range p.Addresses {
+			if h == host {
+				peerID = p.ID.String()
+				break
+			}
+		}
+		if host != "" {
+			break
+		}
+	}
+
+	if peerID == "" {
+		return errors.New("Unable to find Peer ID")
+	}
+
+	return c.PeerDetachByID(peerID)
+}
+
+// PeerDetachByID detaches a peer from the Cluster
+func (c *Client) PeerDetachByID(peerid string) error {
+	delURL := fmt.Sprintf("/v1/peers/%s", peerid)
+	return c.del(delURL, nil, http.StatusNoContent, nil)
+}
+
+// Peers gets list of Gluster Peers
+func (c *Client) Peers() ([]api.Peer, error) {
+	var peers []api.Peer
+	err := c.get("/v1/peers", nil, http.StatusOK, &peers)
+	return peers, err
 }

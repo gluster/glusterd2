@@ -32,51 +32,57 @@ func parseHTTPError(jsonData []byte) string {
 	return errstr.Error
 }
 
-func (c *Client) do(method string, url string, respType string, data interface{}, expectStatusCode int) (string, error) {
+func (c *Client) post(url string, data interface{}, expectStatusCode int, output interface{}) error {
+	return c.do("POST", url, data, expectStatusCode, output)
+}
+
+func (c *Client) put(url string, data interface{}, expectStatusCode int, output interface{}) error {
+	return c.do("PUT", url, data, expectStatusCode, output)
+}
+
+func (c *Client) get(url string, data interface{}, expectStatusCode int, output interface{}) error {
+	return c.do("GET", url, data, expectStatusCode, output)
+}
+
+func (c *Client) del(url string, data interface{}, expectStatusCode int, output interface{}) error {
+	return c.do("DELETE", url, data, expectStatusCode, output)
+}
+
+func (c *Client) do(method string, url string, data interface{}, expectStatusCode int, output interface{}) error {
 	url = fmt.Sprintf("%s%s", c.baseURL, url)
 
 	var body io.Reader
 	if data != nil {
 		reqBody, marshalErr := json.Marshal(data)
 		if marshalErr != nil {
-			return "", marshalErr
+			return marshalErr
 		}
 		body = strings.NewReader(string(reqBody))
 	}
 
 	req, err := http.NewRequest(method, url, body)
 	if err != nil {
-		return "", err
+		return err
 	}
-	if respType == "xml" || respType == "json" {
-		req.Header.Set("Accept", "application/"+respType)
-	}
+	req.Header.Set("Accept", "application/json")
 	req.Header.Set("Content-Type", "application/json")
 	resp, err1 := http.DefaultClient.Do(req)
 	if err1 != nil {
-		return "", err1
+		return err1
 	}
 
 	defer resp.Body.Close()
-	output, err2 := ioutil.ReadAll(resp.Body)
+	outputRaw, err2 := ioutil.ReadAll(resp.Body)
 	if err2 != nil {
-		return "", err2
+		return err2
 	}
 	if resp.StatusCode != expectStatusCode {
-		return "", &UnexpectedStatusError{"Unexpected Status", expectStatusCode, resp.StatusCode, parseHTTPError(output)}
+		return &UnexpectedStatusError{"Unexpected Status", expectStatusCode, resp.StatusCode, parseHTTPError(outputRaw)}
 	}
-	return parseHTTPError(output), nil
-}
 
-func (c *Client) action(method string, url string, data interface{}, expectStatusCode int) error {
-	_, err := c.do(method, url, "", data, expectStatusCode)
-	return err
-}
+	if output != nil {
+		return json.Unmarshal(outputRaw, output)
+	}
 
-func (c *Client) getJSON(url string) (string, error) {
-	return c.do("GET", url, "json", nil, http.StatusOK)
-}
-
-func (c *Client) getXML(url string) (string, error) {
-	return c.do("GET", url, "xml", nil, http.StatusOK)
+	return nil
 }
