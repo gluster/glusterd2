@@ -24,7 +24,7 @@ func New(baseURL string, username string, password string) *Client {
 }
 
 func parseHTTPError(jsonData []byte) string {
-	var errstr api.HttpError
+	var errstr api.HTTPError
 	err := json.Unmarshal(jsonData, &errstr)
 	if err != nil {
 		return ""
