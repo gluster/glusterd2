@@ -38,7 +38,8 @@ func (c *Client) PeerDetach(host string) error {
 				break
 			}
 		}
-		if host != "" {
+		// If already got Peer ID
+		if peerID != "" {
 			break
 		}
 	}
