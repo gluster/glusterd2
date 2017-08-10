@@ -229,6 +229,12 @@ func ValidateBrickPathStats(brickPath string, host string, force bool) error {
 
 	}
 
+	// Workaround till https://review.gluster.org/#/c/18003/ gets in
+	if err := os.MkdirAll(filepath.Join(brickPath, ".glusterfs", "indices"), os.ModeDir|os.ModePerm); err != nil {
+		log.WithError(err).Error("failed to create .glusterfs/indices directory")
+		return err
+	}
+
 	return nil
 }
 
