@@ -14,6 +14,13 @@ func (c *Client) VolumeCreate(req api.VolCreateReq) (api.Volinfo, error) {
 	return vol, err
 }
 
+// Volumes returns list of all volumes
+func (c *Client) Volumes() (api.VolList, error) {
+	var vols api.VolList
+	err := c.get("/v1/volumes", nil, http.StatusOK, &vols)
+	return vols, err
+}
+
 // VolumeStart starts a Gluster Volume
 func (c *Client) VolumeStart(volname string) error {
 	url := fmt.Sprintf("/v1/volumes/%s/start", volname)

@@ -1,12 +1,8 @@
 package e2e
 
 import (
-	"encoding/json"
-	"fmt"
 	"io/ioutil"
-	"net/http"
 	"os"
-	"strings"
 	"testing"
 
 	"github.com/gluster/glusterd2/pkg/api"
@@ -30,6 +26,8 @@ func TestVolumeCreateDelete(t *testing.T) {
 		brickPaths = append(brickPaths, brickPath)
 	}
 
+	client := initRestclient(gds[0].ClientAddress)
+
 	// create 2x2 dist-rep volume
 	volname := "testvol"
 	createReq := api.VolCreateReq{
@@ -42,21 +40,10 @@ func TestVolumeCreateDelete(t *testing.T) {
 			gds[1].PeerAddress + ":" + brickPaths[3]},
 		Force: true,
 	}
-	reqBody, err := json.Marshal(createReq)
-	r.Nil(err)
-
-	volCreateURL := fmt.Sprintf("http://%s/v1/volumes", gds[0].ClientAddress)
-	resp, err := http.Post(volCreateURL, "application/json", strings.NewReader(string(reqBody)))
-	r.Nil(err)
-	defer resp.Body.Close()
-	r.Equal(resp.StatusCode, 201)
+	_, errVolCreate := client.VolumeCreate(createReq)
+	r.Nil(errVolCreate)
 
 	// delete volume
-	volDelURL := fmt.Sprintf("http://%s/v1/volumes/%s", gds[0].ClientAddress, volname)
-	delReq, err := http.NewRequest("DELETE", volDelURL, nil)
-	r.Nil(err)
-	resp, err = http.DefaultClient.Do(delReq)
-	r.Nil(err)
-	defer resp.Body.Close()
-	r.Equal(resp.StatusCode, 200)
+	errVolDel := client.VolumeDelete(volname)
+	r.Nil(errVolDel)
 }

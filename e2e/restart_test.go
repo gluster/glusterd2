@@ -1,14 +1,11 @@
 package e2e
 
 import (
-	"encoding/json"
-	"fmt"
 	"io/ioutil"
-	"net/http"
 	"os"
-	"strings"
 	"testing"
 
+	"github.com/gluster/glusterd2/pkg/api"
 	"github.com/stretchr/testify/require"
 )
 
@@ -20,23 +17,21 @@ func TestRestart(t *testing.T) {
 	r.Nil(err)
 	r.True(gd.IsRunning())
 
-	reqT := `
-{
-  "name": "vol1",
-  "bricks": ["%s:%s"],
-  "force": true
-}
-	`
 	dir, err := ioutil.TempDir("", "")
 	r.Nil(err)
 	defer os.RemoveAll(dir)
 
-	req := fmt.Sprintf(reqT, gd.PeerAddress, dir)
+	client := initRestclient(gd.ClientAddress)
 
-	resp, err := http.Post(fmt.Sprintf("http://%s/v1/volumes", gd.ClientAddress), "application/json", strings.NewReader(req))
-	r.Nil(err)
-	defer resp.Body.Close()
-	r.Equal(http.StatusCreated, resp.StatusCode)
+	createReq := api.VolCreateReq{
+		Name: "vol1",
+		Bricks: []string{
+			gd.ClientAddress + ":" + dir,
+		},
+		Force: true,
+	}
+	_, errVolCreate := client.VolumeCreate(createReq)
+	r.Nil(errVolCreate)
 
 	r.Len(getVols(gd, r), 1)
 
@@ -51,17 +46,9 @@ func TestRestart(t *testing.T) {
 	r.Nil(gd.Stop())
 }
 
-func getVols(gd *gdProcess, r *require.Assertions) map[string]string {
-	resp, err := http.Get(fmt.Sprintf("http://%s/v1/volumes", gd.ClientAddress))
+func getVols(gd *gdProcess, r *require.Assertions) api.VolList {
+	client := initRestclient(gd.ClientAddress)
+	vols, err := client.Volumes()
 	r.Nil(err)
-	r.Equal(http.StatusOK, resp.StatusCode)
-	defer resp.Body.Close()
-
-	vols := make(map[string]string)
-	data, err := ioutil.ReadAll(resp.Body)
-	r.Nil(err)
-	err = json.Unmarshal(data, &vols)
-	r.Nil(err)
-
 	return vols
 }

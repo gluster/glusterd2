@@ -14,6 +14,7 @@ import (
 	"time"
 
 	"github.com/gluster/glusterd2/pkg/api"
+	"github.com/gluster/glusterd2/pkg/restclient"
 	"gopkg.in/yaml.v2"
 )
 
@@ -180,4 +181,8 @@ func teardownCluster(gds []*gdProcess) error {
 		gd.EraseWorkdir()
 	}
 	return nil
+}
+
+func initRestclient(clientAddress string) *restclient.Client {
+	return restclient.New("http://"+clientAddress, "", "")
 }

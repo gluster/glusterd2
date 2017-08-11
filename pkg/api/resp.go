@@ -47,3 +47,6 @@ type Volinfo struct {
 	Bricks       []Brickinfo
 	Auth         VolAuth // TODO: should not be returned to client
 }
+
+// VolList respresents volumes list
+type VolList map[string]string
