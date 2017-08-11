@@ -1,17 +1,10 @@
 package e2e
 
 import (
-	"encoding/json"
-	"fmt"
-	"io/ioutil"
-	"net/http"
-	"strings"
 	"testing"
 	"time"
 
 	"github.com/stretchr/testify/require"
-
-	"github.com/gluster/glusterd2/peer"
 )
 
 func TestAddRemovePeer(t *testing.T) {
@@ -35,43 +28,25 @@ func TestAddRemovePeer(t *testing.T) {
 	defer g3.EraseWorkdir()
 	r.True(g3.IsRunning())
 
-	// add peer: ask g1 to add g2 as peer
-	reqBody := strings.NewReader(fmt.Sprintf(`{"addresses": ["%s"]}`, g2.PeerAddress))
-	resp, err := http.Post("http://"+g1.ClientAddress+"/v1/peers", "application/json", reqBody)
-	r.Nil(err)
-	defer resp.Body.Close()
-	r.Equal(http.StatusCreated, resp.StatusCode)
+	client := initRestclient(g1.ClientAddress)
+
+	_, err2 := client.PeerProbe(g2.PeerAddress)
+	r.Nil(err2)
 
 	time.Sleep(5 * time.Second)
 
 	// add peer: ask g1 to add g3 as peer
-	reqBody = strings.NewReader(fmt.Sprintf(`{"addresses": ["%s"]}`, g3.PeerAddress))
-	resp, err = http.Post("http://"+g1.ClientAddress+"/v1/peers", "application/json", reqBody)
-	r.Nil(err)
-	defer resp.Body.Close()
-	r.Equal(http.StatusCreated, resp.StatusCode)
+	_, err3 := client.PeerProbe(g3.PeerAddress)
+	r.Nil(err3)
 
 	time.Sleep(5 * time.Second)
 
 	// list and check you have 3 peers in cluster
-	resp, err = http.Get("http://" + g1.ClientAddress + "/v1/peers")
-	r.Nil(err)
-	defer resp.Body.Close()
-	r.Equal(http.StatusOK, resp.StatusCode)
-
-	data, err := ioutil.ReadAll(resp.Body)
-	r.Nil(err)
-	var peers []peer.Peer
-	err = json.Unmarshal(data, &peers)
-	r.Nil(err)
+	peers, err4 := client.Peers()
+	r.Nil(err4)
 	r.Len(peers, 3)
 
 	// remove peer: ask g1 to remove g2 as peer
-	delURL := fmt.Sprintf("http://%s/v1/peers/%s", g1.ClientAddress, g2.PeerID())
-	req, err := http.NewRequest("DELETE", delURL, nil)
-	r.Nil(err)
-	resp, err = http.DefaultClient.Do(req)
-	r.Nil(err)
-	defer resp.Body.Close()
-	r.Equal(http.StatusNoContent, resp.StatusCode)
+	err5 := client.PeerDetachByID(g2.PeerID())
+	r.Nil(err5)
 }
