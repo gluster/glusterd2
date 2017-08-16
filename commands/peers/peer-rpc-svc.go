@@ -34,7 +34,7 @@ func (p *PeerService) Join(ctx context.Context, req *JoinReq) (*JoinRsp, error) 
 	// 	- TODO: Ensure no ongoing operations (transactions/other peer requests) are happening
 	// 	- TODO: Check is peer is part of another cluster
 	// 	- Check if the peer has volumes
-	//	- Reconfigure the store with recieved configuration
+	//	- Reconfigure the store with received configuration
 	// 	- Return your ID
 
 	// TODO: Ensure no other operations are happening
@@ -78,10 +78,10 @@ func (p *PeerService) Leave(ctx context.Context, req *LeaveReq) (*LeaveRsp, erro
 		logger.Info("could not verify peer")
 		return &LeaveRsp{int32(ErrUnknownPeer)}, nil
 	} else if p == nil {
-		logger.Info("rejecting leave, request recieved from unknown peer")
+		logger.Info("rejecting leave, request received from unknown peer")
 		return &LeaveRsp{int32(ErrUnknownPeer)}, nil
 	}
-	logger.Debug("request recieved from known peer")
+	logger.Debug("request received from known peer")
 
 	// TODO: Check if you can leave the cluster
 	// The peer sending the leave request should have done the check, but check
@@ -106,7 +106,7 @@ func ReconfigureStore(c *StoreConfig) error {
 	store.Destroy()
 	// TODO: Also need to destroy any old files in localstatedir (eg. volfiles)
 
-	// Restart the store with recieved configuration
+	// Restart the store with received configuration
 	cfg := store.GetConfig()
 	cfg.Endpoints = c.Endpoints
 

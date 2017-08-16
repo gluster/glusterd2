@@ -59,7 +59,7 @@ func startBricksOnExpand(c transaction.TxnCtx) error {
 		}
 		if err := volgen.GenerateBrickVolfile(&volinfo, &b); err != nil {
 			c.Logger().WithError(err).WithField(
-				"brick", b.Path).Debug("generateVolfiles: failed to create brick volfile")
+				"brick", b.Path).Debug("GenerateBrickVolfile: failed to create brick volfile")
 			return err
 		}
 	}
@@ -164,26 +164,10 @@ func updateVolinfoOnExpand(c transaction.TxnCtx) error {
 		return err
 	}
 
-	// update new volinfo in etcd store
-	if err := volume.AddOrUpdateVolumeFunc(&volinfo); err != nil {
+	// update new volinfo in etcd store and generate client volfile
+	if err := storeVolume(c); err != nil {
 		c.Logger().WithError(err).WithField(
 			"volume", volinfo.Name).Debug("storeVolume: failed to store volume info")
-		return err
-	}
-
-	return nil
-}
-
-func generateClientVolfileOnExpand(c transaction.TxnCtx) error {
-
-	var volinfo volume.Volinfo
-	if err := c.Get("newvolinfo", &volinfo); err != nil {
-		return err
-	}
-
-	if err := volgen.GenerateClientVolfile(&volinfo); err != nil {
-		c.Logger().WithError(err).WithField(
-			"volume", volinfo.Name).Debug("generateVolfiles: failed to create client volfile")
 		return err
 	}
 
@@ -198,7 +182,6 @@ func registerVolExpandStepFuncs() {
 	transaction.RegisterStepFunc(startBricksOnExpand, "vol-expand.StartBrick")
 	transaction.RegisterStepFunc(undoStartBricksOnExpand, "vol-expand.UndoStartBrick")
 	transaction.RegisterStepFunc(updateVolinfoOnExpand, "vol-expand.UpdateVolinfo") // only on initiator node
-	transaction.RegisterStepFunc(generateClientVolfileOnExpand, "vol-expand.GenerateClientVolfile")
 	transaction.RegisterStepFunc(notifyVolfileChange, "vol-expand.NotifyClients")
 }
 
@@ -274,10 +257,6 @@ func volumeExpandHandler(w http.ResponseWriter, r *http.Request) {
 		{
 			DoFunc: "vol-expand.UpdateVolinfo",
 			Nodes:  []uuid.UUID{gdctx.MyUUID},
-		},
-		{
-			DoFunc: "vol-expand.GenerateClientVolfile",
-			Nodes:  txn.Nodes,
 		},
 		{
 			DoFunc: "vol-expand.NotifyClients",

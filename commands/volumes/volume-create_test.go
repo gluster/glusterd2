@@ -99,24 +99,3 @@ func TestValidateVolumeCreate(t *testing.T) {
 	e = validateVolumeCreate(c)
 	tests.Assert(t, e == errBad)
 }
-
-// TestStoreVolume tests storeVolume
-func TestStoreVolume(t *testing.T) {
-	defer heketitests.Patch(&peer.GetPeerIDByAddrF, peer.GetPeerIDByAddrMockGood).Restore()
-	msg := new(VolCreateRequest)
-
-	msg.Name = "vol"
-	msg.Bricks = []string{"127.0.0.1:/tmp/b1", "127.0.0.1:/tmp/b2"}
-
-	vol, e := createVolinfo(msg)
-
-	c := transaction.NewMockCtx()
-	c.Set("volinfo", vol)
-	// Mock store failure
-	defer heketitests.Patch(&volume.AddOrUpdateVolumeFunc, func(vinfo *volume.Volinfo) error {
-		return errBad
-	}).Restore()
-	e = storeVolume(c)
-	tests.Assert(t, e == errBad)
-
-}

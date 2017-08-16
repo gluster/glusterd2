@@ -139,7 +139,7 @@ func registerVolCreateStepFuncs() {
 		sf   transaction.StepFunc
 	}{
 		{"vol-create.Stage", validateVolumeCreate},
-		{"vol-create.Commit", generateVolfiles},
+		{"vol-create.Commit", generateBrickVolfiles},
 		{"vol-create.Store", storeVolume},
 		{"vol-create.Rollback", rollBackVolumeCreate},
 	}

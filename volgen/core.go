@@ -2,8 +2,8 @@ package volgen
 
 import (
 	"bytes"
+	"context"
 	"fmt"
-	"io/ioutil"
 	"net"
 	"os"
 	"path"
@@ -11,23 +11,22 @@ import (
 	"strings"
 
 	"github.com/gluster/glusterd2/brick"
+	"github.com/gluster/glusterd2/store"
 	"github.com/gluster/glusterd2/utils"
 	"github.com/gluster/glusterd2/volume"
 
 	config "github.com/spf13/viper"
 )
 
+// TODO: differentiate between various types of client volfiles
+var volfilePrefix = store.GlusterPrefix + "volfiles/"
+
 // TODO: This is a quick and dirty reference implementation that should
 // be replaced when real volgen with dependency resolution is ready.
 // This is not complete either - works only for dist, rep and dist-rep
 // volumes.
 
-func getClientVolFilePath(vinfo *volume.Volinfo) string {
-	volfileName := fmt.Sprintf("trusted-%s.tcp-fuse.vol", vinfo.Name)
-	return path.Join(utils.GetVolumeDir(vinfo.Name), volfileName)
-}
-
-// GenerateClientVolfile generates the client volfile (duh!)
+// GenerateClientVolfile generates the client volfile and stores it in etcd
 func GenerateClientVolfile(vinfo *volume.Volinfo) error {
 
 	volfile := new(bytes.Buffer)
@@ -107,8 +106,7 @@ func GenerateClientVolfile(vinfo *volume.Volinfo) error {
 	replacer := strings.NewReplacer("<volume-name>", vinfo.Name, "<wb-subvol>", wbSubvol)
 	volfile.WriteString(replacer.Replace(clientVolfileBaseTemplate))
 
-	cpath := getClientVolFilePath(vinfo)
-	if err := ioutil.WriteFile(cpath, volfile.Bytes(), 0644); err != nil {
+	if _, err := store.Store.Put(context.TODO(), volfilePrefix+vinfo.Name, volfile.String()); err != nil {
 		return err
 	}
 
@@ -118,8 +116,7 @@ func GenerateClientVolfile(vinfo *volume.Volinfo) error {
 // DeleteClientVolfile deletes the client volfile (duh!)
 func DeleteClientVolfile(vol *volume.Volinfo) error {
 
-	path := getClientVolFilePath(vol)
-	if err := os.Remove(path); err != nil {
+	if _, err := store.Store.Delete(context.TODO(), volfilePrefix+vol.Name); err != nil {
 		return err
 	}
 

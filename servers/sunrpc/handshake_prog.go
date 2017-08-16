@@ -1,11 +1,13 @@
 package sunrpc
 
 import (
+	"context"
 	"fmt"
 	"io/ioutil"
 	"path"
 	"strings"
 
+	"github.com/gluster/glusterd2/store"
 	"github.com/gluster/glusterd2/utils"
 
 	log "github.com/Sirupsen/logrus"
@@ -20,6 +22,8 @@ const (
 const (
 	gfHndskGetSpec = 2 // GF_HNDSK_GETSPEC
 )
+
+var volfilePrefix = store.GlusterPrefix + "volfiles/"
 
 // GfHandshake is a type for GlusterFS Handshake RPC program
 type GfHandshake genericProgram
@@ -93,16 +97,28 @@ func (p *GfHandshake) ServerGetspec(args *GfGetspecReq, reply *GfGetspecRsp) err
 		s := strings.Split(args.Key, ".")
 		volName := s[0]
 		volFilePath = path.Join(utils.GetVolumeDir(volName), fmt.Sprintf("%s.vol", args.Key))
+		fileContents, err = ioutil.ReadFile(volFilePath)
+		if err != nil {
+			log.WithError(err).Error("ServerGetspec(): Could not read brick volfile")
+			goto Out
+		}
+		log.Info(fileContents)
 	} else {
 		// client volfile
-		volFilePath = path.Join(utils.GetVolumeDir(args.Key), fmt.Sprintf("trusted-%s.tcp-fuse.vol", args.Key))
+		resp, err := store.Store.Get(context.TODO(), volfilePrefix+args.Key)
+		if err != nil {
+			log.WithError(err).Error("ServerGetspec(): failed to retrive client volfile from store")
+			goto Out
+		}
+
+		if resp.Count != 1 {
+			log.WithField("volume", args.Key).Error("ServerGetspec(): client volfile not found in store")
+			goto Out
+		}
+
+		fileContents = resp.Kvs[0].Value
 	}
 
-	fileContents, err = ioutil.ReadFile(volFilePath)
-	if err != nil {
-		log.WithError(err).Error("ServerGetspec(): Could not read volfile")
-		goto Out
-	}
 	reply.Spec = string(fileContents)
 	reply.OpRet = len(reply.Spec)
 	reply.OpErrno = 0

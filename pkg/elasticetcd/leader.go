@@ -196,7 +196,7 @@ func (ee *ElasticEtcd) nominate(host string, urls types.URLs) error {
 	// Add the new host to the nominees list.
 	// Wait a little for the nominee to pick up the nomination.
 	// Then add the new host as an etcd member.
-	// If we add the new host as a member first, the embeded etcd will begin
+	// If we add the new host as a member first, the embedded etcd will begin
 	// trying to connect to the newly added member and which causes new requests
 	// to be blocked, for example the PUT request to add the new nominee.
 	// If we don't wait for a little while before adding the nominee as a member,

@@ -28,7 +28,7 @@ func addPeerHandler(w http.ResponseWriter, r *http.Request) {
 		restutils.SendHTTPError(w, http.StatusBadRequest, errors.ErrNoHostnamesPresent.Error())
 		return
 	}
-	log.WithField("addresses", req.Addresses).Debug("recieved request to add new peer with given addresses")
+	log.WithField("addresses", req.Addresses).Debug("received request to add new peer with given addresses")
 
 	p, _ := peer.GetPeerByAddrs(req.Addresses)
 	if p != nil {
