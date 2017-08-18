@@ -4,11 +4,11 @@ package volume
 import (
 	"bytes"
 	"encoding/json"
+	"errors"
 	"net/http"
 	"path/filepath"
 
 	"github.com/gluster/glusterd2/brick"
-	"github.com/gluster/glusterd2/errors"
 	"github.com/gluster/glusterd2/gdctx"
 	"github.com/gluster/glusterd2/peer"
 	"github.com/gluster/glusterd2/utils"
@@ -89,10 +89,21 @@ func NewBrickEntries(bricks []string, volName string, volID uuid.UUID) ([]brick.
 	var binfo brick.Brickinfo
 
 	for _, b := range bricks {
-		host, path, e := utils.ParseHostAndBrickPath(b)
+		node, path, e := utils.ParseHostAndBrickPath(b)
 		if e != nil {
 			return nil, e
 		}
+
+		u := uuid.Parse(node)
+		if u == nil {
+			return nil, errors.New("Invalid UUID specified as host for brick")
+		}
+
+		if _, e := peer.GetPeerF(node); e != nil {
+			return nil, e
+		}
+
+		binfo.NodeID = u
 
 		binfo.Path, e = absFilePath(path)
 		if e != nil {
@@ -100,26 +111,8 @@ func NewBrickEntries(bricks []string, volName string, volID uuid.UUID) ([]brick.
 			return nil, e
 		}
 
-		u := uuid.Parse(host)
-		if u != nil {
-			// Host specified is UUID
-			binfo.NodeID = u
-			p, e := peer.GetPeerF(host)
-			if e != nil {
-				return nil, e
-			}
-			binfo.Hostname = p.Addresses[0]
-		} else {
-			binfo.NodeID, e = peer.GetPeerIDByAddrF(host)
-			if e != nil {
-				return nil, e
-			}
-			binfo.Hostname = host
-		}
-
 		binfo.VolumeName = volName
 		binfo.VolumeID = volID
-
 		brickInfos = append(brickInfos, binfo)
 	}
 	return brickInfos, nil
@@ -128,20 +121,12 @@ func NewBrickEntries(bricks []string, volName string, volID uuid.UUID) ([]brick.
 // ValidateBrickEntries validates the brick list
 func ValidateBrickEntries(bricks []brick.Brickinfo, volID uuid.UUID, force bool) (int, error) {
 
+	var err error
 	for _, b := range bricks {
 		if !uuid.Equal(b.NodeID, gdctx.MyUUID) {
 			continue
 		}
 
-		local, err := utils.IsLocalAddress(b.Hostname)
-		if err != nil {
-			log.WithField("Host", b.Hostname).Error(err.Error())
-			return http.StatusInternalServerError, err
-		}
-		if local == false {
-			log.WithField("Host", b.Hostname).Error("Host is not local")
-			return http.StatusBadRequest, errors.ErrBrickNotLocal
-		}
 		err = utils.ValidateBrickPathLength(b.Path)
 		if err != nil {
 			return http.StatusBadRequest, err
@@ -150,15 +135,15 @@ func ValidateBrickEntries(bricks []brick.Brickinfo, volID uuid.UUID, force bool)
 		if err != nil {
 			return http.StatusBadRequest, err
 		}
-		err = isBrickPathAvailable(b.Hostname, b.Path)
+		err = isBrickPathAvailable(b.NodeID, b.Path)
 		if err != nil {
 			return http.StatusBadRequest, err
 		}
-		err = validateBrickPathStatsFunc(b.Path, b.Hostname, force)
+		err = validateBrickPathStatsFunc(b.Path, force)
 		if err != nil {
 			return http.StatusBadRequest, err
 		}
-		err = utils.ValidateXattrSupport(b.Path, b.Hostname, volID, force)
+		err = utils.ValidateXattrSupport(b.Path, volID, force)
 		if err != nil {
 			return http.StatusBadRequest, err
 		}

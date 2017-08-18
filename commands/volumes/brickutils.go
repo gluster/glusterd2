@@ -7,7 +7,6 @@ import (
 
 	"github.com/gluster/glusterd2/brick"
 	"github.com/gluster/glusterd2/daemon"
-	"github.com/gluster/glusterd2/peer"
 	"github.com/gluster/glusterd2/utils"
 
 	"github.com/pborman/uuid"
@@ -85,11 +84,6 @@ func nodesFromBricks(bricks []string) ([]uuid.UUID, error) {
 	for _, b := range bricks {
 		present = false
 
-		// Bricks specified can have one of the following formats:
-		// <peer-uuid>:<brick-path>
-		// <ip>:<port>:<brick-path>
-		// <ip>:<brick-path>
-
 		host, _, err := utils.ParseHostAndBrickPath(b)
 		if err != nil {
 			return nil, err
@@ -97,13 +91,11 @@ func nodesFromBricks(bricks []string) ([]uuid.UUID, error) {
 
 		id := uuid.Parse(host)
 		if id == nil {
-			// Host specified is IP or IP:port
-			id, err = peer.GetPeerIDByAddrF(host)
-			if err != nil {
-				return nil, err
-			}
+			return nil, err
 		}
 
+		// if multiple bricks are on the same node, include the node
+		// only once in the returned list
 		for _, n := range nodes {
 			if uuid.Equal(id, n) == true {
 				present = true

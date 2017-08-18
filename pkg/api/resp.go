@@ -25,7 +25,6 @@ type VolAuth struct {
 
 // Brickinfo is the static information about the brick
 type Brickinfo struct {
-	Hostname   string
 	NodeID     uuid.UUID
 	Path       string
 	VolumeName string

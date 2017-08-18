@@ -26,7 +26,7 @@ func TestRestart(t *testing.T) {
 	createReq := api.VolCreateReq{
 		Name: "vol1",
 		Bricks: []string{
-			gd.PeerAddress + ":" + dir,
+			gd.PeerID() + ":" + dir,
 		},
 		Force: true,
 	}

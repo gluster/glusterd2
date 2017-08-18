@@ -35,10 +35,10 @@ func TestVolumeCreateDelete(t *testing.T) {
 		Name:    volname,
 		Replica: 2,
 		Bricks: []string{
-			gds[0].PeerAddress + ":" + brickPaths[0],
-			gds[1].PeerAddress + ":" + brickPaths[1],
-			gds[0].PeerAddress + ":" + brickPaths[2],
-			gds[1].PeerAddress + ":" + brickPaths[3]},
+			gds[0].PeerID() + ":" + brickPaths[0],
+			gds[1].PeerID() + ":" + brickPaths[1],
+			gds[0].PeerID() + ":" + brickPaths[2],
+			gds[1].PeerID() + ":" + brickPaths[3]},
 		Force: true,
 	}
 	_, errVolCreate := client.VolumeCreate(createReq)

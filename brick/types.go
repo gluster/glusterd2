@@ -6,11 +6,14 @@ import (
 
 // Brickinfo is the static information about the brick
 type Brickinfo struct {
-	Hostname   string
 	NodeID     uuid.UUID
 	Path       string
 	VolumeName string
 	VolumeID   uuid.UUID
+}
+
+func (b *Brickinfo) String() string {
+	return b.NodeID.String() + ":" + b.Path
 }
 
 // Brickstatus represents real-time status of the brick and contains dynamic
