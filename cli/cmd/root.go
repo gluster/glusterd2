@@ -17,7 +17,7 @@ var (
 
 func init() {
 	initRESTClient()
-	initLog("./cli.log", "INFO")
+
 	// Global flags, applicable for all sub commands
 	RootCmd.PersistentFlags().BoolVarP(&flagXMLOutput, "xml", "", false, "XML Output")
 	RootCmd.PersistentFlags().BoolVarP(&flagJSONOutput, "json", "", false, "JSON Output")

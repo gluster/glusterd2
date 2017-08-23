@@ -2,7 +2,7 @@
 
 ## This scripts builds a GD2 CLI binary and places it in the given path
 ## Should be called from the root of the GD2 repo as
-## ./scripts/build.sh [<path-to-output-directory>]
+## ./scripts/build-cli.sh [<path-to-output-directory>]
 ## If no path is given, defaults to build dir
 
 OUTDIR=build
@@ -16,7 +16,7 @@ REPO_PATH="github.com/gluster/glusterd2"
 GIT_SHA=`git rev-parse --short HEAD || echo "undefined"`
 LDFLAGS="-X ${REPO_PATH}/version.GlusterdVersion=$VERSION -X ${REPO_PATH}/version.GitSHA=$GIT_SHA"
 LDFLAGS+=" -B 0x$(head -c20 /dev/urandom | od -An -tx1 | tr -d ' \n')"
-BIN=gluster
+BIN=glustercli
 
 echo "Building $BIN $VERSION"
 

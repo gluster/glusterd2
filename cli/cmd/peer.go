@@ -49,7 +49,7 @@ var poolCmd = &cobra.Command{
 
 var peerProbeCmd = &cobra.Command{
 	Use:   "probe <HOSTNAME>",
-	Short: helpPeerCmd,
+	Short: helpPeerProbeCmd,
 	Run: func(cmd *cobra.Command, args []string) {
 		validateNArgs(cmd, 1, 1)
 		hostname := cmd.Flags().Args()[0]
