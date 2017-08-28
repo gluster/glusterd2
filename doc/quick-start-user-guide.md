@@ -51,10 +51,10 @@ $ mkdir -p /tmp/gd2-workdir
 ```yaml
 $ cat conf.yaml 
 workdir: "/tmp/gd2-workdir"
-peeraddress: "192.168.56.26:24008"
-clientaddress: "192.168.56.26:24007"
-etcdcurls: "http://192.168.56.26:2379"
-etcdpurls: "http://192.168.56.26:2380"
+peeraddress: "192.168.56.201:24008"
+clientaddress: "192.168.56.201:24007"
+etcdcurls: "http://192.168.56.201:2379"
+etcdpurls: "http://192.168.56.201:2380"
 ```
 
 Replace the IP address accordingly on each node.
@@ -71,9 +71,9 @@ INFO[2017-08-28T16:03:58+05:30] Starting GlusterD                             pi
 INFO[2017-08-28T16:03:58+05:30] loaded configuration from file                file=conf.yaml
 INFO[2017-08-28T16:03:58+05:30] Generated new UUID                            uuid=19db62df-799b-47f1-80e4-0f5400896e05
 INFO[2017-08-28T16:03:58+05:30] started muxsrv listener                      
-INFO[2017-08-28T16:03:58+05:30] Started GlusterD ReST server                  ip:port=192.168.56.26:24007
-INFO[2017-08-28T16:03:58+05:30] Registered RPC Listener                       ip:port=192.168.56.26:24008
-INFO[2017-08-28T16:03:58+05:30] started GlusterD SunRPC server                ip:port=192.168.56.26:24007
+INFO[2017-08-28T16:03:58+05:30] Started GlusterD ReST server                  ip:port=192.168.56.201:24007
+INFO[2017-08-28T16:03:58+05:30] Registered RPC Listener                       ip:port=192.168.56.201:24008
+INFO[2017-08-28T16:03:58+05:30] started GlusterD SunRPC server                ip:port=192.168.56.201:24007
 ```
 
 Now you have two nodes running glusterd2.
