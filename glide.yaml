@@ -20,6 +20,7 @@ import:
 - package: github.com/heketi/tests
 - package: github.com/spf13/viper
 - package: github.com/spf13/pflag
+  version: ^1.0.0
 - package: github.com/golang/protobuf
   subpackages:
   - proto
@@ -52,3 +53,5 @@ import:
   version: v1.1.4
   subpackages:
   - assert
+- package: github.com/spf13/cobra
+- package: github.com/olekukonko/tablewriter

@@ -2,11 +2,11 @@ GOPATH := $(shell go env GOPATH)
 GOBIN := '$(GOPATH)/bin'
 PLUGINS ?= yes
 
-.PHONY: all build check check-go check-reqs install vendor-update vendor-install verify glusterd2 release check-protoc
+.PHONY: all build check check-go check-reqs install vendor-update vendor-install verify glusterd2 release check-protoc cli
 
 all: build
 
-build: check-go check-reqs vendor-install glusterd2
+build: check-go check-reqs vendor-install glusterd2 cli
 
 check: check-go check-reqs check-protoc
 
@@ -52,3 +52,7 @@ test:
 
 release: check-go check-reqs vendor-install
 	@./scripts/release.sh
+
+cli:
+	@./scripts/build-cli.sh
+	@echo
