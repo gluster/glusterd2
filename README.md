@@ -7,6 +7,11 @@ GlusterD-2.0 (GD2) is a re-implementation of GlusterD. It attempts to have bette
 consistency, scalability and performance when compared with the current
 GlusterD, while also becoming more modular and easing extensibility.
 
+## Documentation
+
+* [Quick Start User Guide](doc/quick-start-user-guide.md)
+* [Development Guide](doc/development-guide.md)
+
 ## Architecture and Design
 Please refer to the [wiki](https://github.com/gluster/glusterd2/wiki/Design) for more information.
 
@@ -16,7 +21,7 @@ To build GD2, just run `make`. If you don't have the required tools installed, r
 
 ## Contributing
 
-We use the Github pull-request model for accepting contributions. If you are not familiar with the pull request model please read ["Using pull requests"](https://help.github.com/articles/using-pull-requests/). For specific information on GlusterD-2.0, refer the [Development Guide](../../wiki/Development-Guide).
+We use the Github pull-request model for accepting contributions. If you are not familiar with the pull request model please read ["Using pull requests"](https://help.github.com/articles/using-pull-requests/). For specific information on GlusterD-2.0, refer the [Development Guide](doc/development-guide.md).
 
 ## Copyright and License
 Copyright (c) 2015 Red Hat, Inc. <http://www.redhat.com>
