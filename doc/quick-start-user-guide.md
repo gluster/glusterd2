@@ -43,14 +43,15 @@ $ tar -xf glusterd2-v4.0dev-7-linux-amd64.tar.xz
 **Create a working directory:** This is where glusterd2 will store all data which includes logs, pid files, etcd information etc. For this example, we will be using a temporary path. If a working directory is not specified, it defaults to current directory.
 
 ```sh
-$ mkdir -p /tmp/gd2-workdir
+$ mkdir -p /var/lib/gd2
 ```
 
-**Create a config file:** This is optional but if your VM/machine has multiple network interfaces, it is recommended to create a config file.
+**Create a config file:** This is optional but if your VM/machine has multiple network interfaces, it is recommended to create a config file. The config file location can be passed to Glusterd2 using the `--config` option.
+Glusterd2 will also pick up conf files named `glusterd.{yaml|json|toml}` if available in `/etc/glusterd2/` or the current directory.
 
 ```yaml
-$ cat conf.yaml 
-workdir: "/tmp/gd2-workdir"
+$ cat conf.yaml
+workdir: "/var/lib/gd2"
 peeraddress: "192.168.56.201:24008"
 clientaddress: "192.168.56.201:24007"
 etcdcurls: "http://192.168.56.201:2379"
@@ -159,5 +160,6 @@ Verify that `glusterfsd` process is running on both nodes.
 
 ### Known issues
 
-* Restarting glusterd2 does not restore the cluster
-* Peer detach doesn't work on a 2 node cluster
+* Issues with 2 node clusters
+  * Restarting glusterd2 does not restore the cluster
+  * Peer detach doesn't work
