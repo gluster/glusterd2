@@ -9,8 +9,8 @@ import (
 
 var client *restclient.Client
 
-func initRESTClient() {
-	client = restclient.New("http://localhost:24007", "", "")
+func initRESTClient(hostname string) {
+	client = restclient.New(hostname, "", "")
 }
 
 func failure(msg string, err int) {
