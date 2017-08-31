@@ -58,6 +58,10 @@ func volumeOptionsHandler(w http.ResponseWriter, r *http.Request) {
 		restutils.SendHTTPError(w, http.StatusBadRequest, fmt.Sprintf("invalid option specified: %s", err.Error()))
 		return
 	}
+	// Update the options into volinfo
+	for k, v := range req.Options {
+		volinfo.Options[k] = v
+	}
 
 	lock, unlock, err := transaction.CreateLockSteps(volinfo.Name)
 	if err != nil {
