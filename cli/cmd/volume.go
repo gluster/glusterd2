@@ -3,6 +3,7 @@ package cmd
 import (
 	"fmt"
 	"github.com/spf13/cobra"
+	log "github.com/Sirupsen/logrus"
 )
 
 const (
@@ -87,17 +88,27 @@ var volumeStartCmd = &cobra.Command{
 	Run: func(cmd *cobra.Command, args []string) {
 		validateNArgs(cmd, 1, 1)
 		volname := cmd.Flags().Args()[0]
-		fmt.Println("START:", volname)
+		err := client.VolumeStart(volname)
+		if err != nil {
+			log.WithField("volume", volname).Println("volume start failed")
+			failure(fmt.Sprintf("volume start failed with: %s", err.Error()), 1)
+		}
+		fmt.Printf("Volume %s started successfully\n", volname)
 	},
 }
 
 var volumeStopCmd = &cobra.Command{
-	Use:   "stop",
+	Use:   "stop [flags] <VOLNAME>",
 	Short: helpVolumeStopCmd,
 	Run: func(cmd *cobra.Command, args []string) {
 		validateNArgs(cmd, 1, 1)
 		volname := cmd.Flags().Args()[0]
-		fmt.Println("STOP:", volname)
+		err := client.VolumeStop(volname)
+		if err != nil {
+			log.WithField("volume", volname).Println("volume stop failed")
+			failure(fmt.Sprintf("volume stop failed with: %s", err.Error()), 1)
+		}
+		fmt.Printf("Volume %s stopped successfully\n", volname)
 	},
 }
 
