@@ -118,7 +118,12 @@ var volumeDeleteCmd = &cobra.Command{
 	Run: func(cmd *cobra.Command, args []string) {
 		validateNArgs(cmd, 1, 1)
 		volname := cmd.Flags().Args()[0]
-		fmt.Println("DELETE:", volname)
+		err := client.VolumeDelete(volname)
+		if err != nil {
+			log.WithField("volume", volname).Println("volume deletion failed")
+			failure(fmt.Sprintf("volume deletion failed with: %s", err.Error()), 1)
+		}
+		fmt.Printf("Volume %s deleted successfully\n", volname)
 	},
 }
 
