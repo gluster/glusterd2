@@ -3,13 +3,15 @@ package cmd
 import (
 	"errors"
 	"fmt"
+	"os"
 	"strings"
 
 	"github.com/gluster/glusterd2/pkg/api"
-	"github.com/pborman/uuid"
 
+	"github.com/pborman/uuid"
 	log "github.com/Sirupsen/logrus"
 	"github.com/spf13/cobra"
+	"github.com/olekukonko/tablewriter"
 )
 
 const (
@@ -22,6 +24,7 @@ const (
 	helpVolumeSetCmd    = "Set a Gluster Volume Option"
 	helpVolumeResetCmd  = "Reset a Gluster Volume Option"
 	helpVolumeInfoCmd   = "Get Gluster Volume Info"
+	helpVolumeListCmd   = "List all Gluster Volumes"
 	helpVolumeStatusCmd = "Get Gluster Volume Status"
 )
 
@@ -222,16 +225,64 @@ var volumeResetCmd = &cobra.Command{
 	},
 }
 
+func volumeInfoHandler2(cmd *cobra.Command, isInfo bool) error {
+	var vols []api.Volinfo
+	var err error
+	validateNArgs(cmd, 0, 1)
+	volname := ""
+	if len(cmd.Flags().Args()) > 0 {
+		volname = cmd.Flags().Args()[0]
+	}
+	if volname == ""{
+		vols, err = client.Volumes("")
+	}else{
+		vols, err = client.Volumes(volname)
+	}
+	if isInfo{
+		for _, vol := range vols {
+			fmt.Println("Volume Name: ", vol.Name)
+			fmt.Println("Type: ", vol.Type)
+			fmt.Println("Volume ID: ", vol.ID)
+			fmt.Println("Status: ", vol.Status)
+			fmt.Println("Transport-type: ", vol.Transport)
+			fmt.Println("Number of Bricks: ", len(vol.Bricks))
+			fmt.Println("Bricks:")
+			for i,brick := range vol.Bricks{
+				fmt.Printf("Brick%d: %s:%s\n", i+1, brick.Hostname, brick.Path)
+			}
+		}
+	}else{
+		table := tablewriter.NewWriter(os.Stdout)
+		table.SetHeader([]string{"ID", "Name"})
+		for _, vol := range vols {
+			table.Append([]string{vol.ID.String(), vol.Name})
+		}
+		table.Render()
+	}
+	return err
+}
+
 var volumeInfoCmd = &cobra.Command{
 	Use:   "info",
 	Short: helpVolumeInfoCmd,
 	Run: func(cmd *cobra.Command, args []string) {
-		validateNArgs(cmd, 0, 1)
-		volname := "all"
-		if len(cmd.Flags().Args()) > 0 {
-			volname = cmd.Flags().Args()[0]
+		err := volumeInfoHandler2(cmd, true)
+		if err != nil {
+			log.Println("No such volume present")
+			failure(fmt.Sprintf("Error getting Volumes list %s", err.Error()), 1)
 		}
-		fmt.Println("INFO:", volname)
+	},
+}
+
+var volumeListCmd = &cobra.Command{
+	Use:   "list",
+	Short: helpVolumeListCmd,
+	Run: func(cmd *cobra.Command, args []string) {
+		err := volumeInfoHandler2(cmd, false)
+		if err != nil {
+			log.Println("No volumes present")
+			failure(fmt.Sprintf("Error getting Volumes list %s", err.Error()), 1)
+		}
 	},
 }
 
