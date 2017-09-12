@@ -72,6 +72,7 @@ func init() {
 	volumeCmd.AddCommand(volumeResetCmd)
 	volumeCmd.AddCommand(volumeInfoCmd)
 	volumeCmd.AddCommand(volumeStatusCmd)
+	volumeCmd.AddCommand(volumeListCmd)
 	RootCmd.AddCommand(volumeCmd)
 }
 
