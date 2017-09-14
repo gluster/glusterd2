@@ -23,22 +23,33 @@ func (e invalidOptionError) Error() string {
 	return e.option
 }
 
+func splitOptionName(option string) (string, string, string) {
+	// Option can be of the form <graph>.<xlator>.<option>
+	// where <graph> is optional and when omitted, the option change shall
+	// be applied to instances of the xlator loaded in all graphs.
+
+	tmp := strings.Split(strings.TrimSpace(option), ".")
+	switch len(tmp) {
+	case 2:
+		return "", tmp[0], tmp[1]
+	case 3:
+		return tmp[0], tmp[1], tmp[2]
+	}
+
+	return "", "", ""
+}
+
 func areOptionNamesValid(optsFromReq map[string]string) error {
 
 	var xlOptFound bool
 	for o := range optsFromReq {
 
-		// assuming option to be of the form <domain>.<xlator-option>
-		// and <domain> will be the xlator type.
-		// Example: cluster/afr.eager-lock
-		// we know for certain that this isn't true
-
 		tmp := strings.Split(strings.TrimSpace(o), ".")
-		if len(tmp) != 2 {
+		if !(len(tmp) == 2 || len(tmp) == 3) {
 			return invalidOptionError{option: o}
 		}
-		xlatorType := tmp[0]
-		xlatorOption := tmp[1]
+
+		_, xlatorType, xlatorOption := splitOptionName(o)
 
 		options, ok := xlator.AllOptions[xlatorType]
 		if !ok {
