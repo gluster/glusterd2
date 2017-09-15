@@ -11,15 +11,11 @@ import (
 	"github.com/gluster/glusterd2/transaction"
 	"github.com/gluster/glusterd2/utils"
 	"github.com/gluster/glusterd2/volume"
+	"github.com/gluster/glusterd2/pkg/api"
 	"github.com/pborman/uuid"
 
 	"github.com/gorilla/mux"
 )
-
-// VolOptionRequest represents an incoming request to set volume options
-type VolOptionRequest struct {
-	Options map[string]string `json:"options"`
-}
 
 func registerVolOptionStepFuncs() {
 	var sfs = []struct {
@@ -47,7 +43,7 @@ func volumeOptionsHandler(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	var req VolOptionRequest
+	var req api.VolOptionReq
 	if err := utils.GetJSONFromRequest(r, &req); err != nil {
 		restutils.SendHTTPError(w, http.StatusUnprocessableEntity, errors.ErrJSONParsingFailed.Error())
 		return
