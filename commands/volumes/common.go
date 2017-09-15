@@ -23,22 +23,6 @@ func (e invalidOptionError) Error() string {
 	return e.option
 }
 
-func splitOptionName(option string) (string, string, string) {
-	// Option can be of the form <graph>.<xlator>.<option>
-	// where <graph> is optional and when omitted, the option change shall
-	// be applied to instances of the xlator loaded in all graphs.
-
-	tmp := strings.Split(strings.TrimSpace(option), ".")
-	switch len(tmp) {
-	case 2:
-		return "", tmp[0], tmp[1]
-	case 3:
-		return tmp[0], tmp[1], tmp[2]
-	}
-
-	return "", "", ""
-}
-
 func areOptionNamesValid(optsFromReq map[string]string) error {
 
 	var xlOptFound bool
@@ -49,7 +33,7 @@ func areOptionNamesValid(optsFromReq map[string]string) error {
 			return invalidOptionError{option: o}
 		}
 
-		_, xlatorType, xlatorOption := splitOptionName(o)
+		_, xlatorType, xlatorOption := volume.SplitVolumeOptionName(o)
 
 		options, ok := xlator.AllOptions[xlatorType]
 		if !ok {

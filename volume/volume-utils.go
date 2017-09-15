@@ -2,6 +2,7 @@ package volume
 
 import (
 	"os"
+	"strings"
 
 	"github.com/gluster/glusterd2/brick"
 	"github.com/gluster/glusterd2/errors"
@@ -53,4 +54,20 @@ func isBrickPathAvailable(hostname string, brickPath string) error {
 		}
 	}
 	return nil
+}
+
+// SplitVolumeOptionName returns three strings by breaking volume option name
+// of the form <graph>.<xlator>.<option> into its constituents. Specifying
+// <graph> is optional and when omitted, the option change shall be applied to
+// instances of the xlator loaded in all graphs.
+func SplitVolumeOptionName(option string) (string, string, string) {
+	tmp := strings.Split(strings.TrimSpace(option), ".")
+	switch len(tmp) {
+	case 2:
+		return "", tmp[0], tmp[1]
+	case 3:
+		return tmp[0], tmp[1], tmp[2]
+	}
+
+	return "", "", ""
 }
