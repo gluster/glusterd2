@@ -11,15 +11,11 @@ import (
 	"github.com/gluster/glusterd2/transaction"
 	"github.com/gluster/glusterd2/utils"
 	"github.com/gluster/glusterd2/volume"
+	"github.com/gluster/glusterd2/pkg/api"
 	"github.com/pborman/uuid"
 
 	"github.com/gorilla/mux"
 )
-
-// VolOptionRequest represents an incoming request to set volume options
-type VolOptionRequest struct {
-	Options map[string]string `json:"options"`
-}
 
 func registerVolOptionStepFuncs() {
 	var sfs = []struct {
@@ -47,7 +43,7 @@ func volumeOptionsHandler(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	var req VolOptionRequest
+	var req api.VolOptionReq
 	if err := utils.GetJSONFromRequest(r, &req); err != nil {
 		restutils.SendHTTPError(w, http.StatusUnprocessableEntity, errors.ErrJSONParsingFailed.Error())
 		return
@@ -88,8 +84,7 @@ func volumeOptionsHandler(w http.ResponseWriter, r *http.Request) {
 			// BUG: Shouldn't be on all nodes ideally. Currently we
 			// can't know if it's a brick option or client option.
 			// If it's a brick option, the nodes list here should
-			// should be only volinfo.Nodes(). Moving client
-			// volfiles from disk to store should also be done.
+			// should be only volinfo.Nodes().
 			Nodes: allNodes,
 		},
 		{
@@ -100,6 +95,11 @@ func volumeOptionsHandler(w http.ResponseWriter, r *http.Request) {
 	}
 
 	for k, v := range req.Options {
+		// TODO: Normalize <graph>.<xlator>.<option> and just
+		// <xlator>.<option> to avoid ambiguity and duplication.
+		// For example, currently both the following representations
+		// will be stored in volinfo:
+		// {"afr.eager-lock":"on","gfproxy.afr.eager-lock":"on"}
 		volinfo.Options[k] = v
 	}
 

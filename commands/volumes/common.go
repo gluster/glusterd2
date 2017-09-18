@@ -28,17 +28,12 @@ func areOptionNamesValid(optsFromReq map[string]string) error {
 	var xlOptFound bool
 	for o := range optsFromReq {
 
-		// assuming option to be of the form <domain>.<xlator-option>
-		// and <domain> will be the xlator type.
-		// Example: cluster/afr.eager-lock
-		// we know for certain that this isn't true
-
 		tmp := strings.Split(strings.TrimSpace(o), ".")
-		if len(tmp) != 2 {
+		if !(len(tmp) == 2 || len(tmp) == 3) {
 			return invalidOptionError{option: o}
 		}
-		xlatorType := tmp[0]
-		xlatorOption := tmp[1]
+
+		_, xlatorType, xlatorOption := volume.SplitVolumeOptionName(o)
 
 		options, ok := xlator.AllOptions[xlatorType]
 		if !ok {

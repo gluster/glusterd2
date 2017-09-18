@@ -3,6 +3,7 @@ package e2e
 import (
 	"io/ioutil"
 	"os"
+	"os/exec"
 	"testing"
 
 	"github.com/gluster/glusterd2/pkg/api"
@@ -46,4 +47,56 @@ func TestVolumeCreateDelete(t *testing.T) {
 	// delete volume
 	errVolDel := client.VolumeDelete(volname)
 	r.Nil(errVolDel)
+}
+
+func TestVolumeOptions(t *testing.T) {
+
+	// skip this test if glusterfs server packages and xlators are not
+	// installed
+	_, err := exec.Command("sh", "-c", "which glusterfsd").Output()
+	if err != nil {
+		t.SkipNow()
+	}
+
+	r := require.New(t)
+
+	gds, err := setupCluster("./config/1.yaml")
+	r.Nil(err)
+	defer teardownCluster(gds)
+
+	brickDir, err := ioutil.TempDir("", t.Name())
+	defer os.RemoveAll(brickDir)
+
+	brickPath, err := ioutil.TempDir(brickDir, "brick")
+	r.Nil(err)
+
+	client := initRestclient(gds[0].ClientAddress)
+
+	volname := "testvol"
+	createReq := api.VolCreateReq{
+		Name:   volname,
+		Bricks: []string{gds[0].PeerAddress + ":" + brickPath},
+		Force:  true,
+	}
+
+	// valid option test cases
+	validOpKeys := []string{"gfproxy.afr.eager-lock", "afr.eager-lock"}
+	for _, validKey := range validOpKeys {
+		createReq.Options = map[string]string{validKey: "on"}
+
+		_, err = client.VolumeCreate(createReq)
+		r.Nil(err)
+
+		err = client.VolumeDelete(volname)
+		r.Nil(err)
+	}
+
+	// invalid option test cases
+	invalidOpKeys := []string{"..eager-lock", "a.b.afr.eager-lock", "afr.non-existent", "eager-lock"}
+	for _, invalidKey := range invalidOpKeys {
+		createReq.Options = map[string]string{invalidKey: "on"}
+
+		_, err = client.VolumeCreate(createReq)
+		r.NotNil(err)
+	}
 }

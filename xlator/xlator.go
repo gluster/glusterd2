@@ -4,7 +4,7 @@ package xlator
 #cgo LDFLAGS: -ldl
 
 #include <stdlib.h>    // free()
-#include <dlfcn.h>     // dlopen(), dlclose()
+#include <dlfcn.h>     // dlopen(), dlsym(), dlclose(), dlerror()
 #include "options.h"   // volume_option_t
 */
 import "C"
@@ -127,19 +127,14 @@ func getAllOptions() (map[string][]Option, error) {
 	// access-control.so -> ../system/posix-acl.so
 
 	actor := func(path string, f os.FileInfo, err error) error {
-		// skipping non-xlators till glusterfs 3.12 gets out
-		if strings.HasSuffix(path, ".so") && strings.Contains(path, "/xlator/") {
+		if strings.HasSuffix(path, ".so") {
 			xopts, err := loadSharedObjectOptions(path)
 			if err != nil {
 				return err
 			}
 			if xopts != nil {
-				if strings.Contains(path, "/xlator/") {
-					opsMap[path[len(xlatorsDir)+1:len(path)-len(".so")]] = xopts
-				} else {
-					// non-xlators .SOs present in rpc-transport/ and auth/ dirs
-					opsMap[path[len(xlatorsParentDir)+1:len(path)-len(".so")]] = xopts
-				}
+				_, fname := filepath.Split(path)
+				opsMap[fname[:len(fname)-3]] = xopts
 			}
 		}
 		return nil
