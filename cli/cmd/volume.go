@@ -2,6 +2,7 @@ package cmd
 
 import (
 	"fmt"
+	"github.com/gluster/glusterd2/pkg/api"
 	"github.com/spf13/cobra"
 	log "github.com/Sirupsen/logrus"
 )
@@ -78,7 +79,18 @@ var volumeCreateCmd = &cobra.Command{
 		validateNArgs(cmd, 2, 0)
 		volname := cmd.Flags().Args()[0]
 		bricks := cmd.Flags().Args()[1:]
-		fmt.Println("CREATE:", volname, bricks)
+		vol, err := client.VolumeCreate(api.VolCreateReq{
+			Name: volname,
+			Bricks: bricks,
+			Replica: flagCreateCmdReplicaCount,
+			Force: flagCreateCmdForce,
+		})
+		if err != nil {
+			log.WithField("volume", volname).Println("volume creation failed")
+			failure(fmt.Sprintf("Volume creation failed with %s", err.Error()), 1)
+		}
+		fmt.Printf("%s Volume created successfully\n", vol.Name)
+		fmt.Println("Volume ID: ", vol.ID)
 	},
 }
 
