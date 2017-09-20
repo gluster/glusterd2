@@ -17,13 +17,13 @@ const (
 )
 
 // Txn is a set of steps
-//
-// Nodes is a union of the all the TxnStep.Nodes
 type Txn struct {
-	// TODO: Any good reason for this to be not just string ?
 	ID    uuid.UUID
 	Ctx   TxnCtx
 	Steps []*Step
+	// Nodes should be a union of the all the TxnStep.Nodes and must be set
+	// before calling Txn.Do(). This is currently only used to determine
+	// liveness of the nodes before running the transaction steps.
 	Nodes []uuid.UUID
 }
 
