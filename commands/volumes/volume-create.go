@@ -6,9 +6,11 @@ import (
 	"net/http"
 
 	gderrors "github.com/gluster/glusterd2/errors"
+	"github.com/gluster/glusterd2/gdctx"
 	restutils "github.com/gluster/glusterd2/servers/rest/utils"
 	"github.com/gluster/glusterd2/transaction"
 	"github.com/gluster/glusterd2/utils"
+	"github.com/gluster/glusterd2/volgen"
 	"github.com/gluster/glusterd2/volume"
 
 	"github.com/pborman/uuid"
@@ -129,7 +131,15 @@ func rollBackVolumeCreate(c transaction.TxnCtx) error {
 		return err
 	}
 
-	_ = volume.RemoveBrickPaths(volinfo.Bricks)
+	for _, b := range volinfo.Bricks {
+		if !uuid.Equal(b.NodeID, gdctx.MyUUID) {
+			continue
+		}
+		volgen.DeleteBrickVolfile(&b)
+		// TODO: Clean xattrs set if any. ValidateBrickEntriesFunc()
+		// does a lot of things that it's not supposed to do.
+	}
+
 	return nil
 }
 
@@ -138,9 +148,9 @@ func registerVolCreateStepFuncs() {
 		name string
 		sf   transaction.StepFunc
 	}{
-		{"vol-create.Stage", validateVolumeCreate},
-		{"vol-create.Commit", generateBrickVolfiles},
-		{"vol-create.Store", storeVolume},
+		{"vol-create.Validate", validateVolumeCreate},
+		{"vol-create.GenerateBrickVolfiles", generateBrickVolfiles},
+		{"vol-create.StoreVolume", storeVolume},
 		{"vol-create.Rollback", rollBackVolumeCreate},
 	}
 	for _, sf := range sfs {
@@ -178,20 +188,33 @@ func volumeCreateHandler(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	txn, err := (&transaction.SimpleTxn{
-		Nodes:    nodes,
-		LockKey:  req.Name,
-		Stage:    "vol-create.Stage",
-		Commit:   "vol-create.Commit",
-		Store:    "vol-create.Store",
-		Rollback: "vol-create.Rollback",
-	}).NewTxn(reqID)
+	txn := transaction.NewTxn(reqID)
+	defer txn.Cleanup()
+
+	lock, unlock, err := transaction.CreateLockSteps(req.Name)
 	if err != nil {
-		logger.WithError(err).Error("failed to create transaction")
 		restutils.SendHTTPError(w, http.StatusInternalServerError, err.Error())
 		return
 	}
-	defer txn.Cleanup()
+
+	txn.Nodes = nodes
+	txn.Steps = []*transaction.Step{
+		lock,
+		{
+			DoFunc: "vol-create.Validate",
+			Nodes:  txn.Nodes,
+		},
+		{
+			DoFunc:   "vol-create.GenerateBrickVolfiles",
+			UndoFunc: "vol-create.Rollback",
+			Nodes:    txn.Nodes,
+		},
+		{
+			DoFunc: "vol-create.StoreVolume",
+			Nodes:  []uuid.UUID{gdctx.MyUUID},
+		},
+		unlock,
+	}
 
 	err = txn.Ctx.Set("req", req)
 	if err != nil {
