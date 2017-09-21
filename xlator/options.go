@@ -45,4 +45,8 @@ type Option struct {
 	Min          float64
 	Max          float64
 	Validate     OptionValidateType
+	OpVersion    []uint32
+	Deprecated   []uint32
+	Flags        uint32
+	Tags         []string
 }
