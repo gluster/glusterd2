@@ -1,4 +1,5 @@
 #include <stdio.h>
+#include <stdint.h>
 
 // These definitions are borrowed from libglusterfs/src/options.h file in
 // glusterfs source. Maintaining this copy here has very little overhead
@@ -31,6 +32,7 @@ typedef enum {
         GF_OPT_VALIDATE_MAX,
 } opt_validate_type_t;
 
+#define GF_MAX_RELEASES 4
 #define ZR_VOLUME_MAX_NUM_KEY    4
 #define ZR_OPTION_MAX_ARRAY_SIZE 64
 
@@ -43,4 +45,8 @@ typedef struct volume_options {
         char                    *default_value;
         char                    *description;
         opt_validate_type_t     validate;
+        uint32_t                op_version[GF_MAX_RELEASES];
+        uint32_t                deprecated[GF_MAX_RELEASES];
+        uint32_t                flags;
+        char                    *tags[ZR_OPTION_MAX_ARRAY_SIZE];
 } volume_option_t;

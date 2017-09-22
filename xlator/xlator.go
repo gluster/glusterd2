@@ -43,6 +43,8 @@ func structifyOption(option *C.volume_option_t) Option {
 	x.DefaultValue = C.GoString(option.default_value)
 	x.Description = C.GoString(option.description)
 	x.Validate = OptionValidateType(option.validate)
+	// Other fields (OpVersion, Deprecated, Flags, Tags) are not populated
+	// for now
 
 	return x
 }
