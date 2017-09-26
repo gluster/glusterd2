@@ -10,7 +10,7 @@ import:
 - package: github.com/pborman/uuid
 - package: github.com/gorilla/mux
 - package: github.com/Sirupsen/logrus
-  version: ~v0.10.0
+  version: ~v1.0.3
 - package: golang.org/x/net
   subpackages:
   - context
