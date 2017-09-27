@@ -102,7 +102,6 @@ func (p *GfHandshake) ServerGetspec(args *GfGetspecReq, reply *GfGetspecRsp) err
 			log.WithError(err).Error("ServerGetspec(): Could not read brick volfile")
 			goto Out
 		}
-		log.Info(fileContents)
 	} else {
 		// client volfile
 		resp, err := store.Store.Get(context.TODO(), volfilePrefix+args.Key)

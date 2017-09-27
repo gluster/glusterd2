@@ -37,7 +37,6 @@ func TestIsLocalAddress(t *testing.T) {
 }
 
 func TestParseHostAndBrickPath(t *testing.T) {
-	hostname := "abc"
 	brick := "/brick"
 	brickPath := "abc:/brick"
 	var h, b string
@@ -45,7 +44,6 @@ func TestParseHostAndBrickPath(t *testing.T) {
 
 	h, b, e = ParseHostAndBrickPath(brickPath)
 	tests.Assert(t, e == nil)
-	tests.Assert(t, h == hostname)
 	tests.Assert(t, b == brick)
 
 	h, b, e = ParseHostAndBrickPath("invalid brick")
@@ -78,23 +76,23 @@ func TestValidateBrickSubDirLength(t *testing.T) {
 }
 
 func TestValidateBrickPathStats(t *testing.T) {
-	tests.Assert(t, ValidateBrickPathStats("/bricks/b1", "host", false) != nil)
-	tests.Assert(t, ValidateBrickPathStats("/bricks/b1", "host", true) == nil)
-	tests.Assert(t, ValidateBrickPathStats("/tmp", "host", false) != nil)
+	tests.Assert(t, ValidateBrickPathStats("/bricks/b1", false) != nil)
+	tests.Assert(t, ValidateBrickPathStats("/bricks/b1", true) == nil)
+	tests.Assert(t, ValidateBrickPathStats("/tmp", false) != nil)
 	//TODO : In build system /tmp is considered as root, hence passing
 	//force = true
-	tests.Assert(t, ValidateBrickPathStats("/tmp/bricks/b1", "host", true) == nil)
+	tests.Assert(t, ValidateBrickPathStats("/tmp/bricks/b1", true) == nil)
 	cmd := exec.Command("touch", "/tmp/bricks/b1/b2")
 	err := cmd.Run()
 	tests.Assert(t, err == nil)
-	tests.Assert(t, ValidateBrickPathStats("/tmp/bricks/b1/b2", "host", false) != nil)
+	tests.Assert(t, ValidateBrickPathStats("/tmp/bricks/b1/b2", false) != nil)
 }
 
 func TestValidateXattrSupport(t *testing.T) {
 	defer heketitests.Patch(&Setxattr, tests.MockSetxattr).Restore()
 	defer heketitests.Patch(&Getxattr, tests.MockGetxattr).Restore()
 	defer heketitests.Patch(&Removexattr, tests.MockRemovexattr).Restore()
-	tests.Assert(t, ValidateXattrSupport("/tmp/b1", "localhost", uuid.NewRandom(), true) == nil)
+	tests.Assert(t, ValidateXattrSupport("/tmp/b1", uuid.NewRandom(), true) == nil)
 
 	// Some negative tests
 	var xattrErr error
@@ -105,18 +103,18 @@ func TestValidateXattrSupport(t *testing.T) {
 	defer heketitests.Patch(&Setxattr, func(path string, attr string, data []byte, flags int) (err error) {
 		return xattrErr
 	}).Restore()
-	tests.Assert(t, ValidateXattrSupport("/tmp/b1", "localhost", uuid.NewRandom(), true) == baderror)
+	tests.Assert(t, ValidateXattrSupport("/tmp/b1", uuid.NewRandom(), true) == baderror)
 
 	// Now check what happens when getxattr fails
 	defer heketitests.Patch(&Getxattr, func(path string, attr string, dest []byte) (sz int, err error) {
 		return 0, xattrErr
 	}).Restore()
-	tests.Assert(t, ValidateXattrSupport("/tmp/b1", "localhost", uuid.NewRandom(), true) == baderror)
+	tests.Assert(t, ValidateXattrSupport("/tmp/b1", uuid.NewRandom(), true) == baderror)
 
 	// Now check what happens when removexattr fails
 	defer heketitests.Patch(&Removexattr, func(path string, attr string) (err error) {
 		return xattrErr
 	}).Restore()
-	tests.Assert(t, ValidateXattrSupport("/tmp/b1", "localhost", uuid.NewRandom(), true) == baderror)
+	tests.Assert(t, ValidateXattrSupport("/tmp/b1", uuid.NewRandom(), true) == baderror)
 
 }

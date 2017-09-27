@@ -140,14 +140,13 @@ func GetDeviceID(f os.FileInfo) (int, error) {
 //ValidateBrickPathStats checks whether the brick directory can be created with
 //certain validations like directory checks, whether directory is part of mount
 //point etc
-func ValidateBrickPathStats(brickPath string, host string, force bool) error {
+func ValidateBrickPathStats(brickPath string, force bool) error {
 	var created bool
 	var rootStat, brickStat, parentStat os.FileInfo
 	err := os.MkdirAll(brickPath, os.ModeDir|os.ModePerm)
 	if err != nil {
 		if !os.IsExist(err) {
 			log.WithFields(log.Fields{
-				"host":  host,
 				"brick": brickPath,
 			}).Error("Failed to create brick - ", err.Error())
 			return err
@@ -158,14 +157,12 @@ func ValidateBrickPathStats(brickPath string, host string, force bool) error {
 	brickStat, err = os.Lstat(brickPath)
 	if err != nil {
 		log.WithFields(log.Fields{
-			"host":  host,
 			"brick": brickPath,
 		}).Error("Failed to stat on brick path - ", err.Error())
 		return err
 	}
 	if !created && !brickStat.IsDir() {
 		log.WithFields(log.Fields{
-			"host":  host,
 			"brick": brickPath,
 		}).Error("brick path which is already present is not a directory")
 		return errors.ErrBrickNotDirectory
@@ -181,7 +178,6 @@ func ValidateBrickPathStats(brickPath string, host string, force bool) error {
 	parentStat, err = os.Lstat(parentBrick)
 	if err != nil {
 		log.WithFields(log.Fields{
-			"host":        host,
 			"brick":       brickPath,
 			"parentBrick": parentBrick,
 		}).Error("Failed to stat on parent of the brick path")
@@ -194,7 +190,6 @@ func ValidateBrickPathStats(brickPath string, host string, force bool) error {
 		parentDeviceID, e = GetDeviceID(parentStat)
 		if e != nil {
 			log.WithFields(log.Fields{
-				"host":  host,
 				"brick": brickPath,
 			}).Error("Failed to find the device id for parent of brick path")
 
@@ -208,20 +203,17 @@ func ValidateBrickPathStats(brickPath string, host string, force bool) error {
 		brickDeviceID, e = GetDeviceID(brickStat)
 		if e != nil {
 			log.WithFields(log.Fields{
-				"host":  host,
 				"brick": brickPath,
 			}).Error("Failed to find the device id of the brick")
 			return err
 		}
 		if brickDeviceID != parentDeviceID {
 			log.WithFields(log.Fields{
-				"host":  host,
 				"brick": brickPath,
 			}).Error(errors.ErrBrickIsMountPoint.Error())
 			return errors.ErrBrickIsMountPoint
 		} else if parentDeviceID == rootDeviceID {
 			log.WithFields(log.Fields{
-				"host":  host,
 				"brick": brickPath,
 			}).Error(errors.ErrBrickUnderRootPartition.Error())
 			return errors.ErrBrickUnderRootPartition
@@ -241,13 +233,12 @@ func ValidateBrickPathStats(brickPath string, host string, force bool) error {
 //ValidateXattrSupport checks whether the underlying file system has extended
 //attribute support and it also sets some internal xattrs to mark the brick in
 //use
-func ValidateXattrSupport(brickPath string, host string, volid uuid.UUID, force bool) error {
+func ValidateXattrSupport(brickPath string, volid uuid.UUID, force bool) error {
 	var err error
 	err = Setxattr(brickPath, "trusted.glusterfs.test", []byte("working"), 0)
 	if err != nil {
 		log.WithFields(log.Fields{"error": err.Error(),
 			"brickPath": brickPath,
-			"host":      host,
 			"xattr":     testXattr}).Error("setxattr failed")
 		return err
 	}
@@ -255,23 +246,22 @@ func ValidateXattrSupport(brickPath string, host string, volid uuid.UUID, force 
 	if err != nil {
 		log.WithFields(log.Fields{"error": err.Error(),
 			"brickPath": brickPath,
-			"host":      host,
 			"xattr":     testXattr}).Error("removexattr failed")
 		return err
 	}
 	if !force {
 		if isBrickPathAlreadyInUse(brickPath) {
 			log.WithFields(log.Fields{
-				"brickPath": brickPath,
-				"host":      host}).Error(errors.ErrBrickPathAlreadyInUse.Error())
+				"brickPath": brickPath}).Error(errors.ErrBrickPathAlreadyInUse.Error())
 			return errors.ErrBrickPathAlreadyInUse
 		}
 	}
+
+	// FIXME: This shouldn't be part of validate
 	err = Setxattr(brickPath, volumeIDXattr, []byte(volid), 0)
 	if err != nil {
 		log.WithFields(log.Fields{"error": err.Error(),
 			"brickPath": brickPath,
-			"host":      host,
 			"xattr":     volumeIDXattr}).Error("setxattr failed")
 		return err
 	}

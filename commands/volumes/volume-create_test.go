@@ -54,11 +54,12 @@ func TestUnmarshalVolCreateRequest(t *testing.T) {
 // TestCreateVolinfo validates createVolinfo()
 func TestCreateVolinfo(t *testing.T) {
 	defer heketitests.Patch(&peer.GetPeerIDByAddrF, peer.GetPeerIDByAddrMockGood).Restore()
+	defer heketitests.Patch(&peer.GetPeerF, peer.GetPeerFMockGood).Restore()
 
 	msg := new(VolCreateRequest)
-
+	u := uuid.NewRandom()
 	msg.Name = "vol"
-	msg.Bricks = []string{"127.0.0.1:/tmp/b1", "127.0.0.1:/tmp/b2"}
+	msg.Bricks = []string{u.String() + ":/tmp/b1", u.String() + ":/tmp/b2"}
 	vol, e := createVolinfo(msg)
 	tests.Assert(t, e == nil && vol != nil)
 
@@ -75,7 +76,8 @@ func TestValidateVolumeCreate(t *testing.T) {
 	msg := new(VolCreateRequest)
 
 	msg.Name = "vol"
-	msg.Bricks = []string{"127.0.0.1:/tmp/b1", "127.0.0.1:/tmp/b2"}
+	u := uuid.NewRandom()
+	msg.Bricks = []string{u.String() + ":/tmp/b1", u.String() + ":/tmp/b2"}
 
 	c := transaction.NewMockCtx()
 	c.Set("req", msg)
@@ -84,6 +86,7 @@ func TestValidateVolumeCreate(t *testing.T) {
 		return 0, nil
 	}).Restore()
 	defer heketitests.Patch(&peer.GetPeerIDByAddrF, peer.GetPeerIDByAddrMockGood).Restore()
+	defer heketitests.Patch(&peer.GetPeerF, peer.GetPeerFMockGood).Restore()
 
 	vol, e := createVolinfo(msg)
 	tests.Assert(t, e == nil)

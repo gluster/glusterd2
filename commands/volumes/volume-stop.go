@@ -40,14 +40,13 @@ func stopBricks(c transaction.TxnCtx) error {
 				return err
 			}
 
-			brickname := b.Hostname + ":" + b.Path
 			c.Logger().WithFields(log.Fields{
-				"volume": volname, "brick": brickname}).Info("Stopping brick")
+				"volume": volname, "brick": b.String()}).Info("Stopping brick")
 
 			client, err := daemon.GetRPCClient(brickDaemon)
 			if err != nil {
 				c.Logger().WithError(err).WithField(
-					"brick", brickname).Error("failed to connect to brick, sending SIGTERM")
+					"brick", b.String()).Error("failed to connect to brick, sending SIGTERM")
 				daemon.Stop(brickDaemon, false)
 				continue
 			}
@@ -60,7 +59,7 @@ func stopBricks(c transaction.TxnCtx) error {
 			err = client.Call("BrickOp", req, &rsp)
 			if err != nil || rsp.OpRet != 0 {
 				c.Logger().WithError(err).WithField(
-					"brick", brickname).Error("failed to send terminate RPC, sending SIGTERM")
+					"brick", b.String()).Error("failed to send terminate RPC, sending SIGTERM")
 				daemon.Stop(brickDaemon, false)
 			}
 		}

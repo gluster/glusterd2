@@ -33,7 +33,7 @@ func startAllBricks(c transaction.TxnCtx) error {
 
 		c.Logger().WithFields(log.Fields{
 			"volume": b.VolumeName,
-			"brick":  b.Hostname + ":" + b.Path,
+			"brick":  b.String(),
 		}).Info("Starting brick")
 
 		if err := startBrick(b); err != nil {
@@ -72,7 +72,7 @@ func stopAllBricks(c transaction.TxnCtx) error {
 
 		c.Logger().WithFields(log.Fields{
 			"volume": b.VolumeName,
-			"brick":  b.Hostname + ":" + b.Path,
+			"brick":  b.String(),
 		}).Info("volume start failed, stopping brick")
 
 		if err := stopBrick(b); err != nil {

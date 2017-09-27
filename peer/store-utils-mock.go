@@ -13,6 +13,12 @@ func GetPeerIDByAddrMockGood(addr string) (uuid.UUID, error) {
 	return uuid.NewRandom(), nil
 }
 
+// GetPeerFMockGood returns a mock Peer
+func GetPeerFMockGood(id string) (*Peer, error) {
+	var p Peer
+	return &p, nil
+}
+
 // GetPeerIDByAddrMockBad returns an error when called
 func GetPeerIDByAddrMockBad(addr string) (uuid.UUID, error) {
 	return nil, errors.ErrPeerNotFound

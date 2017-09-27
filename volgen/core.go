@@ -4,7 +4,6 @@ import (
 	"bytes"
 	"context"
 	"fmt"
-	"net"
 	"os"
 	"path"
 	"strconv"
@@ -34,19 +33,12 @@ func GenerateClientVolfile(vinfo *volume.Volinfo) error {
 	// Insert leaf nodes i.e client xlators
 	for index, b := range vinfo.Bricks {
 
-		address, err := utils.FormRemotePeerAddress(b.Hostname)
-		if err != nil {
-			return err
-		}
-		remoteHost, _, _ := net.SplitHostPort(address)
-
 		replacer := strings.NewReplacer(
 			"<child-index>", strconv.Itoa(index),
 			"<brick-path>", b.Path,
 			"<volume-name>", vinfo.Name,
 			"<trusted-username>", vinfo.Auth.Username,
-			"<trusted-password>", vinfo.Auth.Password,
-			"<remote-host>", remoteHost)
+			"<trusted-password>", vinfo.Auth.Password)
 
 		volfile.WriteString(replacer.Replace(clientLeafTemplate))
 	}
