@@ -2,8 +2,10 @@
 package rest
 
 import (
+	"context"
 	"net"
 	"net/http"
+	"time"
 
 	"github.com/gluster/glusterd2/middleware"
 
@@ -17,39 +19,59 @@ import (
 type GDRest struct {
 	Routes   *mux.Router
 	listener net.Listener
-}
-
-// New returns a GDRest object which can listen on the configured address
-func New(l net.Listener) *GDRest {
-	rest := &GDRest{
-		mux.NewRouter(),
-		l,
-	}
-
-	rest.registerRoutes()
-
-	return rest
+	server   *http.Server
+	stopCh   chan struct{}
 }
 
 // NewMuxed returns a GDRest object which listens on a CMux multiplexed connection
 func NewMuxed(m cmux.CMux) *GDRest {
-	return New(m.Match(cmux.HTTP1Fast()))
+
+	rest := &GDRest{
+		Routes:   mux.NewRouter(),
+		listener: m.Match(cmux.HTTP1Fast()),
+		server:   &http.Server{},
+		stopCh:   make(chan struct{}),
+	}
+
+	rest.registerRoutes()
+	// Chain of ordered middlewares.
+	rest.server.Handler = alice.New(
+		middleware.Recover,
+		middleware.ReqIDGenerator,
+		middleware.LogRequest).Then(rest.Routes)
+
+	return rest
 }
 
 // Serve begins serving client HTTP requests served by REST server
 func (r *GDRest) Serve() {
-	chain := alice.New(middleware.Recover, middleware.ReqIDGenerator, middleware.LogRequest).Then(r.Routes)
 	log.WithField("ip:port", r.listener.Addr().String()).Info("Started GlusterD ReST server")
-	if err := http.Serve(r.listener, chain); err != nil {
-		//TODO: Correctly handle valid errors. We could also be having errors when stopping
-		log.WithError(err).Error("GlusterD ReST server failed")
+	if err := r.server.Serve(r.listener); err != nil && err != cmux.ErrListenerClosed {
+		if err == http.ErrServerClosed {
+			// when Shutdown() is called, Serve() immediately returns
+			// ErrServerClosed. Give Shutdown() a chance to finish.
+			<-r.stopCh
+		} else {
+			log.WithError(err).Error("glusterd ReST server failed")
+		}
 	}
-	return
 }
 
-// Stop stops the GlusterD Rest server
+// Stop intends to stop the GlusterD Rest server gracefully. But this won't
+// work because the Stop() call chain is managed by supervisor and the cmux
+// listener gets closed first.
 func (r *GDRest) Stop() {
-	log.Debug("stopping the GlusterD ReST server")
-	// TODO: Graceful shutdown here
-	log.Info("stopped GlusterD ReST server")
+	ctx, cancel := context.WithTimeout(context.Background(), 3*time.Second)
+	defer cancel()
+
+	log.Debug("stopping glusterd ReST server gracefully")
+	if err := r.server.Shutdown(ctx); err != nil && err != cmux.ErrListenerClosed {
+		log.WithError(err).Error("failed to gracefully stop glusterd ReST server")
+		if err == context.DeadlineExceeded {
+			r.server.Close() // forcefully close connections
+		}
+	}
+	log.Info("stopped glusterd ReST server")
+
+	r.stopCh <- struct{}{}
 }

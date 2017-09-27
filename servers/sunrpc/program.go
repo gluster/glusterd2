@@ -17,7 +17,7 @@ type genericProgram struct {
 	procedures  []sunrpc.Procedure
 }
 
-func registerProgram(server *rpc.Server, program sunrpc.Program, port int) error {
+func registerProgram(server *rpc.Server, program sunrpc.Program, port int, tellrpcbind bool) error {
 	logger := log.WithFields(log.Fields{
 		"program": program.Name(),
 		"prognum": program.Number(),
@@ -57,7 +57,7 @@ func registerProgram(server *rpc.Server, program sunrpc.Program, port int) error
 		}
 	}
 
-	if port != 0 {
+	if tellrpcbind && port != 0 {
 		_, err = sunrpc.PmapUnset(program.Number(), program.Version())
 		if err != nil {
 			return err
