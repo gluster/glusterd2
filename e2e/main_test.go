@@ -2,6 +2,7 @@ package e2e
 
 import (
 	"flag"
+	"fmt"
 	"os"
 	"testing"
 )
@@ -24,6 +25,14 @@ func TestMain(m *testing.M) {
 		// go test -tags 'novirt noaugeas' ./e2e -v -functest
 		return
 	}
+
+	if os.Geteuid() != 0 {
+		fmt.Println("Skipping functional tests (requires root)")
+		return
+	}
+
+	// Cleanup leftovers from previous test runs. But don't cleanup after.
+	os.RemoveAll("/tmp/gd2_func_test")
 
 	v := m.Run()
 	os.Exit(v)
