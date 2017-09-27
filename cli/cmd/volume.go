@@ -1,10 +1,15 @@
 package cmd
 
 import (
+	"errors"
 	"fmt"
+	"strings"
+
 	"github.com/gluster/glusterd2/pkg/api"
-	"github.com/spf13/cobra"
+	"github.com/pborman/uuid"
+
 	log "github.com/Sirupsen/logrus"
+	"github.com/spf13/cobra"
 )
 
 const (
@@ -72,18 +77,66 @@ var volumeCmd = &cobra.Command{
 	Short: helpVolumeCmd,
 }
 
+func bricksAsUUID(bricks []string) ([]string, error) {
+
+	// validate if <host> in <host>:<path> is already UUID
+	validUUIDs := 0
+	for _, brick := range bricks {
+		host := strings.Split(brick, ":")[0]
+		if uuid.Parse(host) == nil {
+			break
+		}
+		validUUIDs++
+	}
+
+	if validUUIDs == len(bricks) {
+		// bricks are already of the format <uuid>:<path>
+		return bricks, nil
+	}
+
+	peers, err := client.Peers()
+	if err != nil {
+		return nil, err
+	}
+
+	var brickUUIDs []string
+
+	for _, brick := range bricks {
+		host := strings.Split(brick, ":")[0]
+		path := strings.Split(brick, ":")[1]
+		for _, peer := range peers {
+			for _, addr := range peer.Addresses {
+				// TODO: Normalize presence/absence of port in peer address
+				if strings.Split(addr, ":")[0] == strings.Split(host, ":")[0] {
+					brickUUIDs = append(brickUUIDs, peer.ID.String()+":"+path)
+				}
+			}
+		}
+	}
+
+	if len(brickUUIDs) != len(bricks) {
+		return brickUUIDs, errors.New("could not find UUIDs of bricks specified")
+	}
+
+	return brickUUIDs, nil
+}
+
 var volumeCreateCmd = &cobra.Command{
 	Use:   "create",
 	Short: helpVolumeCreateCmd,
 	Run: func(cmd *cobra.Command, args []string) {
 		validateNArgs(cmd, 2, 0)
 		volname := cmd.Flags().Args()[0]
-		bricks := cmd.Flags().Args()[1:]
+		bricks, err := bricksAsUUID(cmd.Flags().Args()[1:])
+		if err != nil {
+			log.WithField("volume", volname).Println("volume creation failed")
+			failure(fmt.Sprintf("Error getting brick UUIDs: %s", err.Error()), 1)
+		}
 		vol, err := client.VolumeCreate(api.VolCreateReq{
-			Name: volname,
-			Bricks: bricks,
+			Name:    volname,
+			Bricks:  bricks, // string of format <UUID>:<path>
 			Replica: flagCreateCmdReplicaCount,
-			Force: flagCreateCmdForce,
+			Force:   flagCreateCmdForce,
 		})
 		if err != nil {
 			log.WithField("volume", volname).Println("volume creation failed")

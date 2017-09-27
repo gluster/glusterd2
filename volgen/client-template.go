@@ -76,7 +76,6 @@ volume <volume-name>-client-<child-index>
     option transport.address-family inet
     option transport-type tcp
     option remote-subvolume <brick-path>
-    option remote-host <remote-host>
     option ping-timeout 42
 end-volume
 `

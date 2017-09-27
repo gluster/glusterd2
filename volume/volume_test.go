@@ -2,7 +2,6 @@ package volume
 
 import (
 	"fmt"
-	"os"
 	"testing"
 
 	"github.com/gluster/glusterd2/errors"
@@ -10,6 +9,7 @@ import (
 	"github.com/gluster/glusterd2/tests"
 
 	heketitests "github.com/heketi/tests"
+	"github.com/pborman/uuid"
 )
 
 func find(haystack []string, needle string) bool {
@@ -24,11 +24,11 @@ func find(haystack []string, needle string) bool {
 }
 
 // getSampleBricks prepare a list of couple of bricks with the path names as
-// input along with the local hostname
+// input along with the local uuid
 func getSampleBricks(b1 string, b2 string) []string {
 
 	var bricks []string
-	lhost, _ := os.Hostname()
+	lhost := uuid.NewRandom()
 	brick1 := fmt.Sprintf("%s:%s", lhost, b1)
 	brick2 := fmt.Sprintf("%s:%s", lhost, b2)
 	bricks = append(bricks, brick1)
@@ -39,17 +39,16 @@ func getSampleBricks(b1 string, b2 string) []string {
 // TestNewBrickEntry validates NewBrickEntries ()
 func TestNewBrickEntry(t *testing.T) {
 	defer heketitests.Patch(&peer.GetPeerIDByAddrF, peer.GetPeerIDByAddrMockGood).Restore()
+	defer heketitests.Patch(&peer.GetPeerF, peer.GetPeerFMockGood).Restore()
 
 	bricks := getSampleBricks("/tmp/b1", "/tmp/b2")
 	brickPaths := []string{"/tmp/b1", "/tmp/b2"}
-	host, _ := os.Hostname()
 
 	b, err := NewBrickEntriesFunc(bricks, "volume", nil)
 	tests.Assert(t, err == nil)
 	tests.Assert(t, b != nil)
 	for _, brick := range b {
 		tests.Assert(t, find(brickPaths, brick.Path))
-		tests.Assert(t, host == brick.Hostname)
 	}
 
 	// Some negative tests

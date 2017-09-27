@@ -77,7 +77,7 @@ func startBricksOnExpand(c transaction.TxnCtx) error {
 
 		c.Logger().WithFields(log.Fields{
 			"volume": b.VolumeName,
-			"brick":  b.Hostname + ":" + b.Path,
+			"brick":  b.String(),
 		}).Info("Starting brick")
 
 		if err := startBrick(b); err != nil {
@@ -104,14 +104,14 @@ func undoStartBricksOnExpand(c transaction.TxnCtx) error {
 
 		c.Logger().WithFields(log.Fields{
 			"volume": b.VolumeName,
-			"brick":  b.Hostname + ":" + b.Path,
+			"brick":  b.String(),
 		}).Info("volume expand failed, stopping brick")
 
 		if err := stopBrick(b); err != nil {
 			c.Logger().WithFields(log.Fields{
 				"error":  err,
 				"volume": b.VolumeName,
-				"brick":  b.Hostname + ":" + b.Path,
+				"brick":  b.String(),
 			}).Debug("stopping brick failed")
 			// can't know here which of the new bricks started
 			// so stopping brick might fail, but log anyway
@@ -121,7 +121,7 @@ func undoStartBricksOnExpand(c transaction.TxnCtx) error {
 			c.Logger().WithFields(log.Fields{
 				"error":  err,
 				"volume": b.VolumeName,
-				"brick":  b.Hostname + ":" + b.Path,
+				"brick":  b.String(),
 			}).Debug("failed to remove brick volfile")
 		}
 	}
