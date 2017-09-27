@@ -23,7 +23,9 @@ func failure(msg string, err int) {
 func validateNArgs(cmd *cobra.Command, min int, max int) {
 	nargs := len(cmd.Flags().Args())
 	if nargs < min || (max != 0 && nargs > max) {
-		cmd.Usage()
-		os.Exit(1)
+		if nargs-1 % 2 == 0 {
+			cmd.Usage()
+			os.Exit(1)
+		}
 	}
 }
