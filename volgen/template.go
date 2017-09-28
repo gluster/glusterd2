@@ -66,7 +66,7 @@ func ReadTemplateFile(p string) (*GraphTemplate, error) {
 		curr = NewNode()
 
 		curr.Voltype = s.Text()
-		curr.Id = path.Base(curr.Voltype)
+		curr.ID = path.Base(curr.Voltype)
 		if t.root == nil {
 			t.root = curr
 		}

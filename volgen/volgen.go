@@ -86,11 +86,7 @@ func GenerateBrickVolfile(vol *volume.Volinfo, b *brick.Brickinfo) error {
 		return err
 	}
 
-	var extra map[string]string
-
-	// TODO: Fill brick information into the extra map
-
-	bg, err := bt.Generate(vol, extra)
+	bg, err := bt.Generate(vol, utils.MergeStringMaps(vol.StringMap(), b.StringMap()))
 	if err != nil {
 		return err
 	}

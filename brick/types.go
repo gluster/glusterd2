@@ -27,3 +27,16 @@ type Brickstatus struct {
 	Port   int
 	// TODO: Add other fields like filesystem type, statvfs output etc.
 }
+
+func (b *Brickinfo) StringMap() map[string]string {
+	m := make(map[string]string)
+
+	m["brick.id"] = b.ID.String()
+	m["brick.hostname"] = b.Hostname
+	m["brick.nodeid"] = b.NodeID.String()
+	m["brick.path"] = b.Path
+	m["brick.volumename"] = b.VolumeName
+	m["brick.volumeid"] = b.VolumeID.String()
+
+	return m
+}

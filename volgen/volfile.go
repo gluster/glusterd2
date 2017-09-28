@@ -9,14 +9,14 @@ import (
 
 const (
 	volfileTemplate = `{{define "volume" -}}
-volume {{.Id}}
+volume {{.ID}}
 	type {{.Voltype}}
 	{{- range $key, $val := .Options}}
 	option {{$key}} {{$val}}
 	{{- else}}
 	{{- end}}
 	{{- if .Children}}
-	subvolumes{{range $child := .Children}} {{$child.Id}}{{end}}
+	subvolumes{{range $child := .Children}} {{$child.ID}}{{end}}
 	{{- else}}
 	{{- end}}
 end-volume
@@ -25,7 +25,7 @@ end-volume
 	dotfileTemplate = `{{- define "volume"}}
 {{- $node := . }}
 {{- range $child := .Children}}
-"{{$node.Id}}" -> "{{$child.Id}}"
+"{{$node.ID}}" -> "{{$child.ID}}"
 {{- end}}
 {{end}}
 `

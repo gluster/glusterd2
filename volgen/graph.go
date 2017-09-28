@@ -3,18 +3,22 @@ package volgen
 import (
 	"container/list"
 	"fmt"
+	"path"
 
+	"github.com/gluster/glusterd2/utils"
 	"github.com/gluster/glusterd2/volume"
 	"github.com/gluster/glusterd2/xlator"
 )
 
+// Node is an xlator in the GlusterFS volume graph
 type Node struct {
 	Voltype  string
-	Id       string
+	ID       string
 	Children []*Node
 	Options  map[string]string
 }
 
+// Graph is the GlusterFS volume graph
 type Graph struct {
 	id   string
 	root *Node
@@ -22,14 +26,17 @@ type Graph struct {
 
 // A type for the volgen processing queue
 type qArgs struct {
-	vol  *volume.Volinfo
-	t, p *Node
+	vol   *volume.Volinfo
+	extra map[string]string
+	t, p  *Node
 }
 
+// NewGraph returns an empty graph
 func NewGraph() *Graph {
 	return new(Graph)
 }
 
+// NewNode returns an empty graph node
 func NewNode() *Node {
 	n := new(Node)
 	n.Options = make(map[string]string)
@@ -42,12 +49,13 @@ func NewNode() *Node {
 // struct to allow non volume specific graphs
 func (gt *GraphTemplate) Generate(vol *volume.Volinfo, extra map[string]string) (*Graph, error) {
 	g := NewGraph()
-	g.id = fmt.Sprintf("%s-%s", vol.Name, gt.id)
+
+	extra = utils.MergeStringMaps(vol.StringMap(), extra)
 
 	// The processing queue
 	queue := list.New()
 	// Add the template root as the first entry to the queue
-	queue.PushBack(qArgs{vol, gt.root, nil})
+	queue.PushBack(qArgs{vol, extra, gt.root, nil})
 
 	for i := queue.Front(); i != nil; i = i.Next() {
 		a := i.Value.(qArgs)
@@ -64,7 +72,7 @@ func (gt *GraphTemplate) Generate(vol *volume.Volinfo, extra map[string]string) 
 
 		for _, t := range a.t.Children {
 			// Add children to the queue to be processed
-			queue.PushBack(qArgs{vol, t, n})
+			queue.PushBack(qArgs{vol, extra, t, n})
 		}
 	}
 
@@ -80,12 +88,12 @@ func processNode(a qArgs) (*Node, error) {
 
 func processNormalNode(a qArgs) (*Node, error) {
 	n := NewNode()
-	n.Id = fmt.Sprintf("%s-%s", a.vol.Name, a.t.Id)
+	n.ID = fmt.Sprintf("%s-%s", a.vol.Name, a.t.ID)
 	n.Voltype = a.t.Voltype
 
-	if err := setOptions(n, a.vol); err != nil {
+	if err := setOptions(n, a.vol.Options, a.extra); err != nil {
 		fmt.Println()
-		fmt.Println(n.Id)
+		fmt.Println(n.ID)
 		fmt.Println(err)
 		fmt.Println()
 		_ = err
@@ -100,26 +108,30 @@ func processNormalNode(a qArgs) (*Node, error) {
 // - Iterate through the list and set options on the Node using the following
 //   rules
 //  - If option has been set in Volinfo, use that value
-//	- Else if the option has a default value, skip setting the option. Xlator
-//	  should use the default value.
-//  - Else if the option does not have a default value, error out. This implies
-//    that the particular option must be set
-func setOptions(n *Node, vol *volume.Volinfo) error {
-	xlOpts, ok := xlator.AllOptions[n.Voltype]
+//	- Else if the option has a default value and is not a varstring, skip
+//		setting the option. Xlator should use the default value.
+// - If the value is a varstring do varstring replacement
+func setOptions(n *Node, opts, extra map[string]string) error {
+	var err error
+
+	xl := path.Base(n.Voltype)
+	xlOpts, ok := xlator.AllOptions[xl]
 	if !ok {
 		return ErrOptsNotFound(n.Voltype)
 	}
 
 	for _, o := range xlOpts {
-		k, v, ok := getValue(n.Voltype, o.Key, vol.Options)
+		k, v, ok := getValue(xl, o.Key, opts)
 		if !ok {
+			if !isVarStr(o.DefaultValue) {
+				continue
+			}
 			k = o.Key[0]
 			v = o.DefaultValue
-			if v == "" {
-				// TODO: Remove this bypass later. Only here to allow a volfile to be
-				// generated for the test program.
-				v = "DEFAULT N/A"
-				//return ErrOptRequired(o.Key[0])
+		}
+		if isVarStr(v) {
+			if v, err = varStrReplace(v, extra); err != nil {
+				return err
 			}
 		}
 		n.Options[k] = v
@@ -128,10 +140,11 @@ func setOptions(n *Node, vol *volume.Volinfo) error {
 	return nil
 }
 
+// getValue returns value if found for provided xlator.keys in the options map
 // XXX: Not possibly the best place for this
-func getValue(id string, keys []string, opt map[string]string) (string, string, bool) {
+func getValue(xl string, keys []string, opts map[string]string) (string, string, bool) {
 	for _, k := range keys {
-		v, ok := opt[id+"."+k]
+		v, ok := opts[xl+"."+k]
 		if ok {
 			return k, v, true
 		}

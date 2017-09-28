@@ -85,6 +85,19 @@ type VolStatus struct {
 	// clients connected etc.
 }
 
+func (v *Volinfo) StringMap() map[string]string {
+	m := make(map[string]string)
+
+	m["volume.id"] = v.ID.String()
+	m["volume.name"] = v.Name
+	m["volume.type"] = v.Type.String()
+	m["volume.transport"] = v.Transport
+	m["volume.auth.username"] = v.Auth.Username
+	m["volume.auth.password"] = v.Auth.Password
+
+	return m
+}
+
 // NewBrickEntries creates the brick list
 func NewBrickEntries(bricks []string, volName string, volID uuid.UUID) ([]brick.Brickinfo, error) {
 	var brickInfos []brick.Brickinfo

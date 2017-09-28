@@ -6,6 +6,7 @@ import (
 	"strings"
 
 	"github.com/gluster/glusterd2/brick"
+	"github.com/gluster/glusterd2/utils"
 	"github.com/gluster/glusterd2/volume"
 )
 
@@ -33,7 +34,7 @@ func newClusterGraph(a qArgs) (*Node, error) {
 		return nil, err
 	}
 
-	n, err := processClusterGraph(g.root, a.vol)
+	n, err := processClusterGraph(g.root, a.vol, a.extra)
 	if err != nil {
 		return nil, err
 	}
@@ -47,7 +48,7 @@ func newClusterGraph(a qArgs) (*Node, error) {
 	return n[0], nil
 }
 
-func processClusterGraph(t *Node, vol *volume.Volinfo) ([]*Node, error) {
+func processClusterGraph(t *Node, vol *volume.Volinfo, extra map[string]string) ([]*Node, error) {
 	// Cluster graphs need to be linear and cannot have branches
 	// All xlators at a level in a cluster graph should be the same
 	if len(t.Children) > 1 {
@@ -60,7 +61,7 @@ func processClusterGraph(t *Node, vol *volume.Volinfo) ([]*Node, error) {
 	)
 
 	if len(t.Children) == 1 {
-		descendents, err = processClusterGraph(t.Children[0], vol)
+		descendents, err = processClusterGraph(t.Children[0], vol, extra)
 		if err != nil {
 			return nil, err
 		}
@@ -68,7 +69,7 @@ func processClusterGraph(t *Node, vol *volume.Volinfo) ([]*Node, error) {
 
 	// Special case for protocol/client
 	if t.Voltype == "protocol/client" {
-		return newClientNodes(vol)
+		return newClientNodes(vol, extra)
 	}
 
 	sc := getChildCount(t.Voltype, vol)
@@ -78,8 +79,8 @@ func processClusterGraph(t *Node, vol *volume.Volinfo) ([]*Node, error) {
 		if j%sc == 0 {
 			n = NewNode()
 			n.Voltype = t.Voltype
-			n.Id = fmt.Sprintf("%s-%s-%d", vol.Name, t.Id, k)
-			if err := setOptions(n, vol); err != nil {
+			n.ID = fmt.Sprintf("%s-%s-%d", vol.Name, t.ID, k)
+			if err := setOptions(n, vol.Options, extra); err != nil {
 				_ = err
 				//return nil, err
 			}
@@ -108,11 +109,11 @@ func getChildCount(t string, vol *volume.Volinfo) int {
 	}
 }
 
-func newClientNodes(vol *volume.Volinfo) ([]*Node, error) {
+func newClientNodes(vol *volume.Volinfo, extra map[string]string) ([]*Node, error) {
 	var ns []*Node
 
 	for _, b := range vol.Bricks {
-		n, err := newClientNode(vol, &b)
+		n, err := newClientNode(vol, &b, extra)
 		if err != nil {
 			return nil, err
 		}
@@ -122,13 +123,14 @@ func newClientNodes(vol *volume.Volinfo) ([]*Node, error) {
 	return ns, nil
 }
 
-func newClientNode(vol *volume.Volinfo, b *brick.Brickinfo) (*Node, error) {
+func newClientNode(vol *volume.Volinfo, b *brick.Brickinfo, extra map[string]string) (*Node, error) {
 
 	n := NewNode()
-	n.Id = fmt.Sprintf("%s-client-%s", vol.Name, b.ID.String())
+	n.ID = fmt.Sprintf("%s-client-%s", vol.Name, b.ID.String())
 	n.Voltype = "protocol/client"
+	extra = utils.MergeStringMaps(extra, b.StringMap())
 
-	if err := setOptions(n, vol); err != nil {
+	if err := setOptions(n, vol.Options, extra); err != nil {
 		return nil, err
 	}
 
