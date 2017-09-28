@@ -42,7 +42,7 @@ func Generate(vol *volume.Volinfo) error {
 
 // GenerateClientVolfile generates the client volfile and stores it in etcd
 func GenerateClientVolfile(vol *volume.Volinfo) error {
-	ct, err := getTemplate(fuseTmpl)
+	ct, err := GetTemplate(fuseTmpl, vol.GraphMap)
 	if err != nil {
 		return err
 	}
@@ -81,7 +81,7 @@ func DeleteClientVolfile(vol *volume.Volinfo) error {
 
 // GenerateBrickVolfile generates the brick volfile for a single brick
 func GenerateBrickVolfile(vol *volume.Volinfo, b *brick.Brickinfo) error {
-	bt, err := getTemplate(brickTmpl)
+	bt, err := GetTemplate(brickTmpl, vol.GraphMap)
 	if err != nil {
 		return err
 	}

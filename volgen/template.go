@@ -15,14 +15,25 @@ const (
 	templateExt = ".graph"
 )
 
-// Templates are empty graphs built from template files
+// GraphTemplate are empty graphs built from template files
 type GraphTemplate Graph
 
+// TemplateNotFoundError is returned by GetTemplate when the specified template
+// cannot be found
 type TemplateNotFoundError string
 
-var templates map[string]*GraphTemplate
+var (
+	templates            map[string]*GraphTemplate
+	defaultTemplatePaths map[string]string
+)
 
-// LoadTemplates reads and loads all the templates from the template directory
+func init() {
+	templates = make(map[string]*GraphTemplate)
+	defaultTemplatePaths = make(map[string]string)
+}
+
+// LoadTemplates reads and loads all the templates from the default template directory
+// and sets up the default graph map
 func LoadTemplates() error {
 	tdir := config.GetString(templateDirOpt)
 	log.WithField("templatesdir", tdir).Debug("loading templates")
@@ -35,17 +46,27 @@ func LoadTemplates() error {
 
 	log.WithField("templates", fs).Debug("found templates")
 
-	templates = make(map[string]*GraphTemplate)
 	for _, f := range fs {
-		gt, err := ReadTemplateFile(f)
+		_, err := LoadTemplate(f)
 		if err != nil {
 			return err
 		}
-		templates[path.Base(f)] = gt
-		log.WithField("template", f).Debug("loaded template")
+		defaultTemplatePaths[path.Base(f)] = f
 	}
 
 	return nil
+}
+
+// LoadTemplate loads the template at the given path
+func LoadTemplate(path string) (*GraphTemplate, error) {
+	gt, err := ReadTemplateFile(path)
+	if err != nil {
+		return nil, err
+	}
+	templates[path] = gt
+	log.WithField("template", path).Debug("loaded template")
+
+	return gt, nil
 }
 
 // ReadTemplateFile reads in a template file and generates a template graph
@@ -80,10 +101,32 @@ func ReadTemplateFile(p string) (*GraphTemplate, error) {
 	return t, nil
 }
 
-func getTemplate(n string) (*GraphTemplate, error) {
-	t, ok := templates[n]
+// GetTemplate returns the specified graph template.
+func GetTemplate(id string, umap map[string]string) (*GraphTemplate, error) {
+	var (
+		path string
+		ok   bool
+		t    *GraphTemplate
+		err  error
+	)
+
+	// Find the template path in the usermap and the defaultGraphMap in order
+	path, ok = umap[id]
 	if !ok {
-		return nil, TemplateNotFoundError(n)
+		path, ok = defaultTemplatePaths[id]
+		if !ok {
+			return nil, TemplateNotFoundError(id)
+		}
+	}
+
+	// Get template from templates map, if not found load user template
+	t, ok = templates[path]
+	if !ok {
+		// TODO: Ensure that user template is in safe paths
+		t, err = LoadTemplate(path)
+		if err != nil {
+			return nil, TemplateNotFoundError(id)
+		}
 	}
 	return t, nil
 }

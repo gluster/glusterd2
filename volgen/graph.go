@@ -4,6 +4,7 @@ import (
 	"container/list"
 	"fmt"
 	"path"
+	"strings"
 
 	"github.com/gluster/glusterd2/utils"
 	"github.com/gluster/glusterd2/volume"
@@ -27,6 +28,7 @@ type Graph struct {
 // A type for the volgen processing queue
 type qArgs struct {
 	vol   *volume.Volinfo
+	g     *Graph
 	extra map[string]string
 	t, p  *Node
 }
@@ -49,13 +51,14 @@ func NewNode() *Node {
 // struct to allow non volume specific graphs
 func (gt *GraphTemplate) Generate(vol *volume.Volinfo, extra map[string]string) (*Graph, error) {
 	g := NewGraph()
+	g.id = gt.id
 
 	extra = utils.MergeStringMaps(vol.StringMap(), extra)
 
 	// The processing queue
 	queue := list.New()
 	// Add the template root as the first entry to the queue
-	queue.PushBack(qArgs{vol, extra, gt.root, nil})
+	queue.PushBack(qArgs{vol, g, extra, gt.root, nil})
 
 	for i := queue.Front(); i != nil; i = i.Next() {
 		a := i.Value.(qArgs)
@@ -72,7 +75,7 @@ func (gt *GraphTemplate) Generate(vol *volume.Volinfo, extra map[string]string) 
 
 		for _, t := range a.t.Children {
 			// Add children to the queue to be processed
-			queue.PushBack(qArgs{vol, extra, t, n})
+			queue.PushBack(qArgs{vol, g, extra, t, n})
 		}
 	}
 
@@ -91,7 +94,7 @@ func processNormalNode(a qArgs) (*Node, error) {
 	n.ID = fmt.Sprintf("%s-%s", a.vol.Name, a.t.ID)
 	n.Voltype = a.t.Voltype
 
-	if err := setOptions(n, a.vol.Options, a.extra); err != nil {
+	if err := setOptions(n, a.g.id, a.vol.Options, a.extra); err != nil {
 		fmt.Println()
 		fmt.Println(n.ID)
 		fmt.Println(err)
@@ -111,7 +114,7 @@ func processNormalNode(a qArgs) (*Node, error) {
 //	- Else if the option has a default value and is not a varstring, skip
 //		setting the option. Xlator should use the default value.
 // - If the value is a varstring do varstring replacement
-func setOptions(n *Node, opts, extra map[string]string) error {
+func setOptions(n *Node, graph string, opts, extra map[string]string) error {
 	var err error
 
 	xl := path.Base(n.Voltype)
@@ -121,7 +124,7 @@ func setOptions(n *Node, opts, extra map[string]string) error {
 	}
 
 	for _, o := range xlOpts {
-		k, v, ok := getValue(xl, o.Key, opts)
+		k, v, ok := getValue(graph, xl, o.Key, opts)
 		if !ok {
 			if !isVarStr(o.DefaultValue) {
 				continue
@@ -140,11 +143,17 @@ func setOptions(n *Node, opts, extra map[string]string) error {
 	return nil
 }
 
-// getValue returns value if found for provided xlator.keys in the options map
+// getValue returns value if found for provided graph.xlator.keys in the options map
 // XXX: Not possibly the best place for this
-func getValue(xl string, keys []string, opts map[string]string) (string, string, bool) {
+func getValue(graph, xl string, keys []string, opts map[string]string) (string, string, bool) {
+	graph = strings.TrimSuffix(graph, templateExt)
+
 	for _, k := range keys {
-		v, ok := opts[xl+"."+k]
+		v, ok := opts[graph+"."+xl+"."+k]
+		if ok {
+			return k, v, true
+		}
+		v, ok = opts[xl+"."+k]
 		if ok {
 			return k, v, true
 		}

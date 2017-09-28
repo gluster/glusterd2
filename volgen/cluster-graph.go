@@ -29,12 +29,12 @@ func newClusterGraph(a qArgs) (*Node, error) {
 		return nil, ErrClusterNoChild
 	}
 
-	g, err := getTemplate(strings.ToLower(a.vol.Type.String()) + ".graph")
+	g, err := GetTemplate(strings.ToLower(a.vol.Type.String())+".graph", nil)
 	if err != nil {
 		return nil, err
 	}
 
-	n, err := processClusterGraph(g.root, a.vol, a.extra)
+	n, err := processClusterGraph(g.root, a.vol, a.g.id, a.extra)
 	if err != nil {
 		return nil, err
 	}
@@ -48,7 +48,7 @@ func newClusterGraph(a qArgs) (*Node, error) {
 	return n[0], nil
 }
 
-func processClusterGraph(t *Node, vol *volume.Volinfo, extra map[string]string) ([]*Node, error) {
+func processClusterGraph(t *Node, vol *volume.Volinfo, graph string, extra map[string]string) ([]*Node, error) {
 	// Cluster graphs need to be linear and cannot have branches
 	// All xlators at a level in a cluster graph should be the same
 	if len(t.Children) > 1 {
@@ -61,7 +61,7 @@ func processClusterGraph(t *Node, vol *volume.Volinfo, extra map[string]string) 
 	)
 
 	if len(t.Children) == 1 {
-		descendents, err = processClusterGraph(t.Children[0], vol, extra)
+		descendents, err = processClusterGraph(t.Children[0], vol, graph, extra)
 		if err != nil {
 			return nil, err
 		}
@@ -69,7 +69,7 @@ func processClusterGraph(t *Node, vol *volume.Volinfo, extra map[string]string) 
 
 	// Special case for protocol/client
 	if t.Voltype == "protocol/client" {
-		return newClientNodes(vol, extra)
+		return newClientNodes(vol, graph, extra)
 	}
 
 	sc := getChildCount(t.Voltype, vol)
@@ -80,7 +80,7 @@ func processClusterGraph(t *Node, vol *volume.Volinfo, extra map[string]string) 
 			n = NewNode()
 			n.Voltype = t.Voltype
 			n.ID = fmt.Sprintf("%s-%s-%d", vol.Name, t.ID, k)
-			if err := setOptions(n, vol.Options, extra); err != nil {
+			if err := setOptions(n, graph, vol.Options, extra); err != nil {
 				_ = err
 				//return nil, err
 			}
@@ -109,11 +109,11 @@ func getChildCount(t string, vol *volume.Volinfo) int {
 	}
 }
 
-func newClientNodes(vol *volume.Volinfo, extra map[string]string) ([]*Node, error) {
+func newClientNodes(vol *volume.Volinfo, graph string, extra map[string]string) ([]*Node, error) {
 	var ns []*Node
 
 	for _, b := range vol.Bricks {
-		n, err := newClientNode(vol, &b, extra)
+		n, err := newClientNode(vol, &b, graph, extra)
 		if err != nil {
 			return nil, err
 		}
@@ -123,14 +123,14 @@ func newClientNodes(vol *volume.Volinfo, extra map[string]string) ([]*Node, erro
 	return ns, nil
 }
 
-func newClientNode(vol *volume.Volinfo, b *brick.Brickinfo, extra map[string]string) (*Node, error) {
+func newClientNode(vol *volume.Volinfo, b *brick.Brickinfo, graph string, extra map[string]string) (*Node, error) {
 
 	n := NewNode()
 	n.ID = fmt.Sprintf("%s-client-%s", vol.Name, b.ID.String())
 	n.Voltype = "protocol/client"
 	extra = utils.MergeStringMaps(extra, b.StringMap())
 
-	if err := setOptions(n, vol.Options, extra); err != nil {
+	if err := setOptions(n, graph, vol.Options, extra); err != nil {
 		return nil, err
 	}
 
