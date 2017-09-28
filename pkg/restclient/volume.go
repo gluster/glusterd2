@@ -40,8 +40,8 @@ func (c *Client) VolumeDelete(volname string) error {
 }
 
 // VolumeSet sets an option for a Gluster Volume
-func (c *Client) VolumeSet(volname string, options string) error {
+func (c *Client) VolumeSet(volname string, req api.VolOptionReq) error {
 	url := fmt.Sprintf("/v1/volumes/%s/options", volname)
-	err := c.post(url, nil, http.StatusOK, nil)
+	err := c.post(url, req, http.StatusOK, nil)
 	return err
 }

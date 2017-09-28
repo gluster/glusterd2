@@ -4,8 +4,6 @@ import (
 	"errors"
 	"fmt"
 	"strings"
-	"encoding/json"
-	"os"
 
 	"github.com/gluster/glusterd2/pkg/api"
 	"github.com/pborman/uuid"
@@ -42,9 +40,6 @@ var (
 
 	// Stop Command Flags
 	flagStopCmdForce bool
-
-	// Set Command Flags
-	flagSetCmdData string
 )
 
 func init() {
@@ -69,11 +64,8 @@ func init() {
 	// Volume Delete
 	volumeCmd.AddCommand(volumeDeleteCmd)
 
-    //Volume Set
-	volumeSetCmd.Flags().StringVarP(&flagSetCmdData, "data", "d", "", "Volume Options")
-	volumeCmd.AddCommand(volumeSetCmd)
-
 	volumeCmd.AddCommand(volumeGetCmd)
+	volumeCmd.AddCommand(volumeSetCmd)
 	volumeCmd.AddCommand(volumeResetCmd)
 	volumeCmd.AddCommand(volumeInfoCmd)
 	volumeCmd.AddCommand(volumeStatusCmd)
@@ -215,14 +207,11 @@ func volumeOptionJsonHandler(cmd *cobra.Command, volname string, options []strin
 	for op,val := range options {
 		if op % 2 == 0 {
 			vopt[val] = options[op+1]
-		}else{
-			continue
 		}
 	}
-	var op = map[string]interface{}{"options": vopt}
-	opjson, _ := json.Marshal(op)
-	option := "'" + string(opjson) + "'"
-	err := client.VolumeSet(volname, option)
+	err := client.VolumeSet(volname, api.VolOptionReq{
+		Options: vopt,
+		})
 	return err
 }
 
@@ -232,13 +221,13 @@ var volumeSetCmd = &cobra.Command{
 	Run: func(cmd *cobra.Command, args []string) {
 		validateNArgs(cmd, 3, 0)
 		volname := cmd.Flags().Args()[0]
-		options := os.Args[5:]
+		options := cmd.Flags().Args()[1:]
 		err := volumeOptionJsonHandler(cmd, volname, options)
 		if err != nil {
 			log.WithField("volume", volname).Println("volume option set failed")
 			failure(fmt.Sprintf("volume option set failed with: %s", err.Error()), 1)
 		}else{
-			fmt.Println("Options set successfully for %s volume\n", volname)
+			fmt.Printf("Options set successfully for %s volume\n", volname)
 		}
 	},
 }
