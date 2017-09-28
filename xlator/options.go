@@ -34,6 +34,18 @@ const (
 	OptionValidateMax
 )
 
+type OptionFlag uint
+
+const (
+	OptionFlagNone     = 0
+	OptionFlagSettable = 1 << iota
+	OptionFlagClientOpt
+	OptionFlagGlobal
+	OptionFlagForce
+	OptionFlagNeverReset
+	OptionFlagDoc
+)
+
 // Option is a struct which represents one single xlator option exported by
 // the translator.
 type Option struct {

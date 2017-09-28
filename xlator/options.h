@@ -1,4 +1,3 @@
-#include <stdio.h>
 #include <stdint.h>
 
 // These definitions are borrowed from libglusterfs/src/options.h file in
@@ -31,6 +30,16 @@ typedef enum {
         GF_OPT_VALIDATE_MIN,
         GF_OPT_VALIDATE_MAX,
 } opt_validate_type_t;
+
+typedef enum {
+        OPT_FLAG_NONE        = 0,
+        OPT_FLAG_SETTABLE    = 1 << 0,
+        OPT_FLAG_CLIENT_OPT  = 1 << 1,
+        OPT_FLAG_GLOBAL      = 1 << 2,
+        OPT_FLAG_FORCE       = 1 << 3,
+        OPT_FLAG_NEVER_RESET = 1 << 4,
+        OPT_FLAG_DOC         = 1 << 5,
+} opt_flags_t;
 
 #define GF_MAX_RELEASES 4
 #define ZR_VOLUME_MAX_NUM_KEY    4

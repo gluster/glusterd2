@@ -37,14 +37,27 @@ func structifyOption(option *C.volume_option_t) Option {
 		}
 	}
 
+	for _, k := range option.op_version {
+		x.OpVersion = append(x.OpVersion, uint32(k))
+	}
+
+	for _, k := range option.deprecated {
+		x.Deprecated = append(x.Deprecated, uint32(k))
+	}
+
+	for _, k := range option.tags {
+		if k != nil {
+			x.Tags = append(x.Tags, C.GoString(k))
+		}
+	}
+
 	x.Type = OptionType(option.otype)
 	x.Min = float64(option.min)
 	x.Max = float64(option.max)
 	x.DefaultValue = C.GoString(option.default_value)
 	x.Description = C.GoString(option.description)
 	x.Validate = OptionValidateType(option.validate)
-	// Other fields (OpVersion, Deprecated, Flags, Tags) are not populated
-	// for now
+	x.Flags = uint32(option.flags)
 
 	return x
 }
@@ -134,10 +147,9 @@ func getAllOptions() (map[string][]Option, error) {
 			if err != nil {
 				return err
 			}
-			if xopts != nil {
-				_, fname := filepath.Split(path)
-				opsMap[fname[:len(fname)-3]] = xopts
-			}
+			// Always set xlator in opsMap even if it has no options
+			_, fname := filepath.Split(path)
+			opsMap[fname[:len(fname)-3]] = xopts
 		}
 		return nil
 	}
