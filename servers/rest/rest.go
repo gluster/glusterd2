@@ -38,7 +38,7 @@ func NewMuxed(m cmux.CMux) *GDRest {
 
 // Serve begins serving client HTTP requests served by REST server
 func (r *GDRest) Serve() {
-	chain := alice.New(middleware.LogRequest, middleware.ReqIDGenerator).Then(r.Routes)
+	chain := alice.New(middleware.Recover, middleware.ReqIDGenerator, middleware.LogRequest).Then(r.Routes)
 	log.WithField("ip:port", r.listener.Addr().String()).Info("Started GlusterD ReST server")
 	if err := http.Serve(r.listener, chain); err != nil {
 		//TODO: Correctly handle valid errors. We could also be having errors when stopping
