@@ -249,7 +249,7 @@ func volumeInfoHandler2(cmd *cobra.Command, isInfo bool) error {
 			fmt.Println("Number of Bricks: ", len(vol.Bricks))
 			fmt.Println("Bricks:")
 			for i,brick := range vol.Bricks{
-				fmt.Printf("Brick%d: %s:%s\n", i+1, brick.Hostname, brick.Path)
+				fmt.Printf("Brick%d: %s:%s\n", i+1, brick.NodeID, brick.Path)
 			}
 		}
 	}else{
