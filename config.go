@@ -43,6 +43,10 @@ func parseFlags() {
 	flag.String("clientaddress", defaultClientAddress, "Address to bind the REST service.")
 	flag.String("peeraddress", defaultPeerAddress, "Address to bind the inter glusterd2 RPC service.")
 
+	// TODO: SSL/TLS only implemented for REST interface
+	flag.String("client-cert-file", "", "Certificate used for SSL/TLS connections from clients.")
+	flag.String("client-key-file", "", "Private key for the SSL/TLS certificate.")
+
 	store.InitFlags()
 
 	flag.Parse()

@@ -3,6 +3,8 @@ package rest
 
 import (
 	"context"
+	"crypto/rand"
+	"crypto/tls"
 	"net"
 	"net/http"
 	"time"
@@ -13,6 +15,7 @@ import (
 	"github.com/gorilla/mux"
 	"github.com/justinas/alice"
 	"github.com/soheilhy/cmux"
+	config "github.com/spf13/viper"
 )
 
 // GDRest is the GlusterD Rest server
@@ -23,17 +26,45 @@ type GDRest struct {
 	stopCh   chan struct{}
 }
 
+func tlsListener(l net.Listener) (net.Listener, error) {
+	certificate, err := tls.LoadX509KeyPair(
+		config.GetString("client-cert-file"),
+		config.GetString("client-key-file"))
+	if err != nil {
+		return nil, err
+	}
+
+	config := &tls.Config{
+		Certificates: []tls.Certificate{certificate},
+		Rand:         rand.Reader,
+	}
+
+	return tls.NewListener(l, config), nil
+}
+
 // NewMuxed returns a GDRest object which listens on a CMux multiplexed connection
 func NewMuxed(m cmux.CMux) *GDRest {
 
 	rest := &GDRest{
-		Routes:   mux.NewRouter(),
-		listener: m.Match(cmux.HTTP1Fast()),
-		server:   &http.Server{},
-		stopCh:   make(chan struct{}),
+		Routes: mux.NewRouter(),
+		server: &http.Server{},
+		stopCh: make(chan struct{}),
+	}
+
+	enableSSL := true
+	if l, err := tlsListener(m.Match(cmux.TLS())); err != nil {
+		log.WithError(err).Warn("Failed to create SSL/TLS listener. Falling back to HTTP")
+		enableSSL = false // fallback to not using TLS
+	} else {
+		rest.listener = l
+	}
+
+	if !enableSSL {
+		rest.listener = m.Match(cmux.HTTP1Fast())
 	}
 
 	rest.registerRoutes()
+
 	// Chain of ordered middlewares.
 	rest.server.Handler = alice.New(
 		middleware.Recover,
