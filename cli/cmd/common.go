@@ -1,16 +1,17 @@
 package cmd
 
 import (
-	"github.com/spf13/cobra"
 	"os"
+
+	"github.com/spf13/cobra"
 
 	"github.com/gluster/glusterd2/pkg/restclient"
 )
 
 var client *restclient.Client
 
-func initRESTClient(hostname string) {
-	client = restclient.New(hostname, "", "")
+func initRESTClient(hostname string, cacert string, insecure bool) {
+	client = restclient.New(hostname, "", "", cacert, insecure)
 }
 
 func failure(msg string, err int) {
