@@ -202,7 +202,7 @@ var volumeGetCmd = &cobra.Command{
 	},
 }
 
-func volumeOptionJsonHandler(cmd *cobra.Command, volname string, options []string) error {
+func volumeOptionJSONHandler(cmd *cobra.Command, volname string, options []string) error {
 	vopt := make(map[string]string)
 	for op,val := range options {
 		if op % 2 == 0 {
@@ -220,14 +220,20 @@ var volumeSetCmd = &cobra.Command{
 	Short: helpVolumeSetCmd,
 	Run: func(cmd *cobra.Command, args []string) {
 		validateNArgs(cmd, 3, 0)
-		volname := cmd.Flags().Args()[0]
-		options := cmd.Flags().Args()[1:]
-		err := volumeOptionJsonHandler(cmd, volname, options)
-		if err != nil {
-			log.WithField("volume", volname).Println("volume option set failed")
-			failure(fmt.Sprintf("volume option set failed with: %s", err.Error()), 1)
-		}else{
-			fmt.Printf("Options set successfully for %s volume\n", volname)
+		fmt.Println(cmd.Flags().Args())
+		fmt.Println(len(cmd.Flags().Args())-1)
+		if (len(cmd.Flags().Args())-1) % 2 == 0 {
+			volname := cmd.Flags().Args()[0]
+			options := cmd.Flags().Args()[1:]
+			err := volumeOptionJSONHandler(cmd, volname, options)
+			if err != nil {
+				log.WithField("volume", volname).Println("volume option set failed")
+				failure(fmt.Sprintf("volume option set failed with: %s", err.Error()), 1)
+			}else{
+				fmt.Printf("Options set successfully for %s volume\n", volname)
+			}
+		} else {
+			fmt.Println("Incorrect volume options")
 		}
 	},
 }
