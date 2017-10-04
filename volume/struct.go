@@ -86,6 +86,7 @@ type VolStatus struct {
 	// clients connected etc.
 }
 
+// StringMap returns a map[string]string representation of Volinfo
 func (v *Volinfo) StringMap() map[string]string {
 	m := make(map[string]string)
 

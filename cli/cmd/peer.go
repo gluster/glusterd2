@@ -58,7 +58,7 @@ var peerProbeCmd = &cobra.Command{
 			log.WithField("host", hostname).Println("peer probe failed")
 			failure(fmt.Sprintf("Peer probe failed with %s", err.Error()), 1)
 		}
-		fmt.Println("Peer probe success\n")
+		fmt.Println("Peer probe success")
 		table := tablewriter.NewWriter(os.Stdout)
 		table.SetHeader([]string{"ID", "Name", "Addresses"})
 		table.Append([]string{peer.ID.String(), peer.Name, strings.Join(peer.Addresses, ",")})

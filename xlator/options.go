@@ -34,8 +34,10 @@ const (
 	OptionValidateMax
 )
 
+// OptionFlag is the type representing the flags of an Option
 type OptionFlag uint
 
+// These are the available OptionFlags
 const (
 	OptionFlagNone     = 0
 	OptionFlagSettable = 1 << iota

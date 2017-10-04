@@ -1,7 +1,6 @@
 package volgen
 
 import (
-	"errors"
 	"fmt"
 	"strings"
 
@@ -12,12 +11,6 @@ import (
 
 const (
 	clusterGraphType = "cluster.graph"
-)
-
-var (
-	ErrClusterNoChild              = errors.New("cluster nodes cannot have children")
-	ErrInvalidClusterGraphTemplate = errors.New("invalid cluster graph template")
-	ErrIncorrectBricks             = errors.New("incorrect number of bricks given for volume")
 )
 
 func isClusterGraph(voltype string) bool {

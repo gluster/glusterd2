@@ -28,6 +28,7 @@ type Brickstatus struct {
 	// TODO: Add other fields like filesystem type, statvfs output etc.
 }
 
+// StringMap returns a map[string]string representation of the Brickinfo
 func (b *Brickinfo) StringMap() map[string]string {
 	m := make(map[string]string)
 
