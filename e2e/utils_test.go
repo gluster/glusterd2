@@ -101,7 +101,8 @@ func spawnGlusterd(configFilePath string, cleanStart bool) (*gdProcess, error) {
 	g.Cmd = exec.Command(path.Join(binDir, "glusterd2"),
 		"--config", configFilePath,
 		"--logdir", path.Join(g.Workdir, "log"),
-		"--logfile", "glusterd2.log")
+		"--logfile", "glusterd2.log",
+		"--templatesdir", templatesDir)
 
 	if err := g.Cmd.Start(); err != nil {
 		return nil, err

@@ -30,8 +30,7 @@ PLUGINS ?= yes
 
 all: build
 
-build: check-go check-reqs vendor-install glusterd2 glustercli glusterd2.toml
-
+build: check-go check-reqs vendor-install glusterd2 glustercli glusterd2.toml 
 check: check-go check-reqs check-protoc
 
 check-go:

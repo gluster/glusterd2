@@ -44,6 +44,8 @@ make verify
 
 # verify build
 make glusterd2
+make glustercli
+make gd2conf
 
 # run unit-tests
 make test
