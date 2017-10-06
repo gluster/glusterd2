@@ -8,10 +8,10 @@ import (
 
 	"github.com/gluster/glusterd2/pkg/api"
 
-	"github.com/pborman/uuid"
 	log "github.com/Sirupsen/logrus"
-	"github.com/spf13/cobra"
 	"github.com/olekukonko/tablewriter"
+	"github.com/pborman/uuid"
+	"github.com/spf13/cobra"
 )
 
 const (
@@ -208,14 +208,14 @@ var volumeGetCmd = &cobra.Command{
 
 func volumeOptionJSONHandler(cmd *cobra.Command, volname string, options []string) error {
 	vopt := make(map[string]string)
-	for op,val := range options {
-		if op % 2 == 0 {
+	for op, val := range options {
+		if op%2 == 0 {
 			vopt[val] = options[op+1]
 		}
 	}
 	err := client.VolumeSet(volname, api.VolOptionReq{
 		Options: vopt,
-		})
+	})
 	return err
 }
 
@@ -225,15 +225,15 @@ var volumeSetCmd = &cobra.Command{
 	Run: func(cmd *cobra.Command, args []string) {
 		validateNArgs(cmd, 3, 0)
 		fmt.Println(cmd.Flags().Args())
-		fmt.Println(len(cmd.Flags().Args())-1)
-		if (len(cmd.Flags().Args())-1) % 2 == 0 {
+		fmt.Println(len(cmd.Flags().Args()) - 1)
+		if (len(cmd.Flags().Args())-1)%2 == 0 {
 			volname := cmd.Flags().Args()[0]
 			options := cmd.Flags().Args()[1:]
 			err := volumeOptionJSONHandler(cmd, volname, options)
 			if err != nil {
 				log.WithField("volume", volname).Println("volume option set failed")
 				failure(fmt.Sprintf("volume option set failed with: %s", err.Error()), 1)
-			}else{
+			} else {
 				fmt.Printf("Options set successfully for %s volume\n", volname)
 			}
 		} else {
@@ -260,12 +260,12 @@ func volumeInfoHandler2(cmd *cobra.Command, isInfo bool) error {
 	if len(cmd.Flags().Args()) > 0 {
 		volname = cmd.Flags().Args()[0]
 	}
-	if volname == ""{
+	if volname == "" {
 		vols, err = client.Volumes("")
-	}else{
+	} else {
 		vols, err = client.Volumes(volname)
 	}
-	if isInfo{
+	if isInfo {
 		for _, vol := range vols {
 			fmt.Println("Volume Name: ", vol.Name)
 			fmt.Println("Type: ", vol.Type)
@@ -274,11 +274,11 @@ func volumeInfoHandler2(cmd *cobra.Command, isInfo bool) error {
 			fmt.Println("Transport-type: ", vol.Transport)
 			fmt.Println("Number of Bricks: ", len(vol.Bricks))
 			fmt.Println("Bricks:")
-			for i,brick := range vol.Bricks{
+			for i, brick := range vol.Bricks {
 				fmt.Printf("Brick%d: %s:%s\n", i+1, brick.NodeID, brick.Path)
 			}
 		}
-	}else{
+	} else {
 		table := tablewriter.NewWriter(os.Stdout)
 		table.SetHeader([]string{"ID", "Name"})
 		for _, vol := range vols {

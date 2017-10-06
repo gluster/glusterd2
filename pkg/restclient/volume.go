@@ -17,7 +17,7 @@ func (c *Client) VolumeCreate(req api.VolCreateReq) (api.Volinfo, error) {
 // Volumes returns list of all volumes
 func (c *Client) Volumes(volname string) ([]api.Volinfo, error) {
 	var vols []api.Volinfo
-	if volname == ""{
+	if volname == "" {
 		url := fmt.Sprintf("/v1/volumes")
 		err := c.get(url, nil, http.StatusOK, &vols)
 		return vols, err
