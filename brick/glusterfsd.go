@@ -2,7 +2,6 @@ package brick
 
 import (
 	"bytes"
-	"crypto/md5"
 	"fmt"
 	"net"
 	"os/exec"
@@ -10,6 +9,7 @@ import (
 	"strconv"
 	"strings"
 
+	"github.com/cespare/xxhash"
 	"github.com/gluster/glusterd2/gdctx"
 	"github.com/gluster/glusterd2/pmap"
 	"github.com/gluster/glusterd2/utils"
@@ -92,11 +92,10 @@ func (b *Glusterfsd) SocketFile() string {
 	volumedir := utils.GetVolumeDir(b.brickinfo.VolumeName)
 	fakeSockFilePath := path.Join(volumedir, "run", fakeSockFileName)
 
-	// Then md5sum of the above path shall be the name of socket file.
-	// Example: /var/run/gluster/<md5sum-hash>.socket
-	checksumData := []byte(fakeSockFilePath)
+	// Then xxhash of the above path shall be the name of socket file.
+	// Example: /var/run/gluster/<xxhash-hash>.socket
 	glusterdSockDir := path.Join(config.GetString("rundir"), "gluster")
-	b.socketfilepath = fmt.Sprintf("%s/%x.socket", glusterdSockDir, md5.Sum(checksumData))
+	b.socketfilepath = fmt.Sprintf("%s/%x.socket", glusterdSockDir, xxhash.Sum64String(fakeSockFilePath))
 
 	return b.socketfilepath
 }
