@@ -17,5 +17,5 @@ type PeerAddReq struct {
 
 // VolOptionReq represents an incoming request to set volume options
 type VolOptionReq struct {
-        Options map[string]string `json:"options"`
+	Options map[string]string `json:"options"`
 }

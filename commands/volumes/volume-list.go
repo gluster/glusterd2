@@ -9,7 +9,7 @@ import (
 
 func volumeListHandler(w http.ResponseWriter, r *http.Request) {
 
-	volumes, e := volume.GetVolumesList()
+	volumes, e := volume.GetVolumes()
 	if e != nil {
 		restutils.SendHTTPError(w, http.StatusNotFound, e.Error())
 	} else {
