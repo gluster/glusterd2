@@ -26,6 +26,16 @@ cd $GD2SRC
 # install the build and test requirements
 ./scripts/install-reqs.sh
 
+# install glusterfs from source (master branch)
+yum install -y epel-release
+yum install -y git autoconf automake gcc libtool bison flex make rpm-build python-devel libaio-devel librdmacm-devel libattr-devel libxml2-devel readline-devel openssl-devel libibverbs-devel fuse-devel glib2-devel userspace-rcu-devel libacl-devel sqlite-devel
+git clone https://review.gluster.org/glusterfs; cd glusterfs
+./autogen.sh
+./configure --enable-debug
+make -j
+make install; ldconfig
+cd -
+
 # install vendored dependencies
 make vendor-install
 
