@@ -76,7 +76,7 @@ func TestVolumeOptions(t *testing.T) {
 	volname := "testvol"
 	createReq := api.VolCreateReq{
 		Name:   volname,
-		Bricks: []string{gds[0].PeerAddress + ":" + brickPath},
+		Bricks: []string{gds[0].PeerID() + ":" + brickPath},
 		Force:  true,
 	}
 
