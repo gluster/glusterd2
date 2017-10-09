@@ -26,15 +26,15 @@ type GDRest struct {
 	stopCh   chan struct{}
 }
 
-func tlsListener(l net.Listener) (net.Listener, error) {
-	certificate, err := tls.LoadX509KeyPair(
-		config.GetString("client-cert-file"),
-		config.GetString("client-key-file"))
+func tlsListener(l net.Listener, certfile, keyfile string) (net.Listener, error) {
+
+	certificate, err := tls.LoadX509KeyPair(certfile, keyfile)
 	if err != nil {
 		return nil, err
 	}
 
 	config := &tls.Config{
+		MinVersion:   tls.VersionTLS12, // force TLS 1.2
 		Certificates: []tls.Certificate{certificate},
 		Rand:         rand.Reader,
 	}
@@ -51,15 +51,21 @@ func NewMuxed(m cmux.CMux) *GDRest {
 		stopCh: make(chan struct{}),
 	}
 
-	enableSSL := true
-	if l, err := tlsListener(m.Match(cmux.TLS())); err != nil {
-		log.WithError(err).Warn("Failed to create SSL/TLS listener. Falling back to HTTP")
-		enableSSL = false // fallback to not using TLS
-	} else {
-		rest.listener = l
-	}
+	certfile := config.GetString("cert-file")
+	keyfile := config.GetString("key-file")
 
-	if !enableSSL {
+	if certfile != "" && keyfile != "" {
+		if l, err := tlsListener(m.Match(cmux.TLS()), certfile, keyfile); err != nil {
+			// TODO: Don't use Fatal(), bubble up error till main()
+			// NOTE: Methods of suture.Service interface do not return error
+			log.WithFields(log.Fields{
+				"cert-file": certfile,
+				"key-file":  keyfile,
+			}).WithError(err).Fatal("Failed to create SSL/TLS listener")
+		} else {
+			rest.listener = l
+		}
+	} else {
 		rest.listener = m.Match(cmux.HTTP1Fast())
 	}
 
