@@ -162,3 +162,67 @@ func Stop(d Daemon, force bool) error {
 
 	return nil
 }
+
+// Pause function reads the PID from path returned by PidFile() and
+// sends SIGSTOP to the process
+func Pause(d Daemon) error {
+
+	// It is assumed that the process d has written to pidfile
+	pid, err := ReadPidFromFile(d.PidFile())
+	if err != nil {
+		return err
+	}
+
+	process, err := GetProcess(pid)
+	if err != nil {
+		return err
+	}
+
+	log.WithFields(log.Fields{
+		"name": d.Name(),
+		"pid":  pid,
+	}).Debug("Pausing daemon.")
+
+	err = process.Signal(syscall.SIGSTOP)
+
+	if err != nil {
+		log.WithFields(log.Fields{
+			"name": d.Name(),
+			"pid":  pid,
+		}).Error("Pausing daemon failed.")
+	}
+
+	return nil
+}
+
+// Resume function reads the PID from path returned by PidFile() and
+// sends SIGCONT to the process
+func Resume(d Daemon) error {
+
+	// It is assumed that the process d has written to pidfile
+	pid, err := ReadPidFromFile(d.PidFile())
+	if err != nil {
+		return err
+	}
+
+	process, err := GetProcess(pid)
+	if err != nil {
+		return err
+	}
+
+	log.WithFields(log.Fields{
+		"name": d.Name(),
+		"pid":  pid,
+	}).Debug("Resuming daemon.")
+
+	err = process.Signal(syscall.SIGCONT)
+
+	if err != nil {
+		log.WithFields(log.Fields{
+			"name": d.Name(),
+			"pid":  pid,
+		}).Error("Resuming daemon failed.")
+	}
+
+	return nil
+}
