@@ -15,7 +15,7 @@ import (
 
 	"golang.org/x/sys/unix"
 
-	log "github.com/Sirupsen/logrus"
+	log "github.com/sirupsen/logrus"
 	"github.com/gluster/glusterd2/errors"
 	"github.com/pborman/uuid"
 )

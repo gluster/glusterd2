@@ -9,7 +9,7 @@ import (
 	"github.com/gluster/glusterd2/gdctx"
 	"github.com/gluster/glusterd2/store"
 
-	log "github.com/Sirupsen/logrus"
+	log "github.com/sirupsen/logrus"
 	flag "github.com/spf13/pflag"
 	config "github.com/spf13/viper"
 )

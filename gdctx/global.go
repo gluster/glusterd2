@@ -14,7 +14,7 @@ import (
 	"github.com/gluster/glusterd2/utils"
 	"github.com/gluster/glusterd2/version"
 
-	log "github.com/Sirupsen/logrus"
+	log "github.com/sirupsen/logrus"
 	"github.com/pborman/uuid"
 	config "github.com/spf13/viper"
 )

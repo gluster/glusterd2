@@ -8,7 +8,7 @@ import (
 	"github.com/gluster/glusterd2/store"
 	"github.com/pborman/uuid"
 
-	log "github.com/Sirupsen/logrus"
+	log "github.com/sirupsen/logrus"
 	"github.com/coreos/etcd/clientv3"
 )
 

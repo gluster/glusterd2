@@ -6,7 +6,7 @@ import (
 
 	"github.com/gluster/glusterd2/store"
 
-	log "github.com/Sirupsen/logrus"
+	log "github.com/sirupsen/logrus"
 	"github.com/pborman/uuid"
 )
 

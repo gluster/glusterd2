@@ -5,7 +5,7 @@ import (
 	"encoding/json"
 	"net/http"
 
-	log "github.com/Sirupsen/logrus"
+	log "github.com/sirupsen/logrus"
 )
 
 // APIError is the placeholder for error string to report back to the client

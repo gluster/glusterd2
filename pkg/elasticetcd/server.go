@@ -7,7 +7,7 @@ import (
 	"path"
 	"time"
 
-	"github.com/Sirupsen/logrus"
+	"github.com/sirupsen/logrus"
 	"github.com/coreos/etcd/embed"
 	"github.com/coreos/etcd/pkg/types"
 	"github.com/coreos/pkg/capnslog"

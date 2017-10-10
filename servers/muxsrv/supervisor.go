@@ -4,7 +4,7 @@ import (
 	"github.com/gluster/glusterd2/servers/rest"
 	"github.com/gluster/glusterd2/servers/sunrpc"
 
-	log "github.com/Sirupsen/logrus"
+	log "github.com/sirupsen/logrus"
 	"github.com/thejerf/suture"
 )
 

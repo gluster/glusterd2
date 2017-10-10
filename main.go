@@ -14,7 +14,7 @@ import (
 	"github.com/gluster/glusterd2/version"
 	"github.com/gluster/glusterd2/xlator"
 
-	log "github.com/Sirupsen/logrus"
+	log "github.com/sirupsen/logrus"
 	flag "github.com/spf13/pflag"
 	config "github.com/spf13/viper"
 	"github.com/thejerf/suture"
