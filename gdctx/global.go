@@ -7,6 +7,7 @@ package gdctx
 
 import (
 	"errors"
+	"expvar"
 	"io/ioutil"
 	"os"
 	"path"
@@ -17,6 +18,11 @@ import (
 	"github.com/pborman/uuid"
 	log "github.com/sirupsen/logrus"
 	config "github.com/spf13/viper"
+)
+
+var (
+	expUUID      = expvar.NewString("uuid")
+	expOpVersion = expvar.NewInt("op_version")
 )
 
 // Any object that is a part of the GlusterD context and needs to be available
@@ -48,6 +54,9 @@ func SetHostnameAndIP() error {
 
 // SetUUID will generate (or use if present) and set MyUUID global variable
 func SetUUID() error {
+	defer func() {
+		expUUID.Set(MyUUID.String())
+	}()
 	uuidFile := path.Join(config.GetString("localstatedir"), "uuid")
 	ubytes, err := ioutil.ReadFile(uuidFile)
 	if err != nil {
@@ -82,4 +91,5 @@ func SetUUID() error {
 
 func init() {
 	OpVersion = version.MaxOpVersion
+	expOpVersion.Set(int64(OpVersion))
 }

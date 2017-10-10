@@ -5,6 +5,7 @@ import (
 	"context"
 	"crypto/rand"
 	"crypto/tls"
+	"expvar"
 	"net"
 	"net/http"
 	"time"
@@ -71,8 +72,14 @@ func NewMuxed(m cmux.CMux) *GDRest {
 
 	rest.registerRoutes()
 
+	// Expose /statedump endpoint (uses expvar) if enabled
+	if ok := config.GetBool("statedump"); ok {
+		rest.Routes.Handle("/statedump", expvar.Handler())
+	}
+
 	// Chain of ordered middlewares.
 	rest.server.Handler = alice.New(
+		middleware.Expvar,
 		middleware.Recover,
 		middleware.ReqIDGenerator,
 		middleware.LogRequest).Then(rest.Routes)
