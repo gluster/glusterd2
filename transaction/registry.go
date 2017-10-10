@@ -5,7 +5,7 @@ package transaction
 import (
 	"sync"
 
-	log "github.com/Sirupsen/logrus"
+	log "github.com/sirupsen/logrus"
 )
 
 var sfRegistry = struct {

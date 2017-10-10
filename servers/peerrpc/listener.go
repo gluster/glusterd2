@@ -4,7 +4,7 @@ package peerrpc
 import (
 	"net"
 
-	log "github.com/Sirupsen/logrus"
+	log "github.com/sirupsen/logrus"
 	config "github.com/spf13/viper"
 	"google.golang.org/grpc"
 )

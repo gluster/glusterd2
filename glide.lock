@@ -1,5 +1,5 @@
-hash: 14ef21d3c8daa9e8e8635b760a675398ea17b689eb5a8086e1a2dfa19f5ea7cb
-updated: 2017-10-06T16:51:42.770270176+05:30
+hash: bf8d596880ff92961e847f7c014f3357620af5ec87614d6c1e55e7b06cbe6b5d
+updated: 2017-10-10T17:41:37.682837276+05:30
 imports:
 - name: github.com/beorn7/perks
   version: 4c0e84591b9aa9e6dcfdf3e020114cd81f89d5f9
@@ -12,7 +12,7 @@ imports:
 - name: github.com/cockroachdb/cmux
   version: 112f0506e7743d64a6eb8fedbcff13d9979bbf92
 - name: github.com/coreos/etcd
-  version: e211fb6de3cb306aee245422e599ac521f6e21f7
+  version: f1d7dd87da3e8feab4aaf675b8e29c6a5ed5f58b
   subpackages:
   - alarm
   - auth
@@ -191,7 +191,7 @@ imports:
 - name: github.com/prashanthpai/sunrpc
   version: 8b1e9b0138a37e93705639161d846baed18290c7
 - name: github.com/prometheus/client_golang
-  version: de4d4ffe63b9eff7f27484fdef6e421597e6abb4
+  version: 353b8c3f3776541879f9abfd8fa8b1ae162ab394
   subpackages:
   - prometheus
   - prometheus/promhttp
@@ -237,10 +237,10 @@ imports:
   version: 1a41d1a06c93bf8a0e0385be3847a277bb793187
   subpackages:
   - xdr2
-- name: github.com/Sirupsen/logrus
+- name: github.com/sirupsen/logrus
   version: f006c2ac4710855cf0f916dd6b77acf6b048dc6e
 - name: github.com/soheilhy/cmux
-  version: bf4a8ede9e87c006fe1d4278c6c7f2b8be1fa84c
+  version: bb79a83465015a27a175925ebd155e660f55e9f1
 - name: github.com/spf13/afero
   version: 9be650865eab0c12963d8753212f4f9c66cdcf12
   subpackages:
@@ -271,7 +271,7 @@ imports:
 - name: github.com/xiang90/probing
   version: 07dd2e8dfe18522e9c447ba95f2fe95262f63bb2
 - name: golang.org/x/crypto
-  version: 850760c427c516be930bc91280636328f1a62286
+  version: 847319b7fc94cab682988f93da778204da164588
   subpackages:
   - bcrypt
   - blowfish
@@ -301,6 +301,7 @@ imports:
   version: e48874b42435b4347fc52bdee0424a52abc974d7
   subpackages:
   - unix
+  - windows
 - name: golang.org/x/text
   version: 0ad425fe45e885577bef05dc1c50f72e33188b16
   subpackages:

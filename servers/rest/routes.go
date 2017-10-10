@@ -7,7 +7,7 @@ import (
 	"github.com/gluster/glusterd2/plugins"
 	"github.com/gluster/glusterd2/servers/rest/route"
 
-	log "github.com/Sirupsen/logrus"
+	log "github.com/sirupsen/logrus"
 )
 
 // setRoutes adds the given routes to the GlusterD Rest server

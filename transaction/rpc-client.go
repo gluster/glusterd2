@@ -7,7 +7,7 @@ import (
 	"github.com/gluster/glusterd2/peer"
 	"github.com/gluster/glusterd2/utils"
 
-	log "github.com/Sirupsen/logrus"
+	log "github.com/sirupsen/logrus"
 	"github.com/pborman/uuid"
 	netctx "golang.org/x/net/context"
 	"google.golang.org/grpc"

@@ -5,7 +5,7 @@ import (
 
 	"github.com/gluster/glusterd2/gdctx"
 
-	log "github.com/Sirupsen/logrus"
+	log "github.com/sirupsen/logrus"
 	"google.golang.org/grpc"
 )
 
