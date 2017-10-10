@@ -9,7 +9,7 @@ import:
   - clientv3/concurrency
 - package: github.com/pborman/uuid
 - package: github.com/gorilla/mux
-- package: github.com/Sirupsen/logrus
+- package: github.com/sirupsen/logrus
   version: ~v1.0.3
 - package: golang.org/x/net
   subpackages:

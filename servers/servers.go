@@ -5,7 +5,7 @@ import (
 	"github.com/gluster/glusterd2/servers/muxsrv"
 	"github.com/gluster/glusterd2/servers/peerrpc"
 
-	log "github.com/Sirupsen/logrus"
+	log "github.com/sirupsen/logrus"
 	"github.com/thejerf/suture"
 )
 

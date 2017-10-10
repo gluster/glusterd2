@@ -7,7 +7,7 @@ import (
 	"github.com/gluster/glusterd2/store"
 	"github.com/gluster/glusterd2/volume"
 
-	log "github.com/Sirupsen/logrus"
+	log "github.com/sirupsen/logrus"
 	"golang.org/x/net/context"
 	"google.golang.org/grpc"
 )

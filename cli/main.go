@@ -6,7 +6,7 @@ import (
 	"os"
 	"strings"
 
-	log "github.com/Sirupsen/logrus"
+	log "github.com/sirupsen/logrus"
 	"github.com/gluster/glusterd2/cli/cmd"
 )
 

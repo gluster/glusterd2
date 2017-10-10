@@ -10,7 +10,7 @@ import (
 	"github.com/gluster/glusterd2/plugins"
 	"github.com/gluster/glusterd2/pmap"
 
-	log "github.com/Sirupsen/logrus"
+	log "github.com/sirupsen/logrus"
 	"github.com/prashanthpai/sunrpc"
 	"github.com/soheilhy/cmux"
 )

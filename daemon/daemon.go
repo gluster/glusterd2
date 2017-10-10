@@ -8,7 +8,7 @@ import (
 
 	"github.com/gluster/glusterd2/errors"
 
-	log "github.com/Sirupsen/logrus"
+	log "github.com/sirupsen/logrus"
 )
 
 // Daemon interface should be implemented by individual daemons which wants

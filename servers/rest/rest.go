@@ -7,7 +7,7 @@ import (
 
 	"github.com/gluster/glusterd2/middleware"
 
-	log "github.com/Sirupsen/logrus"
+	log "github.com/sirupsen/logrus"
 	"github.com/gorilla/mux"
 	"github.com/justinas/alice"
 	"github.com/soheilhy/cmux"

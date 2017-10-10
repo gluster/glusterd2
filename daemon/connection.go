@@ -6,7 +6,7 @@ import (
 	"net/rpc"
 	"sync"
 
-	log "github.com/Sirupsen/logrus"
+	log "github.com/sirupsen/logrus"
 	"github.com/prashanthpai/sunrpc"
 )
 
