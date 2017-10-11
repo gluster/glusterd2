@@ -19,7 +19,7 @@ import (
 type SunRPC struct {
 	server   *rpc.Server
 	listener net.Listener
-	stop     chan bool
+	stopCh   chan struct{}
 }
 
 var programsList []sunrpc.Program
@@ -30,45 +30,6 @@ var clientsList = struct {
 }{
 	// This map is used as a set. Values are not consumed.
 	c: make(map[net.Conn]bool),
-}
-
-// New returns a SunRPC server configured to listen on the given listener
-func New(l net.Listener) *SunRPC {
-	srv := &SunRPC{
-		server:   rpc.NewServer(),
-		listener: l,
-		stop:     make(chan bool, 1),
-	}
-
-	programsList = []sunrpc.Program{
-		newGfHandshake(),
-		newGfDump(),
-		pmap.NewGfPortmap(),
-	}
-
-	for _, p := range plugins.PluginsList {
-		rpcProcs := p.SunRPCProgram()
-		if rpcProcs != nil {
-			programsList = append(programsList, rpcProcs)
-			log.WithField("plugin", p.Name()).Debug("loaded sunrpc procedures from plugin")
-		}
-	}
-
-	port := getPortFromListener(srv.listener)
-
-	for _, prog := range programsList {
-		err := registerProgram(srv.server, prog, port)
-		if err != nil {
-			log.WithError(err).WithField("program", prog.Name()).Error("could not register SunRPC program")
-			return nil
-		}
-	}
-	return srv
-}
-
-// NewMuxed returns a SunRPC server configured to listen on a CMux multiplexed connection
-func NewMuxed(m cmux.CMux) *SunRPC {
-	return New(m.Match(sunrpc.CmuxMatcher()))
 }
 
 func getPortFromListener(listener net.Listener) int {
@@ -89,6 +50,42 @@ func getPortFromListener(listener net.Listener) int {
 	}
 
 	return port
+}
+
+// NewMuxed returns a SunRPC server configured to listen on a CMux multiplexed connection
+func NewMuxed(m cmux.CMux) *SunRPC {
+
+	srv := &SunRPC{
+		server:   rpc.NewServer(),
+		listener: m.Match(sunrpc.CmuxMatcher()),
+		stopCh:   make(chan struct{}),
+	}
+
+	programsList = []sunrpc.Program{
+		newGfHandshake(),
+		newGfDump(),
+		pmap.NewGfPortmap(),
+	}
+
+	for _, p := range plugins.PluginsList {
+		rpcProcs := p.SunRPCProgram()
+		if rpcProcs != nil {
+			programsList = append(programsList, rpcProcs)
+			log.WithField("plugin", p.Name()).Debug("loaded sunrpc procedures from plugin")
+		}
+	}
+
+	port := getPortFromListener(srv.listener)
+
+	for _, prog := range programsList {
+		err := registerProgram(srv.server, prog, port, false)
+		if err != nil {
+			log.WithError(err).WithField("program", prog.Name()).Error("could not register SunRPC program")
+			return nil
+		}
+	}
+
+	return srv
 }
 
 // Serve will start accepting Sun RPC client connections on the listener
@@ -112,14 +109,21 @@ func (s *SunRPC) Serve() {
 	log.WithField("ip:port", s.listener.Addr().String()).Info("started GlusterD SunRPC server")
 	for {
 		select {
-		case <-s.stop:
+		case <-s.stopCh:
+			// TODO: Gracefully stop the server: https://github.com/golang/go/issues/17239
+			log.Debug("stopping GlusterD SunRPC server")
+			// We have 3 nested cmux listeners - cmux, rest and sunrpc.
+			// Closing listener in cmux and rest server.
+			log.Info("stopped GlusterD SunRPC server")
 			return
 		default:
 		}
 
 		conn, err := s.listener.Accept()
 		if err != nil {
-			log.WithError(err).Error("failed to accept incoming connection")
+			if err != cmux.ErrListenerClosed {
+				log.WithError(err).Error("failed to accept incoming connection")
+			}
 			continue
 		}
 
@@ -135,8 +139,5 @@ func (s *SunRPC) Serve() {
 
 // Stop stops the SunRPC server
 func (s *SunRPC) Stop() {
-	close(s.stop)
-	log.Info("Stopped GlusterD SunRPC server")
-	// TODO: Gracefully stop the server
-	// Also refer to: https://github.com/golang/go/issues/17239
+	close(s.stopCh)
 }

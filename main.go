@@ -5,6 +5,7 @@ import (
 	"os/signal"
 	"path"
 	"strings"
+	"time"
 
 	"github.com/gluster/glusterd2/gdctx"
 	"github.com/gluster/glusterd2/peer"
@@ -123,7 +124,7 @@ func initGD2Supervisor() *suture.Supervisor {
 	superlogger := func(msg string) {
 		log.WithField("supervisor", "gd2-main").Println(msg)
 	}
-	return suture.New("gd2-main", suture.Spec{Log: superlogger})
+	return suture.New("gd2-main", suture.Spec{Log: superlogger, Timeout: 5 * time.Second})
 }
 
 func createDirectories() error {

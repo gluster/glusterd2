@@ -2,6 +2,7 @@ package main
 
 import (
 	"fmt"
+
 	"github.com/gluster/glusterd2/pkg/api"
 	"github.com/gluster/glusterd2/pkg/restclient"
 )
@@ -10,6 +11,8 @@ const (
 	baseURL  = "http://localhost:24007"
 	username = ""
 	password = ""
+	cacert   = ""
+	insecure = false
 	peerNode = "node2"
 	volname  = "gv1"
 	brick1   = "10.70.1.111:/bricks/b1"
@@ -19,7 +22,7 @@ const (
 )
 
 func main() {
-	client := restclient.New(baseURL, username, password)
+	client := restclient.New(baseURL, username, password, cacert, insecure)
 	fmt.Println(client.PeerProbe(peerNode))
 	fmt.Println(client.Peers())
 	fmt.Println(client.PeerDetach(peerNode))
