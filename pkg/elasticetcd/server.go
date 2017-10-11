@@ -7,10 +7,10 @@ import (
 	"path"
 	"time"
 
-	"github.com/sirupsen/logrus"
 	"github.com/coreos/etcd/embed"
 	"github.com/coreos/etcd/pkg/types"
 	"github.com/coreos/pkg/capnslog"
+	"github.com/sirupsen/logrus"
 )
 
 type server struct {

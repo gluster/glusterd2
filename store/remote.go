@@ -3,9 +3,9 @@ package store
 import (
 	"time"
 
-	log "github.com/sirupsen/logrus"
 	"github.com/coreos/etcd/clientv3"
 	"github.com/coreos/etcd/clientv3/concurrency"
+	log "github.com/sirupsen/logrus"
 )
 
 func newRemoteStore(conf *Config) (*GDStore, error) {

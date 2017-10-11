@@ -2,8 +2,8 @@ package transaction
 
 import (
 	"errors"
-	log "github.com/sirupsen/logrus"
 	"github.com/pborman/uuid"
+	log "github.com/sirupsen/logrus"
 )
 
 // MockTctx implements a dummy context type that can be used in tests

@@ -11,9 +11,9 @@ import (
 	"github.com/gluster/glusterd2/transaction"
 	"github.com/gluster/glusterd2/volume"
 
-	log "github.com/sirupsen/logrus"
 	"github.com/gorilla/mux"
 	"github.com/pborman/uuid"
+	log "github.com/sirupsen/logrus"
 )
 
 func stopBricks(c transaction.TxnCtx) error {

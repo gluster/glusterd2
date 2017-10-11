@@ -5,8 +5,8 @@ import (
 
 	"github.com/gluster/glusterd2/mgmt/gapi"
 
-	log "github.com/sirupsen/logrus"
 	mgmt "github.com/purpleidea/mgmt/lib"
+	log "github.com/sirupsen/logrus"
 	config "github.com/spf13/viper"
 )
 

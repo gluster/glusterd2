@@ -12,5 +12,9 @@ for file in $(find . -path ./vendor -prune -o -type f -name '*.go' -not -name '*
   if [ $? -eq 1 -a $RETVAL -eq 0 ]; then
     RETVAL=1
   fi
+  if [[ $(gofmt -l $file) ]]; then
+    echo -e "$file does not conform to gofmt rules. Run: gofmt -s -w $file"
+    RETVAL=1
+  fi
 done
 exit $RETVAL

@@ -6,8 +6,8 @@ import (
 	"net/rpc"
 	"sync"
 
-	log "github.com/sirupsen/logrus"
 	"github.com/prashanthpai/sunrpc"
+	log "github.com/sirupsen/logrus"
 )
 
 type connection struct {
