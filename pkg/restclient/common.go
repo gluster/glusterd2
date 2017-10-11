@@ -1,12 +1,15 @@
 package restclient
 
 import (
+	"crypto/tls"
+	"crypto/x509"
 	"encoding/json"
 	"fmt"
 	"io"
 	"io/ioutil"
 	"net/http"
 	"strings"
+	"time"
 
 	"github.com/gluster/glusterd2/pkg/api"
 )
@@ -16,11 +19,13 @@ type Client struct {
 	baseURL  string
 	username string
 	password string
+	cacert   string
+	insecure bool
 }
 
 // New creates new instance of Glusterd REST Client
-func New(baseURL string, username string, password string) *Client {
-	return &Client{baseURL, username, password}
+func New(baseURL string, username string, password string, cacert string, insecure bool) *Client {
+	return &Client{baseURL, username, password, cacert, insecure}
 }
 
 func parseHTTPError(jsonData []byte) string {
@@ -66,15 +71,39 @@ func (c *Client) do(method string, url string, data interface{}, expectStatusCod
 	}
 	req.Header.Set("Accept", "application/json")
 	req.Header.Set("Content-Type", "application/json")
-	resp, err1 := http.DefaultClient.Do(req)
-	if err1 != nil {
-		return err1
+
+	tr := &http.Transport{
+		DisableCompression:    true,
+		DisableKeepAlives:     true,
+		ResponseHeaderTimeout: 3 * time.Second,
+	}
+
+	if c.cacert != "" || c.insecure {
+		caCertPool := x509.NewCertPool()
+		if caCert, err := ioutil.ReadFile(c.cacert); err != nil {
+			if !c.insecure {
+				return err
+			}
+		} else {
+			caCertPool.AppendCertsFromPEM(caCert)
+		}
+		tr.TLSClientConfig = &tls.Config{
+			RootCAs:            caCertPool,
+			InsecureSkipVerify: c.insecure,
+		}
+	}
+
+	client := &http.Client{Transport: tr}
+
+	resp, err := client.Do(req)
+	if err != nil {
+		return err
 	}
 
 	defer resp.Body.Close()
-	outputRaw, err2 := ioutil.ReadAll(resp.Body)
-	if err2 != nil {
-		return err2
+	outputRaw, err := ioutil.ReadAll(resp.Body)
+	if err != nil {
+		return err
 	}
 	if resp.StatusCode != expectStatusCode {
 		return &UnexpectedStatusError{"Unexpected Status", expectStatusCode, resp.StatusCode, parseHTTPError(outputRaw)}

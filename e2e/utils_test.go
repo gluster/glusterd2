@@ -185,5 +185,5 @@ func teardownCluster(gds []*gdProcess) error {
 }
 
 func initRestclient(clientAddress string) *restclient.Client {
-	return restclient.New("http://"+clientAddress, "", "")
+	return restclient.New("http://"+clientAddress, "", "", "", false)
 }
