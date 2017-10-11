@@ -1,5 +1,5 @@
 protocol/server
-performance/decompounder
+performance/decompounder, {{ brick.path }}
 debug/io-stats
 features/quota
 features/index

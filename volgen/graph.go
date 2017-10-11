@@ -91,8 +91,19 @@ func processNode(a qArgs) (*Node, error) {
 
 func processNormalNode(a qArgs) (*Node, error) {
 	n := NewNode()
-	n.ID = fmt.Sprintf("%s-%s", a.vol.Name, a.t.ID)
 	n.Voltype = a.t.Voltype
+
+	// If template node ID is a varstring, do a varstring replacement and set it as the node ID.
+	// Else, set node ID to "<volname>-<template node ID>"
+	if isVarStr(a.t.ID) {
+		id, err := varStrReplace(a.t.ID, a.extra)
+		if err != nil {
+			return nil, err
+		}
+		n.ID = id
+	} else {
+		n.ID = fmt.Sprintf("%s-%s", a.vol.Name, a.t.ID)
+	}
 
 	if err := setOptions(n, a.g.id, a.vol.Options, a.extra); err != nil {
 		fmt.Println()

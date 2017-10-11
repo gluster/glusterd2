@@ -6,6 +6,7 @@ import (
 	"os"
 	"path"
 	"path/filepath"
+	"strings"
 
 	log "github.com/Sirupsen/logrus"
 	config "github.com/spf13/viper"
@@ -15,7 +16,30 @@ const (
 	templateExt = ".graph"
 )
 
-// GraphTemplate are empty graphs built from template files
+// GraphTemplate are empty graphs built from template files, which define the
+// basic structure of a GlusterFS volume graph
+//
+// Template files are simple text files which contain a list of xlators.
+// Each xlator should be specified on its own line, and in order from root of the graph to the leaf.
+// For example,
+// 	protocol/server
+// 	performance/decompounder
+// 	debug/io-stats
+// 	.
+// 	.
+// 	.
+//
+// In addition to xlator name, each line can also specify an alternate name to
+// be used to name the xlator in generated graphs.  Alternate names are
+// specified following the xlator, seperated by a comma.
+// Alternate names can also use varstrings. If the alternate name is a
+// varstring, the xlator will be named as the replacement of the varstring. If
+// not xlator will be named "<volname>-<altname>".
+// For example,
+// 	performance/decompounder, {{ brick.path }}
+//
+// For now only linear graph strcutures are possible.
+// TODO: Improve template to support branches
 type GraphTemplate Graph
 
 // TemplateNotFoundError is returned by GetTemplate when the specified template
@@ -86,8 +110,19 @@ func ReadTemplateFile(p string) (*GraphTemplate, error) {
 	for s.Scan() {
 		curr = NewNode()
 
-		curr.Voltype = s.Text()
-		curr.ID = path.Base(curr.Voltype)
+		// Split line into 2 parts
+		// 1st part is the xlator and what ever remains is the altname
+		// Altnames can be varstrings
+		// TODO: Have a better way to do this tokenization than just string splitting
+		tokens := strings.SplitN(s.Text(), ",", 2)
+
+		curr.Voltype = tokens[0]
+		if len(tokens) == 2 {
+			curr.ID = tokens[1]
+		} else {
+			curr.ID = path.Base(curr.Voltype)
+		}
+
 		if t.root == nil {
 			t.root = curr
 		}
