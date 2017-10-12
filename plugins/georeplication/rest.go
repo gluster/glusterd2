@@ -12,9 +12,9 @@ import (
 	"github.com/gluster/glusterd2/utils"
 	"github.com/gluster/glusterd2/volume"
 
-	log "github.com/sirupsen/logrus"
 	"github.com/gorilla/mux"
 	"github.com/pborman/uuid"
+	log "github.com/sirupsen/logrus"
 )
 
 func validateMasterAndSlaveIDFormat(w http.ResponseWriter, masteridRaw string, slaveidRaw string) (uuid.UUID, uuid.UUID, error) {
@@ -35,20 +35,13 @@ func validateMasterAndSlaveIDFormat(w http.ResponseWriter, masteridRaw string, s
 	return masterid, slaveid, nil
 }
 
-func georepCreateUpdateHandler(w http.ResponseWriter, r *http.Request) {
+func georepCreateHandler(w http.ResponseWriter, r *http.Request) {
 	// Collect inputs from URL
 	p := mux.Vars(r)
 	masteridRaw := p["mastervolid"]
 	slaveidRaw := p["slavevolid"]
 
 	reqID, logger := restutils.GetReqIDandLogger(r)
-
-	// Same handler for both Create and Update, if HTTP method is POST then
-	// it is update request
-	updateRequest := false
-	if r.Method == http.MethodPost {
-		updateRequest = true
-	}
 
 	// Validate UUID format of Master and Slave Volume ID
 	masterid, slaveid, err := validateMasterAndSlaveIDFormat(w, masteridRaw, slaveidRaw)
@@ -57,7 +50,7 @@ func georepCreateUpdateHandler(w http.ResponseWriter, r *http.Request) {
 	}
 
 	// Parse the JSON body to get additional details of request
-	var req georepapi.GeorepCreateRequest
+	var req georepapi.GeorepCreateReq
 	if err := utils.GetJSONFromRequest(r, &req); err != nil {
 		restutils.SendHTTPError(w, http.StatusUnprocessableEntity, errors.ErrJSONParsingFailed.Error())
 		return
@@ -96,49 +89,18 @@ func georepCreateUpdateHandler(w http.ResponseWriter, r *http.Request) {
 	// session exists then return error
 	geoSession, err := getSession(masterid.String(), slaveid.String())
 	if err == nil {
-		if !updateRequest {
-			restutils.SendHTTPError(w, http.StatusConflict, "Session already exists")
-			return
-		}
-	} else {
-		// Continue only if NotFound error, return if other errors like
-		// error while fetching from store or JSON marshal errors
-		if _, ok := err.(*ErrGeorepSessionNotFound); !ok {
-			restutils.SendHTTPError(w, http.StatusInternalServerError, err.Error())
-			return
-		}
-		// Fail if update request received for non existing Geo-rep session
-		if updateRequest {
-			restutils.SendHTTPError(w, http.StatusBadRequest, "geo-replication session not found")
-			return
-		}
-
-		geoSession = new(georepapi.GeorepSession)
-		geoSession.MasterID = masterid
-		geoSession.SlaveID = slaveid
-	}
-
-	// If Update request then it is not allowed to change master volume,
-	// slave volname, Master Volume name and ID is already verified earlier
-	// only validate for slave vol name here
-	if updateRequest && geoSession.SlaveVol != req.SlaveVol {
-		restutils.SendHTTPError(w, http.StatusBadRequest, "Slave Volume name can't be modified")
+		restutils.SendHTTPError(w, http.StatusConflict, "Session already exists")
 		return
 	}
 
-	// Set/Update the input details
-	geoSession.MasterVol = req.MasterVol
-	geoSession.SlaveVol = req.SlaveVol
-	geoSession.SlaveHosts = req.SlaveHosts
-	geoSession.SlaveUser = req.SlaveUser
-
-	// Set Slave user as root if request doesn't contains user name
-	if geoSession.SlaveUser == "" {
-		geoSession.SlaveUser = "root"
+	// Continue only if NotFound error, return if other errors like
+	// error while fetching from store or JSON marshal errors
+	if _, ok := err.(*ErrGeorepSessionNotFound); !ok {
+		restutils.SendHTTPError(w, http.StatusInternalServerError, err.Error())
+		return
 	}
 
-	geoSession.Workers = []georepapi.GeorepWorker{}
-	geoSession.Options = make(map[string]string)
+	geoSession = georepapi.NewGeorepSession(masterid, slaveid, req)
 
 	// Transaction which updates the Geo-rep session
 	txn := transaction.NewTxn(reqID)
@@ -176,18 +138,5 @@ func georepCreateUpdateHandler(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	geoSession.Status = georepapi.GeorepStatusCreated
-
-	e = addOrUpdateSession(geoSession)
-	if e != nil {
-		restutils.SendHTTPError(w, http.StatusInternalServerError, e.Error())
-		return
-	}
-
-	respCode := http.StatusCreated
-	if updateRequest {
-		respCode = http.StatusOK
-	}
-
-	restutils.SendHTTPResponse(w, respCode, geoSession)
+	restutils.SendHTTPResponse(w, http.StatusCreated, geoSession)
 }

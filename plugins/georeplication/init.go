@@ -25,17 +25,10 @@ func (p *Plugin) RestRoutes() route.Routes {
 	return route.Routes{
 		route.Route{
 			Name:        "GeoreplicationCreate",
-			Method:      "PUT",
-			Pattern:     "/geo-replication/{mastervolid}/{slavevolid}",
-			Version:     1,
-			HandlerFunc: georepCreateUpdateHandler},
-		route.Route{
-			Name:        "GeoReplicationUpdate",
 			Method:      "POST",
 			Pattern:     "/geo-replication/{mastervolid}/{slavevolid}",
 			Version:     1,
-			HandlerFunc: georepCreateUpdateHandler,
-		},
+			HandlerFunc: georepCreateHandler},
 	}
 }
 
