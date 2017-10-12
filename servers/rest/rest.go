@@ -11,9 +11,9 @@ import (
 
 	"github.com/gluster/glusterd2/middleware"
 
-	log "github.com/sirupsen/logrus"
 	"github.com/gorilla/mux"
 	"github.com/justinas/alice"
+	log "github.com/sirupsen/logrus"
 	"github.com/soheilhy/cmux"
 	config "github.com/spf13/viper"
 )

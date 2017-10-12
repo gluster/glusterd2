@@ -13,8 +13,8 @@ import (
 	"github.com/gluster/glusterd2/peer"
 	"github.com/gluster/glusterd2/utils"
 
-	log "github.com/sirupsen/logrus"
 	"github.com/pborman/uuid"
+	log "github.com/sirupsen/logrus"
 )
 
 // VolState is the current status of a volume

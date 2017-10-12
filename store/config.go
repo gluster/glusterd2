@@ -8,8 +8,8 @@ import (
 
 	"github.com/gluster/glusterd2/pkg/elasticetcd"
 
-	log "github.com/sirupsen/logrus"
 	"github.com/pelletier/go-toml"
+	log "github.com/sirupsen/logrus"
 	flag "github.com/spf13/pflag"
 	config "github.com/spf13/viper"
 )

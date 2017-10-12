@@ -12,9 +12,9 @@ import (
 	"github.com/gluster/glusterd2/volgen"
 	"github.com/gluster/glusterd2/volume"
 
-	log "github.com/sirupsen/logrus"
 	"github.com/gorilla/mux"
 	"github.com/pborman/uuid"
+	log "github.com/sirupsen/logrus"
 )
 
 // VolExpandReq represents a request to expand the volume by adding more bricks

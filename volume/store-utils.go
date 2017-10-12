@@ -8,8 +8,8 @@ import (
 	"github.com/gluster/glusterd2/store"
 	"github.com/pborman/uuid"
 
-	log "github.com/sirupsen/logrus"
 	"github.com/coreos/etcd/clientv3"
+	log "github.com/sirupsen/logrus"
 )
 
 const (

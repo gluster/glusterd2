@@ -6,8 +6,8 @@ import (
 	"github.com/gluster/glusterd2/gdctx"
 	"github.com/gluster/glusterd2/pkg/elasticetcd"
 
-	log "github.com/sirupsen/logrus"
 	"github.com/coreos/etcd/pkg/types"
+	log "github.com/sirupsen/logrus"
 	config "github.com/spf13/viper"
 )
 

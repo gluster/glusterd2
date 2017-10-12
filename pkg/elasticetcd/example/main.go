@@ -10,8 +10,8 @@ import (
 
 	"github.com/gluster/glusterd2/pkg/elasticetcd"
 
-	"github.com/sirupsen/logrus"
 	"github.com/coreos/etcd/pkg/types"
+	"github.com/sirupsen/logrus"
 	"github.com/spf13/pflag"
 	"golang.org/x/sys/unix"
 )

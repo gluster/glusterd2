@@ -6,8 +6,8 @@ import (
 	"os"
 	"strings"
 
-	log "github.com/sirupsen/logrus"
 	"github.com/gluster/glusterd2/cli/cmd"
+	log "github.com/sirupsen/logrus"
 )
 
 const (

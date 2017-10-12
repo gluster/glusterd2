@@ -6,8 +6,8 @@ import (
 
 	"github.com/gluster/glusterd2/store"
 
-	log "github.com/sirupsen/logrus"
 	"github.com/pborman/uuid"
+	log "github.com/sirupsen/logrus"
 )
 
 // TxnCtx is used to carry contextual information across the lifetime of a transaction
