@@ -17,6 +17,25 @@ import (
 	log "github.com/sirupsen/logrus"
 )
 
+// newGeorepSession creates new instance of GeorepSession
+func newGeorepSession(mastervolid uuid.UUID, slavevolid uuid.UUID, req georepapi.GeorepCreateReq) *georepapi.GeorepSession {
+	slaveUser := req.SlaveUser
+	if req.SlaveUser == "" {
+		slaveUser = "root"
+	}
+	return &georepapi.GeorepSession{
+		MasterID:   mastervolid,
+		SlaveID:    slavevolid,
+		MasterVol:  req.MasterVol,
+		SlaveVol:   req.SlaveVol,
+		SlaveHosts: req.SlaveHosts,
+		SlaveUser:  slaveUser,
+		Status:     georepapi.GeorepStatusCreated,
+		Workers:    []georepapi.GeorepWorker{},
+		Options:    make(map[string]string),
+	}
+}
+
 func validateMasterAndSlaveIDFormat(w http.ResponseWriter, masteridRaw string, slaveidRaw string) (uuid.UUID, uuid.UUID, error) {
 	// Validate UUID format of Master and Slave Volume ID
 	masterid := uuid.Parse(masteridRaw)
@@ -100,7 +119,7 @@ func georepCreateHandler(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	geoSession = georepapi.NewGeorepSession(masterid, slaveid, req)
+	geoSession = newGeorepSession(masterid, slaveid, req)
 
 	// Transaction which updates the Geo-rep session
 	txn := transaction.NewTxn(reqID)

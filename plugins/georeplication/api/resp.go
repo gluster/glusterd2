@@ -54,22 +54,3 @@ type GeorepSession struct {
 	Workers    []GeorepWorker    `json:"workers"`
 	Options    map[string]string `json:"options"`
 }
-
-// NewGeorepSession creates new instance of GeorepSession
-func NewGeorepSession(mastervolid uuid.UUID, slavevolid uuid.UUID, req GeorepCreateReq) *GeorepSession {
-	slaveUser := req.SlaveUser
-	if req.SlaveUser == "" {
-		slaveUser = "root"
-	}
-	return &GeorepSession{
-		MasterID:   mastervolid,
-		SlaveID:    slavevolid,
-		MasterVol:  req.MasterVol,
-		SlaveVol:   req.SlaveVol,
-		SlaveHosts: req.SlaveHosts,
-		SlaveUser:  slaveUser,
-		Status:     GeorepStatusCreated,
-		Workers:    []GeorepWorker{},
-		Options:    make(map[string]string),
-	}
-}
