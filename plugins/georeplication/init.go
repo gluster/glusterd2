@@ -29,6 +29,12 @@ func (p *Plugin) RestRoutes() route.Routes {
 			Pattern:     "/geo-replication/{mastervolid}/{slavevolid}",
 			Version:     1,
 			HandlerFunc: georepCreateHandler},
+		route.Route{
+			Name:        "GeoreplicationStart",
+			Method:      "POST",
+			Pattern:     "/geo-replication/{mastervolid}/{slavevolid}/start",
+			Version:     1,
+			HandlerFunc: georepStartHandler},
 	}
 }
 
@@ -36,4 +42,5 @@ func (p *Plugin) RestRoutes() route.Routes {
 // Glusterd Transaction framework
 func (p *Plugin) RegisterStepFuncs() {
 	transaction.RegisterStepFunc(txnGeorepCreate, "georeplication-create.Commit")
+	transaction.RegisterStepFunc(txnGeorepStart, "georeplication-start.Commit")
 }

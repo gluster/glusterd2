@@ -159,3 +159,88 @@ func georepCreateHandler(w http.ResponseWriter, r *http.Request) {
 
 	restutils.SendHTTPResponse(w, http.StatusCreated, geoSession)
 }
+
+func georepStartHandler(w http.ResponseWriter, r *http.Request) {
+	// Collect inputs from URL
+	p := mux.Vars(r)
+	masteridRaw := p["mastervolid"]
+	slaveidRaw := p["slavevolid"]
+
+	reqID, logger := restutils.GetReqIDandLogger(r)
+
+	// Validate UUID format of Master and Slave Volume ID
+	masterid, slaveid, err := validateMasterAndSlaveIDFormat(w, masteridRaw, slaveidRaw)
+	if err != nil {
+		return
+	}
+
+	// Fetch existing session details from Store, error if not exists
+	geoSession, err := getSession(masterid.String(), slaveid.String())
+	if err != nil {
+		if _, ok := err.(*ErrGeorepSessionNotFound); !ok {
+			restutils.SendHTTPError(w, http.StatusInternalServerError, err.Error())
+			return
+		}
+		restutils.SendHTTPError(w, http.StatusBadRequest, "geo-replication session not found")
+		return
+	}
+
+	if geoSession.Status == georepapi.GeorepStatusStarted {
+		restutils.SendHTTPError(w, http.StatusConflict, "session already started")
+		return
+	}
+
+	// Fetch Volume details and check if Volume is in started state
+	vol, e := volume.GetVolume(geoSession.MasterVol)
+	if e != nil {
+		restutils.SendHTTPError(w, http.StatusNotFound, errors.ErrVolNotFound.Error())
+		return
+	}
+
+	if vol.Status != volume.VolStarted {
+		restutils.SendHTTPError(w, http.StatusInternalServerError, "master volume not started")
+		return
+	}
+
+	txn := transaction.NewTxn(reqID)
+	defer txn.Cleanup()
+
+	lock, unlock, err := transaction.CreateLockSteps(geoSession.MasterVol)
+	if err != nil {
+		restutils.SendHTTPError(w, http.StatusInternalServerError, err.Error())
+		return
+	}
+
+	txn.Nodes = vol.Nodes()
+	txn.Steps = []*transaction.Step{
+		lock,
+		{
+			DoFunc: "georeplication-start.Commit",
+			Nodes:  txn.Nodes,
+		},
+		unlock,
+	}
+	txn.Ctx.Set("mastervolid", masterid.String())
+	txn.Ctx.Set("slavevolid", slaveid.String())
+
+	_, e = txn.Do()
+	if e != nil {
+		logger.WithFields(log.Fields{
+			"error":       e.Error(),
+			"mastervolid": masterid,
+			"slavevolid":  slaveid,
+		}).Error("failed to start geo-replication session")
+		restutils.SendHTTPError(w, http.StatusInternalServerError, e.Error())
+		return
+	}
+
+	geoSession.Status = georepapi.GeorepStatusStarted
+
+	e = addOrUpdateSession(geoSession)
+	if e != nil {
+		restutils.SendHTTPError(w, http.StatusInternalServerError, e.Error())
+		return
+	}
+
+	restutils.SendHTTPResponse(w, http.StatusOK, geoSession)
+}
