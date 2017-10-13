@@ -121,10 +121,12 @@ func processNormalNode(a qArgs) (*Node, error) {
 // - Get a list of all applicable options for a xlator
 // - Iterate through the list and set options on the Node using the following
 //   rules
+//	- If the option has an explicit SetKey, use that as the key
 //  - If option has been set in Volinfo, use that value
-//	- Else if the option has a default value and is not a varstring, skip
-//		setting the option. Xlator should use the default value.
-// - If the value is a varstring do varstring replacement
+// 	- Else if the defaultvalue and the key are not varstrings, skip setting
+// 		  the option.
+// 	- If the key and value are varstring do varstring replacement
+// 	- Set the key and value in the xlator options map
 func setOptions(n *Node, graph string, opts, extra map[string]string) error {
 	var err error
 
@@ -135,19 +137,50 @@ func setOptions(n *Node, graph string, opts, extra map[string]string) error {
 	}
 
 	for _, o := range xlOpts {
-		k, v, ok := getValue(graph, xl, o.Key, opts)
+		var (
+			k, v string
+			ok   bool
+		)
+
+		// If the option has an explicit SetKey, use it as the key
+		if o.SetKey != "" {
+			k = o.SetKey
+			_, v, ok = getValue(graph, xl, o.Key, opts)
+		} else {
+			k, v, ok = getValue(graph, xl, o.Key, opts)
+		}
+
+		// If the option is not found in Volinfo, try to set to defaults if
+		// available and required
 		if !ok {
-			if !isVarStr(o.DefaultValue) {
+			// If there is no default value skip setting this option
+			if o.DefaultValue == "" {
 				continue
 			}
-			k = o.Key[0]
 			v = o.DefaultValue
+
+			if k == "" {
+				k = o.Key[0]
+			}
+
+			// If neither key nor value is a varstring, skip setting this option
+			if !isVarStr(k) && !isVarStr(v) {
+				continue
+			}
+		}
+
+		// Do varsting replacements if required
+		if isVarStr(k) {
+			if k, err = varStrReplace(k, extra); err != nil {
+				return err
+			}
 		}
 		if isVarStr(v) {
 			if v, err = varStrReplace(v, extra); err != nil {
 				return err
 			}
 		}
+		// Set the option
 		n.Options[k] = v
 	}
 

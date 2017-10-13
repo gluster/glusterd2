@@ -63,4 +63,5 @@ type Option struct {
 	Deprecated   []uint32
 	Flags        uint32
 	Tags         []string
+	SetKey       string
 }

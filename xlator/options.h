@@ -58,4 +58,5 @@ typedef struct volume_options {
         uint32_t                deprecated[GF_MAX_RELEASES];
         uint32_t                flags;
         char                    *tags[ZR_OPTION_MAX_ARRAY_SIZE];
+        char                    *setkey;
 } volume_option_t;

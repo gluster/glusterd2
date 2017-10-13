@@ -58,6 +58,7 @@ func structifyOption(option *C.volume_option_t) Option {
 	x.Description = C.GoString(option.description)
 	x.Validate = OptionValidateType(option.validate)
 	x.Flags = uint32(option.flags)
+	x.SetKey = C.GoString(option.setkey)
 
 	return x
 }
