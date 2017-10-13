@@ -8,9 +8,9 @@ import (
 	"github.com/gluster/glusterd2/transaction"
 	"github.com/gluster/glusterd2/utils"
 
-	log "github.com/sirupsen/logrus"
 	"github.com/prashanthpai/sunrpc"
 	"github.com/rasky/go-xdr/xdr2"
+	log "github.com/sirupsen/logrus"
 )
 
 // NOTE:

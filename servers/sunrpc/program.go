@@ -5,8 +5,8 @@ import (
 	"reflect"
 	"strings"
 
-	log "github.com/sirupsen/logrus"
 	"github.com/prashanthpai/sunrpc"
+	log "github.com/sirupsen/logrus"
 )
 
 // RPC program implementations inside this package can use this type for convenience

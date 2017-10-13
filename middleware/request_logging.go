@@ -3,8 +3,8 @@ package middleware
 import (
 	"net/http"
 
-	log "github.com/sirupsen/logrus"
 	"github.com/gorilla/handlers"
+	log "github.com/sirupsen/logrus"
 )
 
 // LogRequest is a middleware which logs HTTP requests in the

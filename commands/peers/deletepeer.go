@@ -10,9 +10,9 @@ import (
 	"github.com/gluster/glusterd2/utils"
 	"github.com/gluster/glusterd2/volume"
 
-	log "github.com/sirupsen/logrus"
 	"github.com/gorilla/mux"
 	"github.com/pborman/uuid"
+	log "github.com/sirupsen/logrus"
 )
 
 func deletePeerHandler(w http.ResponseWriter, r *http.Request) {

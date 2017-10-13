@@ -10,8 +10,8 @@ import (
 	"github.com/gluster/glusterd2/store"
 	"github.com/gluster/glusterd2/utils"
 
-	log "github.com/sirupsen/logrus"
 	"github.com/prashanthpai/sunrpc"
+	log "github.com/sirupsen/logrus"
 )
 
 const (

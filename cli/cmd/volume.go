@@ -8,9 +8,9 @@ import (
 
 	"github.com/gluster/glusterd2/pkg/api"
 
-	log "github.com/sirupsen/logrus"
 	"github.com/olekukonko/tablewriter"
 	"github.com/pborman/uuid"
+	log "github.com/sirupsen/logrus"
 	"github.com/spf13/cobra"
 )
 
