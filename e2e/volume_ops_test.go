@@ -1,6 +1,7 @@
 package e2e
 
 import (
+	"fmt"
 	"io/ioutil"
 	"os"
 	"os/exec"
@@ -10,20 +11,28 @@ import (
 	"github.com/stretchr/testify/require"
 )
 
-func TestVolumeCreateDelete(t *testing.T) {
+var (
+	gds    []*gdProcess
+	tmpDir string
+)
+
+// TestVolume creates a volume and starts it, runs further tests on it and
+// finally deletes the volume
+func TestVolume(t *testing.T) {
+	var err error
 	r := require.New(t)
 
-	gds, err := setupCluster("./config/1.yaml", "./config/2.yaml")
+	gds, err = setupCluster("./config/1.yaml", "./config/2.yaml")
 	r.Nil(err)
 	defer teardownCluster(gds)
 
-	brickDir, err := ioutil.TempDir("", "TestVolumeCreateDelete")
+	tmpDir, err := ioutil.TempDir("", t.Name())
 	r.Nil(err)
-	defer os.RemoveAll(brickDir)
+	defer os.RemoveAll(tmpDir)
 
 	var brickPaths []string
 	for i := 1; i <= 4; i++ {
-		brickPath, err := ioutil.TempDir(brickDir, "brick")
+		brickPath, err := ioutil.TempDir(tmpDir, "brick")
 		r.Nil(err)
 		brickPaths = append(brickPaths, brickPath)
 	}
@@ -45,9 +54,44 @@ func TestVolumeCreateDelete(t *testing.T) {
 	_, errVolCreate := client.VolumeCreate(createReq)
 	r.Nil(errVolCreate)
 
+	// Run tests that depend on this volume
+	t.Run("TestVolumeStart", testVolumeStart)
+	t.Run("TestVolumeMount", testVolumeMount)
+	t.Run("TestVolumeStop", testVolumeStop)
+
 	// delete volume
 	errVolDel := client.VolumeDelete(volname)
 	r.Nil(errVolDel)
+}
+
+func testVolumeStart(t *testing.T) {
+	r := require.New(t)
+	client := initRestclient(gds[0].ClientAddress)
+	r.Nil(client.VolumeStart("testvol"), "volume start failed")
+}
+
+func testVolumeStop(t *testing.T) {
+	r := require.New(t)
+	client := initRestclient(gds[0].ClientAddress)
+	r.Nil(client.VolumeStop("testvol"), "volume stop failed")
+}
+
+// testVolumeMount mounts checks if the volume mounts successfully and unmounts it
+func testVolumeMount(t *testing.T) {
+	r := require.New(t)
+
+	mntPath, err := ioutil.TempDir(tmpDir, "mnt")
+	r.Nil(err)
+	defer os.RemoveAll(mntPath)
+
+	mntCmd := exec.Command("mount", "-t", "glusterfs", gds[0].ClientAddress+":/testvol", mntPath)
+	umntCmd := exec.Command("umount", mntPath)
+
+	err = mntCmd.Run()
+	r.Nil(err, fmt.Sprintf("mount failed: %s", err))
+
+	err = umntCmd.Run()
+	r.Nil(err, fmt.Sprintf("unmount failed: %s", err))
 }
 
 func TestVolumeOptions(t *testing.T) {
