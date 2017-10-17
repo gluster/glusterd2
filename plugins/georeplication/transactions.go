@@ -8,10 +8,6 @@ import (
 	log "github.com/sirupsen/logrus"
 )
 
-const (
-	gsyncdStartMaxRetries = 10
-)
-
 func txnGeorepCreate(c transaction.TxnCtx) error {
 	var sessioninfo georepapi.GeorepSession
 	if err := c.Get("geosession", &sessioninfo); err != nil {
@@ -30,21 +26,15 @@ func txnGeorepCreate(c transaction.TxnCtx) error {
 }
 
 func startGsyncdMonitor(sess *georepapi.GeorepSession) error {
-
 	gsyncdDaemon, err := newGsyncd(*sess)
 	if err != nil {
 		return err
 	}
 
-	for i := 0; i < gsyncdStartMaxRetries; i++ {
-		err = daemon.Start(gsyncdDaemon, true)
-		if err != nil {
-			return err
-		}
-
-		break
+	err = daemon.Start(gsyncdDaemon, true)
+	if err != nil {
+		return err
 	}
-
 	return nil
 }
 
