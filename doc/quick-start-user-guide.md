@@ -112,6 +112,8 @@ Peers in two node cluster can be listed with the following request:
 $ curl -X GET http://192.168.56.101:24007/v1/peers
 ```
 
+Note the UUIDs in the response. We will use the same in volume create request below.
+
 ## Create a volume
 
 Create a  JSON file for volume create request body:
@@ -122,14 +124,16 @@ $ cat volcreate.json
 	    "name": "testvol",
 	    "replica" : 2,
 	    "bricks": [
-		"192.168.56.101:/export/brick1/data",
-		"192.168.56.102:/export/brick2/data",
-		"192.168.56.101:/export/brick3/data",
-		"192.168.56.102:/export/brick4/data"
+		"<uuid1>:/export/brick1/data",
+		"<uuid2>:/export/brick2/data",
+		"<uuid1>:/export/brick3/data",
+		"<uuid2>:/export/brick4/data"
 	    ],
 	    "force": true
 }
 ```
+
+Insert the actual UUID of the two glusterd2 instances in the above json file.
 
 Create brick paths accordingly on each of the two nodes:
 
