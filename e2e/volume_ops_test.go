@@ -3,16 +3,24 @@ package e2e
 import (
 	"fmt"
 	"io/ioutil"
+	"net"
 	"os"
 	"os/exec"
 	"testing"
 
 	"github.com/gluster/glusterd2/pkg/api"
+	"github.com/gluster/glusterd2/pkg/restclient"
+
 	"github.com/stretchr/testify/require"
+)
+
+const (
+	volname = "testvol"
 )
 
 var (
 	gds    []*gdProcess
+	client *restclient.Client
 	tmpDir string
 )
 
@@ -20,15 +28,34 @@ var (
 // finally deletes the volume
 func TestVolume(t *testing.T) {
 	var err error
+
 	r := require.New(t)
 
 	gds, err = setupCluster("./config/1.yaml", "./config/2.yaml")
 	r.Nil(err)
 	defer teardownCluster(gds)
 
-	tmpDir, err := ioutil.TempDir("", t.Name())
+	client = initRestclient(gds[0].ClientAddress)
+
+	tmpDir, err = ioutil.TempDir("", t.Name())
 	r.Nil(err)
-	defer os.RemoveAll(tmpDir)
+	t.Logf("Using temp dir: %s", tmpDir)
+	//defer os.RemoveAll(tmpDir)
+
+	// Create the volume
+	t.Run("Create", testVolumeCreate)
+
+	// Run tests that depend on this volume
+	t.Run("Start", testVolumeStart)
+	t.Run("Mount", testVolumeMount)
+	t.Run("Stop", testVolumeStop)
+
+	// delete volume
+	t.Run("Delete", testVolumeDelete)
+}
+
+func testVolumeCreate(t *testing.T) {
+	r := require.New(t)
 
 	var brickPaths []string
 	for i := 1; i <= 4; i++ {
@@ -37,10 +64,7 @@ func TestVolume(t *testing.T) {
 		brickPaths = append(brickPaths, brickPath)
 	}
 
-	client := initRestclient(gds[0].ClientAddress)
-
 	// create 2x2 dist-rep volume
-	volname := "testvol"
 	createReq := api.VolCreateReq{
 		Name:    volname,
 		Replica: 2,
@@ -53,27 +77,25 @@ func TestVolume(t *testing.T) {
 	}
 	_, errVolCreate := client.VolumeCreate(createReq)
 	r.Nil(errVolCreate)
+}
 
-	// Run tests that depend on this volume
-	t.Run("TestVolumeStart", testVolumeStart)
-	t.Run("TestVolumeMount", testVolumeMount)
-	t.Run("TestVolumeStop", testVolumeStop)
+func testVolumeDelete(t *testing.T) {
+	r := require.New(t)
 
-	// delete volume
 	errVolDel := client.VolumeDelete(volname)
 	r.Nil(errVolDel)
 }
 
 func testVolumeStart(t *testing.T) {
 	r := require.New(t)
-	client := initRestclient(gds[0].ClientAddress)
-	r.Nil(client.VolumeStart("testvol"), "volume start failed")
+
+	r.Nil(client.VolumeStart(volname), "volume start failed")
 }
 
 func testVolumeStop(t *testing.T) {
 	r := require.New(t)
-	client := initRestclient(gds[0].ClientAddress)
-	r.Nil(client.VolumeStop("testvol"), "volume stop failed")
+
+	r.Nil(client.VolumeStop(volname), "volume stop failed")
 }
 
 // testVolumeMount mounts checks if the volume mounts successfully and unmounts it
@@ -84,7 +106,8 @@ func testVolumeMount(t *testing.T) {
 	r.Nil(err)
 	defer os.RemoveAll(mntPath)
 
-	mntCmd := exec.Command("mount", "-t", "glusterfs", gds[0].ClientAddress+":/testvol", mntPath)
+	host, _, _ := net.SplitHostPort(gds[0].ClientAddress)
+	mntCmd := exec.Command("mount", "-t", "glusterfs", host+":"+volname, mntPath)
 	umntCmd := exec.Command("umount", mntPath)
 
 	err = mntCmd.Run()
