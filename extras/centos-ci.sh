@@ -30,6 +30,8 @@ cd $GD2SRC
 yum install -y epel-release
 yum install -y git autoconf automake gcc libtool bison flex make rpm-build python-devel libaio-devel librdmacm-devel libattr-devel libxml2-devel readline-devel openssl-devel libibverbs-devel fuse-devel glib2-devel userspace-rcu-devel libacl-devel sqlite-devel
 git clone https://review.gluster.org/glusterfs; cd glusterfs
+# experimental is required for volgen changes
+git checkout experimental
 ./autogen.sh
 ./configure --enable-debug
 make -j
@@ -44,6 +46,8 @@ make verify
 
 # verify build
 make glusterd2
+make glustercli
+make gd2conf
 
 # run unit-tests
 make test

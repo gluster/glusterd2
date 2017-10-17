@@ -1,37 +1,70 @@
 package e2e
 
 import (
+	"fmt"
 	"io/ioutil"
+	"net"
 	"os"
 	"os/exec"
 	"testing"
 
 	"github.com/gluster/glusterd2/pkg/api"
+	"github.com/gluster/glusterd2/pkg/restclient"
+
 	"github.com/stretchr/testify/require"
 )
 
-func TestVolumeCreateDelete(t *testing.T) {
+const (
+	volname = "testvol"
+)
+
+var (
+	gds    []*gdProcess
+	client *restclient.Client
+	tmpDir string
+)
+
+// TestVolume creates a volume and starts it, runs further tests on it and
+// finally deletes the volume
+func TestVolume(t *testing.T) {
+	var err error
+
 	r := require.New(t)
 
-	gds, err := setupCluster("./config/1.yaml", "./config/2.yaml")
+	gds, err = setupCluster("./config/1.yaml", "./config/2.yaml")
 	r.Nil(err)
 	defer teardownCluster(gds)
 
-	brickDir, err := ioutil.TempDir("", "TestVolumeCreateDelete")
+	client = initRestclient(gds[0].ClientAddress)
+
+	tmpDir, err = ioutil.TempDir("", t.Name())
 	r.Nil(err)
-	defer os.RemoveAll(brickDir)
+	t.Logf("Using temp dir: %s", tmpDir)
+	//defer os.RemoveAll(tmpDir)
+
+	// Create the volume
+	t.Run("Create", testVolumeCreate)
+
+	// Run tests that depend on this volume
+	t.Run("Start", testVolumeStart)
+	t.Run("Mount", testVolumeMount)
+	t.Run("Stop", testVolumeStop)
+
+	// delete volume
+	t.Run("Delete", testVolumeDelete)
+}
+
+func testVolumeCreate(t *testing.T) {
+	r := require.New(t)
 
 	var brickPaths []string
 	for i := 1; i <= 4; i++ {
-		brickPath, err := ioutil.TempDir(brickDir, "brick")
+		brickPath, err := ioutil.TempDir(tmpDir, "brick")
 		r.Nil(err)
 		brickPaths = append(brickPaths, brickPath)
 	}
 
-	client := initRestclient(gds[0].ClientAddress)
-
 	// create 2x2 dist-rep volume
-	volname := "testvol"
 	createReq := api.VolCreateReq{
 		Name:    volname,
 		Replica: 2,
@@ -44,10 +77,44 @@ func TestVolumeCreateDelete(t *testing.T) {
 	}
 	_, errVolCreate := client.VolumeCreate(createReq)
 	r.Nil(errVolCreate)
+}
 
-	// delete volume
+func testVolumeDelete(t *testing.T) {
+	r := require.New(t)
+
 	errVolDel := client.VolumeDelete(volname)
 	r.Nil(errVolDel)
+}
+
+func testVolumeStart(t *testing.T) {
+	r := require.New(t)
+
+	r.Nil(client.VolumeStart(volname), "volume start failed")
+}
+
+func testVolumeStop(t *testing.T) {
+	r := require.New(t)
+
+	r.Nil(client.VolumeStop(volname), "volume stop failed")
+}
+
+// testVolumeMount mounts checks if the volume mounts successfully and unmounts it
+func testVolumeMount(t *testing.T) {
+	r := require.New(t)
+
+	mntPath, err := ioutil.TempDir(tmpDir, "mnt")
+	r.Nil(err)
+	defer os.RemoveAll(mntPath)
+
+	host, _, _ := net.SplitHostPort(gds[0].ClientAddress)
+	mntCmd := exec.Command("mount", "-t", "glusterfs", host+":"+volname, mntPath)
+	umntCmd := exec.Command("umount", mntPath)
+
+	err = mntCmd.Run()
+	r.Nil(err, fmt.Sprintf("mount failed: %s", err))
+
+	err = umntCmd.Run()
+	r.Nil(err, fmt.Sprintf("unmount failed: %s", err))
 }
 
 func TestVolumeOptions(t *testing.T) {

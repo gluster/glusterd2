@@ -5,6 +5,7 @@ import (
 	"bytes"
 	"encoding/json"
 	"errors"
+	"net"
 	"net/http"
 	"path/filepath"
 
@@ -39,6 +40,7 @@ var (
 )
 
 // VolType is the status of the volume
+//go:generate stringer -type=VolType
 type VolType uint16
 
 const (
@@ -68,6 +70,7 @@ type Volinfo struct {
 	Version      uint64
 	Bricks       []brick.Brickinfo
 	Auth         VolAuth // TODO: should not be returned to client
+	GraphMap     map[string]string
 }
 
 // VolAuth represents username and password used by trusted/internal clients
@@ -81,6 +84,20 @@ type VolStatus struct {
 	Brickstatuses []brick.Brickstatus
 	// TODO: Add further fields like memory usage, brick filesystem, fd consumed,
 	// clients connected etc.
+}
+
+// StringMap returns a map[string]string representation of Volinfo
+func (v *Volinfo) StringMap() map[string]string {
+	m := make(map[string]string)
+
+	m["volume.id"] = v.ID.String()
+	m["volume.name"] = v.Name
+	m["volume.type"] = v.Type.String()
+	m["volume.transport"] = v.Transport
+	m["volume.auth.username"] = v.Auth.Username
+	m["volume.auth.password"] = v.Auth.Password
+
+	return m
 }
 
 // NewBrickEntries creates the brick list
@@ -99,11 +116,14 @@ func NewBrickEntries(bricks []string, volName string, volID uuid.UUID) ([]brick.
 			return nil, errors.New("Invalid UUID specified as host for brick")
 		}
 
-		if _, e := peer.GetPeerF(node); e != nil {
+		p, e := peer.GetPeerF(node)
+		if e != nil {
 			return nil, e
 		}
 
 		binfo.NodeID = u
+		// TODO: Have a better way to select peer address here
+		binfo.Hostname, _, _ = net.SplitHostPort(p.Addresses[0])
 
 		binfo.Path, e = absFilePath(path)
 		if e != nil {
@@ -113,6 +133,8 @@ func NewBrickEntries(bricks []string, volName string, volID uuid.UUID) ([]brick.
 
 		binfo.VolumeName = volName
 		binfo.VolumeID = volID
+		binfo.ID = uuid.NewRandom()
+
 		brickInfos = append(brickInfos, binfo)
 	}
 	return brickInfos, nil

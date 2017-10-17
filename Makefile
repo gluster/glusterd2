@@ -1,13 +1,36 @@
-GOPATH := $(shell go env GOPATH)
-GOBIN := '$(GOPATH)/bin'
+include  ./extras/make/paths.mk
+
+GD2 = glusterd2
+
+BUILDDIR = build
+
+GD2_BIN = $(GD2)
+GD2_BUILD = $(BUILDDIR)/$(GD2_BIN)
+GD2_INSTALL = $(SBINDIR)/$(GD2_BIN)
+
+CLI_BIN = glustercli
+CLI_BUILD = $(BUILDDIR)/$(CLI_BIN)
+CLI_INSTALL = $(SBINDIR)/$(CLI_BIN)
+
+GD2_CONF = $(GD2).toml
+GD2CONF_BUILDSCRIPT=./scripts/gen-gd2conf.sh
+GD2CONF_BUILD = $(BUILDDIR)/$(GD2_CONF)
+GD2CONF_INSTALL = $(SYSCONFDIR)/$(GD2)/$(GD2_CONF)
+
+TEMPLATESDIR = volgen/templates
+TEMPLATES_INSTALL = $(DATADIR)/$(GD2)/templates
+
+GD2STATEDIR = $(LOCALSTATEDIR)/$(GD2)
+GD2LOGDIR = $(LOGDIR)/$(GD2)
+GD2TEMPLATESDIR = $(TEMPLATES_INSTALL)
+
 PLUGINS ?= yes
 
-.PHONY: all build check check-go check-reqs install vendor-update vendor-install verify glusterd2 release check-protoc cli
+.PHONY: all build check check-go check-reqs install vendor-update vendor-install verify release check-protoc $(GD2_BIN) $(GD2_BUILD) $(CLI_BIN) $(CLI_BUILD) cli $(GD2_CONF) gd2conf test
 
 all: build
 
-build: check-go check-reqs vendor-install glusterd2 cli
-
+build: check-go check-reqs vendor-install glusterd2 glustercli glusterd2.toml 
 check: check-go check-reqs check-protoc
 
 check-go:
@@ -22,14 +45,25 @@ check-reqs:
 	@./scripts/check-reqs.sh
 	@echo
 
-glusterd2:
+$(GD2_BIN): $(GD2_BUILD)
+$(GD2_BUILD):
 	@PLUGINS=$(PLUGINS) ./scripts/build.sh
 	@echo
 
-install: check-go check-reqs vendor-install
-	@PLUGINS=$(PLUGINS) ./scripts/build.sh $(GOBIN)
-	@echo Setting CAP_SYS_ADMIN for glusterd2 \(requires sudo\)
-	sudo setcap cap_sys_admin+ep $(GOBIN)/glusterd2
+$(CLI_BIN) cli: $(CLI_BUILD)
+$(CLI_BUILD):
+	@./scripts/build-cli.sh
+	@echo
+
+$(GD2_CONF) gd2conf: $(GD2CONF_BUILD)
+$(GD2CONF_BUILD):
+	@GD2STATEDIR=$(GD2STATEDIR) GD2LOGDIR=$(GD2LOGDIR) GD2TEMPLATESDIR=$(GD2TEMPLATESDIR) $(GD2CONF_BUILDSCRIPT)
+
+install:
+	install -D $(GD2_BUILD) $(GD2_INSTALL)
+	install -D $(CLI_BUILD) $(CLI_INSTALL)
+	install -D $(GD2CONF_BUILD) $(GD2CONF_INSTALL)
+	install -D -t $(TEMPLATES_INSTALL) $(TEMPLATESDIR)/*.graph
 	@echo
 
 vendor-update:
@@ -52,7 +86,3 @@ test:
 
 release: check-go check-reqs vendor-install
 	@./scripts/release.sh
-
-cli:
-	@./scripts/build-cli.sh
-	@echo

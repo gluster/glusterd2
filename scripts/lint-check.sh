@@ -6,8 +6,9 @@
 # and then run golint on them
 
 RETVAL=0
+GENERATED_FILES="*(.pb|_string).go"
 
-for file in $(find . -path ./vendor -prune -o -type f -name '*.go' -not -name '*.pb.go' -print); do
+for file in $(find . -path ./vendor -prune -o -type f -name '*.go' -print | grep -E -v $GENERATED_FILES); do
   golint -set_exit_status $file
   if [ $? -eq 1 -a $RETVAL -eq 0 ]; then
     RETVAL=1
