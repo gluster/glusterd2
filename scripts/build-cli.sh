@@ -5,10 +5,8 @@
 ## ./scripts/build-cli.sh [<path-to-output-directory>]
 ## If no path is given, defaults to build dir
 
-OUTDIR=build
-if [ "x$1" != "x" ]; then
-  OUTDIR=$1
-fi
+OUTDIR=${1:-build}
+mkdir -p $OUTDIR
 
 GOBUILD_TAGS="novirt noaugeas "
 VERSION=$($(dirname $0)/pkg-version --full)

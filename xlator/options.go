@@ -34,6 +34,20 @@ const (
 	OptionValidateMax
 )
 
+// OptionFlag is the type representing the flags of an Option
+type OptionFlag uint
+
+// These are the available OptionFlags
+const (
+	OptionFlagNone     = 0
+	OptionFlagSettable = 1 << iota
+	OptionFlagClientOpt
+	OptionFlagGlobal
+	OptionFlagForce
+	OptionFlagNeverReset
+	OptionFlagDoc
+)
+
 // Option is a struct which represents one single xlator option exported by
 // the translator.
 type Option struct {
@@ -49,4 +63,5 @@ type Option struct {
 	Deprecated   []uint32
 	Flags        uint32
 	Tags         []string
+	SetKey       string
 }

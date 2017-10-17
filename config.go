@@ -8,6 +8,7 @@ import (
 
 	"github.com/gluster/glusterd2/gdctx"
 	"github.com/gluster/glusterd2/store"
+	"github.com/gluster/glusterd2/volgen"
 
 	log "github.com/sirupsen/logrus"
 	flag "github.com/spf13/pflag"
@@ -19,13 +20,14 @@ const (
 	defaultClientAddress = ":24007"
 	defaultPeerAddress   = ":24008"
 
-	defaultConfName = "glusterd"
+	defaultConfName = "glusterd2"
 )
 
 // Slices,Arrays cannot be constants :(
 var (
 	defaultConfPaths = []string{
-		"/etc/glusterd",
+		"/etc/glusterd2",
+		"/usr/local/etc/glusterd2",
 		".",
 	}
 )
@@ -37,7 +39,7 @@ func parseFlags() {
 	flag.String("rundir", "", "Directory to store runtime data. (default: workdir/run)")
 	flag.String("logdir", "", "Directory to store logs. (default: workdir/log)")
 	flag.String("logfile", "-", "Log file name. (default: STDERR)")
-	flag.String("config", "", "Configuration file for GlusterD. By default looks for glusterd.(yaml|toml|json) in /etc/glusterd and current working directory.")
+	flag.String("config", "", "Configuration file for GlusterD. By default looks for glusterd2.(yaml|toml|json) in [/usr/local]/etc/glusterd2 and current working directory.")
 	flag.String("loglevel", defaultLogLevel, "Severity of messages to be logged.")
 
 	flag.String("clientaddress", defaultClientAddress, "Address to bind the REST service.")
@@ -48,6 +50,7 @@ func parseFlags() {
 	flag.String("key-file", "", "Private key for the SSL/TLS certificate.")
 
 	store.InitFlags()
+	volgen.InitFlags()
 
 	flag.Parse()
 }
@@ -93,6 +96,8 @@ func setDefaults() error {
 		port = config.GetString("defaultpeerport")
 	}
 	config.SetDefault("peeraddress", host+":"+port)
+
+	volgen.SetDefaults()
 
 	return nil
 }

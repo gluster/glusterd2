@@ -16,6 +16,9 @@ func GetPeerIDByAddrMockGood(addr string) (uuid.UUID, error) {
 // GetPeerFMockGood returns a mock Peer
 func GetPeerFMockGood(id string) (*Peer, error) {
 	var p Peer
+	p.Name = "test"
+	p.ID = uuid.NewRandom()
+	p.Addresses = []string{"test"}
 	return &p, nil
 }
 

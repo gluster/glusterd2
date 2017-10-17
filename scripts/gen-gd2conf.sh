@@ -1,0 +1,24 @@
+#!/bin/bash
+
+PREFIX=${PREFIX:-/usr/local}
+DATADIR=${DATADIR:-$PREFIX/share}
+LOCALSTATEDIR=${LOCALSTATEDIR:-$PREFIX/var/lib}
+LOGDIR=${LOGDIR:-$PREFIX/var/log}
+
+GD2="glusterd2"
+GD2STATEDIR=${GD2STATEDIR:-$LOCALSTATEDIR/$GD2}
+GD2LOGDIR=${GD2LOGDIR:-$LOGDIR/$GD2}
+GD2TEMPLATESDIR=${GD2TEMPLATESDIR:-$DATADIR/$GD2/templates}
+
+OUTDIR=${1:-build}
+mkdir -p $OUTDIR
+
+OUTPUT=$OUTDIR/$GD2.toml
+
+
+cat >$OUTPUT <<EOF
+localstatedir = "$GD2STATEDIR"
+logdir = "$GD2LOGDIR"
+logfile = "$GD2.log"
+templatesdir = "$GD2TEMPLATESDIR"
+EOF
