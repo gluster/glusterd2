@@ -68,12 +68,12 @@ install:
 
 vendor-update:
 	@echo Updating vendored packages
-	@glide update --strip-vendor
+	@dep ensure -update
 	@echo
 
 vendor-install:
 	@echo Installing vendored packages
-	@glide install --strip-vendor
+	@dep ensure
 	@echo
 
 verify: check-reqs
