@@ -1,6 +1,7 @@
 package sunrpc
 
 import (
+	"expvar"
 	"io"
 	"net"
 	"net/rpc"
@@ -13,6 +14,11 @@ import (
 	"github.com/prashanthpai/sunrpc"
 	log "github.com/sirupsen/logrus"
 	"github.com/soheilhy/cmux"
+)
+
+var (
+	// metrics
+	clientCount = expvar.NewInt("sunrpc_clients_connected")
 )
 
 // SunRPC implements a suture service
@@ -103,6 +109,7 @@ func (s *SunRPC) Serve() {
 			clientsList.Lock()
 			delete(clientsList.c, conn)
 			clientsList.Unlock()
+			clientCount.Add(-1)
 		}
 	}()
 
@@ -126,6 +133,8 @@ func (s *SunRPC) Serve() {
 			}
 			continue
 		}
+
+		clientCount.Add(1)
 
 		// Update list of clients
 		clientsList.Lock()

@@ -3,6 +3,7 @@ package transaction
 
 import (
 	"context"
+	"expvar"
 	"fmt"
 
 	"github.com/gluster/glusterd2/store"
@@ -15,6 +16,8 @@ import (
 const (
 	txnPrefix = store.GlusterPrefix + "transaction/"
 )
+
+var expTxn = expvar.NewMap("txn")
 
 // Txn is a set of steps
 type Txn struct {
@@ -58,6 +61,7 @@ func NewTxnWithLoggingContext(f log.Fields, id string) *Txn {
 // Cleanup cleans the leftovers after a transaction ends
 func (t *Txn) Cleanup() {
 	store.Store.Delete(context.TODO(), t.Ctx.Prefix(), clientv3.WithPrefix())
+	expTxn.Add("initiated_txn_in_progress", -1)
 }
 
 // Do runs the transaction on the cluster
@@ -70,6 +74,8 @@ func (t *Txn) Do() (TxnCtx, error) {
 			return nil, fmt.Errorf("node %s is probably down", node.String())
 		}
 	}
+
+	expTxn.Add("initiated_txn_in_progress", 1)
 
 	//Do the steps
 	for i, s := range t.Steps {

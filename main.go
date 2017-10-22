@@ -124,6 +124,9 @@ func main() {
 					log.WithError(err).Fatal("Could not re-initialize logging")
 				}
 			}
+		case unix.SIGUSR1:
+			log.Info("Received SIGUSR1. Dumping statedump")
+			utils.WriteStatedump()
 		default:
 			continue
 		}
