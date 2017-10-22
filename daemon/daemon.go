@@ -105,19 +105,23 @@ func Start(d Daemon, wait bool) error {
 			"pid":  pid,
 		}).Debug("Started daemon successfully")
 
-		return nil
+	} else {
+		// If the process exits at some point later, do read it's
+		// exit status. This should not let it be a zombie.
+		go func() {
+			err := cmd.Wait()
+			log.WithFields(log.Fields{
+				"name":   d.Name(),
+				"pid":    cmd.Process.Pid,
+				"status": err,
+			}).Debug("Child exited.")
+		}()
 	}
 
-	// If the process exits at some point later, do read it's
-	// exit status. This should not let it be a zombie.
-	go func() {
-		err := cmd.Wait()
-		log.WithFields(log.Fields{
-			"name":   d.Name(),
-			"pid":    cmd.Process.Pid,
-			"status": err,
-		}).Debug("Child exited.")
-	}()
+	// Save daemon information in the store so it can be restarted
+	if err := saveDaemon(d); err != nil {
+		log.WithField("name", d.Name()).WithError(err).Warn("failed to save daemon information into store, daemon may not be restarted on GlusterD restart")
+	}
 
 	return nil
 }
@@ -160,5 +164,28 @@ func Stop(d Daemon, force bool) error {
 		}).Error("Stopping daemon failed.")
 	}
 
+	if err := delDaemon(d); err != nil {
+		log.WithFields(log.Fields{
+			"name": d.Name(),
+			"pid":  pid,
+		}).WithError(err).Warn("failed to delete daemon from store, it may be restarted on GlusterD restart")
+	}
+
 	return nil
+}
+
+// StartAllDaemons starts all previously running daemons when GlusterD restarts
+func StartAllDaemons() {
+	log.Debug("starting all daemons")
+
+	ds, err := getDaemons()
+	if err != nil {
+		log.WithError(err).Warn("failed to get saved daemons, no daemons were started")
+	}
+
+	for _, d := range ds {
+		if err := Start(d, true); err != nil {
+			log.WithField("name", d.Name()).WithError(err).Warn("failed to start daemon")
+		}
+	}
 }

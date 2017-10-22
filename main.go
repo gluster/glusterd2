@@ -7,6 +7,7 @@ import (
 	"strings"
 	"time"
 
+	"github.com/gluster/glusterd2/daemon"
 	"github.com/gluster/glusterd2/gdctx"
 	"github.com/gluster/glusterd2/peer"
 	"github.com/gluster/glusterd2/servers"
@@ -96,6 +97,9 @@ func main() {
 	super.ServeBackground()
 	super.Add(servers.New())
 	addMgmtService(super)
+
+	// Restart previously running daemons
+	daemon.StartAllDaemons()
 
 	// Use the main goroutine as signal handling loop
 	sigCh := make(chan os.Signal)
