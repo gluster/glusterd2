@@ -7,6 +7,7 @@ import (
 	"strings"
 	"time"
 
+	"github.com/gluster/glusterd2/daemon"
 	"github.com/gluster/glusterd2/gdctx"
 	"github.com/gluster/glusterd2/peer"
 	"github.com/gluster/glusterd2/servers"
@@ -97,6 +98,9 @@ func main() {
 	super.Add(servers.New())
 	addMgmtService(super)
 
+	// Restart previously running daemons
+	daemon.StartAllDaemons()
+
 	// Use the main goroutine as signal handling loop
 	sigCh := make(chan os.Signal)
 	signal.Notify(sigCh)
@@ -120,6 +124,9 @@ func main() {
 					log.WithError(err).Fatal("Could not re-initialize logging")
 				}
 			}
+		case unix.SIGUSR1:
+			log.Info("Received SIGUSR1. Dumping statedump")
+			utils.WriteStatedump()
 		default:
 			continue
 		}

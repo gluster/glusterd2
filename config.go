@@ -1,7 +1,9 @@
 package main
 
 import (
+	"encoding/json"
 	"errors"
+	"expvar"
 	"net"
 	"os"
 	"path"
@@ -13,6 +15,11 @@ import (
 	log "github.com/sirupsen/logrus"
 	flag "github.com/spf13/pflag"
 	config "github.com/spf13/viper"
+)
+
+var (
+	// metrics
+	expConfig = expvar.NewMap("config")
 )
 
 const (
@@ -41,6 +48,9 @@ func parseFlags() {
 	flag.String("logfile", "-", "Log file name. (default: STDERR)")
 	flag.String("config", "", "Configuration file for GlusterD. By default looks for glusterd2.(yaml|toml|json) in [/usr/local]/etc/glusterd2 and current working directory.")
 	flag.String("loglevel", defaultLogLevel, "Severity of messages to be logged.")
+
+	// TODO: Change default to false (disabled) in future.
+	flag.Bool("statedump", true, "Enable /statedump endpoint for metrics.")
 
 	flag.String("clientaddress", defaultClientAddress, "Address to bind the REST service.")
 	flag.String("peeraddress", defaultPeerAddress, "Address to bind the inter glusterd2 RPC service.")
@@ -102,10 +112,20 @@ func setDefaults() error {
 	return nil
 }
 
+type valueType struct {
+	v interface{}
+}
+
+func (v valueType) String() string {
+	vb, _ := json.Marshal(v.v)
+	return string(vb)
+}
+
 func dumpConfigToLog() {
 	l := log.NewEntry(log.StandardLogger())
 
 	for k, v := range config.AllSettings() {
+		expConfig.Set(k, valueType{v})
 		l = l.WithField(k, v)
 	}
 	l.Debug("running with configuration")

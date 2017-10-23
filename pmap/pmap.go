@@ -1,6 +1,8 @@
 package pmap
 
 import (
+	"encoding/json"
+	"expvar"
 	"fmt"
 	"net"
 	"sync"
@@ -24,20 +26,46 @@ const (
 )
 
 type portStatus struct {
-	Type       PortType
-	Bricknames []string // brick muxing
-	Xprt       interface{}
+	Port   int         `json:"port"`
+	Type   PortType    `json:"state"`
+	Bricks []string    `json:"bricks"`
+	Xprt   interface{} `json:"-"`
 }
 
-var registry = struct {
-	sync.RWMutex
-	BasePort  int
-	LastAlloc int
-	Ports     [gfPortMax + 1]portStatus
-}{}
+type registryType struct {
+	sync.RWMutex `json:"-"`
+	BasePort     int                       `json:"base_port"`
+	LastAlloc    int                       `json:"last_allocated_port,omitempty"`
+	Ports        [gfPortMax + 1]portStatus `json:"ports,omitempty"`
+}
 
-// NOTE: Export the functions defined here only when other parts of glusterd2
-//       actually starts using them.
+func (r *registryType) String() string {
+	mb, _ := json.Marshal(r)
+	return string(mb)
+}
+
+func (r *registryType) MarshalJSON() ([]byte, error) {
+	var ports []portStatus
+	registry.RLock()
+	for p := registry.BasePort; p <= registry.LastAlloc; p++ {
+		if len(registry.Ports[p].Bricks) == 0 {
+			continue
+		}
+		ports = append(ports, registry.Ports[p])
+	}
+	registry.RUnlock()
+
+	type aliasType registryType
+	return json.Marshal(&struct {
+		*aliasType
+		Ports []portStatus `json:"ports,omitempty"`
+	}{
+		aliasType: (*aliasType)(r),
+		Ports:     ports,
+	})
+}
+
+var registry = new(registryType)
 
 func isPortFree(port int) bool {
 	conn, err := net.Listen("tcp", fmt.Sprintf(":%d", port))
@@ -84,11 +112,11 @@ func RegistrySearch(brickname string, ptype PortType) int {
 
 	for p := registry.LastAlloc; p >= registry.BasePort; p-- {
 
-		if len(registry.Ports[p].Bricknames) == 0 || registry.Ports[p].Type != ptype {
+		if len(registry.Ports[p].Bricks) == 0 || registry.Ports[p].Type != ptype {
 			continue
 		}
 
-		if stringInSlice(brickname, registry.Ports[p].Bricknames) {
+		if stringInSlice(brickname, registry.Ports[p].Bricks) {
 			return p
 		}
 	}
@@ -144,7 +172,7 @@ func registryBind(port int, brickname string, ptype PortType, xprt interface{}) 
 	defer registry.Unlock()
 
 	registry.Ports[port].Type = ptype
-	registry.Ports[port].Bricknames = append(registry.Ports[port].Bricknames, brickname)
+	registry.Ports[port].Bricks = append(registry.Ports[port].Bricks, brickname)
 	registry.Ports[port].Xprt = xprt
 
 	if registry.LastAlloc < port {
@@ -182,16 +210,16 @@ func doRemove(port int, brickname string, xprt interface{}) {
 
 	registry.Lock()
 	defer registry.Unlock()
-	if len(registry.Ports[port].Bricknames) == 1 {
+	if len(registry.Ports[port].Bricks) == 1 {
 		// Bricks aren't multiplexed over the same port
 		// clear the bricknames array and reset other fields
-		registry.Ports[port].Bricknames = registry.Ports[port].Bricknames[:0]
+		registry.Ports[port].Bricks = registry.Ports[port].Bricks[:0]
 		registry.Ports[port].Type = GfPmapPortFree
 		registry.Ports[port].Xprt = nil
 	} else {
 		// Bricks are multiplexed, only remove the brick entry
-		registry.Ports[port].Bricknames =
-			deleteFromSlice(registry.Ports[port].Bricknames, brickname)
+		registry.Ports[port].Bricks =
+			deleteFromSlice(registry.Ports[port].Bricks, brickname)
 		if (xprt != nil) && (xprt == registry.Ports[port].Xprt) {
 			registry.Ports[port].Xprt = nil
 		}
@@ -237,9 +265,11 @@ func initRegistry() {
 		} else {
 			registry.Ports[i].Type = GfPmapPortForeign
 		}
+		registry.Ports[i].Port = i
 	}
 }
 
 func init() {
 	registryInit.Do(initRegistry)
+	expvar.Publish("pmap", registry)
 }

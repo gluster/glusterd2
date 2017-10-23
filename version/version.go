@@ -1,10 +1,15 @@
 package version
 
 import (
+	"expvar"
 	"fmt"
 	"runtime"
 
 	flag "github.com/spf13/pflag"
+)
+
+var (
+	expVer = expvar.NewString("version")
 )
 
 // MaxOpVersion and APIVersion supported
@@ -21,6 +26,7 @@ var (
 
 func init() {
 	flag.Bool("version", false, "Show the version information")
+	expVer.Set(GlusterdVersion)
 }
 
 // DumpVersionInfo prints all version information
