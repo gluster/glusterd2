@@ -50,3 +50,13 @@ func addOrUpdateSession(v *georepapi.GeorepSession) error {
 	}
 	return nil
 }
+
+// deleteSession deletes the georep session object from store
+func deleteSession(mastervolid string, slavevolid string) error {
+	_, e := store.Store.Delete(context.TODO(), georepPrefix+mastervolid+"/"+slavevolid)
+	if e != nil {
+		log.WithError(e).Error("Couldn't delete georeplication session from store")
+		return e
+	}
+	return nil
+}

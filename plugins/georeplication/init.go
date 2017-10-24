@@ -35,6 +35,30 @@ func (p *Plugin) RestRoutes() route.Routes {
 			Pattern:     "/geo-replication/{mastervolid}/{slavevolid}/start",
 			Version:     1,
 			HandlerFunc: georepStartHandler},
+		route.Route{
+			Name:        "GeoreplicationStop",
+			Method:      "POST",
+			Pattern:     "/geo-replication/{mastervolid}/{slavevolid}/stop",
+			Version:     1,
+			HandlerFunc: georepStopHandler},
+		route.Route{
+			Name:        "GeoreplicationDelete",
+			Method:      "DELETE",
+			Pattern:     "/geo-replication/{mastervolid}/{slavevolid}",
+			Version:     1,
+			HandlerFunc: georepDeleteHandler},
+		route.Route{
+			Name:        "GeoreplicationPause",
+			Method:      "POST",
+			Pattern:     "/geo-replication/{mastervolid}/{slavevolid}/pause",
+			Version:     1,
+			HandlerFunc: georepPauseHandler},
+		route.Route{
+			Name:        "GeoreplicationResume",
+			Method:      "POST",
+			Pattern:     "/geo-replication/{mastervolid}/{slavevolid}/resume",
+			Version:     1,
+			HandlerFunc: georepResumeHandler},
 	}
 }
 
@@ -43,4 +67,8 @@ func (p *Plugin) RestRoutes() route.Routes {
 func (p *Plugin) RegisterStepFuncs() {
 	transaction.RegisterStepFunc(txnGeorepCreate, "georeplication-create.Commit")
 	transaction.RegisterStepFunc(txnGeorepStart, "georeplication-start.Commit")
+	transaction.RegisterStepFunc(txnGeorepStop, "georeplication-stop.Commit")
+	transaction.RegisterStepFunc(txnGeorepDelete, "georeplication-delete.Commit")
+	transaction.RegisterStepFunc(txnGeorepPause, "georeplication-pause.Commit")
+	transaction.RegisterStepFunc(txnGeorepResume, "georeplication-resume.Commit")
 }
