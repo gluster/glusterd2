@@ -22,6 +22,8 @@ Install rpcbind:
 # systemctl enable rpcbind
 ```
 
+> **IMPORTANT:** Please install glusterfs from source using code from the [experimental branch](https://github.com/gluster/glusterfs/tree/experimental). This is temporary until we get nightly RPMs built for experimental branch. Skip the following step to install a released version of GlusterFS.
+
 Install packages that provide GlusterFS server (brick process) and client (fuse, libgfapi):
 
 ```sh
