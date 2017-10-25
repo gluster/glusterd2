@@ -73,9 +73,7 @@ func main() {
 
 	// Load all possible xlator options
 	if err := xlator.InitOptions(); err != nil {
-		// TODO: Move this elsewhere and make it log.Fatal when we're
-		// sure that the machine will always have gluster xlators installed.
-		log.WithError(err).Warn("Failed to load xlator options")
+		log.WithError(err).Fatal("Failed to load xlator options")
 	}
 
 	// Load volgen templates

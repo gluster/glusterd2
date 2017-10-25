@@ -84,11 +84,11 @@ func setDefaults() error {
 	}
 
 	if config.GetString("rundir") == "" {
-		config.SetDefault("rundir", path.Join(wd, "run"))
+		config.SetDefault("rundir", path.Join(config.GetString("localstatedir"), "run"))
 	}
 
 	if config.GetString("logdir") == "" {
-		config.SetDefault("logdir", path.Join(wd, "log"))
+		config.SetDefault("logdir", path.Join(config.GetString("localstatedir"), "log"))
 	}
 
 	// Set default peer port. This shouldn't be configurable.
