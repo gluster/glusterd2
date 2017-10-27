@@ -84,5 +84,5 @@ test:
 	@go test -tags 'novirt noaugeas' $$(glide nv | sed '/e2e/d')
 	@go test -tags 'novirt noaugeas' ./e2e -v -functest
 
-release: check-go check-reqs vendor-install
+release: build
 	@./scripts/release.sh
