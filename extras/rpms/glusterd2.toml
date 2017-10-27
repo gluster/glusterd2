@@ -1,3 +1,4 @@
 localstatedir = "/var/lib/glusterd2"
 logdir = "/var/log/glusterd2"
 logfile = "glusterd2.log"
+templatesdir = "/usr/share/glusterd2/templates"
