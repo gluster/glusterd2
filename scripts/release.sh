@@ -12,6 +12,8 @@ RELEASEDIR=releases/$VERSION
 TAR=$RELEASEDIR/$BIN-$VERSION-$OS-$ARCH.tar
 ARCHIVE=$TAR.xz
 
+TMPDIR=$(mktemp -d)
+
 if [ -e $ARCHIVE ]; then
   echo "Release archive $ARCHIVE exists."
   echo "Do you want to clean and start again?(y/N)"
@@ -33,13 +35,14 @@ mkdir -p $RELEASEDIR
 echo "Making GlusterD-2.0 release $VERSION"
 echo
 
-# Build GD2 into the release directory
-$(dirname $0)/build.sh $RELEASEDIR || exit 1
+cp build/glusterd2 $TMPDIR
+cp build/glustercli $TMPDIR
+cp -a volgen/templates $TMPDIR
 echo
 
 # Create release archive
 echo "Creating release archive"
-tar -cf $TAR -C $RELEASEDIR $BIN || exit 1
+tar -cf $TAR -C $TMPDIR . || exit 1
 xz $TAR || exit 1
 echo "Created release archive $RELEASEDIR/$ARCHIVE"
 echo
@@ -50,3 +53,5 @@ echo "Signing archive"
 SIGNFILE=$ARCHIVE.asc
 gpg --armor --output $SIGNFILE --detach-sign $ARCHIVE || exit 1
 echo "Signed archive, signature in $SIGNFILE"
+
+rm -rf $TMPDIR
