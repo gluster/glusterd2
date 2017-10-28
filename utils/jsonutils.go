@@ -14,11 +14,8 @@ func jsonFromBody(r io.Reader, v interface{}) error {
 	if err != nil {
 		return err
 	}
-	if err := json.Unmarshal(body, v); err != nil {
-		return err
-	}
 
-	return nil
+	return json.Unmarshal(body, v)
 }
 
 // GetJSONFromRequest unmarshals JSON in `r` into `v`

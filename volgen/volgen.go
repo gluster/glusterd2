@@ -91,22 +91,14 @@ func GenerateBrickVolfile(vol *volume.Volinfo, b *brick.Brickinfo) error {
 		return err
 	}
 
-	if err := bg.WriteToFile(getBrickVolFilePath(vol.Name, b.NodeID.String(), b.Path)); err != nil {
-		return err
-	}
-
-	return nil
+	return bg.WriteToFile(getBrickVolFilePath(vol.Name, b.NodeID.String(), b.Path))
 }
 
 // DeleteBrickVolfile deletes the brick volfile of a single brick
 func DeleteBrickVolfile(b *brick.Brickinfo) error {
 
 	path := getBrickVolFilePath(b.VolumeName, b.NodeID.String(), b.Path)
-	if err := os.Remove(path); err != nil {
-		return err
-	}
-
-	return nil
+	return os.Remove(path)
 }
 
 func getClientVolFilePath(volname string) string {

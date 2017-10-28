@@ -6,7 +6,7 @@ type staticGraph struct {
 }
 
 var defaultGraphs = []staticGraph{
-	staticGraph{
+	{
 		name: "brick.graph",
 		content: `protocol/server
 performance/decompounder, {{ brick.path }}
@@ -28,13 +28,13 @@ features/changetimerecorder
 features/trash
 storage/posix`,
 	},
-	staticGraph{
+	{
 		name: "distreplicate.graph",
 		content: `cluster/distribute
 cluster/replicate
 protocol/client`,
 	},
-	staticGraph{
+	{
 		name: "fuse.graph",
 		content: `debug/io-stats
 performance/io-threads
@@ -47,7 +47,7 @@ performance/read-ahead
 performance/write-behind
 cluster.graph`,
 	},
-	staticGraph{
+	{
 		name: "distribute.graph",
 		content: `cluster/dht
 protocol/client`,
