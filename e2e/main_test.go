@@ -24,7 +24,7 @@ func TestMain(m *testing.M) {
 
 	if !functest {
 		// Run only if -functest flag is passed to go test command
-		// go test -tags 'novirt noaugeas' ./e2e -v -functest
+		// go test ./e2e -v -functest
 		return
 	}
 

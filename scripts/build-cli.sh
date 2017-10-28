@@ -8,7 +8,6 @@
 OUTDIR=${1:-build}
 mkdir -p $OUTDIR
 
-GOBUILD_TAGS="novirt noaugeas "
 VERSION=$($(dirname $0)/pkg-version --full)
 REPO_PATH="github.com/gluster/glusterd2"
 GIT_SHA=`git rev-parse --short HEAD || echo "undefined"`
@@ -19,7 +18,7 @@ BIN=glustercli
 echo "Building $BIN $VERSION"
 
 cd cli
-go build -ldflags "${LDFLAGS}" -o ../$OUTDIR/$BIN -tags "$GOBUILD_TAGS" || exit 1
+go build -ldflags "${LDFLAGS}" -o ../$OUTDIR/$BIN || exit 1
 cd ..
 
 echo "Built $BIN $VERSION at $OUTDIR/$BIN"

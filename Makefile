@@ -81,8 +81,8 @@ verify: check-reqs
 	@gometalinter -D gotype -E gofmt --errors --deadline=5m -j 4 $$(glide nv)
 
 test:
-	@go test -tags 'novirt noaugeas' $$(glide nv | sed '/e2e/d')
-	@go test -tags 'novirt noaugeas' ./e2e -v -functest
+	@go test $$(glide nv | sed '/e2e/d')
+	@go test ./e2e -v -functest
 
 release: build
 	@./scripts/release.sh

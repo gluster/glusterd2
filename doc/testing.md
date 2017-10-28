@@ -38,5 +38,5 @@ tests.
 
 **Running functional tests:**
 ```sh
-# go test -tags 'novirt noaugeas' ./e2e -v -functest
+# go test ./e2e -v -functest
 ```
