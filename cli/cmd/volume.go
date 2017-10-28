@@ -74,7 +74,11 @@ func init() {
 	volumeCmd.AddCommand(volumeInfoCmd)
 	volumeCmd.AddCommand(volumeStatusCmd)
 	volumeCmd.AddCommand(volumeListCmd)
+
+	// Volume Expand
+	volumeExpandCmd.Flags().IntVarP(&flagCreateCmdReplicaCount, "replica", "", 0, "Replica Count")
 	volumeCmd.AddCommand(volumeExpandCmd)
+
 	RootCmd.AddCommand(volumeCmd)
 }
 
@@ -329,14 +333,14 @@ var volumeStatusCmd = &cobra.Command{
 }
 
 var volumeExpandCmd = &cobra.Command{
-	Use:   "expand",
+	Use:   "add-brick",
 	Short: helpVolumeExpandCmd,
 	Run: func(cmd *cobra.Command, args []string) {
 		validateNArgs(cmd, 2, 0)
 		volname := cmd.Flags().Args()[0]
 		bricks, err := bricksAsUUID(cmd.Flags().Args()[1:])
 		if err != nil {
-			log.WithField("volume", volname).Println("volume expansion failed")
+			log.WithField("volume", volname).Println("addition of brick failed")
 			failure(fmt.Sprintf("Error getting brick UUIDs: %s", err.Error()), 1)
 		}
 		vol, err := client.VolumeExpand(volname, api.VolExpandReq{
@@ -345,7 +349,7 @@ var volumeExpandCmd = &cobra.Command{
 		})
 		if err != nil {
 			log.WithField("volume", volname).Println("volume expansion failed")
-			failure(fmt.Sprintf("Volume expansion failed with %s", err.Error()), 1)
+			failure(fmt.Sprintf("Addition of brick failed with %s", err.Error()), 1)
 		}
 		fmt.Printf("%s Volume expanded successfully\n", vol.Name)
 		fmt.Println("Volume ID: ", vol.ID)
