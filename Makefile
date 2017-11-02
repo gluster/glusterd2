@@ -30,7 +30,7 @@ PLUGINS ?= yes
 
 all: build
 
-build: check-go check-reqs vendor-install glusterd2 glustercli glusterd2.toml 
+build: check-go check-reqs vendor-install glusterd2 glustercli glusterd2.toml
 check: check-go check-reqs check-protoc
 
 check-go:
@@ -78,10 +78,10 @@ vendor-install:
 
 verify: check-reqs
 	@./scripts/lint-check.sh
-	@gometalinter -D gotype -E gofmt --errors --deadline=5m -j 4 $$(glide nv)
+	@gometalinter -D gotype -E gofmt --errors --deadline=5m -j 4 --vendor
 
 test:
-	@go test $$(glide nv | sed '/e2e/d')
+	@go test $$(go list ./... | sed '/e2e/d')
 	@go test ./e2e -v -functest
 
 release: build

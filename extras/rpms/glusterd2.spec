@@ -19,7 +19,7 @@ Source1: glusterd2.toml
 ExclusiveArch: x86_64
 
 BuildRequires: golang >= 1.8.0
-BuildRequires: glide >= 0.12.0
+BuildRequires: dep >= 0.3.0
 BuildRequires: git
 BuildRequires: mercurial
 BuildRequires: systemd
