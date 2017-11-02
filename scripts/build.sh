@@ -8,7 +8,7 @@
 OUTDIR=${1:-build}
 mkdir -p $OUTDIR
 
-GOBUILD_TAGS="novirt noaugeas "
+GOBUILD_TAGS=""
 VERSION=$($(dirname $0)/pkg-version --full)
 REPO_PATH="github.com/gluster/glusterd2"
 GIT_SHA=`git rev-parse --short HEAD || echo "undefined"`

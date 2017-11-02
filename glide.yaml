@@ -1,7 +1,7 @@
 package: github.com/gluster/glusterd2
 import:
 - package: github.com/coreos/etcd
-  version: ~v3.2.4
+  version: ~v3.2.9
   subpackages:
   - client
   - clientv3
@@ -38,18 +38,6 @@ import:
   version: ^1.0.0
 - package: github.com/pelletier/go-buffruneio
   version: ^0.2.0
-- package: github.com/purpleidea/mgmt
-  subpackages:
-  - lib
-  - gapi
-  - pgraph
-  - resources
-- package: github.com/purpleidea/go-systemd
-  version: 6192533ebb4662c3bc0ce60c1d33dfc6702a1eac
-- package: github.com/prometheus/client_golang
-  version: master
-- package: golang.org/x/crypto
-  version: master
 - package: github.com/stretchr/testify
   version: v1.1.4
   subpackages:

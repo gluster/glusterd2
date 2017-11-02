@@ -32,7 +32,7 @@ const (
 //
 // In addition to xlator name, each line can also specify an alternate name to
 // be used to name the xlator in generated graphs.  Alternate names are
-// specified following the xlator, seperated by a comma.
+// specified following the xlator, separated by a comma.
 // Alternate names can also use varstrings. If the alternate name is a
 // varstring, the xlator will be named as the replacement of the varstring. If
 // not xlator will be named "<volname>-<altname>".

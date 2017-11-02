@@ -94,7 +94,6 @@ func main() {
 	super := initGD2Supervisor()
 	super.ServeBackground()
 	super.Add(servers.New())
-	addMgmtService(super)
 
 	// Restart previously running daemons
 	daemon.StartAllDaemons()

@@ -57,9 +57,5 @@ func txnGeorepStart(c transaction.TxnCtx) error {
 		"slave":  sessioninfo.SlaveHosts[0] + "::" + sessioninfo.SlaveVol,
 	}).Info("Starting gsyncd monitor")
 
-	if err := startGsyncdMonitor(sessioninfo); err != nil {
-		return err
-	}
-
-	return nil
+	return startGsyncdMonitor(sessioninfo)
 }
