@@ -1,20 +1,36 @@
 #!/usr/bin/env bash
 
-## This scripts builds a GD2 binary and places it in the given path
+## This scripts builds a GD2 binaries and places it in the given path
 ## Should be called from the root of the GD2 repo as
-## ./scripts/build.sh [<path-to-output-directory>]
+## ./scripts/build.sh <package> [<path-to-output-directory>]
 ## If no path is given, defaults to build
 
-OUTDIR=${1:-build}
+show_usage() {
+  echo "Usage: $0 <package-path> [<output-directory>]"
+  echo "<package-path>: Path of package to build relative to GD2 source root"
+  echo "<output-directory>: Path of output directory. Defaults to 'build'"
+  echo "Built binary will be placed at <output-directory>/<package-basename>)"
+}
+
+
+PACKAGE=${1}
+if [[ "XX$PACKAGE" == "XX" ]]; then
+  show_usage
+  exit 1
+fi
+
+OUTDIR=${2:-build}
 mkdir -p $OUTDIR
+
+REPO_PATH="github.com/gluster/glusterd2"
+GOPKG="${REPO_PATH}/${PACKAGE}"
+BIN=$(basename $PACKAGE)
 
 GOBUILD_TAGS=""
 VERSION=$($(dirname $0)/pkg-version --full)
-REPO_PATH="github.com/gluster/glusterd2"
 GIT_SHA=`git rev-parse --short HEAD || echo "undefined"`
 LDFLAGS="-X ${REPO_PATH}/version.GlusterdVersion=$VERSION -X ${REPO_PATH}/version.GitSHA=$GIT_SHA"
 LDFLAGS+=" -B 0x$(head -c20 /dev/urandom | od -An -tx1 | tr -d ' \n')"
-BIN=$(basename $(go list -f '{{.ImportPath}}'))
 
 if [ "$PLUGINS" == "yes" ]; then
     GOBUILD_TAGS+="plugins "
@@ -25,6 +41,6 @@ fi
 
 echo "Building $BIN $VERSION"
 
-go build -ldflags "${LDFLAGS}" -o $OUTDIR/$BIN -tags "$GOBUILD_TAGS" || exit 1
+go build -ldflags "${LDFLAGS}" -o $OUTDIR/$BIN -tags "$GOBUILD_TAGS" $GOPKG || exit 1
 
-echo "Built $BIN $VERSION at $OUTDIR/$BIN"
+echo "Built $PACKAGE $VERSION at $OUTDIR/$BIN"
