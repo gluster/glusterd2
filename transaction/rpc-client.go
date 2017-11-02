@@ -5,7 +5,7 @@ import (
 	"errors"
 
 	"github.com/gluster/glusterd2/peer"
-	"github.com/gluster/glusterd2/utils"
+	"github.com/gluster/glusterd2/pkg/utils"
 
 	"github.com/pborman/uuid"
 	log "github.com/sirupsen/logrus"

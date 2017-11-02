@@ -6,10 +6,10 @@ import (
 
 	"github.com/gluster/glusterd2/errors"
 	"github.com/gluster/glusterd2/gdctx"
+	"github.com/gluster/glusterd2/pkg/utils"
 	georepapi "github.com/gluster/glusterd2/plugins/georeplication/api"
 	restutils "github.com/gluster/glusterd2/servers/rest/utils"
 	"github.com/gluster/glusterd2/transaction"
-	"github.com/gluster/glusterd2/utils"
 	"github.com/gluster/glusterd2/volume"
 
 	"github.com/gorilla/mux"

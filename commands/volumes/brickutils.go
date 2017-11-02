@@ -7,7 +7,7 @@ import (
 
 	"github.com/gluster/glusterd2/brick"
 	"github.com/gluster/glusterd2/daemon"
-	"github.com/gluster/glusterd2/utils"
+	"github.com/gluster/glusterd2/pkg/utils"
 
 	"github.com/pborman/uuid"
 )

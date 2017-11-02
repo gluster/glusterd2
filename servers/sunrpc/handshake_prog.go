@@ -7,8 +7,8 @@ import (
 	"path"
 	"strings"
 
+	"github.com/gluster/glusterd2/pkg/utils"
 	"github.com/gluster/glusterd2/store"
-	"github.com/gluster/glusterd2/utils"
 
 	"github.com/prashanthpai/sunrpc"
 	log "github.com/sirupsen/logrus"

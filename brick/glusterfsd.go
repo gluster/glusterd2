@@ -11,8 +11,8 @@ import (
 
 	"github.com/cespare/xxhash"
 	"github.com/gluster/glusterd2/gdctx"
+	"github.com/gluster/glusterd2/pkg/utils"
 	"github.com/gluster/glusterd2/pmap"
-	"github.com/gluster/glusterd2/utils"
 
 	config "github.com/spf13/viper"
 )

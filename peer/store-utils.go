@@ -8,8 +8,8 @@ import (
 	"encoding/json"
 
 	"github.com/gluster/glusterd2/errors"
+	"github.com/gluster/glusterd2/pkg/utils"
 	"github.com/gluster/glusterd2/store"
-	"github.com/gluster/glusterd2/utils"
 
 	"github.com/coreos/etcd/clientv3"
 	"github.com/pborman/uuid"

@@ -8,9 +8,9 @@ import (
 	"github.com/gluster/glusterd2/gdctx"
 	"github.com/gluster/glusterd2/peer"
 	"github.com/gluster/glusterd2/pkg/api"
+	"github.com/gluster/glusterd2/pkg/utils"
 	restutils "github.com/gluster/glusterd2/servers/rest/utils"
 	"github.com/gluster/glusterd2/transaction"
-	"github.com/gluster/glusterd2/utils"
 	"github.com/gluster/glusterd2/volume"
 	"github.com/pborman/uuid"
 

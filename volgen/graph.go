@@ -6,7 +6,7 @@ import (
 	"path"
 	"strings"
 
-	"github.com/gluster/glusterd2/utils"
+	"github.com/gluster/glusterd2/pkg/utils"
 	"github.com/gluster/glusterd2/volume"
 	"github.com/gluster/glusterd2/xlator"
 )

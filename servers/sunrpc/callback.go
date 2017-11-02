@@ -5,8 +5,8 @@ import (
 	"net"
 	"sync/atomic"
 
+	"github.com/gluster/glusterd2/pkg/utils"
 	"github.com/gluster/glusterd2/transaction"
-	"github.com/gluster/glusterd2/utils"
 
 	"github.com/prashanthpai/sunrpc"
 	"github.com/rasky/go-xdr/xdr2"
