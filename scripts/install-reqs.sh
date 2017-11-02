@@ -21,6 +21,7 @@ install_dep() {
   echo "Installing dep"
   DEPBIN=$GOPATH/bin/dep
   curl -L -o $DEPBIN $DEPURL
+  chmod +x $DEPBIN
 }
 
 install_gometalinter() {
