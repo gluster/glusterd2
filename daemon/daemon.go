@@ -6,7 +6,7 @@ import (
 	"strings"
 	"syscall"
 
-	"github.com/gluster/glusterd2/errors"
+	"github.com/gluster/glusterd2/pkg/errors"
 
 	log "github.com/sirupsen/logrus"
 )

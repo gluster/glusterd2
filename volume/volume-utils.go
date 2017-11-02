@@ -3,7 +3,7 @@ package volume
 import (
 	"strings"
 
-	"github.com/gluster/glusterd2/errors"
+	"github.com/gluster/glusterd2/pkg/errors"
 
 	"github.com/pborman/uuid"
 	log "github.com/sirupsen/logrus"

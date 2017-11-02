@@ -4,8 +4,8 @@ import (
 	"fmt"
 	"testing"
 
-	"github.com/gluster/glusterd2/errors"
 	"github.com/gluster/glusterd2/peer"
+	"github.com/gluster/glusterd2/pkg/errors"
 	"github.com/gluster/glusterd2/tests"
 
 	heketitests "github.com/heketi/tests"

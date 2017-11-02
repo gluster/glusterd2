@@ -7,8 +7,8 @@ import (
 	"testing"
 
 	"github.com/gluster/glusterd2/brick"
-	gderrors "github.com/gluster/glusterd2/errors"
 	"github.com/gluster/glusterd2/peer"
+	gderrors "github.com/gluster/glusterd2/pkg/errors"
 	"github.com/gluster/glusterd2/tests"
 	"github.com/gluster/glusterd2/transaction"
 	"github.com/gluster/glusterd2/volume"

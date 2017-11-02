@@ -5,8 +5,8 @@ import (
 
 	"github.com/gluster/glusterd2/brick"
 	"github.com/gluster/glusterd2/daemon"
-	"github.com/gluster/glusterd2/errors"
 	"github.com/gluster/glusterd2/gdctx"
+	"github.com/gluster/glusterd2/pkg/errors"
 	restutils "github.com/gluster/glusterd2/servers/rest/utils"
 	"github.com/gluster/glusterd2/transaction"
 	"github.com/gluster/glusterd2/volume"

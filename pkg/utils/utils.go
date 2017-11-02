@@ -1,8 +1,9 @@
+// Created by cgo - DO NOT EDIT
+
+//line /home/kaushal/go/src/github.com/gluster/glusterd2/pkg/utils/utils.go:1
 package utils
 
-// #include "limits.h"
-import "C"
-
+//line /home/kaushal/go/src/github.com/gluster/glusterd2/pkg/utils/utils.go:6
 import (
 	"net"
 	"os"
@@ -15,7 +16,7 @@ import (
 
 	"golang.org/x/sys/unix"
 
-	"github.com/gluster/glusterd2/errors"
+	"github.com/gluster/glusterd2/pkg/errors"
 	"github.com/pborman/uuid"
 	log "github.com/sirupsen/logrus"
 )
@@ -27,21 +28,20 @@ const (
 )
 
 var (
-	// PathMax calls unix.PathMax
+//line /home/kaushal/go/src/github.com/gluster/glusterd2/pkg/utils/utils.go:31
 	PathMax = unix.PathMax
-	// Removexattr calls unix.Removexattr
+
 	Removexattr = unix.Removexattr
-	// Setxattr calls unix.Setxattr
+
 	Setxattr = unix.Setxattr
-	// Getxattr calls unix.Getxattr
+
 	Getxattr = unix.Getxattr
 )
 
-//PosixPathMax represents C's POSIX_PATH_MAX
-const PosixPathMax = C._POSIX_PATH_MAX
+//line /home/kaushal/go/src/github.com/gluster/glusterd2/pkg/utils/utils.go:41
+const PosixPathMax = _Ciconst__POSIX_PATH_MAX
 
-// IsLocalAddress checks whether a given host/IP is local
-// Does lookup only after string matching IP addresses
+//line /home/kaushal/go/src/github.com/gluster/glusterd2/pkg/utils/utils.go:45
 func IsLocalAddress(address string) (bool, error) {
 	var host string
 
@@ -87,7 +87,7 @@ func IsLocalAddress(address string) (bool, error) {
 	return false, nil
 }
 
-// ParseHostAndBrickPath parses the host & brick path out of req.Bricks list
+//line /home/kaushal/go/src/github.com/gluster/glusterd2/pkg/utils/utils.go:91
 func ParseHostAndBrickPath(brickPath string) (string, string, error) {
 	i := strings.LastIndex(brickPath, ":")
 	if i == -1 {
@@ -100,9 +100,9 @@ func ParseHostAndBrickPath(brickPath string) (string, string, error) {
 	return hostname, path, nil
 }
 
-//ValidateBrickPathLength validates the length of the brick path
+//line /home/kaushal/go/src/github.com/gluster/glusterd2/pkg/utils/utils.go:104
 func ValidateBrickPathLength(brickPath string) error {
-	//TODO : Check whether PATH_MAX is compatible across all distros
+
 	if len(filepath.Clean(brickPath)) >= PathMax {
 		log.WithField("brick", brickPath).Error(errors.ErrBrickPathTooLong.Error())
 		return errors.ErrBrickPathTooLong
@@ -110,12 +110,11 @@ func ValidateBrickPathLength(brickPath string) error {
 	return nil
 }
 
-//ValidateBrickSubDirLength validates the length of each sub directories under
-//the brick path
+//line /home/kaushal/go/src/github.com/gluster/glusterd2/pkg/utils/utils.go:115
 func ValidateBrickSubDirLength(brickPath string) error {
 	subdirs := strings.Split(brickPath, string(os.PathSeparator))
-	// Iterate over the sub directories and validate that they don't breach
-	//  _POSIX_PATH_MAX validation
+
+//line /home/kaushal/go/src/github.com/gluster/glusterd2/pkg/utils/utils.go:119
 	for _, subdir := range subdirs {
 		if len(subdir) >= PosixPathMax {
 			log.WithField("subdir", subdir).Error("sub directory path is too long")
@@ -125,21 +124,19 @@ func ValidateBrickSubDirLength(brickPath string) error {
 	return nil
 }
 
-//GetDeviceID fetches the device id of the device containing the file/directory
+//line /home/kaushal/go/src/github.com/gluster/glusterd2/pkg/utils/utils.go:129
 func GetDeviceID(f os.FileInfo) (int, error) {
 	s := f.Sys()
 	switch s := s.(type) {
-	//TODO : Need to change syscall to unix, using unix.Stat_t fails in one
-	//of the test
+
+//line /home/kaushal/go/src/github.com/gluster/glusterd2/pkg/utils/utils.go:134
 	case *syscall.Stat_t:
 		return int(s.Dev), nil
 	}
 	return -1, errors.ErrDeviceIDNotFound
 }
 
-//ValidateBrickPathStats checks whether the brick directory can be created with
-//certain validations like directory checks, whether directory is part of mount
-//point etc
+//line /home/kaushal/go/src/github.com/gluster/glusterd2/pkg/utils/utils.go:143
 func ValidateBrickPathStats(brickPath string, force bool) error {
 	var created bool
 	var rootStat, brickStat, parentStat os.FileInfo
@@ -221,7 +218,7 @@ func ValidateBrickPathStats(brickPath string, force bool) error {
 
 	}
 
-	// Workaround till https://review.gluster.org/#/c/18003/ gets in
+//line /home/kaushal/go/src/github.com/gluster/glusterd2/pkg/utils/utils.go:225
 	if err := os.MkdirAll(filepath.Join(brickPath, ".glusterfs", "indices"), os.ModeDir|os.ModePerm); err != nil {
 		log.WithError(err).Error("failed to create .glusterfs/indices directory")
 		return err
@@ -230,9 +227,7 @@ func ValidateBrickPathStats(brickPath string, force bool) error {
 	return nil
 }
 
-//ValidateXattrSupport checks whether the underlying file system has extended
-//attribute support and it also sets some internal xattrs to mark the brick in
-//use
+//line /home/kaushal/go/src/github.com/gluster/glusterd2/pkg/utils/utils.go:236
 func ValidateXattrSupport(brickPath string, volid uuid.UUID, force bool) error {
 	var err error
 	err = Setxattr(brickPath, "trusted.glusterfs.test", []byte("working"), 0)
@@ -257,7 +252,7 @@ func ValidateXattrSupport(brickPath string, volid uuid.UUID, force bool) error {
 		}
 	}
 
-	// FIXME: This shouldn't be part of validate
+//line /home/kaushal/go/src/github.com/gluster/glusterd2/pkg/utils/utils.go:261
 	err = Setxattr(brickPath, volumeIDXattr, []byte(volid), 0)
 	if err != nil {
 		log.WithFields(log.Fields{"error": err.Error(),
@@ -290,9 +285,7 @@ func isBrickPathAlreadyInUse(brickPath string) bool {
 	return false
 }
 
-// InitDir creates directory path and checks if files can be created in it.
-// Returns error if path is not a directory or if directory doesn't have
-// write permission.
+//line /home/kaushal/go/src/github.com/gluster/glusterd2/pkg/utils/utils.go:296
 func InitDir(path string) error {
 
 	if err := os.MkdirAll(path, os.ModeDir|os.ModePerm); err != nil {
@@ -310,7 +303,7 @@ func InitDir(path string) error {
 	return nil
 }
 
-// GetLocalIP will give local IP address of this node
+//line /home/kaushal/go/src/github.com/gluster/glusterd2/pkg/utils/utils.go:314
 func GetLocalIP() (string, error) {
 	addrs, err := net.InterfaceAddrs()
 	if err != nil {
@@ -318,7 +311,7 @@ func GetLocalIP() (string, error) {
 	}
 
 	for _, address := range addrs {
-		// check the address type and if it is not a loopback then return it
+
 		if ipnet, ok := address.(*net.IPNet); ok && !ipnet.IP.IsLoopback() {
 			if ipnet.IP.To4() != nil {
 				return ipnet.IP.String(), nil
@@ -328,13 +321,12 @@ func GetLocalIP() (string, error) {
 	return "", errors.ErrIPAddressNotFound
 }
 
-// GetFuncName returns the name of the passed function pointer
+//line /home/kaushal/go/src/github.com/gluster/glusterd2/pkg/utils/utils.go:332
 func GetFuncName(fn interface{}) string {
 	return runtime.FuncForPC(reflect.ValueOf(fn).Pointer()).Name()
 }
 
-// StringInSlice will return true if the given string is present in the
-// list of strings provided. Will return false otherwise.
+//line /home/kaushal/go/src/github.com/gluster/glusterd2/pkg/utils/utils.go:338
 func StringInSlice(query string, list []string) bool {
 	for _, s := range list {
 		if s == query {
@@ -344,7 +336,7 @@ func StringInSlice(query string, list []string) bool {
 	return false
 }
 
-// IsAddressSame checks is two host addresses are same
+//line /home/kaushal/go/src/github.com/gluster/glusterd2/pkg/utils/utils.go:348
 func IsAddressSame(host1, host2 string) bool {
 
 	if host1 == host2 {

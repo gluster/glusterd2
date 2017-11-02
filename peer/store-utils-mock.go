@@ -4,7 +4,7 @@ package peer
 // Do not use these functions in any other place.
 
 import (
-	"github.com/gluster/glusterd2/errors"
+	"github.com/gluster/glusterd2/pkg/errors"
 	"github.com/pborman/uuid"
 )
 

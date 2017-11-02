@@ -8,7 +8,7 @@ import (
 	"strconv"
 	"syscall"
 
-	"github.com/gluster/glusterd2/errors"
+	"github.com/gluster/glusterd2/pkg/errors"
 )
 
 // WritePidToFile function writes pid to the file specified by path.

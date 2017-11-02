@@ -5,8 +5,8 @@ import (
 	"fmt"
 	"net/http"
 
-	gderrors "github.com/gluster/glusterd2/errors"
 	"github.com/gluster/glusterd2/gdctx"
+	gderrors "github.com/gluster/glusterd2/pkg/errors"
 	"github.com/gluster/glusterd2/pkg/utils"
 	restutils "github.com/gluster/glusterd2/servers/rest/utils"
 	"github.com/gluster/glusterd2/transaction"
