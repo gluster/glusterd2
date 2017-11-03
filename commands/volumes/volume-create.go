@@ -7,7 +7,7 @@ import (
 
 	gderrors "github.com/gluster/glusterd2/errors"
 	"github.com/gluster/glusterd2/gdctx"
-	reqapi "github.com/gluster/glusterd2/pkg/api"
+	"github.com/gluster/glusterd2/pkg/api"
 	restutils "github.com/gluster/glusterd2/servers/rest/utils"
 	"github.com/gluster/glusterd2/transaction"
 	"github.com/gluster/glusterd2/utils"
@@ -17,7 +17,7 @@ import (
 	"github.com/pborman/uuid"
 )
 
-func unmarshalVolCreateRequest(msg *reqapi.VolCreateReq, r *http.Request) (int, error) {
+func unmarshalVolCreateRequest(msg *api.VolCreateReq, r *http.Request) (int, error) {
 	if err := utils.GetJSONFromRequest(r, msg); err != nil {
 		return 422, gderrors.ErrJSONParsingFailed
 	}
@@ -32,7 +32,7 @@ func unmarshalVolCreateRequest(msg *reqapi.VolCreateReq, r *http.Request) (int, 
 
 }
 
-func createVolinfo(req *reqapi.VolCreateReq) (*volume.Volinfo, error) {
+func createVolinfo(req *api.VolCreateReq) (*volume.Volinfo, error) {
 
 	var err error
 
@@ -91,7 +91,7 @@ func createVolinfo(req *reqapi.VolCreateReq) (*volume.Volinfo, error) {
 
 func validateVolumeCreate(c transaction.TxnCtx) error {
 
-	var req reqapi.VolCreateReq
+	var req api.VolCreateReq
 	err := c.Get("req", &req)
 	if err != nil {
 		return err
@@ -148,7 +148,7 @@ func registerVolCreateStepFuncs() {
 }
 
 func volumeCreateHandler(w http.ResponseWriter, r *http.Request) {
-	req := new(reqapi.VolCreateReq)
+	req := new(api.VolCreateReq)
 	reqID, logger := restutils.GetReqIDandLogger(r)
 
 	httpStatus, err := unmarshalVolCreateRequest(req, r)

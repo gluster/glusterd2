@@ -6,7 +6,7 @@ import (
 	"github.com/gluster/glusterd2/brick"
 	"github.com/gluster/glusterd2/errors"
 	"github.com/gluster/glusterd2/gdctx"
-	reqapi "github.com/gluster/glusterd2/pkg/api"
+	"github.com/gluster/glusterd2/pkg/api"
 	restutils "github.com/gluster/glusterd2/servers/rest/utils"
 	"github.com/gluster/glusterd2/transaction"
 	"github.com/gluster/glusterd2/utils"
@@ -189,7 +189,7 @@ func volumeExpandHandler(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	var req reqapi.VolExpandReq
+	var req api.VolExpandReq
 	if err := utils.GetJSONFromRequest(r, &req); err != nil {
 		restutils.SendHTTPError(w, http.StatusUnprocessableEntity, errors.ErrJSONParsingFailed.Error())
 		return
