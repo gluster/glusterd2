@@ -352,6 +352,5 @@ var volumeExpandCmd = &cobra.Command{
 			failure(fmt.Sprintf("Addition of brick failed with %s", err.Error()), 1)
 		}
 		fmt.Printf("%s Volume expanded successfully\n", vol.Name)
-		fmt.Println("Volume ID: ", vol.ID)
 	},
 }

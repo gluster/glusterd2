@@ -7,6 +7,7 @@ import (
 
 	gderrors "github.com/gluster/glusterd2/errors"
 	"github.com/gluster/glusterd2/gdctx"
+	reqapi "github.com/gluster/glusterd2/pkg/api"
 	restutils "github.com/gluster/glusterd2/servers/rest/utils"
 	"github.com/gluster/glusterd2/transaction"
 	"github.com/gluster/glusterd2/utils"
@@ -16,19 +17,7 @@ import (
 	"github.com/pborman/uuid"
 )
 
-// VolCreateRequest defines the parameters for creating a volume in the volume-create command
-type VolCreateRequest struct {
-	Name         string            `json:"name"`
-	Transport    string            `json:"transport,omitempty"`
-	ReplicaCount int               `json:"replica,omitempty"`
-	Bricks       []string          `json:"bricks"`
-	Force        bool              `json:"force,omitempty"`
-	Options      map[string]string `json:"options,omitempty"`
-	// Bricks list is ordered (like in glusterd1) and decides which bricks
-	// form replica sets.
-}
-
-func unmarshalVolCreateRequest(msg *VolCreateRequest, r *http.Request) (int, error) {
+func unmarshalVolCreateRequest(msg *reqapi.VolCreateReq, r *http.Request) (int, error) {
 	if err := utils.GetJSONFromRequest(r, msg); err != nil {
 		return 422, gderrors.ErrJSONParsingFailed
 	}
@@ -43,7 +32,7 @@ func unmarshalVolCreateRequest(msg *VolCreateRequest, r *http.Request) (int, err
 
 }
 
-func createVolinfo(req *VolCreateRequest) (*volume.Volinfo, error) {
+func createVolinfo(req *reqapi.VolCreateReq) (*volume.Volinfo, error) {
 
 	var err error
 
@@ -62,10 +51,10 @@ func createVolinfo(req *VolCreateRequest) (*volume.Volinfo, error) {
 		v.Transport = "tcp"
 	}
 
-	if req.ReplicaCount == 0 {
+	if req.Replica == 0 {
 		v.ReplicaCount = 1
 	} else {
-		v.ReplicaCount = req.ReplicaCount
+		v.ReplicaCount = req.Replica
 	}
 
 	if (len(req.Bricks) % v.ReplicaCount) != 0 {
@@ -102,7 +91,7 @@ func createVolinfo(req *VolCreateRequest) (*volume.Volinfo, error) {
 
 func validateVolumeCreate(c transaction.TxnCtx) error {
 
-	var req VolCreateRequest
+	var req reqapi.VolCreateReq
 	err := c.Get("req", &req)
 	if err != nil {
 		return err
@@ -159,7 +148,7 @@ func registerVolCreateStepFuncs() {
 }
 
 func volumeCreateHandler(w http.ResponseWriter, r *http.Request) {
-	req := new(VolCreateRequest)
+	req := new(reqapi.VolCreateReq)
 	reqID, logger := restutils.GetReqIDandLogger(r)
 
 	httpStatus, err := unmarshalVolCreateRequest(req, r)
