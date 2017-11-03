@@ -12,6 +12,12 @@ import (
 	"time"
 
 	"github.com/gluster/glusterd2/pkg/api"
+
+	"github.com/dgrijalva/jwt-go"
+)
+
+var (
+	expireSeconds = 120
 )
 
 // Client represents Glusterd2 REST Client
@@ -35,6 +41,21 @@ func parseHTTPError(jsonData []byte) string {
 		return ""
 	}
 	return errstr.Error
+}
+
+func getAuthToken(username string, password string) string {
+	// Create the Claims
+	claims := &jwt.StandardClaims{
+		ExpiresAt: time.Now().Add(time.Second * time.Duration(expireSeconds)).Unix(),
+		Issuer:    username,
+	}
+	token := jwt.NewWithClaims(jwt.SigningMethodHS256, claims)
+	ss, err := token.SignedString([]byte(password))
+	if err != nil {
+		return ""
+	}
+
+	return ss
 }
 
 func (c *Client) post(url string, data interface{}, expectStatusCode int, output interface{}) error {
@@ -71,6 +92,11 @@ func (c *Client) do(method string, url string, data interface{}, expectStatusCod
 	}
 	req.Header.Set("Accept", "application/json")
 	req.Header.Set("Content-Type", "application/json")
+
+	// Set Authorization if username and password is not empty string
+	if c.username != "" && c.password != "" {
+		req.Header.Set("Authorization", "bearer "+getAuthToken(c.username, c.password))
+	}
 
 	tr := &http.Transport{
 		DisableCompression:    true,

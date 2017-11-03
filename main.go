@@ -90,6 +90,14 @@ func main() {
 		log.WithError(err).Fatal("Could not add self details into etcd")
 	}
 
+	// If REST API Auth is enabled, Generate Auth file with random secret in workdir
+	if config.GetBool("restauth") {
+		gdctx.RESTAPIAuthEnabled = true
+		if err := gdctx.GenerateLocalAuthToken(); err != nil {
+			log.WithError(err).Fatal("Failed to generate local auth token")
+		}
+	}
+
 	// Start all servers (rest, peerrpc, sunrpc) managed by suture supervisor
 	super := initGD2Supervisor()
 	super.ServeBackground()

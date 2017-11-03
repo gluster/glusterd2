@@ -46,3 +46,5 @@ import:
 - package: github.com/olekukonko/tablewriter
 - package: github.com/cespare/xxhash
   version: ^1.0.0
+- package: github.com/dgrijalva/jwt-go
+  version: ^3.1.0
