@@ -10,6 +10,12 @@ type VolCreateReq struct {
 	Force     bool              `json:"force,omitempty"`
 }
 
+// VolExpandReq represents a request to expand the volume by adding more bricks
+type VolExpandReq struct {
+	ReplicaCount int      `json:"replica,omitempty"`
+	Bricks       []string `json:"bricks"`
+}
+
 // PeerAddReq represents a Peer Add Request
 type PeerAddReq struct {
 	Addresses []string `json:"addresses"`

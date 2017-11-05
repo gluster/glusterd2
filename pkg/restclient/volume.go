@@ -14,6 +14,14 @@ func (c *Client) VolumeCreate(req api.VolCreateReq) (api.Volinfo, error) {
 	return vol, err
 }
 
+// VolumeExpand expands a volume by adding more bricks
+func (c *Client) VolumeExpand(req api.VolExpandReq, volname string) (api.Volinfo, error) {
+	var vol api.Volinfo
+	url := fmt.Sprintf("/v1/volumes/%s/expand", volname)
+	err := c.post(url, req, http.StatusOK, &vol)
+	return vol, err
+}
+
 // Volumes returns list of all volumes
 func (c *Client) Volumes(volname string) ([]api.Volinfo, error) {
 	var vols []api.Volinfo
