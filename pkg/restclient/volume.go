@@ -60,3 +60,11 @@ func (c *Client) VolumeSet(volname string, req api.VolOptionReq) error {
 	err := c.post(url, req, http.StatusOK, nil)
 	return err
 }
+
+// VolumeExpand expands a Gluster Volume
+func (c *Client) VolumeExpand(volname string, req api.VolExpandReq) (api.Volinfo, error) {
+	var vol api.Volinfo
+	url := fmt.Sprintf("/v1/volumes/%s/expand", volname)
+	err := c.post(url, req, http.StatusOK, &vol)
+	return vol, err
+}

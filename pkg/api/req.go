@@ -25,3 +25,11 @@ type PeerAddReq struct {
 type VolOptionReq struct {
 	Options map[string]string `json:"options"`
 }
+
+// VolExpandReq represents a request to expand the volume by adding more bricks
+type VolExpandReq struct {
+	ReplicaCount int      `json:"replica,omitempty"`
+	Bricks       []string `json:"bricks"`
+	// TODO: Add other fields like disperse count when we support
+	// that volume type
+}
