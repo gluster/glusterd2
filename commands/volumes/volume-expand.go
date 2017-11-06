@@ -6,6 +6,7 @@ import (
 	"github.com/gluster/glusterd2/brick"
 	"github.com/gluster/glusterd2/errors"
 	"github.com/gluster/glusterd2/gdctx"
+	"github.com/gluster/glusterd2/pkg/api"
 	restutils "github.com/gluster/glusterd2/servers/rest/utils"
 	"github.com/gluster/glusterd2/transaction"
 	"github.com/gluster/glusterd2/utils"
@@ -16,14 +17,6 @@ import (
 	"github.com/pborman/uuid"
 	log "github.com/sirupsen/logrus"
 )
-
-// VolExpandReq represents a request to expand the volume by adding more bricks
-type VolExpandReq struct {
-	ReplicaCount int      `json:"replica,omitempty"`
-	Bricks       []string `json:"bricks"`
-	// TODO: Add other fields like disperse count when we support
-	// that volume type
-}
 
 func checkBricksOnExpand(c transaction.TxnCtx) error {
 
@@ -196,7 +189,7 @@ func volumeExpandHandler(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	var req VolExpandReq
+	var req api.VolExpandReq
 	if err := utils.GetJSONFromRequest(r, &req); err != nil {
 		restutils.SendHTTPError(w, http.StatusUnprocessableEntity, errors.ErrJSONParsingFailed.Error())
 		return

@@ -9,6 +9,7 @@ import (
 	"github.com/gluster/glusterd2/brick"
 	gderrors "github.com/gluster/glusterd2/errors"
 	"github.com/gluster/glusterd2/peer"
+	"github.com/gluster/glusterd2/pkg/api"
 	"github.com/gluster/glusterd2/tests"
 	"github.com/gluster/glusterd2/transaction"
 	"github.com/gluster/glusterd2/volume"
@@ -25,7 +26,7 @@ var (
 //TestUnmarshalVolCreateRequest validates the JSON request of volume
 //create request
 func TestUnmarshalVolCreateRequest(t *testing.T) {
-	msg := new(VolCreateRequest)
+	msg := new(api.VolCreateReq)
 	tests.Assert(t, msg != nil)
 
 	// Request with invalid JSON format
@@ -56,7 +57,7 @@ func TestCreateVolinfo(t *testing.T) {
 	defer heketitests.Patch(&peer.GetPeerIDByAddrF, peer.GetPeerIDByAddrMockGood).Restore()
 	defer heketitests.Patch(&peer.GetPeerF, peer.GetPeerFMockGood).Restore()
 
-	msg := new(VolCreateRequest)
+	msg := new(api.VolCreateReq)
 	u := uuid.NewRandom()
 	msg.Name = "vol"
 	msg.Bricks = []string{u.String() + ":/tmp/b1", u.String() + ":/tmp/b2"}
@@ -73,7 +74,7 @@ func TestCreateVolinfo(t *testing.T) {
 
 // TestValidateVolumeCreate validates validateVolumeCreate()
 func TestValidateVolumeCreate(t *testing.T) {
-	msg := new(VolCreateRequest)
+	msg := new(api.VolCreateReq)
 
 	msg.Name = "vol"
 	u := uuid.NewRandom()
