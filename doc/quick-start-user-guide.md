@@ -85,7 +85,7 @@ Now you have two nodes running glusterd2.
 
 ### Attach peer
 
-Glusterd2 natively provides only ReST API for clients to perform management operations. A CLI is provided which interacts with glusterd2 using the [ReST APIs](../../wiki/ReST-API).
+Glusterd2 natively provides only ReST API for clients to perform management operations. A CLI is provided which interacts with glusterd2 using the [ReST APIs](https://github.com/gluster/glusterd2/wiki/ReST-API).
 
 **Add `node2 (192.168.56.102)` as a peer from `node1 (192.168.56.101)`:**
 
@@ -97,6 +97,7 @@ $ cat addpeer.json
 	"addresses": ["192.168.56.102"]
 }
 ```
+`addresses` takes a list of address by which the new host can be contacted. It can be FQDNs, short-names or IP addresses. Note that if you want to attach multiple peers use below API to attach each peer one at a time.
 
 Send a HTTP request to `node1` to add `node2` as peer:
 
