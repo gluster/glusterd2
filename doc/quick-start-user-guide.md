@@ -97,7 +97,7 @@ $ cat addpeer.json
 	"addresses": ["192.168.56.102"]
 }
 ```
-`addresses` takes a list of address by which the new host can be contacted. It can be FQDNs, short-names or IP addresses. Note that if you want to attach multiple peers use below API to attach each peer one at a time.
+`addresses` takes a list of address by which the new host can be added. It can be FQDNs, short-names or IP addresses. Note that if you want to attach multiple peers use below API to attach each peer one at a time.
 
 Send a HTTP request to `node1` to add `node2` as peer:
 
