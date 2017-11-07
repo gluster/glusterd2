@@ -26,7 +26,7 @@ GD2TEMPLATESDIR = $(TEMPLATES_INSTALL)
 
 PLUGINS ?= yes
 
-.PHONY: all build check check-go check-reqs install vendor-update vendor-install verify release check-protoc $(GD2_BIN) $(GD2_BUILD) $(CLI_BIN) $(CLI_BUILD) cli $(GD2_CONF) gd2conf test
+.PHONY: all build check check-go check-reqs install vendor-update vendor-install verify release check-protoc $(GD2_BIN) $(GD2_BUILD) $(CLI_BIN) $(CLI_BUILD) cli $(GD2_CONF) gd2conf test dist dist-vendor
 
 all: build
 
@@ -86,3 +86,9 @@ test:
 
 release: build
 	@./scripts/release.sh
+
+dist:
+	@./scripts/dist.sh
+
+dist-vendor: vendor-install
+	@VENDOR=yes ./scripts/dist.sh

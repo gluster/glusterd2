@@ -9,10 +9,14 @@ OUTDIR=${1:-build}
 mkdir -p $OUTDIR
 
 VERSION=$($(dirname $0)/pkg-version --full)
+[[ -f VERSION ]] && source VERSION
+GIT_SHA=${GIT_SHA:-$(git rev-parse --short HEAD || echo "undefined")}
+GIT_SHA_FULL=${GIT_SHA_FULL:-$(git rev-parse HEAD || echo "undefined")}
+
 REPO_PATH="github.com/gluster/glusterd2"
-GIT_SHA=`git rev-parse --short HEAD || echo "undefined"`
-LDFLAGS="-X ${REPO_PATH}/version.GlusterdVersion=$VERSION -X ${REPO_PATH}/version.GitSHA=$GIT_SHA"
-LDFLAGS+=" -B 0x$(head -c20 /dev/urandom | od -An -tx1 | tr -d ' \n')"
+LDFLAGS="-X ${REPO_PATH}/version.GlusterdVersion=${VERSION} -X ${REPO_PATH}/version.GitSHA=${GIT_SHA}"
+LDFLAGS+=" -B 0x${GIT_SHA_FULL}"
+
 BIN=glustercli
 
 echo "Building $BIN $VERSION"
