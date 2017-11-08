@@ -81,7 +81,7 @@ verify: check-reqs
 	@gometalinter -D gotype -E gofmt --errors --deadline=5m -j 4 --vendor
 
 test:
-	@go test $$(go list ./... | sed '/e2e/d')
+	@go test $$(go list ./... | sed '/e2e/d;/vendor/d')
 	@go test ./e2e -v -functest
 
 release: build
