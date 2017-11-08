@@ -52,6 +52,9 @@ func TestVolume(t *testing.T) {
 	t.Run("Start", testVolumeStart)
 	t.Run("Mount", testVolumeMount)
 	t.Run("Stop", testVolumeStop)
+	t.Run("List", testVolumeList)
+	t.Run("Info", testVolumeInfo)
+	t.Run("Status", testVolumeStatus)
 
 	// delete volume
 	t.Run("Delete", testVolumeDelete)
@@ -122,6 +125,28 @@ func testVolumeStop(t *testing.T) {
 	r := require.New(t)
 
 	r.Nil(client.VolumeStop(volname), "volume stop failed")
+}
+
+func testVolumeList(t *testing.T) {
+	r := require.New(t)
+
+	volumes, errVolList := client.Volumes("")
+	r.Nil(errVolList)
+	r.Len(volumes, 1)
+}
+
+func testVolumeInfo(t *testing.T) {
+	r := require.New(t)
+
+	_, errVolInfo := client.Volumes(volname)
+	r.Nil(errVolInfo)
+}
+
+func testVolumeStatus(t *testing.T) {
+	r := require.New(t)
+
+	_, errVolStatus := client.VolumeStatus(volname)
+	r.Nil(errVolStatus)
 }
 
 // testVolumeMount mounts checks if the volume mounts successfully and unmounts it
