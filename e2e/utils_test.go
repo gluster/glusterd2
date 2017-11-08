@@ -71,14 +71,14 @@ func (g *gdProcess) IsRestServerUp() bool {
 	}
 	defer resp.Body.Close()
 
-	if resp.StatusCode != 200 {
+	if resp.StatusCode/100 == 5 {
 		return false
 	}
 
 	return true
 }
 
-func spawnGlusterd(configFilePath string, cleanStart bool, runningCheck bool) (*gdProcess, error) {
+func spawnGlusterd(configFilePath string, cleanStart bool) (*gdProcess, error) {
 
 	fContent, err := ioutil.ReadFile(configFilePath)
 	if err != nil {
@@ -112,10 +112,6 @@ func spawnGlusterd(configFilePath string, cleanStart bool, runningCheck bool) (*
 		g.Cmd.Wait()
 	}()
 
-	if !runningCheck {
-		return &g, nil
-	}
-
 	retries := 4
 	waitTime := 1500
 	for i := 0; i < retries; i++ {
@@ -146,7 +142,7 @@ func setupCluster(configFiles ...string) ([]*gdProcess, error) {
 	}
 
 	for _, configFile := range configFiles {
-		g, err := spawnGlusterd(configFile, true, true)
+		g, err := spawnGlusterd(configFile, true)
 		if err != nil {
 			cleanup()
 			return nil, err

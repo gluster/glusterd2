@@ -13,7 +13,7 @@ import (
 func TestRestart(t *testing.T) {
 	r := require.New(t)
 
-	gd, err := spawnGlusterd("./config/1.yaml", true, true)
+	gd, err := spawnGlusterd("./config/1.yaml", true)
 	r.Nil(err)
 	r.True(gd.IsRunning())
 
@@ -37,7 +37,7 @@ func TestRestart(t *testing.T) {
 
 	r.Nil(gd.Stop())
 
-	gd, err = spawnGlusterd("./config/1.yaml", false, true)
+	gd, err = spawnGlusterd("./config/1.yaml", false)
 	r.Nil(err)
 	r.True(gd.IsRunning())
 

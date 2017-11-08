@@ -14,7 +14,7 @@ func TestRESTAPIAuth(t *testing.T) {
 	r := require.New(t)
 
 	// FIXME: Ignored error since it makes REST call
-	g1, _ := spawnGlusterd("./config/4.yaml", true, false)
+	g1, _ := spawnGlusterd("./config/4.yaml", true)
 
 	defer g1.Stop()
 	defer g1.EraseWorkdir()

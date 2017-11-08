@@ -100,19 +100,24 @@ func init() {
 
 // GenerateLocalAuthToken generates random secret if not already generated
 func GenerateLocalAuthToken() error {
+	if !config.GetBool("restauth") {
+		return nil
+	}
+
+	RESTAPIAuthEnabled = true
 	workdir := config.GetString("workdir")
 	authFile := path.Join(workdir, "auth")
 	_, err := os.Stat(authFile)
 	if os.IsNotExist(err) {
 		data := make([]byte, 32)
-		_, err1 := rand.Read(data)
-		if err1 == nil {
+		_, err := rand.Read(data)
+		if err == nil {
 			LocalAuthToken = fmt.Sprintf("%x", data)
 			if errWrite := ioutil.WriteFile(authFile, []byte(LocalAuthToken), 0640); errWrite != nil {
 				return errWrite
 			}
 		}
-		return err1
+		return err
 	} else if err != nil {
 		return err
 	}
