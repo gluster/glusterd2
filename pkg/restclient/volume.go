@@ -5,6 +5,7 @@ import (
 	"net/http"
 
 	"github.com/gluster/glusterd2/pkg/api"
+	"github.com/gluster/glusterd2/volume"
 )
 
 // VolumeCreate creates Gluster Volume
@@ -26,6 +27,14 @@ func (c *Client) Volumes(volname string) ([]api.Volinfo, error) {
 	url := fmt.Sprintf("/v1/volumes/%s", volname)
 	err := c.get(url, nil, http.StatusOK, &vol)
 	return []api.Volinfo{vol}, err
+}
+
+// VolumeStatus returns the status of a Gluster volume
+func (c *Client) VolumeStatus(volname string) (volume.VolStatus, error) {
+	url := fmt.Sprintf("/v1/volumes/%s/status", volname)
+	var volStatus volume.VolStatus
+	err := c.get(url, nil, http.StatusOK, &volStatus)
+	return volStatus, err
 }
 
 // VolumeStart starts a Gluster Volume
