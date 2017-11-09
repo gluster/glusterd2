@@ -1,5 +1,5 @@
 #!/usr/bin/env bash
-set -x
+
 # This script builds a dist tarball of the GD2 source
 # This should only be called from the root of the GD2 repo
 
