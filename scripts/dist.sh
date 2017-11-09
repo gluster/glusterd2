@@ -31,9 +31,6 @@ fi
 # Create the VERSION file first
 $(dirname $0)/gen-version.sh
 
-# Use a temp dir to build tar file
-TMPDIR=$(mktemp -d)
-
 echo "Creating dist archive $ARCHIVE"
 git archive -o $TARFILE --prefix "$BASENAME/" HEAD
 case $VENDOR in
@@ -52,7 +49,6 @@ gpg --armor --output $SIGNFILE --detach-sign $ARCHIVE || exit 1
 echo "Signed dist archive, signature in $SIGNFILE"
 
 
-# Remove the VERSION file, it is no longer needed, and TMPDIR
+# Remove the VERSION file, it is no longer needed and would harm normal builds
 rm VERSION
-rm -rf $TMPDIR
 
