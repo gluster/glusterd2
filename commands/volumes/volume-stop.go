@@ -61,6 +61,15 @@ func stopBricks(c transaction.TxnCtx) error {
 				c.Logger().WithError(err).WithField(
 					"brick", b.String()).Error("failed to send terminate RPC, sending SIGTERM")
 				daemon.Stop(brickDaemon, false)
+				continue
+			}
+
+			// On graceful shutdown of brick, daemon.Stop() isn't called.
+			if err := daemon.DelDaemon(brickDaemon); err != nil {
+				log.WithFields(log.Fields{
+					"name": brickDaemon.Name(),
+					"id":   brickDaemon.ID(),
+				}).WithError(err).Warn("failed to delete brick entry from store, it may be restarted on GlusterD restart")
 			}
 		}
 	}
