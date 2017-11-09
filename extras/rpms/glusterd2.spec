@@ -14,7 +14,7 @@ Summary: The GlusterFS management daemon (preview)
 License: GPLv2 or LGPLv3+
 URL: https://%{provider_prefix}
 # Use vendored tarball instead of plain git archive
-Source0: https://%{provider_prefix}/releases/download/v%{version}-%{release}/%{name}-v%{version}-%{release}-vendor.tar.gz
+Source0: https://%{provider_prefix}/releases/download/v%{version}-%{release}/%{name}-v%{version}-%{release}-vendor.tar.xz
 Source1: glusterd2.toml
 
 ExclusiveArch: x86_64
@@ -76,7 +76,7 @@ install -D -m 0644 -t %{buildroot}%{_datadir}/%{name}/templates volgen/templates
 %files
 %{_sbindir}/%{name}
 %{_sbindir}/glustercli
-%config(noreplace) %{_sysconfdir}/%{glusterd2}
+%config(noreplace) %{_sysconfdir}/%{name}
 %{_unitdir}/%{name}.service
 %dir %{_sharedstatedir}/%{name}
 %dir %{_localstatedir}/log/%{name}
