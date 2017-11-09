@@ -82,7 +82,9 @@ func NewMuxed(m cmux.CMux) *GDRest {
 		middleware.Expvar,
 		middleware.Recover,
 		middleware.ReqIDGenerator,
-		middleware.LogRequest).Then(rest.Routes)
+		middleware.LogRequest,
+		middleware.Auth,
+	).Then(rest.Routes)
 
 	return rest
 }
