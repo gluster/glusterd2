@@ -9,19 +9,17 @@
 
 Name: %{repo}
 Version: 4.0dev
-Release: 7
+Release: 9
 Summary: The GlusterFS management daemon (preview)
 License: GPLv2 or LGPLv3+
 URL: https://%{provider_prefix}
-Source0: https://%{provider_prefix}/archive/v%{version}-%{release}/%{name}-v%{version}-%{release}.tar.gz
+# Use vendored tarball instead of plain git archive
+Source0: https://%{provider_prefix}/releases/download/v%{version}-%{release}/%{name}-v%{version}-%{release}-vendor.tar.gz
 Source1: glusterd2.toml
 
 ExclusiveArch: x86_64
 
 BuildRequires: golang >= 1.8.0
-BuildRequires: glide >= 0.12.0
-BuildRequires: git
-BuildRequires: mercurial
 BuildRequires: systemd
 
 Requires: glusterfs-server >= 4.0dev
@@ -42,9 +40,6 @@ mkdir -p src/%(dirname %{import_path})
 ln -s ../../../ src/%{import_path}
 
 pushd src/%{import_path}
-# Install vendored packages
-# TODO: See if we can build with unbundled packages
-make vendor-install
 # Build glusterd2
 make glusterd2
 make glustercli
@@ -90,6 +85,9 @@ install -D -m 0644 -t %{buildroot}%{_datadir}/%{name}/templates volgen/templates
 %{_datadir}/%{name}/templates/*
 
 %changelog
+* Wed Nov 08 2017 Kaushal M <kshlmster@gmail.com> - 4.0dev-9
+- Build with vendored tarball.
+
 * Thu Oct 26 2017 Kaushal M <kshlmster@gmail.com> - 4.0dev-8
 - Update spec file
 

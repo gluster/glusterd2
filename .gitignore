@@ -16,3 +16,6 @@ pkg/elasticetcd/example/example
 tags
 pkg/restclient/examples/examples
 cli/gluster
+# Ignore dist tarballs
+glusterd2-*.tar.xz
+glusterd2-*.tar.xz.asc

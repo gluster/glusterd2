@@ -26,11 +26,11 @@ GD2TEMPLATESDIR = $(TEMPLATES_INSTALL)
 
 PLUGINS ?= yes
 
-.PHONY: all build check check-go check-reqs install vendor-update vendor-install verify release check-protoc $(GD2_BIN) $(GD2_BUILD) $(CLI_BIN) $(CLI_BUILD) cli $(GD2_CONF) gd2conf test
+.PHONY: all build check check-go check-reqs install vendor-update vendor-install verify release check-protoc $(GD2_BIN) $(GD2_BUILD) $(CLI_BIN) $(CLI_BUILD) cli $(GD2_CONF) gd2conf test dist dist-vendor
 
 all: build
 
-build: check-go check-reqs vendor-install glusterd2 glustercli glusterd2.toml 
+build: check-go check-reqs vendor-install glusterd2 glustercli glusterd2.toml
 check: check-go check-reqs check-protoc
 
 check-go:
@@ -68,21 +68,27 @@ install:
 
 vendor-update:
 	@echo Updating vendored packages
-	@glide update --strip-vendor
+	@dep ensure -update
 	@echo
 
 vendor-install:
 	@echo Installing vendored packages
-	@glide install --strip-vendor
+	@dep ensure
 	@echo
 
 verify: check-reqs
 	@./scripts/lint-check.sh
-	@gometalinter -D gotype -E gofmt --errors --deadline=5m -j 4 $$(glide nv)
+	@gometalinter -D gotype -E gofmt --errors --deadline=5m -j 4 --vendor
 
 test:
-	@go test $$(glide nv | sed '/e2e/d')
+	@go test $$(go list ./... | sed '/e2e/d;/vendor/d')
 	@go test ./e2e -v -functest
 
 release: build
 	@./scripts/release.sh
+
+dist:
+	@./scripts/dist.sh
+
+dist-vendor: vendor-install
+	@VENDOR=yes ./scripts/dist.sh
