@@ -33,6 +33,7 @@ $(dirname $0)/gen-version.sh
 
 echo "Creating dist archive $ARCHIVE"
 git archive -o $TARFILE --prefix "$BASENAME/" HEAD
+tar --transform "s/^\./$BASENAME/" -rf $TARFILE ./VERSION || exit 1
 case $VENDOR in
   yes|y|Y)
     tar --transform "s/^\./$BASENAME/" -rf $TARFILE ./vendor || exit 1
