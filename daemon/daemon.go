@@ -164,7 +164,7 @@ func Stop(d Daemon, force bool) error {
 		}).Error("Stopping daemon failed.")
 	}
 
-	if err := delDaemon(d); err != nil {
+	if err := DelDaemon(d); err != nil {
 		log.WithFields(log.Fields{
 			"name": d.Name(),
 			"pid":  pid,
