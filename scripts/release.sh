@@ -58,4 +58,4 @@ rm -rf $TMPDIR
 
 # Also create source tarballs
 $(dirname $0)/dist.sh $RELEASEDIR
-VENDOR=1 $(dirname $0)/dist.sh $RELEASEDIR
+VENDOR=y $(dirname $0)/dist.sh $RELEASEDIR
