@@ -1,7 +1,7 @@
 package peer
 
 import (
-	"github.com/gluster/glusterd2/gdctx"
+	"github.com/gluster/glusterd2/bin/glusterd2/gdctx"
 
 	config "github.com/spf13/viper"
 )

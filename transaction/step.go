@@ -3,7 +3,7 @@ package transaction
 import (
 	"errors"
 
-	"github.com/gluster/glusterd2/gdctx"
+	"github.com/gluster/glusterd2/bin/glusterd2/gdctx"
 
 	"github.com/pborman/uuid"
 )

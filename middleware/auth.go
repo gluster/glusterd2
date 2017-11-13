@@ -5,7 +5,7 @@ import (
 	"net/http"
 	"strings"
 
-	"github.com/gluster/glusterd2/gdctx"
+	"github.com/gluster/glusterd2/bin/glusterd2/gdctx"
 
 	"github.com/dgrijalva/jwt-go"
 )

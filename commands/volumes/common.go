@@ -4,7 +4,7 @@ import (
 	"os"
 	"strings"
 
-	"github.com/gluster/glusterd2/gdctx"
+	"github.com/gluster/glusterd2/bin/glusterd2/gdctx"
 	"github.com/gluster/glusterd2/pkg/utils"
 	"github.com/gluster/glusterd2/servers/sunrpc"
 	"github.com/gluster/glusterd2/transaction"

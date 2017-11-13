@@ -9,8 +9,8 @@ import (
 	"net/http"
 	"path/filepath"
 
+	"github.com/gluster/glusterd2/bin/glusterd2/gdctx"
 	"github.com/gluster/glusterd2/brick"
-	"github.com/gluster/glusterd2/gdctx"
 	"github.com/gluster/glusterd2/peer"
 	"github.com/gluster/glusterd2/pkg/utils"
 

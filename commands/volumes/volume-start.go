@@ -3,7 +3,7 @@ package volumecommands
 import (
 	"net/http"
 
-	"github.com/gluster/glusterd2/gdctx"
+	"github.com/gluster/glusterd2/bin/glusterd2/gdctx"
 	"github.com/gluster/glusterd2/pkg/errors"
 	restutils "github.com/gluster/glusterd2/servers/rest/utils"
 	"github.com/gluster/glusterd2/transaction"

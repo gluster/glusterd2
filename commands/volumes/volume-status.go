@@ -4,9 +4,9 @@ import (
 	goerrors "errors"
 	"net/http"
 
+	"github.com/gluster/glusterd2/bin/glusterd2/gdctx"
 	"github.com/gluster/glusterd2/brick"
 	"github.com/gluster/glusterd2/daemon"
-	"github.com/gluster/glusterd2/gdctx"
 	"github.com/gluster/glusterd2/pkg/errors"
 	"github.com/gluster/glusterd2/pmap"
 	restutils "github.com/gluster/glusterd2/servers/rest/utils"

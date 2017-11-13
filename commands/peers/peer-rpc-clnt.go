@@ -3,7 +3,7 @@ package peercommands
 import (
 	"context"
 
-	"github.com/gluster/glusterd2/gdctx"
+	"github.com/gluster/glusterd2/bin/glusterd2/gdctx"
 
 	log "github.com/sirupsen/logrus"
 	"google.golang.org/grpc"

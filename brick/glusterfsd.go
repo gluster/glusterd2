@@ -10,7 +10,7 @@ import (
 	"strings"
 
 	"github.com/cespare/xxhash"
-	"github.com/gluster/glusterd2/gdctx"
+	"github.com/gluster/glusterd2/bin/glusterd2/gdctx"
 	"github.com/gluster/glusterd2/pkg/utils"
 	"github.com/gluster/glusterd2/pmap"
 

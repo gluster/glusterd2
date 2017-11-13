@@ -3,7 +3,7 @@ package store
 import (
 	"path"
 
-	"github.com/gluster/glusterd2/gdctx"
+	"github.com/gluster/glusterd2/bin/glusterd2/gdctx"
 	"github.com/gluster/glusterd2/pkg/elasticetcd"
 
 	"github.com/coreos/etcd/pkg/types"

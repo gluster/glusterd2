@@ -7,8 +7,8 @@ import (
 	"strings"
 	"time"
 
+	"github.com/gluster/glusterd2/bin/glusterd2/gdctx"
 	"github.com/gluster/glusterd2/daemon"
-	"github.com/gluster/glusterd2/gdctx"
 	"github.com/gluster/glusterd2/peer"
 	"github.com/gluster/glusterd2/pkg/utils"
 	"github.com/gluster/glusterd2/servers"

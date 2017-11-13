@@ -4,7 +4,7 @@ import (
 	errs "errors"
 	"net/http"
 
-	"github.com/gluster/glusterd2/gdctx"
+	"github.com/gluster/glusterd2/bin/glusterd2/gdctx"
 	"github.com/gluster/glusterd2/pkg/errors"
 	"github.com/gluster/glusterd2/pkg/utils"
 	georepapi "github.com/gluster/glusterd2/plugins/georeplication/api"

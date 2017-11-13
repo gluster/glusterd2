@@ -3,8 +3,8 @@ package volumecommands
 import (
 	"net/http"
 
+	"github.com/gluster/glusterd2/bin/glusterd2/gdctx"
 	"github.com/gluster/glusterd2/brick"
-	"github.com/gluster/glusterd2/gdctx"
 	"github.com/gluster/glusterd2/pkg/api"
 	"github.com/gluster/glusterd2/pkg/errors"
 	"github.com/gluster/glusterd2/pkg/utils"
