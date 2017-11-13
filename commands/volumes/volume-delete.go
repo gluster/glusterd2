@@ -4,8 +4,8 @@ import (
 	"net/http"
 
 	"github.com/gluster/glusterd2/bin/glusterd2/gdctx"
+	"github.com/gluster/glusterd2/bin/glusterd2/transaction"
 	restutils "github.com/gluster/glusterd2/servers/rest/utils"
-	"github.com/gluster/glusterd2/transaction"
 	"github.com/gluster/glusterd2/volgen"
 	"github.com/gluster/glusterd2/volume"
 

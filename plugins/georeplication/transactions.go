@@ -1,9 +1,9 @@
 package georeplication
 
 import (
+	"github.com/gluster/glusterd2/bin/glusterd2/transaction"
 	"github.com/gluster/glusterd2/daemon"
 	georepapi "github.com/gluster/glusterd2/plugins/georeplication/api"
-	"github.com/gluster/glusterd2/transaction"
 
 	log "github.com/sirupsen/logrus"
 )
