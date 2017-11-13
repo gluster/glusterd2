@@ -44,6 +44,6 @@ fi
 
 echo "Building $BIN $VERSION"
 
-go build -ldflags "${LDFLAGS}" -o $OUTDIR/$BIN -tags "$GOBUILD_TAGS" $GOPKG || exit 1
+go build -i -ldflags "${LDFLAGS}" -o $OUTDIR/$BIN -tags "$GOBUILD_TAGS" $GOPKG || exit 1
 
 echo "Built $PACKAGE $VERSION at $OUTDIR/$BIN"
