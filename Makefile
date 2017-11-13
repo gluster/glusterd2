@@ -17,7 +17,7 @@ GD2CONF_BUILDSCRIPT=./scripts/gen-gd2conf.sh
 GD2CONF_BUILD = $(BUILDDIR)/$(GD2_CONF)
 GD2CONF_INSTALL = $(SYSCONFDIR)/$(GD2)/$(GD2_CONF)
 
-TEMPLATESDIR = volgen/templates
+TEMPLATESDIR = bin/glusterd2/volgen/templates
 TEMPLATES_INSTALL = $(DATADIR)/$(GD2)/templates
 
 GD2STATEDIR = $(LOCALSTATEDIR)/$(GD2)
