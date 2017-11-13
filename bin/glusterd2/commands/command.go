@@ -2,9 +2,9 @@
 package commands
 
 import (
-	"github.com/gluster/glusterd2/commands/peers"
-	"github.com/gluster/glusterd2/commands/version"
-	"github.com/gluster/glusterd2/commands/volumes"
+	"github.com/gluster/glusterd2/bin/glusterd2/commands/peers"
+	"github.com/gluster/glusterd2/bin/glusterd2/commands/version"
+	"github.com/gluster/glusterd2/bin/glusterd2/commands/volumes"
 	"github.com/gluster/glusterd2/servers/rest/route"
 )
 

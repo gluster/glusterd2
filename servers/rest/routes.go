@@ -3,7 +3,7 @@ package rest
 import (
 	"fmt"
 
-	"github.com/gluster/glusterd2/commands"
+	"github.com/gluster/glusterd2/bin/glusterd2/commands"
 	"github.com/gluster/glusterd2/plugins"
 	"github.com/gluster/glusterd2/servers/rest/route"
 
