@@ -8,12 +8,12 @@ import (
 	"time"
 
 	"github.com/gluster/glusterd2/bin/glusterd2/gdctx"
+	"github.com/gluster/glusterd2/bin/glusterd2/servers"
 	"github.com/gluster/glusterd2/bin/glusterd2/store"
 	"github.com/gluster/glusterd2/bin/glusterd2/volgen"
 	"github.com/gluster/glusterd2/daemon"
 	"github.com/gluster/glusterd2/peer"
 	"github.com/gluster/glusterd2/pkg/utils"
-	"github.com/gluster/glusterd2/servers"
 	"github.com/gluster/glusterd2/version"
 	"github.com/gluster/glusterd2/xlator"
 

@@ -3,8 +3,8 @@ package volumecommands
 import (
 	"net/http"
 
+	restutils "github.com/gluster/glusterd2/bin/glusterd2/servers/rest/utils"
 	"github.com/gluster/glusterd2/pkg/errors"
-	restutils "github.com/gluster/glusterd2/servers/rest/utils"
 	"github.com/gluster/glusterd2/volume"
 
 	"github.com/gorilla/mux"

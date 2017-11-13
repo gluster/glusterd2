@@ -4,7 +4,7 @@ import (
 	"encoding/json"
 	"errors"
 
-	"github.com/gluster/glusterd2/servers/peerrpc"
+	"github.com/gluster/glusterd2/bin/glusterd2/servers/peerrpc"
 
 	log "github.com/sirupsen/logrus"
 	"golang.org/x/net/context"

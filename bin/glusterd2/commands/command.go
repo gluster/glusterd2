@@ -5,7 +5,7 @@ import (
 	"github.com/gluster/glusterd2/bin/glusterd2/commands/peers"
 	"github.com/gluster/glusterd2/bin/glusterd2/commands/version"
 	"github.com/gluster/glusterd2/bin/glusterd2/commands/volumes"
-	"github.com/gluster/glusterd2/servers/rest/route"
+	"github.com/gluster/glusterd2/bin/glusterd2/servers/rest/route"
 )
 
 // Command is the interface that needs to be implemented by the GlusterD commands

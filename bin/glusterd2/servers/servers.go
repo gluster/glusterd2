@@ -2,8 +2,8 @@
 package servers
 
 import (
-	"github.com/gluster/glusterd2/servers/muxsrv"
-	"github.com/gluster/glusterd2/servers/peerrpc"
+	"github.com/gluster/glusterd2/bin/glusterd2/servers/muxsrv"
+	"github.com/gluster/glusterd2/bin/glusterd2/servers/peerrpc"
 
 	log "github.com/sirupsen/logrus"
 	"github.com/thejerf/suture"

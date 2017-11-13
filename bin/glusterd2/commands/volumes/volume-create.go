@@ -6,12 +6,12 @@ import (
 	"net/http"
 
 	"github.com/gluster/glusterd2/bin/glusterd2/gdctx"
+	restutils "github.com/gluster/glusterd2/bin/glusterd2/servers/rest/utils"
 	"github.com/gluster/glusterd2/bin/glusterd2/transaction"
 	"github.com/gluster/glusterd2/bin/glusterd2/volgen"
 	"github.com/gluster/glusterd2/pkg/api"
 	gderrors "github.com/gluster/glusterd2/pkg/errors"
 	"github.com/gluster/glusterd2/pkg/utils"
-	restutils "github.com/gluster/glusterd2/servers/rest/utils"
 	"github.com/gluster/glusterd2/volume"
 
 	"github.com/pborman/uuid"

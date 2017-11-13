@@ -5,7 +5,7 @@ package peercommands
 import (
 	"net/http"
 
-	restutils "github.com/gluster/glusterd2/servers/rest/utils"
+	restutils "github.com/gluster/glusterd2/bin/glusterd2/servers/rest/utils"
 )
 
 func peerEtcdStatusHandler(w http.ResponseWriter, r *http.Request) {

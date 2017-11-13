@@ -3,8 +3,8 @@ package peercommands
 import (
 	"net/http"
 
+	restutils "github.com/gluster/glusterd2/bin/glusterd2/servers/rest/utils"
 	"github.com/gluster/glusterd2/peer"
-	restutils "github.com/gluster/glusterd2/servers/rest/utils"
 
 	"github.com/gorilla/mux"
 )

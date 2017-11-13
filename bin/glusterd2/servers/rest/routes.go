@@ -4,8 +4,8 @@ import (
 	"fmt"
 
 	"github.com/gluster/glusterd2/bin/glusterd2/commands"
+	"github.com/gluster/glusterd2/bin/glusterd2/servers/rest/route"
 	"github.com/gluster/glusterd2/plugins"
-	"github.com/gluster/glusterd2/servers/rest/route"
 
 	log "github.com/sirupsen/logrus"
 )
