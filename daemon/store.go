@@ -7,7 +7,7 @@ import (
 	"path"
 
 	"github.com/gluster/glusterd2/bin/glusterd2/gdctx"
-	"github.com/gluster/glusterd2/store"
+	"github.com/gluster/glusterd2/bin/glusterd2/store"
 
 	"github.com/coreos/etcd/clientv3"
 )

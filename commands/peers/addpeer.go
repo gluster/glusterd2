@@ -4,11 +4,11 @@ import (
 	"fmt"
 	"net/http"
 
+	"github.com/gluster/glusterd2/bin/glusterd2/store"
 	"github.com/gluster/glusterd2/peer"
 	"github.com/gluster/glusterd2/pkg/errors"
 	"github.com/gluster/glusterd2/pkg/utils"
 	restutils "github.com/gluster/glusterd2/servers/rest/utils"
-	"github.com/gluster/glusterd2/store"
 
 	log "github.com/sirupsen/logrus"
 )

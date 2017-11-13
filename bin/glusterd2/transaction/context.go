@@ -4,7 +4,7 @@ import (
 	"context"
 	"encoding/json"
 
-	"github.com/gluster/glusterd2/store"
+	"github.com/gluster/glusterd2/bin/glusterd2/store"
 
 	"github.com/pborman/uuid"
 	log "github.com/sirupsen/logrus"

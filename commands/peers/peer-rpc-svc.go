@@ -2,9 +2,9 @@ package peercommands
 
 import (
 	"github.com/gluster/glusterd2/bin/glusterd2/gdctx"
+	"github.com/gluster/glusterd2/bin/glusterd2/store"
 	"github.com/gluster/glusterd2/peer"
 	"github.com/gluster/glusterd2/servers/peerrpc"
-	"github.com/gluster/glusterd2/store"
 	"github.com/gluster/glusterd2/volume"
 
 	log "github.com/sirupsen/logrus"

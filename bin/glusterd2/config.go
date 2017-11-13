@@ -9,8 +9,8 @@ import (
 	"path"
 
 	"github.com/gluster/glusterd2/bin/glusterd2/gdctx"
+	"github.com/gluster/glusterd2/bin/glusterd2/store"
 	"github.com/gluster/glusterd2/bin/glusterd2/volgen"
-	"github.com/gluster/glusterd2/store"
 
 	log "github.com/sirupsen/logrus"
 	flag "github.com/spf13/pflag"

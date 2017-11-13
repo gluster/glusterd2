@@ -7,9 +7,9 @@ import (
 	"context"
 	"encoding/json"
 
+	"github.com/gluster/glusterd2/bin/glusterd2/store"
 	"github.com/gluster/glusterd2/pkg/errors"
 	"github.com/gluster/glusterd2/pkg/utils"
-	"github.com/gluster/glusterd2/store"
 
 	"github.com/coreos/etcd/clientv3"
 	"github.com/pborman/uuid"

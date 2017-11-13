@@ -5,7 +5,7 @@ import (
 	"encoding/json"
 	"errors"
 
-	"github.com/gluster/glusterd2/store"
+	"github.com/gluster/glusterd2/bin/glusterd2/store"
 	"github.com/pborman/uuid"
 
 	"github.com/coreos/etcd/clientv3"
