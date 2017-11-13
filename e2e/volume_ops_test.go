@@ -45,10 +45,16 @@ func TestVolume(t *testing.T) {
 	// Create the volume
 	t.Run("Create", testVolumeCreate)
 
+	// Expand the volume
+	t.Run("Expand", testVolumeExpand)
+
 	// Run tests that depend on this volume
 	t.Run("Start", testVolumeStart)
 	t.Run("Mount", testVolumeMount)
 	t.Run("Stop", testVolumeStop)
+	t.Run("List", testVolumeList)
+	t.Run("Info", testVolumeInfo)
+	t.Run("Status", testVolumeStatus)
 
 	// delete volume
 	t.Run("Delete", testVolumeDelete)
@@ -79,6 +85,29 @@ func testVolumeCreate(t *testing.T) {
 	r.Nil(errVolCreate)
 }
 
+func testVolumeExpand(t *testing.T) {
+	r := require.New(t)
+
+	var brickPaths []string
+	for i := 1; i <= 4; i++ {
+		brickPath, err := ioutil.TempDir(tmpDir, "brick")
+		r.Nil(err)
+		brickPaths = append(brickPaths, brickPath)
+	}
+
+	expandReq := api.VolExpandReq{
+		ReplicaCount: 2,
+		Bricks: []string{
+			gds[0].PeerID() + ":" + brickPaths[0],
+			gds[1].PeerID() + ":" + brickPaths[1],
+			gds[0].PeerID() + ":" + brickPaths[2],
+			gds[1].PeerID() + ":" + brickPaths[3],
+		},
+	}
+	_, errVolExpand := client.VolumeExpand(volname, expandReq)
+	r.Nil(errVolExpand)
+}
+
 func testVolumeDelete(t *testing.T) {
 	r := require.New(t)
 
@@ -96,6 +125,28 @@ func testVolumeStop(t *testing.T) {
 	r := require.New(t)
 
 	r.Nil(client.VolumeStop(volname), "volume stop failed")
+}
+
+func testVolumeList(t *testing.T) {
+	r := require.New(t)
+
+	volumes, errVolList := client.Volumes("")
+	r.Nil(errVolList)
+	r.Len(volumes, 1)
+}
+
+func testVolumeInfo(t *testing.T) {
+	r := require.New(t)
+
+	_, errVolInfo := client.Volumes(volname)
+	r.Nil(errVolInfo)
+}
+
+func testVolumeStatus(t *testing.T) {
+	r := require.New(t)
+
+	_, errVolStatus := client.VolumeStatus(volname)
+	r.Nil(errVolStatus)
 }
 
 // testVolumeMount mounts checks if the volume mounts successfully and unmounts it

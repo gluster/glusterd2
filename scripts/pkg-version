@@ -1,9 +1,10 @@
-#!/bin/sh
+#!/bin/bash
 
 # To override version/release from git,
 # create VERSION file containing text with version/release
 # eg. v3.4.0-1
-PKG_VERSION=`cat VERSION 2> /dev/null || git describe --tags --match "v[0-9]*"`
+[[ -f VERSION ]] && source VERSION
+PKG_VERSION=${PKG_VERSION:-$(git describe --tags --match "v[0-9]*")}
 
 get_version()
 {

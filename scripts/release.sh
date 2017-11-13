@@ -55,3 +55,7 @@ gpg --armor --output $SIGNFILE --detach-sign $ARCHIVE || exit 1
 echo "Signed archive, signature in $SIGNFILE"
 
 rm -rf $TMPDIR
+
+# Also create source tarballs
+$(dirname $0)/dist.sh $RELEASEDIR
+VENDOR=y $(dirname $0)/dist.sh $RELEASEDIR

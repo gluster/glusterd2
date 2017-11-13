@@ -71,7 +71,7 @@ func (g *gdProcess) IsRestServerUp() bool {
 	}
 	defer resp.Body.Close()
 
-	if resp.StatusCode != 200 {
+	if resp.StatusCode/100 == 5 {
 		return false
 	}
 

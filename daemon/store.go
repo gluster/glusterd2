@@ -30,7 +30,9 @@ func saveDaemon(d Daemon) error {
 	return err
 }
 
-func delDaemon(d Daemon) error {
+// DelDaemon removes the daemon's entry from the store. This will ensure that
+// the daemon isn't restarted during glusterd2's restart.
+func DelDaemon(d Daemon) error {
 	p := path.Join(daemonsPrefix, gdctx.MyUUID.String(), d.ID())
 
 	_, err := store.Store.Delete(context.TODO(), p)
