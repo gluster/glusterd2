@@ -10,11 +10,6 @@ type VolCreateReq struct {
 	Force     bool              `json:"force,omitempty"`
 }
 
-// PeerAddReq represents a Peer Add Request
-type PeerAddReq struct {
-	Addresses []string `json:"addresses"`
-}
-
 // VolOptionReq represents an incoming request to set volume options
 type VolOptionReq struct {
 	Options map[string]string `json:"options"`

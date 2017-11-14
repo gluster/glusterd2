@@ -4,13 +4,6 @@ import (
 	"github.com/pborman/uuid"
 )
 
-// Peer reperesents a GlusterD
-type Peer struct {
-	ID        uuid.UUID `json:"id"`
-	Name      string    `json:"name"`
-	Addresses []string  `json:"addresses"`
-}
-
 // VolState is the current status of a volume
 type VolState uint16
 
