@@ -10,7 +10,7 @@ import (
 	"net/http"
 	"time"
 
-	"github.com/gluster/glusterd2/middleware"
+	"github.com/gluster/glusterd2/bin/glusterd2/middleware"
 
 	"github.com/gorilla/mux"
 	"github.com/justinas/alice"
