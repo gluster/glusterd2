@@ -7,8 +7,8 @@ import (
 	"github.com/gluster/glusterd2/bin/glusterd2/peer"
 	restutils "github.com/gluster/glusterd2/bin/glusterd2/servers/rest/utils"
 	"github.com/gluster/glusterd2/bin/glusterd2/store"
+	"github.com/gluster/glusterd2/bin/glusterd2/volume"
 	"github.com/gluster/glusterd2/pkg/utils"
-	"github.com/gluster/glusterd2/volume"
 
 	"github.com/gorilla/mux"
 	"github.com/pborman/uuid"

@@ -5,7 +5,7 @@ import (
 	"github.com/gluster/glusterd2/bin/glusterd2/peer"
 	"github.com/gluster/glusterd2/bin/glusterd2/servers/peerrpc"
 	"github.com/gluster/glusterd2/bin/glusterd2/store"
-	"github.com/gluster/glusterd2/volume"
+	"github.com/gluster/glusterd2/bin/glusterd2/volume"
 
 	log "github.com/sirupsen/logrus"
 	"golang.org/x/net/context"

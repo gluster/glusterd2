@@ -8,10 +8,10 @@ import (
 	"github.com/gluster/glusterd2/bin/glusterd2/peer"
 	restutils "github.com/gluster/glusterd2/bin/glusterd2/servers/rest/utils"
 	"github.com/gluster/glusterd2/bin/glusterd2/transaction"
+	"github.com/gluster/glusterd2/bin/glusterd2/volume"
 	"github.com/gluster/glusterd2/pkg/api"
 	"github.com/gluster/glusterd2/pkg/errors"
 	"github.com/gluster/glusterd2/pkg/utils"
-	"github.com/gluster/glusterd2/volume"
 	"github.com/pborman/uuid"
 
 	"github.com/gorilla/mux"
