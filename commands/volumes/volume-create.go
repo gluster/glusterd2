@@ -84,7 +84,7 @@ func createVolinfo(req *api.VolCreateReq) (*volume.Volinfo, error) {
 		Password: uuid.NewRandom().String(),
 	}
 
-	v.Status = volume.VolStopped
+	v.State = volume.VolStopped
 
 	return v, nil
 }
@@ -243,5 +243,11 @@ func volumeCreateHandler(w http.ResponseWriter, r *http.Request) {
 	}
 
 	c.Logger().WithField("volname", vol.Name).Info("new volume created")
-	restutils.SendHTTPResponse(w, http.StatusCreated, vol)
+
+	resp := createVolumeCreateResp(vol)
+	restutils.SendHTTPResponse(w, http.StatusCreated, resp)
+}
+
+func createVolumeCreateResp(v *volume.Volinfo) *api.VolumeCreateResp {
+	return (*api.VolumeCreateResp)(createVolumeInfoResp(v))
 }

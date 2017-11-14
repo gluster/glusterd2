@@ -197,7 +197,7 @@ func georepStartHandler(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	if vol.Status != volume.VolStarted {
+	if vol.State != volume.VolStarted {
 		restutils.SendHTTPError(w, http.StatusInternalServerError, "master volume not started")
 		return
 	}

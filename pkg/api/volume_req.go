@@ -19,6 +19,4 @@ type VolOptionReq struct {
 type VolExpandReq struct {
 	ReplicaCount int      `json:"replica,omitempty"`
 	Bricks       []string `json:"bricks"`
-	// TODO: Add other fields like disperse count when we support
-	// that volume type
 }

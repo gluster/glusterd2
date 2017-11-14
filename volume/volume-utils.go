@@ -9,14 +9,10 @@ import (
 	log "github.com/sirupsen/logrus"
 )
 
-var (
-	getVolumesFunc = GetVolumes
-)
-
 // isBrickPathAvailable validates whether the brick is consumed by other
 // volume
 func isBrickPathAvailable(nodeID uuid.UUID, brickPath string) error {
-	volumes, e := getVolumesFunc()
+	volumes, e := GetVolumes()
 	if e != nil || volumes == nil {
 		// In case cluster doesn't have any volumes configured yet,
 		// treat this as success

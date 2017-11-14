@@ -259,7 +259,7 @@ var volumeResetCmd = &cobra.Command{
 }
 
 func volumeInfoHandler2(cmd *cobra.Command, isInfo bool) error {
-	var vols []api.Volinfo
+	var vols api.VolumeListResp
 	var err error
 	validateNArgs(cmd, 0, 1)
 	volname := ""
@@ -276,7 +276,7 @@ func volumeInfoHandler2(cmd *cobra.Command, isInfo bool) error {
 			fmt.Println("Volume Name: ", vol.Name)
 			fmt.Println("Type: ", vol.Type)
 			fmt.Println("Volume ID: ", vol.ID)
-			fmt.Println("Status: ", vol.Status)
+			fmt.Println("State: ", vol.State)
 			fmt.Println("Transport-type: ", vol.Transport)
 			fmt.Println("Number of Bricks: ", len(vol.Bricks))
 			fmt.Println("Bricks:")
