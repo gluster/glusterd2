@@ -1,8 +1,8 @@
 package georeplication
 
 import (
-	"github.com/gluster/glusterd2/bin/glusterd2/servers/rest/route"
-	"github.com/gluster/glusterd2/bin/glusterd2/transaction"
+	"github.com/gluster/glusterd2/glusterd2/servers/rest/route"
+	"github.com/gluster/glusterd2/glusterd2/transaction"
 	"github.com/prashanthpai/sunrpc"
 )
 

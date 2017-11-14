@@ -5,7 +5,7 @@ import (
 	"fmt"
 	"path"
 
-	"github.com/gluster/glusterd2/bin/glusterd2/gdctx"
+	"github.com/gluster/glusterd2/glusterd2/gdctx"
 	georepapi "github.com/gluster/glusterd2/plugins/georeplication/api"
 
 	config "github.com/spf13/viper"

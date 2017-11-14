@@ -47,7 +47,7 @@ check-reqs:
 
 $(GD2_BIN): $(GD2_BUILD)
 $(GD2_BUILD):
-	@PLUGINS=$(PLUGINS) ./scripts/build.sh bin/glusterd2
+	@PLUGINS=$(PLUGINS) ./scripts/build.sh glusterd2
 	@echo
 
 $(CLI_BIN) cli: $(CLI_BUILD)
