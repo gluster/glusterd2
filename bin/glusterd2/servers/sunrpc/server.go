@@ -8,8 +8,8 @@ import (
 	"strconv"
 	"sync"
 
+	"github.com/gluster/glusterd2/bin/glusterd2/pmap"
 	"github.com/gluster/glusterd2/plugins"
-	"github.com/gluster/glusterd2/pmap"
 
 	"github.com/prashanthpai/sunrpc"
 	log "github.com/sirupsen/logrus"
