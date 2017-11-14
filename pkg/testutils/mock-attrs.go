@@ -1,4 +1,4 @@
-package tests
+package testutils
 
 // MockRemovexattr is mock function for unix.Removexattr
 func MockRemovexattr(path string, attr string) (err error) {

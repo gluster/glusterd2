@@ -1,5 +1,5 @@
 // Package tests borrows Assert() from https://github.com/heketi/heketi
-package tests
+package testutils
 
 import (
 	"runtime"

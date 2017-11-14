@@ -6,7 +6,7 @@ import (
 
 	"github.com/gluster/glusterd2/glusterd2/peer"
 	"github.com/gluster/glusterd2/pkg/errors"
-	"github.com/gluster/glusterd2/tests"
+	"github.com/gluster/glusterd2/pkg/testutils"
 
 	heketitests "github.com/heketi/tests"
 	"github.com/pborman/uuid"
@@ -45,16 +45,16 @@ func TestNewBrickEntry(t *testing.T) {
 	brickPaths := []string{"/tmp/b1", "/tmp/b2"}
 
 	b, err := NewBrickEntriesFunc(bricks, "volume", nil)
-	tests.Assert(t, err == nil)
-	tests.Assert(t, b != nil)
+	testutils.Assert(t, err == nil)
+	testutils.Assert(t, b != nil)
 	for _, brick := range b {
-		tests.Assert(t, find(brickPaths, brick.Path))
+		testutils.Assert(t, find(brickPaths, brick.Path))
 	}
 
 	// Some negative tests
 	mockBricks := []string{"/tmp/b1", "/tmp/b2"} //with out IPs
 	_, err = NewBrickEntriesFunc(mockBricks, "volume", nil)
-	tests.Assert(t, err != nil)
+	testutils.Assert(t, err != nil)
 
 	//Now mock filepath.Abs()
 	defer heketitests.Patch(&absFilePath, func(path string) (string, error) {
@@ -62,6 +62,6 @@ func TestNewBrickEntry(t *testing.T) {
 	}).Restore()
 
 	_, err = NewBrickEntriesFunc(bricks, "volume", nil)
-	tests.Assert(t, err == errors.ErrBrickPathConvertFail)
+	testutils.Assert(t, err == errors.ErrBrickPathConvertFail)
 
 }

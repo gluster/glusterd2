@@ -8,7 +8,7 @@ import (
 
 	"golang.org/x/sys/unix"
 
-	"github.com/gluster/glusterd2/tests"
+	"github.com/gluster/glusterd2/pkg/testutils"
 
 	"github.com/pborman/uuid"
 
@@ -20,20 +20,20 @@ func TestIsLocalAddress(t *testing.T) {
 	var local bool
 	var e error
 	local, e = IsLocalAddress(host)
-	tests.Assert(t, e == nil)
-	tests.Assert(t, local == true)
+	testutils.Assert(t, e == nil)
+	testutils.Assert(t, local == true)
 
 	local, e = IsLocalAddress("invalid ip")
-	tests.Assert(t, local == false)
-	tests.Assert(t, e != nil)
+	testutils.Assert(t, local == false)
+	testutils.Assert(t, e != nil)
 
 	local, e = IsLocalAddress("127.0.0.1")
-	tests.Assert(t, local == true)
-	tests.Assert(t, e == nil)
+	testutils.Assert(t, local == true)
+	testutils.Assert(t, e == nil)
 
 	local, e = IsLocalAddress("122.122.122.122.122")
-	tests.Assert(t, local == false)
-	tests.Assert(t, e != nil)
+	testutils.Assert(t, local == false)
+	testutils.Assert(t, e != nil)
 }
 
 func TestParseHostAndBrickPath(t *testing.T) {
@@ -43,18 +43,18 @@ func TestParseHostAndBrickPath(t *testing.T) {
 	var e error
 
 	h, b, e = ParseHostAndBrickPath(brickPath)
-	tests.Assert(t, e == nil)
-	tests.Assert(t, b == brick)
+	testutils.Assert(t, e == nil)
+	testutils.Assert(t, b == brick)
 
 	h, b, e = ParseHostAndBrickPath("invalid brick")
-	tests.Assert(t, e != nil)
-	tests.Assert(t, len(h) == 0)
-	tests.Assert(t, len(b) == 0)
+	testutils.Assert(t, e != nil)
+	testutils.Assert(t, len(h) == 0)
+	testutils.Assert(t, len(b) == 0)
 
 	h, b, e = ParseHostAndBrickPath("a:b:c")
-	tests.Assert(t, e == nil)
-	tests.Assert(t, h == "a:b")
-	tests.Assert(t, b == "c")
+	testutils.Assert(t, e == nil)
+	testutils.Assert(t, h == "a:b")
+	testutils.Assert(t, b == "c")
 }
 
 func TestValidateBrickPathLength(t *testing.T) {
@@ -62,8 +62,8 @@ func TestValidateBrickPathLength(t *testing.T) {
 	for i := 0; i <= unix.PathMax; i++ {
 		brick = brick + "a"
 	}
-	tests.Assert(t, ValidateBrickPathLength(brick) != nil)
-	tests.Assert(t, ValidateBrickPathLength("/brick/b1") == nil)
+	testutils.Assert(t, ValidateBrickPathLength(brick) != nil)
+	testutils.Assert(t, ValidateBrickPathLength("/brick/b1") == nil)
 }
 
 func TestValidateBrickSubDirLength(t *testing.T) {
@@ -71,28 +71,28 @@ func TestValidateBrickSubDirLength(t *testing.T) {
 	for i := 0; i <= PosixPathMax; i++ {
 		brick = brick + "a"
 	}
-	tests.Assert(t, ValidateBrickSubDirLength(brick) != nil)
-	tests.Assert(t, ValidateBrickSubDirLength("/tmp/brick1") == nil)
+	testutils.Assert(t, ValidateBrickSubDirLength(brick) != nil)
+	testutils.Assert(t, ValidateBrickSubDirLength("/tmp/brick1") == nil)
 }
 
 func TestValidateBrickPathStats(t *testing.T) {
-	tests.Assert(t, ValidateBrickPathStats("/bricks/b1", false) != nil)
-	tests.Assert(t, ValidateBrickPathStats("/bricks/b1", true) == nil)
-	tests.Assert(t, ValidateBrickPathStats("/tmp", false) != nil)
+	testutils.Assert(t, ValidateBrickPathStats("/bricks/b1", false) != nil)
+	testutils.Assert(t, ValidateBrickPathStats("/bricks/b1", true) == nil)
+	testutils.Assert(t, ValidateBrickPathStats("/tmp", false) != nil)
 	//TODO : In build system /tmp is considered as root, hence passing
 	//force = true
-	tests.Assert(t, ValidateBrickPathStats("/tmp/bricks/b1", true) == nil)
+	testutils.Assert(t, ValidateBrickPathStats("/tmp/bricks/b1", true) == nil)
 	cmd := exec.Command("touch", "/tmp/bricks/b1/b2")
 	err := cmd.Run()
-	tests.Assert(t, err == nil)
-	tests.Assert(t, ValidateBrickPathStats("/tmp/bricks/b1/b2", false) != nil)
+	testutils.Assert(t, err == nil)
+	testutils.Assert(t, ValidateBrickPathStats("/tmp/bricks/b1/b2", false) != nil)
 }
 
 func TestValidateXattrSupport(t *testing.T) {
-	defer heketitests.Patch(&Setxattr, tests.MockSetxattr).Restore()
-	defer heketitests.Patch(&Getxattr, tests.MockGetxattr).Restore()
-	defer heketitests.Patch(&Removexattr, tests.MockRemovexattr).Restore()
-	tests.Assert(t, ValidateXattrSupport("/tmp/b1", uuid.NewRandom(), true) == nil)
+	defer heketitests.Patch(&Setxattr, testutils.MockSetxattr).Restore()
+	defer heketitests.Patch(&Getxattr, testutils.MockGetxattr).Restore()
+	defer heketitests.Patch(&Removexattr, testutils.MockRemovexattr).Restore()
+	testutils.Assert(t, ValidateXattrSupport("/tmp/b1", uuid.NewRandom(), true) == nil)
 
 	// Some negative tests
 	var xattrErr error
@@ -103,18 +103,18 @@ func TestValidateXattrSupport(t *testing.T) {
 	defer heketitests.Patch(&Setxattr, func(path string, attr string, data []byte, flags int) (err error) {
 		return xattrErr
 	}).Restore()
-	tests.Assert(t, ValidateXattrSupport("/tmp/b1", uuid.NewRandom(), true) == baderror)
+	testutils.Assert(t, ValidateXattrSupport("/tmp/b1", uuid.NewRandom(), true) == baderror)
 
 	// Now check what happens when getxattr fails
 	defer heketitests.Patch(&Getxattr, func(path string, attr string, dest []byte) (sz int, err error) {
 		return 0, xattrErr
 	}).Restore()
-	tests.Assert(t, ValidateXattrSupport("/tmp/b1", uuid.NewRandom(), true) == baderror)
+	testutils.Assert(t, ValidateXattrSupport("/tmp/b1", uuid.NewRandom(), true) == baderror)
 
 	// Now check what happens when removexattr fails
 	defer heketitests.Patch(&Removexattr, func(path string, attr string) (err error) {
 		return xattrErr
 	}).Restore()
-	tests.Assert(t, ValidateXattrSupport("/tmp/b1", uuid.NewRandom(), true) == baderror)
+	testutils.Assert(t, ValidateXattrSupport("/tmp/b1", uuid.NewRandom(), true) == baderror)
 
 }
