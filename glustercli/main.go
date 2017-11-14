@@ -1,4 +1,4 @@
-package main
+package glustercli
 
 import (
 	"fmt"
@@ -6,7 +6,7 @@ import (
 	"os"
 	"strings"
 
-	"github.com/gluster/glusterd2/bin/glustercli/cmd"
+	"github.com/gluster/glusterd2/glustercli/cmd"
 	log "github.com/sirupsen/logrus"
 )
 

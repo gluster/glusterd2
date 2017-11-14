@@ -52,7 +52,7 @@ $(GD2_BUILD):
 
 $(CLI_BIN) cli: $(CLI_BUILD)
 $(CLI_BUILD):
-	@./scripts/build.sh bin/glustercli
+	@./scripts/build.sh glustercli
 	@echo
 
 $(GD2_CONF) gd2conf: $(GD2CONF_BUILD)
