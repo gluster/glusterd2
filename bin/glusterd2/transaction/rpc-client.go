@@ -4,7 +4,7 @@ import (
 	"encoding/json"
 	"errors"
 
-	"github.com/gluster/glusterd2/peer"
+	"github.com/gluster/glusterd2/bin/glusterd2/peer"
 	"github.com/gluster/glusterd2/pkg/utils"
 
 	"github.com/pborman/uuid"
