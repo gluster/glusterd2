@@ -6,10 +6,10 @@ import (
 	"net/http"
 	"testing"
 
+	"github.com/gluster/glusterd2/bin/glusterd2/brick"
 	"github.com/gluster/glusterd2/bin/glusterd2/peer"
 	"github.com/gluster/glusterd2/bin/glusterd2/transaction"
 	"github.com/gluster/glusterd2/bin/glusterd2/volume"
-	"github.com/gluster/glusterd2/brick"
 	"github.com/gluster/glusterd2/pkg/api"
 	gderrors "github.com/gluster/glusterd2/pkg/errors"
 	"github.com/gluster/glusterd2/tests"

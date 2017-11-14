@@ -4,8 +4,8 @@ import (
 	"fmt"
 	"strings"
 
+	"github.com/gluster/glusterd2/bin/glusterd2/brick"
 	"github.com/gluster/glusterd2/bin/glusterd2/volume"
-	"github.com/gluster/glusterd2/brick"
 	"github.com/gluster/glusterd2/pkg/utils"
 )
 
