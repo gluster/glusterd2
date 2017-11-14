@@ -8,8 +8,8 @@ import (
 	"strconv"
 	"sync"
 
+	"github.com/gluster/glusterd2/glusterd2/plugin"
 	"github.com/gluster/glusterd2/glusterd2/pmap"
-	"github.com/gluster/glusterd2/plugins"
 
 	"github.com/prashanthpai/sunrpc"
 	log "github.com/sirupsen/logrus"
@@ -73,7 +73,7 @@ func NewMuxed(m cmux.CMux) *SunRPC {
 		pmap.NewGfPortmap(),
 	}
 
-	for _, p := range plugins.PluginsList {
+	for _, p := range plugin.PluginsList {
 		rpcProcs := p.SunRPCProgram()
 		if rpcProcs != nil {
 			programsList = append(programsList, rpcProcs)

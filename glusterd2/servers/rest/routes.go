@@ -4,8 +4,8 @@ import (
 	"fmt"
 
 	"github.com/gluster/glusterd2/glusterd2/commands"
+	"github.com/gluster/glusterd2/glusterd2/plugin"
 	"github.com/gluster/glusterd2/glusterd2/servers/rest/route"
-	"github.com/gluster/glusterd2/plugins"
 
 	log "github.com/sirupsen/logrus"
 )
@@ -42,7 +42,7 @@ func (r *GDRest) registerRoutes() {
 	}
 
 	// Load routes and Step functions from Plugins
-	for _, p := range plugins.PluginsList {
+	for _, p := range plugin.PluginsList {
 		restRoutes := p.RestRoutes()
 		if restRoutes != nil {
 			r.setRoutes(restRoutes)

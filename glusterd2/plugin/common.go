@@ -1,4 +1,4 @@
-package plugins
+package plugin
 
 import (
 	"github.com/gluster/glusterd2/glusterd2/servers/rest/route"

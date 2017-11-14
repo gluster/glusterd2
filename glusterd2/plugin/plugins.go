@@ -1,6 +1,6 @@
 // +build plugins
 
-package plugins
+package plugin
 
 import (
 	"github.com/gluster/glusterd2/plugins/georeplication"
