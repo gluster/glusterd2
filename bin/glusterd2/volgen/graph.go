@@ -7,8 +7,8 @@ import (
 	"strings"
 
 	"github.com/gluster/glusterd2/bin/glusterd2/volume"
+	"github.com/gluster/glusterd2/bin/glusterd2/xlator"
 	"github.com/gluster/glusterd2/pkg/utils"
-	"github.com/gluster/glusterd2/xlator"
 )
 
 // Node is an xlator in the GlusterFS volume graph
