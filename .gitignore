@@ -4,10 +4,6 @@ glusterd2
 .vagrant/
 # Ignore vendored dependencies
 vendor/
-# Ignore wercker local build directories
-_builds/
-_steps/
-_projects/
 # Ignore build and release directories
 build/
 releases/
