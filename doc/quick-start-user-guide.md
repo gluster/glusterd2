@@ -83,7 +83,7 @@ Now you have two nodes running glusterd2.
 
 > NOTE: Ensure that firewalld is configured (or stopped) to let traffic on ports ` before attaching a peer.
 
-### Attach peer
+## Attach peer
 
 Glusterd2 natively provides only ReST API for clients to perform management operations. A CLI is provided which interacts with glusterd2 using the [ReST APIs](https://github.com/gluster/glusterd2/wiki/ReST-API).
 
@@ -105,6 +105,10 @@ Send a HTTP request to `node1` to add `node2` as peer:
 $ curl -X POST http://192.168.56.101:24007/v1/peers --data @addpeer.json -H 'Content-Type: application/json'
 ```
 
+or using glustercli:
+
+    $ glustercli peer probe 192.168.56.102
+
 You will get the Peer ID of the newly added peer as response.
 
 ## List peers
@@ -114,6 +118,10 @@ Peers in two node cluster can be listed with the following request:
 ```sh
 $ curl -X GET http://192.168.56.101:24007/v1/peers
 ```
+
+or by using the glustercli:
+
+    $ glustercli pool list
 
 Note the UUIDs in the response. We will use the same in volume create request below.
 
@@ -149,15 +157,24 @@ Send the volume create request to create a 2x2 distributed-replicate volume:
 $ curl -X POST http://192.168.56.101:24007/v1/volumes --data @volcreate.json -H 'Content-Type: application/json'
 ```
 
-### Start the volume
+Send the volume create request using glustercli:
+
+    $ glustercli volume create testvol <uuid1>:/export/brick1/data <uuid2>:/export/brick2/data <uuid1>:/export/brick3/data <uuid2>:/export/brick4/data --replica 2
+
+## Start the volume
+
+Send the volume start request:
 
 ```sh
 $ curl -X POST http://192.168.56.101:24007/v1/volumes/testvol/start
 ```
+ or using glustercli:
+
+     $ glustercli volume start testvol
 
 Verify that `glusterfsd` process is running on both nodes.
 
-### Mount the volume
+## Mount the volume
 
 ```sh
 #  mount -t glusterfs 192.168.56.101:testvol /mnt
