@@ -65,7 +65,7 @@ type Volinfo struct {
 	DistCount    int
 	ReplicaCount int
 	Options      map[string]string
-	Status       VolState
+	State        VolState
 	Checksum     uint64
 	Version      uint64
 	Bricks       []brick.Brickinfo
@@ -77,13 +77,6 @@ type Volinfo struct {
 type VolAuth struct {
 	Username string
 	Password string
-}
-
-// VolStatus represents collective status of the bricks that make up the volume
-type VolStatus struct {
-	Brickstatuses []brick.Brickstatus
-	// TODO: Add further fields like memory usage, brick filesystem, fd consumed,
-	// clients connected etc.
 }
 
 // StringMap returns a map[string]string representation of Volinfo

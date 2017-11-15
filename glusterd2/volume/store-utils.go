@@ -95,13 +95,13 @@ func GetVolumesList() (map[string]uuid.UUID, error) {
 
 //GetVolumes retrives the json objects from the store and converts them into
 //respective volinfo objects
-func GetVolumes() ([]Volinfo, error) {
+func GetVolumes() ([]*Volinfo, error) {
 	resp, e := store.Store.Get(context.TODO(), volumePrefix, clientv3.WithPrefix())
 	if e != nil {
 		return nil, e
 	}
 
-	volumes := make([]Volinfo, len(resp.Kvs))
+	volumes := make([]*Volinfo, len(resp.Kvs))
 
 	for i, kv := range resp.Kvs {
 		var vol Volinfo
@@ -114,7 +114,7 @@ func GetVolumes() ([]Volinfo, error) {
 			continue
 		}
 
-		volumes[i] = vol
+		volumes[i] = &vol
 	}
 
 	return volumes, nil

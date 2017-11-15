@@ -4,35 +4,34 @@ import (
 	"fmt"
 	"net/http"
 
-	"github.com/gluster/glusterd2/glusterd2/volume"
 	"github.com/gluster/glusterd2/pkg/api"
 )
 
 // VolumeCreate creates Gluster Volume
-func (c *Client) VolumeCreate(req api.VolCreateReq) (api.Volinfo, error) {
-	var vol api.Volinfo
+func (c *Client) VolumeCreate(req api.VolCreateReq) (api.VolumeCreateResp, error) {
+	var vol api.VolumeCreateResp
 	err := c.post("/v1/volumes", req, http.StatusCreated, &vol)
 	return vol, err
 }
 
 // Volumes returns list of all volumes
-func (c *Client) Volumes(volname string) ([]api.Volinfo, error) {
-	var vols []api.Volinfo
+func (c *Client) Volumes(volname string) (api.VolumeListResp, error) {
 	if volname == "" {
+		var vols api.VolumeListResp
 		url := fmt.Sprintf("/v1/volumes")
 		err := c.get(url, nil, http.StatusOK, &vols)
 		return vols, err
 	}
-	var vol api.Volinfo
+	var vol api.VolumeGetResp
 	url := fmt.Sprintf("/v1/volumes/%s", volname)
 	err := c.get(url, nil, http.StatusOK, &vol)
-	return []api.Volinfo{vol}, err
+	return []api.VolumeGetResp{vol}, err
 }
 
 // VolumeStatus returns the status of a Gluster volume
-func (c *Client) VolumeStatus(volname string) (volume.VolStatus, error) {
+func (c *Client) VolumeStatus(volname string) (api.VolumeStatusResp, error) {
 	url := fmt.Sprintf("/v1/volumes/%s/status", volname)
-	var volStatus volume.VolStatus
+	var volStatus api.VolumeStatusResp
 	err := c.get(url, nil, http.StatusOK, &volStatus)
 	return volStatus, err
 }
@@ -63,8 +62,8 @@ func (c *Client) VolumeSet(volname string, req api.VolOptionReq) error {
 }
 
 // VolumeExpand expands a Gluster Volume
-func (c *Client) VolumeExpand(volname string, req api.VolExpandReq) (api.Volinfo, error) {
-	var vol api.Volinfo
+func (c *Client) VolumeExpand(volname string, req api.VolExpandReq) (api.VolumeExpandResp, error) {
+	var vol api.VolumeExpandResp
 	url := fmt.Sprintf("/v1/volumes/%s/expand", volname)
 	err := c.post(url, req, http.StatusOK, &vol)
 	return vol, err

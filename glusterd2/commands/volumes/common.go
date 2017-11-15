@@ -94,7 +94,7 @@ func notifyVolfileChange(c transaction.TxnCtx) error {
 		return err
 	}
 
-	if volinfo.Status != volume.VolStarted {
+	if volinfo.State != volume.VolStarted {
 		return nil
 	}
 

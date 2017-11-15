@@ -5,19 +5,23 @@ import (
 
 	restutils "github.com/gluster/glusterd2/glusterd2/servers/rest/utils"
 	"github.com/gluster/glusterd2/glusterd2/volume"
+	"github.com/gluster/glusterd2/pkg/api"
 	"github.com/gluster/glusterd2/pkg/errors"
 
 	"github.com/gorilla/mux"
 )
 
 func volumeInfoHandler(w http.ResponseWriter, r *http.Request) {
-	p := mux.Vars(r)
-	volname := p["volname"]
 
-	vol, e := volume.GetVolume(volname)
-	if e != nil {
+	v, err := volume.GetVolume(mux.Vars(r)["volname"])
+	if err != nil {
 		restutils.SendHTTPError(w, http.StatusNotFound, errors.ErrVolNotFound.Error())
-	} else {
-		restutils.SendHTTPResponse(w, http.StatusOK, vol)
 	}
+
+	resp := createVolumeGetResp(v)
+	restutils.SendHTTPResponse(w, http.StatusOK, resp)
+}
+
+func createVolumeGetResp(v *volume.Volinfo) *api.VolumeGetResp {
+	return (*api.VolumeGetResp)(createVolumeInfoResp(v))
 }

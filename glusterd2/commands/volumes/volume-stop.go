@@ -91,7 +91,7 @@ func volumeStopHandler(w http.ResponseWriter, r *http.Request) {
 		restutils.SendHTTPError(w, http.StatusNotFound, errors.ErrVolNotFound.Error())
 		return
 	}
-	if vol.Status == volume.VolStopped {
+	if vol.State == volume.VolStopped {
 		restutils.SendHTTPError(w, http.StatusBadRequest, errors.ErrVolAlreadyStopped.Error())
 		return
 	}
@@ -126,7 +126,7 @@ func volumeStopHandler(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	vol.Status = volume.VolStopped
+	vol.State = volume.VolStopped
 
 	e = volume.AddOrUpdateVolumeFunc(vol)
 	if e != nil {

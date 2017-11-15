@@ -11,11 +11,13 @@ Please follow coding conventions and guidelines described in the following docum
 * Keep variable names short for variables that are local to the function
 * Do not export a function or variable name outside the package until you have an external consumer for it.
 * Have setter or getter interfaces/methods to access/manipulate information in a different package.
-* Do not use named return values in function definitions. Use only the type.
+* Do not use named return values in function definitions. Use only the type. (Exception: defer()'d functions)
 
 **Error Handling:**
 
-* Use variable name `err` to denote error variable during a function call
+* Use variable name `err` to denote error variable during a function call.
+* Reuse the previously declared `err` variable as long as it is in scope.
+  For example, do not use `errWrite` or `errRead`.
 * Do not panic()
 * Do not ignore errors using `_` variable unless you know what you're doing
 * Error strings should not start with a capital letter

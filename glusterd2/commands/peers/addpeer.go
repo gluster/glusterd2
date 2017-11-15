@@ -7,6 +7,7 @@ import (
 	"github.com/gluster/glusterd2/glusterd2/peer"
 	restutils "github.com/gluster/glusterd2/glusterd2/servers/rest/utils"
 	"github.com/gluster/glusterd2/glusterd2/store"
+	"github.com/gluster/glusterd2/pkg/api"
 	"github.com/gluster/glusterd2/pkg/errors"
 	"github.com/gluster/glusterd2/pkg/utils"
 
@@ -75,12 +76,21 @@ func addPeerHandler(w http.ResponseWriter, r *http.Request) {
 	// Get the new peer information to reply back with
 	newpeer, err := peer.GetPeer(rsp.PeerID)
 	if err != nil {
-		// XXX: Don't know the correct error to send here
 		restutils.SendHTTPError(w, http.StatusInternalServerError, "new peer was added, but could not find peer in store. Try again later.")
-	} else {
-		restutils.SendHTTPResponse(w, http.StatusCreated, newpeer)
+		return
 	}
+
+	resp := createPeerAddResp(newpeer)
+	restutils.SendHTTPResponse(w, http.StatusCreated, resp)
 
 	// Save updated store endpoints for restarts
 	store.Store.UpdateEndpoints()
+}
+
+func createPeerAddResp(p *peer.Peer) *api.PeerAddResp {
+	return &api.PeerAddResp{
+		ID:        p.ID,
+		Name:      p.Name,
+		Addresses: p.Addresses,
+	}
 }

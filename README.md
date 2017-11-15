@@ -11,6 +11,7 @@ GlusterD, while also becoming more modular and easing extensibility.
 
 * [Quick Start User Guide](doc/quick-start-user-guide.md)
 * [Development Guide](doc/development-guide.md)
+* [Coding Guidelines](doc/coding.md)
 
 ## Architecture and Design
 Please refer to the [wiki](https://github.com/gluster/glusterd2/wiki/Design) for more information.

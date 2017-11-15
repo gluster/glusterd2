@@ -57,7 +57,7 @@ func startBricksOnExpand(c transaction.TxnCtx) error {
 		}
 	}
 
-	if volinfo.Status != volume.VolStarted {
+	if volinfo.State != volume.VolStarted {
 		return nil
 	}
 
@@ -296,5 +296,10 @@ func volumeExpandHandler(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	restutils.SendHTTPResponse(w, http.StatusOK, newvolinfo)
+	resp := createVolumeExpandResp(newvolinfo)
+	restutils.SendHTTPResponse(w, http.StatusOK, resp)
+}
+
+func createVolumeExpandResp(v *volume.Volinfo) *api.VolumeExpandResp {
+	return (*api.VolumeExpandResp)(createVolumeInfoResp(v))
 }

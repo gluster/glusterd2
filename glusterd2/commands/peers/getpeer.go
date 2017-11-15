@@ -5,6 +5,7 @@ import (
 
 	"github.com/gluster/glusterd2/glusterd2/peer"
 	restutils "github.com/gluster/glusterd2/glusterd2/servers/rest/utils"
+	"github.com/gluster/glusterd2/pkg/api"
 
 	"github.com/gorilla/mux"
 )
@@ -18,9 +19,19 @@ func getPeerHandler(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	if peer, err := peer.GetPeerF(id); err != nil {
+	peer, err := peer.GetPeerF(id)
+	if err != nil {
 		restutils.SendHTTPError(w, http.StatusNotFound, err.Error())
-	} else {
-		restutils.SendHTTPResponse(w, http.StatusOK, peer)
+	}
+
+	resp := createPeerGetResp(peer)
+	restutils.SendHTTPResponse(w, http.StatusOK, resp)
+}
+
+func createPeerGetResp(p *peer.Peer) *api.PeerGetResp {
+	return &api.PeerGetResp{
+		ID:        p.ID,
+		Name:      p.Name,
+		Addresses: p.Addresses,
 	}
 }
