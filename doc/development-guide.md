@@ -36,6 +36,8 @@ The built binary will be installed under `$GOPATH/bin/` directory.
 
 Glusterd2 repository currently follows GitHub's [Fork & Pull](https://help.github.com/articles/about-pull-requests/) workflow for code contributions.
 
+Please read the [coding guidelines](coding.md) document before submitting a PR.
+
 Here is a short guide on how to work on a new patch.  In this example, we will work on a patch called *hellopatch*:
 
 1. `$ git checkout master`

@@ -80,7 +80,7 @@ func volumeDeleteHandler(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	if vol.Status == volume.VolStarted {
+	if vol.State == volume.VolStarted {
 		restutils.SendHTTPError(w, http.StatusForbidden, "volume is not stopped")
 		return
 	}

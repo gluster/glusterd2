@@ -46,7 +46,7 @@ func TestRestart(t *testing.T) {
 	r.Nil(gd.Stop())
 }
 
-func getVols(gd *gdProcess, r *require.Assertions) []api.Volinfo {
+func getVols(gd *gdProcess, r *require.Assertions) api.VolumeListResp {
 	client := initRestclient(gd.ClientAddress)
 	volname := ""
 	vols, err := client.Volumes(volname)
