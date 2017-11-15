@@ -22,12 +22,6 @@ type BrickStatus struct {
 	Port   int       `json:"port"`
 }
 
-// VolState is the current state of the volume.
-type VolState uint16
-
-// VolType is the type of volume.
-type VolType uint16
-
 // VolumeInfo contains static information about the volume.
 // Clients should NOT use this struct directly.
 type VolumeInfo struct {
