@@ -1,4 +1,4 @@
-package glustercli
+package main
 
 import (
 	"os"

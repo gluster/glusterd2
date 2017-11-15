@@ -1,1 +1,1 @@
-package glusterd2
+package main

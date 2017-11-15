@@ -1,4 +1,4 @@
-package glusterd2
+package main
 
 import (
 	"io"
