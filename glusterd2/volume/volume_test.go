@@ -6,10 +6,10 @@ import (
 
 	"github.com/gluster/glusterd2/glusterd2/peer"
 	"github.com/gluster/glusterd2/pkg/errors"
-	"github.com/gluster/glusterd2/pkg/testutils"
 
 	heketitests "github.com/heketi/tests"
 	"github.com/pborman/uuid"
+	"github.com/stretchr/testify/assert"
 )
 
 func find(haystack []string, needle string) bool {
@@ -45,16 +45,16 @@ func TestNewBrickEntry(t *testing.T) {
 	brickPaths := []string{"/tmp/b1", "/tmp/b2"}
 
 	b, err := NewBrickEntriesFunc(bricks, "volume", nil)
-	testutils.Assert(t, err == nil)
-	testutils.Assert(t, b != nil)
+	assert.Nil(t, err)
+	assert.NotNil(t, b)
 	for _, brick := range b {
-		testutils.Assert(t, find(brickPaths, brick.Path))
+		assert.True(t, find(brickPaths, brick.Path))
 	}
 
 	// Some negative tests
 	mockBricks := []string{"/tmp/b1", "/tmp/b2"} //with out IPs
 	_, err = NewBrickEntriesFunc(mockBricks, "volume", nil)
-	testutils.Assert(t, err != nil)
+	assert.NotNil(t, err)
 
 	//Now mock filepath.Abs()
 	defer heketitests.Patch(&absFilePath, func(path string) (string, error) {
@@ -62,6 +62,6 @@ func TestNewBrickEntry(t *testing.T) {
 	}).Restore()
 
 	_, err = NewBrickEntriesFunc(bricks, "volume", nil)
-	testutils.Assert(t, err == errors.ErrBrickPathConvertFail)
+	assert.Equal(t, errors.ErrBrickPathConvertFail, err)
 
 }

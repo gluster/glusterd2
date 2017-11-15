@@ -12,11 +12,10 @@ import (
 	"github.com/gluster/glusterd2/glusterd2/volume"
 	"github.com/gluster/glusterd2/pkg/api"
 	gderrors "github.com/gluster/glusterd2/pkg/errors"
-	"github.com/gluster/glusterd2/pkg/testutils"
-
-	"github.com/pborman/uuid"
 
 	heketitests "github.com/heketi/tests"
+	"github.com/pborman/uuid"
+	"github.com/stretchr/testify/assert"
 )
 
 var (
@@ -27,28 +26,28 @@ var (
 //create request
 func TestUnmarshalVolCreateRequest(t *testing.T) {
 	msg := new(api.VolCreateReq)
-	testutils.Assert(t, msg != nil)
+	assert.NotNil(t, msg)
 
 	// Request with invalid JSON format
 	r, _ := http.NewRequest("POST", "/v1/volumes/", bytes.NewBuffer([]byte(`{"invalid_format"}`)))
 	_, e := unmarshalVolCreateRequest(msg, r)
-	testutils.Assert(t, e == gderrors.ErrJSONParsingFailed)
+	assert.Equal(t, gderrors.ErrJSONParsingFailed, e)
 
 	// Request with empty volume name
 	r, _ = http.NewRequest("POST", "/v1/volumes/", bytes.NewBuffer([]byte(`{}`)))
 	_, e = unmarshalVolCreateRequest(msg, r)
-	testutils.Assert(t, e == gderrors.ErrEmptyVolName)
+	assert.Equal(t, gderrors.ErrEmptyVolName, e)
 
 	// Request with empty bricks
 	r, _ = http.NewRequest("POST", "/v1/volumes/", bytes.NewBuffer([]byte(`{"name" : "vol"}`)))
 	_, e = unmarshalVolCreateRequest(msg, r)
-	testutils.Assert(t, msg.Name == "vol")
-	testutils.Assert(t, e == gderrors.ErrEmptyBrickList)
+	assert.Equal(t, "vol", msg.Name)
+	assert.Equal(t, gderrors.ErrEmptyBrickList, e)
 
 	// Request with volume name & bricks
 	r, _ = http.NewRequest("POST", "/v1/volumes/", bytes.NewBuffer([]byte(`{"name" : "vol", "bricks":["127.0.0.1:/tmp/b1"]}`)))
 	_, e = unmarshalVolCreateRequest(msg, r)
-	testutils.Assert(t, e == nil)
+	assert.Nil(t, e)
 
 }
 
@@ -62,14 +61,15 @@ func TestCreateVolinfo(t *testing.T) {
 	msg.Name = "vol"
 	msg.Bricks = []string{u.String() + ":/tmp/b1", u.String() + ":/tmp/b2"}
 	vol, e := createVolinfo(msg)
-	testutils.Assert(t, e == nil && vol != nil)
+	assert.Nil(t, e)
+	assert.NotNil(t, vol)
 
 	// Mock failure in NewBrickEntries(), createVolume() should fail
 	defer heketitests.Patch(&volume.NewBrickEntriesFunc, func(bricks []string, volName string, volID uuid.UUID) ([]brick.Brickinfo, error) {
 		return nil, errBad
 	}).Restore()
 	_, e = createVolinfo(msg)
-	testutils.Assert(t, e == errBad)
+	assert.Equal(t, errBad, e)
 }
 
 // TestValidateVolumeCreate validates validateVolumeCreate()
@@ -90,16 +90,16 @@ func TestValidateVolumeCreate(t *testing.T) {
 	defer heketitests.Patch(&peer.GetPeerF, peer.GetPeerFMockGood).Restore()
 
 	vol, e := createVolinfo(msg)
-	testutils.Assert(t, e == nil)
+	assert.Nil(t, e)
 	c.Set("volinfo", vol)
 
 	e = validateVolumeCreate(c)
-	testutils.Assert(t, e == nil)
+	assert.Nil(t, e)
 
 	// Mock validateBrickEntries failure
 	defer heketitests.Patch(&volume.ValidateBrickEntriesFunc, func(bricks []brick.Brickinfo, volID uuid.UUID, force bool) (int, error) {
 		return 0, errBad
 	}).Restore()
 	e = validateVolumeCreate(c)
-	testutils.Assert(t, e == errBad)
+	assert.Equal(t, errBad, e)
 }
