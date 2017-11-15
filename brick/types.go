@@ -18,16 +18,6 @@ func (b *Brickinfo) String() string {
 	return b.NodeID.String() + ":" + b.Path
 }
 
-// Brickstatus represents real-time status of the brick and contains dynamic
-// information about the brick
-type Brickstatus struct {
-	BInfo  Brickinfo
-	Online bool
-	Pid    int
-	Port   int
-	// TODO: Add other fields like filesystem type, statvfs output etc.
-}
-
 // StringMap returns a map[string]string representation of the Brickinfo
 func (b *Brickinfo) StringMap() map[string]string {
 	m := make(map[string]string)

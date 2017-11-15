@@ -10,11 +10,6 @@ type VolCreateReq struct {
 	Force     bool              `json:"force,omitempty"`
 }
 
-// PeerAddReq represents a Peer Add Request
-type PeerAddReq struct {
-	Addresses []string `json:"addresses"`
-}
-
 // VolOptionReq represents an incoming request to set volume options
 type VolOptionReq struct {
 	Options map[string]string `json:"options"`
@@ -24,6 +19,4 @@ type VolOptionReq struct {
 type VolExpandReq struct {
 	ReplicaCount int      `json:"replica,omitempty"`
 	Bricks       []string `json:"bricks"`
-	// TODO: Add other fields like disperse count when we support
-	// that volume type
 }

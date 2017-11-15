@@ -1,13 +1,13 @@
 package volumecommands
 
 import (
-	goerrors "errors"
 	"net/http"
 
 	"github.com/gluster/glusterd2/brick"
 	"github.com/gluster/glusterd2/daemon"
 	"github.com/gluster/glusterd2/errors"
 	"github.com/gluster/glusterd2/gdctx"
+	"github.com/gluster/glusterd2/pkg/api"
 	"github.com/gluster/glusterd2/pmap"
 	restutils "github.com/gluster/glusterd2/servers/rest/utils"
 	"github.com/gluster/glusterd2/transaction"
@@ -21,6 +21,14 @@ import (
 const (
 	brickStatusTxnKey string = "brickstatuses"
 )
+
+type brickstatus struct {
+	Info   brick.Brickinfo
+	Online bool
+	Pid    int
+	Port   int
+	// TODO: Add other fields like filesystem type, statvfs output etc.
+}
 
 func checkStatus(ctx transaction.TxnCtx) error {
 	var volname string
@@ -42,7 +50,7 @@ func checkStatus(ctx transaction.TxnCtx) error {
 		return err
 	}
 
-	var brickStatuses []*brick.Brickstatus
+	var brickStatuses []*brickstatus
 
 	for _, binfo := range vol.Bricks {
 		// Skip bricks that aren't on this node.
@@ -69,8 +77,8 @@ func checkStatus(ctx transaction.TxnCtx) error {
 			}
 		}
 
-		brickStatus := &brick.Brickstatus{
-			BInfo:  binfo,
+		brickStatus := &brickstatus{
+			Info:   binfo,
 			Online: online,
 			Pid:    pid,
 			Port:   port,
@@ -89,38 +97,17 @@ func registerVolStatusStepFuncs() {
 	transaction.RegisterStepFunc(checkStatus, "vol-status.Check")
 }
 
-func aggregateVolumeStatus(ctx transaction.TxnCtx, nodes []uuid.UUID) (*volume.VolStatus, error) {
-	var brickStatuses []brick.Brickstatus
-
-	// Loop over each node on which txn was run.
-	// Fetch brick statuses stored by each node in transaction context.
-	for _, node := range nodes {
-		var tmp []brick.Brickstatus
-		err := ctx.GetNodeResult(node, brickStatusTxnKey, &tmp)
-		if err != nil {
-			return nil, goerrors.New("aggregateVolumeStatus: Could not fetch results from transaction context.")
-		}
-		brickStatuses = append(brickStatuses, tmp...)
-	}
-	v := &volume.VolStatus{Brickstatuses: brickStatuses}
-	return v, nil
-}
-
 func volumeStatusHandler(w http.ResponseWriter, r *http.Request) {
 	p := mux.Vars(r)
 	volname := p["volname"]
 	reqID, logger := restutils.GetReqIDandLogger(r)
 
-	// Ensure that the volume exists.
 	vol, err := volume.GetVolume(volname)
 	if err != nil {
 		restutils.SendHTTPError(w, http.StatusNotFound, errors.ErrVolNotFound.Error())
 		return
 	}
 
-	// A very simple free-form transaction to query each node for brick
-	// status. Fetching volume status does not modify state/data on the
-	// remote node. So there's no need for locks.
 	txn := transaction.NewTxn(reqID)
 	defer txn.Cleanup()
 	txn.Nodes = vol.Nodes()
@@ -131,13 +118,8 @@ func volumeStatusHandler(w http.ResponseWriter, r *http.Request) {
 		},
 	}
 
-	// The remote nodes get args it needs from the transaction context.
 	txn.Ctx.Set("volname", volname)
 
-	// As all key-value pairs stored in transaction context ends up in etcd
-	// store, using either the old txn context reference or the one
-	// returned by txn.Do() is one and the same. The transaction context is
-	// a way for the nodes store the results of the step runs.
 	rtxn, err := txn.Do()
 	if err != nil {
 		logger.WithFields(log.Fields{
@@ -148,10 +130,7 @@ func volumeStatusHandler(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	// Example of how an aggregate function will make sense from results of
-	// run of a step on multiple nodes. The transaction context will have
-	// results from each node, seggregated by the node's UUID.
-	result, err := aggregateVolumeStatus(rtxn, txn.Nodes)
+	result, err := createVolumeStatusResp(rtxn, txn.Nodes)
 	if err != nil {
 		errMsg := "Failed to aggregate brick status results from multiple nodes."
 		logger.WithField("error", err.Error()).Error("volumeStatusHandler:" + errMsg)
@@ -159,6 +138,32 @@ func volumeStatusHandler(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	// Send aggregated result back to the client.
 	restutils.SendHTTPResponse(w, http.StatusOK, result)
+}
+
+func createVolumeStatusResp(ctx transaction.TxnCtx, nodes []uuid.UUID) (*api.VolumeStatusResp, error) {
+
+	// Loop over each node on which txn was run.
+	// Fetch brick statuses stored by each node in transaction context.
+	var brickStatuses []brickstatus
+	for _, node := range nodes {
+		var tmp []brickstatus
+		err := ctx.GetNodeResult(node, brickStatusTxnKey, &tmp)
+		if err != nil {
+			return nil, err
+		}
+		brickStatuses = append(brickStatuses, tmp...)
+	}
+
+	var resp api.VolumeStatusResp
+	for _, b := range brickStatuses {
+		resp.Bricks = append(resp.Bricks, api.BrickStatus{
+			Info:   createBrickInfo(&b.Info),
+			Online: b.Online,
+			Pid:    b.Pid,
+			Port:   b.Port,
+		})
+	}
+
+	return &resp, nil
 }

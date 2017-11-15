@@ -88,13 +88,13 @@ func GetInitialCluster() (string, error) {
 }
 
 // GetPeers returns all available peers in the store
-func GetPeers() ([]Peer, error) {
+func GetPeers() ([]*Peer, error) {
 	resp, err := store.Store.Get(context.TODO(), peerPrefix, clientv3.WithPrefix())
 	if err != nil {
 		return nil, err
 	}
 	// There will be at least one peer (current node)
-	peers := make([]Peer, len(resp.Kvs))
+	peers := make([]*Peer, len(resp.Kvs))
 	for i, kv := range resp.Kvs {
 		var p Peer
 
@@ -105,7 +105,7 @@ func GetPeers() ([]Peer, error) {
 			}).Error("Failed to unmarshal peer")
 			continue
 		}
-		peers[i] = p
+		peers[i] = &p
 	}
 
 	return peers, nil
@@ -143,7 +143,7 @@ func GetPeerByName(name string) (*Peer, error) {
 
 	for _, p := range peers {
 		if p.Name == name {
-			return &p, nil
+			return p, nil
 		}
 	}
 
@@ -176,7 +176,7 @@ func GetPeerByAddr(addr string) (*Peer, error) {
 	for _, p := range peers {
 		for _, paddr := range p.Addresses {
 			if utils.IsPeerAddressSame(addr, paddr) {
-				return &p, nil
+				return p, nil
 			}
 		}
 	}
@@ -194,7 +194,7 @@ func GetPeerByAddrs(addrs []string) (*Peer, error) {
 		for _, p := range peers {
 			for _, paddr := range p.Addresses {
 				if utils.IsPeerAddressSame(a, paddr) {
-					return &p, nil
+					return p, nil
 				}
 			}
 		}

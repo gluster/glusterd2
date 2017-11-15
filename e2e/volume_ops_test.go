@@ -81,8 +81,8 @@ func testVolumeCreate(t *testing.T) {
 			gds[1].PeerID() + ":" + brickPaths[3]},
 		Force: true,
 	}
-	_, errVolCreate := client.VolumeCreate(createReq)
-	r.Nil(errVolCreate)
+	_, err := client.VolumeCreate(createReq)
+	r.Nil(err)
 }
 
 func testVolumeExpand(t *testing.T) {
@@ -104,15 +104,13 @@ func testVolumeExpand(t *testing.T) {
 			gds[1].PeerID() + ":" + brickPaths[3],
 		},
 	}
-	_, errVolExpand := client.VolumeExpand(volname, expandReq)
-	r.Nil(errVolExpand)
+	_, err := client.VolumeExpand(volname, expandReq)
+	r.Nil(err)
 }
 
 func testVolumeDelete(t *testing.T) {
 	r := require.New(t)
-
-	errVolDel := client.VolumeDelete(volname)
-	r.Nil(errVolDel)
+	r.Nil(client.VolumeDelete(volname))
 }
 
 func testVolumeStart(t *testing.T) {
@@ -130,23 +128,23 @@ func testVolumeStop(t *testing.T) {
 func testVolumeList(t *testing.T) {
 	r := require.New(t)
 
-	volumes, errVolList := client.Volumes("")
-	r.Nil(errVolList)
+	volumes, err := client.Volumes("")
+	r.Nil(err)
 	r.Len(volumes, 1)
 }
 
 func testVolumeInfo(t *testing.T) {
 	r := require.New(t)
 
-	_, errVolInfo := client.Volumes(volname)
-	r.Nil(errVolInfo)
+	_, err := client.Volumes(volname)
+	r.Nil(err)
 }
 
 func testVolumeStatus(t *testing.T) {
 	r := require.New(t)
 
-	_, errVolStatus := client.VolumeStatus(volname)
-	r.Nil(errVolStatus)
+	_, err := client.VolumeStatus(volname)
+	r.Nil(err)
 }
 
 // testVolumeMount mounts checks if the volume mounts successfully and unmounts it
