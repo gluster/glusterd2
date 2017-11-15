@@ -14,6 +14,7 @@ import (
 	"github.com/gluster/glusterd2/glusterd2/store"
 	"github.com/gluster/glusterd2/glusterd2/volgen"
 	"github.com/gluster/glusterd2/glusterd2/xlator"
+	"github.com/gluster/glusterd2/pkg/logging"
 	"github.com/gluster/glusterd2/pkg/utils"
 	"github.com/gluster/glusterd2/version"
 
@@ -42,7 +43,7 @@ func main() {
 	logdir, _ := flag.CommandLine.GetString("logdir")
 	logFileName, _ := flag.CommandLine.GetString("logfile")
 
-	if err := initLog(logdir, logFileName, logLevel); err != nil {
+	if err := logging.Init(logdir, logFileName, logLevel); err != nil {
 		log.WithError(err).Fatal("Failed to initialize logging")
 	}
 
@@ -122,7 +123,7 @@ func main() {
 			// re-initiate the logger instance.
 			if strings.ToLower(logFileName) != "stderr" && strings.ToLower(logFileName) != "stdout" && logFileName != "-" {
 				log.Info("Received SIGHUP, Reloading log file")
-				if err := initLog(logdir, logFileName, logLevel); err != nil {
+				if err := logging.Init(logdir, logFileName, logLevel); err != nil {
 					log.WithError(err).Fatal("Could not re-initialize logging")
 				}
 			}

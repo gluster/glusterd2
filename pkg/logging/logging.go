@@ -1,4 +1,5 @@
-package main
+// Pacakge logging implements a common log intialization for GD2 and its CLI
+package logging
 
 import (
 	"io"
@@ -25,7 +26,11 @@ func setLogOutput(w io.Writer) {
 	stdlog.SetOutput(log.StandardLogger().Writer())
 }
 
-func initLog(logdir string, logFileName string, logLevel string) error {
+// Init initializes the default logrus logger
+// Should be called as early as possible when a process starts.
+// Note that this does not create a new logger. Packages should still continue
+// importing and using logrus as before.
+func Init(logdir string, logFileName string, logLevel string) error {
 	// Close the previously opened Log file
 	if logWriter != nil {
 		logWriter.Close()
