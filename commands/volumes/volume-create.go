@@ -84,7 +84,7 @@ func createVolinfo(req *api.VolCreateReq) (*volume.Volinfo, error) {
 		Password: uuid.NewRandom().String(),
 	}
 
-	v.State = volume.VolStopped
+	v.State = volume.VolCreated
 
 	return v, nil
 }
