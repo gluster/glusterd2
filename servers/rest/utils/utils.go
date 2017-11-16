@@ -5,12 +5,15 @@ import (
 	"encoding/json"
 	"net/http"
 
+	"github.com/gluster/glusterd2/pkg/api"
+
 	log "github.com/sirupsen/logrus"
 )
 
 // APIError is the placeholder for error string to report back to the client
 type APIError struct {
-	Error string
+	Code  api.ErrorCode `json:"error_code"`
+	Error string        `json:"error"`
 }
 
 // SendHTTPResponse to send response back to the client
@@ -32,8 +35,8 @@ func SendHTTPResponse(w http.ResponseWriter, statusCode int, rsp interface{}) {
 }
 
 // SendHTTPError is to report error back to the client
-func SendHTTPError(rw http.ResponseWriter, statusCode int, errMsg string) {
-	bytes, _ := json.Marshal(APIError{Error: errMsg})
+func SendHTTPError(rw http.ResponseWriter, statusCode int, errMsg string, errCode api.ErrorCode) {
+	bytes, _ := json.Marshal(APIError{Code: errCode, Error: errMsg})
 	rw.WriteHeader(statusCode)
 	rw.Write(bytes)
 }

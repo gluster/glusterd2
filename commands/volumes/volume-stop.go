@@ -7,6 +7,7 @@ import (
 	"github.com/gluster/glusterd2/daemon"
 	"github.com/gluster/glusterd2/errors"
 	"github.com/gluster/glusterd2/gdctx"
+	"github.com/gluster/glusterd2/pkg/api"
 	restutils "github.com/gluster/glusterd2/servers/rest/utils"
 	"github.com/gluster/glusterd2/transaction"
 	"github.com/gluster/glusterd2/volume"
@@ -88,11 +89,11 @@ func volumeStopHandler(w http.ResponseWriter, r *http.Request) {
 
 	vol, e := volume.GetVolume(volname)
 	if e != nil {
-		restutils.SendHTTPError(w, http.StatusNotFound, errors.ErrVolNotFound.Error())
+		restutils.SendHTTPError(w, http.StatusNotFound, errors.ErrVolNotFound.Error(), api.ErrCodeDefault)
 		return
 	}
 	if vol.State == volume.VolStopped {
-		restutils.SendHTTPError(w, http.StatusBadRequest, errors.ErrVolAlreadyStopped.Error())
+		restutils.SendHTTPError(w, http.StatusBadRequest, errors.ErrVolAlreadyStopped.Error(), api.ErrCodeDefault)
 		return
 	}
 
@@ -101,7 +102,7 @@ func volumeStopHandler(w http.ResponseWriter, r *http.Request) {
 	defer txn.Cleanup()
 	lock, unlock, err := transaction.CreateLockSteps(volname)
 	if err != nil {
-		restutils.SendHTTPError(w, http.StatusInternalServerError, err.Error())
+		restutils.SendHTTPError(w, http.StatusInternalServerError, err.Error(), api.ErrCodeDefault)
 		return
 	}
 	txn.Nodes = vol.Nodes()
@@ -119,9 +120,9 @@ func volumeStopHandler(w http.ResponseWriter, r *http.Request) {
 		logger.WithError(err).WithField(
 			"volume", volname).Error("failed to stop volume")
 		if err == transaction.ErrLockTimeout {
-			restutils.SendHTTPError(w, http.StatusConflict, err.Error())
+			restutils.SendHTTPError(w, http.StatusConflict, err.Error(), api.ErrCodeDefault)
 		} else {
-			restutils.SendHTTPError(w, http.StatusInternalServerError, err.Error())
+			restutils.SendHTTPError(w, http.StatusInternalServerError, err.Error(), api.ErrCodeDefault)
 		}
 		return
 	}
@@ -130,7 +131,7 @@ func volumeStopHandler(w http.ResponseWriter, r *http.Request) {
 
 	e = volume.AddOrUpdateVolumeFunc(vol)
 	if e != nil {
-		restutils.SendHTTPError(w, http.StatusInternalServerError, e.Error())
+		restutils.SendHTTPError(w, http.StatusInternalServerError, e.Error(), api.ErrCodeDefault)
 		return
 	}
 	restutils.SendHTTPResponse(w, http.StatusOK, vol)
