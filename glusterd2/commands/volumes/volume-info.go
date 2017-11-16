@@ -15,7 +15,7 @@ func volumeInfoHandler(w http.ResponseWriter, r *http.Request) {
 
 	v, err := volume.GetVolume(mux.Vars(r)["volname"])
 	if err != nil {
-		restutils.SendHTTPError(w, http.StatusNotFound, errors.ErrVolNotFound.Error())
+		restutils.SendHTTPError(w, http.StatusNotFound, errors.ErrVolNotFound.Error(), api.ErrCodeDefault)
 	}
 
 	resp := createVolumeGetResp(v)
