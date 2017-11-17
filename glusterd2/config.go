@@ -11,6 +11,7 @@ import (
 	"github.com/gluster/glusterd2/glusterd2/gdctx"
 	"github.com/gluster/glusterd2/glusterd2/store"
 	"github.com/gluster/glusterd2/glusterd2/volgen"
+	"github.com/gluster/glusterd2/pkg/logging"
 
 	log "github.com/sirupsen/logrus"
 	flag "github.com/spf13/pflag"
@@ -44,10 +45,11 @@ func parseFlags() {
 	flag.String("workdir", "", "Working directory for GlusterD. (default: current directory)")
 	flag.String("localstatedir", "", "Directory to store local state information. (default: workdir)")
 	flag.String("rundir", "", "Directory to store runtime data. (default: workdir/run)")
-	flag.String("logdir", "", "Directory to store logs. (default: workdir/log)")
-	flag.String("logfile", "-", "Log file name. (default: STDERR)")
 	flag.String("config", "", "Configuration file for GlusterD. By default looks for glusterd2.(yaml|toml|json) in [/usr/local]/etc/glusterd2 and current working directory.")
-	flag.String("loglevel", defaultLogLevel, "Severity of messages to be logged.")
+
+	flag.String(logging.DirFlag, "", logging.DirHelp+" (default: workdir/log)")
+	flag.String(logging.FileFlag, "STDOUT", logging.FileHelp)
+	flag.String(logging.LevelFlag, defaultLogLevel, logging.LevelHelp)
 
 	// TODO: Change default to false (disabled) in future.
 	flag.Bool("statedump", true, "Enable /statedump endpoint for metrics.")

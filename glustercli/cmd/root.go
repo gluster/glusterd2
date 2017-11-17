@@ -45,9 +45,9 @@ func init() {
 	RootCmd.PersistentFlags().StringVarP(&flagHostname, "host", "", "http://localhost:24007", "Host")
 
 	// Log options
-	RootCmd.PersistentFlags().StringVarP(&flagLogDir, "logdir", "", defaultLogDir, "Directory to store log files")
-	RootCmd.PersistentFlags().StringVarP(&flagLogFile, "logfile", "", defaultLogFile, "Name for log file")
-	RootCmd.PersistentFlags().StringVarP(&flagLogLevel, "loglevel", "", defaultLogLevel, "Level at which messages will be logged")
+	RootCmd.PersistentFlags().StringVarP(&flagLogDir, logging.DirFlag, "", defaultLogDir, logging.DirHelp)
+	RootCmd.PersistentFlags().StringVarP(&flagLogFile, logging.FileFlag, "", defaultLogFile, logging.FileHelp)
+	RootCmd.PersistentFlags().StringVarP(&flagLogLevel, logging.LevelFlag, "", defaultLogLevel, logging.LevelHelp)
 
 	// SSL/TLS options
 	RootCmd.PersistentFlags().StringVarP(&flagCacert, "cacert", "", "", "Path to CA certificate")

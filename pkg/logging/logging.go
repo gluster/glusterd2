@@ -11,6 +11,15 @@ import (
 	log "github.com/sirupsen/logrus"
 )
 
+const (
+	DirFlag   = "logdir"
+	DirHelp   = "Directory to store log files"
+	FileFlag  = "logfile"
+	FileHelp  = "Name for log file"
+	LevelFlag = "loglevel"
+	LevelHelp = "Severity of messages to be logged"
+)
+
 var logWriter io.WriteCloser
 
 func openLogFile(filepath string) (io.WriteCloser, error) {
