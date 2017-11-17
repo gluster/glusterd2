@@ -1,6 +1,10 @@
 package cmd
 
 import (
+	"fmt"
+
+	"github.com/gluster/glusterd2/pkg/logging"
+
 	"github.com/spf13/cobra"
 )
 
@@ -9,6 +13,10 @@ var RootCmd = &cobra.Command{
 	Use:   "gluster",
 	Short: "Gluster Console Manager (command line utility)",
 	PersistentPreRun: func(cmd *cobra.Command, args []string) {
+		err := logging.Init(flagLogDir, flagLogFile, flagLogLevel)
+		if err != nil {
+			fmt.Println("Error initializing log file ", err)
+		}
 		initRESTClient(flagHostname, flagCacert, flagInsecure)
 	},
 }
@@ -19,6 +27,15 @@ var (
 	flagHostname   string
 	flagCacert     string
 	flagInsecure   bool
+	flagLogDir     string
+	flagLogFile    string
+	flagLogLevel   string
+)
+
+const (
+	defaultLogDir   = "./"
+	defaultLogFile  = "glustercli.log"
+	defaultLogLevel = "INFO"
 )
 
 func init() {
@@ -26,6 +43,11 @@ func init() {
 	RootCmd.PersistentFlags().BoolVarP(&flagXMLOutput, "xml", "", false, "XML Output")
 	RootCmd.PersistentFlags().BoolVarP(&flagJSONOutput, "json", "", false, "JSON Output")
 	RootCmd.PersistentFlags().StringVarP(&flagHostname, "host", "", "http://localhost:24007", "Host")
+
+	// Log options
+	RootCmd.PersistentFlags().StringVarP(&flagLogDir, "logdir", "", defaultLogDir, "Directory to store log files")
+	RootCmd.PersistentFlags().StringVarP(&flagLogFile, "logfile", "", defaultLogFile, "Name for log file")
+	RootCmd.PersistentFlags().StringVarP(&flagLogLevel, "loglevel", "", defaultLogLevel, "Level at which messages will be logged")
 
 	// SSL/TLS options
 	RootCmd.PersistentFlags().StringVarP(&flagCacert, "cacert", "", "", "Path to CA certificate")

@@ -1,6 +1,7 @@
 package cmd
 
 import (
+	"io"
 	"os"
 
 	"github.com/spf13/cobra"
@@ -9,6 +10,7 @@ import (
 )
 
 var client *restclient.Client
+var logWriter io.WriteCloser
 
 func initRESTClient(hostname string, cacert string, insecure bool) {
 	client = restclient.New(hostname, "", "", cacert, insecure)
