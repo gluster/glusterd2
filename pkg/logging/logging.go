@@ -1,4 +1,4 @@
-// Pacakge logging implements a common log intialization for GD2 and its CLI
+// Package logging implements a common log intialization for GD2 and its CLI
 package logging
 
 import (
@@ -12,11 +12,19 @@ import (
 )
 
 const (
-	DirFlag   = "logdir"
-	DirHelp   = "Directory to store log files"
-	FileFlag  = "logfile"
-	FileHelp  = "Name for log file"
+	// DirFlag is the commomn logging flag to be used to set log directory
+	DirFlag = "logdir"
+	// DirHelp is the help message for DirFlag
+	DirHelp = "Directory to store log files"
+
+	// FileFlag is the commomn logging flag to be used to set log file name
+	FileFlag = "logfile"
+	// FileHelp is the help message for FileFlag
+	FileHelp = "Name for log file"
+
+	// LevelFlag is the commomn logging flag to be used to set log level
 	LevelFlag = "loglevel"
+	// LevelHelp is the help message for LevelFlag
 	LevelHelp = "Severity of messages to be logged"
 )
 
