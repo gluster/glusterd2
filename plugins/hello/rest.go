@@ -3,7 +3,7 @@ package hello
 import (
 	"net/http"
 
-	restutils "github.com/gluster/glusterd2/servers/rest/utils"
+	restutils "github.com/gluster/glusterd2/glusterd2/servers/rest/utils"
 )
 
 func helloGetHandler(w http.ResponseWriter, r *http.Request) {

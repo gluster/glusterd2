@@ -17,7 +17,7 @@ GD2CONF_BUILDSCRIPT=./scripts/gen-gd2conf.sh
 GD2CONF_BUILD = $(BUILDDIR)/$(GD2_CONF)
 GD2CONF_INSTALL = $(SYSCONFDIR)/$(GD2)/$(GD2_CONF)
 
-TEMPLATESDIR = volgen/templates
+TEMPLATESDIR = glusterd2/volgen/templates
 TEMPLATES_INSTALL = $(DATADIR)/$(GD2)/templates
 
 GD2STATEDIR = $(LOCALSTATEDIR)/$(GD2)
@@ -47,12 +47,12 @@ check-reqs:
 
 $(GD2_BIN): $(GD2_BUILD)
 $(GD2_BUILD):
-	@PLUGINS=$(PLUGINS) ./scripts/build.sh
+	@PLUGINS=$(PLUGINS) ./scripts/build.sh glusterd2
 	@echo
 
 $(CLI_BIN) cli: $(CLI_BUILD)
 $(CLI_BUILD):
-	@./scripts/build-cli.sh
+	@./scripts/build.sh glustercli
 	@echo
 
 $(GD2_CONF) gd2conf: $(GD2CONF_BUILD)

@@ -4,8 +4,8 @@ import (
 	"context"
 	"encoding/json"
 
+	"github.com/gluster/glusterd2/glusterd2/store"
 	georepapi "github.com/gluster/glusterd2/plugins/georeplication/api"
-	"github.com/gluster/glusterd2/store"
 
 	log "github.com/sirupsen/logrus"
 )

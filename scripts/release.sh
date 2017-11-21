@@ -37,7 +37,7 @@ echo
 
 cp build/glusterd2 $TMPDIR
 cp build/glustercli $TMPDIR
-cp -a volgen/templates $TMPDIR
+cp -a glusterd2/volgen/templates $TMPDIR
 echo
 
 # Create release archive

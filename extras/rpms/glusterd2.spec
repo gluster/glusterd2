@@ -61,7 +61,7 @@ install -d -m 0755 %{buildroot}%{_sharedstatedir}/%{name}
 install -d -m 0755 %{buildroot}%{_localstatedir}/log/%{name}
 #Install templates
 install -d -m 0755 %{buildroot}%{_datadir}/%{name}/templates
-install -D -m 0644 -t %{buildroot}%{_datadir}/%{name}/templates volgen/templates/*.graph
+install -D -m 0644 -t %{buildroot}%{_datadir}/%{name}/templates glusterd2/volgen/templates/*.graph
 
 
 %post
