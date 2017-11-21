@@ -147,41 +147,43 @@ func registerVolCreateStepFuncs() {
 }
 
 func volumeCreateHandler(w http.ResponseWriter, r *http.Request) {
-	req := new(api.VolCreateReq)
-	reqID, logger := restutils.GetReqIDandLogger(r)
 
+	ctx := r.Context()
+	logger := restutils.GetReqLogger(ctx)
+
+	req := new(api.VolCreateReq)
 	httpStatus, err := unmarshalVolCreateRequest(req, r)
 	if err != nil {
 		logger.WithError(err).Error("Failed to unmarshal volume request")
-		restutils.SendHTTPError(w, httpStatus, err.Error(), api.ErrCodeDefault)
+		restutils.SendHTTPError(ctx, w, httpStatus, err.Error(), api.ErrCodeDefault)
 		return
 	}
 
 	if volume.ExistsFunc(req.Name) {
-		restutils.SendHTTPError(w, http.StatusInternalServerError, gderrors.ErrVolExists.Error(), api.ErrCodeDefault)
+		restutils.SendHTTPError(ctx, w, http.StatusInternalServerError, gderrors.ErrVolExists.Error(), api.ErrCodeDefault)
 		return
 	}
 
 	nodes, err := nodesFromBricks(req.Bricks)
 	if err != nil {
 		logger.WithError(err).Error("could not prepare node list")
-		restutils.SendHTTPError(w, http.StatusInternalServerError, err.Error(), api.ErrCodeDefault)
+		restutils.SendHTTPError(ctx, w, http.StatusInternalServerError, err.Error(), api.ErrCodeDefault)
 		return
 	}
 
 	if err := areOptionNamesValid(req.Options); err != nil {
 		logger.WithField("option", err.Error()).Error("invalid volume option specified")
 		msg := fmt.Sprintf("invalid volume option specified: %s", err.Error())
-		restutils.SendHTTPError(w, http.StatusBadRequest, msg, api.ErrCodeDefault)
+		restutils.SendHTTPError(ctx, w, http.StatusBadRequest, msg, api.ErrCodeDefault)
 		return
 	}
 
-	txn := transaction.NewTxn(reqID)
+	txn := transaction.NewTxn(ctx)
 	defer txn.Cleanup()
 
 	lock, unlock, err := transaction.CreateLockSteps(req.Name)
 	if err != nil {
-		restutils.SendHTTPError(w, http.StatusInternalServerError, err.Error(), api.ErrCodeDefault)
+		restutils.SendHTTPError(ctx, w, http.StatusInternalServerError, err.Error(), api.ErrCodeDefault)
 		return
 	}
 
@@ -207,21 +209,21 @@ func volumeCreateHandler(w http.ResponseWriter, r *http.Request) {
 	err = txn.Ctx.Set("req", req)
 	if err != nil {
 		logger.WithError(err).Error("failed to set request in transaction context")
-		restutils.SendHTTPError(w, http.StatusInternalServerError, err.Error(), api.ErrCodeDefault)
+		restutils.SendHTTPError(ctx, w, http.StatusInternalServerError, err.Error(), api.ErrCodeDefault)
 		return
 	}
 
 	vol, err := createVolinfo(req)
 	if err != nil {
 		logger.WithError(err).Error("failed to create volinfo")
-		restutils.SendHTTPError(w, http.StatusInternalServerError, err.Error(), api.ErrCodeDefault)
+		restutils.SendHTTPError(ctx, w, http.StatusInternalServerError, err.Error(), api.ErrCodeDefault)
 		return
 	}
 
 	err = txn.Ctx.Set("volinfo", vol)
 	if err != nil {
 		logger.WithError(err).Error("failed to set volinfo in transaction context")
-		restutils.SendHTTPError(w, http.StatusInternalServerError, err.Error(), api.ErrCodeDefault)
+		restutils.SendHTTPError(ctx, w, http.StatusInternalServerError, err.Error(), api.ErrCodeDefault)
 		return
 	}
 
@@ -229,22 +231,22 @@ func volumeCreateHandler(w http.ResponseWriter, r *http.Request) {
 	if err != nil {
 		logger.WithError(err).Error("volume create transaction failed")
 		if err == transaction.ErrLockTimeout {
-			restutils.SendHTTPError(w, http.StatusConflict, err.Error(), api.ErrCodeDefault)
+			restutils.SendHTTPError(ctx, w, http.StatusConflict, err.Error(), api.ErrCodeDefault)
 		} else {
-			restutils.SendHTTPError(w, http.StatusInternalServerError, err.Error(), api.ErrCodeDefault)
+			restutils.SendHTTPError(ctx, w, http.StatusInternalServerError, err.Error(), api.ErrCodeDefault)
 		}
 		return
 	}
 
 	if err = c.Get("volinfo", &vol); err != nil {
-		restutils.SendHTTPError(w, http.StatusInternalServerError, "failed to get volinfo", api.ErrCodeDefault)
+		restutils.SendHTTPError(ctx, w, http.StatusInternalServerError, "failed to get volinfo", api.ErrCodeDefault)
 		return
 	}
 
 	c.Logger().WithField("volname", vol.Name).Info("new volume created")
 
 	resp := createVolumeCreateResp(vol)
-	restutils.SendHTTPResponse(w, http.StatusCreated, resp)
+	restutils.SendHTTPResponse(ctx, w, http.StatusCreated, resp)
 }
 
 func createVolumeCreateResp(v *volume.Volinfo) *api.VolumeCreateResp {

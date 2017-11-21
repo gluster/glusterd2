@@ -90,26 +90,27 @@ func registerVolStartStepFuncs() {
 }
 
 func volumeStartHandler(w http.ResponseWriter, r *http.Request) {
-	p := mux.Vars(r)
-	volname := p["volname"]
-	reqID, logger := restutils.GetReqIDandLogger(r)
 
+	ctx := r.Context()
+	logger := restutils.GetReqLogger(ctx)
+
+	volname := mux.Vars(r)["volname"]
 	vol, e := volume.GetVolume(volname)
 	if e != nil {
-		restutils.SendHTTPError(w, http.StatusNotFound, errors.ErrVolNotFound.Error(), api.ErrCodeDefault)
+		restutils.SendHTTPError(ctx, w, http.StatusNotFound, errors.ErrVolNotFound.Error(), api.ErrCodeDefault)
 		return
 	}
 	if vol.State == volume.VolStarted {
-		restutils.SendHTTPError(w, http.StatusBadRequest, errors.ErrVolAlreadyStarted.Error(), api.ErrCodeDefault)
+		restutils.SendHTTPError(ctx, w, http.StatusBadRequest, errors.ErrVolAlreadyStarted.Error(), api.ErrCodeDefault)
 		return
 	}
 
 	// A simple one-step transaction to start the brick processes
-	txn := transaction.NewTxn(reqID)
+	txn := transaction.NewTxn(ctx)
 	defer txn.Cleanup()
 	lock, unlock, err := transaction.CreateLockSteps(volname)
 	if err != nil {
-		restutils.SendHTTPError(w, http.StatusInternalServerError, err.Error(), api.ErrCodeDefault)
+		restutils.SendHTTPError(ctx, w, http.StatusInternalServerError, err.Error(), api.ErrCodeDefault)
 		return
 	}
 	txn.Nodes = vol.Nodes()
@@ -130,7 +131,7 @@ func volumeStartHandler(w http.ResponseWriter, r *http.Request) {
 			"error":  e.Error(),
 			"volume": volname,
 		}).Error("failed to start volume")
-		restutils.SendHTTPError(w, http.StatusInternalServerError, e.Error(), api.ErrCodeDefault)
+		restutils.SendHTTPError(ctx, w, http.StatusInternalServerError, e.Error(), api.ErrCodeDefault)
 		return
 	}
 
@@ -138,8 +139,8 @@ func volumeStartHandler(w http.ResponseWriter, r *http.Request) {
 
 	e = volume.AddOrUpdateVolumeFunc(vol)
 	if e != nil {
-		restutils.SendHTTPError(w, http.StatusInternalServerError, e.Error(), api.ErrCodeDefault)
+		restutils.SendHTTPError(ctx, w, http.StatusInternalServerError, e.Error(), api.ErrCodeDefault)
 		return
 	}
-	restutils.SendHTTPResponse(w, http.StatusOK, vol)
+	restutils.SendHTTPResponse(ctx, w, http.StatusOK, vol)
 }

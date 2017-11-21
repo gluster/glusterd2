@@ -10,8 +10,6 @@ import (
 	"github.com/gluster/glusterd2/pkg/api"
 	"github.com/gluster/glusterd2/pkg/errors"
 	"github.com/gluster/glusterd2/pkg/utils"
-
-	log "github.com/sirupsen/logrus"
 )
 
 type peerAddReq struct {
@@ -20,21 +18,24 @@ type peerAddReq struct {
 
 func addPeerHandler(w http.ResponseWriter, r *http.Request) {
 
+	ctx := r.Context()
+	logger := restutils.GetReqLogger(ctx)
+
 	var req peerAddReq
 	if err := restutils.UnmarshalRequest(r, &req); err != nil {
-		restutils.SendHTTPError(w, http.StatusBadRequest, err.Error(), api.ErrCodeDefault)
+		restutils.SendHTTPError(ctx, w, http.StatusBadRequest, err.Error(), api.ErrCodeDefault)
 		return
 	}
 
 	if len(req.Addresses) < 1 {
-		restutils.SendHTTPError(w, http.StatusBadRequest, errors.ErrNoHostnamesPresent.Error(), api.ErrCodeDefault)
+		restutils.SendHTTPError(ctx, w, http.StatusBadRequest, errors.ErrNoHostnamesPresent.Error(), api.ErrCodeDefault)
 		return
 	}
-	log.WithField("addresses", req.Addresses).Debug("received request to add new peer with given addresses")
+	logger.WithField("addresses", req.Addresses).Debug("received request to add new peer with given addresses")
 
 	p, _ := peer.GetPeerByAddrs(req.Addresses)
 	if p != nil {
-		restutils.SendHTTPError(w, http.StatusConflict, fmt.Sprintf("Peer exists with given addresses (ID: %s)", p.ID.String()), api.ErrCodeDefault)
+		restutils.SendHTTPError(ctx, w, http.StatusConflict, fmt.Sprintf("Peer exists with given addresses (ID: %s)", p.ID.String()), api.ErrCodeDefault)
 		return
 	}
 
@@ -42,19 +43,19 @@ func addPeerHandler(w http.ResponseWriter, r *http.Request) {
 	// address present in the req.Addresses list.
 	remotePeerAddress, err := utils.FormRemotePeerAddress(req.Addresses[0])
 	if err != nil {
-		log.WithError(err).WithField("address", req.Addresses[0]).Error("failed to parse peer address")
-		restutils.SendHTTPError(w, http.StatusBadRequest, "failed to parse remote address", api.ErrCodeDefault)
+		logger.WithError(err).WithField("address", req.Addresses[0]).Error("failed to parse peer address")
+		restutils.SendHTTPError(ctx, w, http.StatusBadRequest, "failed to parse remote address", api.ErrCodeDefault)
 		return
 	}
 
 	// TODO: Try all addresses till the first one connects
 	client, err := getPeerServiceClient(remotePeerAddress)
 	if err != nil {
-		restutils.SendHTTPError(w, http.StatusInternalServerError, err.Error(), api.ErrCodeDefault)
+		restutils.SendHTTPError(ctx, w, http.StatusInternalServerError, err.Error(), api.ErrCodeDefault)
 		return
 	}
 	defer client.conn.Close()
-	logger := log.WithField("peer", remotePeerAddress)
+	logger = logger.WithField("peer", remotePeerAddress)
 
 	newconfig := &StoreConfig{store.Store.Endpoints()}
 	logger.WithField("endpoints", newconfig.Endpoints).Debug("asking new peer to join cluster with given endpoints")
@@ -62,13 +63,13 @@ func addPeerHandler(w http.ResponseWriter, r *http.Request) {
 	// Ask the peer to join the cluster
 	rsp, err := client.JoinCluster(newconfig)
 	if err != nil {
-		log.WithError(err).Error("sending Join request failed")
-		restutils.SendHTTPError(w, http.StatusInternalServerError, "failed to send join cluster request", api.ErrCodeDefault)
+		logger.WithError(err).Error("sending Join request failed")
+		restutils.SendHTTPError(ctx, w, http.StatusInternalServerError, "failed to send join cluster request", api.ErrCodeDefault)
 		return
 	} else if Error(rsp.Err) != ErrNone {
 		err = Error(rsp.Err)
 		logger.WithError(err).Error("join request failed")
-		restutils.SendHTTPError(w, http.StatusInternalServerError, err.Error(), api.ErrCodeDefault)
+		restutils.SendHTTPError(ctx, w, http.StatusInternalServerError, err.Error(), api.ErrCodeDefault)
 		return
 	}
 	logger = logger.WithField("peerid", rsp.PeerID)
@@ -77,12 +78,12 @@ func addPeerHandler(w http.ResponseWriter, r *http.Request) {
 	// Get the new peer information to reply back with
 	newpeer, err := peer.GetPeer(rsp.PeerID)
 	if err != nil {
-		restutils.SendHTTPError(w, http.StatusInternalServerError, "new peer was added, but could not find peer in store. Try again later.", api.ErrCodeDefault)
+		restutils.SendHTTPError(ctx, w, http.StatusInternalServerError, "new peer was added, but could not find peer in store. Try again later.", api.ErrCodeDefault)
 		return
 	}
 
 	resp := createPeerAddResp(newpeer)
-	restutils.SendHTTPResponse(w, http.StatusCreated, resp)
+	restutils.SendHTTPResponse(ctx, w, http.StatusCreated, resp)
 
 	// Save updated store endpoints for restarts
 	store.Store.UpdateEndpoints()

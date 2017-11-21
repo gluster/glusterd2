@@ -11,21 +11,22 @@ import (
 )
 
 func getPeerHandler(w http.ResponseWriter, r *http.Request) {
-	p := mux.Vars(r)
 
-	id := p["peerid"]
+	ctx := r.Context()
+
+	id := mux.Vars(r)["peerid"]
 	if id == "" {
-		restutils.SendHTTPError(w, http.StatusBadRequest, "peerid not present in request", api.ErrCodeDefault)
+		restutils.SendHTTPError(ctx, w, http.StatusBadRequest, "peerid not present in request", api.ErrCodeDefault)
 		return
 	}
 
 	peer, err := peer.GetPeerF(id)
 	if err != nil {
-		restutils.SendHTTPError(w, http.StatusNotFound, err.Error(), api.ErrCodeDefault)
+		restutils.SendHTTPError(ctx, w, http.StatusNotFound, err.Error(), api.ErrCodeDefault)
 	}
 
 	resp := createPeerGetResp(peer)
-	restutils.SendHTTPResponse(w, http.StatusOK, resp)
+	restutils.SendHTTPResponse(ctx, w, http.StatusOK, resp)
 }
 
 func createPeerGetResp(p *peer.Peer) *api.PeerGetResp {

@@ -84,7 +84,7 @@ import (
 
 func ${name}HelpHandler(w http.ResponseWriter, r *http.Request) {
 	// Implement the help logic and send response back as below
-	restutils.SendHTTPResponse(w, http.StatusOK, "${namec} Help")
+	restutils.SendHTTPResponse(ctx, w, http.StatusOK, "${namec} Help")
 }
 """
 
