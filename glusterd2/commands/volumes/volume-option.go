@@ -11,7 +11,6 @@ import (
 	"github.com/gluster/glusterd2/glusterd2/volume"
 	"github.com/gluster/glusterd2/pkg/api"
 	"github.com/gluster/glusterd2/pkg/errors"
-	"github.com/gluster/glusterd2/pkg/utils"
 	"github.com/pborman/uuid"
 
 	"github.com/gorilla/mux"
@@ -44,7 +43,7 @@ func volumeOptionsHandler(w http.ResponseWriter, r *http.Request) {
 	}
 
 	var req api.VolOptionReq
-	if err := utils.GetJSONFromRequest(r, &req); err != nil {
+	if err := restutils.UnmarshalRequest(r, &req); err != nil {
 		restutils.SendHTTPError(w, http.StatusUnprocessableEntity, errors.ErrJSONParsingFailed.Error(), api.ErrCodeDefault)
 		return
 	}

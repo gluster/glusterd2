@@ -12,13 +12,12 @@ import (
 	"github.com/gluster/glusterd2/glusterd2/volume"
 	"github.com/gluster/glusterd2/pkg/api"
 	gderrors "github.com/gluster/glusterd2/pkg/errors"
-	"github.com/gluster/glusterd2/pkg/utils"
 
 	"github.com/pborman/uuid"
 )
 
 func unmarshalVolCreateRequest(msg *api.VolCreateReq, r *http.Request) (int, error) {
-	if err := utils.GetJSONFromRequest(r, msg); err != nil {
+	if err := restutils.UnmarshalRequest(r, msg); err != nil {
 		return 422, gderrors.ErrJSONParsingFailed
 	}
 

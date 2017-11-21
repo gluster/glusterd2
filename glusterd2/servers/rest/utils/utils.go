@@ -16,6 +16,12 @@ type APIError struct {
 	Error string        `json:"error"`
 }
 
+// UnmarshalRequest unmarshals JSON in `r` into `v`
+func UnmarshalRequest(r *http.Request, v interface{}) error {
+	defer r.Body.Close()
+	return json.NewDecoder(r.Body).Decode(v)
+}
+
 // SendHTTPResponse to send response back to the client
 func SendHTTPResponse(w http.ResponseWriter, statusCode int, rsp interface{}) {
 	if rsp != nil {

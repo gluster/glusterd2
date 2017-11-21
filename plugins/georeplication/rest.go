@@ -10,7 +10,6 @@ import (
 	"github.com/gluster/glusterd2/glusterd2/volume"
 	"github.com/gluster/glusterd2/pkg/api"
 	"github.com/gluster/glusterd2/pkg/errors"
-	"github.com/gluster/glusterd2/pkg/utils"
 	georepapi "github.com/gluster/glusterd2/plugins/georeplication/api"
 
 	"github.com/gorilla/mux"
@@ -71,7 +70,7 @@ func georepCreateHandler(w http.ResponseWriter, r *http.Request) {
 
 	// Parse the JSON body to get additional details of request
 	var req georepapi.GeorepCreateReq
-	if err := utils.GetJSONFromRequest(r, &req); err != nil {
+	if err := restutils.UnmarshalRequest(r, &req); err != nil {
 		restutils.SendHTTPError(w, http.StatusUnprocessableEntity, errors.ErrJSONParsingFailed.Error(), api.ErrCodeDefault)
 		return
 	}

@@ -19,9 +19,10 @@ type peerAddReq struct {
 }
 
 func addPeerHandler(w http.ResponseWriter, r *http.Request) {
+
 	var req peerAddReq
-	if e := utils.GetJSONFromRequest(r, &req); e != nil {
-		restutils.SendHTTPError(w, http.StatusBadRequest, e.Error(), api.ErrCodeDefault)
+	if err := restutils.UnmarshalRequest(r, &req); err != nil {
+		restutils.SendHTTPError(w, http.StatusBadRequest, err.Error(), api.ErrCodeDefault)
 		return
 	}
 
