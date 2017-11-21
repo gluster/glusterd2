@@ -28,7 +28,9 @@ import string
 import os
 import argparse
 
-PLUGINS_FILE = "plugins.go"
+src_dir = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
+PLUGINS_FILE = os.path.join(src_dir, "glusterd2/plugin/plugins.go")
+PLUGINS_DIR = os.path.join(src_dir, "plugins")
 INIT_FILE = "init.go"
 REST_FILE = "rest.go"
 
@@ -37,7 +39,7 @@ IMPORT_PFX = "\t\"github.com/gluster/glusterd2/plugins/"
 INIT_GO_TMPL = """package $name
 
 import (
-	"github.com/gluster/glusterd2/servers/rest/route"
+	"github.com/gluster/glusterd2/glusterd2/servers/rest/route"
 	"github.com/prashanthpai/sunrpc"
 )
 
@@ -79,7 +81,7 @@ REST_GO_TMPL = """package ${name}
 import (
 	"net/http"
 
-	restutils "github.com/gluster/glusterd2/servers/rest/utils"
+	restutils "github.com/gluster/glusterd2/glusterd2/servers/rest/utils"
 )
 
 func ${name}HelpHandler(w http.ResponseWriter, r *http.Request) {
@@ -89,34 +91,34 @@ func ${name}HelpHandler(w http.ResponseWriter, r *http.Request) {
 """
 
 
-def generate_init_go_file(plugin_dir, name):
+def generate_init_go_file(name):
     data = string.Template(INIT_GO_TMPL).substitute({
         "name": name,
         "namec": name[0].upper() + name[1:]
     })
 
-    with open(os.path.join(plugin_dir, name, INIT_FILE), "w") as f:
+    with open(os.path.join(PLUGINS_DIR, name, INIT_FILE), "w") as f:
         f.write(data)
 
 
-def generate_rest_go_file(plugin_dir, name):
+def generate_rest_go_file(name):
     data = string.Template(REST_GO_TMPL).substitute({
         "name": name,
         "namec": name[0].upper() + name[1:]
     })
 
-    with open(os.path.join(plugin_dir, name, REST_FILE), "w") as f:
+    with open(os.path.join(PLUGINS_DIR, name, REST_FILE), "w") as f:
         f.write(data)
 
 
-def add_to_plugins_go(plugin_dir, name):
+def add_to_plugins_go(name):
     import_path = IMPORT_PFX + name + "\""
     add_plugin = "\t&" + name + ".Plugin{},"
     data = []
     import_started = False
     add_plugin_started = False
 
-    with open(os.path.join(plugin_dir, PLUGINS_FILE)) as f:
+    with open(PLUGINS_FILE) as f:
         for line in f:
             if import_started:
                 if line.strip().endswith(name + '"'):
@@ -140,7 +142,7 @@ def add_to_plugins_go(plugin_dir, name):
 
             data.append(line.strip("\n"))
 
-    with open(os.path.join(plugin_dir, PLUGINS_FILE + ".tmp"), "w") as f:
+    with open(PLUGINS_FILE + ".tmp", "w") as f:
         f.write("\n".join(data))
 
 
@@ -148,18 +150,16 @@ if __name__ == "__main__":
     parser = argparse.ArgumentParser(
         formatter_class=argparse.RawDescriptionHelpFormatter,
         description=__doc__)
-    parser.add_argument("plugin_dir", help="Plugin Directory")
     parser.add_argument("plugin_name", help="Plugin Name")
     args = parser.parse_args()
-    add_to_plugins_go(args.plugin_dir, args.plugin_name)
+    add_to_plugins_go(args.plugin_name)
     try:
-        os.mkdir(os.path.join(args.plugin_dir, args.plugin_name))
+        os.mkdir(os.path.join(PLUGINS_DIR, args.plugin_name))
     except OSError as e:
-        print "Unable to create plugin dir \"%s/%s\": %s" % (args.plugin_dir,
+        print "Unable to create plugin dir \"%s/%s\": %s" % (PLUGINS_DIR,
                                                              args.plugin_name,
                                                              e)
 
-    generate_init_go_file(args.plugin_dir, args.plugin_name)
-    generate_rest_go_file(args.plugin_dir, args.plugin_name)
-    os.rename(os.path.join(args.plugin_dir, PLUGINS_FILE + ".tmp"),
-              os.path.join(args.plugin_dir, PLUGINS_FILE))
+    generate_init_go_file(args.plugin_name)
+    generate_rest_go_file(args.plugin_name)
+    os.rename(PLUGINS_FILE + ".tmp", PLUGINS_FILE)
