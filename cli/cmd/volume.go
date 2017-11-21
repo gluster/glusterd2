@@ -134,8 +134,8 @@ func bricksAsUUID(bricks []string) ([]string, error) {
 var volumeCreateCmd = &cobra.Command{
 	Use:   "create",
 	Short: helpVolumeCreateCmd,
+	Args:  cobra.MinimumNArgs(2),
 	Run: func(cmd *cobra.Command, args []string) {
-		validateNArgs(cmd, 2, 0)
 		volname := cmd.Flags().Args()[0]
 		bricks, err := bricksAsUUID(cmd.Flags().Args()[1:])
 		if err != nil {
@@ -160,8 +160,8 @@ var volumeCreateCmd = &cobra.Command{
 var volumeStartCmd = &cobra.Command{
 	Use:   "start [flags] <VOLNAME>",
 	Short: helpVolumeStartCmd,
+	Args:  cobra.ExactArgs(1),
 	Run: func(cmd *cobra.Command, args []string) {
-		validateNArgs(cmd, 1, 1)
 		volname := cmd.Flags().Args()[0]
 		err := client.VolumeStart(volname)
 		if err != nil {
@@ -175,8 +175,8 @@ var volumeStartCmd = &cobra.Command{
 var volumeStopCmd = &cobra.Command{
 	Use:   "stop [flags] <VOLNAME>",
 	Short: helpVolumeStopCmd,
+	Args:  cobra.ExactArgs(1),
 	Run: func(cmd *cobra.Command, args []string) {
-		validateNArgs(cmd, 1, 1)
 		volname := cmd.Flags().Args()[0]
 		err := client.VolumeStop(volname)
 		if err != nil {
@@ -190,8 +190,8 @@ var volumeStopCmd = &cobra.Command{
 var volumeDeleteCmd = &cobra.Command{
 	Use:   "delete",
 	Short: helpVolumeDeleteCmd,
+	Args:  cobra.ExactArgs(1),
 	Run: func(cmd *cobra.Command, args []string) {
-		validateNArgs(cmd, 1, 1)
 		volname := cmd.Flags().Args()[0]
 		err := client.VolumeDelete(volname)
 		if err != nil {
@@ -205,8 +205,8 @@ var volumeDeleteCmd = &cobra.Command{
 var volumeGetCmd = &cobra.Command{
 	Use:   "get",
 	Short: helpVolumeGetCmd,
+	Args:  cobra.RangeArgs(1, 2),
 	Run: func(cmd *cobra.Command, args []string) {
-		validateNArgs(cmd, 1, 2)
 		volname := cmd.Flags().Args()[0]
 		fmt.Println("GET:", volname)
 	},
@@ -228,8 +228,8 @@ func volumeOptionJSONHandler(cmd *cobra.Command, volname string, options []strin
 var volumeSetCmd = &cobra.Command{
 	Use:   "set",
 	Short: helpVolumeSetCmd,
+	Args:  cobra.MinimumNArgs(3),
 	Run: func(cmd *cobra.Command, args []string) {
-		validateNArgs(cmd, 3, 0)
 		fmt.Println(cmd.Flags().Args())
 		fmt.Println(len(cmd.Flags().Args()) - 1)
 		if (len(cmd.Flags().Args())-1)%2 == 0 {
@@ -251,8 +251,8 @@ var volumeSetCmd = &cobra.Command{
 var volumeResetCmd = &cobra.Command{
 	Use:   "reset",
 	Short: helpVolumeResetCmd,
+	Args:  cobra.RangeArgs(1, 2),
 	Run: func(cmd *cobra.Command, args []string) {
-		validateNArgs(cmd, 1, 2)
 		volname := cmd.Flags().Args()[0]
 		fmt.Println("RESET:", volname)
 	},
@@ -261,7 +261,6 @@ var volumeResetCmd = &cobra.Command{
 func volumeInfoHandler2(cmd *cobra.Command, isInfo bool) error {
 	var vols api.VolumeListResp
 	var err error
-	validateNArgs(cmd, 0, 1)
 	volname := ""
 	if len(cmd.Flags().Args()) > 0 {
 		volname = cmd.Flags().Args()[0]
@@ -298,6 +297,7 @@ func volumeInfoHandler2(cmd *cobra.Command, isInfo bool) error {
 var volumeInfoCmd = &cobra.Command{
 	Use:   "info",
 	Short: helpVolumeInfoCmd,
+	Args:  cobra.RangeArgs(0, 1),
 	Run: func(cmd *cobra.Command, args []string) {
 		err := volumeInfoHandler2(cmd, true)
 		if err != nil {
@@ -310,6 +310,7 @@ var volumeInfoCmd = &cobra.Command{
 var volumeListCmd = &cobra.Command{
 	Use:   "list",
 	Short: helpVolumeListCmd,
+	Args:  cobra.RangeArgs(0, 1),
 	Run: func(cmd *cobra.Command, args []string) {
 		err := volumeInfoHandler2(cmd, false)
 		if err != nil {
@@ -322,8 +323,8 @@ var volumeListCmd = &cobra.Command{
 var volumeStatusCmd = &cobra.Command{
 	Use:   "status",
 	Short: helpVolumeStatusCmd,
+	Args:  cobra.RangeArgs(0, 1),
 	Run: func(cmd *cobra.Command, args []string) {
-		validateNArgs(cmd, 0, 1)
 		volname := "all"
 		if len(cmd.Flags().Args()) > 0 {
 			volname = cmd.Flags().Args()[0]
@@ -335,8 +336,8 @@ var volumeStatusCmd = &cobra.Command{
 var volumeExpandCmd = &cobra.Command{
 	Use:   "add-brick",
 	Short: helpVolumeExpandCmd,
+	Args:  cobra.MinimumNArgs(2),
 	Run: func(cmd *cobra.Command, args []string) {
-		validateNArgs(cmd, 2, 0)
 		volname := cmd.Flags().Args()[0]
 		bricks, err := bricksAsUUID(cmd.Flags().Args()[1:])
 		if err != nil {

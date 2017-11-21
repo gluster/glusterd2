@@ -50,8 +50,8 @@ var poolCmd = &cobra.Command{
 var peerProbeCmd = &cobra.Command{
 	Use:   "probe <HOSTNAME>",
 	Short: helpPeerProbeCmd,
+	Args:  cobra.ExactArgs(1),
 	Run: func(cmd *cobra.Command, args []string) {
-		validateNArgs(cmd, 1, 1)
 		hostname := cmd.Flags().Args()[0]
 		peer, err := client.PeerProbe(hostname)
 		if err != nil {
@@ -69,8 +69,8 @@ var peerProbeCmd = &cobra.Command{
 var peerDetachCmd = &cobra.Command{
 	Use:   "detach <HOSTNAME>",
 	Short: helpPeerDetachCmd,
+	Args:  cobra.ExactArgs(1),
 	Run: func(cmd *cobra.Command, args []string) {
-		validateNArgs(cmd, 1, 1)
 		hostname := cmd.Flags().Args()[0]
 		err := client.PeerDetach(hostname)
 		if err != nil {
@@ -82,7 +82,6 @@ var peerDetachCmd = &cobra.Command{
 }
 
 func peerStatusHandler(cmd *cobra.Command) {
-	validateNArgs(cmd, 0, 0)
 	peers, err := client.Peers()
 	if err != nil {
 		log.Println("peer status failed")
@@ -99,6 +98,7 @@ func peerStatusHandler(cmd *cobra.Command) {
 var peerStatusCmd = &cobra.Command{
 	Use:   "status",
 	Short: helpPeerStatusCmd,
+	Args:  cobra.NoArgs,
 	Run: func(cmd *cobra.Command, args []string) {
 		peerStatusHandler(cmd)
 	},
@@ -107,6 +107,7 @@ var peerStatusCmd = &cobra.Command{
 var poolListCmd = &cobra.Command{
 	Use:   "list",
 	Short: helpPoolListCmd,
+	Args:  cobra.NoArgs,
 	Run: func(cmd *cobra.Command, args []string) {
 		peerStatusHandler(cmd)
 	},
