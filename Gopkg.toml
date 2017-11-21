@@ -46,9 +46,6 @@
   name = "github.com/gorilla/mux"
 
 [[constraint]]
-  name = "github.com/heketi/tests"
-
-[[constraint]]
   name = "github.com/justinas/alice"
 
 [[constraint]]

@@ -120,12 +120,6 @@
   revision = "630949a3c5fa3c613328e1b8256052cbc2327c9b"
 
 [[projects]]
-  branch = "master"
-  name = "github.com/heketi/tests"
-  packages = ["."]
-  revision = "f3775cbcefd6822086c729e3ce4b70ca85a5bd21"
-
-[[projects]]
   name = "github.com/inconshreveable/mousetrap"
   packages = ["."]
   revision = "76626ae9c91c4f2a10f34cad8ce83ea42c93bb75"
@@ -324,6 +318,6 @@
 [solve-meta]
   analyzer-name = "dep"
   analyzer-version = 1
-  inputs-digest = "e39360b1c38660e4782eaa8adf26a14d2920061ddbc32f10a9cdcdf3f4f9723d"
+  inputs-digest = "4686d478025e324ead534ffa229b886a00fe31c4f0cb33850e1deae69239900a"
   solver-name = "gps-cdcl"
   solver-version = 1

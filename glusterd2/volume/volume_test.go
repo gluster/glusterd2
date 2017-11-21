@@ -6,8 +6,8 @@ import (
 
 	"github.com/gluster/glusterd2/glusterd2/peer"
 	"github.com/gluster/glusterd2/pkg/errors"
+	"github.com/gluster/glusterd2/pkg/testutils"
 
-	heketitests "github.com/heketi/tests"
 	"github.com/pborman/uuid"
 	"github.com/stretchr/testify/assert"
 )
@@ -38,8 +38,8 @@ func getSampleBricks(b1 string, b2 string) []string {
 
 // TestNewBrickEntry validates NewBrickEntries ()
 func TestNewBrickEntry(t *testing.T) {
-	defer heketitests.Patch(&peer.GetPeerIDByAddrF, peer.GetPeerIDByAddrMockGood).Restore()
-	defer heketitests.Patch(&peer.GetPeerF, peer.GetPeerFMockGood).Restore()
+	defer testutils.Patch(&peer.GetPeerIDByAddrF, peer.GetPeerIDByAddrMockGood).Restore()
+	defer testutils.Patch(&peer.GetPeerF, peer.GetPeerFMockGood).Restore()
 
 	bricks := getSampleBricks("/tmp/b1", "/tmp/b2")
 	brickPaths := []string{"/tmp/b1", "/tmp/b2"}
@@ -57,7 +57,7 @@ func TestNewBrickEntry(t *testing.T) {
 	assert.NotNil(t, err)
 
 	//Now mock filepath.Abs()
-	defer heketitests.Patch(&absFilePath, func(path string) (string, error) {
+	defer testutils.Patch(&absFilePath, func(path string) (string, error) {
 		return "", errors.ErrBrickPathConvertFail
 	}).Restore()
 

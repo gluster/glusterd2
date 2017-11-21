@@ -12,8 +12,8 @@ import (
 	"github.com/gluster/glusterd2/glusterd2/volume"
 	"github.com/gluster/glusterd2/pkg/api"
 	gderrors "github.com/gluster/glusterd2/pkg/errors"
+	"github.com/gluster/glusterd2/pkg/testutils"
 
-	heketitests "github.com/heketi/tests"
 	"github.com/pborman/uuid"
 	"github.com/stretchr/testify/assert"
 )
@@ -53,8 +53,8 @@ func TestUnmarshalVolCreateRequest(t *testing.T) {
 
 // TestCreateVolinfo validates createVolinfo()
 func TestCreateVolinfo(t *testing.T) {
-	defer heketitests.Patch(&peer.GetPeerIDByAddrF, peer.GetPeerIDByAddrMockGood).Restore()
-	defer heketitests.Patch(&peer.GetPeerF, peer.GetPeerFMockGood).Restore()
+	defer testutils.Patch(&peer.GetPeerIDByAddrF, peer.GetPeerIDByAddrMockGood).Restore()
+	defer testutils.Patch(&peer.GetPeerF, peer.GetPeerFMockGood).Restore()
 
 	msg := new(api.VolCreateReq)
 	u := uuid.NewRandom()
@@ -65,7 +65,7 @@ func TestCreateVolinfo(t *testing.T) {
 	assert.NotNil(t, vol)
 
 	// Mock failure in NewBrickEntries(), createVolume() should fail
-	defer heketitests.Patch(&volume.NewBrickEntriesFunc, func(bricks []string, volName string, volID uuid.UUID) ([]brick.Brickinfo, error) {
+	defer testutils.Patch(&volume.NewBrickEntriesFunc, func(bricks []string, volName string, volID uuid.UUID) ([]brick.Brickinfo, error) {
 		return nil, errBad
 	}).Restore()
 	_, e = createVolinfo(msg)
@@ -83,11 +83,11 @@ func TestValidateVolumeCreate(t *testing.T) {
 	c := transaction.NewMockCtx()
 	c.Set("req", msg)
 
-	defer heketitests.Patch(&volume.ValidateBrickEntriesFunc, func(bricks []brick.Brickinfo, volID uuid.UUID, force bool) (int, error) {
+	defer testutils.Patch(&volume.ValidateBrickEntriesFunc, func(bricks []brick.Brickinfo, volID uuid.UUID, force bool) (int, error) {
 		return 0, nil
 	}).Restore()
-	defer heketitests.Patch(&peer.GetPeerIDByAddrF, peer.GetPeerIDByAddrMockGood).Restore()
-	defer heketitests.Patch(&peer.GetPeerF, peer.GetPeerFMockGood).Restore()
+	defer testutils.Patch(&peer.GetPeerIDByAddrF, peer.GetPeerIDByAddrMockGood).Restore()
+	defer testutils.Patch(&peer.GetPeerF, peer.GetPeerFMockGood).Restore()
 
 	vol, e := createVolinfo(msg)
 	assert.Nil(t, e)
@@ -97,7 +97,7 @@ func TestValidateVolumeCreate(t *testing.T) {
 	assert.Nil(t, e)
 
 	// Mock validateBrickEntries failure
-	defer heketitests.Patch(&volume.ValidateBrickEntriesFunc, func(bricks []brick.Brickinfo, volID uuid.UUID, force bool) (int, error) {
+	defer testutils.Patch(&volume.ValidateBrickEntriesFunc, func(bricks []brick.Brickinfo, volID uuid.UUID, force bool) (int, error) {
 		return 0, errBad
 	}).Restore()
 	e = validateVolumeCreate(c)
