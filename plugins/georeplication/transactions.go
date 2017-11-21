@@ -28,7 +28,7 @@ func txnGeorepCreate(c transaction.TxnCtx) error {
 	return nil
 }
 
-func gsyncdAction(c transaction.TxnCtx, action string) error {
+func gsyncdAction(c transaction.TxnCtx, action actionType) error {
 	var masterid string
 	var slaveid string
 	if err := c.Get("mastervolid", &masterid); err != nil {
@@ -45,7 +45,7 @@ func gsyncdAction(c transaction.TxnCtx, action string) error {
 	c.Logger().WithFields(log.Fields{
 		"master": sessioninfo.MasterVol,
 		"slave":  sessioninfo.SlaveHosts[0] + "::" + sessioninfo.SlaveVol,
-	}).Info(action + " gsyncd monitor")
+	}).Info(action.String() + " gsyncd monitor")
 
 	gsyncdDaemon, err := newGsyncd(*sessioninfo)
 	if err != nil {
@@ -53,13 +53,13 @@ func gsyncdAction(c transaction.TxnCtx, action string) error {
 	}
 
 	switch action {
-	case "start":
+	case actionStart:
 		err = daemon.Start(gsyncdDaemon, true)
-	case "stop":
+	case actionStop:
 		err = daemon.Stop(gsyncdDaemon, true)
-	case "pause":
+	case actionPause:
 		err = daemon.Signal(gsyncdDaemon, syscall.SIGSTOP)
-	case "resume":
+	case actionResume:
 		err = daemon.Signal(gsyncdDaemon, syscall.SIGCONT)
 	}
 
@@ -67,11 +67,11 @@ func gsyncdAction(c transaction.TxnCtx, action string) error {
 }
 
 func txnGeorepStart(c transaction.TxnCtx) error {
-	return gsyncdAction(c, "start")
+	return gsyncdAction(c, actionStart)
 }
 
 func txnGeorepStop(c transaction.TxnCtx) error {
-	return gsyncdAction(c, "stop")
+	return gsyncdAction(c, actionStop)
 }
 
 func txnGeorepDelete(c transaction.TxnCtx) error {
@@ -101,9 +101,9 @@ func txnGeorepDelete(c transaction.TxnCtx) error {
 }
 
 func txnGeorepPause(c transaction.TxnCtx) error {
-	return gsyncdAction(c, "pause")
+	return gsyncdAction(c, actionPause)
 }
 
 func txnGeorepResume(c transaction.TxnCtx) error {
-	return gsyncdAction(c, "resume")
+	return gsyncdAction(c, actionResume)
 }

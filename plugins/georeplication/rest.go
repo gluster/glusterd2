@@ -162,7 +162,7 @@ func georepCreateHandler(w http.ResponseWriter, r *http.Request) {
 	restutils.SendHTTPResponse(ctx, w, http.StatusCreated, geoSession)
 }
 
-func georepActionHandler(w http.ResponseWriter, r *http.Request, action string) {
+func georepActionHandler(w http.ResponseWriter, r *http.Request, action actionType) {
 	// Collect inputs from URL
 	p := mux.Vars(r)
 	masteridRaw := p["mastervolid"]
@@ -188,22 +188,22 @@ func georepActionHandler(w http.ResponseWriter, r *http.Request, action string) 
 		return
 	}
 
-	if action == "start" && geoSession.Status == georepapi.GeorepStatusStarted {
+	if action == actionStart && geoSession.Status == georepapi.GeorepStatusStarted {
 		restutils.SendHTTPError(ctx, w, http.StatusConflict, "session already started", api.ErrCodeDefault)
 		return
 	}
 
-	if action == "stop" && geoSession.Status == georepapi.GeorepStatusStopped {
+	if action == actionStop && geoSession.Status == georepapi.GeorepStatusStopped {
 		restutils.SendHTTPError(w, http.StatusConflict, "session already stopped", api.ErrCodeDefault)
 		return
 	}
 
-	if action == "pause" && geoSession.Status != georepapi.GeorepStatusStarted {
+	if action == actionPause && geoSession.Status != georepapi.GeorepStatusStarted {
 		restutils.SendHTTPError(w, http.StatusConflict, "session is not in started state", api.ErrCodeDefault)
 		return
 	}
 
-	if action == "resume" && geoSession.Status != georepapi.GeorepStatusPaused {
+	if action == actionResume && geoSession.Status != georepapi.GeorepStatusPaused {
 		restutils.SendHTTPError(w, http.StatusConflict, "session not in paused state", api.ErrCodeDefault)
 		return
 	}
@@ -215,7 +215,7 @@ func georepActionHandler(w http.ResponseWriter, r *http.Request, action string) 
 		return
 	}
 
-	if action == "start" && vol.State != volume.VolStarted {
+	if action == actionStart && vol.State != volume.VolStarted {
 		restutils.SendHTTPError(ctx, w, http.StatusInternalServerError, "master volume not started", api.ErrCodeDefault)
 		return
 	}
@@ -232,16 +232,16 @@ func georepActionHandler(w http.ResponseWriter, r *http.Request, action string) 
 	doFunc := ""
 	stateToSet := ""
 	switch action {
-	case "start":
+	case actionStart:
 		doFunc = "georeplication-start.Commit"
 		stateToSet = georepapi.GeorepStatusStarted
-	case "pause":
+	case actionPause:
 		doFunc = "georeplication-pause.Commit"
 		stateToSet = georepapi.GeorepStatusPaused
-	case "resume":
+	case actionResume:
 		doFunc = "georeplication-resume.Commit"
 		stateToSet = georepapi.GeorepStatusStarted
-	case "stop":
+	case actionStop:
 		doFunc = "georeplication-stop.Commit"
 		stateToSet = georepapi.GeorepStatusStopped
 	default:
@@ -267,7 +267,7 @@ func georepActionHandler(w http.ResponseWriter, r *http.Request, action string) 
 			"error":       e.Error(),
 			"mastervolid": masterid,
 			"slavevolid":  slaveid,
-		}).Error("failed to " + action + " geo-replication session")
+		}).Error("failed to " + action.String() + " geo-replication session")
 		restutils.SendHTTPError(ctx, w, http.StatusInternalServerError, e.Error(), api.ErrCodeDefault)
 		return
 	}
@@ -284,19 +284,19 @@ func georepActionHandler(w http.ResponseWriter, r *http.Request, action string) 
 }
 
 func georepStartHandler(w http.ResponseWriter, r *http.Request) {
-	georepActionHandler(w, r, "start")
+	georepActionHandler(w, r, actionStart)
 }
 
 func georepPauseHandler(w http.ResponseWriter, r *http.Request) {
-	georepActionHandler(w, r, "pause")
+	georepActionHandler(w, r, actionPause)
 }
 
 func georepResumeHandler(w http.ResponseWriter, r *http.Request) {
-	georepActionHandler(w, r, "resume")
+	georepActionHandler(w, r, actionResume)
 }
 
 func georepStopHandler(w http.ResponseWriter, r *http.Request) {
-	georepActionHandler(w, r, "stop")
+	georepActionHandler(w, r, actionStop)
 }
 
 func georepDeleteHandler(w http.ResponseWriter, r *http.Request) {
