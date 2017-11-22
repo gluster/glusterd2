@@ -8,7 +8,6 @@ import (
 
 	"github.com/gluster/glusterd2/pkg/testutils"
 
-	heketitests "github.com/heketi/tests"
 	"github.com/pborman/uuid"
 	"github.com/stretchr/testify/assert"
 	"golang.org/x/sys/unix"
@@ -88,9 +87,9 @@ func TestValidateBrickPathStats(t *testing.T) {
 }
 
 func TestValidateXattrSupport(t *testing.T) {
-	defer heketitests.Patch(&Setxattr, testutils.MockSetxattr).Restore()
-	defer heketitests.Patch(&Getxattr, testutils.MockGetxattr).Restore()
-	defer heketitests.Patch(&Removexattr, testutils.MockRemovexattr).Restore()
+	defer testutils.Patch(&Setxattr, testutils.MockSetxattr).Restore()
+	defer testutils.Patch(&Getxattr, testutils.MockGetxattr).Restore()
+	defer testutils.Patch(&Removexattr, testutils.MockRemovexattr).Restore()
 	assert.Nil(t, ValidateXattrSupport("/tmp/b1", uuid.NewRandom(), true))
 
 	// Some negative tests
@@ -99,19 +98,19 @@ func TestValidateXattrSupport(t *testing.T) {
 	xattrErr = baderror
 
 	// Now check what happens when setxattr fails
-	defer heketitests.Patch(&Setxattr, func(path string, attr string, data []byte, flags int) (err error) {
+	defer testutils.Patch(&Setxattr, func(path string, attr string, data []byte, flags int) (err error) {
 		return xattrErr
 	}).Restore()
 	assert.Equal(t, baderror, ValidateXattrSupport("/tmp/b1", uuid.NewRandom(), true))
 
 	// Now check what happens when getxattr fails
-	defer heketitests.Patch(&Getxattr, func(path string, attr string, dest []byte) (sz int, err error) {
+	defer testutils.Patch(&Getxattr, func(path string, attr string, dest []byte) (sz int, err error) {
 		return 0, xattrErr
 	}).Restore()
 	assert.Equal(t, baderror, ValidateXattrSupport("/tmp/b1", uuid.NewRandom(), true))
 
 	// Now check what happens when removexattr fails
-	defer heketitests.Patch(&Removexattr, func(path string, attr string) (err error) {
+	defer testutils.Patch(&Removexattr, func(path string, attr string) (err error) {
 		return xattrErr
 	}).Restore()
 	assert.Equal(t, baderror, ValidateXattrSupport("/tmp/b1", uuid.NewRandom(), true))
