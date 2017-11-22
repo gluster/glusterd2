@@ -14,13 +14,20 @@ import (
 	"github.com/pborman/uuid"
 )
 
-func areOptionNamesValid(optsFromReq map[string]string) error {
+// validateOptions validates if the options and their values are valid and can
+// be set on a volume.
+func validateOptions(opts map[string]string) error {
 
-	for o := range optsFromReq {
-		_, err := options.Find(o)
+	for k, v := range opts {
+		o, err := options.Find(k)
 		if err != nil {
 			return err
 		}
+
+		if err := o.Validate(v); err != nil {
+			return err
+		}
+		// TODO: Check op-version
 	}
 
 	return nil
