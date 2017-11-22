@@ -54,8 +54,3 @@ func init() {
 	RootCmd.PersistentFlags().BoolVarP(&flagInsecure, "insecure", "", false,
 		"Accepts any certificate presented by the server and any host name in that certificate.")
 }
-
-// Execute function parses flags and executes command
-func Execute() {
-	RootCmd.Execute()
-}
