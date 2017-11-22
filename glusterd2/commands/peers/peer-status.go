@@ -10,9 +10,9 @@ import (
 )
 
 func peerEtcdStatusHandler(w http.ResponseWriter, r *http.Request) {
-	restutils.SendHTTPError(w, http.StatusNotFound, "", api.ErrCodeDefault)
+	restutils.SendHTTPError(r.Context(), w, http.StatusNotFound, "", api.ErrCodeDefault)
 }
 
 func peerEtcdHealthHandler(w http.ResponseWriter, r *http.Request) {
-	restutils.SendHTTPError(w, http.StatusNotFound, "", api.ErrCodeDefault)
+	restutils.SendHTTPError(r.Context(), w, http.StatusNotFound, "", api.ErrCodeDefault)
 }

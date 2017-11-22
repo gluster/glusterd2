@@ -7,9 +7,9 @@ import (
 )
 
 func helloGetHandler(w http.ResponseWriter, r *http.Request) {
-	restutils.SendHTTPResponse(w, http.StatusOK, "Hello Get")
+	restutils.SendHTTPResponse(r.Context(), w, http.StatusOK, "Hello Get")
 }
 
 func helloPostHandler(w http.ResponseWriter, r *http.Request) {
-	restutils.SendHTTPResponse(w, http.StatusOK, "Hello Post")
+	restutils.SendHTTPResponse(r.Context(), w, http.StatusOK, "Hello Post")
 }

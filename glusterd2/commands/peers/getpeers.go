@@ -9,13 +9,16 @@ import (
 )
 
 func getPeersHandler(w http.ResponseWriter, r *http.Request) {
+
+	ctx := r.Context()
+
 	peers, err := peer.GetPeersF()
 	if err != nil {
-		restutils.SendHTTPError(w, http.StatusNotFound, err.Error(), api.ErrCodeDefault)
+		restutils.SendHTTPError(ctx, w, http.StatusNotFound, err.Error(), api.ErrCodeDefault)
 	}
 
 	resp := createPeerListResp(peers)
-	restutils.SendHTTPResponse(w, http.StatusOK, resp)
+	restutils.SendHTTPResponse(ctx, w, http.StatusOK, resp)
 }
 
 func createPeerListResp(peers []*peer.Peer) *api.PeerListResp {

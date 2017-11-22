@@ -11,15 +11,6 @@ import (
 // StepFunc is the function that is supposed to be run during a transaction step
 type StepFunc func(TxnCtx) error
 
-//const (
-////Leader is a constant string representing the leader node
-//Leader = "leader"
-////All is a contant string representing all the nodes in a transaction
-//All = "all"
-//)
-// XXX: Because Nodes are now uuid.UUID, string constants cannot be used in node lists
-// TODO: Figure out an alternate method and re-enable. Or just remove it.
-
 // Step is a combination of a StepFunc and a list of nodes the step is supposed to be run on
 //
 // DoFunc and UndoFunc are names of StepFuncs registered in the registry

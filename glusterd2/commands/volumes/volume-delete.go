@@ -71,26 +71,27 @@ func registerVolDeleteStepFuncs() {
 }
 
 func volumeDeleteHandler(w http.ResponseWriter, r *http.Request) {
-	p := mux.Vars(r)
-	volname := p["volname"]
-	reqID, logger := restutils.GetReqIDandLogger(r)
 
+	ctx := r.Context()
+	logger := restutils.GetReqLogger(ctx)
+
+	volname := mux.Vars(r)["volname"]
 	vol, err := volume.GetVolume(volname)
 	if err != nil {
-		restutils.SendHTTPError(w, http.StatusNotFound, err.Error(), api.ErrCodeDefault)
+		restutils.SendHTTPError(ctx, w, http.StatusNotFound, err.Error(), api.ErrCodeDefault)
 		return
 	}
 
 	if vol.State == volume.VolStarted {
-		restutils.SendHTTPError(w, http.StatusForbidden, "volume is not stopped", api.ErrCodeDefault)
+		restutils.SendHTTPError(ctx, w, http.StatusForbidden, "volume is not stopped", api.ErrCodeDefault)
 		return
 	}
 
-	txn := transaction.NewTxn(reqID)
+	txn := transaction.NewTxn(ctx)
 	defer txn.Cleanup()
 	lock, unlock, err := transaction.CreateLockSteps(volname)
 	if err != nil {
-		restutils.SendHTTPError(w, http.StatusInternalServerError, err.Error(), api.ErrCodeDefault)
+		restutils.SendHTTPError(ctx, w, http.StatusInternalServerError, err.Error(), api.ErrCodeDefault)
 		return
 	}
 	txn.Nodes = vol.Nodes()
@@ -112,12 +113,12 @@ func volumeDeleteHandler(w http.ResponseWriter, r *http.Request) {
 		logger.WithError(err).WithField(
 			"volume", volname).Error("failed to delete the volume")
 		if err == transaction.ErrLockTimeout {
-			restutils.SendHTTPError(w, http.StatusConflict, err.Error(), api.ErrCodeDefault)
+			restutils.SendHTTPError(ctx, w, http.StatusConflict, err.Error(), api.ErrCodeDefault)
 		} else {
-			restutils.SendHTTPError(w, http.StatusInternalServerError, err.Error(), api.ErrCodeDefault)
+			restutils.SendHTTPError(ctx, w, http.StatusInternalServerError, err.Error(), api.ErrCodeDefault)
 		}
 		return
 	}
 
-	restutils.SendHTTPResponse(w, http.StatusOK, nil)
+	restutils.SendHTTPResponse(ctx, w, http.StatusOK, nil)
 }

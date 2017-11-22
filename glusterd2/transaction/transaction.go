@@ -6,6 +6,7 @@ import (
 	"expvar"
 	"fmt"
 
+	"github.com/gluster/glusterd2/glusterd2/gdctx"
 	"github.com/gluster/glusterd2/glusterd2/store"
 
 	"github.com/coreos/etcd/clientv3"
@@ -31,29 +32,13 @@ type Txn struct {
 }
 
 // NewTxn returns an initialized Txn without any steps
-func NewTxn(id string) *Txn {
+func NewTxn(ctx context.Context) *Txn {
 	t := new(Txn)
-
-	if t.ID = uuid.Parse(id); t.ID == nil {
-		t.ID = uuid.NewRandom()
-		log.WithField("reqid", t.ID.String()).Warn("Invalid UUID set as request ID. Generated new request ID")
-	}
-
+	t.ID = uuid.Parse(ctx.Value(gdctx.ReqIDKey).(string))
 	prefix := txnPrefix + t.ID.String()
 	t.Ctx = NewCtxWithLogFields(log.Fields{
 		"reqid": t.ID.String(),
 	}).WithPrefix(prefix)
-
-	return t
-}
-
-// NewTxnWithLoggingContext creates a Txn with a Context with given logging fields
-func NewTxnWithLoggingContext(f log.Fields, id string) *Txn {
-	t := NewTxn(id)
-	prefix := txnPrefix + t.ID.String()
-	t.Ctx = NewCtxWithLogFields(log.Fields{
-		"reqid": t.ID.String(),
-	}).WithPrefix(prefix).WithLogFields(f)
 
 	return t
 }
@@ -79,13 +64,6 @@ func (t *Txn) Do() (TxnCtx, error) {
 
 	//Do the steps
 	for i, s := range t.Steps {
-		//TODO: Renable (correctly) if All/Leader keys are fixed
-		//if s.Nodes[0] == All {
-		//s.Nodes = t.Nodes
-		//} else if s.Nodes[0] == Leader {
-		////s.Nodes[0] = LeaderName
-		//}
-
 		if e := s.do(t.Ctx); e != nil {
 			t.Ctx.Logger().WithError(e).Error("Transaction failed, rolling back changes")
 			t.undo(i)

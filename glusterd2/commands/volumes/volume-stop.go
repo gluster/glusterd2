@@ -83,26 +83,27 @@ func registerVolStopStepFuncs() {
 }
 
 func volumeStopHandler(w http.ResponseWriter, r *http.Request) {
-	p := mux.Vars(r)
-	volname := p["volname"]
-	reqID, logger := restutils.GetReqIDandLogger(r)
 
+	ctx := r.Context()
+	logger := restutils.GetReqLogger(ctx)
+
+	volname := mux.Vars(r)["volname"]
 	vol, e := volume.GetVolume(volname)
 	if e != nil {
-		restutils.SendHTTPError(w, http.StatusNotFound, errors.ErrVolNotFound.Error(), api.ErrCodeDefault)
+		restutils.SendHTTPError(ctx, w, http.StatusNotFound, errors.ErrVolNotFound.Error(), api.ErrCodeDefault)
 		return
 	}
 	if vol.State == volume.VolStopped {
-		restutils.SendHTTPError(w, http.StatusBadRequest, errors.ErrVolAlreadyStopped.Error(), api.ErrCodeDefault)
+		restutils.SendHTTPError(ctx, w, http.StatusBadRequest, errors.ErrVolAlreadyStopped.Error(), api.ErrCodeDefault)
 		return
 	}
 
 	// A simple one-step transaction to stop brick processes
-	txn := transaction.NewTxn(reqID)
+	txn := transaction.NewTxn(ctx)
 	defer txn.Cleanup()
 	lock, unlock, err := transaction.CreateLockSteps(volname)
 	if err != nil {
-		restutils.SendHTTPError(w, http.StatusInternalServerError, err.Error(), api.ErrCodeDefault)
+		restutils.SendHTTPError(ctx, w, http.StatusInternalServerError, err.Error(), api.ErrCodeDefault)
 		return
 	}
 	txn.Nodes = vol.Nodes()
@@ -120,9 +121,9 @@ func volumeStopHandler(w http.ResponseWriter, r *http.Request) {
 		logger.WithError(err).WithField(
 			"volume", volname).Error("failed to stop volume")
 		if err == transaction.ErrLockTimeout {
-			restutils.SendHTTPError(w, http.StatusConflict, err.Error(), api.ErrCodeDefault)
+			restutils.SendHTTPError(ctx, w, http.StatusConflict, err.Error(), api.ErrCodeDefault)
 		} else {
-			restutils.SendHTTPError(w, http.StatusInternalServerError, err.Error(), api.ErrCodeDefault)
+			restutils.SendHTTPError(ctx, w, http.StatusInternalServerError, err.Error(), api.ErrCodeDefault)
 		}
 		return
 	}
@@ -131,8 +132,8 @@ func volumeStopHandler(w http.ResponseWriter, r *http.Request) {
 
 	e = volume.AddOrUpdateVolumeFunc(vol)
 	if e != nil {
-		restutils.SendHTTPError(w, http.StatusInternalServerError, e.Error(), api.ErrCodeDefault)
+		restutils.SendHTTPError(ctx, w, http.StatusInternalServerError, e.Error(), api.ErrCodeDefault)
 		return
 	}
-	restutils.SendHTTPResponse(w, http.StatusOK, vol)
+	restutils.SendHTTPResponse(ctx, w, http.StatusOK, vol)
 }
