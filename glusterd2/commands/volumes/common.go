@@ -2,7 +2,6 @@ package volumecommands
 
 import (
 	"os"
-	"strings"
 
 	"github.com/gluster/glusterd2/glusterd2/gdctx"
 	"github.com/gluster/glusterd2/glusterd2/servers/sunrpc"
@@ -15,28 +14,12 @@ import (
 	"github.com/pborman/uuid"
 )
 
-type invalidOptionError struct {
-	option string
-}
-
-func (e invalidOptionError) Error() string {
-	return e.option
-}
-
 func areOptionNamesValid(optsFromReq map[string]string) error {
 
 	for o := range optsFromReq {
-
-		tmp := strings.Split(strings.TrimSpace(o), ".")
-		if !(len(tmp) == 2 || len(tmp) == 3) {
-			return invalidOptionError{option: o}
-		}
-
-		_, xlatorType, xlatorOption := volume.SplitVolumeOptionName(o)
-		k := xlatorType + "." + xlatorOption
-
-		if _, ok := options.Options[k]; !ok {
-			return invalidOptionError{option: o}
+		_, err := options.Find(o)
+		if err != nil {
+			return err
 		}
 	}
 
