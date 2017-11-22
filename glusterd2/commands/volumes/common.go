@@ -9,7 +9,7 @@ import (
 	"github.com/gluster/glusterd2/glusterd2/transaction"
 	"github.com/gluster/glusterd2/glusterd2/volgen"
 	"github.com/gluster/glusterd2/glusterd2/volume"
-	"github.com/gluster/glusterd2/glusterd2/xlator"
+	"github.com/gluster/glusterd2/glusterd2/xlator/options"
 	"github.com/gluster/glusterd2/pkg/utils"
 
 	"github.com/pborman/uuid"
@@ -25,7 +25,6 @@ func (e invalidOptionError) Error() string {
 
 func areOptionNamesValid(optsFromReq map[string]string) error {
 
-	var xlOptFound bool
 	for o := range optsFromReq {
 
 		tmp := strings.Split(strings.TrimSpace(o), ".")
@@ -34,21 +33,9 @@ func areOptionNamesValid(optsFromReq map[string]string) error {
 		}
 
 		_, xlatorType, xlatorOption := volume.SplitVolumeOptionName(o)
+		k := xlatorType + "." + xlatorOption
 
-		xl, ok := xlator.Xlators[xlatorType]
-		if !ok {
-			return invalidOptionError{option: o}
-		}
-
-		xlOptFound = false
-		for _, option := range xl.Options {
-			for _, key := range option.Key {
-				if xlatorOption == key {
-					xlOptFound = true
-				}
-			}
-		}
-		if !xlOptFound {
+		if _, ok := options.Options[k]; !ok {
 			return invalidOptionError{option: o}
 		}
 	}

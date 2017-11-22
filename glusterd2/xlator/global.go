@@ -4,6 +4,8 @@ import (
 	"fmt"
 	"runtime/debug"
 
+	"github.com/gluster/glusterd2/glusterd2/xlator/options"
+
 	log "github.com/sirupsen/logrus"
 )
 
@@ -11,8 +13,8 @@ import (
 // Other packages can directly import this.
 var Xlators map[string]*Xlator
 
-// LoadXlators initializes the global variable xlator.AllOptions
-func LoadXlators() (err error) {
+// Load initializes the global variable xlator.Xlators and options.Options
+func Load() (err error) {
 
 	defer func() {
 		if r := recover(); r != nil {
@@ -27,5 +29,22 @@ func LoadXlators() (err error) {
 		return
 	}
 	Xlators = xls
+
+	// Also prepare the option.Options map
+	loadOptions()
+
 	return
+}
+
+// loadOptions loads all available options into the options.Options map,
+// indexed as <xlator.ID>.<option.Key> for all available option keys
+func loadOptions() {
+	for _, xl := range Xlators {
+		for _, opt := range xl.Options {
+			for _, k := range opt.Key {
+				k := xl.ID + "." + k
+				options.Options[k] = opt
+			}
+		}
+	}
 }
