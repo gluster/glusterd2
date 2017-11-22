@@ -98,17 +98,18 @@ func registerVolStatusStepFuncs() {
 }
 
 func volumeStatusHandler(w http.ResponseWriter, r *http.Request) {
-	p := mux.Vars(r)
-	volname := p["volname"]
-	reqID, logger := restutils.GetReqIDandLogger(r)
 
+	ctx := r.Context()
+	logger := restutils.GetReqLogger(ctx)
+
+	volname := mux.Vars(r)["volname"]
 	vol, err := volume.GetVolume(volname)
 	if err != nil {
-		restutils.SendHTTPError(w, http.StatusNotFound, errors.ErrVolNotFound.Error(), api.ErrCodeDefault)
+		restutils.SendHTTPError(ctx, w, http.StatusNotFound, errors.ErrVolNotFound.Error(), api.ErrCodeDefault)
 		return
 	}
 
-	txn := transaction.NewTxn(reqID)
+	txn := transaction.NewTxn(ctx)
 	defer txn.Cleanup()
 	txn.Nodes = vol.Nodes()
 	txn.Steps = []*transaction.Step{
@@ -126,7 +127,7 @@ func volumeStatusHandler(w http.ResponseWriter, r *http.Request) {
 			"error":  err.Error(),
 			"volume": volname,
 		}).Error("volumeStatusHandler: Failed to get volume status.")
-		restutils.SendHTTPError(w, http.StatusInternalServerError, err.Error(), api.ErrCodeDefault)
+		restutils.SendHTTPError(ctx, w, http.StatusInternalServerError, err.Error(), api.ErrCodeDefault)
 		return
 	}
 
@@ -134,11 +135,11 @@ func volumeStatusHandler(w http.ResponseWriter, r *http.Request) {
 	if err != nil {
 		errMsg := "Failed to aggregate brick status results from multiple nodes."
 		logger.WithField("error", err.Error()).Error("volumeStatusHandler:" + errMsg)
-		restutils.SendHTTPError(w, http.StatusInternalServerError, errMsg, api.ErrCodeDefault)
+		restutils.SendHTTPError(ctx, w, http.StatusInternalServerError, errMsg, api.ErrCodeDefault)
 		return
 	}
 
-	restutils.SendHTTPResponse(w, http.StatusOK, result)
+	restutils.SendHTTPResponse(ctx, w, http.StatusOK, result)
 }
 
 func createVolumeStatusResp(ctx transaction.TxnCtx, nodes []uuid.UUID) (*api.VolumeStatusResp, error) {

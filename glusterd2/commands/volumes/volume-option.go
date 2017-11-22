@@ -11,10 +11,9 @@ import (
 	"github.com/gluster/glusterd2/glusterd2/volume"
 	"github.com/gluster/glusterd2/pkg/api"
 	"github.com/gluster/glusterd2/pkg/errors"
-	"github.com/gluster/glusterd2/pkg/utils"
-	"github.com/pborman/uuid"
 
 	"github.com/gorilla/mux"
+	"github.com/pborman/uuid"
 )
 
 func registerVolOptionStepFuncs() {
@@ -33,35 +32,35 @@ func registerVolOptionStepFuncs() {
 
 func volumeOptionsHandler(w http.ResponseWriter, r *http.Request) {
 
-	p := mux.Vars(r)
-	volname := p["volname"]
-	reqID, logger := restutils.GetReqIDandLogger(r)
+	ctx := r.Context()
+	logger := restutils.GetReqLogger(ctx)
 
+	volname := mux.Vars(r)["volname"]
 	volinfo, err := volume.GetVolume(volname)
 	if err != nil {
-		restutils.SendHTTPError(w, http.StatusBadRequest, errors.ErrVolNotFound.Error(), api.ErrCodeDefault)
+		restutils.SendHTTPError(ctx, w, http.StatusBadRequest, errors.ErrVolNotFound.Error(), api.ErrCodeDefault)
 		return
 	}
 
 	var req api.VolOptionReq
-	if err := utils.GetJSONFromRequest(r, &req); err != nil {
-		restutils.SendHTTPError(w, http.StatusUnprocessableEntity, errors.ErrJSONParsingFailed.Error(), api.ErrCodeDefault)
+	if err := restutils.UnmarshalRequest(r, &req); err != nil {
+		restutils.SendHTTPError(ctx, w, http.StatusUnprocessableEntity, errors.ErrJSONParsingFailed.Error(), api.ErrCodeDefault)
 		return
 	}
 
 	if err := areOptionNamesValid(req.Options); err != nil {
 		logger.WithField("option", err.Error()).Error("invalid option specified")
-		restutils.SendHTTPError(w, http.StatusBadRequest, fmt.Sprintf("invalid option specified: %s", err.Error()), api.ErrCodeDefault)
+		restutils.SendHTTPError(ctx, w, http.StatusBadRequest, fmt.Sprintf("invalid option specified: %s", err.Error()), api.ErrCodeDefault)
 		return
 	}
 
 	lock, unlock, err := transaction.CreateLockSteps(volinfo.Name)
 	if err != nil {
-		restutils.SendHTTPError(w, http.StatusInternalServerError, err.Error(), api.ErrCodeDefault)
+		restutils.SendHTTPError(ctx, w, http.StatusInternalServerError, err.Error(), api.ErrCodeDefault)
 		return
 	}
 
-	txn := transaction.NewTxn(reqID)
+	txn := transaction.NewTxn(ctx)
 	defer txn.Cleanup()
 
 	// thes txn framework checks if these nodes are online before txn starts
@@ -69,7 +68,7 @@ func volumeOptionsHandler(w http.ResponseWriter, r *http.Request) {
 
 	allNodes, err := peer.GetPeerIDs()
 	if err != nil {
-		restutils.SendHTTPError(w, http.StatusInternalServerError, err.Error(), api.ErrCodeDefault)
+		restutils.SendHTTPError(ctx, w, http.StatusInternalServerError, err.Error(), api.ErrCodeDefault)
 		return
 	}
 
@@ -105,19 +104,19 @@ func volumeOptionsHandler(w http.ResponseWriter, r *http.Request) {
 
 	if err := txn.Ctx.Set("volinfo", volinfo); err != nil {
 		logger.WithError(err).Error("failed to set volinfo in transaction context")
-		restutils.SendHTTPError(w, http.StatusInternalServerError, err.Error(), api.ErrCodeDefault)
+		restutils.SendHTTPError(ctx, w, http.StatusInternalServerError, err.Error(), api.ErrCodeDefault)
 		return
 	}
 
 	if _, err := txn.Do(); err != nil {
 		logger.WithError(err).Error("volume option transaction failed")
 		if err == transaction.ErrLockTimeout {
-			restutils.SendHTTPError(w, http.StatusConflict, err.Error(), api.ErrCodeDefault)
+			restutils.SendHTTPError(ctx, w, http.StatusConflict, err.Error(), api.ErrCodeDefault)
 		} else {
-			restutils.SendHTTPError(w, http.StatusInternalServerError, err.Error(), api.ErrCodeDefault)
+			restutils.SendHTTPError(ctx, w, http.StatusInternalServerError, err.Error(), api.ErrCodeDefault)
 		}
 		return
 	}
 
-	restutils.SendHTTPResponse(w, http.StatusOK, volinfo.Options)
+	restutils.SendHTTPResponse(ctx, w, http.StatusOK, volinfo.Options)
 }

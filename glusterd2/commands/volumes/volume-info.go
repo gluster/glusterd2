@@ -13,13 +13,16 @@ import (
 
 func volumeInfoHandler(w http.ResponseWriter, r *http.Request) {
 
-	v, err := volume.GetVolume(mux.Vars(r)["volname"])
+	ctx := r.Context()
+
+	volname := mux.Vars(r)["volname"]
+	v, err := volume.GetVolume(volname)
 	if err != nil {
-		restutils.SendHTTPError(w, http.StatusNotFound, errors.ErrVolNotFound.Error(), api.ErrCodeDefault)
+		restutils.SendHTTPError(ctx, w, http.StatusNotFound, errors.ErrVolNotFound.Error(), api.ErrCodeDefault)
 	}
 
 	resp := createVolumeGetResp(v)
-	restutils.SendHTTPResponse(w, http.StatusOK, resp)
+	restutils.SendHTTPResponse(ctx, w, http.StatusOK, resp)
 }
 
 func createVolumeGetResp(v *volume.Volinfo) *api.VolumeGetResp {

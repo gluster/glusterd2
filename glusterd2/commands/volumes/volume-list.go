@@ -10,13 +10,15 @@ import (
 
 func volumeListHandler(w http.ResponseWriter, r *http.Request) {
 
+	ctx := r.Context()
+
 	volumes, err := volume.GetVolumes()
 	if err != nil {
-		restutils.SendHTTPError(w, http.StatusNotFound, err.Error(), api.ErrCodeDefault)
+		restutils.SendHTTPError(ctx, w, http.StatusNotFound, err.Error(), api.ErrCodeDefault)
 	}
 
 	resp := createVolumeListResp(volumes)
-	restutils.SendHTTPResponse(w, http.StatusOK, resp)
+	restutils.SendHTTPResponse(ctx, w, http.StatusOK, resp)
 }
 
 func createVolumeListResp(volumes []*volume.Volinfo) *api.VolumeListResp {

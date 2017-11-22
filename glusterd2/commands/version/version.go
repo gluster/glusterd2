@@ -11,9 +11,10 @@ import (
 )
 
 func getVersionHandler(w http.ResponseWriter, r *http.Request) {
+	ctx := r.Context()
 	resp := api.VersionResp{
 		GlusterdVersion: version.GlusterdVersion,
 		APIVersion:      version.APIVersion,
 	}
-	restutils.SendHTTPResponse(w, http.StatusOK, resp)
+	restutils.SendHTTPResponse(ctx, w, http.StatusOK, resp)
 }

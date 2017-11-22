@@ -1,6 +1,7 @@
 package georeplication
 
 import (
+	"context"
 	errs "errors"
 	"net/http"
 
@@ -10,7 +11,6 @@ import (
 	"github.com/gluster/glusterd2/glusterd2/volume"
 	"github.com/gluster/glusterd2/pkg/api"
 	"github.com/gluster/glusterd2/pkg/errors"
-	"github.com/gluster/glusterd2/pkg/utils"
 	georepapi "github.com/gluster/glusterd2/plugins/georeplication/api"
 
 	"github.com/gorilla/mux"
@@ -37,18 +37,18 @@ func newGeorepSession(mastervolid uuid.UUID, slavevolid uuid.UUID, req georepapi
 	}
 }
 
-func validateMasterAndSlaveIDFormat(w http.ResponseWriter, masteridRaw string, slaveidRaw string) (uuid.UUID, uuid.UUID, error) {
+func validateMasterAndSlaveIDFormat(ctx context.Context, w http.ResponseWriter, masteridRaw string, slaveidRaw string) (uuid.UUID, uuid.UUID, error) {
 	// Validate UUID format of Master and Slave Volume ID
 	masterid := uuid.Parse(masteridRaw)
 	if masterid == nil {
-		restutils.SendHTTPError(w, http.StatusBadRequest, "Invalid Master Volume ID", api.ErrCodeDefault)
+		restutils.SendHTTPError(ctx, w, http.StatusBadRequest, "Invalid Master Volume ID", api.ErrCodeDefault)
 		return nil, nil, errs.New("Invalid Master Volume ID")
 	}
 
 	// Validate UUID format of Slave Volume ID
 	slaveid := uuid.Parse(slaveidRaw)
 	if slaveid == nil {
-		restutils.SendHTTPError(w, http.StatusBadRequest, "Invalid Slave Volume ID", api.ErrCodeDefault)
+		restutils.SendHTTPError(ctx, w, http.StatusBadRequest, "Invalid Slave Volume ID", api.ErrCodeDefault)
 		return nil, nil, errs.New("Invalid Slave Volume ID")
 	}
 
@@ -61,47 +61,48 @@ func georepCreateHandler(w http.ResponseWriter, r *http.Request) {
 	masteridRaw := p["mastervolid"]
 	slaveidRaw := p["slavevolid"]
 
-	reqID, logger := restutils.GetReqIDandLogger(r)
+	ctx := r.Context()
+	logger := restutils.GetReqLogger(ctx)
 
 	// Validate UUID format of Master and Slave Volume ID
-	masterid, slaveid, err := validateMasterAndSlaveIDFormat(w, masteridRaw, slaveidRaw)
+	masterid, slaveid, err := validateMasterAndSlaveIDFormat(ctx, w, masteridRaw, slaveidRaw)
 	if err != nil {
 		return
 	}
 
 	// Parse the JSON body to get additional details of request
 	var req georepapi.GeorepCreateReq
-	if err := utils.GetJSONFromRequest(r, &req); err != nil {
-		restutils.SendHTTPError(w, http.StatusUnprocessableEntity, errors.ErrJSONParsingFailed.Error(), api.ErrCodeDefault)
+	if err := restutils.UnmarshalRequest(r, &req); err != nil {
+		restutils.SendHTTPError(ctx, w, http.StatusUnprocessableEntity, errors.ErrJSONParsingFailed.Error(), api.ErrCodeDefault)
 		return
 	}
 
 	// Required fields are MasterVol, SlaveHosts and SlaveVol
 	if req.MasterVol == "" {
-		restutils.SendHTTPError(w, http.StatusBadRequest, "Master volume name is required field", api.ErrCodeDefault)
+		restutils.SendHTTPError(ctx, w, http.StatusBadRequest, "Master volume name is required field", api.ErrCodeDefault)
 		return
 	}
 
 	if len(req.SlaveHosts) == 0 {
-		restutils.SendHTTPError(w, http.StatusBadRequest, "Atleast one Slave host is required", api.ErrCodeDefault)
+		restutils.SendHTTPError(ctx, w, http.StatusBadRequest, "Atleast one Slave host is required", api.ErrCodeDefault)
 		return
 	}
 
 	if req.SlaveVol == "" {
-		restutils.SendHTTPError(w, http.StatusBadRequest, "Slave volume name is required field", api.ErrCodeDefault)
+		restutils.SendHTTPError(ctx, w, http.StatusBadRequest, "Slave volume name is required field", api.ErrCodeDefault)
 		return
 	}
 
 	// Check if Master volume exists and Matches with passed Volume ID
 	vol, e := volume.GetVolume(req.MasterVol)
 	if e != nil {
-		restutils.SendHTTPError(w, http.StatusNotFound, errors.ErrVolNotFound.Error(), api.ErrCodeDefault)
+		restutils.SendHTTPError(ctx, w, http.StatusNotFound, errors.ErrVolNotFound.Error(), api.ErrCodeDefault)
 		return
 	}
 
 	// Check if Master Volume ID from store matches the input Master Volume ID
 	if !uuid.Equal(vol.ID, masterid) {
-		restutils.SendHTTPError(w, http.StatusBadRequest, "Master volume ID doesn't match", api.ErrCodeDefault)
+		restutils.SendHTTPError(ctx, w, http.StatusBadRequest, "Master volume ID doesn't match", api.ErrCodeDefault)
 		return
 	}
 
@@ -109,27 +110,27 @@ func georepCreateHandler(w http.ResponseWriter, r *http.Request) {
 	// session exists then return error
 	geoSession, err := getSession(masterid.String(), slaveid.String())
 	if err == nil {
-		restutils.SendHTTPError(w, http.StatusConflict, "Session already exists", api.ErrCodeDefault)
+		restutils.SendHTTPError(ctx, w, http.StatusConflict, "Session already exists", api.ErrCodeDefault)
 		return
 	}
 
 	// Continue only if NotFound error, return if other errors like
 	// error while fetching from store or JSON marshal errors
 	if _, ok := err.(*ErrGeorepSessionNotFound); !ok {
-		restutils.SendHTTPError(w, http.StatusInternalServerError, err.Error(), api.ErrCodeDefault)
+		restutils.SendHTTPError(ctx, w, http.StatusInternalServerError, err.Error(), api.ErrCodeDefault)
 		return
 	}
 
 	geoSession = newGeorepSession(masterid, slaveid, req)
 
 	// Transaction which updates the Geo-rep session
-	txn := transaction.NewTxn(reqID)
+	txn := transaction.NewTxn(ctx)
 	defer txn.Cleanup()
 
 	// Lock on Master Volume name
 	lock, unlock, err := transaction.CreateLockSteps(geoSession.MasterVol)
 	if err != nil {
-		restutils.SendHTTPError(w, http.StatusInternalServerError, err.Error(), api.ErrCodeDefault)
+		restutils.SendHTTPError(ctx, w, http.StatusInternalServerError, err.Error(), api.ErrCodeDefault)
 		return
 	}
 
@@ -154,11 +155,11 @@ func georepCreateHandler(w http.ResponseWriter, r *http.Request) {
 			"mastervolid": masterid,
 			"slavevolid":  slaveid,
 		}).Error("failed to create geo-replication session")
-		restutils.SendHTTPError(w, http.StatusInternalServerError, e.Error(), api.ErrCodeDefault)
+		restutils.SendHTTPError(ctx, w, http.StatusInternalServerError, e.Error(), api.ErrCodeDefault)
 		return
 	}
 
-	restutils.SendHTTPResponse(w, http.StatusCreated, geoSession)
+	restutils.SendHTTPResponse(ctx, w, http.StatusCreated, geoSession)
 }
 
 func georepStartHandler(w http.ResponseWriter, r *http.Request) {
@@ -167,10 +168,11 @@ func georepStartHandler(w http.ResponseWriter, r *http.Request) {
 	masteridRaw := p["mastervolid"]
 	slaveidRaw := p["slavevolid"]
 
-	reqID, logger := restutils.GetReqIDandLogger(r)
+	ctx := r.Context()
+	logger := restutils.GetReqLogger(ctx)
 
 	// Validate UUID format of Master and Slave Volume ID
-	masterid, slaveid, err := validateMasterAndSlaveIDFormat(w, masteridRaw, slaveidRaw)
+	masterid, slaveid, err := validateMasterAndSlaveIDFormat(ctx, w, masteridRaw, slaveidRaw)
 	if err != nil {
 		return
 	}
@@ -179,36 +181,36 @@ func georepStartHandler(w http.ResponseWriter, r *http.Request) {
 	geoSession, err := getSession(masterid.String(), slaveid.String())
 	if err != nil {
 		if _, ok := err.(*ErrGeorepSessionNotFound); !ok {
-			restutils.SendHTTPError(w, http.StatusInternalServerError, err.Error(), api.ErrCodeDefault)
+			restutils.SendHTTPError(ctx, w, http.StatusInternalServerError, err.Error(), api.ErrCodeDefault)
 			return
 		}
-		restutils.SendHTTPError(w, http.StatusBadRequest, "geo-replication session not found", api.ErrCodeDefault)
+		restutils.SendHTTPError(ctx, w, http.StatusBadRequest, "geo-replication session not found", api.ErrCodeDefault)
 		return
 	}
 
 	if geoSession.Status == georepapi.GeorepStatusStarted {
-		restutils.SendHTTPError(w, http.StatusConflict, "session already started", api.ErrCodeDefault)
+		restutils.SendHTTPError(ctx, w, http.StatusConflict, "session already started", api.ErrCodeDefault)
 		return
 	}
 
 	// Fetch Volume details and check if Volume is in started state
 	vol, e := volume.GetVolume(geoSession.MasterVol)
 	if e != nil {
-		restutils.SendHTTPError(w, http.StatusNotFound, errors.ErrVolNotFound.Error(), api.ErrCodeDefault)
+		restutils.SendHTTPError(ctx, w, http.StatusNotFound, errors.ErrVolNotFound.Error(), api.ErrCodeDefault)
 		return
 	}
 
 	if vol.State != volume.VolStarted {
-		restutils.SendHTTPError(w, http.StatusInternalServerError, "master volume not started", api.ErrCodeDefault)
+		restutils.SendHTTPError(ctx, w, http.StatusInternalServerError, "master volume not started", api.ErrCodeDefault)
 		return
 	}
 
-	txn := transaction.NewTxn(reqID)
+	txn := transaction.NewTxn(ctx)
 	defer txn.Cleanup()
 
 	lock, unlock, err := transaction.CreateLockSteps(geoSession.MasterVol)
 	if err != nil {
-		restutils.SendHTTPError(w, http.StatusInternalServerError, err.Error(), api.ErrCodeDefault)
+		restutils.SendHTTPError(ctx, w, http.StatusInternalServerError, err.Error(), api.ErrCodeDefault)
 		return
 	}
 
@@ -231,7 +233,7 @@ func georepStartHandler(w http.ResponseWriter, r *http.Request) {
 			"mastervolid": masterid,
 			"slavevolid":  slaveid,
 		}).Error("failed to start geo-replication session")
-		restutils.SendHTTPError(w, http.StatusInternalServerError, e.Error(), api.ErrCodeDefault)
+		restutils.SendHTTPError(ctx, w, http.StatusInternalServerError, e.Error(), api.ErrCodeDefault)
 		return
 	}
 
@@ -239,9 +241,9 @@ func georepStartHandler(w http.ResponseWriter, r *http.Request) {
 
 	e = addOrUpdateSession(geoSession)
 	if e != nil {
-		restutils.SendHTTPError(w, http.StatusInternalServerError, e.Error(), api.ErrCodeDefault)
+		restutils.SendHTTPError(ctx, w, http.StatusInternalServerError, e.Error(), api.ErrCodeDefault)
 		return
 	}
 
-	restutils.SendHTTPResponse(w, http.StatusOK, geoSession)
+	restutils.SendHTTPResponse(ctx, w, http.StatusOK, geoSession)
 }

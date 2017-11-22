@@ -30,8 +30,7 @@ type TxnCtx interface {
 
 // Tctx represents structure for transaction context
 type Tctx struct {
-	parent *Tctx
-	//data   map[string]interface{}
+	parent    *Tctx
 	log       log.FieldLogger // Functions which are given this context must use this logger to log their data.
 	logFields log.Fields
 
