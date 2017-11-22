@@ -63,6 +63,7 @@ install:
 	install -D $(GD2_BUILD) $(GD2_INSTALL)
 	install -D $(CLI_BUILD) $(CLI_INSTALL)
 	install -D $(GD2CONF_BUILD) $(GD2CONF_INSTALL)
+	install -d $(TEMPLATES_INSTALL) $(TEMPLATESDIR)
 	install -D -t $(TEMPLATES_INSTALL) $(TEMPLATESDIR)/*.graph
 	@echo
 
