@@ -7,14 +7,12 @@ import (
 	log "github.com/sirupsen/logrus"
 )
 
-// AllOptions contains all possible xlator options for all xlators
+// Xlators is map of all available xlators, indexed by xlator-id
 // Other packages can directly import this.
-// The keys are of the form <xlator>.<option>
-// Example: afr.eager-lock
-var AllOptions map[string][]Option
+var Xlators map[string]*Xlator
 
-// InitOptions initializes the global variable xlator.AllOptions
-func InitOptions() (err error) {
+// LoadXlators initializes the global variable xlator.AllOptions
+func LoadXlators() (err error) {
 
 	defer func() {
 		if r := recover(); r != nil {
@@ -24,10 +22,10 @@ func InitOptions() (err error) {
 		}
 	}()
 
-	xopts, err := getAllOptions()
+	xls, err := loadAllXlators()
 	if err != nil {
 		return
 	}
-	AllOptions = xopts
+	Xlators = xls
 	return
 }

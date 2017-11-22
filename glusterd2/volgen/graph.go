@@ -130,13 +130,13 @@ func processNormalNode(a qArgs) (*Node, error) {
 func setOptions(n *Node, graph string, opts, extra map[string]string) error {
 	var err error
 
-	xl := path.Base(n.Voltype)
-	xlOpts, ok := xlator.AllOptions[xl]
+	xlid := path.Base(n.Voltype)
+	xl, ok := xlator.Xlators[xlid]
 	if !ok {
 		return ErrOptsNotFound(n.Voltype)
 	}
 
-	for _, o := range xlOpts {
+	for _, o := range xl.Options {
 		var (
 			k, v string
 			ok   bool
@@ -145,9 +145,9 @@ func setOptions(n *Node, graph string, opts, extra map[string]string) error {
 		// If the option has an explicit SetKey, use it as the key
 		if o.SetKey != "" {
 			k = o.SetKey
-			_, v, ok = getValue(graph, xl, o.Key, opts)
+			_, v, ok = getValue(graph, xlid, o.Key, opts)
 		} else {
-			k, v, ok = getValue(graph, xl, o.Key, opts)
+			k, v, ok = getValue(graph, xlid, o.Key, opts)
 		}
 
 		// If the option is not found in Volinfo, try to set to defaults if

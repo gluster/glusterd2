@@ -1,4 +1,4 @@
-package xlator
+package options
 
 // OptionType is a type which represents the type of xlator option.
 type OptionType int

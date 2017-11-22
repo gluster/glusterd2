@@ -35,13 +35,13 @@ func areOptionNamesValid(optsFromReq map[string]string) error {
 
 		_, xlatorType, xlatorOption := volume.SplitVolumeOptionName(o)
 
-		options, ok := xlator.AllOptions[xlatorType]
+		xl, ok := xlator.Xlators[xlatorType]
 		if !ok {
 			return invalidOptionError{option: o}
 		}
 
 		xlOptFound = false
-		for _, option := range options {
+		for _, option := range xl.Options {
 			for _, key := range option.Key {
 				if xlatorOption == key {
 					xlOptFound = true
