@@ -1,4 +1,4 @@
-package xlator
+package options
 
 // OptionType is a type which represents the type of xlator option.
 type OptionType int
@@ -58,10 +58,18 @@ type Option struct {
 	Description  string
 	Min          float64
 	Max          float64
-	Validate     OptionValidateType
+	ValidateType OptionValidateType
 	OpVersion    []uint32
 	Deprecated   []uint32
 	Flags        uint32
 	Tags         []string
 	SetKey       string
+}
+
+// Validate checks if the given value string can be set as the value for the
+// Option.
+// Returns are error if it is not possible, nil otherwise.
+func (o *Option) Validate(val string) error {
+	// TODO: Do actual validation
+	return nil
 }

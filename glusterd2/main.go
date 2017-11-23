@@ -73,7 +73,7 @@ func main() {
 	}
 
 	// Load all possible xlator options
-	if err := xlator.InitOptions(); err != nil {
+	if err := xlator.Load(); err != nil {
 		log.WithError(err).Fatal("Failed to load xlator options")
 	}
 
