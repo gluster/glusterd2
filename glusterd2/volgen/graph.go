@@ -128,12 +128,15 @@ func processNormalNode(a qArgs) (*Node, error) {
 // 	- If the key and value are varstring do varstring replacement
 // 	- Set the key and value in the xlator options map
 func setOptions(n *Node, graph string, opts, extra map[string]string) error {
-	var err error
+	var (
+		xl  *xlator.Xlator
+		err error
+	)
 
 	xlid := path.Base(n.Voltype)
-	xl, ok := xlator.Xlators[xlid]
-	if !ok {
-		return ErrOptsNotFound(n.Voltype)
+	xl, err = xlator.Find(xlid)
+	if err != nil {
+		return err
 	}
 
 	for _, o := range xl.Options {

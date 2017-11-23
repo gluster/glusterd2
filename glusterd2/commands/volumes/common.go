@@ -8,7 +8,7 @@ import (
 	"github.com/gluster/glusterd2/glusterd2/transaction"
 	"github.com/gluster/glusterd2/glusterd2/volgen"
 	"github.com/gluster/glusterd2/glusterd2/volume"
-	"github.com/gluster/glusterd2/glusterd2/xlator/options"
+	"github.com/gluster/glusterd2/glusterd2/xlator"
 	"github.com/gluster/glusterd2/pkg/utils"
 
 	"github.com/pborman/uuid"
@@ -19,7 +19,7 @@ import (
 func validateOptions(opts map[string]string) error {
 
 	for k, v := range opts {
-		o, err := options.Find(k)
+		o, err := xlator.FindOption(k)
 		if err != nil {
 			return err
 		}
