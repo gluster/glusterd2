@@ -194,17 +194,17 @@ func georepActionHandler(w http.ResponseWriter, r *http.Request, action actionTy
 	}
 
 	if action == actionStop && geoSession.Status == georepapi.GeorepStatusStopped {
-		restutils.SendHTTPError(w, http.StatusConflict, "session already stopped", api.ErrCodeDefault)
+		restutils.SendHTTPError(ctx, w, http.StatusConflict, "session already stopped", api.ErrCodeDefault)
 		return
 	}
 
 	if action == actionPause && geoSession.Status != georepapi.GeorepStatusStarted {
-		restutils.SendHTTPError(w, http.StatusConflict, "session is not in started state", api.ErrCodeDefault)
+		restutils.SendHTTPError(ctx, w, http.StatusConflict, "session is not in started state", api.ErrCodeDefault)
 		return
 	}
 
 	if action == actionResume && geoSession.Status != georepapi.GeorepStatusPaused {
-		restutils.SendHTTPError(w, http.StatusConflict, "session not in paused state", api.ErrCodeDefault)
+		restutils.SendHTTPError(ctx, w, http.StatusConflict, "session not in paused state", api.ErrCodeDefault)
 		return
 	}
 
@@ -245,7 +245,7 @@ func georepActionHandler(w http.ResponseWriter, r *http.Request, action actionTy
 		doFunc = "georeplication-stop.Commit"
 		stateToSet = georepapi.GeorepStatusStopped
 	default:
-		restutils.SendHTTPError(w, http.StatusInternalServerError, "Unknown action", api.ErrCodeDefault)
+		restutils.SendHTTPError(ctx, w, http.StatusInternalServerError, "Unknown action", api.ErrCodeDefault)
 		return
 	}
 
@@ -305,10 +305,11 @@ func georepDeleteHandler(w http.ResponseWriter, r *http.Request) {
 	masteridRaw := p["mastervolid"]
 	slaveidRaw := p["slavevolid"]
 
-	reqID, logger := restutils.GetReqIDandLogger(r)
+	ctx := r.Context()
+	logger := restutils.GetReqLogger(ctx)
 
 	// Validate UUID format of Master and Slave Volume ID
-	masterid, slaveid, err := validateMasterAndSlaveIDFormat(w, masteridRaw, slaveidRaw)
+	masterid, slaveid, err := validateMasterAndSlaveIDFormat(ctx, w, masteridRaw, slaveidRaw)
 	if err != nil {
 		return
 	}
@@ -317,26 +318,26 @@ func georepDeleteHandler(w http.ResponseWriter, r *http.Request) {
 	geoSession, err := getSession(masterid.String(), slaveid.String())
 	if err != nil {
 		if _, ok := err.(*ErrGeorepSessionNotFound); !ok {
-			restutils.SendHTTPError(w, http.StatusInternalServerError, err.Error(), api.ErrCodeDefault)
+			restutils.SendHTTPError(ctx, w, http.StatusInternalServerError, err.Error(), api.ErrCodeDefault)
 			return
 		}
-		restutils.SendHTTPError(w, http.StatusBadRequest, "geo-replication session not found", api.ErrCodeDefault)
+		restutils.SendHTTPError(ctx, w, http.StatusBadRequest, "geo-replication session not found", api.ErrCodeDefault)
 		return
 	}
 
 	// Fetch Volume details and check if Volume exists
 	vol, e := volume.GetVolume(geoSession.MasterVol)
 	if e != nil {
-		restutils.SendHTTPError(w, http.StatusNotFound, errors.ErrVolNotFound.Error(), api.ErrCodeDefault)
+		restutils.SendHTTPError(ctx, w, http.StatusNotFound, errors.ErrVolNotFound.Error(), api.ErrCodeDefault)
 		return
 	}
 
-	txn := transaction.NewTxn(reqID)
+	txn := transaction.NewTxn(ctx)
 	defer txn.Cleanup()
 
 	lock, unlock, err := transaction.CreateLockSteps(geoSession.MasterVol)
 	if err != nil {
-		restutils.SendHTTPError(w, http.StatusInternalServerError, err.Error(), api.ErrCodeDefault)
+		restutils.SendHTTPError(ctx, w, http.StatusInternalServerError, err.Error(), api.ErrCodeDefault)
 		return
 	}
 
@@ -360,9 +361,9 @@ func georepDeleteHandler(w http.ResponseWriter, r *http.Request) {
 			"mastervolid": masterid,
 			"slavevolid":  slaveid,
 		}).Error("failed to delete geo-replication session")
-		restutils.SendHTTPError(w, http.StatusInternalServerError, e.Error(), api.ErrCodeDefault)
+		restutils.SendHTTPError(ctx, w, http.StatusInternalServerError, e.Error(), api.ErrCodeDefault)
 		return
 	}
 
-	restutils.SendHTTPResponse(w, http.StatusOK, nil)
+	restutils.SendHTTPResponse(ctx, w, http.StatusOK, nil)
 }
