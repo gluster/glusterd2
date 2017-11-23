@@ -14,6 +14,7 @@ import (
 	"github.com/gluster/glusterd2/glusterd2/store"
 	"github.com/gluster/glusterd2/glusterd2/volgen"
 	"github.com/gluster/glusterd2/glusterd2/xlator"
+	"github.com/gluster/glusterd2/glusterd2/xlator/options"
 	"github.com/gluster/glusterd2/pkg/logging"
 	"github.com/gluster/glusterd2/pkg/utils"
 	"github.com/gluster/glusterd2/version"
@@ -72,10 +73,13 @@ func main() {
 		log.WithError(err).Fatal("Failed to initialize UUID")
 	}
 
-	// Load all possible xlator options
+	// Load all possible xlator and options
+	// First load xlators
 	if err := xlator.Load(); err != nil {
 		log.WithError(err).Fatal("Failed to load xlator options")
 	}
+	// Prepare the options lookup map
+	options.Load()
 
 	// Load volgen templates
 	if err := volgen.LoadTemplates(); err != nil {

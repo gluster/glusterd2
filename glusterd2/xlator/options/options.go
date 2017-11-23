@@ -1,11 +1,12 @@
 package options
 
-// OptionType is a type which represents the type of xlator option.
-type OptionType int
+import (
+	"github.com/gluster/glusterd2/pkg/types"
+)
 
 // These are all the possile values for the type OptionType.
 const (
-	OptionTypeAny OptionType = iota
+	OptionTypeAny types.OptionType = iota
 	OptionTypeStr
 	OptionTypeInt
 	OptionTypeSizet
@@ -23,24 +24,17 @@ const (
 	OptionTypeClientAuthAddr
 )
 
-// OptionValidateType is a type which represents how the value of xlator
-// option should be validated.
-type OptionValidateType int
-
 // These are all the possile values for the type OptionValidateType
 const (
-	OptionValidateBoth OptionValidateType = iota
+	OptionValidateBoth types.OptionValidateType = iota
 	OptionValidateMin
 	OptionValidateMax
 )
 
-// OptionFlag is the type representing the flags of an Option
-type OptionFlag uint
-
-// These are the available OptionFlags
+// These are the available types.OptionFlags
 const (
-	OptionFlagNone     = 0
-	OptionFlagSettable = 1 << iota
+	OptionFlagNone     types.OptionFlag = 0
+	OptionFlagSettable                  = 1 << iota
 	OptionFlagClientOpt
 	OptionFlagGlobal
 	OptionFlagForce
@@ -50,20 +44,9 @@ const (
 
 // Option is a struct which represents one single xlator option exported by
 // the translator.
+// Embedding the actual type declared in package types, to allow custom methods.
 type Option struct {
-	Key          []string
-	Type         OptionType
-	Value        []string
-	DefaultValue string
-	Description  string
-	Min          float64
-	Max          float64
-	ValidateType OptionValidateType
-	OpVersion    []uint32
-	Deprecated   []uint32
-	Flags        uint32
-	Tags         []string
-	SetKey       string
+	*types.Option
 }
 
 // Validate checks if the given value string can be set as the value for the

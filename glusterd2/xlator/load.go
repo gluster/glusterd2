@@ -17,7 +17,7 @@ import (
 	"strings"
 	"unsafe"
 
-	"github.com/gluster/glusterd2/glusterd2/xlator/options"
+	"github.com/gluster/glusterd2/pkg/types"
 )
 
 const (
@@ -25,8 +25,8 @@ const (
 )
 
 // structifyOption creates an options.Option from the given C.volume_option_t
-func structifyOption(cOpt *C.volume_option_t) *options.Option {
-	var opt options.Option
+func structifyOption(cOpt *C.volume_option_t) *types.Option {
+	var opt types.Option
 
 	for _, k := range cOpt.key {
 		if k != nil {
@@ -54,12 +54,12 @@ func structifyOption(cOpt *C.volume_option_t) *options.Option {
 		}
 	}
 
-	opt.Type = options.OptionType(cOpt.otype)
+	opt.Type = types.OptionType(cOpt.otype)
 	opt.Min = float64(cOpt.min)
 	opt.Max = float64(cOpt.max)
 	opt.DefaultValue = C.GoString(cOpt.default_value)
 	opt.Description = C.GoString(cOpt.description)
-	opt.ValidateType = options.OptionValidateType(cOpt.validate)
+	opt.ValidateType = types.OptionValidateType(cOpt.validate)
 	opt.Flags = uint32(cOpt.flags)
 	opt.SetKey = C.GoString(cOpt.setkey)
 
@@ -67,7 +67,7 @@ func structifyOption(cOpt *C.volume_option_t) *options.Option {
 }
 
 // loadXlator loads the xlator at the given path and returns a Xlator
-func loadXlator(xlPath string) (*Xlator, error) {
+func loadXlator(xlPath string) (*types.Xlator, error) {
 
 	cXlPath := C.CString(xlPath)
 	defer C.free(unsafe.Pointer(cXlPath))
@@ -79,7 +79,7 @@ func loadXlator(xlPath string) (*Xlator, error) {
 	}
 	defer C.dlclose(handle)
 
-	xl := new(Xlator)
+	xl := new(types.Xlator)
 	// TODO: Xlator should define their ID, instead of it being set based on path
 	xl.ID = strings.TrimSuffix(filepath.Base(xlPath), filepath.Ext(xlPath))
 
@@ -157,7 +157,7 @@ func loadAllXlators() (map[string]*Xlator, error) {
 			if err != nil {
 				return err
 			}
-			xlMap[xl.ID] = xl
+			xlMap[xl.ID] = &Xlator{xl}
 		}
 		return nil
 	}
