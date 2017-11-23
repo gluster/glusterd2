@@ -1,10 +1,11 @@
 package xlator
 
 import (
-	"github.com/gluster/glusterd2/pkg/types"
+	"github.com/gluster/glusterd2/glusterd2/xlator/options"
 )
 
 // Xlator represents a GlusterFS xlator
 type Xlator struct {
-	*types.Xlator
+	ID      string
+	Options []*options.Option
 }
