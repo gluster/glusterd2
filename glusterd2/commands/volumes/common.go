@@ -2,7 +2,6 @@ package volumecommands
 
 import (
 	"os"
-	"strings"
 
 	"github.com/gluster/glusterd2/glusterd2/gdctx"
 	"github.com/gluster/glusterd2/glusterd2/servers/sunrpc"
@@ -15,42 +14,20 @@ import (
 	"github.com/pborman/uuid"
 )
 
-type invalidOptionError struct {
-	option string
-}
+// validateOptions validates if the options and their values are valid and can
+// be set on a volume.
+func validateOptions(opts map[string]string) error {
 
-func (e invalidOptionError) Error() string {
-	return e.option
-}
-
-func areOptionNamesValid(optsFromReq map[string]string) error {
-
-	var xlOptFound bool
-	for o := range optsFromReq {
-
-		tmp := strings.Split(strings.TrimSpace(o), ".")
-		if !(len(tmp) == 2 || len(tmp) == 3) {
-			return invalidOptionError{option: o}
+	for k, v := range opts {
+		o, err := xlator.FindOption(k)
+		if err != nil {
+			return err
 		}
 
-		_, xlatorType, xlatorOption := volume.SplitVolumeOptionName(o)
-
-		options, ok := xlator.AllOptions[xlatorType]
-		if !ok {
-			return invalidOptionError{option: o}
+		if err := o.Validate(v); err != nil {
+			return err
 		}
-
-		xlOptFound = false
-		for _, option := range options {
-			for _, key := range option.Key {
-				if xlatorOption == key {
-					xlOptFound = true
-				}
-			}
-		}
-		if !xlOptFound {
-			return invalidOptionError{option: o}
-		}
+		// TODO: Check op-version
 	}
 
 	return nil
