@@ -39,7 +39,7 @@ func SplitKey(k string) (string, string, string, error) {
 // key should be in the [<graph>].<xlator>.<name> form.
 // Returns an OptionNotFoundError otherwise.
 func Find(k string) (*Option, error) {
-	// Intersted only in <xlator>.<name> part of the key as Options is indexed
+	// Interested only in <xlator>.<name> part of the key as Options is indexed
 	// using them.
 	_, xl, name, err := SplitKey(k)
 	if err != nil {
