@@ -10,7 +10,7 @@ import (
 	"github.com/stretchr/testify/require"
 )
 
-func TestGeorepCreate(t *testing.T) {
+func TestGeorepCreateDelete(t *testing.T) {
 	r := require.New(t)
 
 	gds, err := setupCluster("./config/1.yaml", "./config/2.yaml")
@@ -59,6 +59,10 @@ func TestGeorepCreate(t *testing.T) {
 	}
 
 	_, err = client.GeorepCreate(vol1.ID.String(), vol2.ID.String(), reqGeorep)
+	r.Nil(err)
+
+	// delete geo-rep session
+	err = client.GeorepDelete(vol1.ID.String(), vol2.ID.String())
 	r.Nil(err)
 
 	// delete volume

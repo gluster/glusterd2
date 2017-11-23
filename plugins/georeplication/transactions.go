@@ -1,8 +1,11 @@
 package georeplication
 
 import (
+	"syscall"
+
 	"github.com/gluster/glusterd2/glusterd2/daemon"
 	"github.com/gluster/glusterd2/glusterd2/transaction"
+
 	georepapi "github.com/gluster/glusterd2/plugins/georeplication/api"
 
 	log "github.com/sirupsen/logrus"
@@ -25,20 +28,7 @@ func txnGeorepCreate(c transaction.TxnCtx) error {
 	return nil
 }
 
-func startGsyncdMonitor(sess *georepapi.GeorepSession) error {
-	gsyncdDaemon, err := newGsyncd(*sess)
-	if err != nil {
-		return err
-	}
-
-	err = daemon.Start(gsyncdDaemon, true)
-	if err != nil {
-		return err
-	}
-	return nil
-}
-
-func txnGeorepStart(c transaction.TxnCtx) error {
+func gsyncdAction(c transaction.TxnCtx, action actionType) error {
 	var masterid string
 	var slaveid string
 	if err := c.Get("mastervolid", &masterid); err != nil {
@@ -55,7 +45,65 @@ func txnGeorepStart(c transaction.TxnCtx) error {
 	c.Logger().WithFields(log.Fields{
 		"master": sessioninfo.MasterVol,
 		"slave":  sessioninfo.SlaveHosts[0] + "::" + sessioninfo.SlaveVol,
-	}).Info("Starting gsyncd monitor")
+	}).Info(action.String() + " gsyncd monitor")
 
-	return startGsyncdMonitor(sessioninfo)
+	gsyncdDaemon, err := newGsyncd(*sessioninfo)
+	if err != nil {
+		return err
+	}
+
+	switch action {
+	case actionStart:
+		err = daemon.Start(gsyncdDaemon, true)
+	case actionStop:
+		err = daemon.Stop(gsyncdDaemon, true)
+	case actionPause:
+		err = daemon.Signal(gsyncdDaemon, syscall.SIGSTOP)
+	case actionResume:
+		err = daemon.Signal(gsyncdDaemon, syscall.SIGCONT)
+	}
+
+	return err
+}
+
+func txnGeorepStart(c transaction.TxnCtx) error {
+	return gsyncdAction(c, actionStart)
+}
+
+func txnGeorepStop(c transaction.TxnCtx) error {
+	return gsyncdAction(c, actionStop)
+}
+
+func txnGeorepDelete(c transaction.TxnCtx) error {
+	var masterid string
+	var slaveid string
+	if err := c.Get("mastervolid", &masterid); err != nil {
+		return err
+	}
+	if err := c.Get("slavevolid", &slaveid); err != nil {
+		return err
+	}
+
+	sessioninfo, err := getSession(masterid, slaveid)
+	if err != nil {
+		return err
+	}
+
+	if err := deleteSession(masterid, slaveid); err != nil {
+		c.Logger().WithError(err).WithFields(log.Fields{
+			"master": sessioninfo.MasterVol,
+			"slave":  sessioninfo.SlaveHosts[0] + "::" + sessioninfo.SlaveVol,
+		}).Debug("failed to delete Geo-replication info from store")
+		return err
+	}
+
+	return nil
+}
+
+func txnGeorepPause(c transaction.TxnCtx) error {
+	return gsyncdAction(c, actionPause)
+}
+
+func txnGeorepResume(c transaction.TxnCtx) error {
+	return gsyncdAction(c, actionResume)
 }

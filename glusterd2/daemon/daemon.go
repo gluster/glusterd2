@@ -189,3 +189,35 @@ func StartAllDaemons() {
 		}
 	}
 }
+
+// Signal function reads the PID from path returned by PidFile() and
+// sends the signal to that PID
+func Signal(d Daemon, sig syscall.Signal) error {
+
+	// It is assumed that the process d has written to pidfile
+	pid, err := ReadPidFromFile(d.PidFile())
+	if err != nil {
+		return err
+	}
+
+	process, err := GetProcess(pid)
+	if err != nil {
+		return err
+	}
+
+	log.WithFields(log.Fields{
+		"name":   d.Name(),
+		"pid":    pid,
+		"signal": sig,
+	}).Debug("Signal to daemon.")
+
+	err = process.Signal(sig)
+	if err != nil {
+		log.WithFields(log.Fields{
+			"name":   d.Name(),
+			"pid":    pid,
+			"signal": sig,
+		}).Error("Sending signal to daemon failed.")
+	}
+	return nil
+}
