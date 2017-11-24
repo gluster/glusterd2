@@ -180,7 +180,7 @@ func registerVolExpandStepFuncs() {
 func volumeExpandHandler(w http.ResponseWriter, r *http.Request) {
 
 	ctx := r.Context()
-	logger := restutils.GetReqLogger(ctx)
+	logger := gdctx.GetReqLogger(ctx)
 
 	volname := mux.Vars(r)["volname"]
 

@@ -149,7 +149,7 @@ func registerVolCreateStepFuncs() {
 func volumeCreateHandler(w http.ResponseWriter, r *http.Request) {
 
 	ctx := r.Context()
-	logger := restutils.GetReqLogger(ctx)
+	logger := gdctx.GetReqLogger(ctx)
 
 	req := new(api.VolCreateReq)
 	httpStatus, err := unmarshalVolCreateRequest(req, r)

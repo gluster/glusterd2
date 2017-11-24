@@ -36,7 +36,7 @@ type Txn struct {
 func NewTxn(ctx context.Context) *Txn {
 	t := new(Txn)
 	t.id = uuid.NewRandom()
-	t.reqID = uuid.Parse(ctx.Value(gdctx.ReqIDKey).(string))
+	t.reqID = gdctx.GetReqID(ctx)
 	prefix := txnPrefix + t.id.String()
 	t.Ctx = NewCtxWithLogFields(log.Fields{
 		"txnid": t.id.String(),

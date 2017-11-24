@@ -92,7 +92,7 @@ func registerVolStartStepFuncs() {
 func volumeStartHandler(w http.ResponseWriter, r *http.Request) {
 
 	ctx := r.Context()
-	logger := restutils.GetReqLogger(ctx)
+	logger := gdctx.GetReqLogger(ctx)
 
 	volname := mux.Vars(r)["volname"]
 	vol, e := volume.GetVolume(volname)

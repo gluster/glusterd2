@@ -62,7 +62,7 @@ func georepCreateHandler(w http.ResponseWriter, r *http.Request) {
 	slaveidRaw := p["slavevolid"]
 
 	ctx := r.Context()
-	logger := restutils.GetReqLogger(ctx)
+	logger := gdctx.GetReqLogger(ctx)
 
 	// Validate UUID format of Master and Slave Volume ID
 	masterid, slaveid, err := validateMasterAndSlaveIDFormat(ctx, w, masteridRaw, slaveidRaw)
@@ -169,7 +169,7 @@ func georepActionHandler(w http.ResponseWriter, r *http.Request, action actionTy
 	slaveidRaw := p["slavevolid"]
 
 	ctx := r.Context()
-	logger := restutils.GetReqLogger(ctx)
+	logger := gdctx.GetReqLogger(ctx)
 
 	// Validate UUID format of Master and Slave Volume ID
 	masterid, slaveid, err := validateMasterAndSlaveIDFormat(ctx, w, masteridRaw, slaveidRaw)
@@ -306,7 +306,7 @@ func georepDeleteHandler(w http.ResponseWriter, r *http.Request) {
 	slaveidRaw := p["slavevolid"]
 
 	ctx := r.Context()
-	logger := restutils.GetReqLogger(ctx)
+	logger := gdctx.GetReqLogger(ctx)
 
 	// Validate UUID format of Master and Slave Volume ID
 	masterid, slaveid, err := validateMasterAndSlaveIDFormat(ctx, w, masteridRaw, slaveidRaw)
