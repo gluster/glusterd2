@@ -5,6 +5,7 @@ import (
 
 	"github.com/gluster/glusterd2/glusterd2/peer"
 	restutils "github.com/gluster/glusterd2/glusterd2/servers/rest/utils"
+	"github.com/gluster/glusterd2/glusterd2/store"
 	"github.com/gluster/glusterd2/pkg/api"
 )
 
@@ -29,6 +30,7 @@ func createPeerListResp(peers []*peer.Peer) *api.PeerListResp {
 			ID:        p.ID,
 			Name:      p.Name,
 			Addresses: p.Addresses,
+			Online:    store.Store.IsNodeAlive(p.ID),
 		})
 	}
 
