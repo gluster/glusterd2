@@ -364,3 +364,138 @@ func georepDeleteHandler(w http.ResponseWriter, r *http.Request) {
 
 	restutils.SendHTTPResponse(ctx, w, http.StatusOK, nil)
 }
+
+func georepStatusHandler(w http.ResponseWriter, r *http.Request) {
+	// Collect inputs from URL
+	p := mux.Vars(r)
+	masteridRaw := p["mastervolid"]
+	slaveidRaw := p["slavevolid"]
+
+	ctx := r.Context()
+	logger := gdctx.GetReqLogger(ctx)
+
+	// Validate UUID format of Master and Slave Volume ID
+	masterid, slaveid, err := validateMasterAndSlaveIDFormat(ctx, w, masteridRaw, slaveidRaw)
+	if err != nil {
+		return
+	}
+
+	geoSession, err := getSession(masterid.String(), slaveid.String())
+	if err != nil {
+		if _, ok := err.(*ErrGeorepSessionNotFound); !ok {
+			restutils.SendHTTPError(ctx, w, http.StatusInternalServerError, err.Error(), api.ErrCodeDefault)
+			return
+		}
+		restutils.SendHTTPResponse(ctx, w, http.StatusOK, []georepapi.GeorepSession{})
+		return
+	}
+
+	if geoSession.Status != georepapi.GeorepStatusStarted {
+		// Reach brick nodes only if Status is Started,
+		// else return just the monitor status
+		restutils.SendHTTPResponse(ctx, w, http.StatusOK, geoSession)
+		return
+	}
+
+	// Get Volume info, which is required to get the Bricks list
+	vol, e := volume.GetVolume(geoSession.MasterVol)
+	if e != nil {
+		restutils.SendHTTPError(ctx, w, http.StatusNotFound, errors.ErrVolNotFound.Error(), api.ErrCodeDefault)
+		return
+	}
+
+	// Status Transaction
+	txn := transaction.NewTxn(ctx)
+	defer txn.Cleanup()
+	lock, unlock, err := transaction.CreateLockSteps(masterid.String() + slaveid.String())
+	if err != nil {
+		restutils.SendHTTPError(ctx, w, http.StatusInternalServerError, err.Error(), api.ErrCodeDefault)
+		return
+	}
+
+	txn.Nodes = vol.Nodes()
+	txn.Steps = []*transaction.Step{
+		lock,
+		{
+			DoFunc: "georeplication-status.Commit",
+			Nodes:  txn.Nodes,
+		},
+		unlock,
+	}
+
+	txn.Ctx.Set("mastervolid", masterid.String())
+	txn.Ctx.Set("slavevolid", slaveid.String())
+
+	rtxn, e := txn.Do()
+	if e != nil {
+		// TODO: Handle partial failure if a few glusterd's down
+
+		logger.WithFields(log.Fields{
+			"error":       e.Error(),
+			"mastervolid": masterid,
+			"slavevolid":  slaveid,
+		}).Error("failed to get status of geo-replication session")
+		restutils.SendHTTPError(ctx, w, http.StatusInternalServerError, e.Error(), api.ErrCodeDefault)
+		return
+	}
+
+	// Aggregate the results
+	result, err := aggregateGsyncdStatus(rtxn, txn.Nodes)
+	if err != nil {
+		errMsg := "Failed to aggregate gsyncd status results from multiple nodes."
+		logger.WithField("error", err.Error()).Error("gsyncdStatusHandler:" + errMsg)
+		restutils.SendHTTPError(ctx, w, http.StatusInternalServerError, errMsg, api.ErrCodeDefault)
+		return
+	}
+
+	for _, b := range vol.Bricks {
+		// Set default values to all status fields, If a node or worker is down and
+		// status not available these default values will be sent back in response
+		geoSession.Workers = append(geoSession.Workers, georepapi.GeorepWorker{
+			MasterNode:                 "",
+			MasterNodeID:               b.NodeID.String(),
+			MasterBrickPath:            b.Path,
+			MasterBrick:                b.NodeID.String() + ":" + b.Path,
+			Status:                     "Unknown",
+			LastSyncedTime:             "N/A",
+			LastSyncedTimeUTC:          "N/A",
+			LastEntrySyncedTime:        "N/A",
+			SlaveNode:                  "N/A",
+			CheckpointTime:             "N/A",
+			CheckpointTimeUTC:          "N/A",
+			CheckpointCompleted:        "N/A",
+			CheckpointCompletedTime:    "N/A",
+			CheckpointCompletedTimeUTC: "N/A",
+			MetaOps:                    "0",
+			EntryOps:                   "0",
+			DataOps:                    "0",
+			FailedOps:                  "0",
+			CrawlStatus:                "N/A",
+		})
+	}
+
+	// Iterating and assigning status of each brick and not doing direct
+	// assignment. So that order of the workers will be maintained similar
+	// to order of bricks in Master Volume
+	for idx, w := range geoSession.Workers {
+		statusData := (*result)[w.MasterNodeID+":"+w.MasterBrickPath]
+		geoSession.Workers[idx].Status = statusData.Status
+		geoSession.Workers[idx].LastSyncedTime = statusData.LastSyncedTime
+		geoSession.Workers[idx].LastSyncedTimeUTC = statusData.LastSyncedTimeUTC
+		geoSession.Workers[idx].LastEntrySyncedTime = statusData.LastEntrySyncedTime
+		geoSession.Workers[idx].SlaveNode = statusData.SlaveNode
+		geoSession.Workers[idx].CheckpointTime = statusData.CheckpointTime
+		geoSession.Workers[idx].CheckpointTimeUTC = statusData.CheckpointTimeUTC
+		geoSession.Workers[idx].CheckpointCompleted = statusData.CheckpointCompleted
+		geoSession.Workers[idx].CheckpointCompletedTime = statusData.CheckpointCompletedTime
+		geoSession.Workers[idx].CheckpointCompletedTimeUTC = statusData.CheckpointCompletedTimeUTC
+		geoSession.Workers[idx].MetaOps = statusData.MetaOps
+		geoSession.Workers[idx].EntryOps = statusData.EntryOps
+		geoSession.Workers[idx].DataOps = statusData.DataOps
+		geoSession.Workers[idx].FailedOps = statusData.FailedOps
+		geoSession.Workers[idx].CrawlStatus = statusData.CrawlStatus
+	}
+
+	// Send aggregated result back to the client
+	restutils.SendHTTPResponse(ctx, w, http.StatusOK, geoSession)
+}

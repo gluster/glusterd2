@@ -24,17 +24,16 @@ type GeorepWorker struct {
 	MasterNodeID               string `json:"node_id"`
 	MasterBrickPath            string `json:"master_brick_path"`
 	MasterBrick                string `json:"master_brick"`
-	Status                     string `json:"status"`
-	LastSyncedTime             string `json:"last_synced_time"`
-	LastSyncedTimeUTC          string `json:"last_synced_time_utc"`
+	Status                     string `json:"worker_status"`
+	LastSyncedTime             string `json:"last_synced"`
+	LastSyncedTimeUTC          string `json:"last_synced_utc"`
 	LastEntrySyncedTime        string `json:"last_synced_entry"`
 	SlaveNode                  string `json:"slave_node"`
-	ChangeDetection            string `json:"change_detection"`
 	CheckpointTime             string `json:"checkpoint_time"`
 	CheckpointTimeUTC          string `json:"checkpoint_time_utc"`
-	CheckpointCompleted        bool   `json:"checkpoint_completed"`
-	CheckpointCompletedTime    string `json:"checkpoint_completed_time"`
-	CheckpointCompletedTimeUTC string `json:"checkpoint_completed_time_utc"`
+	CheckpointCompleted        string `json:"checkpoint_completed"`
+	CheckpointCompletedTime    string `json:"checkpoint_completion_time"`
+	CheckpointCompletedTimeUTC string `json:"checkpoint_completion_time_utc"`
 	MetaOps                    string `json:"meta"`
 	EntryOps                   string `json:"entry"`
 	DataOps                    string `json:"data"`

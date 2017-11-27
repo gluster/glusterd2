@@ -94,3 +94,16 @@ func newGsyncd(sessioninfo georepapi.GeorepSession) (*Gsyncd, error) {
 func (g *Gsyncd) ID() string {
 	return g.sessioninfo.MasterID.String() + "-" + g.sessioninfo.SlaveID.String()
 }
+
+func (g *Gsyncd) statusArgs(localPath string) []string {
+	return []string{
+		gsyncdPath,
+		"status",
+		g.sessioninfo.MasterVol,
+		fmt.Sprintf("%s@%s::%s", g.sessioninfo.SlaveUser, g.sessioninfo.SlaveHosts[0], g.sessioninfo.SlaveVol),
+		"-c",
+		g.ConfigFile(),
+		"--local-path",
+		localPath,
+		"--json"}
+}
