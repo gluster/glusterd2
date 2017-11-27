@@ -18,7 +18,7 @@ import (
 func deletePeerHandler(w http.ResponseWriter, r *http.Request) {
 
 	ctx := r.Context()
-	logger := restutils.GetReqLogger(ctx)
+	logger := gdctx.GetReqLogger(ctx)
 
 	id := mux.Vars(r)["peerid"]
 	if id == "" {

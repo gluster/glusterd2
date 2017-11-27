@@ -22,7 +22,8 @@ var expTxn = expvar.NewMap("txn")
 
 // Txn is a set of steps
 type Txn struct {
-	ID    uuid.UUID
+	id    uuid.UUID
+	reqID uuid.UUID
 	Ctx   TxnCtx
 	Steps []*Step
 	// Nodes should be a union of the all the TxnStep.Nodes and must be set
@@ -34,10 +35,12 @@ type Txn struct {
 // NewTxn returns an initialized Txn without any steps
 func NewTxn(ctx context.Context) *Txn {
 	t := new(Txn)
-	t.ID = uuid.Parse(ctx.Value(gdctx.ReqIDKey).(string))
-	prefix := txnPrefix + t.ID.String()
+	t.id = uuid.NewRandom()
+	t.reqID = gdctx.GetReqID(ctx)
+	prefix := txnPrefix + t.id.String()
 	t.Ctx = NewCtxWithLogFields(log.Fields{
-		"reqid": t.ID.String(),
+		"txnid": t.id.String(),
+		"reqid": t.reqID.String(),
 	}).WithPrefix(prefix)
 
 	return t

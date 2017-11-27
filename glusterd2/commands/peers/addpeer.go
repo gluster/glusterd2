@@ -4,6 +4,7 @@ import (
 	"fmt"
 	"net/http"
 
+	"github.com/gluster/glusterd2/glusterd2/gdctx"
 	"github.com/gluster/glusterd2/glusterd2/peer"
 	restutils "github.com/gluster/glusterd2/glusterd2/servers/rest/utils"
 	"github.com/gluster/glusterd2/glusterd2/store"
@@ -19,7 +20,7 @@ type peerAddReq struct {
 func addPeerHandler(w http.ResponseWriter, r *http.Request) {
 
 	ctx := r.Context()
-	logger := restutils.GetReqLogger(ctx)
+	logger := gdctx.GetReqLogger(ctx)
 
 	var req peerAddReq
 	if err := restutils.UnmarshalRequest(r, &req); err != nil {
