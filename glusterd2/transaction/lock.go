@@ -13,7 +13,7 @@ import (
 )
 
 const (
-	lockPrefix        = store.GlusterPrefix + "locks/"
+	lockPrefix        = "locks/"
 	lockObtainTimeout = 5 * time.Second
 )
 

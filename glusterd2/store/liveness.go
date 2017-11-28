@@ -11,7 +11,7 @@ import (
 )
 
 const (
-	livenessKeyPrefix = GlusterPrefix + "alive/"
+	livenessKeyPrefix = "alive/"
 )
 
 // IsNodeAlive returns true if the node specified is alive as seen by the store

@@ -23,7 +23,7 @@ const (
 	gfHndskGetSpec = 2 // GF_HNDSK_GETSPEC
 )
 
-var volfilePrefix = store.GlusterPrefix + "volfiles/"
+var volfilePrefix = "volfiles/"
 
 // GfHandshake is a type for GlusterFS Handshake RPC program
 type GfHandshake genericProgram

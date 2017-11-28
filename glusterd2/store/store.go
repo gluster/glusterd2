@@ -10,12 +10,11 @@ import (
 
 	"github.com/coreos/etcd/clientv3"
 	"github.com/coreos/etcd/clientv3/concurrency"
+	"github.com/coreos/etcd/clientv3/namespace"
 )
 
 const (
-	// GlusterPrefix prefixes all paths in the store
-	GlusterPrefix = "gluster/"
-	sessionTTL    = 30 // used for etcd mutexes and liveness key
+	sessionTTL = 30 // used for etcd mutexes and liveness key
 )
 
 var (
@@ -89,6 +88,8 @@ func New(conf *Config) (*GDStore, error) {
 			return nil, err
 		}
 	}
+
+	store.KV = namespace.NewKV(store.KV, "glusterd2/")
 
 	if err = store.publishLiveness(); err != nil {
 		return nil, err
