@@ -16,11 +16,11 @@ const (
 func (s VolState) String() string {
 	switch s {
 	case VolCreated:
-		return "created"
+		return "Created"
 	case VolStarted:
-		return "started"
+		return "Started"
 	case VolStopped:
-		return "stopped"
+		return "Stopped"
 	default:
 		return "invalid VolState"
 	}

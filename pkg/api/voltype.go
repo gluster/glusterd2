@@ -20,15 +20,15 @@ const (
 func (t VolType) String() string {
 	switch t {
 	case Distribute:
-		return "distribute"
+		return "Distribute"
 	case Replicate:
-		return "replicate"
+		return "Replicate"
 	case Disperse:
-		return "disperse"
+		return "Disperse"
 	case DistReplicate:
-		return "distribute-replicate"
+		return "Distributed-Replicate"
 	case DistDisperse:
-		return "distribute-disperse"
+		return "Distributed-Disperse"
 	default:
 		return "invalid VolState"
 	}
