@@ -52,4 +52,9 @@ cluster.graph`,
 		content: `cluster/dht
 protocol/client`,
 	},
+	{
+		name: "replicate.graph",
+		content: `cluster/replicate
+protocol/client`,
+	},
 }
