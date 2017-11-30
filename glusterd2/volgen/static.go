@@ -54,7 +54,8 @@ protocol/client`,
 	},
 	{
 		name: "replicate.graph",
-		content: `cluster/replicate
+		content: `cluster/distribute
+cluster/replicate
 protocol/client`,
 	},
 }
