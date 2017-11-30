@@ -65,20 +65,21 @@ func LoadTemplates() error {
 	glob := path.Join(tdir, "*"+templateExt)
 
 	var fs []string
-	fs, err := filepath.Glob(glob)
-	if err == nil && len(fs) > 0 {
-		log.WithField("templates", fs).Debug("found templates")
-	} else {
-		os.MkdirAll(tdir, os.ModePerm)
-		for _, g := range defaultGraphs {
-			p := path.Join(tdir, g.name)
-			if err := ioutil.WriteFile(p, []byte(g.content), 0644); err != nil {
+	fs, _ = filepath.Glob(glob)
+
+	// Generate default templates if not exists
+	os.MkdirAll(tdir, os.ModePerm)
+	for _, g := range defaultGraphs {
+		p := path.Join(tdir, g.name)
+		_, err := os.Stat(p)
+		if err != nil && os.IsNotExist(err) {
+			if err = ioutil.WriteFile(p, []byte(g.content), 0644); err != nil {
 				log.WithField("file", p).WithError(err).Error("failed to generate default template")
 			}
 			fs = append(fs, p)
 		}
-		log.WithField("templates", fs).Debug("generated default templates")
 	}
+	log.WithField("templates", fs).Debug("generated default templates")
 
 	for _, f := range fs {
 		_, err := LoadTemplate(f)
