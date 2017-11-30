@@ -6,6 +6,7 @@ import (
 	"github.com/gluster/glusterd2/glusterd2/servers/peerrpc"
 	"github.com/gluster/glusterd2/glusterd2/store"
 	"github.com/gluster/glusterd2/glusterd2/volume"
+	"github.com/pborman/uuid"
 
 	log "github.com/sirupsen/logrus"
 	"golang.org/x/net/context"
@@ -26,20 +27,25 @@ func (p *PeerService) RegisterService(s *grpc.Server) {
 
 // Join makes the peer join the cluster of the requester
 func (p *PeerService) Join(ctx context.Context, req *JoinReq) (*JoinRsp, error) {
-	logger := log.WithField("remotepeer", req.PeerID)
+	logger := log.WithFields(log.Fields{
+		"remotepeer":    req.PeerID,
+		"remotecluster": req.ClusterID})
 
 	logger.Info("handling new incoming join cluster request")
 
 	// Handling a Join request happens as follows,
 	// 	- TODO: Ensure no ongoing operations (transactions/other peer requests) are happening
-	// 	- TODO: Check is peer is part of another cluster
 	// 	- Check if the peer has volumes
 	//	- Reconfigure the store with received configuration
 	// 	- Return your ID
 
 	// TODO: Ensure no other operations are happening
 
-	// TODO: Check if we are part of another cluster
+	peers, _ := peer.GetPeersF()
+	if len(peers) != 1 {
+		logger.Info("rejecting join, already part of a cluster")
+		return &JoinRsp{"", int32(ErrAnotherCluster)}, nil
+	}
 
 	volumes, _ := volume.GetVolumes()
 	if len(volumes) != 0 {
@@ -49,10 +55,24 @@ func (p *PeerService) Join(ctx context.Context, req *JoinReq) (*JoinRsp, error) 
 
 	logger.Debug("all checks passed, joining new cluster")
 
+	// Update the cluster ID: This will set the global variable
+	// gdctx.MyClusterID which will be used during store reconfiguration.
+	// If reconfiguring store fails, restore the old cluster ID.
+	success := false
+	defer func(oldClusterID string) {
+		if !success {
+			gdctx.UpdateClusterID(oldClusterID)
+		}
+	}(gdctx.MyClusterID.String())
+	if err := gdctx.UpdateClusterID(req.ClusterID); err != nil {
+		return &JoinRsp{"", int32(ErrClusterIDUpdateFailed)}, nil
+	}
+
 	if err := ReconfigureStore(req.Config); err != nil {
 		logger.WithError(err).Error("reconfigure store failed, failed to join new cluster")
 		return &JoinRsp{"", int32(ErrStoreReconfigFailed)}, nil
 	}
+	success = true
 	logger.Debug("reconfigured store to join new cluster")
 
 	logger.Info("joined new cluster")
@@ -89,11 +109,25 @@ func (p *PeerService) Leave(ctx context.Context, req *LeaveReq) (*LeaveRsp, erro
 
 	logger.Debug("all checks passed, leaving cluster")
 
+	// Reset the cluster ID: This will reset the global variable
+	// gdctx.MyClusterID which will be used during store reconfiguration.
+	// If reconfiguring store fails, restore the old cluster ID.
+	success := false
+	defer func(oldClusterID string) {
+		if !success {
+			gdctx.UpdateClusterID(oldClusterID)
+		}
+	}(gdctx.MyClusterID.String())
+	if err := gdctx.UpdateClusterID(uuid.New()); err != nil {
+		return &LeaveRsp{int32(ErrClusterIDUpdateFailed)}, nil
+	}
+
 	logger.Debug("reconfiguring store with defaults")
 	if err := ReconfigureStore(&StoreConfig{store.NewConfig().Endpoints}); err != nil {
 		logger.WithError(err).Warn("failed to reconfigure store with defaults")
 		// XXX: We should probably keep retrying here?
 	}
+	success = true
 	return &LeaveRsp{int32(ErrNone)}, nil
 }
 

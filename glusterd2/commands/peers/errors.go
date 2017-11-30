@@ -11,6 +11,7 @@ const (
 	ErrHaveVolumes
 	ErrStoreReconfigFailed
 	ErrUnknownPeer
+	ErrClusterIDUpdateFailed
 	ErrMax
 )
 
@@ -22,6 +23,7 @@ func init() {
 	errorStrings[ErrHaveVolumes] = "peer has existing volumes"
 	errorStrings[ErrStoreReconfigFailed] = "store reconfigure failed on peer"
 	errorStrings[ErrUnknownPeer] = "request received from unknown peer"
+	errorStrings[ErrClusterIDUpdateFailed] = "failed to set and store new cluster ID"
 }
 
 func (e Error) String() string {

@@ -3,9 +3,11 @@ package store
 
 import (
 	"errors"
+	"fmt"
 	"os"
 	"sync"
 
+	"github.com/gluster/glusterd2/glusterd2/gdctx"
 	"github.com/gluster/glusterd2/pkg/elasticetcd"
 
 	"github.com/coreos/etcd/clientv3"
@@ -89,7 +91,8 @@ func New(conf *Config) (*GDStore, error) {
 		}
 	}
 
-	store.KV = namespace.NewKV(store.KV, "glusterd2/")
+	namespaceKey := fmt.Sprintf("gluster-%s/", gdctx.MyClusterID.String())
+	store.KV = namespace.NewKV(store.KV, namespaceKey)
 
 	if err = store.publishLiveness(); err != nil {
 		return nil, err
