@@ -35,6 +35,7 @@ func (p *PeerService) Join(ctx context.Context, req *JoinReq) (*JoinRsp, error) 
 
 	// Handling a Join request happens as follows,
 	// 	- TODO: Ensure no ongoing operations (transactions/other peer requests) are happening
+	//      - Check is peer is part of another cluster
 	// 	- Check if the peer has volumes
 	//	- Reconfigure the store with received configuration
 	// 	- Return your ID
