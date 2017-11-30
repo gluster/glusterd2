@@ -11,7 +11,7 @@ import (
 )
 
 const (
-	georepPrefix string = store.GlusterPrefix + "georeplication/"
+	georepPrefix string = "georeplication/"
 )
 
 // getSession fetches the json object from the store and unmarshalls it into

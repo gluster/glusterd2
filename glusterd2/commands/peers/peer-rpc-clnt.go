@@ -36,6 +36,7 @@ func getPeerServiceClient(address string) (*peerSvcClnt, error) {
 func (pc *peerSvcClnt) JoinCluster(conf *StoreConfig) (*JoinRsp, error) {
 	args := &JoinReq{
 		gdctx.MyUUID.String(),
+		gdctx.MyClusterID.String(),
 		conf,
 	}
 	rsp, err := pc.client.Join(context.TODO(), args)

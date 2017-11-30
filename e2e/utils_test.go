@@ -54,11 +54,16 @@ func (g *gdProcess) PeerID() string {
 		return g.uuid
 	}
 
-	ubytes, err := ioutil.ReadFile(path.Join(g.Workdir, "uuid"))
+	// Endpoint doesn't matter here. All responses include a
+	// X-Gluster-Node-Id response header.
+	endpoint := fmt.Sprintf("http://%s/version", g.ClientAddress)
+	resp, err := http.Get(endpoint)
 	if err != nil {
 		return ""
 	}
-	g.uuid = string(ubytes)
+	defer resp.Body.Close()
+
+	g.uuid = resp.Header.Get("X-Gluster-Node-Id")
 	return g.uuid
 }
 

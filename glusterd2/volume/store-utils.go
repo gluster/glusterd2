@@ -13,7 +13,7 @@ import (
 )
 
 const (
-	volumePrefix string = store.GlusterPrefix + "volumes/"
+	volumePrefix string = "volumes/"
 )
 
 var (

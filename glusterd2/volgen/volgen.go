@@ -20,8 +20,7 @@ const (
 )
 
 var (
-	// TODO: differentiate between various types of client volfiles
-	volfilePrefix = store.GlusterPrefix + "volfiles/"
+	volfilePrefix = "volfiles/"
 )
 
 // Generate generates all associated volfiles for the given volinfo.

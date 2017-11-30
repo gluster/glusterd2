@@ -3,19 +3,20 @@ package store
 
 import (
 	"errors"
+	"fmt"
 	"os"
 	"sync"
 
+	"github.com/gluster/glusterd2/glusterd2/gdctx"
 	"github.com/gluster/glusterd2/pkg/elasticetcd"
 
 	"github.com/coreos/etcd/clientv3"
 	"github.com/coreos/etcd/clientv3/concurrency"
+	"github.com/coreos/etcd/clientv3/namespace"
 )
 
 const (
-	// GlusterPrefix prefixes all paths in the store
-	GlusterPrefix = "gluster/"
-	sessionTTL    = 30 // used for etcd mutexes and liveness key
+	sessionTTL = 30 // used for etcd mutexes and liveness key
 )
 
 var (
@@ -89,6 +90,9 @@ func New(conf *Config) (*GDStore, error) {
 			return nil, err
 		}
 	}
+
+	namespaceKey := fmt.Sprintf("gluster-%s/", gdctx.MyClusterID.String())
+	store.KV = namespace.NewKV(store.KV, namespaceKey)
 
 	if err = store.publishLiveness(); err != nil {
 		return nil, err

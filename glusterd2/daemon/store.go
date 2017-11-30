@@ -13,7 +13,7 @@ import (
 )
 
 const (
-	daemonsPrefix = store.GlusterPrefix + "daemons/"
+	daemonsPrefix = "daemons/"
 )
 
 // save saves the daemon information in the store

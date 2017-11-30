@@ -15,7 +15,7 @@ import (
 )
 
 const (
-	txnPrefix = store.GlusterPrefix + "transaction/"
+	txnPrefix = "transaction/"
 )
 
 var expTxn = expvar.NewMap("txn")

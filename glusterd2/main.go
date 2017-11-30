@@ -68,7 +68,7 @@ func main() {
 		log.WithError(err).Fatal("Failed to create or access directories")
 	}
 
-	if err := gdctx.SetUUID(); err != nil {
+	if err := gdctx.InitUUID(); err != nil {
 		log.WithError(err).Fatal("Failed to initialize UUID")
 	}
 
