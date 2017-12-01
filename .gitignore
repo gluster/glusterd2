@@ -3,6 +3,7 @@ glusterd2/glusterd2
 glustercli/glustercli
 pkg/elasticetcd/example/example
 pkg/restclient/examples/examples
+glusterd2/xlator/xlator-checker/xlator-checker
 # Ignore vagrant directory
 .vagrant/
 # Ignore vendored dependencies

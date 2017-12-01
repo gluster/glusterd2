@@ -39,6 +39,11 @@ func Load() (err error) {
 	return
 }
 
+// Xlators returns the xlator map
+func Xlators() map[string]*Xlator {
+	return xlMap
+}
+
 // loadOptions loads all available options into the options.Options map,
 // indexed as <xlator-id>.<option-key> for all available option keys
 func loadOptions() {
