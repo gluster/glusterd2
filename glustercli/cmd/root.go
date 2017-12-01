@@ -13,7 +13,7 @@ var RootCmd = &cobra.Command{
 	Use:   "gluster",
 	Short: "Gluster Console Manager (command line utility)",
 	PersistentPreRun: func(cmd *cobra.Command, args []string) {
-		err := logging.Init(flagLogDir, flagLogFile, flagLogLevel)
+		err := logging.Init(flagLogDir, flagLogFile, flagLogLevel, false)
 		if err != nil {
 			fmt.Println("Error initializing log file ", err)
 		}

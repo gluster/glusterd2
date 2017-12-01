@@ -47,7 +47,14 @@ func setLogOutput(w io.Writer) {
 // Should be called as early as possible when a process starts.
 // Note that this does not create a new logger. Packages should still continue
 // importing and using logrus as before.
-func Init(logdir string, logFileName string, logLevel string) error {
+func Init(logdir string, logFileName string, logLevel string, verboseLogEntry bool) error {
+
+	if verboseLogEntry {
+		// TODO: Make it configurable with default being off. This
+		// has performance overhead as it allocates memory every time.
+		log.AddHook(SourceLocationHook{})
+	}
+
 	// Close the previously opened Log file
 	if logWriter != nil {
 		logWriter.Close()
