@@ -27,6 +27,9 @@ const (
 	LevelFlag = "loglevel"
 	// LevelHelp is the help message for LevelFlag
 	LevelHelp = "Severity of messages to be logged"
+
+	// YY-MM-DD HH:MM:SS.SSS (millisecond precision)
+	timestampFormat = "2006-01-02 15:04:05.000"
 )
 
 var logWriter io.WriteCloser
@@ -69,7 +72,7 @@ func Init(logdir string, logFileName string, logLevel string, verboseLogEntry bo
 		return err
 	}
 	log.SetLevel(l)
-	log.SetFormatter(&prefixed.TextFormatter{FullTimestamp: true})
+	log.SetFormatter(&prefixed.TextFormatter{FullTimestamp: true, TimestampFormat: timestampFormat})
 
 	if strings.ToLower(logFileName) == "stderr" || logFileName == "-" {
 		setLogOutput(os.Stderr)
