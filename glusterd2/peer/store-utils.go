@@ -17,7 +17,7 @@ import (
 )
 
 const (
-	peerPrefix string = store.GlusterPrefix + "peers/"
+	peerPrefix string = "peers/"
 )
 
 var (

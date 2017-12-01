@@ -7,7 +7,8 @@ message StoreConfig {
 
 message JoinReq {
   string PeerID = 1; // ID of the peer sending the request
-  StoreConfig Config = 2;
+  string ClusterID = 2; // ID of the Gluster cluster to be joined
+  StoreConfig Config = 3;
 }
 
 message JoinRsp {
