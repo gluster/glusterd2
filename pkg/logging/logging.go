@@ -28,8 +28,8 @@ const (
 	// LevelHelp is the help message for LevelFlag
 	LevelHelp = "Severity of messages to be logged"
 
-	// YY-MM-DD HH:MM:SS.SSS (millisecond precision)
-	timestampFormat = "2006-01-02 15:04:05.000"
+	// YY-MM-DD HH:MM:SS.SSSSSS
+	timestampFormat = "2006-01-02 15:04:05.000000"
 )
 
 var logWriter io.WriteCloser

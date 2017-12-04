@@ -38,7 +38,7 @@ func (hook SourceLocationHook) Fire(entry *logrus.Entry) error {
 	for {
 		frame, more := frames.Next()
 		if strings.Contains(frame.File, gd2Repo) && !strings.Contains(frame.File, "vendor") {
-			entry.Data[SourceField] = fmt.Sprintf("[%s:%s:%d]", path.Base(frame.File), path.Base(frame.Function), frame.Line)
+			entry.Data[SourceField] = fmt.Sprintf("[%s:%d:%s]", path.Base(frame.File), frame.Line, path.Base(frame.Function))
 			break
 		}
 		if !more {
