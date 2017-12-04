@@ -46,7 +46,13 @@ func SendHTTPResponse(ctx context.Context, w http.ResponseWriter, statusCode int
 
 // SendHTTPError sends an error response to the client.
 func SendHTTPError(ctx context.Context, w http.ResponseWriter, statusCode int, errMsg string, errCode api.ErrorCode) {
+
+	w.Header().Set("Content-Type", "application/json; charset=UTF-8")
+	w.Header().Set("X-Gluster-Node-Id", gdctx.MyUUID.String())
+	w.Header().Set("X-Gluster-Cluster-Id", gdctx.MyClusterID.String())
+
 	w.WriteHeader(statusCode)
+
 	resp := APIError{Code: errCode, Error: errMsg}
 	if err := json.NewEncoder(w).Encode(resp); err != nil {
 		logger := gdctx.GetReqLogger(ctx)

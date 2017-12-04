@@ -43,7 +43,7 @@ func main() {
 	logdir, _ := flag.CommandLine.GetString("logdir")
 	logFileName, _ := flag.CommandLine.GetString("logfile")
 
-	if err := logging.Init(logdir, logFileName, logLevel); err != nil {
+	if err := logging.Init(logdir, logFileName, logLevel, true); err != nil {
 		log.WithError(err).Fatal("Failed to initialize logging")
 	}
 
@@ -123,7 +123,7 @@ func main() {
 			// re-initiate the logger instance.
 			if strings.ToLower(logFileName) != "stderr" && strings.ToLower(logFileName) != "stdout" && logFileName != "-" {
 				log.Info("Received SIGHUP, Reloading log file")
-				if err := logging.Init(logdir, logFileName, logLevel); err != nil {
+				if err := logging.Init(logdir, logFileName, logLevel, true); err != nil {
 					log.WithError(err).Fatal("Could not re-initialize logging")
 				}
 			}

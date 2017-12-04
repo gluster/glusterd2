@@ -9,6 +9,7 @@ import (
 	"strings"
 
 	log "github.com/sirupsen/logrus"
+	prefixed "github.com/x-cray/logrus-prefixed-formatter"
 )
 
 const (
@@ -26,6 +27,9 @@ const (
 	LevelFlag = "loglevel"
 	// LevelHelp is the help message for LevelFlag
 	LevelHelp = "Severity of messages to be logged"
+
+	// YY-MM-DD HH:MM:SS.SSSSSS
+	timestampFormat = "2006-01-02 15:04:05.000000"
 )
 
 var logWriter io.WriteCloser
@@ -47,7 +51,14 @@ func setLogOutput(w io.Writer) {
 // Should be called as early as possible when a process starts.
 // Note that this does not create a new logger. Packages should still continue
 // importing and using logrus as before.
-func Init(logdir string, logFileName string, logLevel string) error {
+func Init(logdir string, logFileName string, logLevel string, verboseLogEntry bool) error {
+
+	if verboseLogEntry {
+		// TODO: Make it configurable with default being off. This
+		// has performance overhead as it allocates memory every time.
+		log.AddHook(SourceLocationHook{})
+	}
+
 	// Close the previously opened Log file
 	if logWriter != nil {
 		logWriter.Close()
@@ -61,7 +72,7 @@ func Init(logdir string, logFileName string, logLevel string) error {
 		return err
 	}
 	log.SetLevel(l)
-	log.SetFormatter(&log.TextFormatter{FullTimestamp: true})
+	log.SetFormatter(&prefixed.TextFormatter{FullTimestamp: true, TimestampFormat: timestampFormat})
 
 	if strings.ToLower(logFileName) == "stderr" || logFileName == "-" {
 		setLogOutput(os.Stderr)
