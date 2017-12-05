@@ -93,6 +93,8 @@ func getChildCount(t string, vol *volume.Volinfo) int {
 		fallthrough
 	case "cluster/replicate":
 		return vol.ReplicaCount
+	case "cluster/disperse":
+		return vol.DisperseCount
 	case "cluster/dht":
 		fallthrough
 	case "cluster/distribute":

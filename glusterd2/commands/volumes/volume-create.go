@@ -81,6 +81,25 @@ func createVolinfo(req *api.VolCreateReq) (*volume.Volinfo, error) {
 		v.Type = volume.DistReplicate
 	}
 
+	if req.DisperseData != 0 || req.DisperseRedundancy != 0 {
+		v.Type = volume.Disperse
+		v.DistCount = 1
+		if req.DisperseData == 0 {
+			v.DisperseCount = len(req.Bricks)
+		} else {
+			v.DisperseCount = req.DisperseData
+		}
+		if req.DisperseRedundancy == 0 {
+			v.Redundancy = 1
+		} else {
+			v.Redundancy = req.DisperseRedundancy
+		}
+		if 2*v.Redundancy >= len(req.Bricks) {
+			return nil, errors.New("Invalid redundancy value")
+		}
+
+	}
+
 	v.Bricks, err = volume.NewBrickEntriesFunc(req.Bricks, v.Name, v.ID)
 	if err != nil {
 		return nil, err

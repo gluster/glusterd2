@@ -5,6 +5,7 @@ import (
 	"bytes"
 	"encoding/json"
 	"errors"
+	"fmt"
 	"net"
 	"net/http"
 	"path/filepath"
@@ -58,20 +59,22 @@ const (
 
 // Volinfo repesents a volume
 type Volinfo struct {
-	ID           uuid.UUID
-	Name         string
-	Type         VolType
-	Transport    string
-	DistCount    int
-	ReplicaCount int
-	ArbiterCount int
-	Options      map[string]string
-	State        VolState
-	Checksum     uint64
-	Version      uint64
-	Bricks       []brick.Brickinfo
-	Auth         VolAuth // TODO: should not be returned to client
-	GraphMap     map[string]string
+	ID            uuid.UUID
+	Name          string
+	Type          VolType
+	Transport     string
+	DistCount     int
+	ReplicaCount  int
+	ArbiterCount  int
+	DisperseCount int
+	Redundancy    int
+	Options       map[string]string
+	State         VolState
+	Checksum      uint64
+	Version       uint64
+	Bricks        []brick.Brickinfo
+	Auth          VolAuth // TODO: should not be returned to client
+	GraphMap      map[string]string
 }
 
 // VolAuth represents username and password used by trusted/internal clients
@@ -87,6 +90,7 @@ func (v *Volinfo) StringMap() map[string]string {
 	m["volume.id"] = v.ID.String()
 	m["volume.name"] = v.Name
 	m["volume.type"] = v.Type.String()
+	m["volume.redundancy"] = fmt.Sprintf("%d", v.Redundancy)
 	m["volume.transport"] = v.Transport
 	m["volume.auth.username"] = v.Auth.Username
 	m["volume.auth.password"] = v.Auth.Password
