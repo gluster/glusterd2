@@ -1,0 +1,103 @@
+package events
+
+import (
+	"encoding/json"
+	"sync"
+
+	"github.com/gluster/glusterd2/glusterd2/store"
+
+	"github.com/coreos/etcd/clientv3"
+	log "github.com/sirupsen/logrus"
+)
+
+const (
+	eventsPrefix = "events/"
+)
+
+var (
+	// globalHandler id
+	ghID HandlerID
+	// globalListener wait group and stop channel
+	glWg   sync.WaitGroup
+	glStop chan bool
+)
+
+// globalHandler listens for events that are global and broadcasts them across the cluster
+func globalHandler(ev Event) {
+	if !ev.global {
+		return
+	}
+
+	k := eventsPrefix + ev.ID.String()
+	v, err := json.Marshal(ev)
+	if err != nil {
+		log.WithFields(log.Fields{
+			"event.id":   ev.ID.String(),
+			"event.name": ev.Name,
+		}).WithError(err).Error("failed global broadcast, failed to marshal event")
+	}
+
+	// Putting event with a TTL so that we don't have stale events lingering in store
+	// Using a TTL of 10 seconds should allow all members in the cluster to recieve event
+	// TODO: Allow timeout to be customizable
+	l, err := store.Store.Grant(store.Store.Ctx(), 10)
+	if err != nil {
+		log.WithFields(log.Fields{
+			"event.id":   ev.ID.String(),
+			"event.name": ev.Name,
+		}).WithError(err).Error("failed global broadcast, failed to get lease")
+	}
+
+	if _, err := store.Store.Put(store.Store.Ctx(), k, string(v), clientv3.WithLease(l.ID)); err != nil {
+		log.WithFields(log.Fields{
+			"event.id":   ev.ID.String(),
+			"event.name": ev.Name,
+		}).WithError(err).Error("failed global broadcast, failed to write event to store")
+	}
+}
+
+// globalListener listens for new global events in the store and rebroadcasts them locally
+func globalListener() {
+	glStop = make(chan bool, 0)
+	glWg.Add(1)
+	defer glWg.Done()
+
+	// Watch for new events being added to store
+	wch := store.Store.Watch(store.Store.Ctx(), eventsPrefix, clientv3.WithPrefix(), clientv3.WithFilterDelete())
+	for {
+		select {
+		case resp := <-wch:
+			if resp.Canceled {
+				return
+			}
+			for _, sev := range resp.Events {
+				var ev Event
+				if err := json.Unmarshal(sev.Kv.Value, &ev); err != nil {
+					log.WithField("event.id", string(sev.Kv.Key)).WithError(err).Error("could not unmarshal global event")
+					continue
+				}
+				Broadcast(ev)
+			}
+		case <-glStop:
+			return
+		}
+	}
+}
+
+// startGlobal start the global events framework
+// Should only be called after store is up.
+func startGlobal() error {
+	ghID = Register(globalHandler)
+	go globalListener()
+
+	return nil
+}
+
+// stopGlobal stops the global events framework
+func stopGlobal() error {
+	Unregister(ghID)
+	close(glStop)
+	glWg.Wait()
+
+	return nil
+}
