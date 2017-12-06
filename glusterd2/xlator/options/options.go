@@ -57,8 +57,14 @@ const (
 	OptionFlagDoc
 )
 
-// ErrInvalidArg is an Invalid Argument error
-var ErrInvalidArg = errors.New("Invalid Argument")
+// ErrInvalidArg validates if argument is Invalid
+var ErrInvalidArg = errors.New("Invalid Value")
+
+// ErrEmptyArg validates for empty arguments
+var ErrEmptyArg = errors.New("No value passed")
+
+//ErrInvalidRange validates if option is out of range
+var ErrInvalidRange = errors.New("Option is out of valid range")
 
 // Option is a struct which represents one single xlator option exported by
 // the translator.
@@ -83,7 +89,7 @@ type Option struct {
 // Returns are error if it is not possible, nil otherwise.
 func (o *Option) Validate(val string) error {
 	var err error
-	switch t := o.Type; t {
+	switch o.Type {
 	case OptionTypeBool:
 		err = ValidateBool(o, val)
 	case OptionTypeClientAuthAddr:
@@ -120,11 +126,28 @@ func (o *Option) Validate(val string) error {
 	return err
 }
 
+// ValidateRange validates if option in correctrange.
+func ValidateRange(o *Option, val string) error {
+	v, err := strconv.ParseFloat(val, 64)
+	if err != nil {
+		return err
+	}
+	if o.ValidateType == OptionValidateBoth && o.Min != 0 && o.Max != 0 {
+		return nil
+	} else if o.ValidateType == OptionValidateMin && v < o.Min {
+		return ErrInvalidRange
+	} else if o.ValidateType == OptionValidateMax && v > o.Max {
+		return ErrInvalidRange
+	} else if v < o.Min || v > o.Max {
+		return ErrInvalidRange
+	}
+	return nil
+}
+
 // ValidateBool validates if the option is of type boolean
 func ValidateBool(o *Option, val string) error {
 	if val == "" {
-		err := errors.New("No argument passed")
-		return err
+		return ErrEmptyArg
 	}
 	switch strings.ToLower(val) {
 	case "on", "yes", "true", "enable", "0", "off", "no", "false", "disable", "1":
@@ -141,18 +164,24 @@ func ValidateClientAuthAddr(o *Option, val string) error {
 
 //ValidateDouble validates if the option is of type double
 func ValidateDouble(o *Option, val string) error {
+	var err error
 	if validate.IsFloat(val) != true {
-		return ErrInvalidArg
+		err = ErrInvalidArg
+	} else {
+		err = ValidateRange(o, val)
 	}
-	return nil
+	return err
 }
 
 // ValidateInt validates if the option is of type Int
 func ValidateInt(o *Option, val string) error {
+	var err error
 	if validate.IsInt(val) != true {
-		return ErrInvalidArg
+		err = ErrInvalidArg
+	} else {
+		err = ValidateRange(o, val)
 	}
-	return nil
+	return err
 }
 
 // ValidateInternetAddress validates the Internet Address
@@ -190,7 +219,7 @@ func ValidatePercent(o *Option, val string) error {
 		percent, err = strconv.ParseFloat(val, 64)
 	}
 	if percent < 0.0 || percent > 100.0 {
-		err = errors.New("option is out of range [0 - 100]")
+		err = ErrInvalidRange
 	}
 	return err
 }
@@ -212,23 +241,33 @@ func ValidateSizeList(o *Option, val string) error {
 
 // ValidateSizet validates if the option is a valid size
 func ValidateSizet(o *Option, val string) error {
-	return ErrInvalidArg
+	v, err := strconv.ParseFloat(val, 64)
+	if err != nil {
+		return err
+	}
+	if o.Min != 0 && o.Max != 0 {
+		return nil
+	} else if v < o.Min || v > o.Max {
+		return ErrInvalidRange
+	}
+	return nil
 }
 
 // ValidateStr validates if the option is of type Str
 func ValidateStr(o *Option, val string) error {
-	l := len(val)
+	t := strings.TrimSpace(val)
+	l := len(t)
 	if l == 0 {
-		return ErrInvalidArg
-	} else if len(strings.TrimSpace(val)) == 0 {
-		return ErrInvalidArg
-	} else {
-		for _, op := range o.Value {
-			if val != op {
-				return ErrInvalidArg
-			}
-		}
+		return ErrEmptyArg
+	}
+	if len(o.Value) == 0 {
 		return nil
+	}
+	for _, op := range o.Value {
+		if t == op {
+			return nil
+		}
+		return ErrInvalidArg
 	}
 	return nil
 }
