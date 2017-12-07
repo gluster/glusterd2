@@ -5,6 +5,7 @@ import (
 	"fmt"
 	"net/http"
 
+	"github.com/gluster/glusterd2/glusterd2/events"
 	"github.com/gluster/glusterd2/glusterd2/gdctx"
 	restutils "github.com/gluster/glusterd2/glusterd2/servers/rest/utils"
 	"github.com/gluster/glusterd2/glusterd2/transaction"
@@ -244,6 +245,7 @@ func volumeCreateHandler(w http.ResponseWriter, r *http.Request) {
 	}
 
 	c.Logger().WithField("volname", vol.Name).Info("new volume created")
+	events.Broadcast(newVolumeEvent(eventVolumeCreated, vol))
 
 	resp := createVolumeCreateResp(vol)
 	restutils.SendHTTPResponse(ctx, w, http.StatusCreated, resp)

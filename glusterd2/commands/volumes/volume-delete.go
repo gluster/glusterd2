@@ -3,6 +3,7 @@ package volumecommands
 import (
 	"net/http"
 
+	"github.com/gluster/glusterd2/glusterd2/events"
 	"github.com/gluster/glusterd2/glusterd2/gdctx"
 	restutils "github.com/gluster/glusterd2/glusterd2/servers/rest/utils"
 	"github.com/gluster/glusterd2/glusterd2/transaction"
@@ -120,5 +121,6 @@ func volumeDeleteHandler(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
+	events.Broadcast(newVolumeEvent(eventVolumeDeleted, vol))
 	restutils.SendHTTPResponse(ctx, w, http.StatusOK, nil)
 }
