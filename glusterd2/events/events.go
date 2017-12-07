@@ -12,9 +12,8 @@ type Event struct {
 	ID uuid.UUID
 	// Name is the the name of the event
 	Name string
-	// Data is any additional data attached to the event. Should be a JSON
-	// document
-	Data string
+	// Data is any additional data attached to the event.
+	Data map[string]string
 	// global should be set to true to broadcast event to the full GD2 cluster.
 	// If not event is only broadcast in the local node
 	global bool
@@ -22,7 +21,7 @@ type Event struct {
 
 // New returns a new Event with given information
 // Set global to true if event should be broadast across cluster
-func New(name, data string, global bool) *Event {
+func New(name string, data map[string]string, global bool) *Event {
 	return &Event{
 		ID:     uuid.NewRandom(),
 		Name:   strings.ToLower(name),
