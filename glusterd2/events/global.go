@@ -23,7 +23,7 @@ var (
 )
 
 // globalHandler listens for events that are global and broadcasts them across the cluster
-func globalHandler(ev Event) {
+func globalHandler(ev *Event) {
 	if !ev.global {
 		return
 	}
@@ -76,7 +76,7 @@ func globalListener() {
 					log.WithField("event.id", string(sev.Kv.Key)).WithError(err).Error("could not unmarshal global event")
 					continue
 				}
-				Broadcast(ev)
+				Broadcast(&ev)
 			}
 		case <-glStop:
 			return

@@ -9,7 +9,7 @@ import (
 // Handler is a function that is registered to be called when an event happens
 // event is the name of the event that happened and data is any extra data that
 // was attached to the event as a json document
-type Handler func(Event)
+type Handler func(*Event)
 
 // HandlerID is returned when a Handler is registered. It can be used to unregister a registered Handler.
 type HandlerID uint64
@@ -19,16 +19,16 @@ var (
 		wg sync.WaitGroup
 
 		sync.RWMutex
-		chans map[HandlerID]chan<- Event
+		chans map[HandlerID]chan<- *Event
 		next  HandlerID
 	}
 )
 
 func init() {
-	handlers.chans = make(map[HandlerID]chan<- Event)
+	handlers.chans = make(map[HandlerID]chan<- *Event)
 }
 
-func addHandler(c chan<- Event) HandlerID {
+func addHandler(c chan<- *Event) HandlerID {
 	handlers.Lock()
 	defer handlers.Unlock()
 
@@ -39,7 +39,7 @@ func addHandler(c chan<- Event) HandlerID {
 	return id
 }
 
-func delHandler(id HandlerID) chan<- Event {
+func delHandler(id HandlerID) chan<- *Event {
 	handlers.Lock()
 	defer handlers.Unlock()
 
@@ -56,7 +56,7 @@ func delHandler(id HandlerID) chan<- Event {
 // Handlers need to be thread safe, as they can be called concurrently when
 // multiple events arrive at the same time.
 func Register(h Handler, events ...string) HandlerID {
-	in := make(chan Event)
+	in := make(chan *Event)
 	id := addHandler(in)
 
 	go func() {
@@ -77,7 +77,7 @@ func Unregister(id HandlerID) {
 	}
 }
 
-func handleEvents(in <-chan Event, h Handler, events ...string) {
+func handleEvents(in <-chan *Event, h Handler, events ...string) {
 	var wg sync.WaitGroup
 
 	events = normalizeEvents(events)
@@ -106,7 +106,7 @@ func normalizeEvents(events []string) []string {
 
 // interested returns true if given event is found in the events list
 // Returns true if found or if list is empty
-func interested(e Event, events []string) bool {
+func interested(e *Event, events []string) bool {
 	if len(events) == 0 {
 		return true
 	}

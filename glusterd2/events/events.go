@@ -1,6 +1,8 @@
 package events
 
 import (
+	"strings"
+
 	"github.com/pborman/uuid"
 )
 
@@ -20,17 +22,17 @@ type Event struct {
 
 // New returns a new Event with given information
 // Set global to true if event should be broadast across cluster
-func New(name, data string, global bool) Event {
-	return Event{
+func New(name, data string, global bool) *Event {
+	return &Event{
 		ID:     uuid.NewRandom(),
-		Name:   name,
+		Name:   strings.ToLower(name),
 		Data:   data,
 		global: global,
 	}
 }
 
 // Broadcast broadcasts events to all registered event handlers
-func Broadcast(e Event) error {
+func Broadcast(e *Event) error {
 	handlers.RLock()
 	defer handlers.RUnlock()
 
@@ -44,14 +46,15 @@ func Broadcast(e Event) error {
 // Start starts the events framework.
 // Should be called only after store is up.
 func Start() error {
-	// Nothing much to start other than global stuff
 	startGlobal()
+	startEventLogger()
 
 	return nil
 }
 
 // Stop stops the events framework, events will no longer be broadcast
 func Stop() error {
+	stopEventLogger()
 	stopGlobal()
 	stopHandlers()
 
