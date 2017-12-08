@@ -101,7 +101,7 @@ func volumeOptionsHandler(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	if _, err := txn.Do(); err != nil {
+	if err := txn.Do(); err != nil {
 		logger.WithError(err).Error("volume option transaction failed")
 		if err == transaction.ErrLockTimeout {
 			restutils.SendHTTPError(ctx, w, http.StatusConflict, err.Error(), api.ErrCodeDefault)

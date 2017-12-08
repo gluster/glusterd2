@@ -75,10 +75,10 @@ func (t *Txn) checkAlive() error {
 }
 
 // Do runs the transaction on the cluster
-func (t *Txn) Do() (TxnCtx, error) {
+func (t *Txn) Do() error {
 	if t.CheckAlive {
 		if err := t.checkAlive(); err != nil {
-			return nil, err
+			return err
 		}
 	}
 
@@ -86,14 +86,14 @@ func (t *Txn) Do() (TxnCtx, error) {
 	expTxn.Add("initiated_txn_in_progress", 1)
 
 	for i, s := range t.Steps {
-		if e := s.do(t.Ctx); e != nil {
-			t.Ctx.Logger().WithError(e).Error("Transaction failed, rolling back changes")
+		if err := s.do(t.Ctx); err != nil {
+			t.Ctx.Logger().WithError(err).Error("Transaction failed, rolling back changes")
 			t.undo(i)
-			return nil, e
+			return err
 		}
 	}
 
-	return t.Ctx, nil
+	return nil
 }
 
 // undo undoes a transaction and will be automatically called by Perform if any step fails.

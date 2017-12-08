@@ -147,8 +147,8 @@ func georepCreateHandler(w http.ResponseWriter, r *http.Request) {
 	}
 	txn.Ctx.Set("geosession", geoSession)
 
-	_, e = txn.Do()
-	if e != nil {
+	err = txn.Do()
+	if err != nil {
 		logger.WithFields(log.Fields{
 			"error":       e.Error(),
 			"mastervolid": masterid,
@@ -259,8 +259,8 @@ func georepActionHandler(w http.ResponseWriter, r *http.Request, action actionTy
 	txn.Ctx.Set("mastervolid", masterid.String())
 	txn.Ctx.Set("slavevolid", slaveid.String())
 
-	_, e = txn.Do()
-	if e != nil {
+	err = txn.Do()
+	if err != nil {
 		logger.WithFields(log.Fields{
 			"error":       e.Error(),
 			"mastervolid": masterid,
@@ -351,8 +351,8 @@ func georepDeleteHandler(w http.ResponseWriter, r *http.Request) {
 	txn.Ctx.Set("mastervolid", masterid.String())
 	txn.Ctx.Set("slavevolid", slaveid.String())
 
-	_, e = txn.Do()
-	if e != nil {
+	err = txn.Do()
+	if err != nil {
 		logger.WithFields(log.Fields{
 			"error":       e.Error(),
 			"mastervolid": masterid,

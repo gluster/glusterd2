@@ -121,7 +121,7 @@ func volumeStatusHandler(w http.ResponseWriter, r *http.Request) {
 
 	txn.Ctx.Set("volname", volname)
 
-	rtxn, err := txn.Do()
+	err = txn.Do()
 	if err != nil {
 		logger.WithFields(log.Fields{
 			"error":  err.Error(),
@@ -131,7 +131,7 @@ func volumeStatusHandler(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	result, err := createVolumeStatusResp(rtxn, volNodes)
+	result, err := createVolumeStatusResp(txn.Ctx, volNodes)
 	if err != nil {
 		errMsg := "Failed to aggregate brick status results from multiple nodes."
 		logger.WithField("error", err.Error()).Error("volumeStatusHandler:" + errMsg)

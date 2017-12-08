@@ -125,8 +125,8 @@ func volumeStartHandler(w http.ResponseWriter, r *http.Request) {
 	}
 	txn.Ctx.Set("volname", volname)
 
-	_, e = txn.Do()
-	if e != nil {
+	err = txn.Do()
+	if err != nil {
 		logger.WithFields(log.Fields{
 			"error":  e.Error(),
 			"volume": volname,

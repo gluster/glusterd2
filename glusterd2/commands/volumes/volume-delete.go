@@ -109,7 +109,7 @@ func volumeDeleteHandler(w http.ResponseWriter, r *http.Request) {
 	}
 
 	txn.Ctx.Set("volname", volname)
-	if _, err = txn.Do(); err != nil {
+	if err = txn.Do(); err != nil {
 		logger.WithError(err).WithField(
 			"volume", volname).Error("failed to delete the volume")
 		if err == transaction.ErrLockTimeout {
