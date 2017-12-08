@@ -64,6 +64,7 @@ type Volinfo struct {
 	Transport    string
 	DistCount    int
 	ReplicaCount int
+	ArbiterCount int
 	Options      map[string]string
 	State        VolState
 	Checksum     uint64
