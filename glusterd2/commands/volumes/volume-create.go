@@ -187,17 +187,16 @@ func volumeCreateHandler(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	txn.Nodes = nodes
 	txn.Steps = []*transaction.Step{
 		lock,
 		{
 			DoFunc: "vol-create.Validate",
-			Nodes:  txn.Nodes,
+			Nodes:  nodes,
 		},
 		{
 			DoFunc:   "vol-create.GenerateBrickVolfiles",
 			UndoFunc: "vol-create.Rollback",
-			Nodes:    txn.Nodes,
+			Nodes:    nodes,
 		},
 		{
 			DoFunc: "vol-create.StoreVolume",
@@ -227,7 +226,7 @@ func volumeCreateHandler(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	c, err := txn.Do()
+	err = txn.Do()
 	if err != nil {
 		logger.WithError(err).Error("volume create transaction failed")
 		if err == transaction.ErrLockTimeout {
@@ -238,12 +237,12 @@ func volumeCreateHandler(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	if err = c.Get("volinfo", &vol); err != nil {
+	if err = txn.Ctx.Get("volinfo", &vol); err != nil {
 		restutils.SendHTTPError(ctx, w, http.StatusInternalServerError, "failed to get volinfo", api.ErrCodeDefault)
 		return
 	}
 
-	c.Logger().WithField("volname", vol.Name).Info("new volume created")
+	txn.Ctx.Logger().WithField("volname", vol.Name).Info("new volume created")
 
 	resp := createVolumeCreateResp(vol)
 	restutils.SendHTTPResponse(ctx, w, http.StatusCreated, resp)

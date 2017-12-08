@@ -113,20 +113,20 @@ func volumeStartHandler(w http.ResponseWriter, r *http.Request) {
 		restutils.SendHTTPError(ctx, w, http.StatusInternalServerError, err.Error(), api.ErrCodeDefault)
 		return
 	}
-	txn.Nodes = vol.Nodes()
+
 	txn.Steps = []*transaction.Step{
 		lock,
 		{
 			DoFunc:   "vol-start.Commit",
 			UndoFunc: "vol-start.Undo",
-			Nodes:    txn.Nodes,
+			Nodes:    vol.Nodes(),
 		},
 		unlock,
 	}
 	txn.Ctx.Set("volname", volname)
 
-	_, e = txn.Do()
-	if e != nil {
+	err = txn.Do()
+	if err != nil {
 		logger.WithFields(log.Fields{
 			"error":  e.Error(),
 			"volume": volname,

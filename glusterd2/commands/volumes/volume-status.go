@@ -111,17 +111,21 @@ func volumeStatusHandler(w http.ResponseWriter, r *http.Request) {
 
 	txn := transaction.NewTxn(ctx)
 	defer txn.Cleanup()
-	txn.Nodes = vol.Nodes()
+	volNodes := vol.Nodes()
 	txn.Steps = []*transaction.Step{
 		{
 			DoFunc: "vol-status.Check",
-			Nodes:  txn.Nodes,
+			Nodes:  volNodes,
 		},
 	}
 
 	txn.Ctx.Set("volname", volname)
 
-	rtxn, err := txn.Do()
+	// Some nodes may not be up, which is okay.
+	txn.DontCheckAlive = true
+	txn.DisableRollback = true
+
+	err = txn.Do()
 	if err != nil {
 		logger.WithFields(log.Fields{
 			"error":  err.Error(),
@@ -131,7 +135,7 @@ func volumeStatusHandler(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	result, err := createVolumeStatusResp(rtxn, txn.Nodes)
+	result, err := createVolumeStatusResp(txn.Ctx, vol)
 	if err != nil {
 		errMsg := "Failed to aggregate brick status results from multiple nodes."
 		logger.WithField("error", err.Error()).Error("volumeStatusHandler:" + errMsg)
@@ -142,28 +146,36 @@ func volumeStatusHandler(w http.ResponseWriter, r *http.Request) {
 	restutils.SendHTTPResponse(ctx, w, http.StatusOK, result)
 }
 
-func createVolumeStatusResp(ctx transaction.TxnCtx, nodes []uuid.UUID) (*api.VolumeStatusResp, error) {
+func createVolumeStatusResp(ctx transaction.TxnCtx, vol *volume.Volinfo) (*api.VolumeStatusResp, error) {
+
+	bmap := make(map[string]*api.BrickStatus)
+
+	for _, b := range vol.Bricks {
+		bmap[b.ID.String()] = &api.BrickStatus{
+			Info: createBrickInfo(&b),
+		}
+	}
 
 	// Loop over each node on which txn was run.
 	// Fetch brick statuses stored by each node in transaction context.
-	var brickStatuses []brickstatus
-	for _, node := range nodes {
+	for _, node := range vol.Nodes() {
 		var tmp []brickstatus
 		err := ctx.GetNodeResult(node, brickStatusTxnKey, &tmp)
-		if err != nil {
-			return nil, err
+		if err != nil || len(tmp) == 0 {
+			// skip if we do not have information
+			continue
 		}
-		brickStatuses = append(brickStatuses, tmp...)
+		for _, b := range tmp {
+			entry := bmap[b.Info.ID.String()]
+			entry.Online = b.Online
+			entry.Port = b.Port
+			entry.Pid = b.Pid
+		}
 	}
 
 	var resp api.VolumeStatusResp
-	for _, b := range brickStatuses {
-		resp.Bricks = append(resp.Bricks, api.BrickStatus{
-			Info:   createBrickInfo(&b.Info),
-			Online: b.Online,
-			Pid:    b.Pid,
-			Port:   b.Port,
-		})
+	for _, v := range bmap {
+		resp.Bricks = append(resp.Bricks, *v)
 	}
 
 	return &resp, nil
