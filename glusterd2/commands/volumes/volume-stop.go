@@ -106,12 +106,11 @@ func volumeStopHandler(w http.ResponseWriter, r *http.Request) {
 		restutils.SendHTTPError(ctx, w, http.StatusInternalServerError, err.Error(), api.ErrCodeDefault)
 		return
 	}
-	txn.Nodes = vol.Nodes()
 	txn.Steps = []*transaction.Step{
 		lock,
 		{
 			DoFunc: "vol-stop.Commit",
-			Nodes:  txn.Nodes,
+			Nodes:  vol.Nodes(),
 		},
 		unlock,
 	}

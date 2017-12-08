@@ -111,11 +111,11 @@ func volumeStatusHandler(w http.ResponseWriter, r *http.Request) {
 
 	txn := transaction.NewTxn(ctx)
 	defer txn.Cleanup()
-	txn.Nodes = vol.Nodes()
+	volNodes := vol.Nodes()
 	txn.Steps = []*transaction.Step{
 		{
 			DoFunc: "vol-status.Check",
-			Nodes:  txn.Nodes,
+			Nodes:  volNodes,
 		},
 	}
 
@@ -131,7 +131,7 @@ func volumeStatusHandler(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	result, err := createVolumeStatusResp(rtxn, txn.Nodes)
+	result, err := createVolumeStatusResp(rtxn, volNodes)
 	if err != nil {
 		errMsg := "Failed to aggregate brick status results from multiple nodes."
 		logger.WithField("error", err.Error()).Error("volumeStatusHandler:" + errMsg)

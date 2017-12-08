@@ -187,17 +187,16 @@ func volumeCreateHandler(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	txn.Nodes = nodes
 	txn.Steps = []*transaction.Step{
 		lock,
 		{
 			DoFunc: "vol-create.Validate",
-			Nodes:  txn.Nodes,
+			Nodes:  nodes,
 		},
 		{
 			DoFunc:   "vol-create.GenerateBrickVolfiles",
 			UndoFunc: "vol-create.Rollback",
-			Nodes:    txn.Nodes,
+			Nodes:    nodes,
 		},
 		{
 			DoFunc: "vol-create.StoreVolume",

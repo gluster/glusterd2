@@ -137,7 +137,6 @@ func georepCreateHandler(w http.ResponseWriter, r *http.Request) {
 	// TODO: Transaction step function for setting Volume Options
 	// As a workaround, Set volume options before enabling Geo-rep session
 
-	txn.Nodes = vol.Nodes()
 	txn.Steps = []*transaction.Step{
 		lock,
 		{
@@ -249,12 +248,11 @@ func georepActionHandler(w http.ResponseWriter, r *http.Request, action actionTy
 		return
 	}
 
-	txn.Nodes = vol.Nodes()
 	txn.Steps = []*transaction.Step{
 		lock,
 		{
 			DoFunc: doFunc,
-			Nodes:  txn.Nodes,
+			Nodes:  vol.Nodes(),
 		},
 		unlock,
 	}
@@ -326,7 +324,7 @@ func georepDeleteHandler(w http.ResponseWriter, r *http.Request) {
 	}
 
 	// Fetch Volume details and check if Volume exists
-	vol, e := volume.GetVolume(geoSession.MasterVol)
+	_, e := volume.GetVolume(geoSession.MasterVol)
 	if e != nil {
 		restutils.SendHTTPError(ctx, w, http.StatusNotFound, errors.ErrVolNotFound.Error(), api.ErrCodeDefault)
 		return
@@ -342,7 +340,6 @@ func georepDeleteHandler(w http.ResponseWriter, r *http.Request) {
 	}
 
 	// TODO: Add transaction step to clean xattrs specific to georep session
-	txn.Nodes = vol.Nodes()
 	txn.Steps = []*transaction.Step{
 		lock,
 		{
