@@ -30,8 +30,8 @@ type Txn struct {
 	// Nodes is the union of the all the TxnStep.Nodes and is implicitly
 	// set in Txn.Do(). This list is used to determine liveness of the
 	// nodes before running the transaction steps.
-	CheckAlive bool
-	Nodes      []uuid.UUID
+	DontCheckAlive bool
+	Nodes          []uuid.UUID
 
 	DisableRollback bool
 }
@@ -46,7 +46,6 @@ func NewTxn(ctx context.Context) *Txn {
 		"txnid": t.id.String(),
 		"reqid": t.reqID.String(),
 	}).WithPrefix(prefix)
-	t.CheckAlive = true
 
 	return t
 }
@@ -78,7 +77,7 @@ func (t *Txn) checkAlive() error {
 
 // Do runs the transaction on the cluster
 func (t *Txn) Do() error {
-	if t.CheckAlive {
+	if !t.DontCheckAlive {
 		if err := t.checkAlive(); err != nil {
 			return err
 		}

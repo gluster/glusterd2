@@ -122,7 +122,7 @@ func volumeStatusHandler(w http.ResponseWriter, r *http.Request) {
 	txn.Ctx.Set("volname", volname)
 
 	// Some nodes may not be up, which is okay.
-	txn.CheckAlive = false
+	txn.DontCheckAlive = true
 	txn.DisableRollback = true
 
 	err = txn.Do()
