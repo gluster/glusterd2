@@ -178,5 +178,13 @@ func createVolumeStatusResp(ctx transaction.TxnCtx, vol *volume.Volinfo) (*api.V
 		resp.Bricks = append(resp.Bricks, *v)
 	}
 
+	s, err := volumeUsage(vol.Name)
+	if err == nil {
+		// TODO:
+		// * Log failure using request logger
+		// * Convert stats in bytes to human-readable units ?
+		resp.Size = *s
+	}
+
 	return &resp, nil
 }

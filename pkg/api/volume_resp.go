@@ -37,10 +37,18 @@ type VolumeInfo struct {
 	Bricks       []BrickInfo       `json:"bricks"`
 }
 
+// SizeInfo represents sizing information.
+// Clients should NOT use this struct directly.
+type SizeInfo struct {
+	Capacity uint64 `json:"capacity"`
+	Used     uint64 `json:"used"`
+	Free     uint64 `json:"free"`
+}
+
 // VolumeStatusResp response contains the statuses of all bricks of the volume.
 type VolumeStatusResp struct {
 	Bricks []BrickStatus `json:"bricks"`
-	// TODO: Add clients connected, capacity, free size etc.
+	Size   SizeInfo      `json:"size"`
 }
 
 // VolumeCreateResp is the response sent for a volume create request.
