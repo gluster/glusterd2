@@ -3,6 +3,7 @@ package transaction
 import (
 	"context"
 	"encoding/json"
+	"errors"
 
 	"github.com/gluster/glusterd2/glusterd2/store"
 
@@ -122,6 +123,10 @@ func (c *Tctx) Get(key string, value interface{}) error {
 			"key":   storeKey,
 		}).Error("failed to get value")
 		return e
+	}
+
+	if r.Count == 0 {
+		return errors.New("key not found")
 	}
 
 	if e = json.Unmarshal(r.Kvs[0].Value, value); e != nil {

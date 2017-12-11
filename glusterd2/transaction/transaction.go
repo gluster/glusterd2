@@ -26,10 +26,14 @@ type Txn struct {
 	reqID uuid.UUID
 	Ctx   TxnCtx
 	Steps []*Step
-	// Nodes should be a union of the all the TxnStep.Nodes and must be set
-	// before calling Txn.Do(). This is currently only used to determine
-	// liveness of the nodes before running the transaction steps.
-	Nodes []uuid.UUID
+
+	// Nodes is the union of the all the TxnStep.Nodes and is implicitly
+	// set in Txn.Do(). This list is used to determine liveness of the
+	// nodes before running the transaction steps.
+	DontCheckAlive bool
+	Nodes          []uuid.UUID
+
+	DisableRollback bool
 }
 
 // NewTxn returns an initialized Txn without any steps
@@ -52,29 +56,47 @@ func (t *Txn) Cleanup() {
 	expTxn.Add("initiated_txn_in_progress", -1)
 }
 
-// Do runs the transaction on the cluster
-func (t *Txn) Do() (TxnCtx, error) {
-	t.Ctx.Logger().Debug("Starting transaction")
+func (t *Txn) checkAlive() error {
 
-	// verify that all nodes are online
+	if len(t.Nodes) == 0 {
+		for _, s := range t.Steps {
+			t.Nodes = append(t.Nodes, s.Nodes...)
+		}
+	}
+	t.Nodes = nodesUnion(t.Nodes)
+
 	for _, node := range t.Nodes {
+		// TODO: Using prefixed query, get all alive nodes in a single etcd query
 		if !store.Store.IsNodeAlive(node) {
-			return nil, fmt.Errorf("node %s is probably down", node.String())
+			return fmt.Errorf("node %s is probably down", node.String())
 		}
 	}
 
+	return nil
+}
+
+// Do runs the transaction on the cluster
+func (t *Txn) Do() error {
+	if !t.DontCheckAlive {
+		if err := t.checkAlive(); err != nil {
+			return err
+		}
+	}
+
+	t.Ctx.Logger().Debug("Starting transaction")
 	expTxn.Add("initiated_txn_in_progress", 1)
 
-	//Do the steps
 	for i, s := range t.Steps {
-		if e := s.do(t.Ctx); e != nil {
-			t.Ctx.Logger().WithError(e).Error("Transaction failed, rolling back changes")
-			t.undo(i)
-			return nil, e
+		if err := s.do(t.Ctx); err != nil {
+			if !t.DisableRollback {
+				t.Ctx.Logger().WithError(err).Error("Transaction failed, rolling back changes")
+				t.undo(i)
+			}
+			return err
 		}
 	}
 
-	return t.Ctx, nil
+	return nil
 }
 
 // undo undoes a transaction and will be automatically called by Perform if any step fails.
@@ -83,4 +105,17 @@ func (t *Txn) undo(n int) {
 	for i := n; i >= 0; i-- {
 		t.Steps[i].undo(t.Ctx)
 	}
+}
+
+// nodesUnion removes duplicate nodes
+func nodesUnion(nodes []uuid.UUID) []uuid.UUID {
+	for i := 0; i < len(nodes); i++ {
+		for j := i + 1; j < len(nodes); j++ {
+			if uuid.Equal(nodes[i], nodes[j]) {
+				nodes = append(nodes[:j], nodes[j+1:]...)
+				j--
+			}
+		}
+	}
+	return nodes
 }

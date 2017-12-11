@@ -19,6 +19,7 @@ func volumeInfoHandler(w http.ResponseWriter, r *http.Request) {
 	v, err := volume.GetVolume(volname)
 	if err != nil {
 		restutils.SendHTTPError(ctx, w, http.StatusNotFound, errors.ErrVolNotFound.Error(), api.ErrCodeDefault)
+		return
 	}
 
 	resp := createVolumeGetResp(v)

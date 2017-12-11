@@ -236,16 +236,15 @@ func volumeExpandHandler(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	txn.Nodes = nodes
 	txn.Steps = []*transaction.Step{
 		lock,
 		{
 			DoFunc: "vol-expand.CheckBrick",
-			Nodes:  txn.Nodes,
+			Nodes:  nodes,
 		},
 		{
 			DoFunc:   "vol-expand.StartBrick",
-			Nodes:    txn.Nodes,
+			Nodes:    nodes,
 			UndoFunc: "vol-expand.UndoStartBrick",
 		},
 		{
@@ -254,7 +253,7 @@ func volumeExpandHandler(w http.ResponseWriter, r *http.Request) {
 		},
 		{
 			DoFunc: "vol-expand.NotifyClients",
-			Nodes:  txn.Nodes,
+			Nodes:  nodes,
 		},
 		unlock,
 	}
@@ -281,7 +280,7 @@ func volumeExpandHandler(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	if _, err = txn.Do(); err != nil {
+	if err = txn.Do(); err != nil {
 		logger.WithError(err).Error("volume expand transaction failed")
 		if err == transaction.ErrLockTimeout {
 			restutils.SendHTTPError(ctx, w, http.StatusConflict, err.Error(), api.ErrCodeDefault)
