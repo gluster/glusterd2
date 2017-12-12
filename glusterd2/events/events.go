@@ -45,7 +45,7 @@ func Broadcast(e *Event) error {
 // Start starts the events framework.
 // Should be called only after store is up.
 func Start() error {
-	startGlobal()
+	StartGlobal()
 	startEventLogger()
 
 	return nil
@@ -54,7 +54,7 @@ func Start() error {
 // Stop stops the events framework, events will no longer be broadcast
 func Stop() error {
 	stopEventLogger()
-	stopGlobal()
+	StopGlobal()
 	stopHandlers()
 
 	return nil

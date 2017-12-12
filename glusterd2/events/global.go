@@ -84,17 +84,17 @@ func globalListener() {
 	}
 }
 
-// startGlobal start the global events framework
+// StartGlobal start the global events framework
 // Should only be called after store is up.
-func startGlobal() error {
+func StartGlobal() error {
 	ghID = Register(globalHandler)
 	go globalListener()
 
 	return nil
 }
 
-// stopGlobal stops the global events framework
-func stopGlobal() error {
+// StopGlobal stops the global events framework
+func StopGlobal() error {
 	Unregister(ghID)
 	close(glStop)
 	glWg.Wait()
