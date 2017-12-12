@@ -33,7 +33,14 @@ func newEmbedStore(sconf *Config) (*GDStore, error) {
 		return nil, err
 	}
 
-	return &GDStore{*sconf, ee.Client(), ee.Session(), ee}, nil
+	gds, err := newNamespacedStore(ee.Client(), sconf)
+	if err != nil {
+		return nil, err
+	}
+
+	gds.ee = ee
+
+	return gds, nil
 }
 
 func (s *GDStore) closeEmbedStore() {
