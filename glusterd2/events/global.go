@@ -4,9 +4,11 @@ import (
 	"encoding/json"
 	"sync"
 
+	"github.com/gluster/glusterd2/glusterd2/gdctx"
 	"github.com/gluster/glusterd2/glusterd2/store"
 
 	"github.com/coreos/etcd/clientv3"
+	"github.com/pborman/uuid"
 	log "github.com/sirupsen/logrus"
 )
 
@@ -29,6 +31,7 @@ func globalHandler(ev *Event) {
 	}
 
 	k := eventsPrefix + ev.ID.String()
+	ev.nodeid = gdctx.MyUUID
 	v, err := json.Marshal(ev)
 	if err != nil {
 		log.WithFields(log.Fields{
@@ -76,7 +79,9 @@ func globalListener() {
 					log.WithField("event.id", string(sev.Kv.Key)).WithError(err).Error("could not unmarshal global event")
 					continue
 				}
-				Broadcast(&ev)
+				if !uuid.Equal(ev.nodeid, gdctx.MyUUID) {
+					Broadcast(&ev)
+				}
 			}
 		case <-glStop:
 			return
