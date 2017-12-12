@@ -4,7 +4,6 @@ import (
 	"time"
 
 	"github.com/coreos/etcd/clientv3"
-	"github.com/coreos/etcd/clientv3/concurrency"
 	log "github.com/sirupsen/logrus"
 )
 
@@ -22,17 +21,7 @@ func newRemoteStore(conf *Config) (*GDStore, error) {
 	}
 	log.Debug("etcd client connection created")
 
-	// Create a new session (lease kept alive for the lifetime of a client)
-	// This is currently used for:
-	// * distributed locking (Mutex)
-	// * representing liveness of the client
-	s, e := concurrency.NewSession(c, concurrency.WithTTL(sessionTTL))
-	if e != nil {
-		log.WithError(e).Error("failed to create an etcd session")
-		return nil, e
-	}
-
-	return &GDStore{*conf, c, s, nil}, nil
+	return newNamespacedStore(c, conf)
 }
 
 func (s *GDStore) closeRemoteStore() {
