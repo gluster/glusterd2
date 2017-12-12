@@ -29,6 +29,12 @@ func (p *Plugin) RestRoutes() route.Routes {
 			Pattern:     "/volumes/{name}/heal/enable",
 			Version:     1,
 			HandlerFunc: glustershEnableHandler},
+		route.Route{
+			Name:        "GlustershDisable",
+			Method:      "POST",
+			Pattern:     "/volumes/{name}/heal/disable",
+			Version:     1,
+			HandlerFunc: glustershDisableHandler},
 	}
 }
 
@@ -36,4 +42,5 @@ func (p *Plugin) RestRoutes() route.Routes {
 // Glusterd Transaction framework
 func (p *Plugin) RegisterStepFuncs() {
 	transaction.RegisterStepFunc(txnSelfHealStart, "selfheal-start.Commit")
+	transaction.RegisterStepFunc(txnSelfHealStop, "selfheal-stop.Commit")
 }
