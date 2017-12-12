@@ -2,6 +2,7 @@ package volumecommands
 
 import (
 	"bytes"
+	"errors"
 	"fmt"
 	"io/ioutil"
 	"net"
@@ -14,6 +15,8 @@ import (
 
 	config "github.com/spf13/viper"
 )
+
+const fuseSuperMagic = 1702057286
 
 func mountVolume(name string, mountpoint string) error {
 	// NOTE: Why do it this way ?
@@ -42,21 +45,19 @@ func mountVolume(name string, mountpoint string) error {
 	if err := cmd.Start(); err != nil {
 		return err
 	}
-	cmd.Wait() // glusterfs daemonizes itself
 
-	return nil
+	return cmd.Wait() // glusterfs daemonizes itself
 }
 
 func volumeUsage(volname string) (*api.SizeInfo, error) {
 
-	var v api.SizeInfo
 	tempDir, err := ioutil.TempDir(config.GetString("rundir"), "gd2mount")
 	if err != nil {
 		return nil, err
 	}
 	defer os.Remove(tempDir)
 
-	if err := mountVolume("test", tempDir); err != nil {
+	if err := mountVolume(volname, tempDir); err != nil {
 		return nil, err
 	}
 	defer syscall.Unmount(tempDir, syscall.MNT_FORCE)
@@ -66,6 +67,12 @@ func volumeUsage(volname string) (*api.SizeInfo, error) {
 		return nil, err
 	}
 
+	if fstat.Type != fuseSuperMagic {
+		// Do a crude check if mountpoint is a glusterfs mount
+		return nil, errors.New("Not FUSE mount")
+	}
+
+	var v api.SizeInfo
 	v.Capacity = fstat.Blocks * uint64(fstat.Bsize)
 	v.Free = fstat.Bfree * uint64(fstat.Bsize)
 	v.Used = v.Capacity - v.Free

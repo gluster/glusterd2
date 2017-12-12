@@ -2,6 +2,7 @@ package volumecommands
 
 import (
 	"net/http"
+	"time"
 
 	"github.com/gluster/glusterd2/glusterd2/brick"
 	"github.com/gluster/glusterd2/glusterd2/daemon"
@@ -111,31 +112,45 @@ func volumeStatusHandler(w http.ResponseWriter, r *http.Request) {
 
 	txn := transaction.NewTxn(ctx)
 	defer txn.Cleanup()
-	volNodes := vol.Nodes()
 	txn.Steps = []*transaction.Step{
 		{
 			DoFunc: "vol-status.Check",
-			Nodes:  volNodes,
+			Nodes:  vol.Nodes(),
 		},
 	}
-
 	txn.Ctx.Set("volname", volname)
 
 	// Some nodes may not be up, which is okay.
 	txn.DontCheckAlive = true
 	txn.DisableRollback = true
 
+	// txn.Do() call is synchronous; try getting volume size info
+	// concurrently while the transaction runs.
+	ch := make(chan *api.SizeInfo)
+	go func() {
+		s, err := volumeUsage(vol.Name)
+		if err != nil {
+			logger.WithError(err).WithField("volume", volname).Error("Failed to get volume size info")
+		}
+		ch <- s
+	}()
+
 	err = txn.Do()
 	if err != nil {
-		logger.WithFields(log.Fields{
-			"error":  err.Error(),
-			"volume": volname,
-		}).Error("volumeStatusHandler: Failed to get volume status.")
+		logger.WithError(err).WithField("volume", volname).Error("Failed to get volume status")
 		restutils.SendHTTPError(ctx, w, http.StatusInternalServerError, err.Error(), api.ErrCodeDefault)
 		return
 	}
 
-	result, err := createVolumeStatusResp(txn.Ctx, vol)
+	var size *api.SizeInfo
+	select {
+	case size = <-ch:
+		// should be ready by the time the txn is over
+	case <-time.After(time.Second * 2):
+		logger.WithError(err).WithField("volume", volname).Error("Timeout: Failed to get volume status")
+	}
+
+	result, err := createVolumeStatusResp(txn.Ctx, vol, size)
 	if err != nil {
 		errMsg := "Failed to aggregate brick status results from multiple nodes."
 		logger.WithField("error", err.Error()).Error("volumeStatusHandler:" + errMsg)
@@ -146,18 +161,18 @@ func volumeStatusHandler(w http.ResponseWriter, r *http.Request) {
 	restutils.SendHTTPResponse(ctx, w, http.StatusOK, result)
 }
 
-func createVolumeStatusResp(ctx transaction.TxnCtx, vol *volume.Volinfo) (*api.VolumeStatusResp, error) {
+func createVolumeStatusResp(ctx transaction.TxnCtx, vol *volume.Volinfo, size *api.SizeInfo) (*api.VolumeStatusResp, error) {
 
+	// bmap is a map of brick statuses keyed by brick ID
 	bmap := make(map[string]*api.BrickStatus)
-
 	for _, b := range vol.Bricks {
 		bmap[b.ID.String()] = &api.BrickStatus{
 			Info: createBrickInfo(&b),
 		}
 	}
 
-	// Loop over each node on which txn was run.
-	// Fetch brick statuses stored by each node in transaction context.
+	// Loop over each node that make up the volume and aggregate result
+	// of brick status check from each.
 	for _, node := range vol.Nodes() {
 		var tmp []brickstatus
 		err := ctx.GetNodeResult(node, brickStatusTxnKey, &tmp)
@@ -178,12 +193,8 @@ func createVolumeStatusResp(ctx transaction.TxnCtx, vol *volume.Volinfo) (*api.V
 		resp.Bricks = append(resp.Bricks, *v)
 	}
 
-	s, err := volumeUsage(vol.Name)
-	if err == nil {
-		// TODO:
-		// * Log failure using request logger
-		// * Convert stats in bytes to human-readable units ?
-		resp.Size = *s
+	if size != nil {
+		resp.Size = *size
 	}
 
 	return &resp, nil
