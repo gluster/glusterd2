@@ -22,12 +22,13 @@ const (
 
 // newEvent returns an event of given type with daemon data filled
 func newEvent(d Daemon, e daemonEvent, pid int) *events.Event {
-	data := make(map[string]string)
-	data["name"] = d.Name()
-	data["id"] = d.ID()
-	data["binary"] = d.Path()
-	data["args"] = d.Args()
-	data["pid"] = strconv.Itoa(pid)
+	data := map[string]string{
+		"name":   d.Name(),
+		"id":     d.ID(),
+		"binary": d.Path(),
+		"args":   d.Args(),
+		"pid":    strconv.Itoa(pid),
+	}
 
 	return events.New(string(e), data, false)
 }

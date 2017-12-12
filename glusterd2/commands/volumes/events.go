@@ -15,9 +15,10 @@ const (
 )
 
 func newVolumeEvent(e volumeEvent, v *volume.Volinfo) *events.Event {
-	data := make(map[string]string)
-	data["volume.name"] = v.Name
-	data["volume.id"] = v.ID.String()
+	data := map[string]string{
+		"volume.name": v.Name,
+		"volume.id":   v.ID.String(),
+	}
 
 	return events.New(string(e), data, true)
 }
