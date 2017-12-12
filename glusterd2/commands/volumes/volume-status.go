@@ -75,6 +75,8 @@ func checkStatus(ctx transaction.TxnCtx) error {
 			if err == nil {
 				online = true
 				port = pmap.RegistrySearch(binfo.Path, pmap.GfPmapPortBrickserver)
+			} else {
+				pid = -1
 			}
 		}
 
