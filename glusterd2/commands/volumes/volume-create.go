@@ -90,7 +90,7 @@ func createVolinfo(req *api.VolCreateReq) (*volume.Volinfo, error) {
 			v.DisperseCount = req.DisperseData
 		}
 		if req.DisperseRedundancy == 0 {
-			v.RedundancyCount = 1
+			v.RedundancyCount = int(getRedundancy(uint(v.DisperseCount)))
 		} else {
 			v.RedundancyCount = req.DisperseRedundancy
 		}
@@ -278,4 +278,18 @@ func volumeCreateHandler(w http.ResponseWriter, r *http.Request) {
 
 func createVolumeCreateResp(v *volume.Volinfo) *api.VolumeCreateResp {
 	return (*api.VolumeCreateResp)(createVolumeInfoResp(v))
+}
+
+func getRedundancy(disperse uint) uint {
+	var temp, l, mask uint
+	temp = disperse
+	l = 0
+	for temp = temp >> 1; temp != 0; temp = temp >> 1 {
+		l = l + 1
+	}
+	mask = ^(1 << l)
+	if red := disperse & mask; red != 0 {
+		return red
+	}
+	return 1
 }
