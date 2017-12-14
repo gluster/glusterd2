@@ -90,11 +90,11 @@ func createVolinfo(req *api.VolCreateReq) (*volume.Volinfo, error) {
 			v.DisperseCount = req.DisperseData
 		}
 		if req.DisperseRedundancy == 0 {
-			v.Redundancy = 1
+			v.RedundancyCount = 1
 		} else {
-			v.Redundancy = req.DisperseRedundancy
+			v.RedundancyCount = req.DisperseRedundancy
 		}
-		if 2*v.Redundancy >= len(req.Bricks) {
+		if 2*v.RedundancyCount >= len(req.Bricks) {
 			return nil, errors.New("Invalid redundancy value")
 		}
 
