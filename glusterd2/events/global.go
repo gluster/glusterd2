@@ -31,7 +31,7 @@ func globalHandler(ev *Event) {
 	}
 
 	k := eventsPrefix + ev.ID.String()
-	ev.nodeid = gdctx.MyUUID
+	ev.Origin = gdctx.MyUUID
 	v, err := json.Marshal(ev)
 	if err != nil {
 		log.WithFields(log.Fields{
@@ -77,7 +77,7 @@ func globalListener(glStop chan struct{}) {
 					log.WithField("event.id", string(sev.Kv.Key)).WithError(err).Error("could not unmarshal global event")
 					continue
 				}
-				if !uuid.Equal(ev.nodeid, gdctx.MyUUID) {
+				if !uuid.Equal(ev.Origin, gdctx.MyUUID) {
 					Broadcast(&ev)
 				}
 			}

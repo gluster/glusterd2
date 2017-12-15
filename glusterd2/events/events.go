@@ -17,9 +17,9 @@ type Event struct {
 	// global should be set to true to broadcast event to the full GD2 cluster.
 	// If not event is only broadcast in the local node
 	global bool
-	// nodeid is used when broadcasting global events to prevent origin nodes
-	// rebroadcasting a global event
-	nodeid uuid.UUID
+	// Origin is used when broadcasting global events to prevent origin nodes
+	// rebroadcasting a global event. Event generators need not set this.
+	Origin uuid.UUID
 }
 
 // New returns a new Event with given information
