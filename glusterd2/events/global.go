@@ -21,7 +21,7 @@ var (
 	ghID HandlerID
 	// globalListener wait group and stop channel
 	glWg   sync.WaitGroup
-	glStop chan bool
+	glStop chan struct{}
 )
 
 // globalHandler listens for events that are global and broadcasts them across the cluster
@@ -61,7 +61,7 @@ func globalHandler(ev *Event) {
 
 // globalListener listens for new global events in the store and rebroadcasts them locally
 func globalListener() {
-	glStop = make(chan bool, 0)
+	glStop = make(chan struct{}, 0)
 	glWg.Add(1)
 	defer glWg.Done()
 
