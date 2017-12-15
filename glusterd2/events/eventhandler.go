@@ -6,13 +6,24 @@ import (
 	"sync"
 )
 
-// Handler is a function that is registered to be called when an event happens
-// event is the name of the event that happened and data is any extra data that
-// was attached to the event as a json document
-type Handler func(*Event)
+// Handler defines the event handler interface.
+// It is registered with the events framework to be called when an event
+// happens.
+type Handler interface {
+	// Handle is the function that gets called when an event occurs
+	Handle(*Event)
+	// Events should returns a list of events that the handler is interested in
+	Events() []string
+}
 
 // HandlerID is returned when a Handler is registered. It can be used to unregister a registered Handler.
 type HandlerID uint64
+
+// handler implements the Handler interface around a standalone Handle function
+type handler struct {
+	handle func(*Event)
+	events []string
+}
 
 var (
 	handlers struct {
@@ -80,13 +91,13 @@ func Unregister(id HandlerID) {
 func handleEvents(in <-chan *Event, h Handler, events ...string) {
 	var wg sync.WaitGroup
 
-	events = normalizeEvents(events)
+	events = normalizeEvents(h.Events())
 
 	for e := range in {
 		if interested(e, events) {
 			go func() {
 				wg.Add(1)
-				h(e)
+				h.Handle(e)
 				wg.Done()
 			}()
 		}
@@ -126,4 +137,17 @@ func stopHandlers() error {
 	handlers.wg.Wait()
 
 	return nil
+}
+
+// NewHandler returns a Handler wrapping the provided Handle function.
+func NewHandler(h func(*Event), e ...string) Handler {
+	return &handler{h, e}
+}
+
+func (h *handler) Handle(e *Event) {
+	h.handle(e)
+}
+
+func (h *handler) Events() []string {
+	return h.events
 }

@@ -17,7 +17,7 @@ func eventLogger(e *Event) {
 
 // startEventLogger registers the eventLogger with the events framework
 func startEventLogger() {
-	lhID = Register(eventLogger)
+	lhID = Register(NewHandler(eventLogger))
 }
 
 // stopEventLogger unregisters the eventLogger

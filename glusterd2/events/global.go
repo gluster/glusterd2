@@ -92,7 +92,7 @@ func globalListener() {
 // StartGlobal start the global events framework
 // Should only be called after store is up.
 func StartGlobal() error {
-	ghID = Register(globalHandler)
+	ghID = Register(NewHandler(globalHandler))
 	go globalListener()
 
 	return nil
