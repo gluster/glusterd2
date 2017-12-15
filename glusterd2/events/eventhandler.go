@@ -70,8 +70,8 @@ func Register(h Handler, events ...string) HandlerID {
 	in := make(chan *Event)
 	id := addHandler(in)
 
+	handlers.wg.Add(1)
 	go func() {
-		handlers.wg.Add(1)
 		handleEvents(in, h, events...)
 		handlers.wg.Done()
 	}()
@@ -95,8 +95,8 @@ func handleEvents(in <-chan *Event, h Handler, events ...string) {
 
 	for e := range in {
 		if interested(e, events) {
+			wg.Add(1)
 			go func() {
-				wg.Add(1)
 				h.Handle(e)
 				wg.Done()
 			}()

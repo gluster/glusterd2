@@ -60,9 +60,7 @@ func globalHandler(ev *Event) {
 }
 
 // globalListener listens for new global events in the store and rebroadcasts them locally
-func globalListener() {
-	glStop = make(chan struct{}, 0)
-	glWg.Add(1)
+func globalListener(glStop chan struct{}) {
 	defer glWg.Done()
 
 	// Watch for new events being added to store
@@ -93,7 +91,9 @@ func globalListener() {
 // Should only be called after store is up.
 func StartGlobal() error {
 	ghID = Register(NewHandler(globalHandler))
-	go globalListener()
+	glStop = make(chan struct{}, 0)
+	glWg.Add(1)
+	go globalListener(glStop)
 
 	return nil
 }
