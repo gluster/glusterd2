@@ -10,9 +10,12 @@ import (
 // It is registered with the events framework to be called when an event
 // happens.
 type Handler interface {
-	// Handle is the function that gets called when an event occurs
+	// Handle is the function that gets called when an event occurs.
+	// Handle needs to be thread safe, as it can be called concurrently when
+	// multiple events arrive at the same time.
 	Handle(*Event)
-	// Events should returns a list of events that the handler is interested in
+	// Events should returns a list of events that the handler is interested in.
+	// Return an empty list if interested in all events.
 	Events() []string
 }
 
@@ -62,17 +65,14 @@ func delHandler(id HandlerID) chan<- *Event {
 	return c
 }
 
-// Register a Handler to be called when the given events happen.
-// If no events are specified, handler function is called for all events
-// Handlers need to be thread safe, as they can be called concurrently when
-// multiple events arrive at the same time.
-func Register(h Handler, events ...string) HandlerID {
+// Register a Handler to be called when the events happen.
+func Register(h Handler) HandlerID {
 	in := make(chan *Event)
 	id := addHandler(in)
 
 	handlers.wg.Add(1)
 	go func() {
-		handleEvents(in, h, events...)
+		handleEvents(in, h)
 		handlers.wg.Done()
 	}()
 
@@ -88,10 +88,10 @@ func Unregister(id HandlerID) {
 	}
 }
 
-func handleEvents(in <-chan *Event, h Handler, events ...string) {
+func handleEvents(in <-chan *Event, h Handler) {
 	var wg sync.WaitGroup
 
-	events = normalizeEvents(h.Events())
+	events := normalizeEvents(h.Events())
 
 	for e := range in {
 		if interested(e, events) {
@@ -139,9 +139,10 @@ func stopHandlers() error {
 	return nil
 }
 
-// NewHandler returns a Handler wrapping the provided Handle function.
-func NewHandler(h func(*Event), e ...string) Handler {
-	return &handler{h, e}
+// NewHandler returns a Handler wrapping the provided Handle function, and the interested events.
+// If no events are provided, the handler is interested in all events.
+func NewHandler(handle func(*Event), events ...string) Handler {
+	return &handler{handle, events}
 }
 
 func (h *handler) Handle(e *Event) {
