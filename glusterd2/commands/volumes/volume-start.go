@@ -3,6 +3,7 @@ package volumecommands
 import (
 	"net/http"
 
+	"github.com/gluster/glusterd2/glusterd2/events"
 	"github.com/gluster/glusterd2/glusterd2/gdctx"
 	restutils "github.com/gluster/glusterd2/glusterd2/servers/rest/utils"
 	"github.com/gluster/glusterd2/glusterd2/transaction"
@@ -142,5 +143,7 @@ func volumeStartHandler(w http.ResponseWriter, r *http.Request) {
 		restutils.SendHTTPError(ctx, w, http.StatusInternalServerError, e.Error(), api.ErrCodeDefault)
 		return
 	}
+
+	events.Broadcast(newVolumeEvent(eventVolumeStarted, vol))
 	restutils.SendHTTPResponse(ctx, w, http.StatusOK, vol)
 }
