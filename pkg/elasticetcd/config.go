@@ -9,12 +9,20 @@ import (
 
 // Default values for the various ElasticEtcd config options
 const (
-	DefaultCURL      = "http://0.0.0.0:2379"
-	DefaultPURL      = "http://0.0.0.0:2380"
-	DefaultEndpoint  = "http://localhost:2379"
-	DefaultName      = "elasticetcd"
-	DefaultIdealSize = 3
-	DefaultDir       = "."
+	DefaultCURL          = "http://0.0.0.0:2379"
+	DefaultPURL          = "http://0.0.0.0:2380"
+	DefaultEndpoint      = "http://localhost:2379"
+	DefaultName          = "elasticetcd"
+	DefaultIdealSize     = 3
+	DefaultDir           = "."
+	DefaultCertFile      = "/var/lib/gd2/certificates/server.crt"
+	DefaultKeyFile       = "/var/lib/gd2/certificates/server.key"
+	DefaultCAFile        = "/var/lib/gd2/certificates/ca.crt"
+	DefaultTrustedCAFile = "/var/lib/gd2/certificates/ca.crt"
+	DefaultPeerCertFile  = "/var/lib/gd2/certificates/peer.crt"
+	DefaultPeerKeyFile   = "/var/lib/gd2/certificates/peer.key"
+	DefaultClntCertFile  = "/var/lib/gd2/certificates/client.crt"
+	DefaultClntKeyFile   = "/var/lib/gd2/certificates/client.key"
 )
 
 var (
@@ -69,18 +77,33 @@ type Config struct {
 	Endpoints, CURLs, PURLs types.URLs
 	IdealSize               int
 	DisableLogging          bool
+	UseTLS                  bool
+	CertFile, KeyFile       string
+	CAFile, TrustedCAFile   string
+	PeerCertFile            string
+	PeerKeyFile             string
+	ClntCertFile            string
+	ClntKeyFile             string
 }
 
 // NewConfig returns an ElasticEtcd config with defaults filled
 func NewConfig() *Config {
 	return &Config{
-		Name:      DefaultName,
-		Dir:       DefaultDir,
-		LogDir:    path.Join(DefaultDir, "log"),
-		Endpoints: defaultEndpoints,
-		CURLs:     defaultCURLs,
-		PURLs:     defaultPURLs,
-		IdealSize: DefaultIdealSize,
+		Name:          DefaultName,
+		Dir:           DefaultDir,
+		LogDir:        path.Join(DefaultDir, "log"),
+		Endpoints:     defaultEndpoints,
+		CURLs:         defaultCURLs,
+		PURLs:         defaultPURLs,
+		IdealSize:     DefaultIdealSize,
+		CertFile:      DefaultCertFile,
+		KeyFile:       DefaultKeyFile,
+		CAFile:        DefaultCAFile,
+		TrustedCAFile: DefaultTrustedCAFile,
+		PeerCertFile:  DefaultPeerCertFile,
+		PeerKeyFile:   DefaultPeerKeyFile,
+		ClntCertFile:  DefaultClntCertFile,
+		ClntKeyFile:   DefaultClntKeyFile,
 	}
 }
 

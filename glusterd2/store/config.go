@@ -20,6 +20,15 @@ const (
 	etcdCURLsOpt     = "etcdcurls"
 	etcdPURLsOpt     = "etcdpurls"
 	etcdLogFileOpt   = "etcdlogfile"
+	useTLS           = "usetls"
+	srvrCertFile     = "servercertfile"
+	srvrKeyFile      = "serverkeyfile"
+	caFile           = "caFile"
+	trustedCAFile    = "trustedcafile"
+	clntCertFile     = "clientcertfile"
+	clntKeyFile      = "clientkeyfile"
+	peerCertFile     = "peercertfile"
+	peerKeyFile      = "peerkeyfile"
 
 	defaultEtcdLogFile = "etcd.log"
 
@@ -42,9 +51,18 @@ type Config struct {
 	CURLs     []string
 	PURLs     []string
 	NoEmbed   bool
+	UseTLS    bool
 
-	Dir      string
-	ConfFile string
+	Dir           string
+	ConfFile      string
+	SrvrCertFile  string
+	SrvrKeyFile   string
+	CAFile        string
+	TrustedCAFile string
+	ClntCertFile  string
+	ClntKeyFile   string
+	PeerCertFile  string
+	PeerKeyFile   string
 }
 
 // NewConfig returns a new store Config with defaults
@@ -54,8 +72,17 @@ func NewConfig() *Config {
 		[]string{elasticetcd.DefaultCURL},
 		[]string{elasticetcd.DefaultPURL},
 		false,
+		config.GetBool(useTLS),
 		path.Join(config.GetString("localstatedir"), "store"),
 		path.Join(config.GetString("localstatedir"), storeConfFile),
+		config.GetString(srvrCertFile),
+		config.GetString(srvrKeyFile),
+		config.GetString(caFile),
+		config.GetString(trustedCAFile),
+		config.GetString(clntCertFile),
+		config.GetString(clntKeyFile),
+		config.GetString(peerCertFile),
+		config.GetString(peerKeyFile),
 	}
 }
 
@@ -109,9 +136,61 @@ func GetConfig() *Config {
 		saveconf = true
 		conf.PURLs = purls
 	}
+
+	srvrcertfile := config.GetString(srvrCertFile)
+	if len(srvrcertfile) > 0 {
+		saveconf = true
+		conf.SrvrCertFile = srvrcertfile
+	}
+
+	srvrkeyfile := config.GetString(srvrKeyFile)
+	if len(srvrkeyfile) > 0 {
+		saveconf = true
+		conf.SrvrKeyFile = srvrkeyfile
+	}
+
+	cafile := config.GetString(caFile)
+	if len(cafile) > 0 {
+		saveconf = true
+		conf.CAFile = cafile
+	}
+
+	trustedcafile := config.GetString(trustedCAFile)
+	if len(trustedcafile) > 0 {
+		saveconf = true
+		conf.TrustedCAFile = trustedcafile
+	}
+
+	clntcertfile := config.GetString(clntCertFile)
+	if len(clntcertfile) > 0 {
+		saveconf = true
+		conf.ClntCertFile = clntcertfile
+	}
+
+	clntkeyfile := config.GetString(clntKeyFile)
+	if len(clntkeyfile) > 0 {
+		saveconf = true
+		conf.ClntKeyFile = clntkeyfile
+	}
+
+	peercertfile := config.GetString(peerCertFile)
+	if len(peercertfile) > 0 {
+		saveconf = true
+		conf.PeerCertFile = peercertfile
+	}
+
+	peerkeyfile := config.GetString(peerKeyFile)
+	if len(peerkeyfile) > 0 {
+		saveconf = true
+		conf.PeerKeyFile = peerkeyfile
+	}
 	if config.IsSet(noEmbedOpt) {
 		saveconf = true
 		conf.NoEmbed = config.GetBool(noEmbedOpt)
+	}
+	if config.IsSet(useTLS) {
+		saveconf = true
+		conf.UseTLS = config.GetBool(useTLS)
 	}
 
 	if saveconf {

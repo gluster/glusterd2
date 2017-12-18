@@ -8,6 +8,7 @@ import (
 	"time"
 
 	"github.com/coreos/etcd/embed"
+	"github.com/coreos/etcd/pkg/transport"
 	"github.com/coreos/etcd/pkg/types"
 	"github.com/coreos/pkg/capnslog"
 	"github.com/sirupsen/logrus"
@@ -115,6 +116,24 @@ func (ee *ElasticEtcd) newEmbedConfig(initialCluster string) *embed.Config {
 		ee.log.Debug("initial cluster not given, setting to self")
 		conf.InitialCluster = conf.InitialClusterFromName(conf.Name)
 	}
+
+	conf.ClientTLSInfo = transport.TLSInfo{
+		CertFile:       ee.conf.CertFile,
+		KeyFile:        ee.conf.KeyFile,
+		CAFile:         ee.conf.CAFile,
+		TrustedCAFile:  ee.conf.TrustedCAFile,
+		ClientCertAuth: true,
+	}
+	conf.ClientAutoTLS = true
+	conf.PeerTLSInfo = transport.TLSInfo{
+		CertFile:       ee.conf.PeerCertFile,
+		KeyFile:        ee.conf.PeerKeyFile,
+		CAFile:         ee.conf.CAFile,
+		TrustedCAFile:  ee.conf.TrustedCAFile,
+		ClientCertAuth: true,
+	}
+	conf.PeerAutoTLS = true
+
 	return conf
 }
 

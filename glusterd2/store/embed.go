@@ -19,12 +19,16 @@ func newEmbedStore(sconf *Config) (*GDStore, error) {
 	}
 
 	log.WithFields(log.Fields{
-		"name":      econf.Name,
-		"datadir":   econf.Dir,
-		"logdir":    econf.LogDir,
-		"endpoints": econf.Endpoints.String(),
-		"curls":     econf.CURLs.String(),
-		"purls":     econf.PURLs.String(),
+		"name":          econf.Name,
+		"datadir":       econf.Dir,
+		"logdir":        econf.LogDir,
+		"endpoints":     econf.Endpoints.String(),
+		"curls":         econf.CURLs.String(),
+		"purls":         econf.PURLs.String(),
+		"certfile":      econf.CertFile,
+		"keyfile":       econf.KeyFile,
+		"cafile":        econf.CAFile,
+		"trustedcafile": econf.TrustedCAFile,
 	}).Debug("starting embedded store")
 
 	ee, err := elasticetcd.New(econf)
@@ -71,6 +75,15 @@ func getElasticConfig(sconf *Config) (*elasticetcd.Config, error) {
 	econf.Endpoints = endpoints
 	econf.CURLs = curls
 	econf.PURLs = purls
+	econf.UseTLS = sconf.UseTLS
+	econf.CertFile = sconf.SrvrCertFile
+	econf.KeyFile = sconf.SrvrKeyFile
+	econf.CAFile = sconf.CAFile
+	econf.TrustedCAFile = sconf.TrustedCAFile
+	econf.PeerCertFile = sconf.PeerCertFile
+	econf.PeerKeyFile = sconf.PeerKeyFile
+	econf.ClntCertFile = sconf.ClntCertFile
+	econf.ClntKeyFile = sconf.ClntKeyFile
 
 	return econf, nil
 }
