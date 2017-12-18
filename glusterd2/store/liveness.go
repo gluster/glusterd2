@@ -35,7 +35,7 @@ func (s *GDStore) IsNodeAlive(nodeID interface{}) bool {
 	defer cancel()
 
 	key := livenessKeyPrefix + keySuffix
-	resp, err := s.Client.Get(ctx, key)
+	resp, err := s.Get(ctx, key)
 	if err != nil {
 		return false
 	}

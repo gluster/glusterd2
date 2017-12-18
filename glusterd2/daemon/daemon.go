@@ -6,6 +6,7 @@ import (
 	"strings"
 	"syscall"
 
+	"github.com/gluster/glusterd2/glusterd2/events"
 	"github.com/gluster/glusterd2/pkg/errors"
 
 	log "github.com/sirupsen/logrus"
@@ -57,6 +58,7 @@ func Start(d Daemon, wait bool) error {
 		"path": d.Path(),
 		"args": d.Args(),
 	}).Debug("Starting daemon.")
+	events.Broadcast(newEvent(d, daemonStarting, 0))
 
 	// Check if pidfile exists
 	pid, err := ReadPidFromFile(d.PidFile())
@@ -64,6 +66,7 @@ func Start(d Daemon, wait bool) error {
 		// Check if process is running
 		_, err := GetProcess(pid)
 		if err == nil {
+			events.Broadcast(newEvent(d, daemonStarted, pid))
 			return errors.ErrProcessAlreadyRunning
 		}
 	}
@@ -72,6 +75,7 @@ func Start(d Daemon, wait bool) error {
 	cmd := exec.Command(d.Path(), args...)
 	err = cmd.Start()
 	if err != nil {
+		events.Broadcast(newEvent(d, daemonStartFailed, 0))
 		return err
 	}
 
@@ -85,6 +89,7 @@ func Start(d Daemon, wait bool) error {
 
 		if errStatus != nil {
 			// Child exited with error
+			events.Broadcast(newEvent(d, daemonStartFailed, 0))
 			return errStatus
 		}
 
@@ -97,6 +102,7 @@ func Start(d Daemon, wait bool) error {
 				"pidfile": d.PidFile(),
 				"error":   err.Error(),
 			}).Error("Could not read pidfile")
+			events.Broadcast(newEvent(d, daemonStartFailed, 0))
 			return err
 		}
 
@@ -104,6 +110,7 @@ func Start(d Daemon, wait bool) error {
 			"name": d.Name(),
 			"pid":  pid,
 		}).Debug("Started daemon successfully")
+		events.Broadcast(newEvent(d, daemonStarted, pid))
 
 	} else {
 		// If the process exits at some point later, do read it's
@@ -147,6 +154,7 @@ func Stop(d Daemon, force bool) error {
 		"name": d.Name(),
 		"pid":  pid,
 	}).Debug("Stopping daemon.")
+	events.Broadcast(newEvent(d, daemonStopping, pid))
 
 	if force == true {
 		err = process.Kill()
@@ -162,6 +170,9 @@ func Stop(d Daemon, force bool) error {
 			"name": d.Name(),
 			"pid":  pid,
 		}).Error("Stopping daemon failed.")
+		events.Broadcast(newEvent(d, daemonStopFailed, pid))
+	} else {
+		events.Broadcast(newEvent(d, daemonStopped, 0))
 	}
 
 	if err := DelDaemon(d); err != nil {
@@ -177,10 +188,13 @@ func Stop(d Daemon, force bool) error {
 // StartAllDaemons starts all previously running daemons when GlusterD restarts
 func StartAllDaemons() {
 	log.Debug("starting all daemons")
+	events.Broadcast(events.New(daemonStartingAll, nil, false))
 
 	ds, err := getDaemons()
 	if err != nil {
 		log.WithError(err).Warn("failed to get saved daemons, no daemons were started")
+		events.Broadcast(events.New(daemonStartAllFailed, nil, false))
+		return
 	}
 
 	for _, d := range ds {
@@ -188,6 +202,7 @@ func StartAllDaemons() {
 			log.WithField("name", d.Name()).WithError(err).Warn("failed to start daemon")
 		}
 	}
+	events.Broadcast(events.New(daemonStartedAll, nil, false))
 }
 
 // Signal function reads the PID from path returned by PidFile() and
