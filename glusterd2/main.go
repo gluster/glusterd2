@@ -1,12 +1,15 @@
 package main
 
 import (
+	"context"
+	"encoding/json"
 	"os"
 	"os/signal"
 	"path"
 	"strings"
 	"time"
 
+	"github.com/gluster/glusterd2/glusterd2/commands/volumes"
 	"github.com/gluster/glusterd2/glusterd2/daemon"
 	"github.com/gluster/glusterd2/glusterd2/events"
 	"github.com/gluster/glusterd2/glusterd2/gdctx"
@@ -95,6 +98,15 @@ func main() {
 
 	if err := peer.AddSelfDetails(); err != nil {
 		log.WithError(err).Fatal("Could not add self details into etcd")
+	}
+
+	// Load the group option map into the store
+	groupOptions, err := json.Marshal(volumecommands.GroupOptions)
+	if err != nil {
+		log.WithError(err).Fatal("Failed to marshal the group option map")
+	}
+	if _, err := store.Store.Put(context.TODO(), "groupoptions", string(groupOptions)); err != nil {
+		log.WithError(err).Fatal("Failed to load the group option map into the store")
 	}
 
 	// If REST API Auth is enabled, Generate Auth file with random secret in workdir

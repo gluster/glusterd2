@@ -1,12 +1,17 @@
 package volumecommands
 
 import (
+	"context"
+	"encoding/json"
+
 	"github.com/gluster/glusterd2/glusterd2/servers/sunrpc"
+	"github.com/gluster/glusterd2/glusterd2/store"
 	"github.com/gluster/glusterd2/glusterd2/transaction"
 	volgen "github.com/gluster/glusterd2/glusterd2/volgen2"
 	"github.com/gluster/glusterd2/glusterd2/volume"
 	"github.com/gluster/glusterd2/glusterd2/xlator"
 	"github.com/gluster/glusterd2/glusterd2/xlator/options"
+	"github.com/gluster/glusterd2/pkg/errors"
 )
 
 // validateOptions validates if the options and their values are valid and can
@@ -45,6 +50,38 @@ func validateXlatorOptions(opts map[string]string, volinfo *volume.Volinfo) erro
 		}
 	}
 	return nil
+}
+
+func expandOptions(opts map[string]string) (map[string]string, error) {
+	resp, err := store.Store.Get(context.TODO(), "groupoptions")
+	if err != nil {
+		return nil, errors.ErrGetFailed
+	}
+
+	var groupOptions map[string][]option
+	if err := json.Unmarshal(resp.Kvs[0].Value, &groupOptions); err != nil {
+		return nil, errors.ErrUnmarshallFailed
+	}
+
+	options := make(map[string]string)
+	for opt, val := range opts {
+		optionSet, ok := groupOptions[opt]
+		if !ok {
+			options[opt] = val
+		} else {
+			for _, option := range optionSet {
+				switch val {
+				case "on":
+					options[option.OptionName] = option.OnValue
+				case "off":
+					options[option.OptionName] = option.OffValue
+				default:
+					return nil, errors.ErrUnknownValue
+				}
+			}
+		}
+	}
+	return options, nil
 }
 
 func notifyVolfileChange(c transaction.TxnCtx) error {
