@@ -74,6 +74,18 @@ func (c *Command) Routes() route.Routes {
 			Pattern:     "/volumes/{volname}/stop",
 			Version:     1,
 			HandlerFunc: volumeStopHandler},
+		route.Route{
+			Name:        "VolfilesGenerate",
+			Method:      "POST",
+			Pattern:     "/volfiles",
+			Version:     1,
+			HandlerFunc: volfilesGenerateHandler},
+		route.Route{
+			Name:        "VolfilesGet",
+			Method:      "GET",
+			Pattern:     "/volfiles",
+			Version:     1,
+			HandlerFunc: volfilesListHandler},
 	}
 }
 

@@ -90,7 +90,7 @@ var volumeCmd = &cobra.Command{
 	Short: helpVolumeCmd,
 }
 
-func bricksAsUUID(bricks []string) ([]string, error) {
+func bricksAsUUID(bricks []string) ([]api.BrickReq, error) {
 
 	// validate if <host> in <host>:<path> is already UUID
 	validUUIDs := 0
@@ -104,7 +104,15 @@ func bricksAsUUID(bricks []string) ([]string, error) {
 
 	if validUUIDs == len(bricks) {
 		// bricks are already of the format <uuid>:<path>
-		return bricks, nil
+		var bs []api.BrickReq
+		for _, b := range bricks {
+			bData := strings.Split(b, ":")
+			bs = append(bs, api.BrickReq{
+				NodeID: bData[0],
+				Path:   bData[1],
+			})
+		}
+		return bs, nil
 	}
 
 	peers, err := client.Peers()
@@ -112,7 +120,7 @@ func bricksAsUUID(bricks []string) ([]string, error) {
 		return nil, err
 	}
 
-	var brickUUIDs []string
+	var brickUUIDs []api.BrickReq
 
 	for _, brick := range bricks {
 		host := strings.Split(brick, ":")[0]
@@ -121,7 +129,10 @@ func bricksAsUUID(bricks []string) ([]string, error) {
 			for _, addr := range peer.Addresses {
 				// TODO: Normalize presence/absence of port in peer address
 				if strings.Split(addr, ":")[0] == strings.Split(host, ":")[0] {
-					brickUUIDs = append(brickUUIDs, peer.ID.String()+":"+path)
+					brickUUIDs = append(brickUUIDs, api.BrickReq{
+						NodeID: peer.ID.String(),
+						Path:   path,
+					})
 				}
 			}
 		}
@@ -145,11 +156,41 @@ var volumeCreateCmd = &cobra.Command{
 			log.WithField("volume", volname).Println("volume creation failed")
 			failure(fmt.Sprintf("Error getting brick UUIDs: %s", err.Error()), 1)
 		}
+
+		numBricks := len(bricks)
+		subvols := []api.SubvolReq{}
+		if flagCreateCmdReplicaCount > 0 {
+			// Replicate Volume Support
+			numSubvols := numBricks / flagCreateCmdReplicaCount
+
+			for i := 0; i < numSubvols; i++ {
+				idx := i * flagCreateCmdReplicaCount
+
+				// If Arbiter is set, set it as Brick Type for last brick
+				if flagCreateCmdArbiterCount > 0 {
+					bricks[idx+flagCreateCmdReplicaCount].Type = "arbiter"
+				}
+
+				subvols = append(subvols, api.SubvolReq{
+					Type:         "replicate",
+					Bricks:       bricks[idx : idx+flagCreateCmdReplicaCount],
+					ReplicaCount: flagCreateCmdReplicaCount,
+					ArbiterCount: flagCreateCmdArbiterCount,
+				})
+			}
+		} else {
+			// Default Distribute Volume
+			subvols = []api.SubvolReq{
+				{
+					Type:   "distribute",
+					Bricks: bricks,
+				},
+			}
+		}
+
 		vol, err := client.VolumeCreate(api.VolCreateReq{
 			Name:    volname,
-			Bricks:  bricks, // string of format <UUID>:<path>
-			Replica: flagCreateCmdReplicaCount,
-			Arbiter: flagCreateCmdArbiterCount,
+			Subvols: subvols,
 			Force:   flagCreateCmdForce,
 		})
 		if err != nil {
@@ -264,21 +305,23 @@ var volumeResetCmd = &cobra.Command{
 
 func volumeInfoDisplayNumbricks(vol api.VolumeGetResp) {
 
-	var DistCount = vol.DistCount
-	var RepCount = vol.ReplicaCount
-	var ArbCount = vol.ArbiterCount
+	var DistCount = len(vol.Subvols)
+	// TODO: Assumption as all subvol types are same
+	var RepCount = vol.Subvols[0].ReplicaCount
+	var ArbCount = vol.Subvols[0].ArbiterCount
+	numBricks := 0
+	for _, subvol := range vol.Subvols {
+		numBricks += len(subvol.Bricks)
+	}
 
-	switch vol.Type {
-	case api.Replicate:
-	case api.DistReplicate:
-		if vol.ArbiterCount == 1 {
-			fmt.Printf("Number of Bricks: %d x (%d + %d) = %d\n", DistCount, RepCount-1, ArbCount, len(vol.Bricks))
+	if DistCount > 1 && vol.Subvols[0].Type == api.SubvolReplicate {
+		if ArbCount == 1 {
+			fmt.Printf("Number of Bricks: %d x (%d + %d) = %d\n", DistCount, RepCount-1, ArbCount, numBricks)
 		} else {
-			fmt.Printf("Number of Bricks: %d x %d = %d\n", DistCount, RepCount, len(vol.Bricks))
+			fmt.Printf("Number of Bricks: %d x %d = %d\n", DistCount, RepCount, numBricks)
 		}
-	default:
-		fmt.Println("Number of Bricks:", len(vol.Bricks))
-
+	} else {
+		fmt.Println("Number of Bricks:", numBricks)
 	}
 }
 
@@ -291,11 +334,13 @@ func volumeInfoDisplay(vol api.VolumeGetResp) {
 	fmt.Println("State:", vol.State)
 	fmt.Println("Transport-type:", vol.Transport)
 	volumeInfoDisplayNumbricks(vol)
-	for i, brick := range vol.Bricks {
-		if vol.ArbiterCount == 1 && (i+1)%vol.ReplicaCount == 0 {
-			fmt.Printf("Brick%d: %s:%s (arbiter)\n", i+1, brick.NodeID, brick.Path)
-		} else {
-			fmt.Printf("Brick%d: %s:%s\n", i+1, brick.NodeID, brick.Path)
+	for sIdx, subvol := range vol.Subvols {
+		for bIdx, brick := range subvol.Bricks {
+			if brick.Type == api.Arbiter {
+				fmt.Printf("Brick%d: %s:%s (arbiter)\n", sIdx+bIdx+1, brick.NodeID, brick.Path)
+			} else {
+				fmt.Printf("Brick%d: %s:%s\n", sIdx+bIdx+1, brick.NodeID, brick.Path)
+			}
 		}
 	}
 	return

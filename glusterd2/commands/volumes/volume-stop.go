@@ -34,48 +34,49 @@ func stopBricks(c transaction.TxnCtx) error {
 		return err
 	}
 
-	for _, b := range vol.Bricks {
-		if uuid.Equal(b.NodeID, gdctx.MyUUID) {
+	for _, subvol := range vol.Subvols {
+		for _, b := range subvol.Bricks {
+			if uuid.Equal(b.NodeID, gdctx.MyUUID) {
 
-			brickDaemon, err := brick.NewGlusterfsd(b)
-			if err != nil {
-				return err
-			}
+				brickDaemon, err := brick.NewGlusterfsd(b)
+				if err != nil {
+					return err
+				}
 
-			c.Logger().WithFields(log.Fields{
-				"volume": volname, "brick": b.String()}).Info("Stopping brick")
+				c.Logger().WithFields(log.Fields{
+					"volume": volname, "brick": b.String()}).Info("Stopping brick")
 
-			client, err := daemon.GetRPCClient(brickDaemon)
-			if err != nil {
-				c.Logger().WithError(err).WithField(
-					"brick", b.String()).Error("failed to connect to brick, sending SIGTERM")
-				daemon.Stop(brickDaemon, false)
-				continue
-			}
+				client, err := daemon.GetRPCClient(brickDaemon)
+				if err != nil {
+					c.Logger().WithError(err).WithField(
+						"brick", b.String()).Error("failed to connect to brick, sending SIGTERM")
+					daemon.Stop(brickDaemon, false)
+					continue
+				}
 
-			req := &brick.GfBrickOpReq{
-				Name: b.Path,
-				Op:   brick.OpBrickTerminate,
-			}
-			var rsp brick.GfBrickOpRsp
-			err = client.Call("BrickOp", req, &rsp)
-			if err != nil || rsp.OpRet != 0 {
-				c.Logger().WithError(err).WithField(
-					"brick", b.String()).Error("failed to send terminate RPC, sending SIGTERM")
-				daemon.Stop(brickDaemon, false)
-				continue
-			}
+				req := &brick.GfBrickOpReq{
+					Name: b.Path,
+					Op:   brick.OpBrickTerminate,
+				}
+				var rsp brick.GfBrickOpRsp
+				err = client.Call("BrickOp", req, &rsp)
+				if err != nil || rsp.OpRet != 0 {
+					c.Logger().WithError(err).WithField(
+						"brick", b.String()).Error("failed to send terminate RPC, sending SIGTERM")
+					daemon.Stop(brickDaemon, false)
+					continue
+				}
 
-			// On graceful shutdown of brick, daemon.Stop() isn't called.
-			if err := daemon.DelDaemon(brickDaemon); err != nil {
-				log.WithFields(log.Fields{
-					"name": brickDaemon.Name(),
-					"id":   brickDaemon.ID(),
-				}).WithError(err).Warn("failed to delete brick entry from store, it may be restarted on GlusterD restart")
+				// On graceful shutdown of brick, daemon.Stop() isn't called.
+				if err := daemon.DelDaemon(brickDaemon); err != nil {
+					log.WithFields(log.Fields{
+						"name": brickDaemon.Name(),
+						"id":   brickDaemon.ID(),
+					}).WithError(err).Warn("failed to delete brick entry from store, it may be restarted on GlusterD restart")
+				}
 			}
 		}
 	}
-
 	return nil
 }
 

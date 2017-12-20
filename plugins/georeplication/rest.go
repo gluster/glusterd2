@@ -441,30 +441,32 @@ func georepStatusHandler(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	for _, b := range vol.Bricks {
-		// Set default values to all status fields, If a node or worker is down and
-		// status not available these default values will be sent back in response
-		geoSession.Workers = append(geoSession.Workers, georepapi.GeorepWorker{
-			MasterNode:                 "",
-			MasterNodeID:               b.NodeID.String(),
-			MasterBrickPath:            b.Path,
-			MasterBrick:                b.NodeID.String() + ":" + b.Path,
-			Status:                     "Unknown",
-			LastSyncedTime:             "N/A",
-			LastSyncedTimeUTC:          "N/A",
-			LastEntrySyncedTime:        "N/A",
-			SlaveNode:                  "N/A",
-			CheckpointTime:             "N/A",
-			CheckpointTimeUTC:          "N/A",
-			CheckpointCompleted:        "N/A",
-			CheckpointCompletedTime:    "N/A",
-			CheckpointCompletedTimeUTC: "N/A",
-			MetaOps:                    "0",
-			EntryOps:                   "0",
-			DataOps:                    "0",
-			FailedOps:                  "0",
-			CrawlStatus:                "N/A",
-		})
+	for _, subvol := range vol.Subvols {
+		for _, b := range subvol.Bricks {
+			// Set default values to all status fields, If a node or worker is down and
+			// status not available these default values will be sent back in response
+			geoSession.Workers = append(geoSession.Workers, georepapi.GeorepWorker{
+				MasterNode:                 "",
+				MasterNodeID:               b.NodeID.String(),
+				MasterBrickPath:            b.Path,
+				MasterBrick:                b.NodeID.String() + ":" + b.Path,
+				Status:                     "Unknown",
+				LastSyncedTime:             "N/A",
+				LastSyncedTimeUTC:          "N/A",
+				LastEntrySyncedTime:        "N/A",
+				SlaveNode:                  "N/A",
+				CheckpointTime:             "N/A",
+				CheckpointTimeUTC:          "N/A",
+				CheckpointCompleted:        "N/A",
+				CheckpointCompletedTime:    "N/A",
+				CheckpointCompletedTimeUTC: "N/A",
+				MetaOps:                    "0",
+				EntryOps:                   "0",
+				DataOps:                    "0",
+				FailedOps:                  "0",
+				CrawlStatus:                "N/A",
+			})
+		}
 	}
 
 	// Iterating and assigning status of each brick and not doing direct

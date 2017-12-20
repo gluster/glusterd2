@@ -27,19 +27,21 @@ func startAllBricks(c transaction.TxnCtx) error {
 		return err
 	}
 
-	for _, b := range volinfo.Bricks {
+	for _, subvol := range volinfo.Subvols {
+		for _, b := range subvol.Bricks {
 
-		if !uuid.Equal(b.NodeID, gdctx.MyUUID) {
-			continue
-		}
+			if !uuid.Equal(b.NodeID, gdctx.MyUUID) {
+				continue
+			}
 
-		c.Logger().WithFields(log.Fields{
-			"volume": b.VolumeName,
-			"brick":  b.String(),
-		}).Info("Starting brick")
+			c.Logger().WithFields(log.Fields{
+				"volume": b.VolumeName,
+				"brick":  b.String(),
+			}).Info("Starting brick")
 
-		if err := startBrick(b); err != nil {
-			return err
+			if err := startBrick(b); err != nil {
+				return err
+			}
 		}
 	}
 
@@ -66,19 +68,21 @@ func stopAllBricks(c transaction.TxnCtx) error {
 		return e
 	}
 
-	for _, b := range vol.Bricks {
+	for _, subvol := range vol.Subvols {
+		for _, b := range subvol.Bricks {
 
-		if !uuid.Equal(b.NodeID, gdctx.MyUUID) {
-			continue
-		}
+			if !uuid.Equal(b.NodeID, gdctx.MyUUID) {
+				continue
+			}
 
-		c.Logger().WithFields(log.Fields{
-			"volume": b.VolumeName,
-			"brick":  b.String(),
-		}).Info("volume start failed, stopping brick")
+			c.Logger().WithFields(log.Fields{
+				"volume": b.VolumeName,
+				"brick":  b.String(),
+			}).Info("volume start failed, stopping brick")
 
-		if err := stopBrick(b); err != nil {
-			return err
+			if err := stopBrick(b); err != nil {
+				return err
+			}
 		}
 	}
 

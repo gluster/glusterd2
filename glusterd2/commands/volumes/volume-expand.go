@@ -7,7 +7,6 @@ import (
 	"github.com/gluster/glusterd2/glusterd2/gdctx"
 	restutils "github.com/gluster/glusterd2/glusterd2/servers/rest/utils"
 	"github.com/gluster/glusterd2/glusterd2/transaction"
-	"github.com/gluster/glusterd2/glusterd2/volgen"
 	"github.com/gluster/glusterd2/glusterd2/volume"
 	"github.com/gluster/glusterd2/pkg/api"
 	"github.com/gluster/glusterd2/pkg/errors"
@@ -42,18 +41,6 @@ func startBricksOnExpand(c transaction.TxnCtx) error {
 	var newBricks []brick.Brickinfo
 	if err := c.Get("newbricks", &newBricks); err != nil {
 		return err
-	}
-
-	// Generate brick volfiles for the new bricks
-	for _, b := range newBricks {
-		if !uuid.Equal(b.NodeID, gdctx.MyUUID) {
-			continue
-		}
-		if err := volgen.GenerateBrickVolfile(&volinfo, &b); err != nil {
-			c.Logger().WithError(err).WithField(
-				"brick", b.Path).Debug("GenerateBrickVolfile: failed to create brick volfile")
-			return err
-		}
 	}
 
 	if volinfo.State != volume.VolStarted {
@@ -109,13 +96,6 @@ func undoStartBricksOnExpand(c transaction.TxnCtx) error {
 			// so stopping brick might fail, but log anyway
 		}
 
-		if err := volgen.DeleteBrickVolfile(&b); err != nil {
-			c.Logger().WithFields(log.Fields{
-				"error":  err,
-				"volume": b.VolumeName,
-				"brick":  b.String(),
-			}).Debug("failed to remove brick volfile")
-		}
 	}
 
 	return nil
@@ -138,18 +118,28 @@ func updateVolinfoOnExpand(c transaction.TxnCtx) error {
 		return err
 	}
 
-	volinfo.ReplicaCount = newReplicaCount
-	volinfo.Bricks = append(volinfo.Bricks, newBricks...)
-	volinfo.DistCount = len(volinfo.Bricks) / volinfo.ReplicaCount
-
-	switch len(volinfo.Bricks) {
-	case volinfo.DistCount:
-		volinfo.Type = volume.Distribute
-	case volinfo.ReplicaCount:
-		volinfo.Type = volume.Replicate
-	default:
-		volinfo.Type = volume.DistReplicate
+	// Update all Subvols Replica count
+	for idx := range volinfo.Subvols {
+		volinfo.Subvols[idx].ReplicaCount = newReplicaCount
 	}
+
+	// TODO: Assumption, all subvols are same
+	// If New Replica count is different than existing then add one brick to each subvolume
+	if newReplicaCount != volinfo.Subvols[0].ReplicaCount {
+		for idx, b := range newBricks {
+			volinfo.Subvols[idx].Bricks = append(volinfo.Subvols[idx].Bricks, b)
+		}
+	} else {
+		// Create new Sub volumes with given bricks
+		for i := 0; i < len(newBricks)/newReplicaCount; i++ {
+			idx := i * newReplicaCount
+			volinfo.Subvols = append(volinfo.Subvols, volume.Subvol{
+				Type:   volinfo.Subvols[0].Type,
+				Bricks: newBricks[idx : idx+newReplicaCount],
+			})
+		}
+	}
+	volinfo.DistCount = len(volinfo.Subvols)
 
 	// update new volinfo in txn ctx
 	if err := c.Set("volinfo", volinfo); err != nil {
@@ -196,13 +186,17 @@ func volumeExpandHandler(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	newBrickCount := len(req.Bricks) + len(volinfo.Bricks)
+	numBricks := 0
+	for _, subvol := range volinfo.Subvols {
+		numBricks += len(subvol.Bricks)
+	}
+	newBrickCount := len(req.Bricks) + numBricks
 
 	var newReplicaCount int
 	if req.ReplicaCount != 0 {
 		newReplicaCount = req.ReplicaCount
 	} else {
-		newReplicaCount = volinfo.ReplicaCount
+		newReplicaCount = volinfo.Subvols[0].ReplicaCount
 	}
 
 	if newBrickCount%newReplicaCount != 0 {
@@ -211,10 +205,11 @@ func volumeExpandHandler(w http.ResponseWriter, r *http.Request) {
 	}
 
 	if volinfo.Type == volume.Replicate && req.ReplicaCount != 0 {
-		if req.ReplicaCount < volinfo.ReplicaCount {
+		// TODO: Only considered first sub volume's ReplicaCount
+		if req.ReplicaCount < volinfo.Subvols[0].ReplicaCount {
 			restutils.SendHTTPError(ctx, w, http.StatusUnprocessableEntity, "Invalid number of bricks", api.ErrCodeDefault)
 			return
-		} else if req.ReplicaCount == volinfo.ReplicaCount {
+		} else if req.ReplicaCount == volinfo.Subvols[0].ReplicaCount {
 			restutils.SendHTTPError(ctx, w, http.StatusUnprocessableEntity, "Replica count is same", api.ErrCodeDefault)
 			return
 		}
@@ -229,11 +224,13 @@ func volumeExpandHandler(w http.ResponseWriter, r *http.Request) {
 	txn := transaction.NewTxn(ctx)
 	defer txn.Cleanup()
 
-	nodes, err := nodesFromBricks(req.Bricks)
-	if err != nil {
-		logger.WithError(err).Error("could not prepare node list")
-		restutils.SendHTTPError(ctx, w, http.StatusInternalServerError, err.Error(), api.ErrCodeDefault)
-		return
+	var nodesMap = make(map[string]int)
+	var nodes []uuid.UUID
+	for _, brick := range req.Bricks {
+		if _, ok := nodesMap[brick.NodeID]; !ok {
+			nodesMap[brick.NodeID] = 1
+			nodes = append(nodes, uuid.Parse(brick.NodeID))
+		}
 	}
 
 	txn.Steps = []*transaction.Step{
@@ -243,13 +240,13 @@ func volumeExpandHandler(w http.ResponseWriter, r *http.Request) {
 			Nodes:  nodes,
 		},
 		{
+			DoFunc: "vol-expand.UpdateVolinfo",
+			Nodes:  []uuid.UUID{gdctx.MyUUID},
+		},
+		{
 			DoFunc:   "vol-expand.StartBrick",
 			Nodes:    nodes,
 			UndoFunc: "vol-expand.UndoStartBrick",
-		},
-		{
-			DoFunc: "vol-expand.UpdateVolinfo",
-			Nodes:  []uuid.UUID{gdctx.MyUUID},
 		},
 		{
 			DoFunc: "vol-expand.NotifyClients",

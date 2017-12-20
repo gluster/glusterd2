@@ -5,11 +5,11 @@ import (
 	"fmt"
 	"net/http"
 
+	"github.com/gluster/glusterd2/glusterd2/brick"
 	"github.com/gluster/glusterd2/glusterd2/events"
 	"github.com/gluster/glusterd2/glusterd2/gdctx"
 	restutils "github.com/gluster/glusterd2/glusterd2/servers/rest/utils"
 	"github.com/gluster/glusterd2/glusterd2/transaction"
-	"github.com/gluster/glusterd2/glusterd2/volgen"
 	"github.com/gluster/glusterd2/glusterd2/volume"
 	"github.com/gluster/glusterd2/pkg/api"
 	gderrors "github.com/gluster/glusterd2/pkg/errors"
@@ -25,11 +25,35 @@ func unmarshalVolCreateRequest(msg *api.VolCreateReq, r *http.Request) (int, err
 	if msg.Name == "" {
 		return http.StatusBadRequest, gderrors.ErrEmptyVolName
 	}
-	if len(msg.Bricks) <= 0 {
+
+	if len(msg.Subvols) <= 0 {
 		return http.StatusBadRequest, gderrors.ErrEmptyBrickList
+	}
+
+	for _, subvol := range msg.Subvols {
+		if len(subvol.Bricks) <= 0 {
+			return http.StatusBadRequest, gderrors.ErrEmptyBrickList
+		}
 	}
 	return 0, nil
 
+}
+
+func voltypeFromSubvols(req *api.VolCreateReq) volume.VolType {
+	if len(req.Subvols) == 0 {
+		return volume.Distribute
+	}
+	// TODO: Don't know how to decide on Volume Type if each subvol is different
+	// For now just picking the first subvols Type, which satisfies
+	// most of today's needs
+	switch req.Subvols[0].Type {
+	case "replicate":
+		return volume.Replicate
+	case "distribute":
+		return volume.Distribute
+	default:
+		return volume.Distribute
+	}
 }
 
 func createVolinfo(req *api.VolCreateReq) (*volume.Volinfo, error) {
@@ -51,48 +75,64 @@ func createVolinfo(req *api.VolCreateReq) (*volume.Volinfo, error) {
 		v.Transport = "tcp"
 	}
 
-	if req.Replica == 0 {
-		v.ReplicaCount = 1
-	} else {
-		v.ReplicaCount = req.Replica
-	}
+	v.DistCount = len(req.Subvols)
 
-	if req.Arbiter != 0 {
-		if req.Replica != 3 || req.Arbiter != 1 {
-			return nil, errors.New("For arbiter configuration, replica count must be 3 and arbiter count must be 1. The 3rd brick of the replica will be the arbiter")
+	v.Type = voltypeFromSubvols(req)
+
+	for idx, subvolreq := range req.Subvols {
+		if subvolreq.ReplicaCount == 0 && subvolreq.Type == "replicate" {
+			return nil, errors.New("Replica count not specified")
 		}
-		v.ArbiterCount = 1
-	}
 
-	if (len(req.Bricks) % v.ReplicaCount) != 0 {
-		return nil, errors.New("Invalid number of bricks")
-	}
+		if subvolreq.ReplicaCount > 0 && subvolreq.ReplicaCount != len(subvolreq.Bricks) {
+			return nil, errors.New("Invalid number of bricks")
+		}
 
-	v.DistCount = len(req.Bricks) / v.ReplicaCount
+		name := subvolreq.Name
+		if name == "" {
+			name = fmt.Sprintf("s-%d", idx)
+		}
 
-	switch len(req.Bricks) {
-	case 1:
-		fallthrough
-	case v.DistCount:
-		v.Type = volume.Distribute
-	case v.ReplicaCount:
-		v.Type = volume.Replicate
-	default:
-		v.Type = volume.DistReplicate
-	}
+		ty := volume.SubvolDistribute
+		switch subvolreq.Type {
+		case "replicate":
+			ty = volume.SubvolReplicate
+		case "disperse":
+			ty = volume.SubvolDisperse
+		default:
+			ty = volume.SubvolDistribute
+		}
 
-	if req.DisperseCount != 0 || req.DisperseData != 0 || req.DisperseRedundancy != 0 {
-		v.Type = volume.Disperse
-		v.DistCount = 1
-		err = checkDisperseParams(req, v)
+		s := volume.Subvol{
+			Name: name,
+			Type: ty,
+		}
+
+		if subvolreq.ArbiterCount != 0 {
+			if subvolreq.ReplicaCount != 3 || subvolreq.ArbiterCount != 1 {
+				return nil, errors.New("For arbiter configuration, replica count must be 3 and arbiter count must be 1. The 3rd brick of the replica will be the arbiter")
+			}
+			s.ArbiterCount = 1
+		}
+
+		if subvolreq.ReplicaCount == 0 {
+			s.ReplicaCount = 1
+		} else {
+			s.ReplicaCount = subvolreq.ReplicaCount
+		}
+
+		if subvolreq.DisperseCount != 0 || subvolreq.DisperseData != 0 || subvolreq.DisperseRedundancy != 0 {
+			err = checkDisperseParams(req, v)
+			if err != nil {
+				return nil, err
+			}
+		}
+		s.Bricks, err = volume.NewBrickEntriesFunc(subvolreq.Bricks, v.Name, v.ID)
 		if err != nil {
 			return nil, err
 		}
-	}
+		v.Subvols = append(v.Subvols, s)
 
-	v.Bricks, err = volume.NewBrickEntriesFunc(req.Bricks, v.Name, v.ID)
-	if err != nil {
-		return nil, err
 	}
 
 	v.Auth = volume.VolAuth{
@@ -119,8 +159,15 @@ func validateVolumeCreate(c transaction.TxnCtx) error {
 		return err
 	}
 
+	var bricks []brick.Brickinfo
+	for _, subvol := range volinfo.Subvols {
+		for _, brick := range subvol.Bricks {
+			bricks = append(bricks, brick)
+		}
+	}
+
 	// FIXME: Return values of this function are inconsistent and unused
-	if _, err = volume.ValidateBrickEntriesFunc(volinfo.Bricks, volinfo.ID, req.Force); err != nil {
+	if _, err = volume.ValidateBrickEntriesFunc(bricks, volinfo.ID, req.Force); err != nil {
 		c.Logger().WithError(err).WithField(
 			"volume", volinfo.Name).Debug("validateVolumeCreate: failed to validate bricks")
 		return err
@@ -136,15 +183,16 @@ func rollBackVolumeCreate(c transaction.TxnCtx) error {
 		return err
 	}
 
-	for _, b := range volinfo.Bricks {
-		if !uuid.Equal(b.NodeID, gdctx.MyUUID) {
-			continue
-		}
-		volgen.DeleteBrickVolfile(&b)
-		// TODO: Clean xattrs set if any. ValidateBrickEntriesFunc()
-		// does a lot of things that it's not supposed to do.
-	}
+	for _, subvol := range volinfo.Subvols {
+		for _, b := range subvol.Bricks {
+			if !uuid.Equal(b.NodeID, gdctx.MyUUID) {
+				continue
+			}
 
+			// TODO: Clean xattrs set if any. ValidateBrickEntriesFunc()
+			// does a lot of things that it's not supposed to do.
+		}
+	}
 	return nil
 }
 
@@ -154,7 +202,6 @@ func registerVolCreateStepFuncs() {
 		sf   transaction.StepFunc
 	}{
 		{"vol-create.Validate", validateVolumeCreate},
-		{"vol-create.GenerateBrickVolfiles", generateBrickVolfiles},
 		{"vol-create.StoreVolume", storeVolume},
 		{"vol-create.Rollback", rollBackVolumeCreate},
 	}
@@ -181,11 +228,15 @@ func volumeCreateHandler(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	nodes, err := nodesFromBricks(req.Bricks)
-	if err != nil {
-		logger.WithError(err).Error("could not prepare node list")
-		restutils.SendHTTPError(ctx, w, http.StatusInternalServerError, err.Error(), api.ErrCodeDefault)
-		return
+	var nodesMap = make(map[string]int)
+	var nodes []uuid.UUID
+	for _, subvol := range req.Subvols {
+		for _, brick := range subvol.Bricks {
+			if _, ok := nodesMap[brick.NodeID]; !ok {
+				nodesMap[brick.NodeID] = 1
+				nodes = append(nodes, uuid.Parse(brick.NodeID))
+			}
+		}
 	}
 
 	if err := validateOptions(req.Options); err != nil {
@@ -209,11 +260,6 @@ func volumeCreateHandler(w http.ResponseWriter, r *http.Request) {
 		{
 			DoFunc: "vol-create.Validate",
 			Nodes:  nodes,
-		},
-		{
-			DoFunc:   "vol-create.GenerateBrickVolfiles",
-			UndoFunc: "vol-create.Rollback",
-			Nodes:    nodes,
 		},
 		{
 			DoFunc: "vol-create.StoreVolume",

@@ -33,7 +33,6 @@ func volumeStatusHandler(w http.ResponseWriter, r *http.Request) {
 }
 
 func createVolumeStatusResp(v *volume.Volinfo, s *api.SizeInfo) *api.VolumeStatusResp {
-
 	resp := &api.VolumeStatusResp{
 		Info: *(createVolumeInfoResp(v)),
 	}

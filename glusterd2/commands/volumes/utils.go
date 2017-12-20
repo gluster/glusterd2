@@ -14,26 +14,38 @@ func createBrickInfo(b *brick.Brickinfo) api.BrickInfo {
 		VolumeName: b.VolumeName,
 		NodeID:     b.NodeID,
 		Hostname:   b.Hostname,
+		Type:       api.BrickType(b.Type),
 	}
+}
+
+func createSubvolInfo(sv *[]volume.Subvol) []api.Subvol {
+	var subvols []api.Subvol
+
+	for _, subvol := range *sv {
+		var blist []api.BrickInfo
+		for _, b := range subvol.Bricks {
+			blist = append(blist, createBrickInfo(&b))
+		}
+
+		subvols = append(subvols, api.Subvol{
+			Name:   subvol.Name,
+			Type:   api.SubvolType(subvol.Type),
+			Bricks: blist,
+		})
+	}
+	return subvols
 }
 
 func createVolumeInfoResp(v *volume.Volinfo) *api.VolumeInfo {
 
-	blist := make([]api.BrickInfo, len(v.Bricks))
-	for i, b := range v.Bricks {
-		blist[i] = createBrickInfo(&b)
-	}
-
 	return &api.VolumeInfo{
-		ID:           v.ID,
-		Name:         v.Name,
-		Type:         api.VolType(v.Type),
-		Transport:    v.Transport,
-		DistCount:    v.DistCount,
-		ReplicaCount: v.ReplicaCount,
-		ArbiterCount: v.ArbiterCount,
-		State:        api.VolState(v.State),
-		Options:      v.Options,
-		Bricks:       blist,
+		ID:        v.ID,
+		Name:      v.Name,
+		Type:      api.VolType(v.Type),
+		Transport: v.Transport,
+		DistCount: v.DistCount,
+		State:     api.VolState(v.State),
+		Options:   v.Options,
+		Subvols:   createSubvolInfo(&v.Subvols),
 	}
 }
