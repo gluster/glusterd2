@@ -6,6 +6,7 @@ type VolCreateReq struct {
 	Transport          string            `json:"transport,omitempty"`
 	Replica            int               `json:"replica,omitempty"`
 	Arbiter            int               `json:"arbiter,omitempty"`
+	DisperseCount      int               `json:"disperse-count,omitempty"`
 	DisperseData       int               `json:"disperse-data,omitempty"`
 	DisperseRedundancy int               `json:"disperse-redundancy,omitempty"`
 	Bricks             []string          `json:"bricks"`
