@@ -31,6 +31,7 @@ type VolumeInfo struct {
 	Transport    string            `json:"transport"`
 	DistCount    int               `json:"distribute-count"`
 	ReplicaCount int               `json:"replica-count"`
+	ArbiterCount int               `json:"arbiter-count"`
 	Options      map[string]string `json:"options"`
 	State        VolState          `json:"state"`
 	Bricks       []BrickInfo       `json:"bricks"`

@@ -57,6 +57,13 @@ func createVolinfo(req *api.VolCreateReq) (*volume.Volinfo, error) {
 		v.ReplicaCount = req.Replica
 	}
 
+	if req.Arbiter != 0 {
+		if req.Replica != 3 || req.Arbiter != 1 {
+			return nil, errors.New("For arbiter configuration, replica count must be 3 and arbiter count must be 1. The 3rd brick of the replica will be the arbiter")
+		}
+		v.ArbiterCount = 1
+	}
+
 	if (len(req.Bricks) % v.ReplicaCount) != 0 {
 		return nil, errors.New("Invalid number of bricks")
 	}
