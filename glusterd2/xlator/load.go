@@ -83,7 +83,15 @@ func loadXlator(xlPath string) (*Xlator, error) {
 	// TODO: Xlator should define their ID, instead of it being set based on path
 	xl.ID = strings.TrimSuffix(filepath.Base(xlPath), filepath.Ext(xlPath))
 
-	csSym := C.CString("options")
+	n := "options"
+	if xl.ID == "server" {
+		// FIXME: Hack for:
+		// https://github.com/gluster/glusterfs/commit/e65f394a6
+		// https://github.com/gluster/glusterd2/pull/492#issuecomment-352967399
+		n = "server_options"
+	}
+
+	csSym := C.CString(n)
 	defer C.free(unsafe.Pointer(csSym))
 
 	p := C.dlsym(handle, csSym)
