@@ -6,10 +6,10 @@
 VERSION=$($(dirname $0)/pkg-version --full)
 OS=$(go env GOOS)
 ARCH=$(go env GOARCH)
-BIN=$(basename $(go list -f '{{.ImportPath}}'))
+GD2=glusterd2
 
 RELEASEDIR=releases/$VERSION
-TAR=$RELEASEDIR/$BIN-$VERSION-$OS-$ARCH.tar
+TAR=$RELEASEDIR/$GD2-$VERSION-$OS-$ARCH.tar
 ARCHIVE=$TAR.xz
 
 TMPDIR=$(mktemp -d)
@@ -37,7 +37,9 @@ echo
 
 cp build/glusterd2 $TMPDIR
 cp build/glustercli $TMPDIR
-cp -a glusterd2/volgen/templates $TMPDIR
+cp build/glusterd2.toml $TMPDIR/glusterd2.toml.example
+mkdir $TMPDIR/bash_completion
+cp build/glustercli.sh $TMPDIR/bash_completion/glustercli.sh
 echo
 
 # Create release archive

@@ -7,15 +7,16 @@
 %global provider_prefix %{provider}.%{provider_tld}/%{project}/%{repo}
 %global import_path %{provider_prefix}
 
+%global gd2make %{__make} PREFIX=%{_prefix} EXEC_PREFIX=%{_exec_prefix} BINDIR=%{_bindir} SBINDIR=%{_sbindir} DATADIR=%{_datadir} LOCALSTATEDIR=%{_sharedstatedir} LOGDIR=%{_localstatedir}/log SYSCONFDIR=%{_sysconfdir}
+
 Name: %{repo}
 Version: 4.0dev
-Release: 9
+Release: 10
 Summary: The GlusterFS management daemon (preview)
 License: GPLv2 or LGPLv3+
 URL: https://%{provider_prefix}
 # Use vendored tarball instead of plain git archive
 Source0: https://%{provider_prefix}/releases/download/v%{version}-%{release}/%{name}-v%{version}-%{release}-vendor.tar.xz
-Source1: glusterd2.toml
 
 ExclusiveArch: x86_64
 
@@ -35,34 +36,25 @@ Preview release of the next generation GlusterFS management framework and daemon
 
 %build
 export GOPATH=$(pwd):%{gopath}
-
 mkdir -p src/%(dirname %{import_path})
 ln -s ../../../ src/%{import_path}
 
 pushd src/%{import_path}
 # Build glusterd2
-make glusterd2
-make glustercli
+%{gd2make} glusterd2
+%{gd2make} glustercli
+%{gd2make} glusterd2.toml
 popd
 
 %install
-# TODO: Use make install to install
-#Install glusterd2 & glustercli binary
-install -D -p -m 0755 build/%{name} %{buildroot}%{_sbindir}/%{name}
-install -D -p -m 0755 build/glustercli %{buildroot}%{_sbindir}/glustercli
+#Install glusterd2 & glustercli binaries and the config
+%{gd2make} DESTDIR=%{buildroot} install
 #Install systemd unit
 install -D -p -m 0644 extras/systemd/%{name}.service %{buildroot}%{_unitdir}/%{name}.service
-#Install glusterd config into etc
-install -d -m 0755 %{buildroot}%{_sysconfdir}/%{name}
-install -m 0644 -t %{buildroot}%{_sysconfdir}/%{name} %{SOURCE1}
 # Create /var/lib/glusterd2
 install -d -m 0755 %{buildroot}%{_sharedstatedir}/%{name}
 # logdir
 install -d -m 0755 %{buildroot}%{_localstatedir}/log/%{name}
-#Install templates
-install -d -m 0755 %{buildroot}%{_datadir}/%{name}/templates
-install -D -m 0644 -t %{buildroot}%{_datadir}/%{name}/templates glusterd2/volgen/templates/*.graph
-
 
 %post
 %systemd_post %{name}.service
@@ -80,11 +72,12 @@ install -D -m 0644 -t %{buildroot}%{_datadir}/%{name}/templates glusterd2/volgen
 %{_unitdir}/%{name}.service
 %dir %{_sharedstatedir}/%{name}
 %dir %{_localstatedir}/log/%{name}
-%dir %{_datadir}/%{name}
-%dir %{_datadir}/%{name}/templates
-%{_datadir}/%{name}/templates/*
+%{_sysconfdir}/bash_completion.d/glustercli.sh
 
 %changelog
+* Fri Jan 12 2018 Kaushal M <kshlmster@gmail.com> - 4.0dev-10
+- Use standard paths to build and install
+
 * Wed Nov 08 2017 Kaushal M <kshlmster@gmail.com> - 4.0dev-9
 - Build with vendored tarball.
 

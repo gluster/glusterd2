@@ -12,7 +12,6 @@ import (
 	"github.com/gluster/glusterd2/pkg/errors"
 
 	"github.com/gorilla/mux"
-	"github.com/pborman/uuid"
 	log "github.com/sirupsen/logrus"
 )
 
@@ -22,16 +21,12 @@ func startAllBricks(c transaction.TxnCtx) error {
 		return err
 	}
 
-	volinfo, err := volume.GetVolume(volname)
+	vol, err := volume.GetVolume(volname)
 	if err != nil {
 		return err
 	}
 
-	for _, b := range volinfo.Bricks {
-
-		if !uuid.Equal(b.NodeID, gdctx.MyUUID) {
-			continue
-		}
+	for _, b := range vol.GetLocalBricks() {
 
 		c.Logger().WithFields(log.Fields{
 			"volume": b.VolumeName,
@@ -66,11 +61,7 @@ func stopAllBricks(c transaction.TxnCtx) error {
 		return e
 	}
 
-	for _, b := range vol.Bricks {
-
-		if !uuid.Equal(b.NodeID, gdctx.MyUUID) {
-			continue
-		}
+	for _, b := range vol.GetLocalBricks() {
 
 		c.Logger().WithFields(log.Fields{
 			"volume": b.VolumeName,

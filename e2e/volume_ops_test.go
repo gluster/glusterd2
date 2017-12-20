@@ -58,6 +58,9 @@ func TestVolume(t *testing.T) {
 
 	// delete volume
 	t.Run("Delete", testVolumeDelete)
+
+	// Disperse volume test
+	t.Run("Disperse", testDisperse)
 }
 
 func testVolumeCreate(t *testing.T) {
@@ -72,13 +75,25 @@ func testVolumeCreate(t *testing.T) {
 
 	// create 2x2 dist-rep volume
 	createReq := api.VolCreateReq{
-		Name:    volname,
-		Replica: 2,
-		Bricks: []string{
-			gds[0].PeerID() + ":" + brickPaths[0],
-			gds[1].PeerID() + ":" + brickPaths[1],
-			gds[0].PeerID() + ":" + brickPaths[2],
-			gds[1].PeerID() + ":" + brickPaths[3]},
+		Name: volname,
+		Subvols: []api.SubvolReq{
+			{
+				ReplicaCount: 2,
+				Type:         "replicate",
+				Bricks: []api.BrickReq{
+					{NodeID: gds[0].PeerID(), Path: brickPaths[0]},
+					{NodeID: gds[1].PeerID(), Path: brickPaths[1]},
+				},
+			},
+			{
+				Type:         "replicate",
+				ReplicaCount: 2,
+				Bricks: []api.BrickReq{
+					{NodeID: gds[0].PeerID(), Path: brickPaths[2]},
+					{NodeID: gds[1].PeerID(), Path: brickPaths[3]},
+				},
+			},
+		},
 		Force: true,
 	}
 	_, err := client.VolumeCreate(createReq)
@@ -96,12 +111,11 @@ func testVolumeExpand(t *testing.T) {
 	}
 
 	expandReq := api.VolExpandReq{
-		ReplicaCount: 2,
-		Bricks: []string{
-			gds[0].PeerID() + ":" + brickPaths[0],
-			gds[1].PeerID() + ":" + brickPaths[1],
-			gds[0].PeerID() + ":" + brickPaths[2],
-			gds[1].PeerID() + ":" + brickPaths[3],
+		Bricks: []api.BrickReq{
+			{NodeID: gds[0].PeerID(), Path: brickPaths[0]},
+			{NodeID: gds[1].PeerID(), Path: brickPaths[1]},
+			{NodeID: gds[0].PeerID(), Path: brickPaths[2]},
+			{NodeID: gds[1].PeerID(), Path: brickPaths[3]},
 		},
 	}
 	_, err := client.VolumeExpand(volname, expandReq)
@@ -191,9 +205,16 @@ func TestVolumeOptions(t *testing.T) {
 
 	volname := "testvol"
 	createReq := api.VolCreateReq{
-		Name:   volname,
-		Bricks: []string{gds[0].PeerID() + ":" + brickPath},
-		Force:  true,
+		Name: volname,
+		Subvols: []api.SubvolReq{
+			{
+				Type: "distribute",
+				Bricks: []api.BrickReq{
+					{NodeID: gds[0].PeerID(), Path: brickPath},
+				},
+			},
+		},
+		Force: true,
 	}
 
 	// valid option test cases
@@ -216,4 +237,56 @@ func TestVolumeOptions(t *testing.T) {
 		_, err = client.VolumeCreate(createReq)
 		r.NotNil(err)
 	}
+}
+
+func testDisperse(t *testing.T) {
+	r := require.New(t)
+	disperseVolName := "dispersetestvol"
+
+	var brickPaths []string
+	for i := 1; i <= 3; i++ {
+		brickPath, err := ioutil.TempDir(tmpDir, "brick")
+		r.Nil(err)
+		brickPaths = append(brickPaths, brickPath)
+	}
+
+	createReq := api.VolCreateReq{
+		Name: disperseVolName,
+		Subvols: []api.SubvolReq{
+			{
+				Type: "disperse",
+				Bricks: []api.BrickReq{
+					{NodeID: gds[0].PeerID(), Path: brickPaths[0]},
+					{NodeID: gds[1].PeerID(), Path: brickPaths[1]},
+					{NodeID: gds[0].PeerID(), Path: brickPaths[2]},
+				},
+				DisperseRedundancy: 1,
+			},
+		},
+		Force: true,
+	}
+
+	_, err := client.VolumeCreate(createReq)
+	r.Nil(err)
+
+	r.Nil(client.VolumeStart(disperseVolName), "disperse volume start failed")
+
+	mntPath, err := ioutil.TempDir(tmpDir, "mnt")
+	r.Nil(err)
+	defer os.RemoveAll(mntPath)
+
+	host, _, _ := net.SplitHostPort(gds[0].ClientAddress)
+
+	mntCmd := exec.Command("mount", "-t", "glusterfs", host+":"+disperseVolName, mntPath)
+
+	umntCmd := exec.Command("umount", mntPath)
+
+	err = mntCmd.Run()
+	r.Nil(err, fmt.Sprintf("disperse volume mount failed: %s", err))
+
+	err = umntCmd.Run()
+	r.Nil(err, fmt.Sprintf("disperse volume unmount failed: %s", err))
+
+	r.Nil(client.VolumeStop(disperseVolName), "disperse volume stop failed")
+	r.Nil(client.VolumeDelete(disperseVolName), "disperse volume delete failed")
 }

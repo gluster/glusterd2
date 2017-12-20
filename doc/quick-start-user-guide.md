@@ -6,8 +6,8 @@ This guide demonstrates creating a **two-node GlusterFS cluster** using glusterd
 
 This guide takes the following as an example of IPs for the two nodes:
 
- * **Node 1**: `192.168.56.201`
- * **Node 2**: `192.168.56.202`
+ * **Node 1**: `192.168.56.101`
+ * **Node 2**: `192.168.56.102`
 
 Please follow these steps for setup on **each of the two nodes**.
 
@@ -22,12 +22,14 @@ Install rpcbind:
 # systemctl enable rpcbind
 ```
 
-> **IMPORTANT:** Please install glusterfs from source using code from the [experimental branch](https://github.com/gluster/glusterfs/tree/experimental). This is temporary until we get nightly RPMs built for experimental branch. Skip the following step to install a released version of GlusterFS.
+> **IMPORTANT:** Please install glusterfs from source using code from the [master branch](https://github.com/gluster/glusterfs/tree/master) OR if on CentOS 7, you can install glusterfs using nightly RPMs.
+
+**Installing glusterfs from nightly RPMs (CentOS 7):**
 
 Install packages that provide GlusterFS server (brick process) and client (fuse, libgfapi):
 
 ```sh
-# wget -P /etc/yum.repos.d/ https://download.gluster.org/pub/gluster/glusterfs/LATEST/Fedora/glusterfs-fedora.repo
+# curl -o /etc/yum.repos.d/glusterfs-nighthly-master.repo http://artifacts.ci.centos.org/gluster/nightly/master.repo
 # dnf install glusterfs-server glusterfs-fuse glusterfs-api
 ```
 
@@ -54,10 +56,10 @@ Glusterd2 will also pick up conf files named `glusterd.{yaml|json|toml}` if avai
 ```yaml
 $ cat conf.yaml
 workdir: "/var/lib/gd2"
-peeraddress: "192.168.56.201:24008"
-clientaddress: "192.168.56.201:24007"
-etcdcurls: "http://192.168.56.201:2379"
-etcdpurls: "http://192.168.56.201:2380"
+peeraddress: "192.168.56.101:24008"
+clientaddress: "192.168.56.101:24007"
+etcdcurls: "http://192.168.56.101:2379"
+etcdpurls: "http://192.168.56.101:2380"
 ```
 
 Replace the IP address accordingly on each node.
@@ -74,9 +76,9 @@ INFO[2017-08-28T16:03:58+05:30] Starting GlusterD                             pi
 INFO[2017-08-28T16:03:58+05:30] loaded configuration from file                file=conf.yaml
 INFO[2017-08-28T16:03:58+05:30] Generated new UUID                            uuid=19db62df-799b-47f1-80e4-0f5400896e05
 INFO[2017-08-28T16:03:58+05:30] started muxsrv listener                      
-INFO[2017-08-28T16:03:58+05:30] Started GlusterD ReST server                  ip:port=192.168.56.201:24007
-INFO[2017-08-28T16:03:58+05:30] Registered RPC Listener                       ip:port=192.168.56.201:24008
-INFO[2017-08-28T16:03:58+05:30] started GlusterD SunRPC server                ip:port=192.168.56.201:24007
+INFO[2017-08-28T16:03:58+05:30] Started GlusterD ReST server                  ip:port=192.168.56.101:24007
+INFO[2017-08-28T16:03:58+05:30] Registered RPC Listener                       ip:port=192.168.56.101:24008
+INFO[2017-08-28T16:03:58+05:30] started GlusterD SunRPC server                ip:port=192.168.56.101:24007
 ```
 
 Now you have two nodes running glusterd2.
@@ -130,17 +132,28 @@ Note the UUIDs in the response. We will use the same in volume create request be
 Create a  JSON file for volume create request body:
 
 ```sh
-$ cat volcreate.json 
+$ cat volcreate.json
 {
-	    "name": "testvol",
-	    "replica" : 2,
-	    "bricks": [
-		"<uuid1>:/export/brick1/data",
-		"<uuid2>:/export/brick2/data",
-		"<uuid1>:/export/brick3/data",
-		"<uuid2>:/export/brick4/data"
-	    ],
-	    "force": true
+        "name": "testvol",
+        "subvols": [
+            {
+                "type": "replicate",
+                "bricks": [
+                    {"nodeid": "<uuid1>", "path": "/export/brick1/data"},
+                    {"nodeid": "<uuid2>", "path": "/export/brick2/data"}
+                ],
+                "replica": 2
+            },
+            {
+                "type": "replicate",
+                "bricks": [
+                    {"nodeid": "<uuid1>", "path": "/export/brick3/data"},
+                    {"nodeid": "<uuid2>", "path": "/export/brick4/data"}
+                ],
+                "replica": 2
+            }
+        ],
+        "force": true
 }
 ```
 
@@ -148,7 +161,7 @@ Insert the actual UUID of the two glusterd2 instances in the above json file.
 
 Create brick paths accordingly on each of the two nodes:
 
- On node1: `mkdir -p /export/brick{1,3}/data`  
+ On node1: `mkdir -p /export/brick{1,3}/data`
  On node2: `mkdir -p /export/brick{2,4}/data`
 
 Send the volume create request to create a 2x2 distributed-replicate volume:

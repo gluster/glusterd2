@@ -9,17 +9,15 @@ import (
 )
 
 var (
-	binDir, templatesDir string
-	functest             bool
+	binDir   string
+	functest bool
 )
 
 func TestMain(m *testing.M) {
 	defBinDir, _ := filepath.Abs("../build")
-	defTemplatesDir, _ := filepath.Abs("../glusterd2/volgen/templates")
 
 	flag.BoolVar(&functest, "functest", false, "Run or skip functional test")
 	flag.StringVar(&binDir, "bindir", defBinDir, "The directory containing glusterd2 binary")
-	flag.StringVar(&templatesDir, "templatesdir", defTemplatesDir, "The directory containing the graph templates")
 	flag.Parse()
 
 	if !functest {

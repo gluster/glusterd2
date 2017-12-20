@@ -22,7 +22,6 @@ func registerVolOptionStepFuncs() {
 		sf   transaction.StepFunc
 	}{
 		{"vol-option.UpdateVolinfo", storeVolume},
-		{"vol-option.RegenerateVolfiles", generateBrickVolfiles},
 		{"vol-option.NotifyVolfileChange", notifyVolfileChange},
 	}
 	for _, sf := range sfs {
@@ -54,6 +53,12 @@ func volumeOptionsHandler(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
+	if err := validateXlatorOptions(req.Options, volinfo); err != nil {
+		logger.WithError(err).Error("validation failed")
+		restutils.SendHTTPError(ctx, w, http.StatusBadRequest, fmt.Sprintf("failed to set volume option: %s", err.Error()), api.ErrCodeDefault)
+		return
+	}
+
 	lock, unlock, err := transaction.CreateLockSteps(volinfo.Name)
 	if err != nil {
 		restutils.SendHTTPError(ctx, w, http.StatusInternalServerError, err.Error(), api.ErrCodeDefault)
@@ -74,10 +79,6 @@ func volumeOptionsHandler(w http.ResponseWriter, r *http.Request) {
 		{
 			DoFunc: "vol-option.UpdateVolinfo",
 			Nodes:  []uuid.UUID{gdctx.MyUUID},
-		},
-		{
-			DoFunc: "vol-option.RegenerateVolfiles",
-			Nodes:  volinfo.Nodes(),
 		},
 		{
 			DoFunc: "vol-option.NotifyVolfileChange",

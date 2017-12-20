@@ -25,8 +25,13 @@ func TestRestart(t *testing.T) {
 
 	createReq := api.VolCreateReq{
 		Name: "vol1",
-		Bricks: []string{
-			gd.PeerID() + ":" + dir,
+		Subvols: []api.SubvolReq{
+			{
+				Type: "distribute",
+				Bricks: []api.BrickReq{
+					{NodeID: gd.PeerID(), Path: dir},
+				},
+			},
 		},
 		Force: true,
 	}

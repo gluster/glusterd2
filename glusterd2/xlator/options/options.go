@@ -2,7 +2,6 @@ package options
 
 import (
 	"errors"
-	"net"
 	"path/filepath"
 	"strconv"
 	"strings"
@@ -94,7 +93,7 @@ func (o *Option) Validate(val string) error {
 	case OptionTypeBool:
 		err = ValidateBool(o, val)
 	case OptionTypeClientAuthAddr:
-		err = ValidateClientAuthAddr(o, val)
+		err = ValidateInternetAddressList(o, val)
 	case OptionTypeDouble:
 		err = ValidateDouble(o, val)
 	case OptionTypeInt:
@@ -133,7 +132,7 @@ func ValidateRange(o *Option, val string) error {
 	if err != nil {
 		return err
 	}
-	if o.ValidateType == OptionValidateBoth && o.Min != 0 && o.Max != 0 {
+	if o.ValidateType == OptionValidateBoth && o.Min == 0 && o.Max == 0 {
 		return nil
 	} else if o.ValidateType == OptionValidateMin && v < o.Min {
 		return ErrInvalidRange
@@ -156,11 +155,6 @@ func ValidateBool(o *Option, val string) error {
 	default:
 		return ErrInvalidArg
 	}
-}
-
-// ValidateClientAuthAddr validates mount auth address
-func ValidateClientAuthAddr(o *Option, val string) error {
-	return ErrInvalidArg
 }
 
 //ValidateDouble validates if the option is of type double
@@ -187,14 +181,16 @@ func ValidateInt(o *Option, val string) error {
 
 // ValidateInternetAddress validates the Internet Address
 func ValidateInternetAddress(o *Option, val string) error {
-	_, _, err := net.ParseCIDR(val)
-	if err != nil {
+	if len(val) == 0 {
 		return ErrInvalidArg
-	} else if validate.IsIP(val) != true {
+	}
+	if !(validate.IsHost(val)) {
 		return ErrInvalidArg
-	} else if validate.IsHost(val) != true {
+	} else if !(validate.IsIP(val)) {
 		return ErrInvalidArg
-	} else if strings.ContainsAny(val, "* & # & ? & ^") == true {
+	} else if !(validate.IsCIDR(val)) {
+		return ErrInvalidArg
+	} else if !(strings.ContainsAny(val, "* & # & ? & ^")) {
 		return ErrInvalidArg
 	}
 	return nil
@@ -244,31 +240,67 @@ func ValidatePercent(o *Option, val string) error {
 
 // ValidatePercentOrSize validates either a correct percent format or size
 func ValidatePercentOrSize(o *Option, val string) error {
-	return ErrInvalidArg
+	var err error
+	if strings.ContainsRune(val, '%') {
+		err = ValidatePercent(o, val)
+	} else {
+		err = ValidateSizet(o, val)
+	}
+	return err
 }
 
 // ValidatePriorityOrSize validates either priority or size
+// Example: val := "k1:1024KB, k2:512MB, k3:512GB"
+// It is verified next if 1024KB is a valid size.
 func ValidatePriorityOrSize(o *Option, val string) error {
-	return ErrInvalidArg
+	pairs := strings.Split(val, ",")
+	for _, pair := range pairs {
+		kv := strings.Split(pair, ":")
+		if strings.HasSuffix(kv[1], "B") || strings.HasSuffix(kv[1], "b") {
+			err := ValidateSizeList(o, kv[1])
+			return err
+		}
+		_, err := strconv.ParseInt(kv[1], 10, 64)
+		if err != nil {
+			return err
+		}
+	}
+	return nil
 }
 
 // ValidateSizeList validates if the option is a valid size list
 func ValidateSizeList(o *Option, val string) error {
-	return ErrInvalidArg
+	var sizeinbytes int64
+	slist := strings.Split(val, ",")
+	for _, el := range slist {
+		el = strings.TrimSpace(el)
+		l := len(el)
+		if strings.HasSuffix(el, "B") || strings.HasSuffix(el, "b") {
+			size := el[l-2 : l]
+			v, err := strconv.ParseInt(el[:l-2], 10, 64)
+			if err != nil {
+				return err
+			}
+			switch size {
+			case "KB", "kb":
+				sizeinbytes = v * 1024
+			case "MB", "mb":
+				sizeinbytes = v * 1024 * 1024
+			case "GB", "gb":
+				sizeinbytes = v * 1024 * 1024 * 1024
+			}
+			if sizeinbytes%512 != 0 {
+				return ErrInvalidArg
+			}
+		}
+	}
+	return nil
 }
 
 // ValidateSizet validates if the option is a valid size
 func ValidateSizet(o *Option, val string) error {
-	v, err := strconv.ParseFloat(val, 64)
-	if err != nil {
-		return err
-	}
-	if o.Min != 0 && o.Max != 0 {
-		return nil
-	} else if v < o.Min || v > o.Max {
-		return ErrInvalidRange
-	}
-	return nil
+	err := ValidateRange(o, val)
+	return err
 }
 
 // ValidateStr validates if the option is of type Str

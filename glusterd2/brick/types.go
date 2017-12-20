@@ -4,6 +4,17 @@ import (
 	"github.com/pborman/uuid"
 )
 
+// Type is the type of Brick
+//go:generate stringer -type=Type
+type Type uint16
+
+const (
+	// Brick represents default type of brick
+	Brick Type = iota
+	// Arbiter represents Arbiter brick type
+	Arbiter
+)
+
 // Brickinfo is the static information about the brick
 type Brickinfo struct {
 	ID         uuid.UUID
@@ -12,6 +23,7 @@ type Brickinfo struct {
 	Path       string
 	VolumeName string
 	VolumeID   uuid.UUID
+	Type       Type
 }
 
 func (b *Brickinfo) String() string {
