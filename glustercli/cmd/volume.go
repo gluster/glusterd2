@@ -33,6 +33,7 @@ var (
 	// Create Command Flags
 	flagCreateCmdStripeCount       int
 	flagCreateCmdReplicaCount      int
+	flagCreateCmdArbiterCount      int
 	flagCreateCmdDisperseCount     int
 	flagCreateCmdDisperseDataCount int
 	flagCreateCmdRedundancyCount   int
@@ -50,6 +51,7 @@ func init() {
 	// Volume Create
 	volumeCreateCmd.Flags().IntVarP(&flagCreateCmdStripeCount, "stripe", "", 0, "Stripe Count")
 	volumeCreateCmd.Flags().IntVarP(&flagCreateCmdReplicaCount, "replica", "", 0, "Replica Count")
+	volumeCreateCmd.Flags().IntVarP(&flagCreateCmdArbiterCount, "arbiter", "", 0, "Arbiter Count")
 	volumeCreateCmd.Flags().IntVarP(&flagCreateCmdDisperseCount, "disperse", "", 0, "Disperse Count")
 	volumeCreateCmd.Flags().IntVarP(&flagCreateCmdDisperseDataCount, "disperse-data", "", 0, "Disperse Data Count")
 	volumeCreateCmd.Flags().IntVarP(&flagCreateCmdRedundancyCount, "redundancy", "", 0, "Redundancy Count")
@@ -146,6 +148,7 @@ var volumeCreateCmd = &cobra.Command{
 			Name:    volname,
 			Bricks:  bricks, // string of format <UUID>:<path>
 			Replica: flagCreateCmdReplicaCount,
+			Arbiter: flagCreateCmdArbiterCount,
 			Force:   flagCreateCmdForce,
 		})
 		if err != nil {
@@ -258,6 +261,44 @@ var volumeResetCmd = &cobra.Command{
 	},
 }
 
+func volumeInfoDisplayNumbricks(vol api.VolumeGetResp) {
+
+	var DistCount = vol.DistCount
+	var RepCount = vol.ReplicaCount
+	var ArbCount = vol.ArbiterCount
+
+	switch vol.Type {
+	case api.Replicate:
+	case api.DistReplicate:
+		if vol.ArbiterCount == 1 {
+			fmt.Printf("Number of Bricks: %d x (%d + %d) = %d\n", DistCount, RepCount-1, ArbCount, len(vol.Bricks))
+		} else {
+			fmt.Printf("Number of Bricks: %d x %d = %d\n", DistCount, RepCount, len(vol.Bricks))
+		}
+	default:
+		fmt.Println("Number of Bricks:", len(vol.Bricks))
+
+	}
+}
+
+func volumeInfoDisplay(vol api.VolumeGetResp) {
+
+	fmt.Println()
+	fmt.Println("Volume Name:", vol.Name)
+	fmt.Println("Type:", vol.Type)
+	fmt.Println("Volume ID:", vol.ID)
+	fmt.Println("State:", vol.State)
+	fmt.Println("Transport-type:", vol.Transport)
+	volumeInfoDisplayNumbricks(vol)
+	for i, brick := range vol.Bricks {
+		if vol.ArbiterCount == 1 && (i+1)%vol.ReplicaCount == 0 {
+			fmt.Printf("Brick%d: %s:%s (arbiter)\n", i+1, brick.NodeID, brick.Path)
+		} else {
+			fmt.Printf("Brick%d: %s:%s\n", i+1, brick.NodeID, brick.Path)
+		}
+	}
+	return
+}
 func volumeInfoHandler2(cmd *cobra.Command, isInfo bool) error {
 	var vols api.VolumeListResp
 	var err error
@@ -272,17 +313,7 @@ func volumeInfoHandler2(cmd *cobra.Command, isInfo bool) error {
 	}
 	if isInfo {
 		for _, vol := range vols {
-			fmt.Println()
-			fmt.Println("Volume Name:", vol.Name)
-			fmt.Println("Type:", vol.Type)
-			fmt.Println("Volume ID:", vol.ID)
-			fmt.Println("State:", vol.State)
-			fmt.Println("Transport-type:", vol.Transport)
-			fmt.Println("Number of Bricks:", len(vol.Bricks))
-			fmt.Println("Bricks:")
-			for i, brick := range vol.Bricks {
-				fmt.Printf("Brick%d: %s:%s\n", i+1, brick.NodeID, brick.Path)
-			}
+			volumeInfoDisplay(vol)
 		}
 	} else {
 		table := tablewriter.NewWriter(os.Stdout)

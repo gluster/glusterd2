@@ -31,6 +31,7 @@ func createVolumeInfoResp(v *volume.Volinfo) *api.VolumeInfo {
 		Transport:    v.Transport,
 		DistCount:    v.DistCount,
 		ReplicaCount: v.ReplicaCount,
+		ArbiterCount: v.ArbiterCount,
 		State:        api.VolState(v.State),
 		Options:      v.Options,
 		Bricks:       blist,
