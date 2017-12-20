@@ -129,10 +129,10 @@ func volumeStartHandler(w http.ResponseWriter, r *http.Request) {
 	err = txn.Do()
 	if err != nil {
 		logger.WithFields(log.Fields{
-			"error":  e.Error(),
+			"error":  err.Error(),
 			"volume": volname,
 		}).Error("failed to start volume")
-		restutils.SendHTTPError(ctx, w, http.StatusInternalServerError, e.Error(), api.ErrCodeDefault)
+		restutils.SendHTTPError(ctx, w, http.StatusInternalServerError, err.Error(), api.ErrCodeDefault)
 		return
 	}
 
