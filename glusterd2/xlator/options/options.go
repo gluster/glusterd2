@@ -133,7 +133,7 @@ func ValidateRange(o *Option, val string) error {
 	if err != nil {
 		return err
 	}
-	if o.ValidateType == OptionValidateBoth && o.Min != 0 && o.Max != 0 {
+	if o.ValidateType == OptionValidateBoth && o.Min == 0 && o.Max == 0 {
 		return nil
 	} else if o.ValidateType == OptionValidateMin && v < o.Min {
 		return ErrInvalidRange
@@ -244,7 +244,13 @@ func ValidatePercent(o *Option, val string) error {
 
 // ValidatePercentOrSize validates either a correct percent format or size
 func ValidatePercentOrSize(o *Option, val string) error {
-	return ErrInvalidArg
+	var err error
+	if strings.ContainsRune(val, '%') {
+		err = ValidatePercent(o, val)
+	} else {
+		err = ValidateSizet(o, val)
+	}
+	return err
 }
 
 // ValidatePriorityOrSize validates either priority or size
@@ -254,21 +260,26 @@ func ValidatePriorityOrSize(o *Option, val string) error {
 
 // ValidateSizeList validates if the option is a valid size list
 func ValidateSizeList(o *Option, val string) error {
-	return ErrInvalidArg
+	slist := strings.Split(val, ",")
+	for _, el := range slist {
+		l := len(el)
+		if strings.ContainsRune(el, 'B') || strings.ContainsRune(el, 'b') {
+			t := strings.TrimSpace(el[:l-2])
+			v, err := strconv.ParseInt(t, 10, 64)
+			if err != nil {
+				return err
+			} else if v%512 != 0 {
+				return ErrInvalidArg
+			}
+		}
+	}
+	return nil
 }
 
 // ValidateSizet validates if the option is a valid size
 func ValidateSizet(o *Option, val string) error {
-	v, err := strconv.ParseFloat(val, 64)
-	if err != nil {
-		return err
-	}
-	if o.Min != 0 && o.Max != 0 {
-		return nil
-	} else if v < o.Min || v > o.Max {
-		return ErrInvalidRange
-	}
-	return nil
+	err := ValidateRange(o, val)
+	return err
 }
 
 // ValidateStr validates if the option is of type Str
