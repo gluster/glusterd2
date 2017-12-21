@@ -4,6 +4,7 @@ import (
 	"errors"
 	"fmt"
 	"os"
+	"strconv"
 	"strings"
 
 	"github.com/gluster/glusterd2/pkg/api"
@@ -352,16 +353,62 @@ var volumeListCmd = &cobra.Command{
 	},
 }
 
+func volumeStatusDisplay(vol api.VolumeStatusResp) {
+	table := tablewriter.NewWriter(os.Stdout)
+	table.SetHeader([]string{"Gluster process", "Port", "Online", "Pid"})
+	for _, brick := range vol.Bricks {
+		brickPath := fmt.Sprintf("%s:%s", brick.Info.Hostname, brick.Info.Path)
+		online := ""
+		if brick.Online {
+			online = "Yes"
+		} else {
+			online = "No"
+		}
+		table.Append([]string{brickPath, strconv.Itoa(brick.Port), online, strconv.Itoa(brick.Pid)})
+	}
+	table.Render()
+}
+
+func volumeStatusHandler(cmd *cobra.Command) error {
+	var vol api.VolumeStatusResp
+	var err error
+	volname := ""
+	if len(cmd.Flags().Args()) > 0 {
+		volname = cmd.Flags().Args()[0]
+	}
+	if volname == "" {
+		var volList api.VolumeListResp
+		volList, err = client.Volumes("")
+		for _, volume := range volList {
+			vol, err = client.VolumeStatus(volume.Name)
+			fmt.Println("Volume :", volume.Name)
+			if err == nil {
+				volumeStatusDisplay(vol)
+			} else {
+				log.Println("Volume status failed")
+				failure(fmt.Sprintf("Error getting Volume status %s", err.Error()), 1)
+			}
+		}
+	} else {
+		vol, err = client.VolumeStatus(volname)
+		fmt.Println("Volume :", volname)
+		if err == nil {
+			volumeStatusDisplay(vol)
+		}
+	}
+	return err
+}
+
 var volumeStatusCmd = &cobra.Command{
 	Use:   "status",
 	Short: helpVolumeStatusCmd,
 	Args:  cobra.RangeArgs(0, 1),
 	Run: func(cmd *cobra.Command, args []string) {
-		volname := "all"
-		if len(cmd.Flags().Args()) > 0 {
-			volname = cmd.Flags().Args()[0]
+		err := volumeStatusHandler(cmd)
+		if err != nil {
+			log.Println("volume status failed")
+			failure(fmt.Sprintf("Error getting Volume status %s", err.Error()), 1)
 		}
-		fmt.Println("STATUS:", volname)
 	},
 }
 
