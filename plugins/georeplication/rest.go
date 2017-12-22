@@ -407,26 +407,19 @@ func georepStatusHandler(w http.ResponseWriter, r *http.Request) {
 	// Status Transaction
 	txn := transaction.NewTxn(ctx)
 	defer txn.Cleanup()
-	lock, unlock, err := transaction.CreateLockSteps(masterid.String() + slaveid.String())
-	if err != nil {
-		restutils.SendHTTPError(ctx, w, http.StatusInternalServerError, err.Error(), api.ErrCodeDefault)
-		return
-	}
 
 	txn.Nodes = vol.Nodes()
 	txn.Steps = []*transaction.Step{
-		lock,
 		{
 			DoFunc: "georeplication-status.Commit",
 			Nodes:  txn.Nodes,
 		},
-		unlock,
 	}
 
 	txn.Ctx.Set("mastervolid", masterid.String())
 	txn.Ctx.Set("slavevolid", slaveid.String())
 
-	rtxn, e := txn.Do()
+	e = txn.Do()
 	if e != nil {
 		// TODO: Handle partial failure if a few glusterd's down
 
@@ -440,7 +433,7 @@ func georepStatusHandler(w http.ResponseWriter, r *http.Request) {
 	}
 
 	// Aggregate the results
-	result, err := aggregateGsyncdStatus(rtxn, txn.Nodes)
+	result, err := aggregateGsyncdStatus(txn.Ctx, txn.Nodes)
 	if err != nil {
 		errMsg := "Failed to aggregate gsyncd status results from multiple nodes."
 		logger.WithField("error", err.Error()).Error("gsyncdStatusHandler:" + errMsg)
