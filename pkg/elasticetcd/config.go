@@ -15,14 +15,6 @@ const (
 	DefaultName          = "elasticetcd"
 	DefaultIdealSize     = 3
 	DefaultDir           = "."
-	DefaultCertFile      = "/var/lib/gd2/certificates/server.crt"
-	DefaultKeyFile       = "/var/lib/gd2/certificates/server.key"
-	DefaultCAFile        = "/var/lib/gd2/certificates/ca.crt"
-	DefaultTrustedCAFile = "/var/lib/gd2/certificates/ca.crt"
-	DefaultPeerCertFile  = "/var/lib/gd2/certificates/peer.crt"
-	DefaultPeerKeyFile   = "/var/lib/gd2/certificates/peer.key"
-	DefaultClntCertFile  = "/var/lib/gd2/certificates/client.crt"
-	DefaultClntKeyFile   = "/var/lib/gd2/certificates/client.key"
 )
 
 var (
@@ -78,10 +70,9 @@ type Config struct {
 	IdealSize               int
 	DisableLogging          bool
 	UseTLS                  bool
-	CertFile, KeyFile       string
 	CAFile, TrustedCAFile   string
-	PeerCertFile            string
-	PeerKeyFile             string
+	CertFile                string
+	KeyFile                 string
 	ClntCertFile            string
 	ClntKeyFile             string
 }
@@ -96,14 +87,6 @@ func NewConfig() *Config {
 		CURLs:         defaultCURLs,
 		PURLs:         defaultPURLs,
 		IdealSize:     DefaultIdealSize,
-		CertFile:      DefaultCertFile,
-		KeyFile:       DefaultKeyFile,
-		CAFile:        DefaultCAFile,
-		TrustedCAFile: DefaultTrustedCAFile,
-		PeerCertFile:  DefaultPeerCertFile,
-		PeerKeyFile:   DefaultPeerKeyFile,
-		ClntCertFile:  DefaultClntCertFile,
-		ClntKeyFile:   DefaultClntKeyFile,
 	}
 }
 

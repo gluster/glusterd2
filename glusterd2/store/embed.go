@@ -76,12 +76,10 @@ func getElasticConfig(sconf *Config) (*elasticetcd.Config, error) {
 	econf.CURLs = curls
 	econf.PURLs = purls
 	econf.UseTLS = sconf.UseTLS
-	econf.CertFile = sconf.SrvrCertFile
-	econf.KeyFile = sconf.SrvrKeyFile
+	econf.CertFile = sconf.CertFile
+	econf.KeyFile = sconf.KeyFile
 	econf.CAFile = sconf.CAFile
-	econf.TrustedCAFile = sconf.TrustedCAFile
-	econf.PeerCertFile = sconf.PeerCertFile
-	econf.PeerKeyFile = sconf.PeerKeyFile
+	econf.TrustedCAFile = sconf.CAFile
 	econf.ClntCertFile = sconf.ClntCertFile
 	econf.ClntKeyFile = sconf.ClntKeyFile
 

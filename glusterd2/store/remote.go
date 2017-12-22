@@ -16,8 +16,7 @@ func newRemoteStore(conf *Config) (*GDStore, error) {
 	var e error
 	if conf.UseTLS {
 		tlsConfig = &tls.Config{
-			MinVersion: tls.VersionTLS10,
-			MaxVersion: tls.VersionTLS12,
+			MinVersion: tls.VersionTLS12,
 		}
 		if conf.ClntCertFile != "" && conf.ClntKeyFile != "" {
 			tlsCert, err := tls.LoadX509KeyPair(conf.ClntCertFile, conf.ClntKeyFile)

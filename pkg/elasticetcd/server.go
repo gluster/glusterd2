@@ -126,8 +126,8 @@ func (ee *ElasticEtcd) newEmbedConfig(initialCluster string) *embed.Config {
 	}
 	conf.ClientAutoTLS = true
 	conf.PeerTLSInfo = transport.TLSInfo{
-		CertFile:       ee.conf.PeerCertFile,
-		KeyFile:        ee.conf.PeerKeyFile,
+		CertFile:       ee.conf.CertFile,
+		KeyFile:        ee.conf.KeyFile,
 		CAFile:         ee.conf.CAFile,
 		TrustedCAFile:  ee.conf.TrustedCAFile,
 		ClientCertAuth: true,

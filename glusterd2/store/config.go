@@ -21,14 +21,11 @@ const (
 	etcdPURLsOpt     = "etcdpurls"
 	etcdLogFileOpt   = "etcdlogfile"
 	useTLS           = "usetls"
-	srvrCertFile     = "servercertfile"
-	srvrKeyFile      = "serverkeyfile"
+	certFile         = "cert-file"
+	keyFile          = "key-file"
 	caFile           = "caFile"
-	trustedCAFile    = "trustedcafile"
-	clntCertFile     = "clientcertfile"
-	clntKeyFile      = "clientkeyfile"
-	peerCertFile     = "peercertfile"
-	peerKeyFile      = "peerkeyfile"
+	clntCertFile     = "client-cert-file"
+	clntKeyFile      = "client-key-file"
 
 	defaultEtcdLogFile = "etcd.log"
 
@@ -55,14 +52,11 @@ type Config struct {
 
 	Dir           string
 	ConfFile      string
-	SrvrCertFile  string
-	SrvrKeyFile   string
+	CertFile      string
+	KeyFile       string
 	CAFile        string
-	TrustedCAFile string
 	ClntCertFile  string
 	ClntKeyFile   string
-	PeerCertFile  string
-	PeerKeyFile   string
 }
 
 // NewConfig returns a new store Config with defaults
@@ -75,14 +69,11 @@ func NewConfig() *Config {
 		config.GetBool(useTLS),
 		path.Join(config.GetString("localstatedir"), "store"),
 		path.Join(config.GetString("localstatedir"), storeConfFile),
-		config.GetString(srvrCertFile),
-		config.GetString(srvrKeyFile),
+		config.GetString(certFile),
+		config.GetString(keyFile),
 		config.GetString(caFile),
-		config.GetString(trustedCAFile),
 		config.GetString(clntCertFile),
 		config.GetString(clntKeyFile),
-		config.GetString(peerCertFile),
-		config.GetString(peerKeyFile),
 	}
 }
 
@@ -137,28 +128,22 @@ func GetConfig() *Config {
 		conf.PURLs = purls
 	}
 
-	srvrcertfile := config.GetString(srvrCertFile)
-	if len(srvrcertfile) > 0 {
+	certfile := config.GetString(certFile)
+	if len(certfile) > 0 {
 		saveconf = true
-		conf.SrvrCertFile = srvrcertfile
+		conf.CertFile = certfile
 	}
 
-	srvrkeyfile := config.GetString(srvrKeyFile)
-	if len(srvrkeyfile) > 0 {
+	keyfile := config.GetString(keyFile)
+	if len(keyfile) > 0 {
 		saveconf = true
-		conf.SrvrKeyFile = srvrkeyfile
+		conf.KeyFile = keyfile
 	}
 
 	cafile := config.GetString(caFile)
 	if len(cafile) > 0 {
 		saveconf = true
 		conf.CAFile = cafile
-	}
-
-	trustedcafile := config.GetString(trustedCAFile)
-	if len(trustedcafile) > 0 {
-		saveconf = true
-		conf.TrustedCAFile = trustedcafile
 	}
 
 	clntcertfile := config.GetString(clntCertFile)
@@ -173,17 +158,6 @@ func GetConfig() *Config {
 		conf.ClntKeyFile = clntkeyfile
 	}
 
-	peercertfile := config.GetString(peerCertFile)
-	if len(peercertfile) > 0 {
-		saveconf = true
-		conf.PeerCertFile = peercertfile
-	}
-
-	peerkeyfile := config.GetString(peerKeyFile)
-	if len(peerkeyfile) > 0 {
-		saveconf = true
-		conf.PeerKeyFile = peerkeyfile
-	}
 	if config.IsSet(noEmbedOpt) {
 		saveconf = true
 		conf.NoEmbed = config.GetBool(noEmbedOpt)

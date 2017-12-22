@@ -80,8 +80,7 @@ func (ee *ElasticEtcd) newClientConfig() clientv3.Config {
 	var tlsConfig *tls.Config
 	if ee.conf.UseTLS {
 		tlsConfig = &tls.Config{
-			MinVersion: tls.VersionTLS10,
-			MaxVersion: tls.VersionTLS12,
+			MinVersion: tls.VersionTLS12,
 		}
                 if ee.conf.ClntCertFile != "" && ee.conf.ClntKeyFile != "" {
                         tlsCert, err := tls.LoadX509KeyPair(ee.conf.ClntCertFile, ee.conf.ClntKeyFile)
