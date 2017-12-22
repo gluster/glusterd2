@@ -2,6 +2,7 @@ package options
 
 import (
 	"errors"
+	"net"
 	"path/filepath"
 	"strconv"
 	"strings"
@@ -186,12 +187,29 @@ func ValidateInt(o *Option, val string) error {
 
 // ValidateInternetAddress validates the Internet Address
 func ValidateInternetAddress(o *Option, val string) error {
-	return ErrInvalidArg
+	_, _, err := net.ParseCIDR(val)
+	if err != nil {
+		return ErrInvalidArg
+	} else if validate.IsIP(val) != true {
+		return ErrInvalidArg
+	} else if validate.IsHost(val) != true {
+		return ErrInvalidArg
+	} else if strings.ContainsAny(val, "* & # & ? & ^") == true {
+		return ErrInvalidArg
+	}
+	return nil
 }
 
 // ValidateInternetAddressList validates the Internet Address List
 func ValidateInternetAddressList(o *Option, val string) error {
-	return ErrInvalidArg
+	iplist := strings.Split(val, ",")
+	for _, ip := range iplist {
+		err := ValidateInternetAddress(o, ip)
+		if err != nil {
+			return ErrInvalidArg
+		}
+	}
+	return nil
 }
 
 // ValidatePath validates if the option is a valid path
