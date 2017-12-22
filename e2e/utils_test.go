@@ -27,6 +27,13 @@ type gdProcess struct {
 }
 
 func (g *gdProcess) Stop() error {
+	g.Cmd.Process.Signal(os.Interrupt) // try shutting down gracefully
+	time.Sleep(500 * time.Millisecond)
+	if g.IsRunning() {
+		time.Sleep(1 * time.Second)
+	} else {
+		return nil
+	}
 	return g.Cmd.Process.Kill()
 }
 
