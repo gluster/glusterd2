@@ -5,6 +5,7 @@ import (
 	"io"
 	"net"
 	"net/rpc"
+	"path"
 	"strconv"
 	"sync"
 
@@ -14,7 +15,10 @@ import (
 	"github.com/prashanthpai/sunrpc"
 	log "github.com/sirupsen/logrus"
 	"github.com/soheilhy/cmux"
+	config "github.com/spf13/viper"
 )
+
+const gd2SocketFile = "glusterd2.socket"
 
 var (
 	// metrics
@@ -23,19 +27,24 @@ var (
 
 // SunRPC implements a suture service
 type SunRPC struct {
-	server   *rpc.Server
-	listener net.Listener
-	stopCh   chan struct{}
+	server        *rpc.Server
+	tcpListener   net.Listener
+	tcpStopCh     chan struct{}
+	unixListener  net.Listener
+	unixStopCh    chan struct{}
+	notifyCloseCh chan io.ReadWriteCloser
 }
 
 var programsList []sunrpc.Program
 
+// clientsList is global as it needs to be accessed by RPC procedures
+// that notify connected clients.
 var clientsList = struct {
 	sync.RWMutex
-	c map[net.Conn]bool
+	c map[net.Conn]struct{}
 }{
 	// This map is used as a set. Values are not consumed.
-	c: make(map[net.Conn]bool),
+	c: make(map[net.Conn]struct{}),
 }
 
 func getPortFromListener(listener net.Listener) int {
@@ -61,10 +70,22 @@ func getPortFromListener(listener net.Listener) int {
 // NewMuxed returns a SunRPC server configured to listen on a CMux multiplexed connection
 func NewMuxed(m cmux.CMux) *SunRPC {
 
+	f := path.Join(config.GetString("rundir"), gd2SocketFile)
+	uL, err := net.Listen("unix", f)
+	if err != nil {
+		// FIXME: Remove fatal and bubble up error to main()
+		log.WithError(err).WithField("socket", gd2SocketFile).Fatal("failed to listen")
+	}
+	// This cleanup happens for process shutdown on SIGTERM/SIGINT but not on SIGKILL.
+	uL.(*net.UnixListener).SetUnlinkOnClose(true)
+
 	srv := &SunRPC{
-		server:   rpc.NewServer(),
-		listener: m.Match(sunrpc.CmuxMatcher()),
-		stopCh:   make(chan struct{}),
+		server:        rpc.NewServer(),
+		tcpListener:   m.Match(sunrpc.CmuxMatcher()),
+		unixListener:  uL,
+		tcpStopCh:     make(chan struct{}),
+		unixStopCh:    make(chan struct{}),
+		notifyCloseCh: make(chan io.ReadWriteCloser, 10),
 	}
 
 	programsList = []sunrpc.Program{
@@ -81,7 +102,7 @@ func NewMuxed(m cmux.CMux) *SunRPC {
 		}
 	}
 
-	port := getPortFromListener(srv.listener)
+	port := getPortFromListener(srv.tcpListener)
 
 	for _, prog := range programsList {
 		err := registerProgram(srv.server, prog, port, false)
@@ -94,59 +115,90 @@ func NewMuxed(m cmux.CMux) *SunRPC {
 	return srv
 }
 
-// Serve will start accepting Sun RPC client connections on the listener
-// provided.
-func (s *SunRPC) Serve() {
+// pruneConn detects client disconnections and prunes clients list
+func (s *SunRPC) pruneConn() {
+	logger := log.WithField("server", "sunrpc")
+	for rwc := range s.notifyCloseCh {
+		conn := rwc.(net.Conn)
+		logger.WithField("address", conn.RemoteAddr().String()).Info("client disconnected")
 
-	// Detect client disconnections
-	notifyClose := make(chan io.ReadWriteCloser, 10)
-	go func() {
-		for rwc := range notifyClose {
-			conn := rwc.(net.Conn)
-			log.WithField("address", conn.RemoteAddr().String()).Info("sunrpc client disconnected")
+		clientsList.Lock()
+		delete(clientsList.c, conn)
+		clientsList.Unlock()
 
-			// Update list of clients
-			clientsList.Lock()
-			delete(clientsList.c, conn)
-			clientsList.Unlock()
-			clientCount.Add(-1)
-		}
-	}()
+		clientCount.Add(-1)
+	}
+}
 
-	log.WithField("ip:port", s.listener.Addr().String()).Info("started GlusterD SunRPC server")
+func (s *SunRPC) acceptLoop(stopCh chan struct{}, l net.Listener, wg *sync.WaitGroup) {
+	defer wg.Done()
+
+	var ltype string
+	switch l.(type) {
+	case *net.UnixListener:
+		ltype = "unix"
+	default:
+		ltype = "tcp"
+	}
+	logger := log.WithFields(log.Fields{
+		"server":    "sunrpc",
+		"transport": ltype})
+	logger.WithField("address", l.Addr().String()).Info("started server")
+
+	sessions := make([]rpc.ServerCodec, 50)
 	for {
 		select {
-		case <-s.stopCh:
-			// TODO: Gracefully stop the server: https://github.com/golang/go/issues/17239
-			log.Debug("stopping GlusterD SunRPC server")
-			// We have 3 nested cmux listeners - cmux, rest and sunrpc.
-			// Closing listener in cmux and rest server.
-			log.Info("stopped GlusterD SunRPC server")
+		case <-stopCh:
+			logger.Debug("stopped accepting new connections")
+			logger.Debug("closing client connections")
+			for _, c := range sessions {
+				if c != nil {
+					c.Close()
+				}
+			}
 			return
 		default:
 		}
 
-		conn, err := s.listener.Accept()
+		conn, err := l.Accept()
 		if err != nil {
-			if err != cmux.ErrListenerClosed {
-				log.WithError(err).Error("failed to accept incoming connection")
-			}
 			continue
 		}
-
+		logger.WithField("address", conn.RemoteAddr().String()).Info("client connected")
 		clientCount.Add(1)
-
-		// Update list of clients
 		clientsList.Lock()
-		clientsList.c[conn] = true
+		clientsList.c[conn] = struct{}{}
 		clientsList.Unlock()
-		log.WithField("address", conn.RemoteAddr().String()).Info("sunrpc client connected")
 
-		go s.server.ServeCodec(sunrpc.NewServerCodec(conn, notifyClose))
+		session := sunrpc.NewServerCodec(conn, s.notifyCloseCh)
+		go s.server.ServeCodec(session)
+		sessions = append(sessions, session)
 	}
+}
+
+// Serve will start accepting Sun RPC client connections on the listener
+// provided.
+func (s *SunRPC) Serve() {
+	// FIXME: This goroutine leaks, the fix however makes code look complex.
+	// We will need two separate servers once we decide that local daemons
+	// only communicate over Unix sockets. Deferring this until then.
+	go s.pruneConn()
+
+	wg := &sync.WaitGroup{}
+	wg.Add(1)
+	go s.acceptLoop(s.tcpStopCh, s.tcpListener, wg)
+
+	wg.Add(1)
+	go s.acceptLoop(s.unixStopCh, s.unixListener, wg)
+
+	wg.Wait()
 }
 
 // Stop stops the SunRPC server
 func (s *SunRPC) Stop() {
-	close(s.stopCh)
+	close(s.tcpStopCh)
+	close(s.unixStopCh)
+
+	// Close UDS listener; cmux should take care of the TCP one.
+	s.unixListener.Close()
 }
