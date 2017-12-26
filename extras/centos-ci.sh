@@ -20,23 +20,18 @@ fi
 # also needs git, hg, bzr, svn gcc and make
 yum -y install git mercurial bzr subversion gcc make
 
+# Install nightly GlusterFS RPMs built off master
+curl -o /etc/yum.repos.d/glusterfs-nighthly-master.repo http://artifacts.ci.centos.org/gluster/nightly/master.repo
+yum -y install epel-release
+yum -y install glusterfs-server
+# Create /var/run/gluster
+mkdir -p /var/run/gluster
+
 export GD2SRC=$GOPATH/src/github.com/gluster/glusterd2
 cd $GD2SRC
 
 # install the build and test requirements
 ./scripts/install-reqs.sh
-
-# install glusterfs from source (master branch)
-yum install -y epel-release
-yum install -y git autoconf automake gcc libtool bison flex make rpm-build python-devel libaio-devel librdmacm-devel libattr-devel libxml2-devel readline-devel openssl-devel libibverbs-devel fuse-devel glib2-devel userspace-rcu-devel libacl-devel sqlite-devel
-git clone https://review.gluster.org/glusterfs; cd glusterfs
-# experimental is required for volgen changes
-git checkout experimental
-./autogen.sh
-./configure --enable-debug
-make -j
-make install; ldconfig
-cd -
 
 # install vendored dependencies
 make vendor-install
