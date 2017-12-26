@@ -38,4 +38,6 @@ var (
 	ErrUnknownValue            = errors.New("unknown value specified")
 	ErrGetFailed               = errors.New("failed to get value from the store")
 	ErrUnmarshallFailed        = errors.New("failed to unmarshall from json")
+	ErrGfproxydAlreadyEnabled  = errors.New("Gfproxyd is already enabled")
+	ErrGfproxydAlreadyDisabled = errors.New("Gfproxyd is already disabled")
 )

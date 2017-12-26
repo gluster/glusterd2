@@ -45,3 +45,12 @@ func IsQuotaEnabled(v *Volinfo) bool {
 	}
 	return false
 }
+
+// IsGfproxydEnabled returns true if gfproxyd is enabled for a volume and false otherwise
+func IsGfproxydEnabled(v *Volinfo) bool {
+	val, exists := v.Options[VkeyFeaturesGfproxyd]
+	if exists && val == "on" {
+		return true
+	}
+	return false
+}

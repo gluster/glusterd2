@@ -46,6 +46,8 @@ const (
 	VkeyScrubFrequency = "bit-rot.scrub-freq"
 	// VkeyScrubThrottle is the key for controls scrubber throttle
 	VkeyScrubThrottle = "bit-rot.scrub-throttle"
+	//VkeyFeaturesGfproxyd is the key which enables or disables gfproxyd
+	VkeyFeaturesGfproxyd = "features.gfproxyd"
 )
 
 var (
