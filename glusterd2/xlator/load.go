@@ -5,7 +5,7 @@ package xlator
 
 #include <stdlib.h>    // free()
 #include <dlfcn.h>     // dlopen(), dlsym(), dlclose(), dlerror()
-#include "options/options.h"   // volume_option_t
+#include "xlator.h"    // xlator_api_t, volume_option_t
 */
 import "C"
 
@@ -80,15 +80,30 @@ func loadXlator(xlPath string) (*Xlator, error) {
 	defer C.dlclose(handle)
 
 	xl := new(Xlator)
-	// TODO: Xlator should define their ID, instead of it being set based on path
 	xl.ID = strings.TrimSuffix(filepath.Base(xlPath), filepath.Ext(xlPath))
 
-	csSym := C.CString("options")
-	defer C.free(unsafe.Pointer(csSym))
+	xlSym := C.CString("xlator_api")
+	defer C.free(unsafe.Pointer(xlSym))
 
-	p := C.dlsym(handle, csSym)
-	if p == nil {
-		return xl, nil
+	p := C.dlsym(handle, xlSym)
+	if p != nil {
+		xp := (*C.xlator_api_t)(p)
+		// FIXME: It's named "server-protocol" instead of "server" in server.so
+		//        https://review.gluster.org/18879
+		// xl.ID = C.GoString(xp.identifier)
+		xl.rawID = uint32(xp.xlator_id)
+		xl.Flags = uint32(xp.flags)
+		for _, k := range xp.op_version {
+			xl.OpVersion = append(xl.OpVersion, uint32(k))
+		}
+		p = unsafe.Pointer(xp.options)
+	} else {
+		optsSym := C.CString("options")
+		defer C.free(unsafe.Pointer(optsSym))
+		p = C.dlsym(handle, optsSym)
+		if p == nil {
+			return xl, nil
+		}
 	}
 
 	soOptions := (*[maxOptions]C.volume_option_t)(p)
