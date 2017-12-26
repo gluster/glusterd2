@@ -1,12 +1,7 @@
 package xlator
 
 import (
-	"fmt"
-	"runtime/debug"
-
 	"github.com/gluster/glusterd2/glusterd2/xlator/options"
-
-	log "github.com/sirupsen/logrus"
 )
 
 var (
@@ -19,14 +14,6 @@ var (
 
 // Load load all available xlators and intializes the xlators and options maps
 func Load() (err error) {
-
-	defer func() {
-		if r := recover(); r != nil {
-			log.Info(string(debug.Stack()))
-			err = fmt.Errorf("recover()ed at xlator.InitOptions(): %s", r)
-			log.Error("You probably didn't install glusterfs from source (branch: experimental)")
-		}
-	}()
 
 	xls, err := loadAllXlators()
 	if err != nil {
