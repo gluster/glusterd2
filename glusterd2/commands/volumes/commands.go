@@ -50,14 +50,12 @@ func (c *Command) Routes() route.Routes {
 			Pattern:     "/volumes/{volname}/bricks",
 			Version:     1,
 			HandlerFunc: volumeBricksStatusHandler},
-		/*
-			route.Route{
-				Name:        "VolumeStatus",
-				Method:      "GET",
-				Pattern:     "/volumes/{volname}/status",
-				Version:     1,
-				HandlerFunc: volumeStatusHandler},
-		*/
+		route.Route{
+			Name:        "VolumeStatus",
+			Method:      "GET",
+			Pattern:     "/volumes/{volname}/status",
+			Version:     1,
+			HandlerFunc: volumeStatusHandler},
 		route.Route{
 			Name:        "VolumeList",
 			Method:      "GET",
