@@ -353,10 +353,10 @@ var volumeListCmd = &cobra.Command{
 	},
 }
 
-func volumeStatusDisplay(vol api.VolumeStatusResp) {
+func volumeStatusDisplay(vol api.BricksStatusResp) {
 	table := tablewriter.NewWriter(os.Stdout)
 	table.SetHeader([]string{"Gluster process", "Port", "Online", "Pid"})
-	for _, brick := range vol.Bricks {
+	for _, brick := range vol {
 		brickPath := fmt.Sprintf("%s:%s", brick.Info.Hostname, brick.Info.Path)
 		online := ""
 		if brick.Online {
@@ -370,7 +370,7 @@ func volumeStatusDisplay(vol api.VolumeStatusResp) {
 }
 
 func volumeStatusHandler(cmd *cobra.Command) error {
-	var vol api.VolumeStatusResp
+	var vol api.BricksStatusResp
 	var err error
 	volname := ""
 	if len(cmd.Flags().Args()) > 0 {

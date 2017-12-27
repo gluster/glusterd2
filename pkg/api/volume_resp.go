@@ -22,6 +22,10 @@ type BrickStatus struct {
 	Port   int       `json:"port"`
 }
 
+// BricksStatusResp contains statuses of bricks belonging to one
+// volume.
+type BricksStatusResp []BrickStatus
+
 // VolumeInfo contains static information about the volume.
 // Clients should NOT use this struct directly.
 type VolumeInfo struct {
@@ -47,8 +51,8 @@ type SizeInfo struct {
 
 // VolumeStatusResp response contains the statuses of all bricks of the volume.
 type VolumeStatusResp struct {
-	Bricks []BrickStatus `json:"bricks"`
-	Size   SizeInfo      `json:"size"`
+	Info VolumeInfo `json:"info"`
+	Size SizeInfo   `json:"size"`
 }
 
 // VolumeCreateResp is the response sent for a volume create request.

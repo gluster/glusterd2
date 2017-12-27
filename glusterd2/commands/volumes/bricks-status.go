@@ -2,7 +2,6 @@ package volumecommands
 
 import (
 	"net/http"
-	"time"
 
 	"github.com/gluster/glusterd2/glusterd2/brick"
 	"github.com/gluster/glusterd2/glusterd2/daemon"
@@ -16,7 +15,6 @@ import (
 
 	"github.com/gorilla/mux"
 	"github.com/pborman/uuid"
-	log "github.com/sirupsen/logrus"
 )
 
 const (
@@ -31,35 +29,25 @@ type brickstatus struct {
 	// TODO: Add other fields like filesystem type, statvfs output etc.
 }
 
-func checkStatus(ctx transaction.TxnCtx) error {
-	var volname string
+func checkBricksStatus(ctx transaction.TxnCtx) error {
 
+	var volname string
 	if err := ctx.Get("volname", &volname); err != nil {
-		ctx.Logger().WithFields(log.Fields{
-			"error": err,
-			"key":   "volname",
-		}).Error("checkStatus: Failed to get key from transaction context.")
+		ctx.Logger().WithError(err).Error("Failed to get key from transaction context.")
 		return err
 	}
 
 	vol, err := volume.GetVolume(volname)
 	if err != nil {
-		ctx.Logger().WithFields(log.Fields{
-			"error": err,
-			"key":   "volname",
-		}).Error("checkStatus: Failed to get volume information from store.")
+		ctx.Logger().WithError(err).Error("Failed to get volume information from store.")
 		return err
 	}
 
 	var brickStatuses []*brickstatus
-
 	for _, binfo := range vol.Bricks {
-		// Skip bricks that aren't on this node.
 		if uuid.Equal(binfo.NodeID, gdctx.MyUUID) == false {
 			continue
 		}
-
-		var port int
 
 		brickDaemon, err := brick.NewGlusterfsd(binfo)
 		if err != nil {
@@ -67,10 +55,10 @@ func checkStatus(ctx transaction.TxnCtx) error {
 		}
 
 		online := false
+		port := 0
 
 		pid, err := daemon.ReadPidFromFile(brickDaemon.PidFile())
 		if err == nil {
-			// Check if process is running
 			_, err := daemon.GetProcess(pid)
 			if err == nil {
 				online = true
@@ -92,15 +80,14 @@ func checkStatus(ctx transaction.TxnCtx) error {
 	// Store the results in transaction context. This will be consumed by
 	// the node that initiated the transaction.
 	ctx.SetNodeResult(gdctx.MyUUID, brickStatusTxnKey, brickStatuses)
-
 	return nil
 }
 
-func registerVolStatusStepFuncs() {
-	transaction.RegisterStepFunc(checkStatus, "vol-status.Check")
+func registerBricksStatusStepFuncs() {
+	transaction.RegisterStepFunc(checkBricksStatus, "bricks-status.Check")
 }
 
-func volumeStatusHandler(w http.ResponseWriter, r *http.Request) {
+func volumeBricksStatusHandler(w http.ResponseWriter, r *http.Request) {
 
 	ctx := r.Context()
 	logger := gdctx.GetReqLogger(ctx)
@@ -116,7 +103,7 @@ func volumeStatusHandler(w http.ResponseWriter, r *http.Request) {
 	defer txn.Cleanup()
 	txn.Steps = []*transaction.Step{
 		{
-			DoFunc: "vol-status.Check",
+			DoFunc: "bricks-status.Check",
 			Nodes:  vol.Nodes(),
 		},
 	}
@@ -126,17 +113,6 @@ func volumeStatusHandler(w http.ResponseWriter, r *http.Request) {
 	txn.DontCheckAlive = true
 	txn.DisableRollback = true
 
-	// txn.Do() call is synchronous; try getting volume size info
-	// concurrently while the transaction runs.
-	ch := make(chan *api.SizeInfo)
-	go func() {
-		s, err := volumeUsage(vol.Name)
-		if err != nil {
-			logger.WithError(err).WithField("volume", volname).Error("Failed to get volume size info")
-		}
-		ch <- s
-	}()
-
 	err = txn.Do()
 	if err != nil {
 		logger.WithError(err).WithField("volume", volname).Error("Failed to get volume status")
@@ -144,15 +120,7 @@ func volumeStatusHandler(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	var size *api.SizeInfo
-	select {
-	case size = <-ch:
-		// should be ready by the time the txn is over
-	case <-time.After(time.Second * 2):
-		logger.WithError(err).WithField("volume", volname).Error("Timeout: Failed to get volume status")
-	}
-
-	result, err := createVolumeStatusResp(txn.Ctx, vol, size)
+	result, err := createBricksStatusResp(txn.Ctx, vol)
 	if err != nil {
 		errMsg := "Failed to aggregate brick status results from multiple nodes."
 		logger.WithField("error", err.Error()).Error("volumeStatusHandler:" + errMsg)
@@ -163,7 +131,7 @@ func volumeStatusHandler(w http.ResponseWriter, r *http.Request) {
 	restutils.SendHTTPResponse(ctx, w, http.StatusOK, result)
 }
 
-func createVolumeStatusResp(ctx transaction.TxnCtx, vol *volume.Volinfo, size *api.SizeInfo) (*api.VolumeStatusResp, error) {
+func createBricksStatusResp(ctx transaction.TxnCtx, vol *volume.Volinfo) (*api.BricksStatusResp, error) {
 
 	// bmap is a map of brick statuses keyed by brick ID
 	bmap := make(map[string]*api.BrickStatus)
@@ -190,13 +158,9 @@ func createVolumeStatusResp(ctx transaction.TxnCtx, vol *volume.Volinfo, size *a
 		}
 	}
 
-	var resp api.VolumeStatusResp
+	var resp api.BricksStatusResp
 	for _, v := range bmap {
-		resp.Bricks = append(resp.Bricks, *v)
-	}
-
-	if size != nil {
-		resp.Size = *size
+		resp = append(resp, *v)
 	}
 
 	return &resp, nil
