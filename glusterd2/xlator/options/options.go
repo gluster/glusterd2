@@ -260,15 +260,26 @@ func ValidatePriorityOrSize(o *Option, val string) error {
 
 // ValidateSizeList validates if the option is a valid size list
 func ValidateSizeList(o *Option, val string) error {
+	var sizeinbytes int64
 	slist := strings.Split(val, ",")
 	for _, el := range slist {
+		el = strings.TrimSpace(el)
 		l := len(el)
-		if strings.ContainsRune(el, 'B') || strings.ContainsRune(el, 'b') {
-			t := strings.TrimSpace(el[:l-2])
-			v, err := strconv.ParseInt(t, 10, 64)
+		if strings.HasSuffix(el, "B") || strings.HasSuffix(el, "b") {
+			size := el[l-2 : l]
+			v, err := strconv.ParseInt(el[:l-2], 10, 64)
 			if err != nil {
 				return err
-			} else if v%512 != 0 {
+			}
+			switch size {
+			case "KB", "kb":
+				sizeinbytes = v * 1024
+			case "MB", "mb":
+				sizeinbytes = v * 1024 * 1024
+			case "GB", "gb":
+				sizeinbytes = v * 1024 * 1024 * 1024
+			}
+			if sizeinbytes%512 != 0 {
 				return ErrInvalidArg
 			}
 		}
