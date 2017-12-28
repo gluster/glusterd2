@@ -155,6 +155,7 @@ func createDirectories() error {
 		config.GetString("rundir"), config.GetString("logdir"),
 		path.Join(config.GetString("rundir"), "gluster"),
 		path.Join(config.GetString("logdir"), "glusterfs/bricks"),
+		"/var/run/gluster", // issue #476
 	}
 	for _, dirpath := range dirs {
 		if err := utils.InitDir(dirpath); err != nil {
