@@ -168,7 +168,7 @@ var volumeCreateCmd = &cobra.Command{
 
 				// If Arbiter is set, set it as Brick Type for last brick
 				if flagCreateCmdArbiterCount > 0 {
-					bricks[idx+flagCreateCmdReplicaCount].Type = "arbiter"
+					bricks[idx+flagCreateCmdReplicaCount-1].Type = "arbiter"
 				}
 
 				subvols = append(subvols, api.SubvolReq{

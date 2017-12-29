@@ -28,9 +28,11 @@ func createSubvolInfo(sv *[]volume.Subvol) []api.Subvol {
 		}
 
 		subvols = append(subvols, api.Subvol{
-			Name:   subvol.Name,
-			Type:   api.SubvolType(subvol.Type),
-			Bricks: blist,
+			Name:         subvol.Name,
+			Type:         api.SubvolType(subvol.Type),
+			Bricks:       blist,
+			ReplicaCount: subvol.ReplicaCount,
+			ArbiterCount: subvol.ArbiterCount,
 		})
 	}
 	return subvols

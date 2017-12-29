@@ -43,11 +43,16 @@ func voltypeFromSubvols(req *api.VolCreateReq) volume.VolType {
 	if len(req.Subvols) == 0 {
 		return volume.Distribute
 	}
+	numSubvols := len(req.Subvols)
+
 	// TODO: Don't know how to decide on Volume Type if each subvol is different
 	// For now just picking the first subvols Type, which satisfies
 	// most of today's needs
 	switch req.Subvols[0].Type {
 	case "replicate":
+		if numSubvols > 1 {
+			return volume.DistReplicate
+		}
 		return volume.Replicate
 	case "distribute":
 		return volume.Distribute
