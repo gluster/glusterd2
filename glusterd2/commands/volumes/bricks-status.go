@@ -2,6 +2,7 @@ package volumecommands
 
 import (
 	"net/http"
+	"syscall"
 
 	"github.com/gluster/glusterd2/glusterd2/brick"
 	"github.com/gluster/glusterd2/glusterd2/daemon"
@@ -21,14 +22,6 @@ const (
 	brickStatusTxnKey string = "brickstatuses"
 )
 
-type brickstatus struct {
-	Info   brick.Brickinfo
-	Online bool
-	Pid    int
-	Port   int
-	// TODO: Add other fields like filesystem type, statvfs output etc.
-}
-
 func checkBricksStatus(ctx transaction.TxnCtx) error {
 
 	var volname string
@@ -43,7 +36,8 @@ func checkBricksStatus(ctx transaction.TxnCtx) error {
 		return err
 	}
 
-	var brickStatuses []*brickstatus
+	var brickStatuses []*api.BrickStatus
+	var online, port, pid = false, 0, 0
 	for _, binfo := range vol.Bricks {
 		if uuid.Equal(binfo.NodeID, gdctx.MyUUID) == false {
 			continue
@@ -54,25 +48,30 @@ func checkBricksStatus(ctx transaction.TxnCtx) error {
 			return err
 		}
 
-		online := false
-		port := 0
-
-		pid, err := daemon.ReadPidFromFile(brickDaemon.PidFile())
+		online, port, pid = false, 0, 0
+		pidOnFile, err := daemon.ReadPidFromFile(brickDaemon.PidFile())
 		if err == nil {
-			_, err := daemon.GetProcess(pid)
+			_, err := daemon.GetProcess(pidOnFile)
 			if err == nil {
 				online = true
+				pid = pidOnFile
 				port = pmap.RegistrySearch(binfo.Path, pmap.GfPmapPortBrickserver)
-			} else {
-				pid = -1
 			}
 		}
 
-		brickStatus := &brickstatus{
-			Info:   binfo,
+		var fstat syscall.Statfs_t
+		if err := syscall.Statfs(binfo.Path, &fstat); err != nil {
+			ctx.Logger().WithError(err).WithField("path",
+				binfo.Path).Error("syscall.Statfs() failed")
+		}
+
+		brickStatus := &api.BrickStatus{
+			Info:   createBrickInfo(&binfo),
 			Online: online,
 			Pid:    pid,
 			Port:   port,
+			FS:     fsType(fstat.Type).String(),
+			Size:   *(createSizeInfo(&fstat)),
 		}
 		brickStatuses = append(brickStatuses, brickStatus)
 	}
@@ -143,22 +142,19 @@ func createBricksStatusResp(ctx transaction.TxnCtx, vol *volume.Volinfo) (*api.B
 
 	// Loop over each node that make up the volume and aggregate result
 	// of brick status check from each.
+	var resp api.BricksStatusResp
 	for _, node := range vol.Nodes() {
-		var tmp []brickstatus
+		var tmp []api.BrickStatus
 		err := ctx.GetNodeResult(node, brickStatusTxnKey, &tmp)
 		if err != nil || len(tmp) == 0 {
 			// skip if we do not have information
 			continue
 		}
 		for _, b := range tmp {
-			entry := bmap[b.Info.ID.String()]
-			entry.Online = b.Online
-			entry.Port = b.Port
-			entry.Pid = b.Pid
+			bmap[b.Info.ID.String()] = &b
 		}
 	}
 
-	var resp api.BricksStatusResp
 	for _, v := range bmap {
 		resp = append(resp, *v)
 	}

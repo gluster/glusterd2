@@ -16,7 +16,18 @@ import (
 	config "github.com/spf13/viper"
 )
 
-const fuseSuperMagic = 1702057286
+//go:generate stringer -type=fsType
+type fsType int64
+
+const (
+	fuse  fsType = 0x65735546
+	nfs   fsType = 0x6969
+	smb   fsType = 0x517b
+	xfs   fsType = 0x58465342
+	ext   fsType = 0xef53
+	btrfs fsType = 0x9123683e
+	zfs   fsType = 0x00bab10c
+)
 
 func mountVolume(name string, mountpoint string) error {
 	// NOTE: Why do it this way ?
@@ -49,6 +60,16 @@ func mountVolume(name string, mountpoint string) error {
 	return cmd.Wait() // glusterfs daemonizes itself
 }
 
+func createSizeInfo(fstat *syscall.Statfs_t) *api.SizeInfo {
+	var s api.SizeInfo
+	if fstat != nil {
+		s.Capacity = fstat.Blocks * uint64(fstat.Bsize)
+		s.Free = fstat.Bfree * uint64(fstat.Bsize)
+		s.Used = s.Capacity - s.Free
+	}
+	return &s
+}
+
 func volumeUsage(volname string) (*api.SizeInfo, error) {
 
 	tempDir, err := ioutil.TempDir(config.GetString("rundir"), "gd2mount")
@@ -67,15 +88,10 @@ func volumeUsage(volname string) (*api.SizeInfo, error) {
 		return nil, err
 	}
 
-	if fstat.Type != fuseSuperMagic {
+	if fstat.Type != int64(fuse) {
 		// Do a crude check if mountpoint is a glusterfs mount
 		return nil, errors.New("Not FUSE mount")
 	}
 
-	var v api.SizeInfo
-	v.Capacity = fstat.Blocks * uint64(fstat.Bsize)
-	v.Free = fstat.Bfree * uint64(fstat.Bsize)
-	v.Used = v.Capacity - v.Free
-
-	return &v, nil
+	return createSizeInfo(&fstat), nil
 }
