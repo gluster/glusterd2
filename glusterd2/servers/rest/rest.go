@@ -84,7 +84,7 @@ func NewMuxed(m cmux.CMux) *GDRest {
 		middleware.ReqIDGenerator,
 		middleware.LogRequest,
 		middleware.Auth,
-	).Then(rest.Routes)
+	        middleware.Heketi).Then(rest.Routes)
 
 	return rest
 }

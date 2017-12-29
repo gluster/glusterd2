@@ -17,6 +17,20 @@ import (
 	"github.com/pborman/uuid"
 )
 
+
+// VolCreateRequest defines the parameters for creating a volume in the volume-create command
+type VolCreateRequest struct {
+	Name         string            `json:"name"`
+	Transport    string            `json:"transport,omitempty"`
+	ReplicaCount int               `json:"replica,omitempty"`
+	Bricks       []string          `json:"bricks,omitempty"`
+	Force        bool              `json:"force,omitempty"`
+	Options      map[string]string `json:"options,omitempty"`
+	Size         int               `json:"size,omitempty"`
+	// Bricks list is ordered (like in glusterd1) and decides which bricks
+	// form replica sets.
+}
+
 func unmarshalVolCreateRequest(msg *api.VolCreateReq, r *http.Request) (int, error) {
 	if err := restutils.UnmarshalRequest(r, msg); err != nil {
 		return 422, gderrors.ErrJSONParsingFailed
