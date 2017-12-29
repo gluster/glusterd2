@@ -355,16 +355,10 @@ var volumeListCmd = &cobra.Command{
 
 func volumeStatusDisplay(vol api.BricksStatusResp) {
 	table := tablewriter.NewWriter(os.Stdout)
-	table.SetHeader([]string{"Gluster process", "Port", "Online", "Pid"})
-	for _, brick := range vol {
-		brickPath := fmt.Sprintf("%s:%s", brick.Info.Hostname, brick.Info.Path)
-		online := ""
-		if brick.Online {
-			online = "Yes"
-		} else {
-			online = "No"
-		}
-		table.Append([]string{brickPath, strconv.Itoa(brick.Port), online, strconv.Itoa(brick.Pid)})
+	table.SetHeader([]string{"Brick ID", "Host", "Path", "Online", "Port", "Pid"})
+	for _, b := range vol {
+		table.Append([]string{b.Info.ID.String(), b.Info.Hostname, b.Info.Path,
+			strconv.FormatBool(b.Online), strconv.Itoa(b.Port), strconv.Itoa(b.Pid)})
 	}
 	table.Render()
 }
