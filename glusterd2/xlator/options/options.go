@@ -251,7 +251,19 @@ func ValidatePercentOrSize(o *Option, val string) error {
 
 // ValidatePriorityOrSize validates either priority or size
 func ValidatePriorityOrSize(o *Option, val string) error {
-	return ErrInvalidArg
+	pairs := strings.Split(val, ',')
+	if len(pairs)%2 != 0 {
+		return ErrInvalidArg
+	}
+	// TODO: Validating the keys.
+	// Validating the values
+	for i := range pairs {
+		_, err := strconv.ParseInt(pairs[i+1], 10, 64)
+		if err != nil {
+			return err
+		}
+	}
+	return nil
 }
 
 // ValidateSizeList validates if the option is a valid size list
