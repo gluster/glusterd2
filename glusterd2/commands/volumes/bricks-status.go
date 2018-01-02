@@ -2,6 +2,7 @@ package volumecommands
 
 import (
 	"net/http"
+	"strings"
 	"syscall"
 
 	"github.com/gluster/glusterd2/glusterd2/brick"
@@ -36,8 +37,13 @@ func checkBricksStatus(ctx transaction.TxnCtx) error {
 		return err
 	}
 
+	mtabEntries, err := readMtabFile()
+	if err != nil {
+		ctx.Logger().WithError(err).Error("Failed to read /etc/mtab file.")
+		return err
+	}
+
 	var brickStatuses []*api.BrickStatus
-	var online, port, pid = false, 0, 0
 	for _, binfo := range vol.Bricks {
 		if uuid.Equal(binfo.NodeID, gdctx.MyUUID) == false {
 			continue
@@ -48,14 +54,15 @@ func checkBricksStatus(ctx transaction.TxnCtx) error {
 			return err
 		}
 
-		online, port, pid = false, 0, 0
-		pidOnFile, err := daemon.ReadPidFromFile(brickDaemon.PidFile())
-		if err == nil {
-			_, err := daemon.GetProcess(pidOnFile)
-			if err == nil {
-				online = true
-				pid = pidOnFile
-				port = pmap.RegistrySearch(binfo.Path, pmap.GfPmapPortBrickserver)
+		s := &api.BrickStatus{
+			Info: createBrickInfo(&binfo),
+		}
+
+		if pidOnFile, err := daemon.ReadPidFromFile(brickDaemon.PidFile()); err == nil {
+			if _, err := daemon.GetProcess(pidOnFile); err == nil {
+				s.Online = true
+				s.Pid = pidOnFile
+				s.Port = pmap.RegistrySearch(binfo.Path, pmap.GfPmapPortBrickserver)
 			}
 		}
 
@@ -63,17 +70,19 @@ func checkBricksStatus(ctx transaction.TxnCtx) error {
 		if err := syscall.Statfs(binfo.Path, &fstat); err != nil {
 			ctx.Logger().WithError(err).WithField("path",
 				binfo.Path).Error("syscall.Statfs() failed")
+		} else {
+			s.Size = *(createSizeInfo(&fstat))
 		}
 
-		brickStatus := &api.BrickStatus{
-			Info:   createBrickInfo(&binfo),
-			Online: online,
-			Pid:    pid,
-			Port:   port,
-			FS:     fsType(fstat.Type).String(),
-			Size:   *(createSizeInfo(&fstat)),
+		for _, m := range mtabEntries {
+			if strings.HasPrefix(binfo.Path, m.mntDir) {
+				s.MountOpts = m.mntOpts
+				s.Device = m.fsName
+				s.FS = m.mntType
+			}
 		}
-		brickStatuses = append(brickStatuses, brickStatus)
+
+		brickStatuses = append(brickStatuses, s)
 	}
 
 	// Store the results in transaction context. This will be consumed by

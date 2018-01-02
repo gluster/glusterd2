@@ -24,12 +24,14 @@ type SizeInfo struct {
 // BrickStatus contains the runtime information about the brick.
 // Clients should NOT use this struct directly.
 type BrickStatus struct {
-	Info   BrickInfo `json:"info"`
-	Online bool      `json:"online"`
-	Pid    int       `json:"pid"`
-	Port   int       `json:"port"`
-	FS     string    `json:"fs"`
-	Size   SizeInfo  `json:"size"`
+	Info      BrickInfo `json:"info"`
+	Online    bool      `json:"online"`
+	Pid       int       `json:"pid"`
+	Port      int       `json:"port"`
+	FS        string    `json:"fs-type"`
+	MountOpts string    `json:"mount-opts"`
+	Device    string    `json:"device"`
+	Size      SizeInfo  `json:"size"`
 }
 
 // BricksStatusResp contains statuses of bricks belonging to one

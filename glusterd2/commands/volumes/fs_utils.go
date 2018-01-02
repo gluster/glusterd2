@@ -1,6 +1,7 @@
 package volumecommands
 
 import (
+	"bufio"
 	"bytes"
 	"errors"
 	"fmt"
@@ -16,18 +17,7 @@ import (
 	config "github.com/spf13/viper"
 )
 
-//go:generate stringer -type=fsType
-type fsType int64
-
-const (
-	fuse  fsType = 0x65735546
-	nfs   fsType = 0x6969
-	smb   fsType = 0x517b
-	xfs   fsType = 0x58465342
-	ext   fsType = 0xef53
-	btrfs fsType = 0x9123683e
-	zfs   fsType = 0x00bab10c
-)
+const fuseSuperMagic = 1702057286
 
 func mountVolume(name string, mountpoint string) error {
 	// NOTE: Why do it this way ?
@@ -88,10 +78,60 @@ func volumeUsage(volname string) (*api.SizeInfo, error) {
 		return nil, err
 	}
 
-	if fstat.Type != int64(fuse) {
+	if fstat.Type != fuseSuperMagic {
 		// Do a crude check if mountpoint is a glusterfs mount
 		return nil, errors.New("Not FUSE mount")
 	}
 
 	return createSizeInfo(&fstat), nil
+}
+
+type mntent struct {
+	fsName  string
+	mntDir  string
+	mntType string
+	mntOpts string
+	// excluded mnt_freq and mnt_passno
+}
+
+// See `man getmntent`
+var mtabReplacer = strings.NewReplacer("\\040", " ", "\\011", "\t", "\\012", "\n", "\\134", "\\")
+
+func readMtabEntry(entry string) *mntent {
+	f := strings.Fields(entry)
+	if len(f) != 6 {
+		return nil
+	}
+
+	for i := 0; i < 4; i++ {
+		f[i] = mtabReplacer.Replace(f[i])
+	}
+
+	return &mntent{
+		fsName:  f[0],
+		mntDir:  f[1],
+		mntType: f[2],
+		mntOpts: f[3],
+	}
+}
+
+func readMtabFile() ([]*mntent, error) {
+
+	f, err := os.Open("/etc/mtab")
+	if err != nil {
+		return nil, err
+	}
+	defer f.Close()
+
+	var l []*mntent
+
+	scanner := bufio.NewScanner(f)
+	for scanner.Scan() {
+		m := readMtabEntry(scanner.Text())
+		if m != nil {
+			l = append(l, m)
+		}
+	}
+
+	return l, nil
 }
