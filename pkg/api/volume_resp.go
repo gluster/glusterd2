@@ -55,8 +55,9 @@ type VolumeInfo struct {
 
 // VolumeStatusResp response contains the statuses of all bricks of the volume.
 type VolumeStatusResp struct {
-	Info VolumeInfo `json:"info"`
-	Size SizeInfo   `json:"size"`
+	Info   VolumeInfo `json:"info"`
+	Online bool       `json:"online"`
+	Size   SizeInfo   `json:"size"`
 }
 
 // VolumeCreateResp is the response sent for a volume create request.
