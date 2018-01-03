@@ -8,8 +8,8 @@ import (
 	"net/http"
 	"strings"
 
-	"github.com/gluster/glusterd2/commands/volumes"
-	"github.com/gluster/glusterd2/utils"
+	"github.com/gluster/glusterd2/glusterd2/commands/volumes"
+	"github.com/gluster/glusterd2/pkg/utils"
 )
 
 // TODO
@@ -29,10 +29,7 @@ func Heketi(next http.Handler) http.Handler {
 
 		if r.URL.Path == "/v1/volumes" && r.Method == http.MethodPost {
 			req := new(volumecommands.VolCreateRequest)
-			err := utils.GetJSONFromRequest(r, req)
-			if err != nil {
-				return err
-			}
+			utils.GetJSONFromRequest(r, req)
 
 			//if (len(req.Bricks) <= 0) && (req.Size > 0) {
 			if req.Size > 0 {

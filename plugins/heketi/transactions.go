@@ -5,7 +5,7 @@ import (
 	"os/exec"
 
 	heketi "github.com/gluster/glusterd2/plugins/heketi/api"
-	"github.com/gluster/glusterd2/transaction"
+	"github.com/gluster/glusterd2/glusterd2/transaction"
 )
 
 func txnHeketiPrepareDevice(c transaction.TxnCtx) error {

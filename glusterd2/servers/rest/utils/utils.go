@@ -8,6 +8,7 @@ import (
 
 	"github.com/gluster/glusterd2/glusterd2/gdctx"
 	"github.com/gluster/glusterd2/pkg/api"
+        log "github.com/sirupsen/logrus"
 )
 
 // APIError is the placeholder for error string to report back to the client
@@ -58,4 +59,12 @@ func SendHTTPError(ctx context.Context, w http.ResponseWriter, statusCode int, e
 		logger := gdctx.GetReqLogger(ctx)
 		logger.WithError(err).Error("Failed to send the response -", resp)
 	}
+}
+
+
+// GetReqIDandLogger returns a request ID and a request-scoped logger having
+// the request ID as a logging field.
+func GetReqIDandLogger(r *http.Request) (string, *log.Entry) {
+	reqID := r.Header.Get("X-Request-ID")
+	return reqID, log.WithField("reqid", reqID)
 }

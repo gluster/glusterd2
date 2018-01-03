@@ -3,15 +3,15 @@ package heketi
 import (
 	"context"
 	"encoding/json"
-	"fmt"
 	"net/http"
 
 	"github.com/pborman/uuid"
 
 	heketiapi "github.com/gluster/glusterd2/plugins/heketi/api"
-	restutils "github.com/gluster/glusterd2/servers/rest/utils"
-	"github.com/gluster/glusterd2/store"
-	"github.com/gluster/glusterd2/transaction"
+	restutils "github.com/gluster/glusterd2/glusterd2/servers/rest/utils"
+	"github.com/gluster/glusterd2/glusterd2/store"
+        "github.com/gluster/glusterd2/pkg/api"
+	"github.com/gluster/glusterd2/glusterd2/transaction"
 
 	"github.com/gorilla/mux"
 	log "github.com/sirupsen/logrus"
@@ -28,10 +28,10 @@ func heketiDeviceAddHandler(w http.ResponseWriter, r *http.Request) {
 	deviceName := p["devicename"]
 	var deviceinfo heketiapi.DeviceInfo
 	deviceinfo.DeviceName = deviceName
-
+        ctx := r.Context()
 	nodeID := uuid.Parse(nodeIDRaw)
 	if nodeID == nil {
-		restutils.SendHTTPError(w, http.StatusBadRequest, "Invalid Node ID")
+		restutils.SendHTTPError(ctx, w, http.StatusBadRequest, "Invalid Node ID", api.ErrCodeDefault)
 		return
 	}
 	deviceinfo.NodeID = nodeID
@@ -40,16 +40,16 @@ func heketiDeviceAddHandler(w http.ResponseWriter, r *http.Request) {
 
 	_, err := store.Store.Get(context.TODO(), deviceinfo.NodeID.String())
 	if err != nil {
-		restutils.SendHTTPError(w, http.StatusInternalServerError, err.Error())
+		restutils.SendHTTPError(ctx,w, http.StatusInternalServerError, err.Error(), api.ErrCodeDefault)
 		return
 	}
 
-	txn := transaction.NewTxn(reqID)
+	txn := transaction.NewTxn(ctx)
 	defer txn.Cleanup()
 
 	lock, unlock, err := transaction.CreateLockSteps(deviceinfo.NodeID.String())
 	if err != nil {
-		restutils.SendHTTPError(w, http.StatusInternalServerError, err.Error())
+		restutils.SendHTTPError(ctx, w, http.StatusInternalServerError, err.Error(), api.ErrCodeDefault)
 		return
 	}
 
@@ -68,14 +68,14 @@ func heketiDeviceAddHandler(w http.ResponseWriter, r *http.Request) {
 	txn.Ctx.Set("nodeid", deviceinfo.NodeID.String())
 	txn.Ctx.Set("devicename", deviceinfo.DeviceName)
 
-	_, err = txn.Do()
+	err = txn.Do()
 	if err != nil {
 		logger.WithFields(log.Fields{
 			"error":      err.Error(),
 			"nodeid":     deviceinfo.NodeID,
 			"devicename": deviceinfo.DeviceName,
 		}).Error("Failed to prepare device")
-		restutils.SendHTTPError(w, http.StatusInternalServerError, err.Error())
+		restutils.SendHTTPError(ctx, w, http.StatusInternalServerError, err.Error(), api.ErrCodeDefault)
 		return
 	}
 
@@ -84,17 +84,17 @@ func heketiDeviceAddHandler(w http.ResponseWriter, r *http.Request) {
 
 	json, err := json.Marshal(deviceinfo)
 	if err != nil {
-		log.WithField("error", err).Error("Failed to marshal the DeviceInfo object")
-		restutils.SendHTTPError(w, http.StatusInternalServerError, err.Error())
+		log.WithField("error", err).Error("Failed to marshal the DeviceInfo object" + reqID)
+		restutils.SendHTTPError(ctx, w, http.StatusInternalServerError, err.Error(), api.ErrCodeDefault)
 		return
 	}
 
 	_, err = store.Store.Put(context.TODO(), heketiPrefix+"/"+deviceinfo.NodeID.String()+"/"+deviceName, string(json))
 	if err != nil {
 		log.WithError(err).Error("Couldn't add deviceinfo to store")
-		restutils.SendHTTPError(w, http.StatusInternalServerError, err.Error())
+		restutils.SendHTTPError(ctx, w, http.StatusInternalServerError, err.Error(), api.ErrCodeDefault)
 		return
 	}
 
-	restutils.SendHTTPResponse(w, http.StatusOK, deviceinfo)
+	restutils.SendHTTPResponse(ctx, w, http.StatusOK, deviceinfo)
 }
