@@ -9,12 +9,12 @@ import (
 
 // Default values for the various ElasticEtcd config options
 const (
-	DefaultCURL          = "http://0.0.0.0:2379"
-	DefaultPURL          = "http://0.0.0.0:2380"
-	DefaultEndpoint      = "http://localhost:2379"
-	DefaultName          = "elasticetcd"
-	DefaultIdealSize     = 3
-	DefaultDir           = "."
+	DefaultCURL      = "http://0.0.0.0:2379"
+	DefaultPURL      = "http://0.0.0.0:2380"
+	DefaultEndpoint  = "http://localhost:2379"
+	DefaultName      = "elasticetcd"
+	DefaultIdealSize = 3
+	DefaultDir       = "."
 )
 
 var (
@@ -80,13 +80,13 @@ type Config struct {
 // NewConfig returns an ElasticEtcd config with defaults filled
 func NewConfig() *Config {
 	return &Config{
-		Name:          DefaultName,
-		Dir:           DefaultDir,
-		LogDir:        path.Join(DefaultDir, "log"),
-		Endpoints:     defaultEndpoints,
-		CURLs:         defaultCURLs,
-		PURLs:         defaultPURLs,
-		IdealSize:     DefaultIdealSize,
+		Name:      DefaultName,
+		Dir:       DefaultDir,
+		LogDir:    path.Join(DefaultDir, "log"),
+		Endpoints: defaultEndpoints,
+		CURLs:     defaultCURLs,
+		PURLs:     defaultPURLs,
+		IdealSize: DefaultIdealSize,
 	}
 }
 

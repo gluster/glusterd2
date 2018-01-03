@@ -82,20 +82,20 @@ func (ee *ElasticEtcd) newClientConfig() clientv3.Config {
 		tlsConfig = &tls.Config{
 			MinVersion: tls.VersionTLS12,
 		}
-                if ee.conf.ClntCertFile != "" && ee.conf.ClntKeyFile != "" {
-                        tlsCert, err := tls.LoadX509KeyPair(ee.conf.ClntCertFile, ee.conf.ClntKeyFile)
-                        if err != nil {
-                                log.WithError(err).Error("failed to load certificate file")
-                                return clientv3.Config{}
-                        }
-                        tlsConfig.Certificates = []tls.Certificate{tlsCert}
-                        tlsConfig.ClientAuth = tls.RequestClientCert
-                }
+		if ee.conf.ClntCertFile != "" && ee.conf.ClntKeyFile != "" {
+			tlsCert, err := tls.LoadX509KeyPair(ee.conf.ClntCertFile, ee.conf.ClntKeyFile)
+			if err != nil {
+				log.WithError(err).Error("failed to load certificate file")
+				return clientv3.Config{}
+			}
+			tlsConfig.Certificates = []tls.Certificate{tlsCert}
+			tlsConfig.ClientAuth = tls.RequestClientCert
+		}
 		if ee.conf.CAFile != "" {
 			caCert, err := ioutil.ReadFile(ee.conf.CAFile)
 			if err != nil {
-                                log.WithError(err).Error("failed to load CA file")
-                                return clientv3.Config{}
+				log.WithError(err).Error("failed to load CA file")
+				return clientv3.Config{}
 			}
 			caCertPool := x509.NewCertPool()
 			caCertPool.AppendCertsFromPEM(caCert)

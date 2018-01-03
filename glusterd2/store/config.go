@@ -6,6 +6,7 @@ import (
 	"os"
 	"path"
 
+	"github.com/gluster/glusterd2/constants"
 	"github.com/gluster/glusterd2/pkg/elasticetcd"
 
 	"github.com/pelletier/go-toml"
@@ -20,12 +21,6 @@ const (
 	etcdCURLsOpt     = "etcdcurls"
 	etcdPURLsOpt     = "etcdpurls"
 	etcdLogFileOpt   = "etcdlogfile"
-	useTLS           = "usetls"
-	certFile         = "cert-file"
-	keyFile          = "key-file"
-	caFile           = "caFile"
-	clntCertFile     = "client-cert-file"
-	clntKeyFile      = "client-key-file"
 
 	defaultEtcdLogFile = "etcd.log"
 
@@ -50,13 +45,13 @@ type Config struct {
 	NoEmbed   bool
 	UseTLS    bool
 
-	Dir           string
-	ConfFile      string
-	CertFile      string
-	KeyFile       string
-	CAFile        string
-	ClntCertFile  string
-	ClntKeyFile   string
+	Dir          string
+	ConfFile     string
+	CertFile     string
+	KeyFile      string
+	CAFile       string
+	ClntCertFile string
+	ClntKeyFile  string
 }
 
 // NewConfig returns a new store Config with defaults
@@ -66,14 +61,14 @@ func NewConfig() *Config {
 		[]string{elasticetcd.DefaultCURL},
 		[]string{elasticetcd.DefaultPURL},
 		false,
-		config.GetBool(useTLS),
+		config.GetBool(constants.UseTLS),
 		path.Join(config.GetString("localstatedir"), "store"),
 		path.Join(config.GetString("localstatedir"), storeConfFile),
-		config.GetString(certFile),
-		config.GetString(keyFile),
-		config.GetString(caFile),
-		config.GetString(clntCertFile),
-		config.GetString(clntKeyFile),
+		config.GetString(constants.CertFile),
+		config.GetString(constants.KeyFile),
+		config.GetString(constants.CAFile),
+		config.GetString(constants.ClntCertFile),
+		config.GetString(constants.ClntKeyFile),
 	}
 }
 
@@ -128,31 +123,31 @@ func GetConfig() *Config {
 		conf.PURLs = purls
 	}
 
-	certfile := config.GetString(certFile)
+	certfile := config.GetString(constants.CertFile)
 	if len(certfile) > 0 {
 		saveconf = true
 		conf.CertFile = certfile
 	}
 
-	keyfile := config.GetString(keyFile)
+	keyfile := config.GetString(constants.KeyFile)
 	if len(keyfile) > 0 {
 		saveconf = true
 		conf.KeyFile = keyfile
 	}
 
-	cafile := config.GetString(caFile)
+	cafile := config.GetString(constants.CAFile)
 	if len(cafile) > 0 {
 		saveconf = true
 		conf.CAFile = cafile
 	}
 
-	clntcertfile := config.GetString(clntCertFile)
+	clntcertfile := config.GetString(constants.ClntCertFile)
 	if len(clntcertfile) > 0 {
 		saveconf = true
 		conf.ClntCertFile = clntcertfile
 	}
 
-	clntkeyfile := config.GetString(clntKeyFile)
+	clntkeyfile := config.GetString(constants.ClntKeyFile)
 	if len(clntkeyfile) > 0 {
 		saveconf = true
 		conf.ClntKeyFile = clntkeyfile
@@ -162,9 +157,9 @@ func GetConfig() *Config {
 		saveconf = true
 		conf.NoEmbed = config.GetBool(noEmbedOpt)
 	}
-	if config.IsSet(useTLS) {
+	if config.IsSet(constants.UseTLS) {
 		saveconf = true
-		conf.UseTLS = config.GetBool(useTLS)
+		conf.UseTLS = config.GetBool(constants.UseTLS)
 	}
 
 	if saveconf {

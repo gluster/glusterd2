@@ -27,16 +27,16 @@ func newRemoteStore(conf *Config) (*GDStore, error) {
 			tlsConfig.Certificates = []tls.Certificate{tlsCert}
 			tlsConfig.ClientAuth = tls.RequestClientCert
 		}
-                if conf.CAFile != "" {
-                        caCert, err := ioutil.ReadFile(conf.CAFile)
-                        if err != nil {
-                                log.WithError(err).Error("failed to load CA file")
-                                return nil, err
-                        }
-                        caCertPool := x509.NewCertPool()
-                        caCertPool.AppendCertsFromPEM(caCert)
-                        tlsConfig.RootCAs = caCertPool
-                }
+		if conf.CAFile != "" {
+			caCert, err := ioutil.ReadFile(conf.CAFile)
+			if err != nil {
+				log.WithError(err).Error("failed to load CA file")
+				return nil, err
+			}
+			caCertPool := x509.NewCertPool()
+			caCertPool.AppendCertsFromPEM(caCert)
+			tlsConfig.RootCAs = caCertPool
+		}
 	}
 	c, e = clientv3.New(clientv3.Config{
 		Endpoints:        conf.Endpoints,
