@@ -2,7 +2,6 @@ package options
 
 import (
 	"errors"
-	"net"
 	"path/filepath"
 	"strconv"
 	"strings"
@@ -94,7 +93,7 @@ func (o *Option) Validate(val string) error {
 	case OptionTypeBool:
 		err = ValidateBool(o, val)
 	case OptionTypeClientAuthAddr:
-		err = ValidateClientAuthAddr(o, val)
+		err = ValidateInternetAddressList(o, val)
 	case OptionTypeDouble:
 		err = ValidateDouble(o, val)
 	case OptionTypeInt:
@@ -158,11 +157,6 @@ func ValidateBool(o *Option, val string) error {
 	}
 }
 
-// ValidateClientAuthAddr validates mount auth address
-func ValidateClientAuthAddr(o *Option, val string) error {
-	return ErrInvalidArg
-}
-
 //ValidateDouble validates if the option is of type double
 func ValidateDouble(o *Option, val string) error {
 	var err error
@@ -187,14 +181,16 @@ func ValidateInt(o *Option, val string) error {
 
 // ValidateInternetAddress validates the Internet Address
 func ValidateInternetAddress(o *Option, val string) error {
-	_, _, err := net.ParseCIDR(val)
-	if err != nil {
+	if len(val) == 0 {
 		return ErrInvalidArg
-	} else if validate.IsIP(val) != true {
+	}
+	if !(validate.IsHost(val)) {
 		return ErrInvalidArg
-	} else if validate.IsHost(val) != true {
+	} else if !(validate.IsIP(val)) {
 		return ErrInvalidArg
-	} else if strings.ContainsAny(val, "* & # & ? & ^") == true {
+	} else if !(validate.IsCIDR(val)) {
+		return ErrInvalidArg
+	} else if !(strings.ContainsAny(val, "* & # & ? & ^")) {
 		return ErrInvalidArg
 	}
 	return nil
