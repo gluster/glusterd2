@@ -1,7 +1,9 @@
 package volumecommands
 
 import (
+	"fmt"
 	"net/http"
+	"strings"
 
 	"github.com/gluster/glusterd2/glusterd2/brick"
 	"github.com/gluster/glusterd2/glusterd2/gdctx"
@@ -131,12 +133,16 @@ func updateVolinfoOnExpand(c transaction.TxnCtx) error {
 		}
 	} else {
 		// Create new Sub volumes with given bricks
+		subvolIdx := len(volinfo.Subvols)
 		for i := 0; i < len(newBricks)/newReplicaCount; i++ {
 			idx := i * newReplicaCount
 			volinfo.Subvols = append(volinfo.Subvols, volume.Subvol{
+				ID:     uuid.NewRandom(),
+				Name:   fmt.Sprintf("%s-%s-%d", volinfo.Name, strings.ToLower(volinfo.Subvols[0].Type.String()), subvolIdx),
 				Type:   volinfo.Subvols[0].Type,
 				Bricks: newBricks[idx : idx+newReplicaCount],
 			})
+			subvolIdx = subvolIdx + 1
 		}
 	}
 	volinfo.DistCount = len(volinfo.Subvols)

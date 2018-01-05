@@ -59,7 +59,6 @@ const (
 )
 
 // SubvolType is the Type of the volume
-//go:generate stringer -type=SubvolType
 type SubvolType uint16
 
 const (
