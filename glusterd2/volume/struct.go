@@ -205,27 +205,41 @@ func (v *Volinfo) String() string {
 	return out.String()
 }
 
+// GetBricks returns a list of Bricks
+func (v *Volinfo) GetBricks(onlyLocal bool) []brick.Brickinfo {
+	var bricks []brick.Brickinfo
+
+	for _, subvol := range v.Subvols {
+		for _, b := range subvol.Bricks {
+			if onlyLocal && !uuid.Equal(b.NodeID, gdctx.MyUUID) {
+				continue
+			}
+			bricks = append(bricks, b)
+		}
+	}
+	return bricks
+}
+
 // Nodes returns the a list of nodes on which this volume has bricks
 func (v *Volinfo) Nodes() []uuid.UUID {
 	var nodes []uuid.UUID
 
 	// This shouldn't be very inefficient for small slices.
 	var present bool
-	for _, subvol := range v.Subvols {
-		for _, b := range subvol.Bricks {
-			// Add node to the slice only if it isn't present already
-			present = false
-			for _, n := range nodes {
-				if uuid.Equal(b.NodeID, n) == true {
-					present = true
-					break
-				}
-			}
-
-			if present == false {
-				nodes = append(nodes, b.NodeID)
+	for _, b := range v.GetBricks(false) {
+		// Add node to the slice only if it isn't present already
+		present = false
+		for _, n := range nodes {
+			if uuid.Equal(b.NodeID, n) == true {
+				present = true
+				break
 			}
 		}
+
+		if present == false {
+			nodes = append(nodes, b.NodeID)
+		}
 	}
+
 	return nodes
 }

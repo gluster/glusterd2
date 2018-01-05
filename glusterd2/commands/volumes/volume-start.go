@@ -12,7 +12,6 @@ import (
 	"github.com/gluster/glusterd2/pkg/errors"
 
 	"github.com/gorilla/mux"
-	"github.com/pborman/uuid"
 	log "github.com/sirupsen/logrus"
 )
 
@@ -27,21 +26,15 @@ func startAllBricks(c transaction.TxnCtx) error {
 		return err
 	}
 
-	for _, subvol := range volinfo.Subvols {
-		for _, b := range subvol.Bricks {
+	for _, b := range volinfo.GetBricks(true) {
 
-			if !uuid.Equal(b.NodeID, gdctx.MyUUID) {
-				continue
-			}
+		c.Logger().WithFields(log.Fields{
+			"volume": b.VolumeName,
+			"brick":  b.String(),
+		}).Info("Starting brick")
 
-			c.Logger().WithFields(log.Fields{
-				"volume": b.VolumeName,
-				"brick":  b.String(),
-			}).Info("Starting brick")
-
-			if err := startBrick(b); err != nil {
-				return err
-			}
+		if err := startBrick(b); err != nil {
+			return err
 		}
 	}
 
@@ -68,21 +61,15 @@ func stopAllBricks(c transaction.TxnCtx) error {
 		return e
 	}
 
-	for _, subvol := range vol.Subvols {
-		for _, b := range subvol.Bricks {
+	for _, b := range vol.GetBricks(true) {
 
-			if !uuid.Equal(b.NodeID, gdctx.MyUUID) {
-				continue
-			}
+		c.Logger().WithFields(log.Fields{
+			"volume": b.VolumeName,
+			"brick":  b.String(),
+		}).Info("volume start failed, stopping brick")
 
-			c.Logger().WithFields(log.Fields{
-				"volume": b.VolumeName,
-				"brick":  b.String(),
-			}).Info("volume start failed, stopping brick")
-
-			if err := stopBrick(b); err != nil {
-				return err
-			}
+		if err := stopBrick(b); err != nil {
+			return err
 		}
 	}
 

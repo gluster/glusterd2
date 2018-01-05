@@ -144,33 +144,26 @@ func txnGeorepStatus(c transaction.TxnCtx) error {
 
 	var workersStatuses = make(map[string]georepapi.GeorepWorker)
 
-	for _, subvol := range volinfo.Subvols {
-		for _, w := range subvol.Bricks {
-
-			if !uuid.Equal(w.NodeID, gdctx.MyUUID) {
-				continue
-			}
-
-			gsyncd, err := newGsyncd(*sessioninfo)
-			if err != nil {
-				return err
-			}
-			args := gsyncd.statusArgs(w.Path)
-
-			out, err := exec.Command(gsyncdCommand, args...).Output()
-			if err != nil {
-				return err
-			}
-
-			var worker georepapi.GeorepWorker
-			if err = json.Unmarshal(out, &worker); err != nil {
-				return err
-			}
-
-			// Unique key for master brick UUID:BRICK_PATH
-			key := gdctx.MyUUID.String() + ":" + w.Path
-			workersStatuses[key] = worker
+	for _, w := range volinfo.GetBricks(true) {
+		gsyncd, err := newGsyncd(*sessioninfo)
+		if err != nil {
+			return err
 		}
+		args := gsyncd.statusArgs(w.Path)
+
+		out, err := exec.Command(gsyncdCommand, args...).Output()
+		if err != nil {
+			return err
+		}
+
+		var worker georepapi.GeorepWorker
+		if err = json.Unmarshal(out, &worker); err != nil {
+			return err
+		}
+
+		// Unique key for master brick UUID:BRICK_PATH
+		key := gdctx.MyUUID.String() + ":" + w.Path
+		workersStatuses[key] = worker
 	}
 
 	c.SetNodeResult(gdctx.MyUUID, gsyncdStatusTxnKey, workersStatuses)

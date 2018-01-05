@@ -224,13 +224,11 @@ func volumeExpandHandler(w http.ResponseWriter, r *http.Request) {
 	txn := transaction.NewTxn(ctx)
 	defer txn.Cleanup()
 
-	var nodesMap = make(map[string]int)
-	var nodes []uuid.UUID
-	for _, brick := range req.Bricks {
-		if _, ok := nodesMap[brick.NodeID]; !ok {
-			nodesMap[brick.NodeID] = 1
-			nodes = append(nodes, uuid.Parse(brick.NodeID))
-		}
+	nodes, err := nodesFromVolumeExpandReq(&req)
+	if err != nil {
+		logger.WithError(err).Error("could not prepare node list")
+		restutils.SendHTTPError(ctx, w, http.StatusInternalServerError, err.Error(), api.ErrCodeDefault)
+		return
 	}
 
 	txn.Steps = []*transaction.Step{

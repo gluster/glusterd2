@@ -9,7 +9,6 @@ type BrickReq struct {
 
 // SubvolReq represents Sub volume Request
 type SubvolReq struct {
-	Name         string      `json:"name"`
 	Type         string      `json:"type"`
 	Bricks       []BrickReq  `json:"bricks"`
 	Subvols      []SubvolReq `json:"subvols"`

@@ -33,17 +33,11 @@ func deleteVolfiles(c transaction.TxnCtx) error {
 			"volume", volinfo.Name).Warn("deleteVolfiles: failed to delete client volfile")
 	}
 
-	for _, subvol := range volinfo.Subvols {
-		for _, b := range subvol.Bricks {
-			if !uuid.Equal(b.NodeID, gdctx.MyUUID) {
-				continue
-			}
-
-			if err := volgen.DeleteBrickVolfile(&b); err != nil {
-				// Log and continue, ignore the volfile cleanup error
-				c.Logger().WithError(err).WithField(
-					"brick", b.Path).Warn("deleteVolfiles: failed to delete brick volfile")
-			}
+	for _, b := range volinfo.GetBricks(true) {
+		if err := volgen.DeleteBrickVolfile(&b); err != nil {
+			// Log and continue, ignore the volfile cleanup error
+			c.Logger().WithError(err).WithField(
+				"brick", b.Path).Warn("deleteVolfiles: failed to delete brick volfile")
 		}
 	}
 

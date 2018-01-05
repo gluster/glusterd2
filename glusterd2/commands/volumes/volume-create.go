@@ -4,8 +4,8 @@ import (
 	"errors"
 	"fmt"
 	"net/http"
+	"strings"
 
-	"github.com/gluster/glusterd2/glusterd2/brick"
 	"github.com/gluster/glusterd2/glusterd2/events"
 	"github.com/gluster/glusterd2/glusterd2/gdctx"
 	restutils "github.com/gluster/glusterd2/glusterd2/servers/rest/utils"
@@ -93,10 +93,7 @@ func createVolinfo(req *api.VolCreateReq) (*volume.Volinfo, error) {
 			return nil, errors.New("Invalid number of bricks")
 		}
 
-		name := subvolreq.Name
-		if name == "" {
-			name = fmt.Sprintf("s-%d", idx)
-		}
+		name := fmt.Sprintf("%s-%s-%d", v.Name, strings.ToLower(subvolreq.Type), idx)
 
 		ty := volume.SubvolDistribute
 		switch subvolreq.Type {
@@ -164,15 +161,8 @@ func validateVolumeCreate(c transaction.TxnCtx) error {
 		return err
 	}
 
-	var bricks []brick.Brickinfo
-	for _, subvol := range volinfo.Subvols {
-		for _, brick := range subvol.Bricks {
-			bricks = append(bricks, brick)
-		}
-	}
-
 	// FIXME: Return values of this function are inconsistent and unused
-	if _, err = volume.ValidateBrickEntriesFunc(bricks, volinfo.ID, req.Force); err != nil {
+	if _, err = volume.ValidateBrickEntriesFunc(volinfo.GetBricks(false), volinfo.ID, req.Force); err != nil {
 		c.Logger().WithError(err).WithField(
 			"volume", volinfo.Name).Debug("validateVolumeCreate: failed to validate bricks")
 		return err
@@ -188,16 +178,9 @@ func rollBackVolumeCreate(c transaction.TxnCtx) error {
 		return err
 	}
 
-	for _, subvol := range volinfo.Subvols {
-		for _, b := range subvol.Bricks {
-			if !uuid.Equal(b.NodeID, gdctx.MyUUID) {
-				continue
-			}
+	// TODO: Clean xattrs set if any. ValidateBrickEntriesFunc()
+	// does a lot of things that it's not supposed to do.
 
-			// TODO: Clean xattrs set if any. ValidateBrickEntriesFunc()
-			// does a lot of things that it's not supposed to do.
-		}
-	}
 	return nil
 }
 
@@ -233,15 +216,11 @@ func volumeCreateHandler(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	var nodesMap = make(map[string]int)
-	var nodes []uuid.UUID
-	for _, subvol := range req.Subvols {
-		for _, brick := range subvol.Bricks {
-			if _, ok := nodesMap[brick.NodeID]; !ok {
-				nodesMap[brick.NodeID] = 1
-				nodes = append(nodes, uuid.Parse(brick.NodeID))
-			}
-		}
+	nodes, err := nodesFromVolumeCreateReq(req)
+	if err != nil {
+		logger.WithError(err).Error("could not prepare node list")
+		restutils.SendHTTPError(ctx, w, http.StatusInternalServerError, err.Error(), api.ErrCodeDefault)
+		return
 	}
 
 	if err := validateOptions(req.Options); err != nil {
