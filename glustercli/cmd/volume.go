@@ -374,7 +374,7 @@ func volumeStatusHandler(cmd *cobra.Command) error {
 		var volList api.VolumeListResp
 		volList, err = client.Volumes("")
 		for _, volume := range volList {
-			vol, err = client.VolumeStatus(volume.Name)
+			vol, err = client.BricksStatus(volume.Name)
 			fmt.Println("Volume :", volume.Name)
 			if err == nil {
 				volumeStatusDisplay(vol)
@@ -384,7 +384,7 @@ func volumeStatusHandler(cmd *cobra.Command) error {
 			}
 		}
 	} else {
-		vol, err = client.VolumeStatus(volname)
+		vol, err = client.BricksStatus(volname)
 		fmt.Println("Volume :", volname)
 		if err == nil {
 			volumeStatusDisplay(vol)
