@@ -73,6 +73,7 @@ const (
 
 // Subvol represents a sub volume
 type Subvol struct {
+	ID           uuid.UUID
 	Name         string
 	Type         SubvolType
 	Bricks       []brick.Brickinfo

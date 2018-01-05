@@ -107,6 +107,7 @@ func createVolinfo(req *api.VolCreateReq) (*volume.Volinfo, error) {
 
 		s := volume.Subvol{
 			Name: name,
+			ID:   uuid.NewRandom(),
 			Type: ty,
 		}
 
