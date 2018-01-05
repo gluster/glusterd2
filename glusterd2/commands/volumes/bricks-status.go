@@ -37,7 +37,7 @@ func checkBricksStatus(ctx transaction.TxnCtx) error {
 		return err
 	}
 
-	mtabEntries, err := readMtabFile()
+	mtabEntries, err := getMounts()
 	if err != nil {
 		ctx.Logger().WithError(err).Error("Failed to read /etc/mtab file.")
 		return err

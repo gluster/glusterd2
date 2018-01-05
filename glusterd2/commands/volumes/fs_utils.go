@@ -97,7 +97,7 @@ type mntent struct {
 // See `man getmntent`
 var mtabReplacer = strings.NewReplacer("\\040", " ", "\\011", "\t", "\\012", "\n", "\\134", "\\")
 
-func readMtabEntry(entry string) *mntent {
+func readMountEntry(entry string) *mntent {
 	f := strings.Fields(entry)
 	if len(f) != 6 {
 		return nil
@@ -115,19 +115,18 @@ func readMtabEntry(entry string) *mntent {
 	}
 }
 
-func readMtabFile() ([]*mntent, error) {
+func getMounts() ([]*mntent, error) {
 
-	f, err := os.Open("/etc/mtab")
+	content, err := ioutil.ReadFile("/proc/mounts")
 	if err != nil {
 		return nil, err
 	}
-	defer f.Close()
 
 	var l []*mntent
 
-	scanner := bufio.NewScanner(f)
+	scanner := bufio.NewScanner(bytes.NewReader(content))
 	for scanner.Scan() {
-		m := readMtabEntry(scanner.Text())
+		m := readMountEntry(scanner.Text())
 		if m != nil {
 			l = append(l, m)
 		}
