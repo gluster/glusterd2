@@ -1,8 +1,6 @@
 package main
 
 import (
-	"context"
-	"encoding/json"
 	"os"
 	"os/signal"
 	"path"
@@ -101,12 +99,8 @@ func main() {
 	}
 
 	// Load the group option map into the store
-	groupOptions, err := json.Marshal(volumecommands.GroupOptions)
-	if err != nil {
-		log.WithError(err).Fatal("Failed to marshal the group option map")
-	}
-	if _, err := store.Store.Put(context.TODO(), "groupoptions", string(groupOptions)); err != nil {
-		log.WithError(err).Fatal("Failed to load the group option map into the store")
+	if err := volumecommands.LoadDefaultGroupOptions(); err != nil {
+		log.WithError(err).Fatal("Failed to load the default group options")
 	}
 
 	// If REST API Auth is enabled, Generate Auth file with random secret in workdir

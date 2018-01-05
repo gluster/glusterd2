@@ -38,3 +38,14 @@ type VolExpandReq struct {
 	ReplicaCount int        `json:"replica,omitempty"`
 	Bricks       []BrickReq `json:"bricks"`
 }
+
+type Option struct {
+	OptionName string `json:"optionname"`
+	OnValue    string `json:"onvalue"`
+	OffValue   string `json:"offvalue"`
+}
+
+type ProfileCreateReq struct {
+	ProfileName string   `json:"profilename"`
+	Options     []Option `json:"options"`
+}

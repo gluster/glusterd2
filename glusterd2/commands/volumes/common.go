@@ -11,6 +11,7 @@ import (
 	"github.com/gluster/glusterd2/glusterd2/volume"
 	"github.com/gluster/glusterd2/glusterd2/xlator"
 	"github.com/gluster/glusterd2/glusterd2/xlator/options"
+	"github.com/gluster/glusterd2/pkg/api"
 	"github.com/gluster/glusterd2/pkg/errors"
 )
 
@@ -58,7 +59,7 @@ func expandOptions(opts map[string]string) (map[string]string, error) {
 		return nil, errors.ErrGetFailed
 	}
 
-	var groupOptions map[string][]option
+	var groupOptions map[string][]api.Option
 	if err := json.Unmarshal(resp.Kvs[0].Value, &groupOptions); err != nil {
 		return nil, errors.ErrUnmarshallFailed
 	}
@@ -119,5 +120,16 @@ func storeVolume(c transaction.TxnCtx) error {
 		return err
 	}
 
+	return nil
+}
+
+func LoadDefaultGroupOptions() error {
+	groupOptions, err := json.Marshal(defaultGroupOptions)
+	if err != nil {
+		return err
+	}
+	if _, err := store.Store.Put(context.TODO(), "groupoptions", string(groupOptions)); err != nil {
+		return err
+	}
 	return nil
 }

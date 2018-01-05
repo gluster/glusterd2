@@ -1,13 +1,11 @@
 package volumecommands
 
-type option struct {
-	OptionName string
-	OnValue    string
-	OffValue   string
-}
+import (
+	"github.com/gluster/glusterd2/pkg/api"
+)
 
 // GroupOptions maps from a profile name to a set of options
-var GroupOptions = map[string][]option{
+var defaultGroupOptions = map[string][]api.Option{
 	"profile.test": {{"afr.eager-lock", "on", "off"},
 		{"gfproxy.afr.eager-lock", "on", "off"}},
 }

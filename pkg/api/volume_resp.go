@@ -82,3 +82,7 @@ type VolumeExpandResp VolumeInfo
 
 // VolumeListResp is the response sent for a volume list request.
 type VolumeListResp []VolumeGetResp
+
+type ProfileTunablesResp struct {
+	Tunables []string `json:"tunables"`
+}
