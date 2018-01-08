@@ -34,13 +34,9 @@ func Heketi(next http.Handler) http.Handler {
 			//if (len(req.Bricks) <= 0) && (req.Size > 0) {
 			if req.Size > 0 {
 				replacer := strings.NewReplacer("export", "testexport")
-				req.Bricks[0] = replacer.Replace(req.Bricks[0])
-				req.Bricks[1] = replacer.Replace(req.Bricks[1])
-				req.Bricks[2] = replacer.Replace(req.Bricks[2])
-				req.Bricks[3] = replacer.Replace(req.Bricks[3])
-				req.Bricks[4] = replacer.Replace(req.Bricks[4])
-				req.Bricks[5] = replacer.Replace(req.Bricks[5])
-
+                                for i :=0; i < len(req.Bricks); i++ {
+				    req.Bricks[i] = replacer.Replace(req.Bricks[i])
+                                }
 				newbody, err := json.Marshal(req)
 				if err != nil {
 					fmt.Printf("Marshalling Error %v", err)
