@@ -353,24 +353,18 @@ var volumeListCmd = &cobra.Command{
 	},
 }
 
-func volumeStatusDisplay(vol api.VolumeStatusResp) {
+func volumeStatusDisplay(vol api.BricksStatusResp) {
 	table := tablewriter.NewWriter(os.Stdout)
-	table.SetHeader([]string{"Gluster process", "Port", "Online", "Pid"})
-	for _, brick := range vol.Bricks {
-		brickPath := fmt.Sprintf("%s:%s", brick.Info.Hostname, brick.Info.Path)
-		online := ""
-		if brick.Online {
-			online = "Yes"
-		} else {
-			online = "No"
-		}
-		table.Append([]string{brickPath, strconv.Itoa(brick.Port), online, strconv.Itoa(brick.Pid)})
+	table.SetHeader([]string{"Brick ID", "Host", "Path", "Online", "Port", "Pid"})
+	for _, b := range vol {
+		table.Append([]string{b.Info.ID.String(), b.Info.Hostname, b.Info.Path,
+			strconv.FormatBool(b.Online), strconv.Itoa(b.Port), strconv.Itoa(b.Pid)})
 	}
 	table.Render()
 }
 
 func volumeStatusHandler(cmd *cobra.Command) error {
-	var vol api.VolumeStatusResp
+	var vol api.BricksStatusResp
 	var err error
 	volname := ""
 	if len(cmd.Flags().Args()) > 0 {
@@ -380,7 +374,7 @@ func volumeStatusHandler(cmd *cobra.Command) error {
 		var volList api.VolumeListResp
 		volList, err = client.Volumes("")
 		for _, volume := range volList {
-			vol, err = client.VolumeStatus(volume.Name)
+			vol, err = client.BricksStatus(volume.Name)
 			fmt.Println("Volume :", volume.Name)
 			if err == nil {
 				volumeStatusDisplay(vol)
@@ -390,7 +384,7 @@ func volumeStatusHandler(cmd *cobra.Command) error {
 			}
 		}
 	} else {
-		vol, err = client.VolumeStatus(volname)
+		vol, err = client.BricksStatus(volname)
 		fmt.Println("Volume :", volname)
 		if err == nil {
 			volumeStatusDisplay(vol)

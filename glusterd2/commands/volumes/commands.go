@@ -45,6 +45,12 @@ func (c *Command) Routes() route.Routes {
 			Version:     1,
 			HandlerFunc: volumeInfoHandler},
 		route.Route{
+			Name:        "VolumeBricksStatus",
+			Method:      "GET",
+			Pattern:     "/volumes/{volname}/bricks",
+			Version:     1,
+			HandlerFunc: volumeBricksStatusHandler},
+		route.Route{
 			Name:        "VolumeStatus",
 			Method:      "GET",
 			Pattern:     "/volumes/{volname}/status",
@@ -77,7 +83,7 @@ func (c *Command) RegisterStepFuncs() {
 	registerVolDeleteStepFuncs()
 	registerVolStartStepFuncs()
 	registerVolStopStepFuncs()
-	registerVolStatusStepFuncs()
+	registerBricksStatusStepFuncs()
 	registerVolExpandStepFuncs()
 	registerVolOptionStepFuncs()
 }
