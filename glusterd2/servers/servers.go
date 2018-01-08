@@ -2,6 +2,7 @@
 package servers
 
 import (
+	"github.com/gluster/glusterd2/glusterd2/servers/eventlistener"
 	"github.com/gluster/glusterd2/glusterd2/servers/muxsrv"
 	"github.com/gluster/glusterd2/glusterd2/servers/peerrpc"
 
@@ -16,8 +17,9 @@ func New() *suture.Supervisor {
 	}
 
 	s := suture.New("gd2-servers", suture.Spec{Log: logger})
-	s.Add(peerrpc.New()) // grpc
-	s.Add(muxsrv.New())  // sunrpc + http
+	s.Add(peerrpc.New())       // grpc
+	s.Add(muxsrv.New())        // sunrpc + http
+	s.Add(eventlistener.New()) // eventlistener
 
 	return s
 }
