@@ -125,7 +125,7 @@ func createVolinfo(req *api.VolCreateReq) (*volume.Volinfo, error) {
 		}
 
 		if subvolreq.DisperseCount != 0 || subvolreq.DisperseData != 0 || subvolreq.DisperseRedundancy != 0 {
-			err = checkDisperseParams(req, v)
+			err = checkDisperseParams(&subvolreq, &s)
 			if err != nil {
 				return nil, err
 			}
@@ -163,7 +163,7 @@ func validateVolumeCreate(c transaction.TxnCtx) error {
 	}
 
 	// FIXME: Return values of this function are inconsistent and unused
-	if _, err = volume.ValidateBrickEntriesFunc(volinfo.GetBricks(false), volinfo.ID, req.Force); err != nil {
+	if _, err = volume.ValidateBrickEntriesFunc(volinfo.GetBricks(), volinfo.ID, req.Force); err != nil {
 		c.Logger().WithError(err).WithField(
 			"volume", volinfo.Name).Debug("validateVolumeCreate: failed to validate bricks")
 		return err
@@ -301,7 +301,7 @@ func createVolumeCreateResp(v *volume.Volinfo) *api.VolumeCreateResp {
 	return (*api.VolumeCreateResp)(createVolumeInfoResp(v))
 }
 
-func checkDisperseParams(req *api.VolCreateReq, v *volume.Volinfo) error {
+func checkDisperseParams(req *api.SubvolReq, s *volume.Subvol) error {
 	count := len(req.Bricks)
 
 	if req.DisperseData > 0 {
@@ -341,8 +341,8 @@ func checkDisperseParams(req *api.VolCreateReq, v *volume.Volinfo) error {
 		return errors.New("Invalid redundancy value")
 	}
 
-	v.DisperseCount = req.DisperseCount
-	v.RedundancyCount = req.DisperseRedundancy
+	s.DisperseCount = req.DisperseCount
+	s.RedundancyCount = req.DisperseRedundancy
 
 	return nil
 }

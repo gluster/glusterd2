@@ -21,12 +21,12 @@ func startAllBricks(c transaction.TxnCtx) error {
 		return err
 	}
 
-	volinfo, err := volume.GetVolume(volname)
+	vol, err := volume.GetVolume(volname)
 	if err != nil {
 		return err
 	}
 
-	for _, b := range volinfo.GetBricks(true) {
+	for _, b := range vol.GetLocalBricks() {
 
 		c.Logger().WithFields(log.Fields{
 			"volume": b.VolumeName,
@@ -61,7 +61,7 @@ func stopAllBricks(c transaction.TxnCtx) error {
 		return e
 	}
 
-	for _, b := range vol.GetBricks(true) {
+	for _, b := range vol.GetLocalBricks() {
 
 		c.Logger().WithFields(log.Fields{
 			"volume": b.VolumeName,

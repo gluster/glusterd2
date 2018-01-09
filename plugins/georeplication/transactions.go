@@ -144,7 +144,7 @@ func txnGeorepStatus(c transaction.TxnCtx) error {
 
 	var workersStatuses = make(map[string]georepapi.GeorepWorker)
 
-	for _, w := range volinfo.GetBricks(true) {
+	for _, w := range volinfo.GetLocalBricks() {
 		gsyncd, err := newGsyncd(*sessioninfo)
 		if err != nil {
 			return err

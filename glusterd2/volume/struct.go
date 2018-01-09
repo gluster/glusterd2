@@ -72,13 +72,13 @@ const (
 
 // Subvol represents a sub volume
 type Subvol struct {
-	ID           uuid.UUID
-	Name         string
-	Type         SubvolType
-	Bricks       []brick.Brickinfo
-	Subvols      []Subvol
-	ReplicaCount int
-	ArbiterCount int
+	ID              uuid.UUID
+	Name            string
+	Type            SubvolType
+	Bricks          []brick.Brickinfo
+	Subvols         []Subvol
+	ReplicaCount    int
+	ArbiterCount    int
 	DisperseCount   int
 	RedundancyCount int
 }
@@ -112,6 +112,11 @@ func (v *Volinfo) StringMap() map[string]string {
 	m["volume.id"] = v.ID.String()
 	m["volume.name"] = v.Name
 	m["volume.type"] = v.Type.String()
+	m["volume.redundancy"] = "0"
+	// TODO: Assumed First subvolume's redundancy count
+	if len(v.Subvols) > 0 {
+		m["volume.redundancy"] = strconv.Itoa(v.Subvols[0].RedundancyCount)
+	}
 	m["volume.transport"] = v.Transport
 	m["volume.auth.username"] = v.Auth.Username
 	m["volume.auth.password"] = v.Auth.Password
@@ -205,8 +210,7 @@ func (v *Volinfo) String() string {
 	return out.String()
 }
 
-// GetBricks returns a list of Bricks
-func (v *Volinfo) GetBricks(onlyLocal bool) []brick.Brickinfo {
+func (v *Volinfo) getBricks(onlyLocal bool) []brick.Brickinfo {
 	var bricks []brick.Brickinfo
 
 	for _, subvol := range v.Subvols {
@@ -220,13 +224,23 @@ func (v *Volinfo) GetBricks(onlyLocal bool) []brick.Brickinfo {
 	return bricks
 }
 
+// GetBricks returns a list of Bricks
+func (v *Volinfo) GetBricks() []brick.Brickinfo {
+	return v.getBricks(false)
+}
+
+// GetLocalBricks returns a list of local Bricks
+func (v *Volinfo) GetLocalBricks() []brick.Brickinfo {
+	return v.getBricks(true)
+}
+
 // Nodes returns the a list of nodes on which this volume has bricks
 func (v *Volinfo) Nodes() []uuid.UUID {
 	var nodes []uuid.UUID
 
 	// This shouldn't be very inefficient for small slices.
 	var present bool
-	for _, b := range v.GetBricks(false) {
+	for _, b := range v.GetBricks() {
 		// Add node to the slice only if it isn't present already
 		present = false
 		for _, n := range nodes {

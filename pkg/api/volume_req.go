@@ -9,14 +9,14 @@ type BrickReq struct {
 
 // SubvolReq represents Sub volume Request
 type SubvolReq struct {
-	Type         string      `json:"type"`
-	Bricks       []BrickReq  `json:"bricks"`
-	Subvols      []SubvolReq `json:"subvols"`
-	ReplicaCount int         `json:"replica"`
-	ArbiterCount int         `json:"arbiter"`
-	DisperseCount      int               `json:"disperse-count,omitempty"`
-	DisperseData       int               `json:"disperse-data,omitempty"`
-	DisperseRedundancy int               `json:"disperse-redundancy,omitempty"`
+	Type               string      `json:"type"`
+	Bricks             []BrickReq  `json:"bricks"`
+	Subvols            []SubvolReq `json:"subvols"`
+	ReplicaCount       int         `json:"replica"`
+	ArbiterCount       int         `json:"arbiter"`
+	DisperseCount      int         `json:"disperse-count,omitempty"`
+	DisperseData       int         `json:"disperse-data,omitempty"`
+	DisperseRedundancy int         `json:"disperse-redundancy,omitempty"`
 }
 
 // VolCreateReq represents a Volume Create Request

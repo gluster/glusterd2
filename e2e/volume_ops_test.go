@@ -251,14 +251,21 @@ func testDisperse(t *testing.T) {
 	}
 
 	createReq := api.VolCreateReq{
-		Name:               disperseVolName,
-		DisperseRedundancy: 1,
-		Bricks: []string{
-			gds[0].PeerID() + ":" + brickPaths[0],
-			gds[1].PeerID() + ":" + brickPaths[1],
-			gds[0].PeerID() + ":" + brickPaths[2]},
+		Name: disperseVolName,
+		Subvols: []api.SubvolReq{
+			{
+				Type: "disperse",
+				Bricks: []api.BrickReq{
+					{NodeID: gds[0].PeerID(), Path: brickPaths[0]},
+					{NodeID: gds[1].PeerID(), Path: brickPaths[1]},
+					{NodeID: gds[0].PeerID(), Path: brickPaths[2]},
+				},
+				DisperseRedundancy: 1,
+			},
+		},
 		Force: true,
 	}
+
 	_, err := client.VolumeCreate(createReq)
 	r.Nil(err)
 

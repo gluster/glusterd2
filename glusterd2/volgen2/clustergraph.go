@@ -43,6 +43,8 @@ func clusterGraph(dht *Entry, vol *volume.Volinfo, nodeid uuid.UUID, filters *cl
 			switch subvol.Type {
 			case volume.SubvolReplicate:
 				parent = dht.Add("cluster/replicate", vol, nil).SetName(subvol.Name)
+			case volume.SubvolDisperse:
+				parent = dht.Add("cluster/disperse", vol, nil).SetName(subvol.Name)
 			case volume.SubvolDistribute:
 				if numSubvols == 1 {
 					parent = dht

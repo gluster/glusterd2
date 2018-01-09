@@ -33,7 +33,7 @@ func deleteVolfiles(c transaction.TxnCtx) error {
 			"volume", volinfo.Name).Warn("deleteVolfiles: failed to delete client volfile")
 	}
 
-	for _, b := range volinfo.GetBricks(true) {
+	for _, b := range volinfo.GetLocalBricks() {
 		if err := volgen.DeleteBrickVolfile(&b); err != nil {
 			// Log and continue, ignore the volfile cleanup error
 			c.Logger().WithError(err).WithField(

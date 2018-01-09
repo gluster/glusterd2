@@ -33,7 +33,7 @@ func stopBricks(c transaction.TxnCtx) error {
 		return err
 	}
 
-	for _, b := range vol.GetBricks(true) {
+	for _, b := range vol.GetLocalBricks() {
 		brickDaemon, err := brick.NewGlusterfsd(b)
 		if err != nil {
 			return err

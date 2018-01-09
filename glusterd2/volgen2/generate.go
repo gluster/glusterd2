@@ -26,6 +26,108 @@ type extrainfo struct {
 	Options    map[string]string
 }
 
+func generateClusterLevelVolfiles(clusterinfo []*volume.Volinfo, xopts *map[string]extrainfo) error {
+	for _, cvf := range clusterVolfiles {
+		if cvf.nodeLevel {
+			for _, nodeid := range nodesFromClusterInfo(clusterinfo) {
+				volfile := New(cvf.name)
+				cvf.fn.(clusterVolfileFunc)(volfile, clusterinfo, nodeid)
+				volfiledata, err := volfile.Generate("", xopts)
+				if err != nil {
+					return err
+				}
+				err = save(nodeid.String()+"-"+volfile.FileName, volfiledata)
+				if err != nil {
+					return err
+				}
+			}
+		} else {
+			volfile := New(cvf.name)
+			cvf.fn.(clusterVolfileFunc)(volfile, clusterinfo, nil)
+			volfiledata, err := volfile.Generate("", xopts)
+			if err != nil {
+				return err
+			}
+			err = save(volfile.FileName, volfiledata)
+			if err != nil {
+				return err
+			}
+		}
+	}
+
+	return nil
+}
+
+func generateVolumeLevelVolfiles(clusterinfo []*volume.Volinfo, xopts *map[string]extrainfo) error {
+	for _, volinfo := range clusterinfo {
+		for _, vvf := range volumeVolfiles {
+			if vvf.nodeLevel {
+				for _, nodeid := range volinfo.Nodes() {
+					volfile := New(vvf.name)
+					vvf.fn.(volumeVolfileFunc)(volfile, volinfo, nodeid)
+					volfiledata, err := volfile.Generate("", xopts)
+					if err != nil {
+						return err
+					}
+					err = save(nodeid.String()+"-"+volfile.FileName, volfiledata)
+					if err != nil {
+						return err
+					}
+				}
+			} else {
+				volfile := New(vvf.name)
+				vvf.fn.(volumeVolfileFunc)(volfile, volinfo, nil)
+				volfiledata, err := volfile.Generate("", xopts)
+				if err != nil {
+					return err
+				}
+				err = save(volfile.FileName, volfiledata)
+				if err != nil {
+					return err
+				}
+			}
+		}
+	}
+	return nil
+}
+
+func generateBrickLevelVolfiles(clusterinfo []*volume.Volinfo, xopts *map[string]extrainfo) error {
+	for _, volinfo := range clusterinfo {
+		nodes := volinfo.Nodes()
+		for _, brick := range volinfo.GetBricks() {
+			for _, bvf := range brickVolfiles {
+				if bvf.nodeLevel {
+					for _, nodeid := range nodes {
+						volfile := New(bvf.name)
+						bvf.fn.(brickVolfileFunc)(volfile, &brick, volinfo, nodeid)
+						volfiledata, err := volfile.Generate("", xopts)
+						if err != nil {
+							return err
+						}
+						err = save(nodeid.String()+"-"+volfile.FileName, volfiledata)
+						if err != nil {
+							return err
+						}
+					}
+				} else {
+					volfile := New(bvf.name)
+					bvf.fn.(brickVolfileFunc)(volfile, &brick, volinfo, nil)
+					volfiledata, err := volfile.Generate("", xopts)
+					if err != nil {
+						return err
+					}
+					err = save(volfile.FileName, volfiledata)
+					if err != nil {
+						return err
+					}
+				}
+			}
+		}
+	}
+
+	return nil
+}
+
 // Generate generates all the volfiles(Cluster/Volume/Brick)
 func Generate() error {
 	clusterinfo, err := volume.GetVolumes()
@@ -46,100 +148,24 @@ func Generate() error {
 	}
 
 	// TODO: Note Start time and add metrics
+
 	// Generate/Regenerate Cluster Level Volfiles
-	for _, cvf := range clusterVolfiles {
-		if cvf.nodeLevel {
-			for _, nodeid := range nodesFromClusterInfo(clusterinfo) {
-				volfile := New(cvf.name)
-				cvf.fn.(clusterVolfileFunc)(volfile, clusterinfo, nodeid)
-				volfiledata, err := volfile.Generate("", &xopts)
-				if err != nil {
-					return err
-				}
-				err = save(nodeid.String()+"-"+volfile.FileName, volfiledata)
-				if err != nil {
-					return err
-				}
-			}
-		} else {
-			volfile := New(cvf.name)
-			cvf.fn.(clusterVolfileFunc)(volfile, clusterinfo, nil)
-			volfiledata, err := volfile.Generate("", &xopts)
-			if err != nil {
-				return err
-			}
-			err = save(volfile.FileName, volfiledata)
-			if err != nil {
-				return err
-			}
-		}
+	err = generateClusterLevelVolfiles(clusterinfo, &xopts)
+	if err != nil {
+		return err
 	}
 
 	// Generate/Regenerate Volume Level Volfiles
-	for _, volinfo := range clusterinfo {
-		for _, vvf := range volumeVolfiles {
-			if vvf.nodeLevel {
-				for _, nodeid := range volinfo.Nodes() {
-					volfile := New(vvf.name)
-					vvf.fn.(volumeVolfileFunc)(volfile, volinfo, nodeid)
-					volfiledata, err := volfile.Generate("", &xopts)
-					if err != nil {
-						return err
-					}
-					err = save(nodeid.String()+"-"+volfile.FileName, volfiledata)
-					if err != nil {
-						return err
-					}
-				}
-			} else {
-				volfile := New(vvf.name)
-				vvf.fn.(volumeVolfileFunc)(volfile, volinfo, nil)
-				volfiledata, err := volfile.Generate("", &xopts)
-				if err != nil {
-					return err
-				}
-				err = save(volfile.FileName, volfiledata)
-				if err != nil {
-					return err
-				}
-			}
-		}
+	err = generateVolumeLevelVolfiles(clusterinfo, &xopts)
+	if err != nil {
+		return err
 	}
 
 	// Generate/Regenerate Brick Level Volfiles
-	for _, volinfo := range clusterinfo {
-		nodes := volinfo.Nodes()
-		for _, subvol := range volinfo.Subvols {
-			for _, brick := range subvol.Bricks {
-				for _, bvf := range brickVolfiles {
-					if bvf.nodeLevel {
-						for _, nodeid := range nodes {
-							volfile := New(bvf.name)
-							bvf.fn.(brickVolfileFunc)(volfile, &brick, volinfo, nodeid)
-							volfiledata, err := volfile.Generate("", &xopts)
-							if err != nil {
-								return err
-							}
-							err = save(nodeid.String()+"-"+volfile.FileName, volfiledata)
-							if err != nil {
-								return err
-							}
-						}
-					} else {
-						volfile := New(bvf.name)
-						bvf.fn.(brickVolfileFunc)(volfile, &brick, volinfo, nil)
-						volfiledata, err := volfile.Generate("", &xopts)
-						if err != nil {
-							return err
-						}
-						err = save(volfile.FileName, volfiledata)
-						if err != nil {
-							return err
-						}
-					}
-				}
-			}
-		}
+	err = generateBrickLevelVolfiles(clusterinfo, &xopts)
+	if err != nil {
+		return err
 	}
+
 	return nil
 }
