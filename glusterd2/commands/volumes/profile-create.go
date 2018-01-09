@@ -53,5 +53,5 @@ func volumeProfileCreateHandler(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	restutils.SendHTTPResponse(ctx, w, http.StatusOK, req)
+	restutils.SendHTTPResponse(ctx, w, http.StatusCreated, req)
 }

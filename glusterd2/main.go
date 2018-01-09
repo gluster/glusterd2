@@ -98,7 +98,7 @@ func main() {
 		log.WithError(err).Fatal("Could not add self details into etcd")
 	}
 
-	// Load the group option map into the store
+	// Load the default group option map into the store
 	if err := volumecommands.LoadDefaultGroupOptions(); err != nil {
 		log.WithError(err).Fatal("Failed to load the default group options")
 	}

@@ -3,6 +3,7 @@ package volumecommands
 import (
 	"context"
 	"encoding/json"
+	"errors"
 
 	"github.com/gluster/glusterd2/glusterd2/servers/sunrpc"
 	"github.com/gluster/glusterd2/glusterd2/store"
@@ -12,7 +13,6 @@ import (
 	"github.com/gluster/glusterd2/glusterd2/xlator"
 	"github.com/gluster/glusterd2/glusterd2/xlator/options"
 	"github.com/gluster/glusterd2/pkg/api"
-	"github.com/gluster/glusterd2/pkg/errors"
 )
 
 // validateOptions validates if the options and their values are valid and can
@@ -56,12 +56,12 @@ func validateXlatorOptions(opts map[string]string, volinfo *volume.Volinfo) erro
 func expandOptions(opts map[string]string) (map[string]string, error) {
 	resp, err := store.Store.Get(context.TODO(), "groupoptions")
 	if err != nil {
-		return nil, errors.ErrGetFailed
+		return nil, err
 	}
 
 	var groupOptions map[string][]api.Option
 	if err := json.Unmarshal(resp.Kvs[0].Value, &groupOptions); err != nil {
-		return nil, errors.ErrUnmarshallFailed
+		return nil, err
 	}
 
 	options := make(map[string]string)
@@ -77,7 +77,7 @@ func expandOptions(opts map[string]string) (map[string]string, error) {
 				case "off":
 					options[option.OptionName] = option.OffValue
 				default:
-					return nil, errors.ErrUnknownValue
+					return nil, errors.New("Need either on or off")
 				}
 			}
 		}
@@ -123,6 +123,7 @@ func storeVolume(c transaction.TxnCtx) error {
 	return nil
 }
 
+// LoadDefaultGroupOptions loads the default group option map into the store
 func LoadDefaultGroupOptions() error {
 	groupOptions, err := json.Marshal(defaultGroupOptions)
 	if err != nil {
