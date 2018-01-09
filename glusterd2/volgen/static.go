@@ -58,4 +58,10 @@ protocol/client`,
 cluster/replicate
 protocol/client`,
 	},
+	{
+		name: "disperse.graph",
+		content: `cluster/distribute
+cluster/disperse
+protocol/client`,
+	},
 }

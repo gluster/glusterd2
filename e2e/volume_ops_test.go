@@ -58,6 +58,9 @@ func TestVolume(t *testing.T) {
 
 	// delete volume
 	t.Run("Delete", testVolumeDelete)
+
+	// Disperse volume test
+	t.Run("Disperse", testDisperse)
 }
 
 func testVolumeCreate(t *testing.T) {
@@ -216,4 +219,49 @@ func TestVolumeOptions(t *testing.T) {
 		_, err = client.VolumeCreate(createReq)
 		r.NotNil(err)
 	}
+}
+
+func testDisperse(t *testing.T) {
+	r := require.New(t)
+	disperseVolName := "dispersetestvol"
+
+	var brickPaths []string
+	for i := 1; i <= 3; i++ {
+		brickPath, err := ioutil.TempDir(tmpDir, "brick")
+		r.Nil(err)
+		brickPaths = append(brickPaths, brickPath)
+	}
+
+	createReq := api.VolCreateReq{
+		Name:               disperseVolName,
+		DisperseRedundancy: 1,
+		Bricks: []string{
+			gds[0].PeerID() + ":" + brickPaths[0],
+			gds[1].PeerID() + ":" + brickPaths[1],
+			gds[0].PeerID() + ":" + brickPaths[2]},
+		Force: true,
+	}
+	_, err := client.VolumeCreate(createReq)
+	r.Nil(err)
+
+	r.Nil(client.VolumeStart(disperseVolName), "disperse volume start failed")
+
+	mntPath, err := ioutil.TempDir(tmpDir, "mnt")
+	r.Nil(err)
+	defer os.RemoveAll(mntPath)
+
+	host, _, _ := net.SplitHostPort(gds[0].ClientAddress)
+
+	mntCmd := exec.Command("mount", "-t", "glusterfs", host+":"+disperseVolName, mntPath)
+
+	umntCmd := exec.Command("umount", mntPath)
+
+	err = mntCmd.Run()
+	r.Nil(err, fmt.Sprintf("disperse volume mount failed: %s", err))
+
+	err = umntCmd.Run()
+	r.Nil(err, fmt.Sprintf("disperse volume unmount failed: %s", err))
+
+	r.Nil(client.VolumeStop(disperseVolName), "disperse volume stop failed")
+	r.Nil(client.VolumeDelete(disperseVolName), "disperse volume delete failed")
 }
