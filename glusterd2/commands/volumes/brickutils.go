@@ -1,13 +1,14 @@
 package volumecommands
 
 import (
+	"errors"
 	"os/exec"
 	"syscall"
 	"time"
 
 	"github.com/gluster/glusterd2/glusterd2/brick"
 	"github.com/gluster/glusterd2/glusterd2/daemon"
-	"github.com/gluster/glusterd2/pkg/utils"
+	"github.com/gluster/glusterd2/pkg/api"
 
 	"github.com/pborman/uuid"
 )
@@ -77,36 +78,36 @@ func stopBrick(b brick.Brickinfo) error {
 	return nil
 }
 
-func nodesFromBricks(bricks []string) ([]uuid.UUID, error) {
-
+func nodesFromVolumeCreateReq(req *api.VolCreateReq) ([]uuid.UUID, error) {
+	var nodesMap = make(map[string]int)
 	var nodes []uuid.UUID
-	var present bool
-	for _, b := range bricks {
-		present = false
-
-		host, _, err := utils.ParseHostAndBrickPath(b)
-		if err != nil {
-			return nil, err
-		}
-
-		id := uuid.Parse(host)
-		if id == nil {
-			return nil, err
-		}
-
-		// if multiple bricks are on the same node, include the node
-		// only once in the returned list
-		for _, n := range nodes {
-			if uuid.Equal(id, n) == true {
-				present = true
-				break
+	for _, subvol := range req.Subvols {
+		for _, brick := range subvol.Bricks {
+			if _, ok := nodesMap[brick.NodeID]; !ok {
+				nodesMap[brick.NodeID] = 1
+				u := uuid.Parse(brick.NodeID)
+				if u == nil {
+					return nil, errors.New("Unable to parse Node ID")
+				}
+				nodes = append(nodes, u)
 			}
 		}
+	}
+	return nodes, nil
+}
 
-		if !present {
-			nodes = append(nodes, id)
+func nodesFromVolumeExpandReq(req *api.VolExpandReq) ([]uuid.UUID, error) {
+	var nodesMap = make(map[string]int)
+	var nodes []uuid.UUID
+	for _, brick := range req.Bricks {
+		if _, ok := nodesMap[brick.NodeID]; !ok {
+			nodesMap[brick.NodeID] = 1
+			u := uuid.Parse(brick.NodeID)
+			if u == nil {
+				return nil, errors.New("Unable to parse Node ID")
+			}
+			nodes = append(nodes, u)
 		}
 	}
-
 	return nodes, nil
 }

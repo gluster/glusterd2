@@ -28,20 +28,16 @@ func deleteVolfiles(c transaction.TxnCtx) error {
 	}
 
 	if err := volgen.DeleteClientVolfile(volinfo); err != nil {
+		// Log and continue, ignore the cleanup error
 		c.Logger().WithError(err).WithField(
-			"volume", volinfo.Name).Debug("deleteVolfiles: failed to delete client volfile")
-		return err
+			"volume", volinfo.Name).Warn("deleteVolfiles: failed to delete client volfile")
 	}
 
-	for _, b := range volinfo.Bricks {
-		if !uuid.Equal(b.NodeID, gdctx.MyUUID) {
-			continue
-		}
-
+	for _, b := range volinfo.GetLocalBricks() {
 		if err := volgen.DeleteBrickVolfile(&b); err != nil {
+			// Log and continue, ignore the volfile cleanup error
 			c.Logger().WithError(err).WithField(
-				"brick", b.Path).Debug("deleteVolfiles: failed to delete brick volfile")
-			return err
+				"brick", b.Path).Warn("deleteVolfiles: failed to delete brick volfile")
 		}
 	}
 

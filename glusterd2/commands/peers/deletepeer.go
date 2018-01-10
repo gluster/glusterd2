@@ -119,7 +119,7 @@ func bricksExist(id string) (bool, error) {
 	}
 
 	for _, v := range vols {
-		for _, b := range v.Bricks {
+		for _, b := range v.GetBricks() {
 			if uuid.Equal(pid, b.NodeID) {
 				return true, nil
 			}

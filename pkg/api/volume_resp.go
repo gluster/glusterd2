@@ -11,6 +11,17 @@ type BrickInfo struct {
 	VolumeName string    `json:"volume-name"`
 	NodeID     uuid.UUID `json:"node-id"`
 	Hostname   string    `json:"host"`
+	Type       BrickType `json:"type"`
+}
+
+// Subvol contains static information about sub volume
+type Subvol struct {
+	Name         string      `json:"name"`
+	Type         SubvolType  `json:"type"`
+	Bricks       []BrickInfo `json:"bricks"`
+	Subvols      []Subvol    `json:"subvols,omitempty"`
+	ReplicaCount int         `json:"replica-count"`
+	ArbiterCount int         `json:"arbiter-count"`
 }
 
 // SizeInfo represents sizing information.
@@ -50,7 +61,7 @@ type VolumeInfo struct {
 	ArbiterCount int               `json:"arbiter-count"`
 	Options      map[string]string `json:"options"`
 	State        VolState          `json:"state"`
-	Bricks       []BrickInfo       `json:"bricks"`
+	Subvols      []Subvol          `json:"subvols"`
 }
 
 // VolumeStatusResp response contains the statuses of all bricks of the volume.

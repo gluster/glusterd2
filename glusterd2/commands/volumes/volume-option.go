@@ -22,7 +22,6 @@ func registerVolOptionStepFuncs() {
 		sf   transaction.StepFunc
 	}{
 		{"vol-option.UpdateVolinfo", storeVolume},
-		{"vol-option.RegenerateVolfiles", generateBrickVolfiles},
 		{"vol-option.NotifyVolfileChange", notifyVolfileChange},
 	}
 	for _, sf := range sfs {
@@ -74,10 +73,6 @@ func volumeOptionsHandler(w http.ResponseWriter, r *http.Request) {
 		{
 			DoFunc: "vol-option.UpdateVolinfo",
 			Nodes:  []uuid.UUID{gdctx.MyUUID},
-		},
-		{
-			DoFunc: "vol-option.RegenerateVolfiles",
-			Nodes:  volinfo.Nodes(),
 		},
 		{
 			DoFunc: "vol-option.NotifyVolfileChange",

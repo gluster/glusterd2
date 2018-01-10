@@ -92,9 +92,9 @@ func getChildCount(t string, vol *volume.Volinfo) int {
 	case "cluster/afr":
 		fallthrough
 	case "cluster/replicate":
-		return vol.ReplicaCount
+		return vol.Subvols[0].ReplicaCount
 	case "cluster/disperse":
-		return vol.DisperseCount
+		return vol.Subvols[0].DisperseCount
 	case "cluster/dht":
 		fallthrough
 	case "cluster/distribute":
@@ -107,12 +107,14 @@ func getChildCount(t string, vol *volume.Volinfo) int {
 func newClientNodes(vol *volume.Volinfo, graph string, extra map[string]string) ([]*Node, error) {
 	var ns []*Node
 
-	for _, b := range vol.Bricks {
-		n, err := newClientNode(vol, &b, graph, extra)
-		if err != nil {
-			return nil, err
+	for _, subvol := range vol.Subvols {
+		for _, b := range subvol.Bricks {
+			n, err := newClientNode(vol, &b, graph, extra)
+			if err != nil {
+				return nil, err
+			}
+			ns = append(ns, n)
 		}
-		ns = append(ns, n)
 	}
 
 	return ns, nil

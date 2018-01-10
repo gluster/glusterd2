@@ -75,13 +75,25 @@ func testVolumeCreate(t *testing.T) {
 
 	// create 2x2 dist-rep volume
 	createReq := api.VolCreateReq{
-		Name:    volname,
-		Replica: 2,
-		Bricks: []string{
-			gds[0].PeerID() + ":" + brickPaths[0],
-			gds[1].PeerID() + ":" + brickPaths[1],
-			gds[0].PeerID() + ":" + brickPaths[2],
-			gds[1].PeerID() + ":" + brickPaths[3]},
+		Name: volname,
+		Subvols: []api.SubvolReq{
+			{
+				ReplicaCount: 2,
+				Type:         "replicate",
+				Bricks: []api.BrickReq{
+					{NodeID: gds[0].PeerID(), Path: brickPaths[0]},
+					{NodeID: gds[1].PeerID(), Path: brickPaths[1]},
+				},
+			},
+			{
+				Type:         "replicate",
+				ReplicaCount: 2,
+				Bricks: []api.BrickReq{
+					{NodeID: gds[0].PeerID(), Path: brickPaths[2]},
+					{NodeID: gds[1].PeerID(), Path: brickPaths[3]},
+				},
+			},
+		},
 		Force: true,
 	}
 	_, err := client.VolumeCreate(createReq)
@@ -99,12 +111,11 @@ func testVolumeExpand(t *testing.T) {
 	}
 
 	expandReq := api.VolExpandReq{
-		ReplicaCount: 2,
-		Bricks: []string{
-			gds[0].PeerID() + ":" + brickPaths[0],
-			gds[1].PeerID() + ":" + brickPaths[1],
-			gds[0].PeerID() + ":" + brickPaths[2],
-			gds[1].PeerID() + ":" + brickPaths[3],
+		Bricks: []api.BrickReq{
+			{NodeID: gds[0].PeerID(), Path: brickPaths[0]},
+			{NodeID: gds[1].PeerID(), Path: brickPaths[1]},
+			{NodeID: gds[0].PeerID(), Path: brickPaths[2]},
+			{NodeID: gds[1].PeerID(), Path: brickPaths[3]},
 		},
 	}
 	_, err := client.VolumeExpand(volname, expandReq)
@@ -194,9 +205,16 @@ func TestVolumeOptions(t *testing.T) {
 
 	volname := "testvol"
 	createReq := api.VolCreateReq{
-		Name:   volname,
-		Bricks: []string{gds[0].PeerID() + ":" + brickPath},
-		Force:  true,
+		Name: volname,
+		Subvols: []api.SubvolReq{
+			{
+				Type: "distribute",
+				Bricks: []api.BrickReq{
+					{NodeID: gds[0].PeerID(), Path: brickPath},
+				},
+			},
+		},
+		Force: true,
 	}
 
 	// valid option test cases
@@ -233,14 +251,21 @@ func testDisperse(t *testing.T) {
 	}
 
 	createReq := api.VolCreateReq{
-		Name:               disperseVolName,
-		DisperseRedundancy: 1,
-		Bricks: []string{
-			gds[0].PeerID() + ":" + brickPaths[0],
-			gds[1].PeerID() + ":" + brickPaths[1],
-			gds[0].PeerID() + ":" + brickPaths[2]},
+		Name: disperseVolName,
+		Subvols: []api.SubvolReq{
+			{
+				Type: "disperse",
+				Bricks: []api.BrickReq{
+					{NodeID: gds[0].PeerID(), Path: brickPaths[0]},
+					{NodeID: gds[1].PeerID(), Path: brickPaths[1]},
+					{NodeID: gds[0].PeerID(), Path: brickPaths[2]},
+				},
+				DisperseRedundancy: 1,
+			},
+		},
 		Force: true,
 	}
+
 	_, err := client.VolumeCreate(createReq)
 	r.Nil(err)
 

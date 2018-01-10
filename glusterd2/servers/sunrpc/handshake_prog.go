@@ -2,13 +2,9 @@ package sunrpc
 
 import (
 	"context"
-	"fmt"
-	"io/ioutil"
-	"path"
 	"strings"
 
 	"github.com/gluster/glusterd2/glusterd2/store"
-	"github.com/gluster/glusterd2/pkg/utils"
 
 	"github.com/prashanthpai/sunrpc"
 	log "github.com/sirupsen/logrus"
@@ -84,39 +80,26 @@ type GfGetspecRsp struct {
 func (p *GfHandshake) ServerGetspec(args *GfGetspecReq, reply *GfGetspecRsp) error {
 	var err error
 	var fileContents []byte
-	var volFilePath string
 
-	xdata, err := DictUnserialize(args.Xdata)
+	_, err = DictUnserialize(args.Xdata)
 	if err != nil {
 		log.WithError(err).Error("ServerGetspec(): DictUnserialize() failed")
+	}
+
+	// Get Volfile from store
+	volname := strings.TrimPrefix(args.Key, "/")
+	resp, err := store.Store.Get(context.TODO(), volfilePrefix+volname)
+	if err != nil {
+		log.WithField("volfile", args.Key).WithError(err).Error("ServerGetspec(): failed to retrive volfile from store")
 		goto Out
 	}
 
-	if _, ok := xdata["brick_name"]; ok {
-		// brick volfile
-		s := strings.Split(args.Key, ".")
-		volName := s[0]
-		volFilePath = path.Join(utils.GetVolumeDir(volName), fmt.Sprintf("%s.vol", args.Key))
-		fileContents, err = ioutil.ReadFile(volFilePath)
-		if err != nil {
-			log.WithError(err).Error("ServerGetspec(): Could not read brick volfile")
-			goto Out
-		}
-	} else {
-		// client volfile
-		resp, err := store.Store.Get(context.TODO(), volfilePrefix+args.Key)
-		if err != nil {
-			log.WithError(err).Error("ServerGetspec(): failed to retrive client volfile from store")
-			goto Out
-		}
-
-		if resp.Count != 1 {
-			log.WithField("volume", args.Key).Error("ServerGetspec(): client volfile not found in store")
-			goto Out
-		}
-
-		fileContents = resp.Kvs[0].Value
+	if resp.Count != 1 {
+		log.WithField("volfile", args.Key).Error("ServerGetspec(): volfile not found in store")
+		goto Out
 	}
+
+	fileContents = resp.Kvs[0].Value
 
 	reply.Spec = string(fileContents)
 	reply.OpRet = len(reply.Spec)

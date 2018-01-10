@@ -33,9 +33,15 @@ func TestGeorepCreateDelete(t *testing.T) {
 	volname1 := "testvol1"
 	reqVol := api.VolCreateReq{
 		Name: volname1,
-		Bricks: []string{
-			gds[0].PeerID() + ":" + brickPaths[0],
-			gds[0].PeerID() + ":" + brickPaths[1]},
+		Subvols: []api.SubvolReq{
+			{
+				Type: "distribute",
+				Bricks: []api.BrickReq{
+					{NodeID: gds[0].PeerID(), Path: brickPaths[0]},
+					{NodeID: gds[0].PeerID(), Path: brickPaths[1]},
+				},
+			},
+		},
 		Force: true,
 	}
 	vol1, err := client.VolumeCreate(reqVol)
@@ -44,9 +50,15 @@ func TestGeorepCreateDelete(t *testing.T) {
 	volname2 := "testvol2"
 	reqVol = api.VolCreateReq{
 		Name: volname2,
-		Bricks: []string{
-			gds[1].PeerID() + ":" + brickPaths[2],
-			gds[1].PeerID() + ":" + brickPaths[3]},
+		Subvols: []api.SubvolReq{
+			{
+				Type: "distribute",
+				Bricks: []api.BrickReq{
+					{NodeID: gds[1].PeerID(), Path: brickPaths[2]},
+					{NodeID: gds[1].PeerID(), Path: brickPaths[3]},
+				},
+			},
+		},
 		Force: true,
 	}
 	vol2, err := client.VolumeCreate(reqVol)

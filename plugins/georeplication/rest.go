@@ -441,7 +441,7 @@ func georepStatusHandler(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	for _, b := range vol.Bricks {
+	for _, b := range vol.GetBricks() {
 		// Set default values to all status fields, If a node or worker is down and
 		// status not available these default values will be sent back in response
 		geoSession.Workers = append(geoSession.Workers, georepapi.GeorepWorker{

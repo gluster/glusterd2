@@ -16,7 +16,6 @@ import (
 	"github.com/gluster/glusterd2/pkg/errors"
 
 	"github.com/gorilla/mux"
-	"github.com/pborman/uuid"
 )
 
 const (
@@ -44,11 +43,7 @@ func checkBricksStatus(ctx transaction.TxnCtx) error {
 	}
 
 	var brickStatuses []*api.BrickStatus
-	for _, binfo := range vol.Bricks {
-		if uuid.Equal(binfo.NodeID, gdctx.MyUUID) == false {
-			continue
-		}
-
+	for _, binfo := range vol.GetLocalBricks() {
 		brickDaemon, err := brick.NewGlusterfsd(binfo)
 		if err != nil {
 			return err
@@ -143,7 +138,7 @@ func createBricksStatusResp(ctx transaction.TxnCtx, vol *volume.Volinfo) (*api.B
 
 	// bmap is a map of brick statuses keyed by brick ID
 	bmap := make(map[string]*api.BrickStatus)
-	for _, b := range vol.Bricks {
+	for _, b := range vol.GetBricks() {
 		bmap[b.ID.String()] = &api.BrickStatus{
 			Info: createBrickInfo(&b),
 		}
