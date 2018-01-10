@@ -11,7 +11,7 @@ GD2_INSTALL = $(SBINDIR)/$(GD2_BIN)
 CLI_BIN = glustercli
 CLI_BUILD = $(BUILDDIR)/$(CLI_BIN)
 CLI_INSTALL = $(SBINDIR)/$(CLI_BIN)
-CLI_BASH_COMPLETION_BIN = $(BUILDDIR)/bash_completion
+CLI_BASH_COMPLETION_GEN_BIN = $(BUILDDIR)/generate_bash_completion
 CLI_BASH_COMPLETION_BUILD = $(BUILDDIR)/$(CLI_BIN).sh
 CLI_BASH_COMPLETION_INSTALL = $(BASH_COMPLETIONDIR)/$(CLI_BIN).sh
 
@@ -56,8 +56,8 @@ $(GD2_BUILD):
 $(CLI_BIN) cli: $(CLI_BUILD)
 $(CLI_BUILD):
 	@./scripts/build.sh glustercli
-	@./scripts/build.sh glustercli/bash_completion
-	@./$(CLI_BASH_COMPLETION_BIN) $(CLI_BASH_COMPLETION_BUILD)
+	@./scripts/build.sh glustercli/generate_bash_completion
+	@./$(CLI_BASH_COMPLETION_GEN_BIN) $(CLI_BASH_COMPLETION_BUILD)
 	@echo
 
 $(GD2_CONF) gd2conf: $(GD2CONF_BUILD)
