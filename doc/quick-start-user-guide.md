@@ -132,17 +132,28 @@ Note the UUIDs in the response. We will use the same in volume create request be
 Create a  JSON file for volume create request body:
 
 ```sh
-$ cat volcreate.json 
+$ cat volcreate.json
 {
-	    "name": "testvol",
-	    "replica" : 2,
-	    "bricks": [
-		"<uuid1>:/export/brick1/data",
-		"<uuid2>:/export/brick2/data",
-		"<uuid1>:/export/brick3/data",
-		"<uuid2>:/export/brick4/data"
-	    ],
-	    "force": true
+        "name": "testvol",
+        "subvols": [
+            {
+                "type": "replicate",
+                "bricks": [
+                    {"nodeid": "<uuid1>", "path": "/export/brick1/data"},
+                    {"nodeid": "<uuid2>", "path": "/export/brick2/data"}
+                ],
+                "replica": 2
+            },
+            {
+                "type": "replicate",
+                "bricks": [
+                    {"nodeid": "<uuid1>", "path": "/export/brick3/data"},
+                    {"nodeid": "<uuid2>", "path": "/export/brick4/data"}
+                ],
+                "replica": 2
+            }
+        ],
+        "force": true
 }
 ```
 
@@ -150,7 +161,7 @@ Insert the actual UUID of the two glusterd2 instances in the above json file.
 
 Create brick paths accordingly on each of the two nodes:
 
- On node1: `mkdir -p /export/brick{1,3}/data`  
+ On node1: `mkdir -p /export/brick{1,3}/data`
  On node2: `mkdir -p /export/brick{2,4}/data`
 
 Send the volume create request to create a 2x2 distributed-replicate volume:
