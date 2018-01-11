@@ -2,6 +2,7 @@ package sunrpc
 
 import (
 	"context"
+	"errors"
 	"strings"
 
 	"github.com/gluster/glusterd2/glusterd2/store"
@@ -95,7 +96,8 @@ func (p *GfHandshake) ServerGetspec(args *GfGetspecReq, reply *GfGetspecRsp) err
 	}
 
 	if resp.Count != 1 {
-		log.WithField("volfile", args.Key).Error("ServerGetspec(): volfile not found in store")
+		err = errors.New("volfile not found in store")
+		log.WithField("volfile", args.Key).Error(err.Error())
 		goto Out
 	}
 
