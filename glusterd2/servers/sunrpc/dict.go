@@ -12,6 +12,10 @@ import (
    |  count | key len | val len | key     \0 | value    |
    ------------------------------------------------------
        4        4         4       <key len>   <value len>
+
+NOTE: The "key len" computed does not include the NULL character at the end.
+      All values are serialized to strings and "val len" takes the NULL
+      character into consideration.
 */
 
 const (
@@ -57,7 +61,7 @@ func DictUnserialize(buf []byte) (map[string]string, error) {
 		reader.Read(value)
 
 		// Strings aren't NULL terminated in Go
-		newDict[string(key[:len(key)-1])] = string(value)
+		newDict[string(key[:len(key)-1])] = string(value[:len(value)-1])
 	}
 
 	return newDict, nil
@@ -97,7 +101,7 @@ func DictSerialize(dict map[string]string) ([]byte, error) {
 		totalBytesWritten += bytesWritten
 
 		// write value length
-		binary.BigEndian.PutUint32(tmpHeader, uint32(len(value)))
+		binary.BigEndian.PutUint32(tmpHeader, uint32(len(value)+1))
 		bytesWritten, err = buffer.Write(tmpHeader)
 		if err != nil {
 			return nil, err
@@ -116,13 +120,18 @@ func DictSerialize(dict map[string]string) ([]byte, error) {
 		}
 		totalBytesWritten += bytesWritten
 
-		// write value
+		// write value + '\0'
+		// Values are serialized to strings and strings in C are NULL terminated.
 		bytesWritten, err = buffer.Write([]byte(value))
 		if err != nil {
 			return nil, err
 		}
 		totalBytesWritten += bytesWritten
-
+		bytesWritten, err = buffer.Write([]byte("\x00"))
+		if err != nil {
+			return nil, err
+		}
+		totalBytesWritten += bytesWritten
 	}
 
 	if dictSerializedSize != totalBytesWritten {
@@ -142,7 +151,7 @@ func getSerializedDictLen(dict map[string]string) (int, error) {
 	for key, value := range dict {
 		// Key length and value length
 		totalSize += dictHeaderLen + dictHeaderLen
-		totalSize += (len(key) + 1) + len(value)
+		totalSize += (len(key) + 1) + (len(value) + 1)
 	}
 
 	return totalSize, nil
