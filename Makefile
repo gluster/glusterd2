@@ -3,7 +3,7 @@ include  ./extras/make/paths.mk
 GD2 = glusterd2
 
 BUILDDIR = build
-
+BASH_COMPLETIONDIR = /etc/bash_completion.d
 GD2_BIN = $(GD2)
 GD2_BUILD = $(BUILDDIR)/$(GD2_BIN)
 GD2_INSTALL = $(DESTDIR)$(SBINDIR)/$(GD2_BIN)
@@ -11,6 +11,10 @@ GD2_INSTALL = $(DESTDIR)$(SBINDIR)/$(GD2_BIN)
 CLI_BIN = glustercli
 CLI_BUILD = $(BUILDDIR)/$(CLI_BIN)
 CLI_INSTALL = $(DESTDIR)$(SBINDIR)/$(CLI_BIN)
+
+CLI_BASH_COMPLETION_GEN_BIN = $(BUILDDIR)/generate_bash_completion
+CLI_BASH_COMPLETION_BUILD = $(BUILDDIR)/$(CLI_BIN).sh
+CLI_BASH_COMPLETION_INSTALL = $(DESTDIR)$(BASH_COMPLETIONDIR)/$(CLI_BIN).sh
 
 GD2_CONF = $(GD2).toml
 GD2CONF_BUILDSCRIPT=./scripts/gen-gd2conf.sh
@@ -49,6 +53,8 @@ $(GD2_BUILD):
 $(CLI_BIN) cli: $(CLI_BUILD)
 $(CLI_BUILD):
 	@./scripts/build.sh glustercli
+	@./scripts/build.sh glustercli/generate_bash_completion
+	@./$(CLI_BASH_COMPLETION_GEN_BIN) $(CLI_BASH_COMPLETION_BUILD)
 	@echo
 
 $(GD2_CONF) gd2conf: $(GD2CONF_BUILD)
@@ -59,6 +65,7 @@ install:
 	install -D $(GD2_BUILD) $(GD2_INSTALL)
 	install -D $(CLI_BUILD) $(CLI_INSTALL)
 	install -D $(GD2CONF_BUILD) $(GD2CONF_INSTALL)
+	install -D $(CLI_BASH_COMPLETION_BUILD) $(CLI_BASH_COMPLETION_INSTALL)
 	@echo
 
 vendor-update:
