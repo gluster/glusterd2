@@ -21,11 +21,17 @@ type SubvolReq struct {
 
 // VolCreateReq represents a Volume Create Request
 type VolCreateReq struct {
-	Name      string            `json:"name"`
-	Transport string            `json:"transport,omitempty"`
-	Subvols   []SubvolReq       `json:"subvols"`
-	Options   map[string]string `json:"options,omitempty"`
-	Force     bool              `json:"force,omitempty"`
+	Name               string            `json:"name"`
+	Transport          string            `json:"transport,omitempty"`
+	Subvols            []SubvolReq       `json:"subvols"`
+	Options            map[string]string `json:"options,omitempty"`
+	Force              bool              `json:"force,omitempty"`
+	Bricks             []string          `json:"bricks"`
+	ReplicaCount       int               `json:"replica"`
+	ArbiterCount       int               `json:"arbiter"`
+	DisperseCount      int               `json:"disperse-count,omitempty"`
+	DisperseData       int               `json:"disperse-data,omitempty"`
+	DisperseRedundancy int               `json:"disperse-redundancy,omitempty"`
 }
 
 // VolOptionReq represents an incoming request to set volume options
