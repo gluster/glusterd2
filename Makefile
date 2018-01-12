@@ -4,6 +4,7 @@ GD2 = glusterd2
 
 BUILDDIR = build
 BASH_COMPLETIONDIR = /etc/bash_completion.d
+
 GD2_BIN = $(GD2)
 GD2_BUILD = $(BUILDDIR)/$(GD2_BIN)
 GD2_INSTALL = $(DESTDIR)$(SBINDIR)/$(GD2_BIN)
@@ -30,7 +31,7 @@ PLUGINS ?= yes
 
 all: build
 
-build: check-go check-reqs vendor-install glusterd2 glustercli glusterd2.toml
+build: check-go check-reqs vendor-install $(GD2_BIN) $(CLI_BIN) $(GD2_CONF)
 check: check-go check-reqs check-protoc
 
 check-go:
