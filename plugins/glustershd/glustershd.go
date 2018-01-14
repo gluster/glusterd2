@@ -97,8 +97,8 @@ func newGlustershd() (*Glustershd, error) {
 	return glustershdObject, nil
 }
 
-// ID returns the uniques identifier of the brick. The brick path is unique on a
-// node
+// ID returns the uniques identifier for the daemon. One daemon is required per node
+// that's why glustershd will be sufficient.
 func (b *Glustershd) ID() string {
 	return "glustershd"
 }

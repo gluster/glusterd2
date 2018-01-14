@@ -3,6 +3,7 @@ package volumecommands
 import (
 	"net/http"
 
+	"github.com/gluster/glusterd2/glusterd2/events"
 	"github.com/gluster/glusterd2/glusterd2/gdctx"
 	restutils "github.com/gluster/glusterd2/glusterd2/servers/rest/utils"
 	"github.com/gluster/glusterd2/glusterd2/transaction"
@@ -27,20 +28,16 @@ func deleteVolfiles(c transaction.TxnCtx) error {
 	}
 
 	if err := volgen.DeleteClientVolfile(volinfo); err != nil {
+		// Log and continue, ignore the cleanup error
 		c.Logger().WithError(err).WithField(
-			"volume", volinfo.Name).Debug("deleteVolfiles: failed to delete client volfile")
-		return err
+			"volume", volinfo.Name).Warn("deleteVolfiles: failed to delete client volfile")
 	}
 
-	for _, b := range volinfo.Bricks {
-		if !uuid.Equal(b.NodeID, gdctx.MyUUID) {
-			continue
-		}
-
+	for _, b := range volinfo.GetLocalBricks() {
 		if err := volgen.DeleteBrickVolfile(&b); err != nil {
+			// Log and continue, ignore the volfile cleanup error
 			c.Logger().WithError(err).WithField(
-				"brick", b.Path).Debug("deleteVolfiles: failed to delete brick volfile")
-			return err
+				"brick", b.Path).Warn("deleteVolfiles: failed to delete brick volfile")
 		}
 	}
 
@@ -94,12 +91,12 @@ func volumeDeleteHandler(w http.ResponseWriter, r *http.Request) {
 		restutils.SendHTTPError(ctx, w, http.StatusInternalServerError, err.Error(), api.ErrCodeDefault)
 		return
 	}
-	txn.Nodes = vol.Nodes()
+
 	txn.Steps = []*transaction.Step{
 		lock,
 		{
 			DoFunc: "vol-delete.Commit",
-			Nodes:  txn.Nodes,
+			Nodes:  vol.Nodes(),
 		},
 		{
 			DoFunc: "vol-delete.Store",
@@ -109,7 +106,7 @@ func volumeDeleteHandler(w http.ResponseWriter, r *http.Request) {
 	}
 
 	txn.Ctx.Set("volname", volname)
-	if _, err = txn.Do(); err != nil {
+	if err = txn.Do(); err != nil {
 		logger.WithError(err).WithField(
 			"volume", volname).Error("failed to delete the volume")
 		if err == transaction.ErrLockTimeout {
@@ -120,5 +117,6 @@ func volumeDeleteHandler(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
+	events.Broadcast(newVolumeEvent(eventVolumeDeleted, vol))
 	restutils.SendHTTPResponse(ctx, w, http.StatusOK, nil)
 }

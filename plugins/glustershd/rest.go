@@ -11,8 +11,17 @@ import (
 	"github.com/gluster/glusterd2/pkg/errors"
 
 	"github.com/gorilla/mux"
+	"github.com/pborman/uuid"
 	log "github.com/sirupsen/logrus"
 )
+
+func validateVolType(vType volume.VolType) bool {
+	if vType != volume.Replicate && vType != volume.Disperse && vType != volume.DistReplicate && vType != volume.DistDisperse {
+		return false
+	}
+
+	return true
+}
 
 func glustershEnableHandler(w http.ResponseWriter, r *http.Request) {
 	// Implement the help logic and send response back as below
@@ -30,7 +39,7 @@ func glustershEnableHandler(w http.ResponseWriter, r *http.Request) {
 	}
 
 	// validate volume type
-	if v.Type != volume.Replicate && v.Type != volume.Disperse {
+	if !validateVolType(v.Type) {
 		restutils.SendHTTPError(ctx, w, http.StatusBadRequest, "Volume Type not supported", api.ErrCodeDefault)
 		return
 	}
@@ -46,17 +55,21 @@ func glustershEnableHandler(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	v.HealFlag = true
+	v.HealEnabled = true
 
 	txn.Nodes = v.Nodes()
 	txn.Steps = []*transaction.Step{
 		lock,
 		{
 			DoFunc: "vol-option.UpdateVolinfo",
-			Nodes:  txn.Nodes,
+			Nodes:  []uuid.UUID{gdctx.MyUUID},
 		},
 		{
 			DoFunc: "selfheal-start.Commit",
+			Nodes:  txn.Nodes,
+		},
+		{
+			DoFunc: "vol-option.NotifyVolfileChange",
 			Nodes:  txn.Nodes,
 		},
 		unlock,
@@ -96,7 +109,7 @@ func glustershDisableHandler(w http.ResponseWriter, r *http.Request) {
 	}
 
 	// validate volume type
-	if v.Type != volume.Replicate && v.Type != volume.Disperse {
+	if !validateVolType(v.Type) {
 		restutils.SendHTTPError(ctx, w, http.StatusBadRequest, "Volume Type not supported", api.ErrCodeDefault)
 		return
 	}
@@ -113,18 +126,22 @@ func glustershDisableHandler(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	v.HealFlag = false
+	v.HealEnabled = false
 
 	txn.Nodes = v.Nodes()
 	txn.Steps = []*transaction.Step{
 		lock,
 		{
 			DoFunc: "vol-option.UpdateVolinfo",
-			Nodes:  txn.Nodes,
+			Nodes:  []uuid.UUID{gdctx.MyUUID},
 		},
 
 		{
 			DoFunc: "selfheal-stop.Commit",
+			Nodes:  txn.Nodes,
+		},
+		{
+			DoFunc: "vol-option.NotifyVolfileChange",
 			Nodes:  txn.Nodes,
 		},
 		unlock,

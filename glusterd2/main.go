@@ -8,6 +8,7 @@ import (
 	"time"
 
 	"github.com/gluster/glusterd2/glusterd2/daemon"
+	"github.com/gluster/glusterd2/glusterd2/events"
 	"github.com/gluster/glusterd2/glusterd2/gdctx"
 	"github.com/gluster/glusterd2/glusterd2/peer"
 	"github.com/gluster/glusterd2/glusterd2/servers"
@@ -87,6 +88,11 @@ func main() {
 		log.WithError(err).Fatal("Failed to initialize store (etcd client)")
 	}
 
+	// Start the events framework after store is up
+	if err := events.Start(); err != nil {
+		log.WithError(err).Fatal("Failed to start internal events framework")
+	}
+
 	if err := peer.AddSelfDetails(); err != nil {
 		log.WithError(err).Fatal("Could not add self details into etcd")
 	}
@@ -115,6 +121,7 @@ func main() {
 		case unix.SIGINT:
 			log.Info("Received SIGTERM. Stopping GlusterD")
 			super.Stop()
+			events.Stop()
 			store.Close()
 			log.Info("Stopped GlusterD")
 			return
@@ -148,6 +155,7 @@ func createDirectories() error {
 		config.GetString("rundir"), config.GetString("logdir"),
 		path.Join(config.GetString("rundir"), "gluster"),
 		path.Join(config.GetString("logdir"), "glusterfs/bricks"),
+		"/var/run/gluster", // issue #476
 	}
 	for _, dirpath := range dirs {
 		if err := utils.InitDir(dirpath); err != nil {

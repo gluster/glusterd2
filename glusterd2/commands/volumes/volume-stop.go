@@ -5,6 +5,7 @@ import (
 
 	"github.com/gluster/glusterd2/glusterd2/brick"
 	"github.com/gluster/glusterd2/glusterd2/daemon"
+	"github.com/gluster/glusterd2/glusterd2/events"
 	"github.com/gluster/glusterd2/glusterd2/gdctx"
 	restutils "github.com/gluster/glusterd2/glusterd2/servers/rest/utils"
 	"github.com/gluster/glusterd2/glusterd2/transaction"
@@ -13,7 +14,6 @@ import (
 	"github.com/gluster/glusterd2/pkg/errors"
 
 	"github.com/gorilla/mux"
-	"github.com/pborman/uuid"
 	log "github.com/sirupsen/logrus"
 )
 
@@ -33,48 +33,44 @@ func stopBricks(c transaction.TxnCtx) error {
 		return err
 	}
 
-	for _, b := range vol.Bricks {
-		if uuid.Equal(b.NodeID, gdctx.MyUUID) {
+	for _, b := range vol.GetLocalBricks() {
+		brickDaemon, err := brick.NewGlusterfsd(b)
+		if err != nil {
+			return err
+		}
 
-			brickDaemon, err := brick.NewGlusterfsd(b)
-			if err != nil {
-				return err
-			}
+		c.Logger().WithFields(log.Fields{
+			"volume": volname, "brick": b.String()}).Info("Stopping brick")
 
-			c.Logger().WithFields(log.Fields{
-				"volume": volname, "brick": b.String()}).Info("Stopping brick")
+		client, err := daemon.GetRPCClient(brickDaemon)
+		if err != nil {
+			c.Logger().WithError(err).WithField(
+				"brick", b.String()).Error("failed to connect to brick, sending SIGTERM")
+			daemon.Stop(brickDaemon, false)
+			continue
+		}
 
-			client, err := daemon.GetRPCClient(brickDaemon)
-			if err != nil {
-				c.Logger().WithError(err).WithField(
-					"brick", b.String()).Error("failed to connect to brick, sending SIGTERM")
-				daemon.Stop(brickDaemon, false)
-				continue
-			}
+		req := &brick.GfBrickOpReq{
+			Name: b.Path,
+			Op:   brick.OpBrickTerminate,
+		}
+		var rsp brick.GfBrickOpRsp
+		err = client.Call("BrickOp", req, &rsp)
+		if err != nil || rsp.OpRet != 0 {
+			c.Logger().WithError(err).WithField(
+				"brick", b.String()).Error("failed to send terminate RPC, sending SIGTERM")
+			daemon.Stop(brickDaemon, false)
+			continue
+		}
 
-			req := &brick.GfBrickOpReq{
-				Name: b.Path,
-				Op:   brick.OpBrickTerminate,
-			}
-			var rsp brick.GfBrickOpRsp
-			err = client.Call("BrickOp", req, &rsp)
-			if err != nil || rsp.OpRet != 0 {
-				c.Logger().WithError(err).WithField(
-					"brick", b.String()).Error("failed to send terminate RPC, sending SIGTERM")
-				daemon.Stop(brickDaemon, false)
-				continue
-			}
-
-			// On graceful shutdown of brick, daemon.Stop() isn't called.
-			if err := daemon.DelDaemon(brickDaemon); err != nil {
-				log.WithFields(log.Fields{
-					"name": brickDaemon.Name(),
-					"id":   brickDaemon.ID(),
-				}).WithError(err).Warn("failed to delete brick entry from store, it may be restarted on GlusterD restart")
-			}
+		// On graceful shutdown of brick, daemon.Stop() isn't called.
+		if err := daemon.DelDaemon(brickDaemon); err != nil {
+			log.WithFields(log.Fields{
+				"name": brickDaemon.Name(),
+				"id":   brickDaemon.ID(),
+			}).WithError(err).Warn("failed to delete brick entry from store, it may be restarted on GlusterD restart")
 		}
 	}
-
 	return nil
 }
 
@@ -106,18 +102,17 @@ func volumeStopHandler(w http.ResponseWriter, r *http.Request) {
 		restutils.SendHTTPError(ctx, w, http.StatusInternalServerError, err.Error(), api.ErrCodeDefault)
 		return
 	}
-	txn.Nodes = vol.Nodes()
 	txn.Steps = []*transaction.Step{
 		lock,
 		{
 			DoFunc: "vol-stop.Commit",
-			Nodes:  txn.Nodes,
+			Nodes:  vol.Nodes(),
 		},
 		unlock,
 	}
 	txn.Ctx.Set("volname", volname)
 
-	if _, err = txn.Do(); err != nil {
+	if err = txn.Do(); err != nil {
 		logger.WithError(err).WithField(
 			"volume", volname).Error("failed to stop volume")
 		if err == transaction.ErrLockTimeout {
@@ -135,5 +130,6 @@ func volumeStopHandler(w http.ResponseWriter, r *http.Request) {
 		restutils.SendHTTPError(ctx, w, http.StatusInternalServerError, e.Error(), api.ErrCodeDefault)
 		return
 	}
+	events.Broadcast(newVolumeEvent(eventVolumeStopped, vol))
 	restutils.SendHTTPResponse(ctx, w, http.StatusOK, vol)
 }

@@ -28,6 +28,14 @@ func (c *Client) Volumes(volname string) (api.VolumeListResp, error) {
 	return []api.VolumeGetResp{vol}, err
 }
 
+// BricksStatus returns the status of bricks that form a Gluster volume
+func (c *Client) BricksStatus(volname string) (api.BricksStatusResp, error) {
+	url := fmt.Sprintf("/v1/volumes/%s/bricks", volname)
+	var resp api.BricksStatusResp
+	err := c.get(url, nil, http.StatusOK, &resp)
+	return resp, err
+}
+
 // VolumeStatus returns the status of a Gluster volume
 func (c *Client) VolumeStatus(volname string) (api.VolumeStatusResp, error) {
 	url := fmt.Sprintf("/v1/volumes/%s/status", volname)

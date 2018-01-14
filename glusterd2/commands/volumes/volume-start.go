@@ -3,6 +3,7 @@ package volumecommands
 import (
 	"net/http"
 
+	"github.com/gluster/glusterd2/glusterd2/events"
 	"github.com/gluster/glusterd2/glusterd2/gdctx"
 	restutils "github.com/gluster/glusterd2/glusterd2/servers/rest/utils"
 	"github.com/gluster/glusterd2/glusterd2/transaction"
@@ -11,7 +12,6 @@ import (
 	"github.com/gluster/glusterd2/pkg/errors"
 
 	"github.com/gorilla/mux"
-	"github.com/pborman/uuid"
 	log "github.com/sirupsen/logrus"
 )
 
@@ -21,16 +21,12 @@ func startAllBricks(c transaction.TxnCtx) error {
 		return err
 	}
 
-	volinfo, err := volume.GetVolume(volname)
+	vol, err := volume.GetVolume(volname)
 	if err != nil {
 		return err
 	}
 
-	for _, b := range volinfo.Bricks {
-
-		if !uuid.Equal(b.NodeID, gdctx.MyUUID) {
-			continue
-		}
+	for _, b := range vol.GetLocalBricks() {
 
 		c.Logger().WithFields(log.Fields{
 			"volume": b.VolumeName,
@@ -65,11 +61,7 @@ func stopAllBricks(c transaction.TxnCtx) error {
 		return e
 	}
 
-	for _, b := range vol.Bricks {
-
-		if !uuid.Equal(b.NodeID, gdctx.MyUUID) {
-			continue
-		}
+	for _, b := range vol.GetLocalBricks() {
 
 		c.Logger().WithFields(log.Fields{
 			"volume": b.VolumeName,
@@ -113,25 +105,25 @@ func volumeStartHandler(w http.ResponseWriter, r *http.Request) {
 		restutils.SendHTTPError(ctx, w, http.StatusInternalServerError, err.Error(), api.ErrCodeDefault)
 		return
 	}
-	txn.Nodes = vol.Nodes()
+
 	txn.Steps = []*transaction.Step{
 		lock,
 		{
 			DoFunc:   "vol-start.Commit",
 			UndoFunc: "vol-start.Undo",
-			Nodes:    txn.Nodes,
+			Nodes:    vol.Nodes(),
 		},
 		unlock,
 	}
 	txn.Ctx.Set("volname", volname)
 
-	_, e = txn.Do()
-	if e != nil {
+	err = txn.Do()
+	if err != nil {
 		logger.WithFields(log.Fields{
-			"error":  e.Error(),
+			"error":  err.Error(),
 			"volume": volname,
 		}).Error("failed to start volume")
-		restutils.SendHTTPError(ctx, w, http.StatusInternalServerError, e.Error(), api.ErrCodeDefault)
+		restutils.SendHTTPError(ctx, w, http.StatusInternalServerError, err.Error(), api.ErrCodeDefault)
 		return
 	}
 
@@ -142,5 +134,7 @@ func volumeStartHandler(w http.ResponseWriter, r *http.Request) {
 		restutils.SendHTTPError(ctx, w, http.StatusInternalServerError, e.Error(), api.ErrCodeDefault)
 		return
 	}
+
+	events.Broadcast(newVolumeEvent(eventVolumeStarted, vol))
 	restutils.SendHTTPResponse(ctx, w, http.StatusOK, vol)
 }

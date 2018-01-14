@@ -59,6 +59,12 @@ func (p *Plugin) RestRoutes() route.Routes {
 			Pattern:     "/geo-replication/{mastervolid}/{slavevolid}/resume",
 			Version:     1,
 			HandlerFunc: georepResumeHandler},
+		route.Route{
+			Name:        "GeoreplicationStatus",
+			Method:      "GET",
+			Pattern:     "/geo-replication/{mastervolid}/{slavevolid}",
+			Version:     1,
+			HandlerFunc: georepStatusHandler},
 	}
 }
 
@@ -71,4 +77,5 @@ func (p *Plugin) RegisterStepFuncs() {
 	transaction.RegisterStepFunc(txnGeorepDelete, "georeplication-delete.Commit")
 	transaction.RegisterStepFunc(txnGeorepPause, "georeplication-pause.Commit")
 	transaction.RegisterStepFunc(txnGeorepResume, "georeplication-resume.Commit")
+	transaction.RegisterStepFunc(txnGeorepStatus, "georeplication-status.Commit")
 }

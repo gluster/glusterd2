@@ -10,7 +10,7 @@ import (
 
 // RootCmd represents main command
 var RootCmd = &cobra.Command{
-	Use:   "gluster",
+	Use:   "glustercli",
 	Short: "Gluster Console Manager (command line utility)",
 	PersistentPreRun: func(cmd *cobra.Command, args []string) {
 		err := logging.Init(flagLogDir, flagLogFile, flagLogLevel, false)

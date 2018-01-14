@@ -18,7 +18,7 @@ func isBrickPathAvailable(nodeID uuid.UUID, brickPath string) error {
 		return nil
 	}
 	for _, v := range volumes {
-		for _, b := range v.Bricks {
+		for _, b := range v.GetBricks() {
 			if uuid.Equal(b.NodeID, nodeID) && b.Path == brickPath {
 				log.Error("Brick is already used by ", v.Name)
 				return errors.ErrBrickPathAlreadyInUse

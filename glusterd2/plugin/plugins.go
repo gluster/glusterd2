@@ -12,5 +12,6 @@ import (
 var PluginsList = []GlusterdPlugin{
 	&hello.Plugin{},
 	&georeplication.Plugin{},
+	&bitrot.Plugin{},
 	&glustershd.Plugin{},
 }

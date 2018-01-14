@@ -22,7 +22,6 @@ func registerVolOptionStepFuncs() {
 		sf   transaction.StepFunc
 	}{
 		{"vol-option.UpdateVolinfo", storeVolume},
-		{"vol-option.RegenerateVolfiles", generateBrickVolfiles},
 		{"vol-option.NotifyVolfileChange", notifyVolfileChange},
 	}
 	for _, sf := range sfs {
@@ -63,9 +62,6 @@ func volumeOptionsHandler(w http.ResponseWriter, r *http.Request) {
 	txn := transaction.NewTxn(ctx)
 	defer txn.Cleanup()
 
-	// thes txn framework checks if these nodes are online before txn starts
-	txn.Nodes = volinfo.Nodes()
-
 	allNodes, err := peer.GetPeerIDs()
 	if err != nil {
 		restutils.SendHTTPError(ctx, w, http.StatusInternalServerError, err.Error(), api.ErrCodeDefault)
@@ -77,14 +73,6 @@ func volumeOptionsHandler(w http.ResponseWriter, r *http.Request) {
 		{
 			DoFunc: "vol-option.UpdateVolinfo",
 			Nodes:  []uuid.UUID{gdctx.MyUUID},
-		},
-		{
-			DoFunc: "vol-option.RegenerateVolfiles",
-			// BUG: Shouldn't be on all nodes ideally. Currently we
-			// can't know if it's a brick option or client option.
-			// If it's a brick option, the nodes list here should
-			// should be only volinfo.Nodes().
-			Nodes: allNodes,
 		},
 		{
 			DoFunc: "vol-option.NotifyVolfileChange",
@@ -108,7 +96,7 @@ func volumeOptionsHandler(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	if _, err := txn.Do(); err != nil {
+	if err := txn.Do(); err != nil {
 		logger.WithError(err).Error("volume option transaction failed")
 		if err == transaction.ErrLockTimeout {
 			restutils.SendHTTPError(ctx, w, http.StatusConflict, err.Error(), api.ErrCodeDefault)

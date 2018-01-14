@@ -5,8 +5,9 @@ import (
 	"encoding/json"
 	"errors"
 
-	"github.com/coreos/etcd/clientv3"
 	"github.com/gluster/glusterd2/glusterd2/store"
+
+	"github.com/coreos/etcd/clientv3"
 	"github.com/pborman/uuid"
 	log "github.com/sirupsen/logrus"
 )
@@ -128,17 +129,12 @@ func AreReplicateVolumesRunning() bool {
 		return false
 	}
 	for _, v := range volumes {
-		if v.Type != Replicate && v.Type != Disperse {
-			continue
-		} else {
-			if v.State == VolCreated || v.State == VolStopped {
-				continue
-			} else {
-				return false
-			}
+		if (v.Type == Replicate || v.Type == Disperse || v.Type == DistReplicate || v.Type == DistDisperse) && v.State == VolStarted {
+			return true
 		}
 	}
-	return true
+
+	return false
 }
 
 //Exists check whether a given volume exist or not

@@ -1,20 +1,49 @@
 package store
 
 import (
+	"crypto/tls"
+	"crypto/x509"
+	"io/ioutil"
 	"time"
 
 	"github.com/coreos/etcd/clientv3"
-	"github.com/coreos/etcd/clientv3/concurrency"
 	log "github.com/sirupsen/logrus"
 )
 
 func newRemoteStore(conf *Config) (*GDStore, error) {
-
-	c, e := clientv3.New(clientv3.Config{
+	var tlsConfig *tls.Config
+	var c *clientv3.Client
+	var e error
+	if conf.UseTLS {
+		tlsConfig = &tls.Config{
+			MinVersion: tls.VersionTLS12,
+		}
+		if conf.ClntCertFile != "" && conf.ClntKeyFile != "" {
+			tlsCert, err := tls.LoadX509KeyPair(conf.ClntCertFile, conf.ClntKeyFile)
+			if err != nil {
+				log.WithError(err).Error("failed to load certificate file")
+				return nil, err
+			}
+			tlsConfig.Certificates = []tls.Certificate{tlsCert}
+			tlsConfig.ClientAuth = tls.RequestClientCert
+		}
+		if conf.CAFile != "" {
+			caCert, err := ioutil.ReadFile(conf.CAFile)
+			if err != nil {
+				log.WithError(err).Error("failed to load CA file")
+				return nil, err
+			}
+			caCertPool := x509.NewCertPool()
+			caCertPool.AppendCertsFromPEM(caCert)
+			tlsConfig.RootCAs = caCertPool
+		}
+	}
+	c, e = clientv3.New(clientv3.Config{
 		Endpoints:        conf.Endpoints,
 		AutoSyncInterval: 30 * time.Second,
 		DialTimeout:      5 * time.Second,
 		RejectOldCluster: true,
+		TLS:              tlsConfig,
 	})
 	if e != nil {
 		log.WithError(e).Error("failed to create etcd client")
@@ -22,17 +51,7 @@ func newRemoteStore(conf *Config) (*GDStore, error) {
 	}
 	log.Debug("etcd client connection created")
 
-	// Create a new session (lease kept alive for the lifetime of a client)
-	// This is currently used for:
-	// * distributed locking (Mutex)
-	// * representing liveness of the client
-	s, e := concurrency.NewSession(c, concurrency.WithTTL(sessionTTL))
-	if e != nil {
-		log.WithError(e).Error("failed to create an etcd session")
-		return nil, e
-	}
-
-	return &GDStore{*conf, c, s, nil}, nil
+	return newNamespacedStore(c, conf)
 }
 
 func (s *GDStore) closeRemoteStore() {

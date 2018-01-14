@@ -1,6 +1,7 @@
 package peercommands
 
 import (
+	"github.com/gluster/glusterd2/glusterd2/events"
 	"github.com/gluster/glusterd2/glusterd2/gdctx"
 	"github.com/gluster/glusterd2/glusterd2/peer"
 	"github.com/gluster/glusterd2/glusterd2/servers/peerrpc"
@@ -138,6 +139,10 @@ func ReconfigureStore(c *StoreConfig) error {
 
 	// Destroy the current store first
 	log.Debug("destroying current store")
+
+	// Stop global events listener
+	events.StopGlobal()
+
 	store.Destroy()
 	// TODO: Also need to destroy any old files in localstatedir (eg. volfiles)
 
@@ -148,8 +153,7 @@ func ReconfigureStore(c *StoreConfig) error {
 	if err := store.Init(cfg); err != nil {
 		log.WithError(err).WithField("endpoints", cfg.Endpoints).Error("failed to restart store with new endpoints")
 		// Restart store with default config
-		defer peer.AddSelfDetails()
-		defer store.Init(nil)
+		defer restartDefaultStore(false)
 		return err
 	}
 	log.WithField("endpoints", cfg.Endpoints).Debug("store restarted with new endpoints")
@@ -158,9 +162,7 @@ func ReconfigureStore(c *StoreConfig) error {
 	if err := cfg.Save(); err != nil {
 		log.WithError(err).Error("failed to save new store configs")
 		// Destroy newly started store and restart with default config
-		defer peer.AddSelfDetails()
-		defer store.Init(nil)
-		defer store.Destroy()
+		defer restartDefaultStore(true)
 		return err
 	}
 	log.Debug("saved new store config")
@@ -169,12 +171,22 @@ func ReconfigureStore(c *StoreConfig) error {
 	if err := peer.AddSelfDetails(); err != nil {
 		log.WithError(err).Error("failed to add self to peer list")
 		// Destroy newly started store and restart with default config
-		defer peer.AddSelfDetails()
-		defer store.Init(nil)
-		defer store.Destroy()
+		defer restartDefaultStore(true)
 		return err
 	}
 	log.Debug("added details of self to store")
 
+	// Now that new store is up, start global events listener
+	events.StartGlobal()
+
 	return nil
+}
+
+func restartDefaultStore(destroy bool) {
+	if destroy {
+		store.Destroy()
+	}
+	store.Init(nil)
+	peer.AddSelfDetails()
+	events.StartGlobal()
 }

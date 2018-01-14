@@ -1,11 +1,15 @@
 package elasticetcd
 
 import (
+	"crypto/tls"
+	"crypto/x509"
 	"errors"
+	"io/ioutil"
 	"time"
 
 	"github.com/coreos/etcd/clientv3"
 	"github.com/coreos/etcd/clientv3/concurrency"
+	log "github.com/sirupsen/logrus"
 )
 
 // Client returns the etcd client of ElasticEtcd
@@ -73,11 +77,38 @@ func (ee *ElasticEtcd) stopClient() error {
 
 // newClientConfig returns a new etcd clientv3.Config from the ElasticEtcd config
 func (ee *ElasticEtcd) newClientConfig() clientv3.Config {
+	var tlsConfig *tls.Config
+	if ee.conf.UseTLS {
+		tlsConfig = &tls.Config{
+			MinVersion: tls.VersionTLS12,
+		}
+		if ee.conf.ClntCertFile != "" && ee.conf.ClntKeyFile != "" {
+			tlsCert, err := tls.LoadX509KeyPair(ee.conf.ClntCertFile, ee.conf.ClntKeyFile)
+			if err != nil {
+				log.WithError(err).Error("failed to load certificate file")
+				return clientv3.Config{}
+			}
+			tlsConfig.Certificates = []tls.Certificate{tlsCert}
+			tlsConfig.ClientAuth = tls.RequestClientCert
+		}
+		if ee.conf.CAFile != "" {
+			caCert, err := ioutil.ReadFile(ee.conf.CAFile)
+			if err != nil {
+				log.WithError(err).Error("failed to load CA file")
+				return clientv3.Config{}
+			}
+			caCertPool := x509.NewCertPool()
+			caCertPool.AppendCertsFromPEM(caCert)
+			tlsConfig.RootCAs = caCertPool
+		}
+	}
+
 	return clientv3.Config{
 		Endpoints:        ee.conf.Endpoints.StringSlice(),
 		AutoSyncInterval: 30 * time.Second, // Update list of endpoints ever 30s.
 		DialTimeout:      5 * time.Second,
 		RejectOldCluster: true,
+		TLS:              tlsConfig,
 	}
 }
 

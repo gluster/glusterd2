@@ -1,10 +1,10 @@
 package volume
 
 import (
-	"fmt"
 	"testing"
 
 	"github.com/gluster/glusterd2/glusterd2/peer"
+	"github.com/gluster/glusterd2/pkg/api"
 	"github.com/gluster/glusterd2/pkg/errors"
 	"github.com/gluster/glusterd2/pkg/testutils"
 
@@ -25,15 +25,13 @@ func find(haystack []string, needle string) bool {
 
 // getSampleBricks prepare a list of couple of bricks with the path names as
 // input along with the local uuid
-func getSampleBricks(b1 string, b2 string) []string {
+func getSampleBricks(b1 string, b2 string) []api.BrickReq {
 
-	var bricks []string
 	lhost := uuid.NewRandom()
-	brick1 := fmt.Sprintf("%s:%s", lhost, b1)
-	brick2 := fmt.Sprintf("%s:%s", lhost, b2)
-	bricks = append(bricks, brick1)
-	bricks = append(bricks, brick2)
-	return bricks
+	return []api.BrickReq{
+		{NodeID: lhost.String(), Path: b1},
+		{NodeID: lhost.String(), Path: b2},
+	}
 }
 
 // TestNewBrickEntry validates NewBrickEntries ()
@@ -52,7 +50,10 @@ func TestNewBrickEntry(t *testing.T) {
 	}
 
 	// Some negative tests
-	mockBricks := []string{"/tmp/b1", "/tmp/b2"} //with out IPs
+	mockBricks := []api.BrickReq{
+		{NodeID: "", Path: "/tmp/b1"},
+		{NodeID: "", Path: "/tmp/b2"},
+	} //with out IPs
 	_, err = NewBrickEntriesFunc(mockBricks, "volume", nil)
 	assert.NotNil(t, err)
 

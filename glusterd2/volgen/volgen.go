@@ -30,9 +30,11 @@ func Generate(vol *volume.Volinfo) error {
 		return err
 	}
 
-	for _, b := range vol.Bricks {
-		if err := GenerateBrickVolfile(vol, &b); err != nil {
-			return err
+	for _, subvol := range vol.Subvols {
+		for _, b := range subvol.Bricks {
+			if err := GenerateBrickVolfile(vol, &b); err != nil {
+				return err
+			}
 		}
 	}
 

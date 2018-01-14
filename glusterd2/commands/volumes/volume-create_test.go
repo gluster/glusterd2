@@ -45,7 +45,7 @@ func TestUnmarshalVolCreateRequest(t *testing.T) {
 	assert.Equal(t, gderrors.ErrEmptyBrickList, e)
 
 	// Request with volume name & bricks
-	r, _ = http.NewRequest("POST", "/v1/volumes/", bytes.NewBuffer([]byte(`{"name" : "vol", "bricks":["127.0.0.1:/tmp/b1"]}`)))
+	r, _ = http.NewRequest("POST", "/v1/volumes/", bytes.NewBuffer([]byte(`{"name" : "vol", "subvols": [{"bricks":[{"nodeid": "127.0.0.1", "path": "/tmp/b1"}]}]}`)))
 	_, e = unmarshalVolCreateRequest(msg, r)
 	assert.Nil(t, e)
 
@@ -59,13 +59,16 @@ func TestCreateVolinfo(t *testing.T) {
 	msg := new(api.VolCreateReq)
 	u := uuid.NewRandom()
 	msg.Name = "vol"
-	msg.Bricks = []string{u.String() + ":/tmp/b1", u.String() + ":/tmp/b2"}
+	msg.Subvols = []api.SubvolReq{{Bricks: []api.BrickReq{
+		{NodeID: u.String(), Path: "/tmp/b1"},
+		{NodeID: u.String(), Path: "/tmp/b2"},
+	}}}
 	vol, e := createVolinfo(msg)
 	assert.Nil(t, e)
 	assert.NotNil(t, vol)
 
 	// Mock failure in NewBrickEntries(), createVolume() should fail
-	defer testutils.Patch(&volume.NewBrickEntriesFunc, func(bricks []string, volName string, volID uuid.UUID) ([]brick.Brickinfo, error) {
+	defer testutils.Patch(&volume.NewBrickEntriesFunc, func(bricks []api.BrickReq, volName string, volID uuid.UUID) ([]brick.Brickinfo, error) {
 		return nil, errBad
 	}).Restore()
 	_, e = createVolinfo(msg)
@@ -78,7 +81,10 @@ func TestValidateVolumeCreate(t *testing.T) {
 
 	msg.Name = "vol"
 	u := uuid.NewRandom()
-	msg.Bricks = []string{u.String() + ":/tmp/b1", u.String() + ":/tmp/b2"}
+	msg.Subvols = []api.SubvolReq{{Bricks: []api.BrickReq{
+		{NodeID: u.String(), Path: "/tmp/b1"},
+		{NodeID: u.String(), Path: "/tmp/b2"},
+	}}}
 
 	c := transaction.NewMockCtx()
 	c.Set("req", msg)

@@ -69,6 +69,12 @@ type Config struct {
 	Endpoints, CURLs, PURLs types.URLs
 	IdealSize               int
 	DisableLogging          bool
+	UseTLS                  bool
+	CAFile, TrustedCAFile   string
+	CertFile                string
+	KeyFile                 string
+	ClntCertFile            string
+	ClntKeyFile             string
 }
 
 // NewConfig returns an ElasticEtcd config with defaults filled
