@@ -53,6 +53,12 @@ func volumeOptionsHandler(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
+	if err := validateXlatorOptions(req.Options, volinfo); err != nil {
+		logger.WithError(err).Error("validation failed")
+		restutils.SendHTTPError(ctx, w, http.StatusBadRequest, fmt.Sprintf("failed to set volume option: %s", err.Error()), api.ErrCodeDefault)
+		return
+	}
+
 	lock, unlock, err := transaction.CreateLockSteps(volinfo.Name)
 	if err != nil {
 		restutils.SendHTTPError(ctx, w, http.StatusInternalServerError, err.Error(), api.ErrCodeDefault)
