@@ -3,7 +3,6 @@ package brick
 import (
 	"fmt"
 
-	"github.com/gluster/glusterd2/pkg/utils"
 	"github.com/pborman/uuid"
 	"golang.org/x/sys/unix"
 )
@@ -31,6 +30,13 @@ type Brickinfo struct {
 	Decommissioned bool
 }
 
+// SizeInfo represents sizing information.
+type SizeInfo struct {
+	Capacity uint64
+	Used     uint64
+	Free     uint64
+}
+
 //Brickstatus gives status of brick
 type Brickstatus struct {
 	Info      Brickinfo
@@ -40,7 +46,7 @@ type Brickstatus struct {
 	FS        string
 	MountOpts string
 	Device    string
-	Size      utils.SizeInfo
+	Size      SizeInfo
 }
 
 func (b *Brickinfo) String() string {

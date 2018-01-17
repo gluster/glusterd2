@@ -8,10 +8,14 @@ import (
 	"path"
 	"strconv"
 	"strings"
+	"syscall"
+	"time"
 
 	"github.com/cespare/xxhash"
+	"github.com/gluster/glusterd2/glusterd2/daemon"
 	"github.com/gluster/glusterd2/glusterd2/gdctx"
 	"github.com/gluster/glusterd2/glusterd2/pmap"
+	"github.com/gluster/glusterd2/pkg/api"
 	"github.com/gluster/glusterd2/pkg/utils"
 
 	config "github.com/spf13/viper"
@@ -130,4 +134,101 @@ func NewGlusterfsd(binfo Brickinfo) (*Glusterfsd, error) {
 // on a node.
 func (b *Glusterfsd) ID() string {
 	return b.brickinfo.Path
+}
+
+// BrickStartMaxRetries represents maximum no. of attempts that will be made
+// to start brick processes in case of port clashes.
+const BrickStartMaxRetries = 3
+
+// Until https://review.gluster.org/#/c/16200/ gets into a release.
+// And this is fully safe too as no other well-known errno exists after 132
+
+//anotherEADDRINUSE is errno generated for rpc connection
+const anotherEADDRINUSE = syscall.Errno(0x9E) // 158
+
+func errorContainsErrno(err error, errno syscall.Errno) bool {
+	exiterr, ok := err.(*exec.ExitError)
+	if !ok {
+		return false
+	}
+	status, ok := exiterr.Sys().(syscall.WaitStatus)
+	if !ok {
+		return false
+	}
+	if status.ExitStatus() != int(errno) {
+		return false
+	}
+	return true
+}
+
+// These functions are used in vol-create, vol-expand and vol-shrink (TBD)
+
+//StartBrick starts glusterfsd process
+func (b Brickinfo) StartBrick() error {
+
+	brickDaemon, err := NewGlusterfsd(b)
+	if err != nil {
+		return err
+	}
+
+	for i := 0; i < BrickStartMaxRetries; i++ {
+		err = daemon.Start(brickDaemon, true)
+		if err != nil {
+			if errorContainsErrno(err, syscall.EADDRINUSE) || errorContainsErrno(err, anotherEADDRINUSE) {
+				// Retry iff brick failed to start because of port being in use.
+				// Allow the previous instance to cleanup and exit
+				time.Sleep(1 * time.Second)
+			} else {
+				return err
+			}
+		} else {
+			break
+		}
+	}
+
+	return nil
+}
+
+//StopBrick will stop glusterfsd process
+func (b Brickinfo) StopBrick() error {
+
+	brickDaemon, err := NewGlusterfsd(b)
+	if err != nil {
+		return err
+	}
+
+	return daemon.Stop(brickDaemon, true)
+}
+
+//CreateBrickSizeInfo parses size information for response
+func CreateBrickSizeInfo(size *SizeInfo) api.SizeInfo {
+	return api.SizeInfo{
+		Used:     size.Used,
+		Free:     size.Free,
+		Capacity: size.Capacity,
+	}
+}
+
+//CreateBrickInfo parses brick information for response
+func CreateBrickInfo(b *Brickinfo) api.BrickInfo {
+	return api.BrickInfo{
+		ID:         b.ID,
+		Path:       b.Path,
+		VolumeID:   b.VolumeID,
+		VolumeName: b.VolumeName,
+		NodeID:     b.NodeID,
+		Hostname:   b.Hostname,
+		Type:       api.BrickType(b.Type),
+	}
+}
+
+//CreateSizeInfo return size of a brick
+func CreateSizeInfo(fstat *syscall.Statfs_t) *SizeInfo {
+	var s SizeInfo
+	if fstat != nil {
+		s.Capacity = fstat.Blocks * uint64(fstat.Bsize)
+		s.Free = fstat.Bfree * uint64(fstat.Bsize)
+		s.Used = s.Capacity - s.Free
+	}
+	return &s
 }
