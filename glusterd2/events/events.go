@@ -50,7 +50,7 @@ func Broadcast(e *Event) error {
 func Start() error {
 	StartGlobal()
 	startEventLogger()
-
+	registerGaneshaHandler()
 	return nil
 }
 

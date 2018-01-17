@@ -10,7 +10,6 @@ import (
 
 	"github.com/gluster/glusterd2/glusterd2/gdctx"
 	"github.com/gluster/glusterd2/glusterd2/store"
-	"github.com/gluster/glusterd2/glusterd2/volgen"
 	"github.com/gluster/glusterd2/pkg/logging"
 
 	log "github.com/sirupsen/logrus"
@@ -62,7 +61,6 @@ func parseFlags() {
 	flag.String("key-file", "", "Private key for the SSL/TLS certificate.")
 
 	store.InitFlags()
-	volgen.InitFlags()
 
 	flag.Parse()
 }
@@ -108,8 +106,6 @@ func setDefaults() error {
 		port = config.GetString("defaultpeerport")
 	}
 	config.SetDefault("peeraddress", host+":"+port)
-
-	volgen.SetDefaults()
 
 	return nil
 }
