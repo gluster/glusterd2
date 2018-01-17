@@ -250,8 +250,22 @@ func ValidatePercentOrSize(o *Option, val string) error {
 }
 
 // ValidatePriorityOrSize validates either priority or size
+// Example: val := "k1:1024KB, k2:512MB, k3:512GB"
+// It is verified next if 1024KB is a valid size.
 func ValidatePriorityOrSize(o *Option, val string) error {
-	return ErrInvalidArg
+	pairs := strings.Split(val, ",")
+	for _, pair := range pairs {
+		kv := strings.Split(pair, ":")
+		if strings.HasSuffix(kv[1], "B") || strings.HasSuffix(kv[1], "b") {
+			err := ValidateSizeList(o, kv[1])
+			return err
+		}
+		_, err := strconv.ParseInt(kv[1], 10, 64)
+		if err != nil {
+			return err
+		}
+	}
+	return nil
 }
 
 // ValidateSizeList validates if the option is a valid size list
