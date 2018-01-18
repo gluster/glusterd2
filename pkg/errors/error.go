@@ -8,6 +8,7 @@ import (
 var (
 	ErrVolCreateFail           = errors.New("unable to create volume")
 	ErrVolNotFound             = errors.New("volume not found")
+	ErrVolNotStarted           = errors.New("volume not started")
 	ErrPeerNotFound            = errors.New("peer not found")
 	ErrJSONParsingFailed       = errors.New("unable to parse the request")
 	ErrEmptyVolName            = errors.New("volume name is empty")
@@ -31,4 +32,6 @@ var (
 	ErrPeerLocalNode           = errors.New("The peer being added is the local node")
 	ErrProcessNotFound         = errors.New("The process is not running or is inaccessible")
 	ErrProcessAlreadyRunning   = errors.New("Process is already running")
+	ErrBitrotAlreadyEnabled    = errors.New("Bitrot is already enabled")
+	ErrBitrotAlreadyDisabled   = errors.New("Bitrot is already disabled")
 )

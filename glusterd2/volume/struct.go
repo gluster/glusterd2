@@ -32,6 +32,13 @@ const (
 	VolStopped
 )
 
+const (
+	// VkeyFeaturesBitrot is the key which enables/disables bitrot-stub
+	VkeyFeaturesBitrot = "bitrot-stub.bitrot"
+	// VkeyFeaturesScrub is the key which controls bit-rot.so to be scrubber/bitd
+	VkeyFeaturesScrub = "bit-rot.scrubber"
+)
+
 var (
 	// ValidateBrickEntriesFunc validates the brick list
 	ValidateBrickEntriesFunc   = ValidateBrickEntries

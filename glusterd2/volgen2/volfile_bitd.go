@@ -14,10 +14,13 @@ func generateBitdVolfile(volfile *Volfile, clusterinfo []*volume.Volinfo, nodeid
 	bitd := volfile.RootEntry.Add("debug/io-stats", nil, nil).SetName("bitd")
 
 	for volIdx, vol := range clusterinfo {
-		// TODO: If bitrot not enabled for volume, then skip
-		name := fmt.Sprintf("%s-bit-rot-%d", vol.Name, volIdx)
-		bitdvol := bitd.Add("features/bit-rot", vol, nil).SetName(name).SetIgnoreOptions([]string{"scrubber"})
-		clusterGraph(bitdvol, vol, nodeid, &clusterGraphFilters{onlyLocalBricks: true})
+		//If bitrot not enabled for volume, then skip those bricks
+		val, exists := vol.Options[volume.VkeyFeaturesBitrot]
+		if exists && val == "on" {
+			name := fmt.Sprintf("%s-bit-rot-%d", vol.Name, volIdx)
+			bitdvol := bitd.Add("features/bit-rot", vol, nil).SetName(name).SetIgnoreOptions([]string{"scrubber"})
+			clusterGraph(bitdvol, vol, nodeid, &clusterGraphFilters{onlyLocalBricks: true})
+		}
 	}
 }
 
