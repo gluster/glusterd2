@@ -4,6 +4,7 @@ package plugin
 
 import (
 	"github.com/gluster/glusterd2/plugins/georeplication"
+        "github.com/gluster/glusterd2/plugins/heketi"
 	"github.com/gluster/glusterd2/plugins/hello"
 )
 
@@ -11,4 +12,5 @@ import (
 var PluginsList = []GlusterdPlugin{
 	&hello.Plugin{},
 	&georeplication.Plugin{},
+        &heketi.Plugin{},
 }

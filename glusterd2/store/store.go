@@ -17,6 +17,7 @@ import (
 )
 
 const (
+        GlusterPrefix = "gluster/"
 	sessionTTL = 30 // used for etcd mutexes and liveness key
 )
 
