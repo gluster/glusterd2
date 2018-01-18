@@ -29,6 +29,10 @@ type Entry struct {
 	// option remote-subvolume gfproxyd-<volname>
 	ExtraData  map[string]string
 	SubEntries []Entry
+	// IgnoreOptions represents list of options which should not be added in the
+	// generated Volfile. For example, bitd and scrubd both uses same xlator, if
+	// scrubber = on, then it becomes scrub daemon else it becomes bitd.
+	IgnoreOptions map[string]bool
 }
 
 // Volfile represents Gluster Volfile
@@ -82,6 +86,16 @@ func (e *Entry) SetExtraData(data map[string]string) *Entry {
 	return e
 }
 
+// SetIgnoreOptions sets list of options not required to add in generated
+// volfile
+func (e *Entry) SetIgnoreOptions(opts []string) *Entry {
+	e.IgnoreOptions = make(map[string]bool)
+	for _, opt := range opts {
+		e.IgnoreOptions[opt] = true
+	}
+	return e
+}
+
 // Generate generates Volfile content
 func (v *Volfile) Generate(graph string, extra *map[string]extrainfo) (string, error) {
 	if v.Name == "" || v.FileName == "" {
@@ -126,6 +140,9 @@ func (e *Entry) Generate(graph string, extra *map[string]extrainfo) (string, err
 		return "", err
 	}
 	for k, v := range opts {
+		if _, ok := e.IgnoreOptions[k]; ok {
+			continue
+		}
 		out += "    option " + k + " " + v + "\n"
 	}
 
