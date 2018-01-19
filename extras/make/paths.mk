@@ -4,15 +4,15 @@
 # and
 # https://fedoraproject.org/wiki/Packaging:RPMMacros?rd=Packaging/RPMMacros
 
-PREFIX = /usr/local
-EXEC_PREFIX = $(PREFIX)
+PREFIX ?= /usr/local
+EXEC_PREFIX ?= $(PREFIX)
 
-BINDIR = $(EXEC_PREFIX)/bin
-SBINDIR = $(EXEC_PREFIX)/sbin
+BINDIR ?= $(EXEC_PREFIX)/bin
+SBINDIR ?= $(EXEC_PREFIX)/sbin
 
-DATADIR = $(PREFIX)/share
-LOCALSTATEDIR = $(PREFIX)/var/lib
-LOGDIR = $(PREFIX)/var/log
+DATADIR ?= $(PREFIX)/share
+LOCALSTATEDIR ?= $(PREFIX)/var/lib
+LOGDIR ?= $(PREFIX)/var/log
 
-SYSCONFDIR = $(PREFIX)/etc
+SYSCONFDIR ?= $(PREFIX)/etc
 
