@@ -77,15 +77,13 @@ func (c *Client) VolumeExpand(volname string, req api.VolExpandReq) (api.VolumeE
 	return vol, err
 }
 
-// ProfileCreate creates a new profile
-func (c *Client) ProfileCreate(req api.ProfileCreateReq) error {
-	return c.post("/v1/volumes/options", req, http.StatusCreated, nil)
+func (c *Client) OptionGroupCreate(req api.OptionGroupReq) error {
+	return c.post("/v1/volumes/options-group", req, http.StatusCreated, nil)
 }
 
-// ProfileTunables returns the list of tunables that is part of a profile
-func (c *Client) ProfileTunables(profilename string) (api.ProfileTunablesResp, error) {
-	var tunables api.ProfileTunablesResp
-	url := fmt.Sprintf("/v1/volumes/options/%s", profilename)
-	err := c.get(url, nil, http.StatusOK, &tunables)
-	return tunables, err
+func (c *Client) OptionGroupList() (api.OptionGroupListResp, error) {
+	var l api.OptionGroupListResp
+	url := fmt.Sprintf("/v1/volumes/options-group")
+	err := c.get(url, nil, http.StatusOK, &l)
+	return l, err
 }

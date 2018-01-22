@@ -238,7 +238,7 @@ func TestVolumeOptions(t *testing.T) {
 		r.NotNil(err)
 	}
 
-	// group  option test cases
+	// group option test cases
 	groupOpKeys := []string{"profile.test"}
 	for _, validKey := range groupOpKeys {
 		createReq.Options = map[string]string{validKey: "on"}
@@ -260,17 +260,16 @@ func TestVolumeOptions(t *testing.T) {
 		r.Nil(err)
 	}
 
-	profileCreateReq := api.ProfileCreateReq{
-		ProfileName: "profile.test2",
-		Options: []api.Option{{"opt1", "on", "off"},
+	optionGroupReq := api.OptionGroupReq{
+		Name: "profile.test2",
+		Options: []api.VolumeOption{{"opt1", "on", "off"},
 			{"opt2", "enable", "disable"},
 			{"opt3", "off", "on"}}}
-	err = client.ProfileCreate(profileCreateReq)
+	err = client.OptionGroupCreate(optionGroupReq)
 	r.Nil(err)
 
-	tunablesResp, err := client.ProfileTunables("profile.test2")
+	_, err = client.OptionGroupList()
 	r.Nil(err)
-	r.Len(tunablesResp.Tunables, 3)
 
 }
 

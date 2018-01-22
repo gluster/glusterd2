@@ -59,7 +59,7 @@ func expandOptions(opts map[string]string) (map[string]string, error) {
 		return nil, err
 	}
 
-	var groupOptions map[string][]api.Option
+	var groupOptions map[string][]api.VolumeOption
 	if err := json.Unmarshal(resp.Kvs[0].Value, &groupOptions); err != nil {
 		return nil, err
 	}
@@ -73,9 +73,9 @@ func expandOptions(opts map[string]string) (map[string]string, error) {
 			for _, option := range optionSet {
 				switch val {
 				case "on":
-					options[option.OptionName] = option.OnValue
+					options[option.Name] = option.OnValue
 				case "off":
-					options[option.OptionName] = option.OffValue
+					options[option.Name] = option.OffValue
 				default:
 					return nil, errors.New("Need either on or off")
 				}

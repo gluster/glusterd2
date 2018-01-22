@@ -5,7 +5,7 @@ import (
 )
 
 // defaultGroupOptions maps from a profile name to a set of options
-var defaultGroupOptions = map[string][]api.Option{
+var defaultGroupOptions = map[string][]api.VolumeOption{
 	"profile.gluster-block": {{"performance.quick-read", "off", "on"},
 		{"performance.read-ahead", "off", "on"},
 		{"performance.io-cache", "off", "on"},

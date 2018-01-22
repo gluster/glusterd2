@@ -33,17 +33,17 @@ func (c *Command) Routes() route.Routes {
 			Version:     1,
 			HandlerFunc: volumeOptionsHandler},
 		route.Route{
-			Name:        "VolumeProfileTunables",
+			Name:        "OptionGroupList",
 			Method:      "GET",
-			Pattern:     "/volumes/options/{profilename}",
+			Pattern:     "/volumes/options-group",
 			Version:     1,
-			HandlerFunc: volumeProfileTunablesHandler},
+			HandlerFunc: optionGroupListHandler},
 		route.Route{
-			Name:        "VolumeProfileCreate",
+			Name:        "OptionGroupCreate",
 			Method:      "POST",
-			Pattern:     "/volumes/options",
+			Pattern:     "/volumes/options-group",
 			Version:     1,
-			HandlerFunc: volumeProfileCreateHandler},
+			HandlerFunc: optionGroupCreateHandler},
 		route.Route{
 			Name:        "VolumeDelete",
 			Method:      "DELETE",

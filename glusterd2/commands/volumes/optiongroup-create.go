@@ -11,10 +11,10 @@ import (
 	"github.com/gluster/glusterd2/pkg/errors"
 )
 
-func volumeProfileCreateHandler(w http.ResponseWriter, r *http.Request) {
+func optionGroupCreateHandler(w http.ResponseWriter, r *http.Request) {
 	ctx := r.Context()
 
-	var req api.ProfileCreateReq
+	var req api.OptionGroupReq
 	if err := restutils.UnmarshalRequest(r, &req); err != nil {
 		restutils.SendHTTPError(ctx, w, http.StatusUnprocessableEntity, errors.ErrJSONParsingFailed.Error(), api.ErrCodeDefault)
 		return
@@ -26,22 +26,22 @@ func volumeProfileCreateHandler(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	var groupOptions map[string][]api.Option
+	var groupOptions map[string][]api.VolumeOption
 	if err := json.Unmarshal(resp.Kvs[0].Value, &groupOptions); err != nil {
 		restutils.SendHTTPError(ctx, w, http.StatusInternalServerError, err.Error(), api.ErrCodeDefault)
 		return
 	}
 
-	if _, ok := groupOptions[req.ProfileName]; ok {
+	if _, ok := groupOptions[req.Name]; ok {
 		restutils.SendHTTPError(ctx, w, http.StatusConflict, "profile already exists", api.ErrCodeDefault)
 		return
 	}
 
-	var optionSet []api.Option
+	var optionSet []api.VolumeOption
 	for _, option := range req.Options {
 		optionSet = append(optionSet, option)
 	}
-	groupOptions[req.ProfileName] = optionSet
+	groupOptions[req.Name] = optionSet
 
 	groupOptionsJSON, err := json.Marshal(groupOptions)
 	if err != nil {

@@ -39,15 +39,16 @@ type VolExpandReq struct {
 	Bricks       []BrickReq `json:"bricks"`
 }
 
-// Option represents an option that is part of a profile
-type Option struct {
-	OptionName string `json:"optionname"`
-	OnValue    string `json:"onvalue"`
-	OffValue   string `json:"offvalue"`
+// VolumeOption represents an option that is part of a profile
+type VolumeOption struct {
+	Name     string `json:"name"`
+	OnValue  string `json:"onvalue"`
+	OffValue string `json:"offvalue"`
 }
 
-// ProfileCreateReq represents a request to create a new profile
-type ProfileCreateReq struct {
-	ProfileName string   `json:"profilename"`
-	Options     []Option `json:"options"`
+type OptionGroup struct {
+	Name    string         `json:"name"`
+	Options []VolumeOption `json:"options"`
 }
+
+type OptionGroupReq OptionGroup
