@@ -271,12 +271,14 @@ func TestVolumeOptions(t *testing.T) {
 	optionGroupReq = api.OptionGroupReq{
 		Name: "profile.test2",
 		Options: []api.VolumeOption{{"afr.eager-lock", "on", "off"},
-			{"afr.eager-lock", "on", "off"}}}
+			{"gfproxy.afr.eager-lock", "on", "off"}}}
 	err = client.OptionGroupCreate(optionGroupReq)
 	r.Nil(err)
 
 	_, err = client.OptionGroupList()
 	r.Nil(err)
+
+	r.Nil(client.OptionGroupDelete("profile.test2"))
 
 }
 

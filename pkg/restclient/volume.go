@@ -77,13 +77,21 @@ func (c *Client) VolumeExpand(volname string, req api.VolExpandReq) (api.VolumeE
 	return vol, err
 }
 
+// OptionGroupCreate creates a new option group
 func (c *Client) OptionGroupCreate(req api.OptionGroupReq) error {
 	return c.post("/v1/volumes/options-group", req, http.StatusCreated, nil)
 }
 
+// OptionGroupList returns a list of all option groups
 func (c *Client) OptionGroupList() (api.OptionGroupListResp, error) {
 	var l api.OptionGroupListResp
 	url := fmt.Sprintf("/v1/volumes/options-group")
 	err := c.get(url, nil, http.StatusOK, &l)
 	return l, err
+}
+
+// OptionGroupDelete deletes the specified option group
+func (c *Client) OptionGroupDelete(group string) error {
+	url := fmt.Sprintf("/v1/volumes/options-group/%s", group)
+	return c.del(url, nil, http.StatusOK, nil)
 }

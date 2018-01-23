@@ -45,6 +45,12 @@ func (c *Command) Routes() route.Routes {
 			Version:     1,
 			HandlerFunc: optionGroupCreateHandler},
 		route.Route{
+			Name:        "OptionGroupDelete",
+			Method:      "DELETE",
+			Pattern:     "/volumes/options-group/{groupname}",
+			Version:     1,
+			HandlerFunc: optionGroupDeleteHandler},
+		route.Route{
 			Name:        "VolumeDelete",
 			Method:      "DELETE",
 			Pattern:     "/volumes/{volname}",

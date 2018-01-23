@@ -83,4 +83,5 @@ type VolumeExpandResp VolumeInfo
 // VolumeListResp is the response sent for a volume list request.
 type VolumeListResp []VolumeGetResp
 
+// OptionGroupListResp is the response sent for a group list request.
 type OptionGroupListResp []OptionGroup

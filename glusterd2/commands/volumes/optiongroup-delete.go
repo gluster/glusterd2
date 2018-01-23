@@ -8,38 +8,13 @@ import (
 	restutils "github.com/gluster/glusterd2/glusterd2/servers/rest/utils"
 	"github.com/gluster/glusterd2/glusterd2/store"
 	"github.com/gluster/glusterd2/pkg/api"
-	"github.com/gluster/glusterd2/pkg/errors"
+
+	"github.com/gorilla/mux"
 )
 
-func validateOptionSet(req api.OptionGroupReq) error {
-	o1 := make(map[string]string)
-	o2 := make(map[string]string)
-	for _, o := range req.Options {
-		o1[o.Name] = o.OnValue
-		o2[o.Name] = o.OffValue
-	}
-	if err := validateOptions(o1); err != nil {
-		return err
-	}
-	if err := validateOptions(o2); err != nil {
-		return err
-	}
-	return nil
-}
-
-func optionGroupCreateHandler(w http.ResponseWriter, r *http.Request) {
+func optionGroupDeleteHandler(w http.ResponseWriter, r *http.Request) {
 	ctx := r.Context()
-
-	var req api.OptionGroupReq
-	if err := restutils.UnmarshalRequest(r, &req); err != nil {
-		restutils.SendHTTPError(ctx, w, http.StatusUnprocessableEntity, errors.ErrJSONParsingFailed.Error(), api.ErrCodeDefault)
-		return
-	}
-
-	if err := validateOptionSet(req); err != nil {
-		restutils.SendHTTPError(ctx, w, http.StatusBadRequest, err.Error(), api.ErrCodeDefault)
-		return
-	}
+	groupName := mux.Vars(r)["groupname"]
 
 	resp, err := store.Store.Get(context.TODO(), "groupoptions")
 	if err != nil {
@@ -53,11 +28,18 @@ func optionGroupCreateHandler(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	var optionSet []api.VolumeOption
-	for _, option := range req.Options {
-		optionSet = append(optionSet, option)
+	_, ok := groupOptions[groupName]
+	if !ok {
+		restutils.SendHTTPError(ctx, w, http.StatusBadRequest, "invalid group name specified", api.ErrCodeDefault)
+		return
 	}
-	groupOptions[req.Name] = optionSet
+
+	if _, ok := defaultGroupOptions[groupName]; ok {
+		restutils.SendHTTPError(ctx, w, http.StatusBadRequest, "cannot delete builtin groups", api.ErrCodeDefault)
+		return
+	}
+
+	delete(groupOptions, groupName)
 
 	groupOptionsJSON, err := json.Marshal(groupOptions)
 	if err != nil {
@@ -69,5 +51,5 @@ func optionGroupCreateHandler(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	restutils.SendHTTPResponse(ctx, w, http.StatusCreated, req)
+	restutils.SendHTTPResponse(ctx, w, http.StatusOK, nil)
 }
