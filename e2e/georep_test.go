@@ -65,9 +65,11 @@ func TestGeorepCreateDelete(t *testing.T) {
 	r.Nil(err)
 
 	reqGeorep := georepapi.GeorepCreateReq{
-		MasterVol:  volname1,
-		SlaveVol:   volname2,
-		SlaveHosts: []string{gds[1].PeerAddress},
+		MasterVol: volname1,
+		SlaveVol:  volname2,
+		SlaveHosts: []georepapi.GeorepSlaveHostReq{
+			{NodeID: gds[1].PeerID(), Hostname: gds[1].PeerAddress},
+		},
 	}
 
 	_, err = client.GeorepCreate(vol1.ID.String(), vol2.ID.String(), reqGeorep)

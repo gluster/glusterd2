@@ -12,8 +12,7 @@ import (
 )
 
 const (
-	gsyncdCommand = "python"
-	gsyncdPath    = "/usr/local/libexec/glusterfs/python/syncdaemon/gsyncd.py"
+	gsyncdCommand = "/usr/local/libexec/glusterfs/gsyncd"
 )
 
 // Gsyncd type represents information about Gsyncd process
@@ -40,12 +39,12 @@ func (g *Gsyncd) Path() string {
 // Args returns arguments to be passed to gsyncd process during spawn.
 func (g *Gsyncd) Args() string {
 	var buffer bytes.Buffer
-	buffer.WriteString(gsyncdPath)
 	buffer.WriteString(" monitor")
 	buffer.WriteString(fmt.Sprintf(" %s", g.sessioninfo.MasterVol))
-	buffer.WriteString(fmt.Sprintf(" %s@%s::%s", g.sessioninfo.SlaveUser, g.sessioninfo.SlaveHosts[0], g.sessioninfo.SlaveVol))
+	buffer.WriteString(fmt.Sprintf(" %s@%s::%s", g.sessioninfo.SlaveUser, g.sessioninfo.SlaveHosts[0].Hostname, g.sessioninfo.SlaveVol))
 	buffer.WriteString(fmt.Sprintf(" --local-node-id %s", gdctx.MyUUID.String()))
 	buffer.WriteString(fmt.Sprintf(" -c %s", g.ConfigFile()))
+	buffer.WriteString(" --use-gconf-volinfo")
 
 	g.args = buffer.String()
 	return g.args
@@ -61,7 +60,7 @@ func (g *Gsyncd) ConfigFile() string {
 	g.configFilePath = path.Join(
 		config.GetString("localstatedir"),
 		"geo-replication",
-		fmt.Sprintf("%s_%s_%s", g.sessioninfo.MasterVol, g.sessioninfo.SlaveHosts[0], g.sessioninfo.SlaveVol),
+		fmt.Sprintf("%s_%s_%s", g.sessioninfo.MasterVol, g.sessioninfo.SlaveHosts[0].Hostname, g.sessioninfo.SlaveVol),
 		"gsyncd.conf",
 	)
 	return g.configFilePath
@@ -80,7 +79,7 @@ func (g *Gsyncd) PidFile() string {
 	}
 
 	rundir := config.GetString("rundir")
-	pidfilename := fmt.Sprintf("gsyncd-%s-%s-%s.pid", g.sessioninfo.MasterVol, g.sessioninfo.SlaveHosts[0], g.sessioninfo.SlaveVol)
+	pidfilename := fmt.Sprintf("gsyncd-%s-%s-%s.pid", g.sessioninfo.MasterVol, g.sessioninfo.SlaveHosts[0].Hostname, g.sessioninfo.SlaveVol)
 	g.pidfilepath = path.Join(rundir, "gluster", pidfilename)
 	return g.pidfilepath
 }
@@ -97,10 +96,9 @@ func (g *Gsyncd) ID() string {
 
 func (g *Gsyncd) statusArgs(localPath string) []string {
 	return []string{
-		gsyncdPath,
 		"status",
 		g.sessioninfo.MasterVol,
-		fmt.Sprintf("%s@%s::%s", g.sessioninfo.SlaveUser, g.sessioninfo.SlaveHosts[0], g.sessioninfo.SlaveVol),
+		fmt.Sprintf("%s@%s::%s", g.sessioninfo.SlaveUser, g.sessioninfo.SlaveHosts[0].Hostname, g.sessioninfo.SlaveVol),
 		"-c",
 		g.ConfigFile(),
 		"--local-path",
