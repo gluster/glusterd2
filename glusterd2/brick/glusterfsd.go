@@ -165,13 +165,14 @@ func errorContainsErrno(err error, errno syscall.Errno) bool {
 // These functions are used in vol-create, vol-expand and vol-shrink (TBD)
 
 //StartBrick starts glusterfsd process
-func (b Brickinfo) StartBrick() error {
+func (b Brickinfo) StartBrick(snapVol bool) error {
 
 	brickDaemon, err := NewGlusterfsd(b)
 	if err != nil {
 		return err
 	}
 
+	brickDaemon.SnapVol = snapVol
 	for i := 0; i < BrickStartMaxRetries; i++ {
 		err = daemon.Start(brickDaemon, true)
 		if err != nil {
@@ -191,13 +192,13 @@ func (b Brickinfo) StartBrick() error {
 }
 
 //StopBrick will stop glusterfsd process
-func (b Brickinfo) StopBrick() error {
+func (b Brickinfo) StopBrick(snapVol bool) error {
 
 	brickDaemon, err := NewGlusterfsd(b)
 	if err != nil {
 		return err
 	}
-
+	brickDaemon.SnapVol = snapVol
 	return daemon.Stop(brickDaemon, true)
 }
 

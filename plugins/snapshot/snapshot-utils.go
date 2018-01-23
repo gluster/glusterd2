@@ -4,10 +4,13 @@ import (
 	"os"
 	"strings"
 	"syscall"
+	"time"
 
 	"github.com/gluster/glusterd2/glusterd2/brick"
+	"github.com/gluster/glusterd2/glusterd2/gdctx"
 	"github.com/gluster/glusterd2/glusterd2/volume"
 	"github.com/gluster/glusterd2/plugins/snapshot/lvm"
+	"github.com/pborman/uuid"
 	log "github.com/sirupsen/logrus"
 	"golang.org/x/sys/unix"
 )
@@ -68,6 +71,54 @@ func MountSnapBrickDirectory(vol *volume.Volinfo, brickinfo *brick.Brickinfo) er
 			"brickPath": brickinfo.Path,
 			"xattr":     volumeIDXattrKey}).Error("setxattr failed")
 		return err
+	}
+
+	return nil
+}
+
+//ActivateDeactivateFunc uses to activate and deactivate
+func ActivateDeactivateFunc(snapinfo *Snapinfo, b []brick.Brickinfo, activate bool) error {
+	volinfo := &snapinfo.SnapVolinfo
+	switch volinfo.State == volume.VolStarted {
+	case true:
+		if len(b) == 0 {
+			return nil
+		}
+	}
+	for i := 0; i < len(b); i++ {
+
+		if !uuid.Equal(b[i].PeerID, gdctx.MyUUID) {
+			continue
+		}
+
+		if activate == true {
+			if err := MountSnapBrickDirectory(volinfo, &b[i]); err != nil {
+				return err
+			}
+			if err := b[i].StartBrick(true); err != nil {
+				return err
+			}
+
+		} else {
+			var err error
+			if err = b[i].StopBrick(true); err != nil {
+				return err
+			}
+
+			length := len(b[i].Path) - len(b[i].Mountdir)
+			for j := 0; j < 3; j++ {
+
+				err = UmountSnapBrickDirectory(b[i].Path[:length])
+				if err == nil {
+					break
+				}
+				time.Sleep(3 * time.Second)
+			}
+			if err != nil {
+				return err
+			}
+		}
+
 	}
 
 	return nil

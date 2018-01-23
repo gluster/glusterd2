@@ -86,8 +86,6 @@ func MountSnapshotDirectory(mountPath string, b *brick.Brickinfo) error {
 			"options":     b.MntOpts,
 		}).Debug("Mounting the device")
 
-		err := syscall.Mount(b.DevicePath, mountPath, b.FsType, syscall.MS_MGC_VAL, b.MntOpts)
-
 		TODO use system mount command to mount the brick
 		err := syscall.Mount(b.DevicePath, mountPath, b.FsType,, syscall.MS_MGC_VAL, b.MntOpts)
 	*/

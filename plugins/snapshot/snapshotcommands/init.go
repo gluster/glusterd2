@@ -103,10 +103,6 @@ func (p *Plugin) RestRoutes() route.Routes {
 	}
 }
 
-func snapshotActivateHandler(w http.ResponseWriter, r *http.Request) {
-	ctx := r.Context()
-	restutils.SendHTTPResponse(ctx, w, http.StatusOK, "Snapshot Activate")
-}
 func snapshotDeactivateHandler(w http.ResponseWriter, r *http.Request) {
 	ctx := r.Context()
 	restutils.SendHTTPResponse(ctx, w, http.StatusOK, "Snapshot Deactivate")
@@ -159,5 +155,6 @@ func snapshotConfigResetHandler(w http.ResponseWriter, r *http.Request) {
 // Glusterd Transaction framework
 func (p *Plugin) RegisterStepFuncs() {
 	registerSnapCreateStepFuncs()
+	registerSnapActivateStepFuncs()
 	return
 }
