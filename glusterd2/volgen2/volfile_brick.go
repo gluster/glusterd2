@@ -2,6 +2,7 @@ package volgen2
 
 import (
 	"fmt"
+	"strconv"
 	"strings"
 
 	"github.com/gluster/glusterd2/glusterd2/brick"
@@ -11,8 +12,9 @@ import (
 )
 
 func generateBrickVolfile(volfile *Volfile, b *brick.Brickinfo, vol *volume.Volinfo, nodeid uuid.UUID) {
-	volfile.FileName = fmt.Sprintf("%s.%s.%s",
+	volfile.FileName = fmt.Sprintf("%s.%s.%s.%s",
 		vol.Name,
+		strconv.FormatBool(vol.SnapVol),
 		b.PeerID,
 		strings.Trim(strings.Replace(b.Path, "/", "-", -1), "-"),
 	)

@@ -94,6 +94,7 @@ type Volinfo struct {
 	GraphMap    map[string]string
 	HealEnabled bool
 	Metadata    map[string]string
+	SnapVol     bool
 }
 
 // VolAuth represents username and password used by trusted/internal clients

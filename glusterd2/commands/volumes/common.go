@@ -229,6 +229,7 @@ func undoInitBricks(c transaction.TxnCtx) error {
 	return nil
 }
 
+// StoreVolume uses to store the volinfo and to generate client volfile
 func storeVolume(c transaction.TxnCtx) error {
 
 	var volinfo volume.Volinfo

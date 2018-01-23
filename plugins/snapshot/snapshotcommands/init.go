@@ -5,7 +5,7 @@ import (
 
 	"github.com/gluster/glusterd2/glusterd2/servers/rest/route"
 	restutils "github.com/gluster/glusterd2/glusterd2/servers/rest/utils"
-	"github.com/prashanthpai/sunrpc"
+	"github.com/gluster/glusterd2/pkg/sunrpc"
 )
 
 // Plugin is a structure which implements GlusterdPlugin interface
@@ -103,10 +103,6 @@ func (p *Plugin) RestRoutes() route.Routes {
 	}
 }
 
-func snapshotCreateHandler(w http.ResponseWriter, r *http.Request) {
-	ctx := r.Context()
-	restutils.SendHTTPResponse(ctx, w, http.StatusOK, "Snapshot Create")
-}
 func snapshotActivateHandler(w http.ResponseWriter, r *http.Request) {
 	ctx := r.Context()
 	restutils.SendHTTPResponse(ctx, w, http.StatusOK, "Snapshot Activate")
@@ -162,5 +158,6 @@ func snapshotConfigResetHandler(w http.ResponseWriter, r *http.Request) {
 // RegisterStepFuncs registers transaction step functions with
 // Glusterd Transaction framework
 func (p *Plugin) RegisterStepFuncs() {
+	registerSnapCreateStepFuncs()
 	return
 }

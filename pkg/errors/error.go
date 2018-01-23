@@ -41,4 +41,6 @@ var (
 	ErrClusterNotFound         = errors.New("Cluster instance not found in store")
 	ErrDuplicateBrickPath      = errors.New("Duplicate brick entry")
 	ErrVolFileNotFound         = errors.New("volume file not found")
+	ErrEmptySnapName           = errors.New("Snapshot name is empty")
+	ErrSnapExists              = errors.New("snapshot already exists")
 )

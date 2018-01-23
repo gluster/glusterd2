@@ -28,6 +28,10 @@ type Brickinfo struct {
 	VolumeID       uuid.UUID
 	Type           Type
 	Decommissioned bool
+	Mountdir       string
+	DevicePath     string
+	FsType         string
+	MntOpts        string
 }
 
 // SizeInfo represents sizing information.

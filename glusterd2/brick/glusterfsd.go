@@ -32,6 +32,8 @@ type Glusterfsd struct {
 	args           string
 	socketfilepath string
 	pidfilepath    string
+	//SnapVol stores weather snap brick or not
+	SnapVol bool
 
 	// For internal use
 	brickinfo Brickinfo
@@ -56,7 +58,7 @@ func (b *Glusterfsd) Args() string {
 
 	brickPort := strconv.Itoa(pmap.AssignPort(0, b.brickinfo.Path))
 
-	volFileID := b.brickinfo.VolumeName + "." + gdctx.MyUUID.String() + "." + brickPathWithoutSlashes
+	volFileID := b.brickinfo.VolumeName + "." + strconv.FormatBool(b.SnapVol) + "." + gdctx.MyUUID.String() + "." + brickPathWithoutSlashes
 
 	shost, sport, _ := net.SplitHostPort(config.GetString("clientaddress"))
 	if shost == "" {

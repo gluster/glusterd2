@@ -3,6 +3,7 @@ package volgen2
 import (
 	"github.com/gluster/glusterd2/glusterd2/volume"
 	"github.com/gluster/glusterd2/pkg/utils"
+	"github.com/gluster/glusterd2/plugins/snapshot"
 
 	"github.com/pborman/uuid"
 )
@@ -134,7 +135,23 @@ func Generate() error {
 	if err != nil {
 		return err
 	}
+	err = generateVolfiles(clusterinfo)
+	if err != nil {
+		return err
+	}
 
+	clusterinfo, err = snapshot.GetSnapshotVolumes()
+	if err != nil {
+		return err
+	}
+	err = generateVolfiles(clusterinfo)
+	if err != nil {
+		return err
+	}
+
+	return nil
+}
+func generateVolfiles(clusterinfo []*volume.Volinfo) error {
 	var xopts = make(map[string]extrainfo)
 	for _, vol := range clusterinfo {
 		data := make(map[string]map[string]string)
@@ -150,7 +167,7 @@ func Generate() error {
 	// TODO: Note Start time and add metrics
 
 	// Generate/Regenerate Cluster Level Volfiles
-	err = generateClusterLevelVolfiles(clusterinfo, &xopts)
+	err := generateClusterLevelVolfiles(clusterinfo, &xopts)
 	if err != nil {
 		return err
 	}
@@ -166,6 +183,6 @@ func Generate() error {
 	if err != nil {
 		return err
 	}
-
 	return nil
+
 }

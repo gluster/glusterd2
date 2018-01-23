@@ -28,7 +28,7 @@ func deleteVolfiles(c transaction.TxnCtx) error {
 	}
 
 	for _, b := range volinfo.GetLocalBricks() {
-		if err := volgen.DeleteBrickVolfile(&b); err != nil {
+		if err := volgen.DeleteBrickVolfile(&b, false); err != nil {
 			c.Logger().WithError(err).WithField(
 				"brick", b.Path).Warn("failed to delete brick volfile")
 		}

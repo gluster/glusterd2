@@ -128,6 +128,7 @@ func newVolinfo(req *api.VolCreateReq) (*volume.Volinfo, error) {
 			Username: uuid.NewRandom().String(),
 			Password: uuid.NewRandom().String(),
 		},
+		SnapVol: false,
 	}
 
 	if req.Options != nil {
