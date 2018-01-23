@@ -43,4 +43,5 @@ var (
 	ErrVolFileNotFound         = errors.New("volume file not found")
 	ErrEmptySnapName           = errors.New("Snapshot name is empty")
 	ErrSnapExists              = errors.New("snapshot already exists")
+	ErrSnapNotFound            = errors.New("Snapshot not found")
 )

@@ -227,11 +227,24 @@ func storeSnapshot(c transaction.TxnCtx) error {
 	if err := c.Get("snapinfo", &snapInfo); err != nil {
 		return err
 	}
-
 	volinfo := &snapInfo.SnapVolinfo
+
+	vol, err := volume.GetVolume(snapInfo.ParentVolume)
+	if err != nil {
+		c.Logger().WithError(err).WithField(
+			"volume", snapInfo.ParentVolume).Debug("storeVolume: failed to fetch Volinfo from store")
+	}
+
+	vol.SnapList = append(vol.SnapList, volinfo.Name)
+	if err := volume.AddOrUpdateVolumeFunc(vol); err != nil {
+		c.Logger().WithError(err).WithField(
+			"volume", vol.Name).Debug("storeVolume: failed to store Volinfo")
+		return err
+	}
+
 	if err := snapshot.AddOrUpdateSnapFunc(&snapInfo); err != nil {
 		c.Logger().WithError(err).WithField(
-			"volume", volinfo.Name).Debug("storeVolume: failed to store snapshot info")
+			"volume", volinfo.Name).Debug("storeSnapshot: failed to store snapshot info")
 		return err
 	}
 	if err := volgen2.Generate(); err != nil {

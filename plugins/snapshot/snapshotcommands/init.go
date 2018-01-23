@@ -61,9 +61,14 @@ func (p *Plugin) RestRoutes() route.Routes {
 			Pattern:     "/snapshots/{snapname}",
 			Version:     1,
 			HandlerFunc: snapshotInfoHandler},
-
 		route.Route{
 			Name:        "SnapshotList",
+			Method:      "GET",
+			Pattern:     "/snapshots/volume/{volumename}",
+			Version:     1,
+			HandlerFunc: snapshotListHandler},
+		route.Route{
+			Name:        "SnapshotListAll",
 			Method:      "GET",
 			Pattern:     "/snapshots",
 			Version:     1,
@@ -101,15 +106,6 @@ func (p *Plugin) RestRoutes() route.Routes {
 			Version:     1,
 			HandlerFunc: snapshotConfigResetHandler},
 	}
-}
-
-func snapshotInfoHandler(w http.ResponseWriter, r *http.Request) {
-	ctx := r.Context()
-	restutils.SendHTTPResponse(ctx, w, http.StatusOK, "Snapshot Info")
-}
-func snapshotListHandler(w http.ResponseWriter, r *http.Request) {
-	ctx := r.Context()
-	restutils.SendHTTPResponse(ctx, w, http.StatusOK, "Snapshot List")
 }
 
 func snapshotCloneHandler(w http.ResponseWriter, r *http.Request) {

@@ -8,6 +8,7 @@ import (
 	"net"
 	"path/filepath"
 	"strconv"
+	"strings"
 
 	"github.com/gluster/glusterd2/glusterd2/brick"
 	"github.com/gluster/glusterd2/glusterd2/gdctx"
@@ -95,6 +96,7 @@ type Volinfo struct {
 	HealEnabled bool
 	Metadata    map[string]string
 	SnapVol     bool
+	SnapList    []string
 }
 
 // VolAuth represents username and password used by trusted/internal clients
@@ -118,6 +120,7 @@ func (v *Volinfo) StringMap() map[string]string {
 	m["volume.transport"] = v.Transport
 	m["volume.auth.username"] = v.Auth.Username
 	m["volume.auth.password"] = v.Auth.Password
+	m["volume.snapList"] = strings.Join(v.SnapList, ",")
 
 	return m
 }
