@@ -11,12 +11,33 @@ import (
 	"github.com/gluster/glusterd2/pkg/errors"
 )
 
+func validateOptionSet(req api.OptionGroupReq) error {
+	o1 := make(map[string]string)
+	o2 := make(map[string]string)
+	for _, o := range req.Options {
+		o1[o.Name] = o.OnValue
+		o2[o.Name] = o.OffValue
+	}
+	if err := validateOptions(o1); err != nil {
+		return err
+	}
+	if err := validateOptions(o2); err != nil {
+		return err
+	}
+	return nil
+}
+
 func optionGroupCreateHandler(w http.ResponseWriter, r *http.Request) {
 	ctx := r.Context()
 
 	var req api.OptionGroupReq
 	if err := restutils.UnmarshalRequest(r, &req); err != nil {
 		restutils.SendHTTPError(ctx, w, http.StatusUnprocessableEntity, errors.ErrJSONParsingFailed.Error(), api.ErrCodeDefault)
+		return
+	}
+
+	if err := validateOptionSet(req); err != nil {
+		restutils.SendHTTPError(ctx, w, http.StatusBadRequest, err.Error(), api.ErrCodeDefault)
 		return
 	}
 
