@@ -5,6 +5,7 @@ import (
 	"github.com/gluster/glusterd2/glusterd2/commands/peers"
 	"github.com/gluster/glusterd2/glusterd2/commands/version"
 	"github.com/gluster/glusterd2/glusterd2/commands/volumes"
+        "github.com/gluster/glusterd2/glusterd2/commands/devices"
 	"github.com/gluster/glusterd2/glusterd2/servers/rest/route"
 )
 
@@ -21,4 +22,5 @@ var Commands = []Command{
 	&versioncommands.Command{},
 	&volumecommands.Command{},
 	&peercommands.Command{},
+        &devicecommands.Command{},
 }
