@@ -71,6 +71,12 @@ type VolumeStatusResp struct {
 	Size   SizeInfo   `json:"size"`
 }
 
+// VolumeGetOptionsResp contains key-value pairs for options.
+type VolumeOptionsGetResp struct {
+	Key   string `json:"key"`
+	Value string `json:"value"`
+}
+
 // VolumeCreateResp is the response sent for a volume create request.
 type VolumeCreateResp VolumeInfo
 

@@ -108,6 +108,10 @@ func main() {
 		log.WithError(err).Fatal("Failed to generate local auth token")
 	}
 
+	if err := xlator.LoadGlobalOptions(); err != nil {
+		log.WithError(err).Fatal("Failed to get global options from store")
+	}
+
 	// Start all servers (rest, peerrpc, sunrpc) managed by suture supervisor
 	super := initGD2Supervisor()
 	super.ServeBackground()

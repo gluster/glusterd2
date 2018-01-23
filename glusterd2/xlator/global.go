@@ -1,7 +1,13 @@
 package xlator
 
 import (
+	"context"
+	"encoding/json"
+
+	"github.com/gluster/glusterd2/glusterd2/store"
 	"github.com/gluster/glusterd2/glusterd2/xlator/options"
+
+	log "github.com/sirupsen/logrus"
 )
 
 var (
@@ -10,11 +16,20 @@ var (
 	// options is a map of all available options indexed by
 	// <xlator-id>.<option-key> for all keys of an option
 	optMap map[string]*options.Option
+
+	GlobalOptMap = map[string]options.GlobalOption{
+		"cluster.server-quorum-ratio":    {"cluster.server-quorum-ratio", "", "51"},
+		"cluster.shared-storage":         {"cluster.shared-storage", "", "disable"},
+		"cluster.op-version":             {"cluster.op-version", "", ""},     // This is filled in dynamically
+		"cluster.max-op-version":         {"cluster.max-op-version", "", ""}, // This should be filled in dynamically
+		"cluster.brick-multiplex":        {"cluster.brick-multiplex", "", "disable"},
+		"cluster.max-bricks-per-process": {"cluster.max-bricks-per-process", "", "0"},
+		"cluster.localtime-logging":      {"cluster.localtime-logging", "", "disable"},
+	}
 )
 
 // Load load all available xlators and intializes the xlators and options maps
 func Load() (err error) {
-
 	xls, err := loadAllXlators()
 	if err != nil {
 		return
@@ -37,6 +52,7 @@ func Xlators() map[string]*Xlator {
 
 // loadOptions loads all available options into the options.Options map,
 // indexed as <xlator-id>.<option-key> for all available option keys
+// Also initialise the globalOptMap with defauls/value from etcd server
 func loadOptions() {
 	optMap = make(map[string]*options.Option)
 	for _, xl := range xlMap {
@@ -47,4 +63,28 @@ func loadOptions() {
 			}
 		}
 	}
+}
+
+func LoadGlobalOptions() error {
+	for k, _ := range GlobalOptMap {
+		var globalOpt options.GlobalOption
+
+		resp, err := store.Store.Get(context.TODO(), GlobalOptsPrefix+k)
+		if err != nil {
+			continue
+		}
+
+		if resp.Count == 0 {
+			continue
+		}
+
+		if err = json.Unmarshal(resp.Kvs[0].Value, &globalOpt); err != nil {
+			log.WithError(err).Error("Failed to unmarshal the global options data")
+			return err
+		}
+
+		GlobalOptMap[k] = globalOpt
+	}
+
+	return nil
 }

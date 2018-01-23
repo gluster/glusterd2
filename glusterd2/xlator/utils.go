@@ -6,6 +6,10 @@ import (
 	"github.com/gluster/glusterd2/glusterd2/xlator/options"
 )
 
+const (
+	GlobalOptsPrefix string = "globalOpts/"
+)
+
 // NotFoundError is returned when an xlator cannot be found in the xlMap
 type NotFoundError string
 

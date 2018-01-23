@@ -84,6 +84,12 @@ type Option struct {
 	SetKey       string
 }
 
+type GlobalOption struct {
+	Key          string
+	Value        string
+	DefaultValue string
+}
+
 // Validate checks if the given value string can be set as the value for the
 // Option.
 // Returns are error if it is not possible, nil otherwise.
@@ -338,4 +344,20 @@ func ValidateXlator(o *Option, val string) error {
 // ValidateOption validates if the option is valid
 func ValidateOption(o *Option, val string) error {
 	return ErrInvalidArg
+}
+
+// StringToBoolean converts probable boolean strings to True or False
+func StringToBoolean(val string) (bool, error) {
+	if val == "" {
+		return false, ErrEmptyArg
+	}
+
+	switch strings.ToLower(val) {
+	case "on", "yes", "true", "enable", "1":
+		return true, nil
+	case "off", "no", "false", "disable", "0":
+		return false, nil
+	default:
+		return false, ErrInvalidArg
+	}
 }
