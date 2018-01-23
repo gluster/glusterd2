@@ -103,10 +103,6 @@ func (p *Plugin) RestRoutes() route.Routes {
 	}
 }
 
-func snapshotDeactivateHandler(w http.ResponseWriter, r *http.Request) {
-	ctx := r.Context()
-	restutils.SendHTTPResponse(ctx, w, http.StatusOK, "Snapshot Deactivate")
-}
 func snapshotInfoHandler(w http.ResponseWriter, r *http.Request) {
 	ctx := r.Context()
 	restutils.SendHTTPResponse(ctx, w, http.StatusOK, "Snapshot Info")
@@ -156,5 +152,6 @@ func snapshotConfigResetHandler(w http.ResponseWriter, r *http.Request) {
 func (p *Plugin) RegisterStepFuncs() {
 	registerSnapCreateStepFuncs()
 	registerSnapActivateStepFuncs()
+	registerSnapDeactivateStepFuncs()
 	return
 }
