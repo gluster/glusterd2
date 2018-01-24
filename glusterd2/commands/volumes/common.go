@@ -6,6 +6,7 @@ import (
 	volgen "github.com/gluster/glusterd2/glusterd2/volgen2"
 	"github.com/gluster/glusterd2/glusterd2/volume"
 	"github.com/gluster/glusterd2/glusterd2/xlator"
+	"github.com/gluster/glusterd2/glusterd2/xlator/options"
 )
 
 // validateOptions validates if the options and their values are valid and can
@@ -24,6 +25,25 @@ func validateOptions(opts map[string]string) error {
 		// TODO: Check op-version
 	}
 
+	return nil
+}
+
+func validateXlatorOptions(opts map[string]string, volinfo *volume.Volinfo) error {
+	for k, v := range opts {
+		_, xl, key, err := options.SplitKey(k)
+		if err != nil {
+			return err
+		}
+		xltr, err := xlator.Find(xl)
+		if err != nil {
+			return err
+		}
+		if xltr.Validate != nil {
+			if err := xltr.Validate(volinfo, key, v); err != nil {
+				return err
+			}
+		}
+	}
 	return nil
 }
 

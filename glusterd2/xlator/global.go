@@ -23,6 +23,10 @@ func Load() (err error) {
 
 	loadOptions()
 
+	if err := registerAllValidations(); err != nil {
+		return err
+	}
+
 	return
 }
 

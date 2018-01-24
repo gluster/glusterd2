@@ -267,6 +267,12 @@ func volumeCreateHandler(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
+	if err := validateXlatorOptions(req.Options, vol); err != nil {
+		logger.WithError(err).Error("validation failed")
+		restutils.SendHTTPError(ctx, w, http.StatusBadRequest, fmt.Sprintf("failed to set volume option: %s", err.Error()), api.ErrCodeDefault)
+		return
+	}
+
 	err = txn.Ctx.Set("volinfo", vol)
 	if err != nil {
 		logger.WithError(err).Error("failed to set volinfo in transaction context")
