@@ -10,6 +10,7 @@ type Xlator struct {
 	Options   []*options.Option
 	Flags     uint32
 	OpVersion []uint32
+	Validate  validationFunc
 
 	// This is pretty much useless now.
 	rawID uint32
