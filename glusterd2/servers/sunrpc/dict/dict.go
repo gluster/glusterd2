@@ -1,4 +1,4 @@
-package sunrpc
+package dict
 
 import (
 	"bytes"
@@ -22,10 +22,10 @@ const (
 	dictHeaderLen = 4
 )
 
-// DictUnserialize unmarshals a slice of bytes into a map[string]string
+// Unserialize unmarshals a slice of bytes into a map[string]string
 // Consumers of the map should typecast/extract information from the
 // map values which are of string type
-func DictUnserialize(buf []byte) (map[string]string, error) {
+func Unserialize(buf []byte) (map[string]string, error) {
 
 	newDict := make(map[string]string)
 	tmpHeader := make([]byte, dictHeaderLen)
@@ -67,8 +67,8 @@ func DictUnserialize(buf []byte) (map[string]string, error) {
 	return newDict, nil
 }
 
-// DictSerialize marshals a map[string]string into a slice of bytes.
-func DictSerialize(dict map[string]string) ([]byte, error) {
+// Serialize marshals a map[string]string into a slice of bytes.
+func Serialize(dict map[string]string) ([]byte, error) {
 
 	dictSerializedSize, err := getSerializedDictLen(dict)
 	if err != nil {

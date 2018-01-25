@@ -1,7 +1,9 @@
 package bitrot
 
 import (
+	"github.com/gluster/glusterd2/glusterd2/brick"
 	"github.com/gluster/glusterd2/glusterd2/daemon"
+	"github.com/gluster/glusterd2/glusterd2/servers/sunrpc/dict"
 	"github.com/gluster/glusterd2/glusterd2/transaction"
 	"github.com/gluster/glusterd2/glusterd2/volume"
 	log "github.com/sirupsen/logrus"
@@ -96,4 +98,49 @@ func txnBitrotEnableDisable(c transaction.TxnCtx) error {
 error:
 	//TODO: Handle failure of scrubd. bitd should be stopped. Should it be handled in txn undo func
 	return err
+}
+
+func txnBitrotScrubOndemand(c transaction.TxnCtx) error {
+
+	var volname string
+	if err := c.Get("volname", &volname); err != nil {
+		c.Logger().WithError(err).WithField(
+			"key", "volname").Error("failed to get value for key from context")
+		return err
+	}
+
+	scrubDaemon, err := newScrubd()
+	if err != nil {
+		return err
+	}
+
+	c.Logger().WithFields(log.Fields{"volume": volname}).Info("Starting scrubber")
+
+	client, err := daemon.GetRPCClient(scrubDaemon)
+	if err != nil {
+		c.Logger().WithError(err).WithField(
+			"volume", volname).Error("failed to connect to scrubd")
+		return err
+	}
+
+	reqDict := make(map[string]string)
+	reqDict["scrub-value"] = "ondemand"
+	req := &brick.GfBrickOpReq{
+		Name: volname,
+		Op:   int(brick.OpNodeBitrot),
+	}
+	req.Input, err = dict.Serialize(reqDict)
+	if err != nil {
+		c.Logger().WithError(err).WithField(
+			"volume", volname).Error("failed to serialize dict for scrub-value")
+	}
+	var rsp brick.GfBrickOpRsp
+	err = client.Call("Brick.OpNodeBitrot", req, &rsp)
+	if err != nil || rsp.OpRet != 0 {
+		c.Logger().WithError(err).WithField(
+			"volume", volname).Error("failed to send scrubondemand RPC")
+		return err
+	}
+
+	return nil
 }
