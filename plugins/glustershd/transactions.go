@@ -5,7 +5,6 @@ import (
 	"github.com/gluster/glusterd2/glusterd2/transaction"
 	"github.com/gluster/glusterd2/glusterd2/volume"
 	"github.com/gluster/glusterd2/pkg/errors"
-	log "github.com/sirupsen/logrus"
 )
 
 type actionType uint16
@@ -25,11 +24,21 @@ func selfhealdAction(c transaction.TxnCtx, action actionType) error {
 	case actionStart:
 		err = daemon.Start(glustershDaemon, true)
 		if err == errors.ErrProcessAlreadyRunning {
-			log.Println("Self Heal Daemon is already running.")
+
+			c.Logger().WithError(err).Error("Seld Heal Daemon is already running.")
+
 			return nil
 		}
 	case actionStop:
-		if !volume.AreReplicateVolumesRunning() {
+
+		isVolRunning, err := volume.AreReplicateVolumesRunning()
+		if err != nil {
+
+			c.Logger().WithError(err).Error("Failed to get volinfo. Etcd server might be down.")
+
+			return err
+		}
+		if !isVolRunning {
 			err = daemon.Stop(glustershDaemon, true)
 		}
 	}

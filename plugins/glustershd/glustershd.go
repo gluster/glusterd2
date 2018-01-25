@@ -19,7 +19,6 @@ const (
 
 // Glustershd type represents information about Glustershd process
 type Glustershd struct {
-	//Externally consumable using methods of Gsyncd interface
 	binarypath     string
 	args           string
 	socketfilepath string
@@ -32,18 +31,17 @@ func (b *Glustershd) Name() string {
 	return "glustershd"
 }
 
-//Path returns absolute path of the binary of glustershd process
+// Path returns absolute path of the binary of glustershd process
 func (b *Glustershd) Path() string {
 	return b.binarypath
 }
 
 // Args returns arguments to be passed to glustershd process during spawn.
 func (b *Glustershd) Args() string {
-	shost, sport, _ := net.SplitHostPort(config.GetString("clientaddress"))
+	shost, _, _ := net.SplitHostPort(config.GetString("clientaddress"))
 	if shost == "" {
 		shost = "localhost"
 	}
-	_ = sport
 	volFileID := "gluster/glustershd"
 
 	logFile := path.Join(config.GetString("logdir"), "glusterfs", "glustershd.log")

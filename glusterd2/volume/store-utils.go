@@ -123,18 +123,18 @@ func GetVolumes() ([]*Volinfo, error) {
 // AreReplicateVolumesRunning retrieves the volinfo objects from GetVolumes() function
 // and checks if all replicate, Disperse volumes are stopped before
 // stopping the self heal daemon.
-func AreReplicateVolumesRunning() bool {
+func AreReplicateVolumesRunning() (bool, error) {
 	volumes, e := GetVolumes()
 	if e != nil {
-		return false
+		return false, e
 	}
 	for _, v := range volumes {
 		if (v.Type == Replicate || v.Type == Disperse || v.Type == DistReplicate || v.Type == DistDisperse) && v.State == VolStarted {
-			return true
+			return true, nil
 		}
 	}
 
-	return false
+	return false, nil
 }
 
 //Exists check whether a given volume exist or not

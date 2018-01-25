@@ -38,3 +38,19 @@ type VolExpandReq struct {
 	ReplicaCount int        `json:"replica,omitempty"`
 	Bricks       []BrickReq `json:"bricks"`
 }
+
+// VolumeOption represents an option that is part of a profile
+type VolumeOption struct {
+	Name     string `json:"name"`
+	OnValue  string `json:"onvalue"`
+	OffValue string `json:"offvalue"`
+}
+
+// OptionGroup represents a group of options
+type OptionGroup struct {
+	Name    string         `json:"name"`
+	Options []VolumeOption `json:"options"`
+}
+
+// OptionGroupReq represents a request to create a new option group
+type OptionGroupReq OptionGroup

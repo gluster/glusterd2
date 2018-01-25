@@ -15,7 +15,7 @@ import (
 	log "github.com/sirupsen/logrus"
 )
 
-func validateVolType(vType volume.VolType) bool {
+func isVolReplicate(vType volume.VolType) bool {
 	if vType != volume.Replicate && vType != volume.Disperse && vType != volume.DistReplicate && vType != volume.DistDisperse {
 		return false
 	}
@@ -39,7 +39,7 @@ func glustershEnableHandler(w http.ResponseWriter, r *http.Request) {
 	}
 
 	// validate volume type
-	if !validateVolType(v.Type) {
+	if !isVolReplicate(v.Type) {
 		restutils.SendHTTPError(ctx, w, http.StatusBadRequest, "Volume Type not supported", api.ErrCodeDefault)
 		return
 	}
@@ -91,7 +91,7 @@ func glustershEnableHandler(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	restutils.SendHTTPResponse(ctx, w, http.StatusOK, "Glustershd Help")
+	restutils.SendHTTPResponse(ctx, w, http.StatusOK, nil)
 }
 
 func glustershDisableHandler(w http.ResponseWriter, r *http.Request) {
@@ -109,7 +109,7 @@ func glustershDisableHandler(w http.ResponseWriter, r *http.Request) {
 	}
 
 	// validate volume type
-	if !validateVolType(v.Type) {
+	if !isVolReplicate(v.Type) {
 		restutils.SendHTTPError(ctx, w, http.StatusBadRequest, "Volume Type not supported", api.ErrCodeDefault)
 		return
 	}
@@ -163,5 +163,5 @@ func glustershDisableHandler(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	restutils.SendHTTPResponse(ctx, w, http.StatusOK, "Glustershd Help")
+	restutils.SendHTTPResponse(ctx, w, http.StatusOK, nil)
 }
