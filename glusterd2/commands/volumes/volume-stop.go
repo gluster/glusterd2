@@ -52,10 +52,10 @@ func stopBricks(c transaction.TxnCtx) error {
 
 		req := &brick.GfBrickOpReq{
 			Name: b.Path,
-			Op:   brick.OpBrickTerminate,
+			Op:   int(brick.OpBrickTerminate),
 		}
 		var rsp brick.GfBrickOpRsp
-		err = client.Call("BrickOp", req, &rsp)
+		err = client.Call("Brick.OpBrickTerminate", req, &rsp)
 		if err != nil || rsp.OpRet != 0 {
 			c.Logger().WithError(err).WithField(
 				"brick", b.String()).Error("failed to send terminate RPC, sending SIGTERM")
