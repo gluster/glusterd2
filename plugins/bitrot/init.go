@@ -35,6 +35,12 @@ func (p *Plugin) RestRoutes() route.Routes {
 			Pattern:     "/volumes/{volname}/bitrot/disable",
 			Version:     1,
 			HandlerFunc: bitrotDisableHandler},
+		route.Route{
+			Name:        "ScrubOndemand",
+			Method:      "POST",
+			Pattern:     "/volumes/{volname}/bitrot/scrubondemand",
+			Version:     1,
+			HandlerFunc: bitrotScrubOndemandHandler},
 	}
 }
 
@@ -43,5 +49,6 @@ func (p *Plugin) RestRoutes() route.Routes {
 func (p *Plugin) RegisterStepFuncs() {
 	transaction.RegisterStepFunc(txnBitrotEnableDisable, "bitrot-enable.Commit")
 	transaction.RegisterStepFunc(txnBitrotEnableDisable, "bitrot-disable.Commit")
+	transaction.RegisterStepFunc(txnBitrotScrubOndemand, "bitrot-scrubondemand.Commit")
 	return
 }
