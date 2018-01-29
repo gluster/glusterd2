@@ -18,7 +18,7 @@ func GetPeerFMockGood(id string) (*Peer, error) {
 	var p Peer
 	p.Name = "test"
 	p.ID = uuid.NewRandom()
-	p.Addresses = []string{"test"}
+	p.PeerAddresses = []string{"test"}
 	return &p, nil
 }
 
