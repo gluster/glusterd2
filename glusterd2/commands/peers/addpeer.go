@@ -15,10 +15,11 @@ import (
 
 type peerAddReq struct {
 	Addresses []string
+        Group     int
 }
 
 func addPeerHandler(w http.ResponseWriter, r *http.Request) {
-
+        fmt.Printf("$$$$$$$$$$$$ In addPeerHandler")
 	ctx := r.Context()
 	logger := gdctx.GetReqLogger(ctx)
 
@@ -95,5 +96,6 @@ func createPeerAddResp(p *peer.Peer) *api.PeerAddResp {
 		ID:        p.ID,
 		Name:      p.Name,
 		Addresses: p.Addresses,
+                Group:     p.Group,
 	}
 }
