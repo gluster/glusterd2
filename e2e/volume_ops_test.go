@@ -237,6 +237,49 @@ func TestVolumeOptions(t *testing.T) {
 		_, err = client.VolumeCreate(createReq)
 		r.NotNil(err)
 	}
+
+	// group option test cases
+	groupOpKeys := []string{"profile.test"}
+	for _, validKey := range groupOpKeys {
+		createReq.Options = map[string]string{validKey: "on"}
+
+		_, err = client.VolumeCreate(createReq)
+		r.Nil(err)
+
+		err = client.VolumeDelete(volname)
+		r.Nil(err)
+	}
+
+	for _, validKey := range groupOpKeys {
+		createReq.Options = map[string]string{validKey: "off"}
+
+		_, err = client.VolumeCreate(createReq)
+		r.Nil(err)
+
+		err = client.VolumeDelete(volname)
+		r.Nil(err)
+	}
+
+	optionGroupReq := api.OptionGroupReq{
+		Name: "profile.test2",
+		Options: []api.VolumeOption{{"opt1", "on", "off"},
+			{"opt2", "enable", "disable"},
+			{"opt3", "off", "on"}}}
+	err = client.OptionGroupCreate(optionGroupReq)
+	r.NotNil(err)
+
+	optionGroupReq = api.OptionGroupReq{
+		Name: "profile.test2",
+		Options: []api.VolumeOption{{"afr.eager-lock", "on", "off"},
+			{"gfproxy.afr.eager-lock", "on", "off"}}}
+	err = client.OptionGroupCreate(optionGroupReq)
+	r.Nil(err)
+
+	_, err = client.OptionGroupList()
+	r.Nil(err)
+
+	r.Nil(client.OptionGroupDelete("profile.test2"))
+
 }
 
 func testDisperse(t *testing.T) {

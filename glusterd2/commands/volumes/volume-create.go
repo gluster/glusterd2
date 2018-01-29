@@ -224,6 +224,11 @@ func volumeCreateHandler(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
+	if req.Options, err = expandOptions(req.Options); err != nil {
+		restutils.SendHTTPError(ctx, w, http.StatusInternalServerError, err.Error(), api.ErrCodeDefault)
+		return
+	}
+
 	if err := validateOptions(req.Options); err != nil {
 		logger.WithField("option", err.Error()).Error("invalid volume option specified")
 		msg := fmt.Sprintf("invalid volume option specified: %s", err.Error())
@@ -264,6 +269,12 @@ func volumeCreateHandler(w http.ResponseWriter, r *http.Request) {
 	if err != nil {
 		logger.WithError(err).Error("failed to create volinfo")
 		restutils.SendHTTPError(ctx, w, http.StatusInternalServerError, err.Error(), api.ErrCodeDefault)
+		return
+	}
+
+	if err := validateXlatorOptions(req.Options, vol); err != nil {
+		logger.WithError(err).Error("validation failed")
+		restutils.SendHTTPError(ctx, w, http.StatusBadRequest, fmt.Sprintf("failed to set volume option: %s", err.Error()), api.ErrCodeDefault)
 		return
 	}
 

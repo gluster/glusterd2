@@ -27,3 +27,12 @@ func isBrickPathAvailable(nodeID uuid.UUID, brickPath string) error {
 	}
 	return nil
 }
+
+// IsBitrotEnabled returns true if bitrot is enabled for a volume and false otherwise
+func IsBitrotEnabled(v *Volinfo) bool {
+	val, exists := v.Options[VkeyFeaturesBitrot]
+	if exists && val == "on" {
+		return true
+	}
+	return false
+}

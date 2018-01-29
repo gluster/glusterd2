@@ -13,9 +13,9 @@ const (
 	DeviceEvacuated = "Evacuated"
 )
 
-// DeviceInfo is the added device info
-type DeviceInfo struct {
+// Info is the added device info
+type Info struct {
 	NodeID     uuid.UUID `json:"nodeid"`
-	DeviceName []string    `json:"devicename"`
+	DeviceName []string  `json:"devicename"`
 	State      string    `json:"devicestate"`
 }

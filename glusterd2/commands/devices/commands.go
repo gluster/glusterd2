@@ -1,8 +1,8 @@
 package devicecommands
 
 import (
-        "github.com/gluster/glusterd2/glusterd2/servers/rest/route"
-        "github.com/gluster/glusterd2/glusterd2/transaction"
+	"github.com/gluster/glusterd2/glusterd2/servers/rest/route"
+	"github.com/gluster/glusterd2/glusterd2/transaction"
 )
 
 // Command is a holding struct used to implement the GlusterD Command interface

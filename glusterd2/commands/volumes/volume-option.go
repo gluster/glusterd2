@@ -47,8 +47,20 @@ func volumeOptionsHandler(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	if err := validateOptions(req.Options); err != nil {
+	var options map[string]string
+	if options, err = expandOptions(req.Options); err != nil {
+		restutils.SendHTTPError(ctx, w, http.StatusInternalServerError, err.Error(), api.ErrCodeDefault)
+		return
+	}
+
+	if err := validateOptions(options); err != nil {
 		logger.WithError(err).Error("failed to set volume option")
+		restutils.SendHTTPError(ctx, w, http.StatusBadRequest, fmt.Sprintf("failed to set volume option: %s", err.Error()), api.ErrCodeDefault)
+		return
+	}
+
+	if err := validateXlatorOptions(req.Options, volinfo); err != nil {
+		logger.WithError(err).Error("validation failed")
 		restutils.SendHTTPError(ctx, w, http.StatusBadRequest, fmt.Sprintf("failed to set volume option: %s", err.Error()), api.ErrCodeDefault)
 		return
 	}
@@ -81,7 +93,7 @@ func volumeOptionsHandler(w http.ResponseWriter, r *http.Request) {
 		unlock,
 	}
 
-	for k, v := range req.Options {
+	for k, v := range options {
 		// TODO: Normalize <graph>.<xlator>.<option> and just
 		// <xlator>.<option> to avoid ambiguity and duplication.
 		// For example, currently both the following representations

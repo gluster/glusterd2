@@ -34,4 +34,8 @@ var (
 	ErrProcessAlreadyRunning   = errors.New("Process is already running")
 	ErrBitrotAlreadyEnabled    = errors.New("Bitrot is already enabled")
 	ErrBitrotAlreadyDisabled   = errors.New("Bitrot is already disabled")
+	ErrBitrotNotEnabled        = errors.New("Bitrot is not enabled")
+	ErrUnknownValue            = errors.New("unknown value specified")
+	ErrGetFailed               = errors.New("failed to get value from the store")
+	ErrUnmarshallFailed        = errors.New("failed to unmarshall from json")
 )

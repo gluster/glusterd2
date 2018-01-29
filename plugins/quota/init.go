@@ -1,8 +1,7 @@
-package bitrot
+package quota
 
 import (
 	"github.com/gluster/glusterd2/glusterd2/servers/rest/route"
-	"github.com/gluster/glusterd2/glusterd2/transaction"
 	"github.com/prashanthpai/sunrpc"
 )
 
@@ -12,7 +11,7 @@ type Plugin struct {
 
 // Name returns name of plugin
 func (p *Plugin) Name() string {
-	return "bitrot"
+	return "quota"
 }
 
 // SunRPCProgram returns sunrpc program to register with Glusterd
@@ -24,31 +23,40 @@ func (p *Plugin) SunRPCProgram() sunrpc.Program {
 func (p *Plugin) RestRoutes() route.Routes {
 	return route.Routes{
 		route.Route{
-			Name:        "BitrotEnable",
+			Name:        "QuotaEnable",
 			Method:      "POST",
-			Pattern:     "/volumes/{volname}/bitrot/enable",
+			Pattern:     "/quota/{volname}",
 			Version:     1,
-			HandlerFunc: bitrotEnableHandler},
+			HandlerFunc: quotaEnableHandler},
 		route.Route{
-			Name:        "BitrotDisable",
-			Method:      "POST",
-			Pattern:     "/volumes/{volname}/bitrot/disable",
+			Name:        "QuotaDisable",
+			Method:      "DELETE",
+			Pattern:     "/quota/{volname}",
 			Version:     1,
-			HandlerFunc: bitrotDisableHandler},
+			HandlerFunc: quotaDisableHandler},
 		route.Route{
-			Name:        "ScrubOndemand",
-			Method:      "POST",
-			Pattern:     "/volumes/{volname}/bitrot/scrubondemand",
+			Name:        "QuotaList",
+			Method:      "GET",
+			Pattern:     "/quota/{volname}/limit",
 			Version:     1,
-			HandlerFunc: bitrotScrubOndemandHandler},
+			HandlerFunc: quotaListHandler},
+		route.Route{
+			Name:        "QuotaLimit",
+			Method:      "POST",
+			Pattern:     "/quota/{volname}/limit",
+			Version:     1,
+			HandlerFunc: quotaLimitHandler},
+		route.Route{
+			Name:        "QuotaRemove",
+			Method:      "DELETE",
+			Pattern:     "/quota/{volname}/limit",
+			Version:     1,
+			HandlerFunc: quotaRemoveHandler},
 	}
 }
 
 // RegisterStepFuncs registers transaction step functions with
 // Glusterd Transaction framework
 func (p *Plugin) RegisterStepFuncs() {
-	transaction.RegisterStepFunc(txnBitrotEnableDisable, "bitrot-enable.Commit")
-	transaction.RegisterStepFunc(txnBitrotEnableDisable, "bitrot-disable.Commit")
-	transaction.RegisterStepFunc(txnBitrotScrubOndemand, "bitrot-scrubondemand.Commit")
 	return
 }

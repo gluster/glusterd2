@@ -7,6 +7,7 @@ import (
 	"strings"
 	"syscall"
 
+	"github.com/gluster/glusterd2/glusterd2/servers/sunrpc/dict"
 	"github.com/gluster/glusterd2/glusterd2/store"
 	"github.com/gluster/glusterd2/glusterd2/volume"
 
@@ -88,9 +89,9 @@ func (p *GfHandshake) ServerGetspec(args *GfGetspecReq, reply *GfGetspecRsp) err
 	var err error
 	var fileContents []byte
 
-	_, err = DictUnserialize(args.Xdata)
+	_, err = dict.Unserialize(args.Xdata)
 	if err != nil {
-		log.WithError(err).Error("ServerGetspec(): DictUnserialize() failed")
+		log.WithError(err).Error("ServerGetspec(): dict.Unserialize() failed")
 	}
 
 	// Get Volfile from store
@@ -156,9 +157,9 @@ func (p *GfHandshake) ServerGetVolumeInfo(args *GfGetVolumeInfoReq, reply *GfGet
 	)
 	respDict := make(map[string]string)
 
-	reqDict, err := DictUnserialize(args.Dict)
+	reqDict, err := dict.Unserialize(args.Dict)
 	if err != nil {
-		log.WithError(err).Error("DictUnserialize() failed")
+		log.WithError(err).Error("dict unserialize failed")
 		goto Out
 	}
 
@@ -191,7 +192,7 @@ func (p *GfHandshake) ServerGetVolumeInfo(args *GfGetVolumeInfoReq, reply *GfGet
 		respDict["volume_id"] = volinfo.ID.String()
 	}
 
-	reply.Dict, err = DictSerialize(respDict)
+	reply.Dict, err = dict.Serialize(respDict)
 	if err != nil {
 		log.WithError(err).Error("failed to serialize dict")
 	}
