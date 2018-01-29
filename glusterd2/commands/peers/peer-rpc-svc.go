@@ -10,6 +10,7 @@ import (
 	"github.com/pborman/uuid"
 
 	log "github.com/sirupsen/logrus"
+	config "github.com/spf13/viper"
 	"golang.org/x/net/context"
 	"google.golang.org/grpc"
 )
@@ -70,7 +71,7 @@ func (p *PeerService) Join(ctx context.Context, req *JoinReq) (*JoinRsp, error) 
 		return &JoinRsp{"", int32(ErrClusterIDUpdateFailed)}, nil
 	}
 
-	if err := ReconfigureStore(req.Config); err != nil {
+	if err := ReconfigureStore(req.Config, int(req.Group)); err != nil {
 		logger.WithError(err).Error("reconfigure store failed, failed to join new cluster")
 		return &JoinRsp{"", int32(ErrStoreReconfigFailed)}, nil
 	}
@@ -125,7 +126,7 @@ func (p *PeerService) Leave(ctx context.Context, req *LeaveReq) (*LeaveRsp, erro
 	}
 
 	logger.Debug("reconfiguring store with defaults")
-	if err := ReconfigureStore(&StoreConfig{store.NewConfig().Endpoints}); err != nil {
+	if err := ReconfigureStore(&StoreConfig{store.NewConfig().Endpoints}, int(config.GetInt("group"))); err != nil {
 		logger.WithError(err).Warn("failed to reconfigure store with defaults")
 		// XXX: We should probably keep retrying here?
 	}
@@ -135,7 +136,7 @@ func (p *PeerService) Leave(ctx context.Context, req *LeaveReq) (*LeaveRsp, erro
 
 // ReconfigureStore reconfigures the store with the given store config, if no
 // store config is given uses the default
-func ReconfigureStore(c *StoreConfig) error {
+func ReconfigureStore(c *StoreConfig, group int) error {
 
 	// Destroy the current store first
 	log.Debug("destroying current store")
@@ -168,7 +169,7 @@ func ReconfigureStore(c *StoreConfig) error {
 	log.Debug("saved new store config")
 
 	// Add yourself to the peer list in the new store/cluster
-	if err := peer.AddSelfDetails(); err != nil {
+	if err := peer.AddSelfDetails(group); err != nil {
 		log.WithError(err).Error("failed to add self to peer list")
 		// Destroy newly started store and restart with default config
 		defer restartDefaultStore(true)
@@ -187,6 +188,6 @@ func restartDefaultStore(destroy bool) {
 		store.Destroy()
 	}
 	store.Init(nil)
-	peer.AddSelfDetails()
+	peer.AddSelfDetails(int(config.GetInt("group")))
 	events.StartGlobal()
 }

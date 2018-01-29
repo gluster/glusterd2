@@ -31,6 +31,7 @@ func createPeerListResp(peers []*peer.Peer) *api.PeerListResp {
 			Name:      p.Name,
 			Addresses: p.Addresses,
 			Online:    store.Store.IsNodeAlive(p.ID),
+			Group:     p.Group,
 		})
 	}
 

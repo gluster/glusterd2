@@ -15,11 +15,11 @@ import (
 
 type peerAddReq struct {
 	Addresses []string
-        Group     int
+	Group     int
 }
 
 func addPeerHandler(w http.ResponseWriter, r *http.Request) {
-        fmt.Printf("$$$$$$$$$$$$ In addPeerHandler")
+
 	ctx := r.Context()
 	logger := gdctx.GetReqLogger(ctx)
 
@@ -49,7 +49,6 @@ func addPeerHandler(w http.ResponseWriter, r *http.Request) {
 		restutils.SendHTTPError(ctx, w, http.StatusBadRequest, "failed to parse remote address", api.ErrCodeDefault)
 		return
 	}
-
 	// TODO: Try all addresses till the first one connects
 	client, err := getPeerServiceClient(remotePeerAddress)
 	if err != nil {
@@ -63,7 +62,7 @@ func addPeerHandler(w http.ResponseWriter, r *http.Request) {
 	logger.WithField("endpoints", newconfig.Endpoints).Debug("asking new peer to join cluster with given endpoints")
 
 	// Ask the peer to join the cluster
-	rsp, err := client.JoinCluster(newconfig)
+	rsp, err := client.JoinCluster(newconfig, req.Group)
 	if err != nil {
 		logger.WithError(err).Error("sending Join request failed")
 		restutils.SendHTTPError(ctx, w, http.StatusInternalServerError, "failed to send join cluster request", api.ErrCodeDefault)
@@ -96,6 +95,6 @@ func createPeerAddResp(p *peer.Peer) *api.PeerAddResp {
 		ID:        p.ID,
 		Name:      p.Name,
 		Addresses: p.Addresses,
-                Group:     p.Group,
+		Group:     p.Group,
 	}
 }

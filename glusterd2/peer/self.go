@@ -7,12 +7,12 @@ import (
 )
 
 // AddSelfDetails results in the peer adding its own details into etcd
-func AddSelfDetails() error {
+func AddSelfDetails(group int) error {
 	p := &Peer{
 		ID:        gdctx.MyUUID,
 		Name:      gdctx.HostName,
 		Addresses: []string{config.GetString("peeraddress")},
-                Group: 1,
+		Group:     group,
 	}
 
 	return AddOrUpdatePeer(p)

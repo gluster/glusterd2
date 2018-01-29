@@ -65,6 +65,7 @@ func main() {
 		log.WithError(err).Fatalf("Failed to change working directory to %s", workdir)
 	}
 
+	group := config.GetInt("group")
 	// Create directories inside workdir - run dir, logdir etc
 	if err := createDirectories(); err != nil {
 		log.WithError(err).Fatal("Failed to create or access directories")
@@ -94,7 +95,7 @@ func main() {
 		log.WithError(err).Fatal("Failed to start internal events framework")
 	}
 
-	if err := peer.AddSelfDetails(); err != nil {
+	if err := peer.AddSelfDetails(int(group)); err != nil {
 		log.WithError(err).Fatal("Could not add self details into etcd")
 	}
 

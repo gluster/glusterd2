@@ -41,7 +41,7 @@ func AddOrUpdatePeer(p *Peer) error {
 	}
 
 	idStr := p.ID.String()
-        fmt.Printf("!!!!! Printing Json %s",  json)
+
 	if _, err := store.Store.Put(context.TODO(), peerPrefix+idStr, string(json)); err != nil {
 		return err
 	}

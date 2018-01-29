@@ -10,10 +10,9 @@ import (
 
 // PeerProbe adds a peer to the Cluster
 func (c *Client) PeerProbe(host string) (api.PeerAddResp, error) {
-        fmt.Printf("@@@@@@@@@@@@@@@@In Peer Probe")
+
 	peerAddReq := api.PeerAddReq{
 		Addresses: []string{host},
-                Group: 1,
 	}
 
 	var resp api.PeerAddResp
