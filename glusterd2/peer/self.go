@@ -12,6 +12,7 @@ func AddSelfDetails() error {
 		ID:        gdctx.MyUUID,
 		Name:      gdctx.HostName,
 		Addresses: []string{config.GetString("peeraddress")},
+                Group: 1,
 	}
 
 	return AddOrUpdatePeer(p)
