@@ -2,6 +2,9 @@ package events
 
 import (
 	"strings"
+	"time"
+
+	"github.com/gluster/glusterd2/glusterd2/gdctx"
 
 	"github.com/pborman/uuid"
 )
@@ -20,16 +23,20 @@ type Event struct {
 	// Origin is used when broadcasting global events to prevent origin nodes
 	// rebroadcasting a global event. Event generators need not set this.
 	Origin uuid.UUID
+	// Timestamp is the time when the event was created
+	Timestamp time.Time
 }
 
 // New returns a new Event with given information
 // Set global to true if event should be broadast across cluster
 func New(name string, data map[string]string, global bool) *Event {
 	return &Event{
-		ID:     uuid.NewRandom(),
-		Name:   strings.ToLower(name),
-		Data:   data,
-		global: global,
+		ID:        uuid.NewRandom(),
+		Name:      strings.ToLower(name),
+		Data:      data,
+		global:    global,
+		Origin:    gdctx.MyUUID,
+		Timestamp: time.Now(),
 	}
 }
 
