@@ -13,17 +13,17 @@ import (
 )
 
 const (
-	// DirFlag is the commomn logging flag to be used to set log directory
+	// DirFlag is the common logging flag to be used to set log directory
 	DirFlag = "logdir"
 	// DirHelp is the help message for DirFlag
 	DirHelp = "Directory to store log files"
 
-	// FileFlag is the commomn logging flag to be used to set log file name
+	// FileFlag is the common logging flag to be used to set log file name
 	FileFlag = "logfile"
 	// FileHelp is the help message for FileFlag
 	FileHelp = "Name for log file"
 
-	// LevelFlag is the commomn logging flag to be used to set log level
+	// LevelFlag is the common logging flag to be used to set log level
 	LevelFlag = "loglevel"
 	// LevelHelp is the help message for LevelFlag
 	LevelHelp = "Severity of messages to be logged"
