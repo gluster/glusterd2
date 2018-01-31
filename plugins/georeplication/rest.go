@@ -2,8 +2,11 @@ package georeplication
 
 import (
 	"context"
+	"encoding/json"
 	errs "errors"
+	"fmt"
 	"net/http"
+	"os/exec"
 
 	"github.com/gluster/glusterd2/glusterd2/gdctx"
 	restutils "github.com/gluster/glusterd2/glusterd2/servers/rest/utils"
@@ -24,12 +27,18 @@ func newGeorepSession(mastervolid uuid.UUID, slavevolid uuid.UUID, req georepapi
 	if req.SlaveUser == "" {
 		slaveUser = "root"
 	}
+	slavehosts := make([]georepapi.GeorepSlaveHost, len(req.SlaveHosts))
+	for idx, s := range req.SlaveHosts {
+		slavehosts[idx].NodeID = uuid.Parse(s.NodeID)
+		slavehosts[idx].Hostname = s.Hostname
+	}
+
 	return &georepapi.GeorepSession{
 		MasterID:   mastervolid,
 		SlaveID:    slavevolid,
 		MasterVol:  req.MasterVol,
 		SlaveVol:   req.SlaveVol,
-		SlaveHosts: req.SlaveHosts,
+		SlaveHosts: slavehosts,
 		SlaveUser:  slaveUser,
 		Status:     georepapi.GeorepStatusCreated,
 		Workers:    []georepapi.GeorepWorker{},
@@ -134,18 +143,35 @@ func georepCreateHandler(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	// TODO: Transaction step function for setting Volume Options
-	// As a workaround, Set volume options before enabling Geo-rep session
+	// Required Volume Options
+	vol.Options["marker.xtime"] = "on"
+	vol.Options["marker.gsync-force-xtime"] = "on"
+	vol.Options["changelog.changelog"] = "on"
 
+	// Workaround till {{ volume.id }} added to the marker options table
+	vol.Options["marker.volume-uuid"] = vol.ID.String()
+
+	txn.Nodes = vol.Nodes()
 	txn.Steps = []*transaction.Step{
 		lock,
+		{
+			DoFunc: "vol-option.UpdateVolinfo",
+			Nodes:  []uuid.UUID{gdctx.MyUUID},
+		},
+		{
+			// Required because bitrot-stub should be enabled on brick side
+			DoFunc: "vol-option.NotifyVolfileChange",
+			Nodes:  txn.Nodes,
+		},
 		{
 			DoFunc: "georeplication-create.Commit",
 			Nodes:  []uuid.UUID{gdctx.MyUUID},
 		},
 		unlock,
 	}
+
 	txn.Ctx.Set("geosession", geoSession)
+	txn.Ctx.Set("volinfo", vol)
 
 	err = txn.Do()
 	if err != nil {
@@ -262,11 +288,11 @@ func georepActionHandler(w http.ResponseWriter, r *http.Request, action actionTy
 	err = txn.Do()
 	if err != nil {
 		logger.WithFields(log.Fields{
-			"error":       e.Error(),
+			"error":       err.Error(),
 			"mastervolid": masterid,
 			"slavevolid":  slaveid,
 		}).Error("failed to " + action.String() + " geo-replication session")
-		restutils.SendHTTPError(ctx, w, http.StatusInternalServerError, e.Error(), api.ErrCodeDefault)
+		restutils.SendHTTPError(ctx, w, http.StatusInternalServerError, err.Error(), api.ErrCodeDefault)
 		return
 	}
 
@@ -491,4 +517,325 @@ func georepStatusHandler(w http.ResponseWriter, r *http.Request) {
 
 	// Send aggregated result back to the client
 	restutils.SendHTTPResponse(ctx, w, http.StatusOK, geoSession)
+}
+
+func restartRequiredOnConfigChange(name string) bool {
+	// TODO: Check with Gsyncd about restart required or not
+	// for now restart gsyncd for all config changes
+	return true
+}
+
+func checkConfig(name string, value string) error {
+	args := []string{
+		"config-check",
+		name,
+	}
+	if value != "" {
+		args = append(args, "--value", value)
+	}
+	_, err := exec.Command(gsyncdCommand, args...).Output()
+	return err
+}
+
+func georepConfigGetHandler(w http.ResponseWriter, r *http.Request) {
+	p := mux.Vars(r)
+	masteridRaw := p["mastervolid"]
+	slaveidRaw := p["slavevolid"]
+
+	ctx := r.Context()
+	logger := gdctx.GetReqLogger(ctx)
+
+	// Validate UUID format of Master and Slave Volume ID
+	masterid, slaveid, err := validateMasterAndSlaveIDFormat(ctx, w, masteridRaw, slaveidRaw)
+	if err != nil {
+		return
+	}
+
+	// Fetch existing session details from Store, error if not exists
+	geoSession, err := getSession(masterid.String(), slaveid.String())
+	if err != nil {
+		if _, ok := err.(*ErrGeorepSessionNotFound); !ok {
+			restutils.SendHTTPError(ctx, w, http.StatusInternalServerError, err.Error(), api.ErrCodeDefault)
+			return
+		}
+		restutils.SendHTTPError(ctx, w, http.StatusBadRequest, "geo-replication session not found", api.ErrCodeDefault)
+		return
+	}
+
+	// Run Local gsyncd and get all configs and its default values
+	args := []string{
+		"config-get",
+		geoSession.MasterVol,
+		fmt.Sprintf("%s@%s::%s", geoSession.SlaveUser, geoSession.SlaveHosts[0], geoSession.SlaveVol),
+		"--show-defaults",
+		"--json",
+	}
+	out, err := exec.Command(gsyncdCommand, args...).Output()
+	if err != nil {
+		logger.WithFields(log.Fields{
+			"error":       err.Error(),
+			"mastervolid": masterid,
+			"slavevolid":  slaveid,
+		}).Error("failed to get session configurations")
+		restutils.SendHTTPError(ctx, w, http.StatusBadRequest, "Failed to get session configurations", api.ErrCodeDefault)
+		return
+	}
+
+	var opts []georepapi.GeorepOption
+	if err = json.Unmarshal(out, &opts); err != nil {
+		logger.WithFields(log.Fields{
+			"error":       err.Error(),
+			"mastervolid": masterid,
+			"slavevolid":  slaveid,
+		}).Error("failed to parse configurations")
+		restutils.SendHTTPError(ctx, w, http.StatusBadRequest, "Failed to parse configurations", api.ErrCodeDefault)
+		return
+	}
+
+	// Reset all configurations Value since Gsyncd may return stale data
+	// if a old config file exists on disk with stale data(Only happens
+	// if Gsyncd is not in Started state)
+	for idx, conf := range opts {
+		if conf.Modified {
+			opts[idx].Modified = false
+			opts[idx].Value = opts[idx].DefaultValue
+			opts[idx].DefaultValue = ""
+		}
+	}
+
+	// Now Apply session configurations
+	for idx, conf := range opts {
+		if val, ok := geoSession.Options[conf.Name]; ok {
+			// Gsyncd opt Value is default value
+			opts[idx].DefaultValue = opts[idx].Value
+			// Add Value from Store
+			opts[idx].Value = val
+			opts[idx].Modified = true
+		}
+	}
+
+	restutils.SendHTTPResponse(ctx, w, http.StatusOK, opts)
+}
+
+func georepConfigSetHandler(w http.ResponseWriter, r *http.Request) {
+	p := mux.Vars(r)
+	masteridRaw := p["mastervolid"]
+	slaveidRaw := p["slavevolid"]
+
+	ctx := r.Context()
+	logger := gdctx.GetReqLogger(ctx)
+
+	// Validate UUID format of Master and Slave Volume ID
+	masterid, slaveid, err := validateMasterAndSlaveIDFormat(ctx, w, masteridRaw, slaveidRaw)
+	if err != nil {
+		return
+	}
+
+	// Parse the JSON body to get additional details of request
+	var req map[string]string
+	if err := restutils.UnmarshalRequest(r, &req); err != nil {
+		restutils.SendHTTPError(ctx, w, http.StatusUnprocessableEntity, errors.ErrJSONParsingFailed.Error(), api.ErrCodeDefault)
+		return
+	}
+
+	// Fetch existing session details from Store, error if not exists
+	geoSession, err := getSession(masterid.String(), slaveid.String())
+	if err != nil {
+		// Continue only if NotFound error, return if other errors like
+		// error while fetching from store or JSON marshal errors
+		if _, ok := err.(*ErrGeorepSessionNotFound); !ok {
+			restutils.SendHTTPError(ctx, w, http.StatusInternalServerError, err.Error(), api.ErrCodeDefault)
+			return
+		}
+		restutils.SendHTTPError(ctx, w, http.StatusBadRequest, "geo-replication session not found", api.ErrCodeDefault)
+		return
+	}
+
+	configWillChange := false
+	restartRequired := false
+	// Validate all config names and values
+	for k, v := range req {
+		val, ok := geoSession.Options[k]
+		if (ok && v != val) || !ok {
+			configWillChange = true
+			err = checkConfig(k, v)
+			if err != nil {
+				restutils.SendHTTPError(ctx, w, http.StatusBadRequest, "Invalid Config Name/Value", api.ErrCodeDefault)
+				return
+			}
+
+			restartRequired = restartRequiredOnConfigChange(k)
+		}
+	}
+
+	vol, e := volume.GetVolume(geoSession.MasterVol)
+	if e != nil {
+		restutils.SendHTTPError(ctx, w, http.StatusNotFound, errors.ErrVolNotFound.Error(), api.ErrCodeDefault)
+		return
+	}
+
+	// If No configurations changed
+	if !configWillChange {
+		restutils.SendHTTPResponse(ctx, w, http.StatusOK, geoSession)
+		return
+	}
+
+	// No Restart required if Georep session not running
+	if geoSession.Status != georepapi.GeorepStatusStarted {
+		restartRequired = false
+	}
+
+	for k, v := range req {
+		geoSession.Options[k] = v
+	}
+
+	txn := transaction.NewTxn(ctx)
+	defer txn.Cleanup()
+	// TODO: change the lock key
+	lock, unlock, err := transaction.CreateLockSteps(geoSession.MasterVol)
+	if err != nil {
+		restutils.SendHTTPError(ctx, w, http.StatusInternalServerError, err.Error(), api.ErrCodeDefault)
+		return
+	}
+
+	txn.Nodes = vol.Nodes()
+	txn.Steps = []*transaction.Step{
+		lock,
+		{
+			DoFunc: "georeplication-configset.Commit",
+			Nodes:  []uuid.UUID{gdctx.MyUUID},
+		},
+		{
+			DoFunc: "georeplication-configfilegen.Commit",
+			Nodes:  txn.Nodes,
+		},
+		unlock,
+	}
+
+	txn.Ctx.Set("mastervolid", masterid.String())
+	txn.Ctx.Set("slavevolid", slaveid.String())
+	txn.Ctx.Set("session", geoSession)
+	txn.Ctx.Set("restartRequired", restartRequired)
+
+	e = txn.Do()
+	if e != nil {
+		logger.WithFields(log.Fields{
+			"error":       e.Error(),
+			"mastervolid": masterid,
+			"slavevolid":  slaveid,
+		}).Error("failed to update geo-replication session config")
+		restutils.SendHTTPError(ctx, w, http.StatusInternalServerError, e.Error(), api.ErrCodeDefault)
+		return
+	}
+
+	restutils.SendHTTPResponse(ctx, w, http.StatusOK, geoSession.Options)
+}
+
+func georepConfigResetHandler(w http.ResponseWriter, r *http.Request) {
+	p := mux.Vars(r)
+	masteridRaw := p["mastervolid"]
+	slaveidRaw := p["slavevolid"]
+
+	ctx := r.Context()
+	logger := gdctx.GetReqLogger(ctx)
+
+	// Validate UUID format of Master and Slave Volume ID
+	masterid, slaveid, err := validateMasterAndSlaveIDFormat(ctx, w, masteridRaw, slaveidRaw)
+	if err != nil {
+		return
+	}
+
+	// Parse the JSON body to get additional details of request
+	var req []string
+	if err := restutils.UnmarshalRequest(r, &req); err != nil {
+		restutils.SendHTTPError(ctx, w, http.StatusUnprocessableEntity, errors.ErrJSONParsingFailed.Error(), api.ErrCodeDefault)
+		return
+	}
+
+	// Fetch existing session details from Store, error if not exists
+	geoSession, err := getSession(masterid.String(), slaveid.String())
+	if err != nil {
+		// Continue only if NotFound error, return if other errors like
+		// error while fetching from store or JSON marshal errors
+		if _, ok := err.(*ErrGeorepSessionNotFound); !ok {
+			restutils.SendHTTPError(ctx, w, http.StatusInternalServerError, err.Error(), api.ErrCodeDefault)
+			return
+		}
+		restutils.SendHTTPError(ctx, w, http.StatusBadRequest, "geo-replication session not found", api.ErrCodeDefault)
+		return
+	}
+
+	configWillChange := false
+	restartRequired := false
+	// Check if config exists, reset can be done only if it is set before
+	for _, k := range req {
+		_, ok := geoSession.Options[k]
+		if ok {
+			configWillChange = true
+
+			restartRequired = restartRequiredOnConfigChange(k)
+		}
+	}
+
+	// If No configurations changed
+	if !configWillChange {
+		restutils.SendHTTPResponse(ctx, w, http.StatusOK, geoSession.Options)
+		return
+	}
+
+	// No Restart required if Georep session not running
+	if geoSession.Status != georepapi.GeorepStatusStarted {
+		restartRequired = false
+	}
+
+	vol, e := volume.GetVolume(geoSession.MasterVol)
+	if e != nil {
+		restutils.SendHTTPError(ctx, w, http.StatusNotFound, errors.ErrVolNotFound.Error(), api.ErrCodeDefault)
+		return
+	}
+
+	for _, k := range req {
+		delete(geoSession.Options, k)
+	}
+
+	txn := transaction.NewTxn(ctx)
+	defer txn.Cleanup()
+	// TODO: change the lock key
+	lock, unlock, err := transaction.CreateLockSteps(geoSession.MasterVol)
+	if err != nil {
+		restutils.SendHTTPError(ctx, w, http.StatusInternalServerError, err.Error(), api.ErrCodeDefault)
+		return
+	}
+
+	txn.Nodes = vol.Nodes()
+	txn.Steps = []*transaction.Step{
+		lock,
+		{
+			DoFunc: "georeplication-configset.Commit",
+			Nodes:  []uuid.UUID{gdctx.MyUUID},
+		},
+		{
+			DoFunc: "georeplication-configfilegen.Commit",
+			Nodes:  txn.Nodes,
+		},
+		unlock,
+	}
+
+	txn.Ctx.Set("mastervolid", masterid.String())
+	txn.Ctx.Set("slavevolid", slaveid.String())
+	txn.Ctx.Set("session", geoSession)
+	txn.Ctx.Set("restartRequired", restartRequired)
+
+	e = txn.Do()
+	if e != nil {
+		logger.WithFields(log.Fields{
+			"error":       e.Error(),
+			"mastervolid": masterid,
+			"slavevolid":  slaveid,
+		}).Error("failed to update geo-replication session config")
+		restutils.SendHTTPError(ctx, w, http.StatusInternalServerError, e.Error(), api.ErrCodeDefault)
+		return
+	}
+
+	restutils.SendHTTPResponse(ctx, w, http.StatusOK, geoSession.Options)
 }
