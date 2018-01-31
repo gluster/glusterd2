@@ -23,7 +23,7 @@ ExclusiveArch: %{go_arches}
 BuildRequires: golang >= 1.8.0
 BuildRequires: systemd
 
-Requires: glusterfs-server >= 4.0dev
+Requires: glusterfs-server >= 4.0rc0
 Requires(post): systemd
 Requires(preun): systemd
 Requires(postun): systemd
