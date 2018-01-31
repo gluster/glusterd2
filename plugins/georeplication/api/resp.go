@@ -18,6 +18,12 @@ const (
 	GeorepStatusPaused = "Paused"
 )
 
+// GeorepSlaveHost represents Slave host UUID and Hostname
+type GeorepSlaveHost struct {
+	NodeID   uuid.UUID `json:"nodeid"`
+	Hostname string    `json:"host"`
+}
+
 // GeorepWorker represents Geo-replication Worker
 type GeorepWorker struct {
 	MasterNode                 string `json:"master_node"`
@@ -47,9 +53,18 @@ type GeorepSession struct {
 	SlaveID    uuid.UUID         `json:"slave_volume_id"`
 	MasterVol  string            `json:"master_volume"`
 	SlaveUser  string            `json:"slave_user"`
-	SlaveHosts []string          `json:"slave_hosts"`
+	SlaveHosts []GeorepSlaveHost `json:"slave_hosts"`
 	SlaveVol   string            `json:"slave_volume"`
 	Status     string            `json:"monitor_status"`
 	Workers    []GeorepWorker    `json:"workers"`
 	Options    map[string]string `json:"options"`
+}
+
+// GeorepOption represents Config details
+type GeorepOption struct {
+	Name         string `json:"name"`
+	Value        string `json:"value"`
+	DefaultValue string `json:"default_value"`
+	Configurable bool   `json:"configurable"`
+	Modified     bool   `json:"modified"`
 }

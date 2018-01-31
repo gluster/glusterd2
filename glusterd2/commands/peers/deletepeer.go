@@ -3,6 +3,7 @@ package peercommands
 import (
 	"net/http"
 
+	"github.com/gluster/glusterd2/glusterd2/events"
 	"github.com/gluster/glusterd2/glusterd2/gdctx"
 	"github.com/gluster/glusterd2/glusterd2/peer"
 	restutils "github.com/gluster/glusterd2/glusterd2/servers/rest/utils"
@@ -106,6 +107,8 @@ func deletePeerHandler(w http.ResponseWriter, r *http.Request) {
 
 	// Save updated store endpoints for restarts
 	store.Store.UpdateEndpoints()
+
+	events.Broadcast(newPeerEvent(eventPeerRemoved, p))
 }
 
 // bricksExist checks if the given peer has any bricks on it
