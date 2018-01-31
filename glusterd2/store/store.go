@@ -2,6 +2,7 @@
 package store
 
 import (
+	"context"
 	"errors"
 	"fmt"
 	"os"
@@ -42,7 +43,8 @@ type GDStore struct {
 	// Un-namespaced Client for Auth, Cluster and Maintenance operations
 	*clientv3.Client
 
-	ee *elasticetcd.ElasticEtcd
+	ee        *elasticetcd.ElasticEtcd
+	namespace string
 }
 
 // Init initializes the GD2 store
@@ -115,8 +117,19 @@ func (s *GDStore) Close() {
 
 // Destroy closes the store and deletes the store data dir
 func (s *GDStore) Destroy() {
+	if s.ee != nil {
+		s.Close()
+		os.RemoveAll(s.conf.Dir)
+		return
+	}
+
+	// remote store: delete the current namespace using un-namespaced
+	// client and then close the client.
+	_, err := s.Client.Delete(context.Background(), s.namespace, clientv3.WithPrefix())
+	if err != nil {
+		log.WithError(err).Error("failed to delete etcd namespace during remote store destroy")
+	}
 	s.Close()
-	os.RemoveAll(s.conf.Dir)
 }
 
 // UpdateEndpoints updates the configured endpoints and saves them
@@ -156,5 +169,5 @@ func newNamespacedStore(oc *clientv3.Client, conf *Config) (*GDStore, error) {
 		return nil, err
 	}
 
-	return &GDStore{*conf, kv, lease, watcher, session, oc, nil}, nil
+	return &GDStore{*conf, kv, lease, watcher, session, oc, nil, namespaceKey}, nil
 }
