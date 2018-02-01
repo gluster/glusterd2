@@ -84,7 +84,7 @@ var eventsWebhookListCmd = &cobra.Command{
 			log.WithFields(log.Fields{
 				"error": err.Error(),
 			}).Error("failed to get list of Webhooks")
-			failure("Failed to get list of registerd Webhooks", err, 1)
+			failure("Failed to get list of registered Webhooks", err, 1)
 		}
 
 		if len(webhooks) > 0 {

@@ -65,8 +65,5 @@ func registerAllValidations() error {
 	if err := registerValidation("afr", validateReplica); err != nil {
 		return err
 	}
-	if err := registerValidation("bit-rot", validateBitrot); err != nil {
-		return err
-	}
-	return nil
+	return registerValidation("bit-rot", validateBitrot)
 }

@@ -41,7 +41,7 @@ func globalHandler(ev *Event) {
 	}
 
 	// Putting event with a TTL so that we don't have stale events lingering in store
-	// Using a TTL of 10 seconds should allow all members in the cluster to recieve event
+	// Using a TTL of 10 seconds should allow all members in the cluster to receive event
 	// TODO: Allow timeout to be customizable
 	l, err := store.Store.Grant(store.Store.Ctx(), 10)
 	if err != nil {
