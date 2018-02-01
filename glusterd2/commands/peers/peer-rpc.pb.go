@@ -55,6 +55,7 @@ func (m *StoreConfig) GetEndpoints() []string {
 type JoinReq struct {
 	PeerID    string       `protobuf:"bytes,1,opt,name=PeerID" json:"PeerID,omitempty"`
 	ClusterID string       `protobuf:"bytes,2,opt,name=ClusterID" json:"ClusterID,omitempty"`
+        Group     int32        `protobuf:"varint,8,opt,name=Group" json:"group,omitempty"`
 	Config    *StoreConfig `protobuf:"bytes,3,opt,name=Config" json:"Config,omitempty"`
 }
 
