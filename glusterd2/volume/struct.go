@@ -153,7 +153,7 @@ func NewBrickEntries(bricks []api.BrickReq, volName string, volID uuid.UUID) ([]
 
 		binfo.NodeID = u
 		// TODO: Have a better way to select peer address here
-		binfo.Hostname, _, _ = net.SplitHostPort(p.Addresses[0])
+		binfo.Hostname, _, _ = net.SplitHostPort(p.PeerAddresses[0])
 
 		binfo.Path, e = absFilePath(b.Path)
 		if e != nil {

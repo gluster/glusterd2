@@ -4,10 +4,11 @@ import "github.com/pborman/uuid"
 
 // Peer represents a peer in the glusterd2 cluster
 type Peer struct {
-	ID        uuid.UUID `json:"id"`
-	Name      string    `json:"name"`
-	Addresses []string  `json:"addresses"`
-	Online    bool      `json:"online"`
+	ID              uuid.UUID `json:"id"`
+	Name            string    `json:"name"`
+	PeerAddresses   []string  `json:"peer-addresses"`
+	ClientAddresses []string  `json:"client-addresses"`
+	Online          bool      `json:"online"`
 }
 
 // PeerAddReq represents an incoming request to add a peer to the cluster

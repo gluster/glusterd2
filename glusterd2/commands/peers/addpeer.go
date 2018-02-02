@@ -95,8 +95,9 @@ func addPeerHandler(w http.ResponseWriter, r *http.Request) {
 
 func createPeerAddResp(p *peer.Peer) *api.PeerAddResp {
 	return &api.PeerAddResp{
-		ID:        p.ID,
-		Name:      p.Name,
-		Addresses: p.Addresses,
+		ID:              p.ID,
+		Name:            p.Name,
+		PeerAddresses:   p.PeerAddresses,
+		ClientAddresses: p.ClientAddresses,
 	}
 }
