@@ -7,9 +7,10 @@ import (
 
 // Peer reperesents a GlusterD
 type Peer struct {
-	ID        uuid.UUID
-	Name      string
-	Addresses []string
+	ID              uuid.UUID
+	Name            string
+	PeerAddresses   []string
+	ClientAddresses []string
 }
 
 // ETCDConfig represents the structure which holds the ETCD env variables &
