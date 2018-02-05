@@ -26,6 +26,14 @@ func unmarshalVolCreateRequest(msg *api.VolCreateReq, r *http.Request) (int, err
 		return http.StatusBadRequest, gderrors.ErrEmptyVolName
 	}
 
+	if len(msg.Subvols) == 0 && len(msg.Bricks) == 0 {
+		return http.StatusBadRequest, gderrors.ErrEmptyBrickList
+	}
+
+	if len(msg.Bricks) > 0 {
+		return 0, nil
+	}
+
 	if len(msg.Subvols) <= 0 {
 		return http.StatusBadRequest, gderrors.ErrEmptyBrickList
 	}
@@ -199,6 +207,65 @@ func registerVolCreateStepFuncs() {
 	}
 }
 
+func prepareSubvolsFromVolCreateReq(req *api.VolCreateReq) error {
+	if len(req.Bricks) == 0 {
+		// Subvols are specified in Request, No changes required
+		return nil
+	}
+
+	// Find Number of sub volumes
+	// TODO: Check disperse calc
+	numSubvols := 1
+	if req.ReplicaCount > 0 {
+		numSubvols = len(req.Bricks) / req.ReplicaCount
+	} else if req.DisperseCount > 0 {
+		numSubvols = len(req.Bricks) / req.DisperseCount
+	}
+
+	subvoltype := "distribute"
+	replicacount := 0
+	dispersecount := 0
+	dispersedata := 0
+	disperseredundancy := 0
+	arbitercount := 0
+
+	if req.ReplicaCount > 0 {
+		subvoltype = "replicate"
+		replicacount = req.ReplicaCount
+		arbitercount = req.ArbiterCount
+	} else if req.DisperseCount > 0 {
+		subvoltype = "disperse"
+		dispersecount = req.DisperseCount
+		dispersedata = req.DisperseData
+		disperseredundancy = req.DisperseRedundancy
+	}
+
+	bricks := make([]api.BrickReq, len(req.Bricks))
+	for i, b := range req.Bricks {
+		// TODO: Handle Arbiter flag
+		parts := strings.Split(b, ":")
+		if len(parts) != 2 {
+			return errors.New("Invalid Brick details")
+		}
+		bricks[i] = api.BrickReq{NodeID: parts[0], Path: parts[1]}
+	}
+
+	req.Subvols = make([]api.SubvolReq, numSubvols)
+	for i := 0; i < numSubvols; i++ {
+		req.Subvols[i] = api.SubvolReq{
+			Type:               subvoltype,
+			ReplicaCount:       replicacount,
+			Bricks:             bricks, // Index here
+			ArbiterCount:       arbitercount,
+			DisperseCount:      dispersecount,
+			DisperseData:       dispersedata,
+			DisperseRedundancy: disperseredundancy,
+		}
+	}
+
+	return nil
+}
+
 func volumeCreateHandler(w http.ResponseWriter, r *http.Request) {
 
 	ctx := r.Context()
@@ -215,6 +282,12 @@ func volumeCreateHandler(w http.ResponseWriter, r *http.Request) {
 	if volume.ExistsFunc(req.Name) {
 		restutils.SendHTTPError(ctx, w, http.StatusInternalServerError, gderrors.ErrVolExists.Error(), api.ErrCodeDefault)
 		return
+	}
+
+	err = prepareSubvolsFromVolCreateReq(req)
+	if err != nil {
+		logger.WithError(err).Error("could not prepare subvolumes list")
+		restutils.SendHTTPError(ctx, w, http.StatusInternalServerError, err.Error(), api.ErrCodeDefault)
 	}
 
 	nodes, err := nodesFromVolumeCreateReq(req)
