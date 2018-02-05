@@ -7,6 +7,7 @@ import (
 	"fmt"
 	"net/http"
 	"os/exec"
+	"path"
 
 	"github.com/gluster/glusterd2/glusterd2/gdctx"
 	restutils "github.com/gluster/glusterd2/glusterd2/servers/rest/utils"
@@ -19,62 +20,63 @@ import (
 	"github.com/gorilla/mux"
 	"github.com/pborman/uuid"
 	log "github.com/sirupsen/logrus"
+	config "github.com/spf13/viper"
 )
 
 // newGeorepSession creates new instance of GeorepSession
-func newGeorepSession(mastervolid uuid.UUID, slavevolid uuid.UUID, req georepapi.GeorepCreateReq) *georepapi.GeorepSession {
-	slaveUser := req.SlaveUser
-	if req.SlaveUser == "" {
-		slaveUser = "root"
+func newGeorepSession(mastervolid uuid.UUID, remotevolid uuid.UUID, req georepapi.GeorepCreateReq) *georepapi.GeorepSession {
+	remoteUser := req.RemoteUser
+	if req.RemoteUser == "" {
+		remoteUser = "root"
 	}
-	slavehosts := make([]georepapi.GeorepSlaveHost, len(req.SlaveHosts))
-	for idx, s := range req.SlaveHosts {
-		slavehosts[idx].NodeID = uuid.Parse(s.NodeID)
-		slavehosts[idx].Hostname = s.Hostname
+	remotehosts := make([]georepapi.GeorepRemoteHost, len(req.RemoteHosts))
+	for idx, s := range req.RemoteHosts {
+		remotehosts[idx].NodeID = uuid.Parse(s.NodeID)
+		remotehosts[idx].Hostname = s.Hostname
 	}
 
 	return &georepapi.GeorepSession{
-		MasterID:   mastervolid,
-		SlaveID:    slavevolid,
-		MasterVol:  req.MasterVol,
-		SlaveVol:   req.SlaveVol,
-		SlaveHosts: slavehosts,
-		SlaveUser:  slaveUser,
-		Status:     georepapi.GeorepStatusCreated,
-		Workers:    []georepapi.GeorepWorker{},
-		Options:    make(map[string]string),
+		MasterID:    mastervolid,
+		RemoteID:    remotevolid,
+		MasterVol:   req.MasterVol,
+		RemoteVol:   req.RemoteVol,
+		RemoteHosts: remotehosts,
+		RemoteUser:  remoteUser,
+		Status:      georepapi.GeorepStatusCreated,
+		Workers:     []georepapi.GeorepWorker{},
+		Options:     make(map[string]string),
 	}
 }
 
-func validateMasterAndSlaveIDFormat(ctx context.Context, w http.ResponseWriter, masteridRaw string, slaveidRaw string) (uuid.UUID, uuid.UUID, error) {
-	// Validate UUID format of Master and Slave Volume ID
+func validateMasterAndRemoteIDFormat(ctx context.Context, w http.ResponseWriter, masteridRaw string, remoteidRaw string) (uuid.UUID, uuid.UUID, error) {
+	// Validate UUID format of Master and Remote Volume ID
 	masterid := uuid.Parse(masteridRaw)
 	if masterid == nil {
 		restutils.SendHTTPError(ctx, w, http.StatusBadRequest, "Invalid Master Volume ID", api.ErrCodeDefault)
 		return nil, nil, errs.New("Invalid Master Volume ID")
 	}
 
-	// Validate UUID format of Slave Volume ID
-	slaveid := uuid.Parse(slaveidRaw)
-	if slaveid == nil {
-		restutils.SendHTTPError(ctx, w, http.StatusBadRequest, "Invalid Slave Volume ID", api.ErrCodeDefault)
-		return nil, nil, errs.New("Invalid Slave Volume ID")
+	// Validate UUID format of Remote Volume ID
+	remoteid := uuid.Parse(remoteidRaw)
+	if remoteid == nil {
+		restutils.SendHTTPError(ctx, w, http.StatusBadRequest, "Invalid Remote Volume ID", api.ErrCodeDefault)
+		return nil, nil, errs.New("Invalid Remote Volume ID")
 	}
 
-	return masterid, slaveid, nil
+	return masterid, remoteid, nil
 }
 
 func georepCreateHandler(w http.ResponseWriter, r *http.Request) {
 	// Collect inputs from URL
 	p := mux.Vars(r)
 	masteridRaw := p["mastervolid"]
-	slaveidRaw := p["slavevolid"]
+	remoteidRaw := p["remotevolid"]
 
 	ctx := r.Context()
 	logger := gdctx.GetReqLogger(ctx)
 
-	// Validate UUID format of Master and Slave Volume ID
-	masterid, slaveid, err := validateMasterAndSlaveIDFormat(ctx, w, masteridRaw, slaveidRaw)
+	// Validate UUID format of Master and Remote Volume ID
+	masterid, remoteid, err := validateMasterAndRemoteIDFormat(ctx, w, masteridRaw, remoteidRaw)
 	if err != nil {
 		return
 	}
@@ -86,19 +88,19 @@ func georepCreateHandler(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	// Required fields are MasterVol, SlaveHosts and SlaveVol
+	// Required fields are MasterVol, RemoteHosts and RemoteVol
 	if req.MasterVol == "" {
 		restutils.SendHTTPError(ctx, w, http.StatusBadRequest, "Master volume name is required field", api.ErrCodeDefault)
 		return
 	}
 
-	if len(req.SlaveHosts) == 0 {
-		restutils.SendHTTPError(ctx, w, http.StatusBadRequest, "Atleast one Slave host is required", api.ErrCodeDefault)
+	if len(req.RemoteHosts) == 0 {
+		restutils.SendHTTPError(ctx, w, http.StatusBadRequest, "Atleast one Remote host is required", api.ErrCodeDefault)
 		return
 	}
 
-	if req.SlaveVol == "" {
-		restutils.SendHTTPError(ctx, w, http.StatusBadRequest, "Slave volume name is required field", api.ErrCodeDefault)
+	if req.RemoteVol == "" {
+		restutils.SendHTTPError(ctx, w, http.StatusBadRequest, "Remote volume name is required field", api.ErrCodeDefault)
 		return
 	}
 
@@ -117,20 +119,34 @@ func georepCreateHandler(w http.ResponseWriter, r *http.Request) {
 
 	// Fetch existing session details from Store, if same
 	// session exists then return error
-	geoSession, err := getSession(masterid.String(), slaveid.String())
+	sessionExists := false
+	geoSession, err := getSession(masterid.String(), remoteid.String())
 	if err == nil {
-		restutils.SendHTTPError(ctx, w, http.StatusConflict, "Session already exists", api.ErrCodeDefault)
-		return
+		sessionExists = true
+		if !req.Force {
+			restutils.SendHTTPError(ctx, w, http.StatusConflict, "Session already exists", api.ErrCodeDefault)
+			return
+		}
 	}
 
 	// Continue only if NotFound error, return if other errors like
 	// error while fetching from store or JSON marshal errors
-	if _, ok := err.(*ErrGeorepSessionNotFound); !ok {
-		restutils.SendHTTPError(ctx, w, http.StatusInternalServerError, err.Error(), api.ErrCodeDefault)
-		return
+	if err != nil {
+		if _, ok := err.(*ErrGeorepSessionNotFound); !ok {
+			restutils.SendHTTPError(ctx, w, http.StatusInternalServerError, err.Error(), api.ErrCodeDefault)
+			return
+		}
 	}
 
-	geoSession = newGeorepSession(masterid, slaveid, req)
+	// Initialize only if New Session
+	if !sessionExists {
+		geoSession = newGeorepSession(masterid, remoteid, req)
+
+		// Set Required Geo-rep Configurations
+		geoSession.Options["gluster-rundir"] = path.Join(config.GetString("rundir"), "gluster")
+		geoSession.Options["glusterd-workdir"] = config.GetString("localstatedir")
+		geoSession.Options["gluster-logdir"] = path.Join(config.GetString("logdir"), "glusterfs")
+	}
 
 	// Transaction which updates the Geo-rep session
 	txn := transaction.NewTxn(ctx)
@@ -178,7 +194,7 @@ func georepCreateHandler(w http.ResponseWriter, r *http.Request) {
 		logger.WithFields(log.Fields{
 			"error":       e.Error(),
 			"mastervolid": masterid,
-			"slavevolid":  slaveid,
+			"remotevolid": remoteid,
 		}).Error("failed to create geo-replication session")
 		restutils.SendHTTPError(ctx, w, http.StatusInternalServerError, e.Error(), api.ErrCodeDefault)
 		return
@@ -191,19 +207,26 @@ func georepActionHandler(w http.ResponseWriter, r *http.Request, action actionTy
 	// Collect inputs from URL
 	p := mux.Vars(r)
 	masteridRaw := p["mastervolid"]
-	slaveidRaw := p["slavevolid"]
+	remoteidRaw := p["remotevolid"]
 
 	ctx := r.Context()
 	logger := gdctx.GetReqLogger(ctx)
 
-	// Validate UUID format of Master and Slave Volume ID
-	masterid, slaveid, err := validateMasterAndSlaveIDFormat(ctx, w, masteridRaw, slaveidRaw)
+	// Validate UUID format of Master and Remote Volume ID
+	masterid, remoteid, err := validateMasterAndRemoteIDFormat(ctx, w, masteridRaw, remoteidRaw)
 	if err != nil {
 		return
 	}
 
+	// Parse the JSON body to get additional details of request
+	var req georepapi.GeorepCommandsReq
+	if err := restutils.UnmarshalRequest(r, &req); err != nil {
+		restutils.SendHTTPError(ctx, w, http.StatusUnprocessableEntity, errors.ErrJSONParsingFailed.Error(), api.ErrCodeDefault)
+		return
+	}
+
 	// Fetch existing session details from Store, error if not exists
-	geoSession, err := getSession(masterid.String(), slaveid.String())
+	geoSession, err := getSession(masterid.String(), remoteid.String())
 	if err != nil {
 		if _, ok := err.(*ErrGeorepSessionNotFound); !ok {
 			restutils.SendHTTPError(ctx, w, http.StatusInternalServerError, err.Error(), api.ErrCodeDefault)
@@ -213,22 +236,22 @@ func georepActionHandler(w http.ResponseWriter, r *http.Request, action actionTy
 		return
 	}
 
-	if action == actionStart && geoSession.Status == georepapi.GeorepStatusStarted {
+	if action == actionStart && geoSession.Status == georepapi.GeorepStatusStarted && !req.Force {
 		restutils.SendHTTPError(ctx, w, http.StatusConflict, "session already started", api.ErrCodeDefault)
 		return
 	}
 
-	if action == actionStop && geoSession.Status == georepapi.GeorepStatusStopped {
+	if action == actionStop && geoSession.Status == georepapi.GeorepStatusStopped && !req.Force {
 		restutils.SendHTTPError(ctx, w, http.StatusConflict, "session already stopped", api.ErrCodeDefault)
 		return
 	}
 
-	if action == actionPause && geoSession.Status != georepapi.GeorepStatusStarted {
+	if action == actionPause && geoSession.Status != georepapi.GeorepStatusStarted && !req.Force {
 		restutils.SendHTTPError(ctx, w, http.StatusConflict, "session is not in started state", api.ErrCodeDefault)
 		return
 	}
 
-	if action == actionResume && geoSession.Status != georepapi.GeorepStatusPaused {
+	if action == actionResume && geoSession.Status != georepapi.GeorepStatusPaused && !req.Force {
 		restutils.SendHTTPError(ctx, w, http.StatusConflict, "session not in paused state", api.ErrCodeDefault)
 		return
 	}
@@ -283,14 +306,14 @@ func georepActionHandler(w http.ResponseWriter, r *http.Request, action actionTy
 		unlock,
 	}
 	txn.Ctx.Set("mastervolid", masterid.String())
-	txn.Ctx.Set("slavevolid", slaveid.String())
+	txn.Ctx.Set("remotevolid", remoteid.String())
 
 	err = txn.Do()
 	if err != nil {
 		logger.WithFields(log.Fields{
 			"error":       err.Error(),
 			"mastervolid": masterid,
-			"slavevolid":  slaveid,
+			"remotevolid": remoteid,
 		}).Error("failed to " + action.String() + " geo-replication session")
 		restutils.SendHTTPError(ctx, w, http.StatusInternalServerError, err.Error(), api.ErrCodeDefault)
 		return
@@ -327,19 +350,19 @@ func georepDeleteHandler(w http.ResponseWriter, r *http.Request) {
 	// Collect inputs from URL
 	p := mux.Vars(r)
 	masteridRaw := p["mastervolid"]
-	slaveidRaw := p["slavevolid"]
+	remoteidRaw := p["remotevolid"]
 
 	ctx := r.Context()
 	logger := gdctx.GetReqLogger(ctx)
 
-	// Validate UUID format of Master and Slave Volume ID
-	masterid, slaveid, err := validateMasterAndSlaveIDFormat(ctx, w, masteridRaw, slaveidRaw)
+	// Validate UUID format of Master and Remote Volume ID
+	masterid, remoteid, err := validateMasterAndRemoteIDFormat(ctx, w, masteridRaw, remoteidRaw)
 	if err != nil {
 		return
 	}
 
 	// Fetch existing session details from Store, error if not exists
-	geoSession, err := getSession(masterid.String(), slaveid.String())
+	geoSession, err := getSession(masterid.String(), remoteid.String())
 	if err != nil {
 		if _, ok := err.(*ErrGeorepSessionNotFound); !ok {
 			restutils.SendHTTPError(ctx, w, http.StatusInternalServerError, err.Error(), api.ErrCodeDefault)
@@ -375,14 +398,14 @@ func georepDeleteHandler(w http.ResponseWriter, r *http.Request) {
 		unlock,
 	}
 	txn.Ctx.Set("mastervolid", masterid.String())
-	txn.Ctx.Set("slavevolid", slaveid.String())
+	txn.Ctx.Set("remotevolid", remoteid.String())
 
 	err = txn.Do()
 	if err != nil {
 		logger.WithFields(log.Fields{
 			"error":       e.Error(),
 			"mastervolid": masterid,
-			"slavevolid":  slaveid,
+			"remotevolid": remoteid,
 		}).Error("failed to delete geo-replication session")
 		restutils.SendHTTPError(ctx, w, http.StatusInternalServerError, e.Error(), api.ErrCodeDefault)
 		return
@@ -395,18 +418,18 @@ func georepStatusHandler(w http.ResponseWriter, r *http.Request) {
 	// Collect inputs from URL
 	p := mux.Vars(r)
 	masteridRaw := p["mastervolid"]
-	slaveidRaw := p["slavevolid"]
+	remoteidRaw := p["remotevolid"]
 
 	ctx := r.Context()
 	logger := gdctx.GetReqLogger(ctx)
 
-	// Validate UUID format of Master and Slave Volume ID
-	masterid, slaveid, err := validateMasterAndSlaveIDFormat(ctx, w, masteridRaw, slaveidRaw)
+	// Validate UUID format of Master and Remote Volume ID
+	masterid, remoteid, err := validateMasterAndRemoteIDFormat(ctx, w, masteridRaw, remoteidRaw)
 	if err != nil {
 		return
 	}
 
-	geoSession, err := getSession(masterid.String(), slaveid.String())
+	geoSession, err := getSession(masterid.String(), remoteid.String())
 	if err != nil {
 		if _, ok := err.(*ErrGeorepSessionNotFound); !ok {
 			restutils.SendHTTPError(ctx, w, http.StatusInternalServerError, err.Error(), api.ErrCodeDefault)
@@ -443,7 +466,7 @@ func georepStatusHandler(w http.ResponseWriter, r *http.Request) {
 	}
 
 	txn.Ctx.Set("mastervolid", masterid.String())
-	txn.Ctx.Set("slavevolid", slaveid.String())
+	txn.Ctx.Set("remotevolid", remoteid.String())
 
 	e = txn.Do()
 	if e != nil {
@@ -452,7 +475,7 @@ func georepStatusHandler(w http.ResponseWriter, r *http.Request) {
 		logger.WithFields(log.Fields{
 			"error":       e.Error(),
 			"mastervolid": masterid,
-			"slavevolid":  slaveid,
+			"remotevolid": remoteid,
 		}).Error("failed to get status of geo-replication session")
 		restutils.SendHTTPError(ctx, w, http.StatusInternalServerError, e.Error(), api.ErrCodeDefault)
 		return
@@ -471,7 +494,7 @@ func georepStatusHandler(w http.ResponseWriter, r *http.Request) {
 		// Set default values to all status fields, If a node or worker is down and
 		// status not available these default values will be sent back in response
 		geoSession.Workers = append(geoSession.Workers, georepapi.GeorepWorker{
-			MasterNode:                 "",
+			MasterNode:                 b.Hostname,
 			MasterNodeID:               b.NodeID.String(),
 			MasterBrickPath:            b.Path,
 			MasterBrick:                b.NodeID.String() + ":" + b.Path,
@@ -479,7 +502,7 @@ func georepStatusHandler(w http.ResponseWriter, r *http.Request) {
 			LastSyncedTime:             "N/A",
 			LastSyncedTimeUTC:          "N/A",
 			LastEntrySyncedTime:        "N/A",
-			SlaveNode:                  "N/A",
+			RemoteNode:                 "N/A",
 			CheckpointTime:             "N/A",
 			CheckpointTimeUTC:          "N/A",
 			CheckpointCompleted:        "N/A",
@@ -502,7 +525,7 @@ func georepStatusHandler(w http.ResponseWriter, r *http.Request) {
 		geoSession.Workers[idx].LastSyncedTime = statusData.LastSyncedTime
 		geoSession.Workers[idx].LastSyncedTimeUTC = statusData.LastSyncedTimeUTC
 		geoSession.Workers[idx].LastEntrySyncedTime = statusData.LastEntrySyncedTime
-		geoSession.Workers[idx].SlaveNode = statusData.SlaveNode
+		geoSession.Workers[idx].RemoteNode = statusData.RemoteNode
 		geoSession.Workers[idx].CheckpointTime = statusData.CheckpointTime
 		geoSession.Workers[idx].CheckpointTimeUTC = statusData.CheckpointTimeUTC
 		geoSession.Workers[idx].CheckpointCompleted = statusData.CheckpointCompleted
@@ -540,19 +563,19 @@ func checkConfig(name string, value string) error {
 func georepConfigGetHandler(w http.ResponseWriter, r *http.Request) {
 	p := mux.Vars(r)
 	masteridRaw := p["mastervolid"]
-	slaveidRaw := p["slavevolid"]
+	remoteidRaw := p["remotevolid"]
 
 	ctx := r.Context()
 	logger := gdctx.GetReqLogger(ctx)
 
-	// Validate UUID format of Master and Slave Volume ID
-	masterid, slaveid, err := validateMasterAndSlaveIDFormat(ctx, w, masteridRaw, slaveidRaw)
+	// Validate UUID format of Master and Remote Volume ID
+	masterid, remoteid, err := validateMasterAndRemoteIDFormat(ctx, w, masteridRaw, remoteidRaw)
 	if err != nil {
 		return
 	}
 
 	// Fetch existing session details from Store, error if not exists
-	geoSession, err := getSession(masterid.String(), slaveid.String())
+	geoSession, err := getSession(masterid.String(), remoteid.String())
 	if err != nil {
 		if _, ok := err.(*ErrGeorepSessionNotFound); !ok {
 			restutils.SendHTTPError(ctx, w, http.StatusInternalServerError, err.Error(), api.ErrCodeDefault)
@@ -566,7 +589,7 @@ func georepConfigGetHandler(w http.ResponseWriter, r *http.Request) {
 	args := []string{
 		"config-get",
 		geoSession.MasterVol,
-		fmt.Sprintf("%s@%s::%s", geoSession.SlaveUser, geoSession.SlaveHosts[0], geoSession.SlaveVol),
+		fmt.Sprintf("%s@%s::%s", geoSession.RemoteUser, geoSession.RemoteHosts[0], geoSession.RemoteVol),
 		"--show-defaults",
 		"--json",
 	}
@@ -575,7 +598,7 @@ func georepConfigGetHandler(w http.ResponseWriter, r *http.Request) {
 		logger.WithFields(log.Fields{
 			"error":       err.Error(),
 			"mastervolid": masterid,
-			"slavevolid":  slaveid,
+			"remotevolid": remoteid,
 		}).Error("failed to get session configurations")
 		restutils.SendHTTPError(ctx, w, http.StatusBadRequest, "Failed to get session configurations", api.ErrCodeDefault)
 		return
@@ -586,7 +609,7 @@ func georepConfigGetHandler(w http.ResponseWriter, r *http.Request) {
 		logger.WithFields(log.Fields{
 			"error":       err.Error(),
 			"mastervolid": masterid,
-			"slavevolid":  slaveid,
+			"remotevolid": remoteid,
 		}).Error("failed to parse configurations")
 		restutils.SendHTTPError(ctx, w, http.StatusBadRequest, "Failed to parse configurations", api.ErrCodeDefault)
 		return
@@ -620,13 +643,13 @@ func georepConfigGetHandler(w http.ResponseWriter, r *http.Request) {
 func georepConfigSetHandler(w http.ResponseWriter, r *http.Request) {
 	p := mux.Vars(r)
 	masteridRaw := p["mastervolid"]
-	slaveidRaw := p["slavevolid"]
+	remoteidRaw := p["remotevolid"]
 
 	ctx := r.Context()
 	logger := gdctx.GetReqLogger(ctx)
 
-	// Validate UUID format of Master and Slave Volume ID
-	masterid, slaveid, err := validateMasterAndSlaveIDFormat(ctx, w, masteridRaw, slaveidRaw)
+	// Validate UUID format of Master and Remote Volume ID
+	masterid, remoteid, err := validateMasterAndRemoteIDFormat(ctx, w, masteridRaw, remoteidRaw)
 	if err != nil {
 		return
 	}
@@ -639,7 +662,7 @@ func georepConfigSetHandler(w http.ResponseWriter, r *http.Request) {
 	}
 
 	// Fetch existing session details from Store, error if not exists
-	geoSession, err := getSession(masterid.String(), slaveid.String())
+	geoSession, err := getSession(masterid.String(), remoteid.String())
 	if err != nil {
 		// Continue only if NotFound error, return if other errors like
 		// error while fetching from store or JSON marshal errors
@@ -713,7 +736,7 @@ func georepConfigSetHandler(w http.ResponseWriter, r *http.Request) {
 	}
 
 	txn.Ctx.Set("mastervolid", masterid.String())
-	txn.Ctx.Set("slavevolid", slaveid.String())
+	txn.Ctx.Set("remotevolid", remoteid.String())
 	txn.Ctx.Set("session", geoSession)
 	txn.Ctx.Set("restartRequired", restartRequired)
 
@@ -722,7 +745,7 @@ func georepConfigSetHandler(w http.ResponseWriter, r *http.Request) {
 		logger.WithFields(log.Fields{
 			"error":       e.Error(),
 			"mastervolid": masterid,
-			"slavevolid":  slaveid,
+			"remotevolid": remoteid,
 		}).Error("failed to update geo-replication session config")
 		restutils.SendHTTPError(ctx, w, http.StatusInternalServerError, e.Error(), api.ErrCodeDefault)
 		return
@@ -734,13 +757,13 @@ func georepConfigSetHandler(w http.ResponseWriter, r *http.Request) {
 func georepConfigResetHandler(w http.ResponseWriter, r *http.Request) {
 	p := mux.Vars(r)
 	masteridRaw := p["mastervolid"]
-	slaveidRaw := p["slavevolid"]
+	remoteidRaw := p["remotevolid"]
 
 	ctx := r.Context()
 	logger := gdctx.GetReqLogger(ctx)
 
-	// Validate UUID format of Master and Slave Volume ID
-	masterid, slaveid, err := validateMasterAndSlaveIDFormat(ctx, w, masteridRaw, slaveidRaw)
+	// Validate UUID format of Master and Remote Volume ID
+	masterid, remoteid, err := validateMasterAndRemoteIDFormat(ctx, w, masteridRaw, remoteidRaw)
 	if err != nil {
 		return
 	}
@@ -753,7 +776,7 @@ func georepConfigResetHandler(w http.ResponseWriter, r *http.Request) {
 	}
 
 	// Fetch existing session details from Store, error if not exists
-	geoSession, err := getSession(masterid.String(), slaveid.String())
+	geoSession, err := getSession(masterid.String(), remoteid.String())
 	if err != nil {
 		// Continue only if NotFound error, return if other errors like
 		// error while fetching from store or JSON marshal errors
@@ -822,7 +845,7 @@ func georepConfigResetHandler(w http.ResponseWriter, r *http.Request) {
 	}
 
 	txn.Ctx.Set("mastervolid", masterid.String())
-	txn.Ctx.Set("slavevolid", slaveid.String())
+	txn.Ctx.Set("remotevolid", remoteid.String())
 	txn.Ctx.Set("session", geoSession)
 	txn.Ctx.Set("restartRequired", restartRequired)
 
@@ -831,11 +854,163 @@ func georepConfigResetHandler(w http.ResponseWriter, r *http.Request) {
 		logger.WithFields(log.Fields{
 			"error":       e.Error(),
 			"mastervolid": masterid,
-			"slavevolid":  slaveid,
+			"remotevolid": remoteid,
 		}).Error("failed to update geo-replication session config")
 		restutils.SendHTTPError(ctx, w, http.StatusInternalServerError, e.Error(), api.ErrCodeDefault)
 		return
 	}
 
 	restutils.SendHTTPResponse(ctx, w, http.StatusOK, geoSession.Options)
+}
+
+func georepStatusListHandler(w http.ResponseWriter, r *http.Request) {
+	ctx := r.Context()
+
+	sessions, err := getSessionList()
+	if err != nil {
+		restutils.SendHTTPError(ctx, w, http.StatusInternalServerError, err.Error(), api.ErrCodeDefault)
+		return
+	}
+
+	restutils.SendHTTPResponse(ctx, w, http.StatusOK, sessions)
+}
+
+func georepSSHKeyGenerateHandler(w http.ResponseWriter, r *http.Request) {
+	// Collect inputs from URL
+	p := mux.Vars(r)
+	volname := p["volname"]
+
+	ctx := r.Context()
+	logger := gdctx.GetReqLogger(ctx)
+
+	// Check if Volume exists
+	vol, e := volume.GetVolume(volname)
+	if e != nil {
+		restutils.SendHTTPError(ctx, w, http.StatusNotFound, errors.ErrVolNotFound.Error(), api.ErrCodeDefault)
+		return
+	}
+
+	// Transaction which updates the Geo-rep session
+	txn := transaction.NewTxn(ctx)
+	defer txn.Cleanup()
+
+	// Lock on Master Volume name
+	lock, unlock, err := transaction.CreateLockSteps(volname)
+	if err != nil {
+		restutils.SendHTTPError(ctx, w, http.StatusInternalServerError, err.Error(), api.ErrCodeDefault)
+		return
+	}
+
+	txn.Nodes = vol.Nodes()
+	txn.Steps = []*transaction.Step{
+		lock,
+		{
+			DoFunc: "georeplication-ssh-keygen.Commit",
+			Nodes:  txn.Nodes,
+		},
+		unlock,
+	}
+
+	txn.Ctx.Set("volname", volname)
+
+	err = txn.Do()
+	if err != nil {
+		logger.WithFields(log.Fields{
+			"error":   err.Error(),
+			"volname": volname,
+		}).Error("failed to generate SSH Keys")
+		restutils.SendHTTPError(ctx, w, http.StatusInternalServerError, err.Error(), api.ErrCodeDefault)
+		return
+	}
+
+	sshkeys, err := getSSHPublicKeys(volname)
+	if err != nil {
+		restutils.SendHTTPError(ctx, w, http.StatusInternalServerError, err.Error(), api.ErrCodeDefault)
+		return
+	}
+
+	restutils.SendHTTPResponse(ctx, w, http.StatusCreated, sshkeys)
+}
+
+func georepSSHKeyGetHandler(w http.ResponseWriter, r *http.Request) {
+	// Collect inputs from URL
+	p := mux.Vars(r)
+	volname := p["volname"]
+
+	ctx := r.Context()
+	logger := gdctx.GetReqLogger(ctx)
+
+	sshkeys, err := getSSHPublicKeys(volname)
+	if err != nil {
+		logger.WithFields(log.Fields{
+			"error":   err.Error(),
+			"volname": volname,
+		}).Error("failed to get SSH public Keys")
+		restutils.SendHTTPError(ctx, w, http.StatusInternalServerError, err.Error(), api.ErrCodeDefault)
+		return
+	}
+
+	restutils.SendHTTPResponse(ctx, w, http.StatusOK, sshkeys)
+}
+
+func georepSSHKeyPushHandler(w http.ResponseWriter, r *http.Request) {
+	// Collect inputs from URL
+	p := mux.Vars(r)
+	volname := p["volname"]
+
+	// TODO: Handle non root user
+	user := "root"
+
+	ctx := r.Context()
+	logger := gdctx.GetReqLogger(ctx)
+
+	// Check if Volume exists
+	vol, e := volume.GetVolume(volname)
+	if e != nil {
+		restutils.SendHTTPError(ctx, w, http.StatusNotFound, errors.ErrVolNotFound.Error(), api.ErrCodeDefault)
+		return
+	}
+
+	// Parse the JSON body to get additional details of request
+	var sshkeys []georepapi.GeorepSSHPublicKey
+	if err := restutils.UnmarshalRequest(r, &sshkeys); err != nil {
+		restutils.SendHTTPError(ctx, w, http.StatusUnprocessableEntity, errors.ErrJSONParsingFailed.Error(), api.ErrCodeDefault)
+		return
+	}
+
+	// Transaction which updates the Geo-rep session
+	txn := transaction.NewTxn(ctx)
+	defer txn.Cleanup()
+
+	// Lock on Master Volume name
+	lock, unlock, err := transaction.CreateLockSteps(volname)
+	if err != nil {
+		restutils.SendHTTPError(ctx, w, http.StatusInternalServerError, err.Error(), api.ErrCodeDefault)
+		return
+	}
+
+	txn.Nodes = vol.Nodes()
+	txn.Steps = []*transaction.Step{
+		lock,
+		{
+			DoFunc: "georeplication-ssh-keypush.Commit",
+			Nodes:  txn.Nodes,
+		},
+		unlock,
+	}
+
+	txn.Ctx.Set("sshkeys", sshkeys)
+	txn.Ctx.Set("user", user)
+
+	err = txn.Do()
+	if err != nil {
+		logger.WithFields(log.Fields{
+			"error":   e.Error(),
+			"volname": volname,
+		}).Error("failed to push SSH Keys")
+		restutils.SendHTTPError(ctx, w, http.StatusInternalServerError, e.Error(), api.ErrCodeDefault)
+		return
+	}
+
+	restutils.SendHTTPResponse(ctx, w, http.StatusCreated, "SSH Keys added successfully")
 }

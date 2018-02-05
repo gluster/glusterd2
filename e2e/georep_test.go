@@ -66,8 +66,8 @@ func TestGeorepCreateDelete(t *testing.T) {
 
 	reqGeorep := georepapi.GeorepCreateReq{
 		MasterVol: volname1,
-		SlaveVol:  volname2,
-		SlaveHosts: []georepapi.GeorepSlaveHostReq{
+		RemoteVol: volname2,
+		RemoteHosts: []georepapi.GeorepRemoteHostReq{
 			{NodeID: gds[1].PeerID(), Hostname: gds[1].PeerAddress},
 		},
 	}
@@ -76,7 +76,7 @@ func TestGeorepCreateDelete(t *testing.T) {
 	r.Nil(err)
 
 	// delete geo-rep session
-	err = client.GeorepDelete(vol1.ID.String(), vol2.ID.String())
+	err = client.GeorepDelete(vol1.ID.String(), vol2.ID.String(), false)
 	r.Nil(err)
 
 	// delete volume

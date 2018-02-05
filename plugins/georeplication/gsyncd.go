@@ -41,7 +41,7 @@ func (g *Gsyncd) Args() string {
 	var buffer bytes.Buffer
 	buffer.WriteString(" monitor")
 	buffer.WriteString(fmt.Sprintf(" %s", g.sessioninfo.MasterVol))
-	buffer.WriteString(fmt.Sprintf(" %s@%s::%s", g.sessioninfo.SlaveUser, g.sessioninfo.SlaveHosts[0].Hostname, g.sessioninfo.SlaveVol))
+	buffer.WriteString(fmt.Sprintf(" %s@%s::%s", g.sessioninfo.RemoteUser, g.sessioninfo.RemoteHosts[0].Hostname, g.sessioninfo.RemoteVol))
 	buffer.WriteString(fmt.Sprintf(" --local-node-id %s", gdctx.MyUUID.String()))
 	buffer.WriteString(fmt.Sprintf(" -c %s", g.ConfigFile()))
 	buffer.WriteString(" --use-gconf-volinfo")
@@ -60,7 +60,7 @@ func (g *Gsyncd) ConfigFile() string {
 	g.configFilePath = path.Join(
 		config.GetString("localstatedir"),
 		"geo-replication",
-		fmt.Sprintf("%s_%s_%s", g.sessioninfo.MasterVol, g.sessioninfo.SlaveHosts[0].Hostname, g.sessioninfo.SlaveVol),
+		fmt.Sprintf("%s_%s_%s", g.sessioninfo.MasterVol, g.sessioninfo.RemoteHosts[0].Hostname, g.sessioninfo.RemoteVol),
 		"gsyncd.conf",
 	)
 	return g.configFilePath
@@ -79,7 +79,7 @@ func (g *Gsyncd) PidFile() string {
 	}
 
 	rundir := config.GetString("rundir")
-	pidfilename := fmt.Sprintf("gsyncd-%s-%s-%s.pid", g.sessioninfo.MasterVol, g.sessioninfo.SlaveHosts[0].Hostname, g.sessioninfo.SlaveVol)
+	pidfilename := fmt.Sprintf("gsyncd-%s-%s-%s.pid", g.sessioninfo.MasterVol, g.sessioninfo.RemoteHosts[0].Hostname, g.sessioninfo.RemoteVol)
 	g.pidfilepath = path.Join(rundir, "gluster", pidfilename)
 	return g.pidfilepath
 }
@@ -91,14 +91,14 @@ func newGsyncd(sessioninfo georepapi.GeorepSession) (*Gsyncd, error) {
 
 // ID returns the unique identifier of the gsyncd.
 func (g *Gsyncd) ID() string {
-	return g.sessioninfo.MasterID.String() + "-" + g.sessioninfo.SlaveID.String()
+	return g.sessioninfo.MasterID.String() + "-" + g.sessioninfo.RemoteID.String()
 }
 
 func (g *Gsyncd) statusArgs(localPath string) []string {
 	return []string{
 		"status",
 		g.sessioninfo.MasterVol,
-		fmt.Sprintf("%s@%s::%s", g.sessioninfo.SlaveUser, g.sessioninfo.SlaveHosts[0].Hostname, g.sessioninfo.SlaveVol),
+		fmt.Sprintf("%s@%s::%s", g.sessioninfo.RemoteUser, g.sessioninfo.RemoteHosts[0].Hostname, g.sessioninfo.RemoteVol),
 		"-c",
 		g.ConfigFile(),
 		"--local-path",
