@@ -31,9 +31,10 @@ func getPeerHandler(w http.ResponseWriter, r *http.Request) {
 
 func createPeerGetResp(p *peer.Peer) *api.PeerGetResp {
 	return &api.PeerGetResp{
-		ID:        p.ID,
-		Name:      p.Name,
-		Addresses: p.Addresses,
-		Online:    store.Store.IsNodeAlive(p.ID),
+		ID:              p.ID,
+		Name:            p.Name,
+		PeerAddresses:   p.PeerAddresses,
+		ClientAddresses: p.ClientAddresses,
+		Online:          store.Store.IsNodeAlive(p.ID),
 	}
 }
