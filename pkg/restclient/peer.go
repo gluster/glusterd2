@@ -32,7 +32,7 @@ func (c *Client) PeerDetach(host string) error {
 
 	// Find Peer ID using available information
 	for _, p := range peers {
-		for _, h := range p.Addresses {
+		for _, h := range p.PeerAddresses {
 			if h == host {
 				peerID = p.ID.String()
 				break

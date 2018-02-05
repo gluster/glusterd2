@@ -4,6 +4,7 @@ package plugin
 
 import (
 	"github.com/gluster/glusterd2/plugins/bitrot"
+	"github.com/gluster/glusterd2/plugins/events"
 	"github.com/gluster/glusterd2/plugins/georeplication"
 	"github.com/gluster/glusterd2/plugins/glustershd"
 	"github.com/gluster/glusterd2/plugins/hello"
@@ -16,5 +17,6 @@ var PluginsList = []GlusterdPlugin{
 	&georeplication.Plugin{},
 	&bitrot.Plugin{},
 	&quota.Plugin{},
+	&events.Plugin{},
 	&glustershd.Plugin{},
 }

@@ -65,6 +65,27 @@ func (p *Plugin) RestRoutes() route.Routes {
 			Pattern:     "/geo-replication/{mastervolid}/{slavevolid}",
 			Version:     1,
 			HandlerFunc: georepStatusHandler},
+		route.Route{
+			Name:        "GeoReplicationConfigGet",
+			Method:      "GET",
+			Pattern:     "/geo-replication/{mastervolid}/{slavevolid}/config",
+			Version:     1,
+			HandlerFunc: georepConfigGetHandler,
+		},
+		route.Route{
+			Name:        "GeoReplicationConfigSet",
+			Method:      "POST",
+			Pattern:     "/geo-replication/{mastervolid}/{slavevolid}/config",
+			Version:     1,
+			HandlerFunc: georepConfigSetHandler,
+		},
+		route.Route{
+			Name:        "GeoReplicationConfigReset",
+			Method:      "DELETE",
+			Pattern:     "/geo-replication/{mastervolid}/{slavevolid}/config",
+			Version:     1,
+			HandlerFunc: georepConfigResetHandler,
+		},
 	}
 }
 
@@ -78,4 +99,6 @@ func (p *Plugin) RegisterStepFuncs() {
 	transaction.RegisterStepFunc(txnGeorepPause, "georeplication-pause.Commit")
 	transaction.RegisterStepFunc(txnGeorepResume, "georeplication-resume.Commit")
 	transaction.RegisterStepFunc(txnGeorepStatus, "georeplication-status.Commit")
+	transaction.RegisterStepFunc(txnGeorepConfigSet, "georeplication-configset.Commit")
+	transaction.RegisterStepFunc(txnGeorepConfigFilegen, "georeplication-configfilegen.Commit")
 }

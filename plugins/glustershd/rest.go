@@ -16,11 +16,11 @@ import (
 )
 
 func isVolReplicate(vType volume.VolType) bool {
-	if vType != volume.Replicate && vType != volume.Disperse && vType != volume.DistReplicate && vType != volume.DistDisperse {
-		return false
+	if vType == volume.Replicate || vType == volume.Disperse || vType == volume.DistReplicate || vType == volume.DistDisperse {
+		return true
 	}
 
-	return true
+	return false
 }
 
 func glustershEnableHandler(w http.ResponseWriter, r *http.Request) {
@@ -37,11 +37,20 @@ func glustershEnableHandler(w http.ResponseWriter, r *http.Request) {
 		restutils.SendHTTPError(ctx, w, http.StatusNotFound, errors.ErrVolNotFound.Error(), api.ErrCodeDefault)
 		return
 	}
+	// Store initial volinfo before changing the HealFlag
+	tmp := *v
+	oldvolinfo := &tmp
 
 	// validate volume type
 	if !isVolReplicate(v.Type) {
 		restutils.SendHTTPError(ctx, w, http.StatusBadRequest, "Volume Type not supported", api.ErrCodeDefault)
 		return
+	}
+
+	if v.State != volume.VolStarted {
+		restutils.SendHTTPError(ctx, w, http.StatusBadRequest, "Volume should be in started state.", api.ErrCodeDefault)
+		return
+
 	}
 
 	// Transaction which starts self heal daemon on all nodes with atleast one brick.
@@ -61,11 +70,12 @@ func glustershEnableHandler(w http.ResponseWriter, r *http.Request) {
 	txn.Steps = []*transaction.Step{
 		lock,
 		{
-			DoFunc: "vol-option.UpdateVolinfo",
-			Nodes:  []uuid.UUID{gdctx.MyUUID},
+			DoFunc:   "vol-option.UpdateVolinfo",
+			Nodes:    []uuid.UUID{gdctx.MyUUID},
+			UndoFunc: "selfheald-undo",
 		},
 		{
-			DoFunc: "selfheal-start.Commit",
+			DoFunc: "selfheal-start",
 			Nodes:  txn.Nodes,
 		},
 		{
@@ -81,12 +91,15 @@ func glustershEnableHandler(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
+	if err := txn.Ctx.Set("oldvolinfo", oldvolinfo); err != nil {
+		logger.WithError(err).Error("failed to set volinfo in transaction context")
+		restutils.SendHTTPError(ctx, w, http.StatusInternalServerError, err.Error(), api.ErrCodeDefault)
+		return
+	}
+
 	err = txn.Do()
 	if err != nil {
-		logger.WithFields(log.Fields{
-			"error":   err.Error(),
-			"volname": volname,
-		}).Error("failed to start self heal daemon")
+		logger.WithError(err).Error("failed to start self heal daemon")
 		restutils.SendHTTPError(ctx, w, http.StatusInternalServerError, err.Error(), api.ErrCodeDefault)
 		return
 	}
@@ -107,6 +120,9 @@ func glustershDisableHandler(w http.ResponseWriter, r *http.Request) {
 		restutils.SendHTTPError(ctx, w, http.StatusNotFound, errors.ErrVolNotFound.Error(), api.ErrCodeDefault)
 		return
 	}
+	// Store initial volinfo before changing the HealFlag
+	tmp := *v
+	oldvolinfo := &tmp
 
 	// validate volume type
 	if !isVolReplicate(v.Type) {
@@ -132,12 +148,13 @@ func glustershDisableHandler(w http.ResponseWriter, r *http.Request) {
 	txn.Steps = []*transaction.Step{
 		lock,
 		{
-			DoFunc: "vol-option.UpdateVolinfo",
-			Nodes:  []uuid.UUID{gdctx.MyUUID},
+			DoFunc:   "vol-option.UpdateVolinfo",
+			Nodes:    []uuid.UUID{gdctx.MyUUID},
+			UndoFunc: "selfheald-undo",
 		},
 
 		{
-			DoFunc: "selfheal-stop.Commit",
+			DoFunc: "selfheal-stop",
 			Nodes:  txn.Nodes,
 		},
 		{
@@ -148,6 +165,12 @@ func glustershDisableHandler(w http.ResponseWriter, r *http.Request) {
 	}
 
 	if err := txn.Ctx.Set("volinfo", v); err != nil {
+		logger.WithError(err).Error("failed to set volinfo in transaction context")
+		restutils.SendHTTPError(ctx, w, http.StatusInternalServerError, err.Error(), api.ErrCodeDefault)
+		return
+	}
+
+	if err := txn.Ctx.Set("oldvolinfo", oldvolinfo); err != nil {
 		logger.WithError(err).Error("failed to set volinfo in transaction context")
 		restutils.SendHTTPError(ctx, w, http.StatusInternalServerError, err.Error(), api.ErrCodeDefault)
 		return

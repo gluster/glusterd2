@@ -25,6 +25,8 @@ GD2CONF_INSTALL = $(DESTDIR)$(SYSCONFDIR)/$(GD2)/$(GD2_CONF)
 GD2STATEDIR = $(LOCALSTATEDIR)/$(GD2)
 GD2LOGDIR = $(LOGDIR)/$(GD2)
 
+DEPENV ?=
+
 PLUGINS ?= yes
 
 .PHONY: all build check check-go check-reqs install vendor-update vendor-install verify release check-protoc $(GD2_BIN) $(GD2_BUILD) $(CLI_BIN) $(CLI_BUILD) cli $(GD2_CONF) gd2conf test dist dist-vendor
@@ -71,12 +73,12 @@ install:
 
 vendor-update:
 	@echo Updating vendored packages
-	@dep ensure -update
+	@$(DEPENV) dep ensure -update
 	@echo
 
 vendor-install:
 	@echo Installing vendored packages
-	@dep ensure
+	@$(DEPENV) dep ensure
 	@echo
 
 verify: check-reqs

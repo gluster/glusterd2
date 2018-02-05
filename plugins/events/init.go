@@ -1,8 +1,7 @@
-package glustershd
+package events
 
 import (
 	"github.com/gluster/glusterd2/glusterd2/servers/rest/route"
-	"github.com/gluster/glusterd2/glusterd2/transaction"
 	"github.com/prashanthpai/sunrpc"
 )
 
@@ -12,7 +11,7 @@ type Plugin struct {
 
 // Name returns name of plugin
 func (p *Plugin) Name() string {
-	return "glustershd"
+	return "events"
 }
 
 // SunRPCProgram returns sunrpc program to register with Glusterd
@@ -24,24 +23,28 @@ func (p *Plugin) SunRPCProgram() sunrpc.Program {
 func (p *Plugin) RestRoutes() route.Routes {
 	return route.Routes{
 		route.Route{
-			Name:        "GlustershEnable",
+			Name:        "WebhookAdd",
 			Method:      "POST",
-			Pattern:     "/volumes/{name}/heal/enable",
+			Pattern:     "/events/webhook",
 			Version:     1,
-			HandlerFunc: glustershEnableHandler},
+			HandlerFunc: webhookAddHandler},
 		route.Route{
-			Name:        "GlustershDisable",
-			Method:      "POST",
-			Pattern:     "/volumes/{name}/heal/disable",
+			Name:        "WebhookDelete",
+			Method:      "DELETE",
+			Pattern:     "/events/webhook",
 			Version:     1,
-			HandlerFunc: glustershDisableHandler},
+			HandlerFunc: webhookDeleteHandler},
+		route.Route{
+			Name:        "WebhookList",
+			Method:      "GET",
+			Pattern:     "/events/webhook",
+			Version:     1,
+			HandlerFunc: webhookListHandler},
 	}
 }
 
 // RegisterStepFuncs registers transaction step functions with
 // Glusterd Transaction framework
 func (p *Plugin) RegisterStepFuncs() {
-	transaction.RegisterStepFunc(txnSelfHealStart, "selfheal-start")
-	transaction.RegisterStepFunc(txnSelfHealdUndo, "selfheald-undo")
-	transaction.RegisterStepFunc(txnSelfHealStop, "selfheal-stop")
+	return
 }

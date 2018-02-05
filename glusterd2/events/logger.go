@@ -1,26 +1,61 @@
 package events
 
 import (
+	"bytes"
+	"encoding/json"
+	"io"
+	"os"
+	"path"
+
+	"github.com/gluster/glusterd2/pkg/logging"
 	log "github.com/sirupsen/logrus"
+
+	config "github.com/spf13/viper"
 )
 
-var lhID HandlerID
+const eventLogFileName = "events.log"
 
-// eventLogger logs all events being generated in the GD2 cluster
-// The events are logged in DEBUG level only.
-func eventLogger(e *Event) {
-	log.WithFields(log.Fields{
-		"event.id":   e.ID.String(),
-		"event.name": e.Name,
-	}).Debug("new event")
+var el *eventLogger
+
+type eventLogger struct {
+	hID HandlerID
+	wc  io.WriteCloser
 }
 
-// startEventLogger registers the eventLogger with the events framework
+func (l *eventLogger) Handle(e *Event) {
+
+	b := new(bytes.Buffer)
+	if err := json.NewEncoder(b).Encode(e); err != nil {
+		return
+	}
+
+	l.wc.Write(b.Bytes())
+}
+
+func (l *eventLogger) Events() []string {
+	return nil
+}
+
 func startEventLogger() {
-	lhID = Register(NewHandler(eventLogger))
+	filepath := path.Join(config.GetString(logging.DirFlag), eventLogFileName)
+	file, err := os.OpenFile(filepath, os.O_RDWR|os.O_CREATE|os.O_APPEND, 0666)
+	if err != nil {
+		log.WithError(err).WithField("file", filepath).Error("failed to open events log file")
+		return
+	}
+
+	l := new(eventLogger)
+	l.wc = file
+	l.hID = Register(l)
+
+	el = l
 }
 
-// stopEventLogger unregisters the eventLogger
 func stopEventLogger() {
-	Unregister(lhID)
+	if el == nil {
+		return
+	}
+	Unregister(el.hID)
+	el.wc.Close()
+	el = nil
 }

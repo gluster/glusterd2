@@ -17,15 +17,15 @@ func TestGlusterShd(t *testing.T) {
 	r.Nil(err)
 	defer teardownCluster(gds)
 
-	brickDir, err := ioutil.TempDir("", "TestShdEnable")
+	brickDir, err := ioutil.TempDir("", t.Name())
 	r.Nil(err)
 	defer os.RemoveAll(brickDir)
 
-	var brickPaths []string
+	var brickPaths [4]string
 	for i := 1; i <= 4; i++ {
 		brickPath, err := ioutil.TempDir(brickDir, "brick")
 		r.Nil(err)
-		brickPaths = append(brickPaths, brickPath)
+		brickPaths[i-1] = brickPath
 	}
 
 	client := initRestclient(gds[0].ClientAddress)
@@ -47,12 +47,15 @@ func TestGlusterShd(t *testing.T) {
 	vol1, err := client.VolumeCreate(reqVol)
 	r.Nil(err)
 
+	r.Nil(client.VolumeStart(vol1.Name), "volume start failed")
+
 	err = client.GlusterShdEnable(vol1.Name)
 	r.Nil(err)
 
 	err = client.GlusterShdDisable(vol1.Name)
 	r.Nil(err)
-
+	// Stop Volume
+	r.Nil(client.VolumeStop(vol1.Name), "Volume stop failed")
 	// delete volume
 	err = client.VolumeDelete(vol1.Name)
 	r.Nil(err)

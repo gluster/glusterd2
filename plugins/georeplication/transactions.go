@@ -3,7 +3,10 @@ package georeplication
 import (
 	"encoding/json"
 	"errors"
+	"fmt"
+	"io/ioutil"
 	"os/exec"
+	"strings"
 	"syscall"
 
 	"github.com/gluster/glusterd2/glusterd2/daemon"
@@ -54,7 +57,7 @@ func gsyncdAction(c transaction.TxnCtx, action actionType) error {
 	}
 	c.Logger().WithFields(log.Fields{
 		"master": sessioninfo.MasterVol,
-		"slave":  sessioninfo.SlaveHosts[0] + "::" + sessioninfo.SlaveVol,
+		"slave":  sessioninfo.SlaveHosts[0].Hostname + "::" + sessioninfo.SlaveVol,
 	}).Info(action.String() + " gsyncd monitor")
 
 	gsyncdDaemon, err := newGsyncd(*sessioninfo)
@@ -64,6 +67,10 @@ func gsyncdAction(c transaction.TxnCtx, action actionType) error {
 
 	switch action {
 	case actionStart:
+		err = configFileGenerate(sessioninfo)
+		if err != nil {
+			return err
+		}
 		err = daemon.Start(gsyncdDaemon, true)
 	case actionStop:
 		err = daemon.Stop(gsyncdDaemon, true)
@@ -102,7 +109,7 @@ func txnGeorepDelete(c transaction.TxnCtx) error {
 	if err := deleteSession(masterid, slaveid); err != nil {
 		c.Logger().WithError(err).WithFields(log.Fields{
 			"master": sessioninfo.MasterVol,
-			"slave":  sessioninfo.SlaveHosts[0] + "::" + sessioninfo.SlaveVol,
+			"slave":  sessioninfo.SlaveHosts[0].Hostname + "::" + sessioninfo.SlaveVol,
 		}).Debug("failed to delete Geo-replication info from store")
 		return err
 	}
@@ -189,4 +196,134 @@ func aggregateGsyncdStatus(ctx transaction.TxnCtx, nodes []uuid.UUID) (*map[stri
 	}
 
 	return &workersStatuses, nil
+}
+
+func txnGeorepConfigSet(c transaction.TxnCtx) error {
+	var masterid string
+	var slaveid string
+	var session georepapi.GeorepSession
+
+	if err := c.Get("mastervolid", &masterid); err != nil {
+		return err
+	}
+	if err := c.Get("slavevolid", &slaveid); err != nil {
+		return err
+	}
+
+	if err := c.Get("session", &session); err != nil {
+		return err
+	}
+
+	if err := addOrUpdateSession(&session); err != nil {
+		c.Logger().WithError(err).WithField(
+			"mastervolid", session.MasterID).WithField(
+			"slavevolid", session.SlaveID).Debug(
+			"failed to store Geo-replication info")
+		return err
+	}
+
+	return nil
+}
+
+func configFileGenerate(session *georepapi.GeorepSession) error {
+	confdata := []string{"[vars]"}
+	var err error
+
+	gsyncdDaemon, err := newGsyncd(*session)
+	if err != nil {
+		return err
+	}
+	path := gsyncdDaemon.ConfigFile()
+
+	vol, err := volume.GetVolume(session.MasterVol)
+	if err != nil {
+		return err
+	}
+
+	// Slave host and UUID details
+	var slave []string
+	for _, sh := range session.SlaveHosts {
+		slave = append(slave, sh.NodeID.String()+":"+sh.Hostname)
+	}
+	confdata = append(confdata,
+		fmt.Sprintf("slave-bricks=%s", strings.Join(slave, ",")),
+	)
+
+	// Master Bricks details
+	var master []string
+	for _, b := range vol.GetBricks() {
+		master = append(master, b.NodeID.String()+":"+b.Hostname+":"+b.Path)
+	}
+	confdata = append(confdata,
+		fmt.Sprintf("master-bricks=%s", strings.Join(master, ",")),
+	)
+
+	// Master Volume ID
+	confdata = append(confdata,
+		fmt.Sprintf("master-volume-id=%s", session.MasterID.String()),
+	)
+
+	// Slave Volume ID
+	confdata = append(confdata,
+		fmt.Sprintf("slave-volume-id=%s", session.SlaveID.String()),
+	)
+
+	// Master Replica Count
+	confdata = append(confdata,
+		fmt.Sprintf("master-replica-count=%d", vol.Subvols[0].ReplicaCount),
+	)
+
+	confdata = append(confdata,
+		fmt.Sprintf("master-disperse-count=%d", vol.Subvols[0].DisperseCount),
+	)
+
+	// Custom session configurations if any
+	for k, v := range session.Options {
+		confdata = append(confdata, k+"="+v)
+	}
+
+	return ioutil.WriteFile(path, []byte(strings.Join(confdata, "\n")), 0644)
+}
+
+func txnGeorepConfigFilegen(c transaction.TxnCtx) error {
+	var masterid string
+	var slaveid string
+	var session georepapi.GeorepSession
+	var restartRequired bool
+	var err error
+
+	if err = c.Get("mastervolid", &masterid); err != nil {
+		return err
+	}
+	if err = c.Get("slavevolid", &slaveid); err != nil {
+		return err
+	}
+
+	if err = c.Get("session", &session); err != nil {
+		return err
+	}
+
+	if err = c.Get("restartRequired", &restartRequired); err != nil {
+		return err
+	}
+
+	if restartRequired {
+		err = gsyncdAction(c, actionStop)
+		if err != nil {
+			return err
+		}
+		err = gsyncdAction(c, actionStart)
+		if err != nil {
+			return err
+		}
+	} else {
+		// Restart not required, Generate config file Gsynd will reload
+		// automatically if running
+		err = configFileGenerate(&session)
+		if err != nil {
+			return err
+		}
+	}
+
+	return nil
 }

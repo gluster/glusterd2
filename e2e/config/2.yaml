@@ -1,5 +1,5 @@
-workdir: "/usr/local/var/lib/glusterd2/"
-logfile: "/usr/local/var/log/glusterd2/glusterd2.log"
+workdir: "/tmp/gd2_func_test/w2"
+logfile: "w2.log"
 peeraddress: "127.0.0.1:23008"
 clientaddress: "127.0.0.1:23007"
 etcdcurls: "http://127.0.0.1:2379"
