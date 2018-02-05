@@ -37,6 +37,10 @@ const (
 	VkeyFeaturesBitrot = "bitrot-stub.bitrot"
 	// VkeyFeaturesScrub is the key which controls bit-rot.so to be scrubber/bitd
 	VkeyFeaturesScrub = "bit-rot.scrubber"
+	// VkeyScrubFrequency is the key for scrubber frequency
+	VkeyScrubFrequency = "bit-rot.scrub-freq"
+	// VkeyScrubThrottle is the key for controls scrubber throttle
+	VkeyScrubThrottle = "bit-rot.scrub-throttle"
 )
 
 var (
