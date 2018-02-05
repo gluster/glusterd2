@@ -11,6 +11,7 @@ type Peer struct {
 	Name            string
 	PeerAddresses   []string
 	ClientAddresses []string
+	MetaData        map[string]string
 }
 
 // ETCDConfig represents the structure which holds the ETCD env variables &
