@@ -1,12 +1,20 @@
 package bitrot
 
 import (
+	"strconv"
+
 	"github.com/gluster/glusterd2/glusterd2/brick"
 	"github.com/gluster/glusterd2/glusterd2/daemon"
+	"github.com/gluster/glusterd2/glusterd2/gdctx"
 	"github.com/gluster/glusterd2/glusterd2/servers/sunrpc/dict"
 	"github.com/gluster/glusterd2/glusterd2/transaction"
 	"github.com/gluster/glusterd2/glusterd2/volume"
+	"github.com/gluster/glusterd2/pkg/api"
 	log "github.com/sirupsen/logrus"
+)
+
+const (
+	scrubStatusTxnKey string = "scrubstatus"
 )
 
 // IsBitrotAffectedNode returns true if there are local bricks of volume on which bitrot is enabled
@@ -142,5 +150,78 @@ func txnBitrotScrubOndemand(c transaction.TxnCtx) error {
 		return err
 	}
 
+	return nil
+}
+
+func txnBitrotScrubStatus(c transaction.TxnCtx) error {
+
+	var volname string
+	if err := c.Get("volname", &volname); err != nil {
+		c.Logger().WithError(err).WithField(
+			"key", "volname").Error("failed to get value for key from context")
+		return err
+	}
+
+	scrubDaemon, err := newScrubd()
+	if err != nil {
+		return err
+	}
+
+	client, err := daemon.GetRPCClient(scrubDaemon)
+	if err != nil {
+		c.Logger().WithError(err).WithField(
+			"volume", volname).Error("failed to connect to scrubd")
+		return err
+	}
+
+	reqDict := make(map[string]string)
+	reqDict["scrub-value"] = "status"
+	req := &brick.GfBrickOpReq{
+		Name: volname,
+		Op:   int(brick.OpNodeBitrot),
+	}
+	req.Input, err = dict.Serialize(reqDict)
+	if err != nil {
+		c.Logger().WithError(err).WithField(
+			"volume", volname).Error("failed to serialize dict for scrub-value")
+	}
+	var rsp brick.GfBrickOpRsp
+	err = client.Call("Brick.OpNodeBitrot", req, &rsp)
+	if err != nil || rsp.OpRet != 0 {
+		c.Logger().WithError(err).WithField(
+			"volume", volname).Error("failed to send scrubstatus RPC")
+		return err
+	}
+
+	// Unserialize the resp dict for scrub status
+	rspDict, err := dict.Unserialize(rsp.Output)
+	if err != nil {
+		log.WithError(err).Error("dict unserialize failed")
+		return err
+	}
+
+	var scrubNodeInfo api.BitrotScrubNodeInfo
+	scrubNodeInfo.Node = gdctx.MyUUID.String()
+	scrubNodeInfo.ScrubRunning = rspDict["scrub-running"]
+	scrubNodeInfo.NumScrubbedFiles = rspDict["scrubbed-files"]
+	scrubNodeInfo.NumSkippedFiles = rspDict["unsigned-files"]
+	scrubNodeInfo.LastScrubCompletedTime = rspDict["last-scrub-time"]
+	scrubNodeInfo.LastScrubDuration = rspDict["scrub-duration"]
+	scrubNodeInfo.ErrorCount = rspDict["total-count"]
+
+	// Fill CorruptedObjects
+	count, err := strconv.Atoi(scrubNodeInfo.ErrorCount)
+	if err != nil {
+		log.WithError(err).Error("strconv of total-count failed")
+		return err
+	}
+	for i := 0; i < count; i++ {
+		countStr := strconv.Itoa(i)
+		scrubNodeInfo.CorruptedObjects = append(scrubNodeInfo.CorruptedObjects, rspDict["quarantine-"+countStr])
+	}
+
+	// Store the results in transaction context. This will be consumed by
+	// the node that initiated the transaction.
+	c.SetNodeResult(gdctx.MyUUID, scrubStatusTxnKey, scrubNodeInfo)
 	return nil
 }

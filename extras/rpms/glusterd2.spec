@@ -10,20 +10,20 @@
 %global gd2make %{__make} PREFIX=%{_prefix} EXEC_PREFIX=%{_exec_prefix} BINDIR=%{_bindir} SBINDIR=%{_sbindir} DATADIR=%{_datadir} LOCALSTATEDIR=%{_sharedstatedir} LOGDIR=%{_localstatedir}/log SYSCONFDIR=%{_sysconfdir}
 
 Name: %{repo}
-Version: 4.0dev
-Release: 10
+Version: 4.0rc0
+Release: 1
 Summary: The GlusterFS management daemon (preview)
 License: GPLv2 or LGPLv3+
 URL: https://%{provider_prefix}
 # Use vendored tarball instead of plain git archive
 Source0: https://%{provider_prefix}/releases/download/v%{version}-%{release}/%{name}-v%{version}-%{release}-vendor.tar.xz
 
-ExclusiveArch: x86_64
+ExclusiveArch: %{go_arches}
 
 BuildRequires: golang >= 1.8.0
 BuildRequires: systemd
 
-Requires: glusterfs-server >= 4.0dev
+Requires: glusterfs-server >= 4.0rc0
 Requires(post): systemd
 Requires(preun): systemd
 Requires(postun): systemd
@@ -75,6 +75,9 @@ install -d -m 0755 %{buildroot}%{_localstatedir}/log/%{name}
 %{_sysconfdir}/bash_completion.d/glustercli.sh
 
 %changelog
+* Tue Jan 30 2018 Kaushal M <kshlmster@gmail.com> - 4.0rc0
+- Switch ExclusiveArch to go_arches
+
 * Fri Jan 12 2018 Kaushal M <kshlmster@gmail.com> - 4.0dev-10
 - Use standard paths to build and install
 

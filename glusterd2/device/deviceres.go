@@ -15,7 +15,7 @@ const (
 
 // Info is the added device info
 type Info struct {
-	NodeID     uuid.UUID `json:"nodeid"`
-	DeviceName []string  `json:"devicename"`
-	State      string    `json:"devicestate"`
+	PeerID uuid.UUID `json:"peerid"`
+	Names  []string  `json:"names"`
+	State  string    `json:"state"`
 }

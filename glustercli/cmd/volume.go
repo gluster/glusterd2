@@ -126,7 +126,7 @@ func bricksAsUUID(bricks []string) ([]api.BrickReq, error) {
 		host := strings.Split(brick, ":")[0]
 		path := strings.Split(brick, ":")[1]
 		for _, peer := range peers {
-			for _, addr := range peer.Addresses {
+			for _, addr := range peer.PeerAddresses {
 				// TODO: Normalize presence/absence of port in peer address
 				if strings.Split(addr, ":")[0] == strings.Split(host, ":")[0] {
 					brickUUIDs = append(brickUUIDs, api.BrickReq{

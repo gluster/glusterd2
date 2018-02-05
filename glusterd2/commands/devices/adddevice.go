@@ -23,33 +23,31 @@ func deviceAddHandler(w http.ResponseWriter, r *http.Request) {
 		restutils.SendHTTPError(ctx, w, http.StatusBadRequest, "", api.ErrCodeDefault)
 		return
 	}
-	nodeIDRaw := req.NodeID
-	deviceName := req.DeviceName
-	var deviceinfo device.Info
-	deviceinfo.DeviceName = deviceName
-	nodeID := nodeIDRaw
-	if nodeID == nil {
-		restutils.SendHTTPError(ctx, w, http.StatusBadRequest, "Invalid Node ID", api.ErrCodeDefault)
+	deviceinfo := device.Info{
+		Names:  req.Names,
+		PeerID: req.PeerID,
+	}
+	if req.PeerID == nil {
+		restutils.SendHTTPError(ctx, w, http.StatusBadRequest, "Invalid Peer ID", api.ErrCodeDefault)
 		return
 	}
-	deviceinfo.NodeID = nodeID
-	_, err := store.Store.Get(context.TODO(), deviceinfo.NodeID.String())
-	if err != nil {
 
-		restutils.SendHTTPError(ctx, w, http.StatusInternalServerError, "Node Id not found in store", api.ErrCodeDefault)
+	_, err := store.Store.Get(context.TODO(), deviceinfo.PeerID.String())
+	if err != nil {
+		restutils.SendHTTPError(ctx, w, http.StatusInternalServerError, "Peer Id not found in store", api.ErrCodeDefault)
 		return
 	}
 	txn := transaction.NewTxn(ctx)
 	defer txn.Cleanup()
 
-	lock, unlock, err := transaction.CreateLockSteps(deviceinfo.NodeID.String())
+	lock, unlock, err := transaction.CreateLockSteps(deviceinfo.PeerID.String())
 	if err != nil {
 		restutils.SendHTTPError(ctx, w, http.StatusInternalServerError, "Unable to acquire lock", api.ErrCodeDefault)
 		return
 	}
 
 	nodes := make([]uuid.UUID, 0)
-	nodes = append(nodes, deviceinfo.NodeID)
+	nodes = append(nodes, deviceinfo.PeerID)
 
 	txn.Nodes = nodes
 	txn.Steps = []*transaction.Step{
@@ -60,8 +58,8 @@ func deviceAddHandler(w http.ResponseWriter, r *http.Request) {
 		},
 		unlock,
 	}
-	txn.Ctx.Set("nodeid", deviceinfo.NodeID.String())
-	txn.Ctx.Set("devicename", deviceinfo.DeviceName)
+	txn.Ctx.Set("peerid", deviceinfo.PeerID.String())
+	txn.Ctx.Set("names", deviceinfo.Names)
 
 	err = txn.Do()
 	if err != nil {
@@ -77,7 +75,7 @@ func deviceAddHandler(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	deviceDetails, _ := store.Store.Get(context.TODO(), "devices/"+nodeID.String(), clientv3.WithPrefix())
+	deviceDetails, _ := store.Store.Get(context.TODO(), "devices/"+req.PeerID.String(), clientv3.WithPrefix())
 
 	if len(deviceDetails.Kvs) > 0 {
 		for _, kv := range deviceDetails.Kvs {
@@ -89,18 +87,18 @@ func deviceAddHandler(w http.ResponseWriter, r *http.Request) {
 				return
 			}
 
-			for _, val := range deviceinfo.DeviceName {
-				v.DeviceName = append(v.DeviceName, val)
+			for _, val := range deviceinfo.Names {
+				v.Names = append(v.Names, val)
 			}
 			deviceJSON, err := json.Marshal(v)
 			if err != nil {
 				restutils.SendHTTPError(ctx, w, http.StatusInternalServerError, "Unable to add device to store", api.ErrCodeDefault)
 				return
 			}
-			_, err = store.Store.Put(context.TODO(), "devices/"+nodeID.String(), string(deviceJSON))
+			_, err = store.Store.Put(context.TODO(), "devices/"+req.PeerID.String(), string(deviceJSON))
 		}
 	} else {
-		_, err = store.Store.Put(context.TODO(), "devices/"+nodeID.String(), string(deviceJSON))
+		_, err = store.Store.Put(context.TODO(), "devices/"+req.PeerID.String(), string(deviceJSON))
 		if err != nil {
 			log.WithError(err).Error("Couldn't add deviceinfo to store")
 			restutils.SendHTTPError(ctx, w, http.StatusInternalServerError, "Unable to add device to store", api.ErrCodeDefault)

@@ -30,7 +30,7 @@ func RunStepOn(step string, node uuid.UUID, c TxnCtx) (TxnCtx, error) {
 
 	var conn *grpc.ClientConn
 
-	remote, err := utils.FormRemotePeerAddress(p.Addresses[0])
+	remote, err := utils.FormRemotePeerAddress(p.PeerAddresses[0])
 	if err != nil {
 		return nil, err
 	}
@@ -45,7 +45,7 @@ func RunStepOn(step string, node uuid.UUID, c TxnCtx) (TxnCtx, error) {
 	if conn == nil {
 		logger.WithFields(log.Fields{
 			"error":  err,
-			"remote": p.Addresses,
+			"remote": p.PeerAddresses[0],
 		}).Error("failed to grpc.Dial remote")
 		return nil, err
 	}

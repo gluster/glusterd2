@@ -3,6 +3,7 @@ package peercommands
 import (
 	"net/http"
 
+	"github.com/gluster/glusterd2/glusterd2/events"
 	"github.com/gluster/glusterd2/glusterd2/gdctx"
 	"github.com/gluster/glusterd2/glusterd2/peer"
 	restutils "github.com/gluster/glusterd2/glusterd2/servers/rest/utils"
@@ -72,9 +73,9 @@ func deletePeerHandler(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	remotePeerAddress, err := utils.FormRemotePeerAddress(p.Addresses[0])
+	remotePeerAddress, err := utils.FormRemotePeerAddress(p.PeerAddresses[0])
 	if err != nil {
-		logger.WithError(err).WithField("address", p.Addresses[0]).Error("failed to parse peer address")
+		logger.WithError(err).WithField("address", p.PeerAddresses[0]).Error("failed to parse peer address")
 		restutils.SendHTTPError(ctx, w, http.StatusBadRequest, "failed to parse remote address", api.ErrCodeDefault)
 		return
 	}
@@ -106,6 +107,8 @@ func deletePeerHandler(w http.ResponseWriter, r *http.Request) {
 
 	// Save updated store endpoints for restarts
 	store.Store.UpdateEndpoints()
+
+	events.Broadcast(newPeerEvent(eventPeerRemoved, p))
 }
 
 // bricksExist checks if the given peer has any bricks on it
