@@ -14,16 +14,12 @@ import (
 	"github.com/gluster/glusterd2/pkg/utils"
 )
 
-type peerAddReq struct {
-	Addresses []string
-}
-
 func addPeerHandler(w http.ResponseWriter, r *http.Request) {
 
 	ctx := r.Context()
 	logger := gdctx.GetReqLogger(ctx)
 
-	var req peerAddReq
+	var req api.PeerAddReq
 	if err := restutils.UnmarshalRequest(r, &req); err != nil {
 		restutils.SendHTTPError(ctx, w, http.StatusBadRequest, err.Error(), api.ErrCodeDefault)
 		return
@@ -84,6 +80,11 @@ func addPeerHandler(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
+	newpeer.MetaData = req.MetaData
+	err = peer.AddOrUpdatePeer(newpeer)
+	if err != nil {
+		restutils.SendHTTPError(ctx, w, http.StatusInternalServerError, "Fail to add metadata to peer", api.ErrCodeDefault)
+	}
 	resp := createPeerAddResp(newpeer)
 	restutils.SendHTTPResponse(ctx, w, http.StatusCreated, resp)
 
@@ -99,5 +100,6 @@ func createPeerAddResp(p *peer.Peer) *api.PeerAddResp {
 		Name:            p.Name,
 		PeerAddresses:   p.PeerAddresses,
 		ClientAddresses: p.ClientAddresses,
+		MetaData:        p.MetaData,
 	}
 }
