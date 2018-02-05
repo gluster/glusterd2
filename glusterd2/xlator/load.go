@@ -147,6 +147,11 @@ func getXlatorsDir() string {
 func loadAllXlators() (map[string]*Xlator, error) {
 
 	xlatorsDir := getXlatorsDir()
+
+	if xlatorsDir == "" {
+		return nil, fmt.Errorf("No xlators dir found")
+	}
+
 	s, err := os.Stat(xlatorsDir)
 	if err != nil {
 		return nil, err
