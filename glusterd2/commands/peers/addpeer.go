@@ -81,10 +81,10 @@ func addPeerHandler(w http.ResponseWriter, r *http.Request) {
 	}
 
 	newpeer.MetaData = req.MetaData
-        err = peer.AddOrUpdatePeer(newpeer)
-        if err != nil {
-                restutils.SendHTTPError(ctx, w, http.StatusInternalServerError, "Fail to add metadata to peer", api.ErrCodeDefault)
-        }
+	err = peer.AddOrUpdatePeer(newpeer)
+	if err != nil {
+		restutils.SendHTTPError(ctx, w, http.StatusInternalServerError, "Fail to add metadata to peer", api.ErrCodeDefault)
+	}
 	resp := createPeerAddResp(newpeer)
 	restutils.SendHTTPResponse(ctx, w, http.StatusCreated, resp)
 
