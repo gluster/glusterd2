@@ -33,6 +33,11 @@ const (
 )
 
 const (
+	// VkeyFeaturesQuota is the key to check if quota is disabled or enabled
+	VkeyFeaturesQuota = "features.quota"
+)
+
+const (
 	// VkeyFeaturesBitrot is the key which enables/disables bitrot-stub
 	VkeyFeaturesBitrot = "bitrot-stub.bitrot"
 	// VkeyFeaturesScrub is the key which controls bit-rot.so to be scrubber/bitd
