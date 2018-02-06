@@ -323,6 +323,9 @@ func GetLocalIP() (string, error) {
 			if ipnet.IP.To4() != nil {
 				return ipnet.IP.String(), nil
 			}
+			if ipnet.IP.To16() != nil {
+				return ipnet.IP.String(), nil
+			}
 		}
 	}
 	return "", errors.ErrIPAddressNotFound

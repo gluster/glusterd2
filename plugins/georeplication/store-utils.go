@@ -3,22 +3,25 @@ package georeplication
 import (
 	"context"
 	"encoding/json"
+	"errors"
 
 	"github.com/gluster/glusterd2/glusterd2/store"
 	georepapi "github.com/gluster/glusterd2/plugins/georeplication/api"
 
+	"github.com/coreos/etcd/clientv3"
 	log "github.com/sirupsen/logrus"
 )
 
 const (
-	georepPrefix string = "georeplication/"
+	georepPrefix        string = "georeplication/"
+	georepSSHKeysPrefix string = "georeplication-ssh-keys/"
 )
 
 // getSession fetches the json object from the store and unmarshalls it into
 // Info object
-func getSession(masterid string, slaveid string) (*georepapi.GeorepSession, error) {
+func getSession(masterid string, remoteid string) (*georepapi.GeorepSession, error) {
 	var v georepapi.GeorepSession
-	resp, e := store.Store.Get(context.TODO(), georepPrefix+masterid+"/"+slaveid)
+	resp, e := store.Store.Get(context.TODO(), georepPrefix+masterid+"/"+remoteid)
 	if e != nil {
 		log.WithError(e).Error("Couldn't retrive geo-replication session from store")
 		return nil, e
@@ -43,7 +46,7 @@ func addOrUpdateSession(v *georepapi.GeorepSession) error {
 		return e
 	}
 
-	_, e = store.Store.Put(context.TODO(), georepPrefix+v.MasterID.String()+"/"+v.SlaveID.String(), string(json))
+	_, e = store.Store.Put(context.TODO(), georepPrefix+v.MasterID.String()+"/"+v.RemoteID.String(), string(json))
 	if e != nil {
 		log.WithError(e).Error("Couldn't add georeplication session to store")
 		return e
@@ -52,11 +55,80 @@ func addOrUpdateSession(v *georepapi.GeorepSession) error {
 }
 
 // deleteSession deletes the georep session object from store
-func deleteSession(mastervolid string, slavevolid string) error {
-	_, e := store.Store.Delete(context.TODO(), georepPrefix+mastervolid+"/"+slavevolid)
+func deleteSession(mastervolid string, remotevolid string) error {
+	_, e := store.Store.Delete(context.TODO(), georepPrefix+mastervolid+"/"+remotevolid)
 	if e != nil {
 		log.WithError(e).Error("Couldn't delete georeplication session from store")
 		return e
 	}
 	return nil
+}
+
+// getSessionList gets list of Geo-replication sessions
+func getSessionList() ([]*georepapi.GeorepSession, error) {
+	resp, e := store.Store.Get(context.TODO(), georepPrefix, clientv3.WithPrefix())
+	if e != nil {
+		return nil, e
+	}
+
+	sessions := make([]*georepapi.GeorepSession, len(resp.Kvs))
+
+	for i, kv := range resp.Kvs {
+		var session georepapi.GeorepSession
+
+		if err := json.Unmarshal(kv.Value, &session); err != nil {
+			log.WithFields(log.Fields{
+				"session": string(kv.Key),
+				"error":   err,
+			}).Error("Failed to unmarshal Geo-replication session")
+			continue
+		}
+
+		sessions[i] = &session
+	}
+
+	return sessions, nil
+}
+
+// addOrUpdateSSHKeys marshals the georep SSH Public keys to add/update
+func addOrUpdateSSHKey(volname string, sshkey georepapi.GeorepSSHPublicKey) error {
+	json, e := json.Marshal(sshkey)
+	if e != nil {
+		log.WithField("error", e).Error("Failed to marshal the sshkeys object")
+		return e
+	}
+
+	_, e = store.Store.Put(context.TODO(), georepSSHKeysPrefix+volname+"/"+sshkey.NodeID.String(), string(json))
+	if e != nil {
+		log.WithError(e).Error("Couldn't add SSH public key to Store")
+		return e
+	}
+	return nil
+}
+
+// getSSHPublicKeys returns list of SSH public keys
+func getSSHPublicKeys(volname string) ([]georepapi.GeorepSSHPublicKey, error) {
+	resp, e := store.Store.Get(context.TODO(), georepSSHKeysPrefix+volname, clientv3.WithPrefix())
+	if e != nil {
+		log.WithFields(log.Fields{
+			"volname": volname,
+			"error":   e,
+		}).Error("Couldn't retrive SSH Key from the node")
+		return nil, e
+	}
+
+	if resp.Count < 1 {
+		return nil, errors.New("SSH Public Keys not found")
+	}
+
+	sshkeys := make([]georepapi.GeorepSSHPublicKey, resp.Count)
+	for idx, kv := range resp.Kvs {
+		var sshkey georepapi.GeorepSSHPublicKey
+		if e = json.Unmarshal(kv.Value, &sshkey); e != nil {
+			log.WithError(e).Error("Failed to unmarshal the data into georepsshpubkey object")
+			return nil, e
+		}
+		sshkeys[idx] = sshkey
+	}
+	return sshkeys, nil
 }
