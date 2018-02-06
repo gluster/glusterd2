@@ -4,6 +4,6 @@ import "github.com/pborman/uuid"
 
 // AddDeviceReq structure
 type AddDeviceReq struct {
-	PeerID uuid.UUID `json:"peerid"`
+	PeerID uuid.UUID `json:"peer-id"`
 	Names  []string  `json:"names"`
 }

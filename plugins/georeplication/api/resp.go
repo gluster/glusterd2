@@ -16,10 +16,25 @@ const (
 
 	// GeorepStatusPaused represents Paused State
 	GeorepStatusPaused = "Paused"
+
+	// GeorepStatusInitializing represents worker initializing state
+	GeorepStatusInitializing = "Initializing.."
+
+	// GeorepStatusActive represents Active worker
+	GeorepStatusActive = "Active"
+
+	// GeorepStatusPassive represents Passive worker
+	GeorepStatusPassive = "Passive"
+
+	// GeorepStatusUnknown represents worker's state Unknown(If Glusterd of that node is not reachable)
+	GeorepStatusUnknown = "Unknown"
+
+	// GeorepStatusFaulty represents Faulty worker
+	GeorepStatusFaulty = "Faulty"
 )
 
-// GeorepSlaveHost represents Slave host UUID and Hostname
-type GeorepSlaveHost struct {
+// GeorepRemoteHost represents Remote host UUID and Hostname
+type GeorepRemoteHost struct {
 	NodeID   uuid.UUID `json:"nodeid"`
 	Hostname string    `json:"host"`
 }
@@ -34,7 +49,7 @@ type GeorepWorker struct {
 	LastSyncedTime             string `json:"last_synced"`
 	LastSyncedTimeUTC          string `json:"last_synced_utc"`
 	LastEntrySyncedTime        string `json:"last_synced_entry"`
-	SlaveNode                  string `json:"slave_node"`
+	RemoteNode                 string `json:"remote_node"`
 	CheckpointTime             string `json:"checkpoint_time"`
 	CheckpointTimeUTC          string `json:"checkpoint_time_utc"`
 	CheckpointCompleted        string `json:"checkpoint_completed"`
@@ -47,17 +62,24 @@ type GeorepWorker struct {
 	CrawlStatus                string `json:"crawl_status"`
 }
 
+// GeorepSSHPublicKey represents one nodes SSH Public key
+type GeorepSSHPublicKey struct {
+	NodeID    uuid.UUID `json:"nodeid"`
+	GsyncdKey string    `json:"gsyncd"`
+	TarKey    string    `json:"tar"`
+}
+
 // GeorepSession represents Geo-replication session
 type GeorepSession struct {
-	MasterID   uuid.UUID         `json:"master_volume_id"`
-	SlaveID    uuid.UUID         `json:"slave_volume_id"`
-	MasterVol  string            `json:"master_volume"`
-	SlaveUser  string            `json:"slave_user"`
-	SlaveHosts []GeorepSlaveHost `json:"slave_hosts"`
-	SlaveVol   string            `json:"slave_volume"`
-	Status     string            `json:"monitor_status"`
-	Workers    []GeorepWorker    `json:"workers"`
-	Options    map[string]string `json:"options"`
+	MasterID    uuid.UUID          `json:"master_volume_id"`
+	RemoteID    uuid.UUID          `json:"remote_volume_id"`
+	MasterVol   string             `json:"master_volume"`
+	RemoteUser  string             `json:"remote_user"`
+	RemoteHosts []GeorepRemoteHost `json:"remote_hosts"`
+	RemoteVol   string             `json:"remote_volume"`
+	Status      string             `json:"monitor_status"`
+	Workers     []GeorepWorker     `json:"workers"`
+	Options     map[string]string  `json:"options"`
 }
 
 // GeorepOption represents Config details

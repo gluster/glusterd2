@@ -4,13 +4,15 @@ import (
 	"os/exec"
 	"strings"
 
-	device "github.com/gluster/glusterd2/glusterd2/device"
 	"github.com/gluster/glusterd2/glusterd2/transaction"
+	"github.com/gluster/glusterd2/pkg/api"
+
 	log "github.com/sirupsen/logrus"
 )
 
 func txnPrepareDevice(c transaction.TxnCtx) error {
-	var deviceinfo device.Info
+	var deviceinfo api.Info
+	
 	if err := c.Get("peerid", &deviceinfo.PeerID); err != nil {
 		log.WithField("error", err).Error("Failed transaction, cannot find peerid")
 		return err
