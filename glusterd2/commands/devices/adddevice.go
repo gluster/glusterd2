@@ -5,17 +5,16 @@ import (
 	"encoding/json"
 	"net/http"
 
-	device "github.com/gluster/glusterd2/glusterd2/device"
+	"github.com/gluster/glusterd2/glusterd2/gdctx"
+	"github.com/gluster/glusterd2/glusterd2/peer"
 	restutils "github.com/gluster/glusterd2/glusterd2/servers/rest/utils"
 	"github.com/gluster/glusterd2/glusterd2/store"
 	"github.com/gluster/glusterd2/glusterd2/transaction"
 	"github.com/gluster/glusterd2/pkg/api"
-	"github.com/gluster/glusterd2/glusterd2/gdctx"
-	"github.com/gluster/glusterd2/glusterd2/peer"
 
-	log "github.com/sirupsen/logrus"
-	"github.com/pborman/uuid"
 	"github.com/coreos/etcd/clientv3"
+	"github.com/pborman/uuid"
+	log "github.com/sirupsen/logrus"
 )
 
 func deviceAddHandler(w http.ResponseWriter, r *http.Request) {
@@ -30,9 +29,14 @@ func deviceAddHandler(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 	deviceinfo := api.Info{
-		Names:  req.Names,
 		PeerID: req.PeerID,
 	}
+        for _, name := range req.Names {
+                tempInfo := api.Info {
+                                Name: name,
+                            }
+                deviceinfo.Detail = append(deviceinfo.Detail, tempInfo)
+        }
 	if req.PeerID == nil {
 		restutils.SendHTTPError(ctx, w, http.StatusBadRequest, "Peer ID not found in request", api.ErrCodeDefault)
 		return
@@ -58,7 +62,7 @@ func deviceAddHandler(w http.ResponseWriter, r *http.Request) {
 		},
 	}
 	txn.Ctx.Set("peerid", deviceinfo.PeerID.String())
-	txn.Ctx.Set("names", deviceinfo.Names)
+	txn.Ctx.Set("device-details", deviceinfo.Detail)
 
 	err = txn.Do()
 	if err != nil {
@@ -67,7 +71,6 @@ func deviceAddHandler(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 	// update device state
-	deviceinfo.State = device.DeviceEnabled
 	deviceJSON, err := json.Marshal(deviceinfo)
 	if err != nil {
 		log.WithField("error", err).Error("Failed to marshal the DeviceInfo object")
@@ -80,7 +83,7 @@ func deviceAddHandler(w http.ResponseWriter, r *http.Request) {
 	if len(deviceDetails.Kvs) > 0 {
 		for _, kv := range deviceDetails.Kvs {
 
-			var v api.Info
+			var v api.Device
 
 			if err := json.Unmarshal(kv.Value, &v); err != nil {
 				restutils.SendHTTPError(ctx, w, http.StatusInternalServerError, "Unable to add device to store", api.ErrCodeDefault)

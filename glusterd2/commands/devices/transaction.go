@@ -6,32 +6,33 @@ import (
 
 	"github.com/gluster/glusterd2/glusterd2/transaction"
 	"github.com/gluster/glusterd2/pkg/api"
-
-	log "github.com/sirupsen/logrus"
 )
 
 func txnPrepareDevice(c transaction.TxnCtx) error {
-	var deviceinfo api.Info
-	
+	var deviceinfo api.Device
+
 	if err := c.Get("peerid", &deviceinfo.PeerID); err != nil {
-		log.WithField("error", err).Error("Failed transaction, cannot find peerid")
+		c.Logger().WithError(err).Error("Failed transaction, cannot find peer-id")
 		return err
 	}
-	if err := c.Get("names", &deviceinfo.Names); err != nil {
-		log.WithField("error", err).Error("Failed transaction, cannot find device names")
+	if err := c.Get("device-details", &deviceinfo.Detail); err != nil {
+		c.Logger().WithError(err).Error("Failed transaction, cannot find device-details")
 		return err
 	}
-	for _, element := range deviceinfo.Names {
-		pvcreateCmd := exec.Command("pvcreate", "--metadatasize=128M", "--dataalignment=256K", element)
+	for _, element := range deviceinfo.Detail {
+		pvcreateCmd := exec.Command("pvcreate", "--metadatasize=128M", "--dataalignment=256K", element.Name)
 		if err := pvcreateCmd.Run(); err != nil {
-			log.WithField("error", err).Error("Failed transaction, pvcreate failed")
-			return err
+			c.Logger().WithError(err).Error("pvcreate failed for device")
+			element.State = api.DeviceFailed
+			continue
 		}
-		vgcreateCmd := exec.Command("vgcreate", strings.Replace("vg"+element, "/", "-", -1), element)
+		vgcreateCmd := exec.Command("vgcreate", strings.Replace("vg"+element.Name, "/", "-", -1), element.Name)
 		if err := vgcreateCmd.Run(); err != nil {
-			log.WithField("error", err).Error("Failed transaction, vgcreate failed")
-			return err
+			c.Logger().WithError(err).Error("vgcreate failed for device")
+			element.State = api.DeviceFailed
+			continue
 		}
+		element.State = device.DeviceEnabled
 	}
 	return nil
 }
