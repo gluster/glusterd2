@@ -1,4 +1,4 @@
-// Package globaloptions implements the commands to get and set cluster level options
+// Package globalcommands implements the commands to get and set cluster level options
 package globalcommands
 
 import (

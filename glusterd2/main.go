@@ -109,7 +109,7 @@ func main() {
 		log.WithError(err).Fatal("Failed to generate local auth token")
 	}
 
-	if err := cluster.LoadClusterAtributes(); err != nil {
+	if err := cluster.LoadClusterAttributes(); err != nil {
 		log.WithError(err).Fatal("Failed to load cluster attributes to etcd")
 	}
 

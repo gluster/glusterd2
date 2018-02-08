@@ -12,6 +12,7 @@ import (
 )
 
 const (
+	// ClusterPrefix represents the etcd end-point for cluster wide attributes
 	ClusterPrefix string = "cluster/"
 )
 
@@ -38,8 +39,8 @@ type GlobalOption struct {
 	Type         options.OptionType
 }
 
-// AddClusterAtributes updates etcd with cluster attributes if not already present
-func LoadClusterAtributes() error {
+// LoadClusterAttributes updates etcd with cluster attributes if not already present
+func LoadClusterAttributes() error {
 	var clstr Cluster
 	resp, err := store.Store.Get(context.TODO(), ClusterPrefix)
 	if err != nil {
@@ -49,7 +50,7 @@ func LoadClusterAtributes() error {
 	if resp.Count == 0 {
 		// If cluster instance isn't available add it to etcd
 		clstr.Options = make(map[string]string)
-		for k, _ := range GlobalOptMap {
+		for k := range GlobalOptMap {
 			clstr.Options[k] = GlobalOptMap[k].DefaultValue
 		}
 
@@ -60,6 +61,5 @@ func LoadClusterAtributes() error {
 	}
 
 	// If cluster instance is already available on etcd just return
-
 	return nil
 }

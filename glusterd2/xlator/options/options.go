@@ -84,12 +84,6 @@ type Option struct {
 	SetKey       string
 }
 
-type GlobalOption struct {
-	Key          string
-	Value        string
-	DefaultValue string
-}
-
 // Validate checks if the given value string can be set as the value for the
 // Option.
 // Returns are error if it is not possible, nil otherwise.
