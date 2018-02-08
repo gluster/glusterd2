@@ -7,6 +7,7 @@ import (
 	"strings"
 	"time"
 
+	"github.com/gluster/glusterd2/glusterd2/cluster"
 	"github.com/gluster/glusterd2/glusterd2/commands/volumes"
 	"github.com/gluster/glusterd2/glusterd2/daemon"
 	"github.com/gluster/glusterd2/glusterd2/events"
@@ -108,8 +109,8 @@ func main() {
 		log.WithError(err).Fatal("Failed to generate local auth token")
 	}
 
-	if err := xlator.LoadGlobalOptions(); err != nil {
-		log.WithError(err).Fatal("Failed to get global options from store")
+	if err := cluster.LoadClusterAtributes(); err != nil {
+		log.WithError(err).Fatal("Failed to load cluster attributes to etcd")
 	}
 
 	// Start all servers (rest, peerrpc, sunrpc) managed by suture supervisor

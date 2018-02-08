@@ -19,11 +19,6 @@ import (
 // be set on a volume.
 func validateOptions(opts map[string]string) error {
 	for k, v := range opts {
-		// Check for global option first
-		if _, found := xlator.GlobalOptMap[k]; found {
-			return nil
-		}
-
 		o, err := xlator.FindOption(k)
 		if err != nil {
 			return err
