@@ -5,7 +5,8 @@ import (
 	"reflect"
 	"strings"
 
-	"github.com/prashanthpai/sunrpc"
+	"github.com/gluster/glusterd2/pkg/sunrpc"
+
 	log "github.com/sirupsen/logrus"
 )
 

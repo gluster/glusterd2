@@ -11,8 +11,8 @@ import (
 
 	"github.com/gluster/glusterd2/glusterd2/plugin"
 	"github.com/gluster/glusterd2/glusterd2/pmap"
+	"github.com/gluster/glusterd2/pkg/sunrpc"
 
-	"github.com/prashanthpai/sunrpc"
 	log "github.com/sirupsen/logrus"
 	"github.com/soheilhy/cmux"
 	config "github.com/spf13/viper"

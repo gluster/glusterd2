@@ -210,11 +210,6 @@
   revision = "d8ed2627bdf02c080bf22230dbb337003b7aba2d"
 
 [[projects]]
-  name = "github.com/prashanthpai/sunrpc"
-  packages = ["."]
-  revision = "8b1e9b0138a37e93705639161d846baed18290c7"
-
-[[projects]]
   name = "github.com/prometheus/client_golang"
   packages = ["prometheus"]
   revision = "c5b7fccd204277076155f10851dad72b76a49317"
@@ -348,6 +343,6 @@
 [solve-meta]
   analyzer-name = "dep"
   analyzer-version = 1
-  inputs-digest = "dc95f6a3bf9f2aa98d30b085c01eefb0ad1023a1f3e67d64563d64558d7871f1"
+  inputs-digest = "0c5e9e4c4e8c562ceb86c47fa341c2d7677db5672a010bdbdbaf6d97b2caf33e"
   solver-name = "gps-cdcl"
   solver-version = 1

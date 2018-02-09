@@ -3,7 +3,7 @@ package georeplication
 import (
 	"github.com/gluster/glusterd2/glusterd2/servers/rest/route"
 	"github.com/gluster/glusterd2/glusterd2/transaction"
-	"github.com/prashanthpai/sunrpc"
+	"github.com/gluster/glusterd2/pkg/sunrpc"
 )
 
 // Plugin is a structure which implements GlusterdPlugin interface

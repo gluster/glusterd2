@@ -10,8 +10,8 @@ import (
 	"github.com/gluster/glusterd2/glusterd2/servers/sunrpc/dict"
 	"github.com/gluster/glusterd2/glusterd2/store"
 	"github.com/gluster/glusterd2/glusterd2/volume"
+	"github.com/gluster/glusterd2/pkg/sunrpc"
 
-	"github.com/prashanthpai/sunrpc"
 	log "github.com/sirupsen/logrus"
 )
 
