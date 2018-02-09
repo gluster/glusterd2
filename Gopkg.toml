@@ -66,8 +66,8 @@
   version = "~1.0.3"
 
 [[constraint]]
-  name = "github.com/soheilhy/cmux"
-  version = "0.1.3"
+  name = "github.com/cockroachdb/cmux"
+  branch = "master"
 
 [[constraint]]
   name = "github.com/spf13/cobra"
