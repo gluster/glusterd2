@@ -2,7 +2,11 @@
 package muxsrv
 
 import (
+	"crypto/rand"
+	"crypto/tls"
 	"net"
+
+	"github.com/gluster/glusterd2/constants"
 
 	"github.com/cockroachdb/cmux"
 	log "github.com/sirupsen/logrus"
@@ -23,10 +27,41 @@ func newMuxSrv() *muxSrv {
 	if err != nil {
 		log.WithError(err).Fatal("failed to create gd2-muxsrv listener")
 	}
+
+	if config.GetBool(constants.UseTLS) {
+		cert := config.GetString(constants.ClntCertFile)
+		key := config.GetString(constants.ClntKeyFile)
+
+		if l, err = tlsListener(l, cert, key); err != nil {
+			// TODO: Don't use Fatal(), bubble up error till main()
+			// NOTE: Methods of suture.Service interface do not return error
+			log.WithFields(log.Fields{
+				"cert-file": cert,
+				"key-file":  key,
+			}).WithError(err).Fatal("failed to create TLS client listener")
+		}
+	}
 	mux.l = l
 	mux.m = cmux.New(l)
 
 	return mux
+}
+
+// tlsListener returns a TLS listener configured using the given certificate
+func tlsListener(l net.Listener, certfile, keyfile string) (net.Listener, error) {
+
+	certificate, err := tls.LoadX509KeyPair(certfile, keyfile)
+	if err != nil {
+		return nil, err
+	}
+
+	config := &tls.Config{
+		MinVersion:   tls.VersionTLS12, // force TLS 1.2
+		Certificates: []tls.Certificate{certificate},
+		Rand:         rand.Reader,
+	}
+
+	return tls.NewListener(l, config), nil
 }
 
 // Serve starts the handlers and the multiplexed listener

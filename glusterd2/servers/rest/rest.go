@@ -3,8 +3,6 @@ package rest
 
 import (
 	"context"
-	"crypto/rand"
-	"crypto/tls"
 	"expvar"
 	"net"
 	"net/http"
@@ -27,47 +25,14 @@ type GDRest struct {
 	stopCh   chan struct{}
 }
 
-func tlsListener(l net.Listener, certfile, keyfile string) (net.Listener, error) {
-
-	certificate, err := tls.LoadX509KeyPair(certfile, keyfile)
-	if err != nil {
-		return nil, err
-	}
-
-	config := &tls.Config{
-		MinVersion:   tls.VersionTLS12, // force TLS 1.2
-		Certificates: []tls.Certificate{certificate},
-		Rand:         rand.Reader,
-	}
-
-	return tls.NewListener(l, config), nil
-}
-
 // NewMuxed returns a GDRest object which listens on a CMux multiplexed connection
 func NewMuxed(m cmux.CMux) *GDRest {
 
 	rest := &GDRest{
-		Routes: mux.NewRouter(),
-		server: &http.Server{},
-		stopCh: make(chan struct{}),
-	}
-
-	certfile := config.GetString("cert-file")
-	keyfile := config.GetString("key-file")
-
-	if certfile != "" && keyfile != "" {
-		if l, err := tlsListener(m.Match(cmux.TLS()), certfile, keyfile); err != nil {
-			// TODO: Don't use Fatal(), bubble up error till main()
-			// NOTE: Methods of suture.Service interface do not return error
-			log.WithFields(log.Fields{
-				"cert-file": certfile,
-				"key-file":  keyfile,
-			}).WithError(err).Fatal("Failed to create SSL/TLS listener")
-		} else {
-			rest.listener = l
-		}
-	} else {
-		rest.listener = m.Match(cmux.HTTP1Fast())
+		Routes:   mux.NewRouter(),
+		listener: m.Match(cmux.HTTP1Fast()),
+		server:   &http.Server{},
+		stopCh:   make(chan struct{}),
 	}
 
 	rest.registerRoutes()
