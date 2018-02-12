@@ -10,8 +10,8 @@ import (
 	"github.com/gluster/glusterd2/glusterd2/servers/sunrpc/dict"
 	"github.com/gluster/glusterd2/glusterd2/store"
 	"github.com/gluster/glusterd2/glusterd2/volume"
+	"github.com/gluster/glusterd2/pkg/sunrpc"
 
-	"github.com/prashanthpai/sunrpc"
 	log "github.com/sirupsen/logrus"
 )
 
@@ -83,11 +83,19 @@ type GfGetspecRsp struct {
 	Xdata   []byte // serialized dict
 }
 
+// gf_getspec_flags_type from rpc/rpc-lib/src/protocol-common.h
+const (
+	gfGetspecFlagServersList = 1
+)
+
 // ServerGetspec returns the content of client volfile for the volume
 // specified by the client
 func (p *GfHandshake) ServerGetspec(args *GfGetspecReq, reply *GfGetspecRsp) error {
-	var err error
-	var fileContents []byte
+	var (
+		err      error
+		addrs    []string
+		respDict map[string]string
+	)
 
 	_, err = dict.Unserialize(args.Xdata)
 	if err != nil {
@@ -108,11 +116,42 @@ func (p *GfHandshake) ServerGetspec(args *GfGetspecReq, reply *GfGetspecRsp) err
 		goto Out
 	}
 
-	fileContents = resp.Kvs[0].Value
-
-	reply.Spec = string(fileContents)
+	reply.Spec = string(resp.Kvs[0].Value)
 	reply.OpRet = len(reply.Spec)
 	reply.OpErrno = 0
+
+	if (args.Flags & gfGetspecFlagServersList) != 0 {
+
+		volinfo, err := volume.GetVolume(volname)
+		if err != nil {
+			log.WithError(err).WithField("volume", volname).Error("failed to get volinfo from store")
+			goto Out
+		}
+
+		// We can return list of all peers too. That'll be correct
+		// only if bricks too can connect to any glusterd2 to get its
+		// volfile, which isn't true today.
+		// For now, let's just return list of peers which has bricks
+		// belonging to the volume being mounted.
+
+		peers := volinfo.Peers()
+		for _, p := range peers {
+			for _, addr := range p.ClientAddresses {
+				if !strings.HasPrefix(addr, "127.") && !strings.HasPrefix(addr, "localhost") {
+					addrs = append(addrs, addr)
+				}
+			}
+		}
+
+		if len(addrs) > 0 {
+			respDict = make(map[string]string)
+			respDict["servers-list"] = strings.Join(addrs, " ")
+			reply.Xdata, err = dict.Serialize(respDict)
+			if err != nil {
+				log.WithError(err).Error("failed to serialize dict")
+			}
+		}
+	}
 
 Out:
 	if err != nil {

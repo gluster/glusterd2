@@ -1,7 +1,7 @@
 package pmap
 
 import (
-	"github.com/prashanthpai/sunrpc"
+	"github.com/gluster/glusterd2/pkg/sunrpc"
 )
 
 const (

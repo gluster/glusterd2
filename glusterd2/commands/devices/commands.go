@@ -24,5 +24,5 @@ func (c *Command) Routes() route.Routes {
 // RegisterStepFuncs registers transaction step functions with
 // Glusterd Transaction framework
 func (c *Command) RegisterStepFuncs() {
-	transaction.RegisterStepFunc(txnPrepareDevice, "prepare-device.Commit")
+	transaction.RegisterStepFunc(txnPrepareDevice, "prepare-device")
 }

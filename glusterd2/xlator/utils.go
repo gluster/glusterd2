@@ -48,3 +48,13 @@ func FindOption(k string) (*options.Option, error) {
 	}
 	return opt, nil
 }
+
+// Contains returns true if string is present in the list else false
+func Contains(s string, list []string) bool {
+	for _, val := range list {
+		if s == val {
+			return true
+		}
+	}
+	return false
+}

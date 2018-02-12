@@ -9,7 +9,7 @@ import (
 	"github.com/gluster/glusterd2/glusterd2/servers/sunrpc/dict"
 	"github.com/gluster/glusterd2/glusterd2/transaction"
 	"github.com/gluster/glusterd2/glusterd2/volume"
-	"github.com/gluster/glusterd2/pkg/api"
+	bitrotapi "github.com/gluster/glusterd2/plugins/bitrot/api"
 	log "github.com/sirupsen/logrus"
 )
 
@@ -200,7 +200,7 @@ func txnBitrotScrubStatus(c transaction.TxnCtx) error {
 		return err
 	}
 
-	var scrubNodeInfo api.BitrotScrubNodeInfo
+	var scrubNodeInfo bitrotapi.ScrubNodeInfo
 	scrubNodeInfo.Node = gdctx.MyUUID.String()
 	scrubNodeInfo.ScrubRunning = rspDict["scrub-running"]
 	scrubNodeInfo.NumScrubbedFiles = rspDict["scrubbed-files"]

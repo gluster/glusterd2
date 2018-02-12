@@ -6,9 +6,9 @@ import (
 	"sync/atomic"
 
 	"github.com/gluster/glusterd2/glusterd2/transaction"
+	"github.com/gluster/glusterd2/pkg/sunrpc"
 	"github.com/gluster/glusterd2/pkg/utils"
 
-	"github.com/prashanthpai/sunrpc"
 	"github.com/rasky/go-xdr/xdr2"
 	log "github.com/sirupsen/logrus"
 )

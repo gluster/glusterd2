@@ -269,3 +269,29 @@ func (v *Volinfo) Nodes() []uuid.UUID {
 
 	return nodes
 }
+
+// Peers returns the a list of Peer objects on which this volume has bricks
+func (v *Volinfo) Peers() []*peer.Peer {
+
+	allPeers, err := peer.GetPeers()
+	if err != nil {
+		return nil
+	}
+
+	pDict := make(map[string]*peer.Peer, len(allPeers))
+	for i := range allPeers {
+		pDict[allPeers[i].ID.String()] = allPeers[i]
+	}
+
+	resultDict := make(map[string]*peer.Peer)
+	for _, b := range v.GetBricks() {
+		resultDict[b.NodeID.String()] = pDict[b.NodeID.String()]
+	}
+
+	var peers []*peer.Peer
+	for _, v := range resultDict {
+		peers = append(peers, v)
+	}
+
+	return peers
+}

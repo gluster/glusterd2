@@ -59,9 +59,6 @@
   version = "1.0.0"
 
 [[constraint]]
-  name = "github.com/prashanthpai/sunrpc"
-
-[[constraint]]
   name = "github.com/rasky/go-xdr"
 
 [[constraint]]

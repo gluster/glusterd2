@@ -11,6 +11,7 @@ import (
 	"github.com/gluster/glusterd2/glusterd2/xlator"
 	"github.com/gluster/glusterd2/pkg/api"
 	"github.com/gluster/glusterd2/pkg/errors"
+	bitrotapi "github.com/gluster/glusterd2/plugins/bitrot/api"
 	"github.com/gorilla/mux"
 	log "github.com/sirupsen/logrus"
 
@@ -320,9 +321,9 @@ func bitrotScrubStatusHandler(w http.ResponseWriter, r *http.Request) {
 	restutils.SendHTTPResponse(ctx, w, http.StatusOK, result)
 }
 
-func createScrubStatusResp(ctx transaction.TxnCtx, volinfo *volume.Volinfo) (*api.BitrotScrubStatus, error) {
+func createScrubStatusResp(ctx transaction.TxnCtx, volinfo *volume.Volinfo) (*bitrotapi.ScrubStatus, error) {
 
-	var resp api.BitrotScrubStatus
+	var resp bitrotapi.ScrubStatus
 	var exists bool
 
 	// Fill generic info which are same for each node
@@ -374,7 +375,7 @@ func createScrubStatusResp(ctx transaction.TxnCtx, volinfo *volume.Volinfo) (*ap
 	// Loop over each node that make up the volume and aggregate result
 	// of scrub status
 	for _, node := range volinfo.Nodes() {
-		var tmp api.BitrotScrubNodeInfo
+		var tmp bitrotapi.ScrubNodeInfo
 		err := ctx.GetNodeResult(node, scrubStatusTxnKey, &tmp)
 		if err != nil {
 			// skip if we do not have information
