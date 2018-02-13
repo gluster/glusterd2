@@ -11,11 +11,12 @@ import (
 	"time"
 
 	"github.com/gluster/glusterd2/glusterd2/middleware"
+	"github.com/gluster/glusterd2/pkg/tlsmatcher"
 
+	"github.com/cockroachdb/cmux"
 	"github.com/gorilla/mux"
 	"github.com/justinas/alice"
 	log "github.com/sirupsen/logrus"
-	"github.com/soheilhy/cmux"
 	config "github.com/spf13/viper"
 )
 
@@ -56,7 +57,7 @@ func NewMuxed(m cmux.CMux) *GDRest {
 	keyfile := config.GetString("key-file")
 
 	if certfile != "" && keyfile != "" {
-		if l, err := tlsListener(m.Match(cmux.TLS()), certfile, keyfile); err != nil {
+		if l, err := tlsListener(m.Match(tlsmatcher.TLS12), certfile, keyfile); err != nil {
 			// TODO: Don't use Fatal(), bubble up error till main()
 			// NOTE: Methods of suture.Service interface do not return error
 			log.WithFields(log.Fields{
