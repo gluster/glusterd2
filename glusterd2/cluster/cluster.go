@@ -1,19 +1,10 @@
 package cluster
 
 import (
-	"context"
-	"encoding/json"
-
 	"github.com/gluster/glusterd2/glusterd2/gdctx"
-	"github.com/gluster/glusterd2/glusterd2/store"
 	"github.com/gluster/glusterd2/glusterd2/xlator/options"
 
 	"strconv"
-)
-
-const (
-	// ClusterPrefix represents the etcd end-point for cluster wide attributes
-	ClusterPrefix string = "cluster/"
 )
 
 // GlobalOptMap contains list of supported cluster-wide options, default values and value types
@@ -37,29 +28,4 @@ type GlobalOption struct {
 	Key          string
 	DefaultValue string
 	Type         options.OptionType
-}
-
-// LoadClusterAttributes updates etcd with cluster attributes if not already present
-func LoadClusterAttributes() error {
-	var clstr Cluster
-	resp, err := store.Store.Get(context.TODO(), ClusterPrefix)
-	if err != nil {
-		return err
-	}
-
-	if resp.Count == 0 {
-		// If cluster instance isn't available add it to etcd
-		clstr.Options = make(map[string]string)
-		for k := range GlobalOptMap {
-			clstr.Options[k] = GlobalOptMap[k].DefaultValue
-		}
-
-		data, _ := json.Marshal(clstr)
-		if _, err := store.Store.Put(context.TODO(), ClusterPrefix, string(data)); err != nil {
-			return err
-		}
-	}
-
-	// If cluster instance is already available on etcd just return
-	return nil
 }

@@ -14,6 +14,7 @@ var (
 
 // Load load all available xlators and intializes the xlators and options maps
 func Load() (err error) {
+
 	xls, err := loadAllXlators()
 	if err != nil {
 		return
@@ -36,7 +37,6 @@ func Xlators() map[string]*Xlator {
 
 // loadOptions loads all available options into the options.Options map,
 // indexed as <xlator-id>.<option-key> for all available option keys
-// Also initialise the globalOptMap with defauls/value from etcd server
 func loadOptions() {
 	optMap = make(map[string]*options.Option)
 	for _, xl := range xlMap {

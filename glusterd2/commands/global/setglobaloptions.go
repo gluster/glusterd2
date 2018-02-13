@@ -1,14 +1,11 @@
 package globalcommands
 
 import (
-	"context"
-	"encoding/json"
 	"fmt"
 	"net/http"
 
 	"github.com/gluster/glusterd2/glusterd2/cluster"
 	restutils "github.com/gluster/glusterd2/glusterd2/servers/rest/utils"
-	"github.com/gluster/glusterd2/glusterd2/store"
 	"github.com/gluster/glusterd2/pkg/api"
 	"github.com/gluster/glusterd2/pkg/errors"
 )
@@ -22,18 +19,10 @@ func setGlobalOptionsHandler(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	var c cluster.Cluster
-	resp, err := store.Store.Get(context.TODO(), cluster.ClusterPrefix)
-	if err != nil {
-		restutils.SendHTTPError(ctx, w, http.StatusBadRequest, errors.ErrClusterNotFound.Error(), api.ErrCodeDefault)
-		return
-	}
-
-	if resp.Count != 1 {
-		return
-	}
-
-	if err = json.Unmarshal(resp.Kvs[0].Value, &c); err != nil {
+	c, err := cluster.GetCluster()
+	// ErrClusterNotFound here implies that no global option has yet been explicitly set. Ignoring it.
+	if err != nil && err != errors.ErrClusterNotFound {
+		restutils.SendHTTPError(ctx, w, http.StatusInternalServerError, fmt.Sprintf("Problem retrieving cluster information from etcd store: %s", err.Error()), api.ErrCodeDefault)
 		return
 	}
 
@@ -41,6 +30,10 @@ func setGlobalOptionsHandler(w http.ResponseWriter, r *http.Request) {
 		if _, found := cluster.GlobalOptMap[k]; found {
 			// TODO validate the value type for global option
 
+			if c == nil {
+				c = new(cluster.Cluster)
+				c.Options = make(map[string]string)
+			}
 			c.Options[k] = v
 		} else {
 			restutils.SendHTTPError(ctx, w, http.StatusInternalServerError, fmt.Sprintf("Invalid global option: %s", k), api.ErrCodeDefault)
@@ -48,8 +41,7 @@ func setGlobalOptionsHandler(w http.ResponseWriter, r *http.Request) {
 		}
 	}
 
-	data, _ := json.Marshal(c)
-	if _, err := store.Store.Put(context.TODO(), cluster.ClusterPrefix, string(data)); err != nil {
+	if err := cluster.UpdateCluster(c); err != nil {
 		restutils.SendHTTPError(ctx, w, http.StatusInternalServerError, fmt.Sprint("Failed to update store with cluster attributes %s: %s", err.Error()), api.ErrCodeDefault)
 		return
 	}

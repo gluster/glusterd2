@@ -7,7 +7,6 @@ import (
 	"strings"
 	"time"
 
-	"github.com/gluster/glusterd2/glusterd2/cluster"
 	"github.com/gluster/glusterd2/glusterd2/commands/volumes"
 	"github.com/gluster/glusterd2/glusterd2/daemon"
 	"github.com/gluster/glusterd2/glusterd2/events"
@@ -107,10 +106,6 @@ func main() {
 	// If REST API Auth is enabled, Generate Auth file with random secret in workdir
 	if err := gdctx.GenerateLocalAuthToken(); err != nil {
 		log.WithError(err).Fatal("Failed to generate local auth token")
-	}
-
-	if err := cluster.LoadClusterAttributes(); err != nil {
-		log.WithError(err).Fatal("Failed to load cluster attributes to etcd")
 	}
 
 	// Start all servers (rest, peerrpc, sunrpc) managed by suture supervisor

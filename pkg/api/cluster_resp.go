@@ -1,7 +1,9 @@
 package api
 
-// GlobalOptionsGetResp contains key-value pairs for options.
+// GlobalOptionsGetResp contains details for global options
 type GlobalOptionsGetResp struct {
-	Key   string `json:"key"`
-	Value string `json:"value"`
+	Key          string `json:"key"`
+	Value        string `json:"value"`
+	DefaultValue string `json:"default"`
+	Modified     bool   `json:"modified"`
 }

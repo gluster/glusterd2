@@ -72,8 +72,7 @@ func (c *Client) VolumeSet(volname string, req api.VolOptionReq) error {
 // GlobalOptionSet sets cluster level options
 func (c *Client) GlobalOptionSet(req api.GlobalOptionReq) error {
 	url := fmt.Sprintf("/v1/cluster/options")
-	err := c.post(url, req, http.StatusOK, nil)
-	return err
+	return c.post(url, req, http.StatusOK, nil)
 }
 
 // VolumeExpand expands a Gluster Volume
