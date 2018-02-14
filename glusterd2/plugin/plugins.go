@@ -12,7 +12,6 @@ import (
 
 // PluginsList is a list of plugins which implements GlusterdPlugin interface
 var PluginsList = []GlusterdPlugin{
-	// &hello.Plugin{},
 	&georeplication.Plugin{},
 	&bitrot.Plugin{},
 	&quota.Plugin{},
