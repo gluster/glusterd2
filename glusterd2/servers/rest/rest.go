@@ -130,24 +130,16 @@ func (r *GDRest) Stop() {
 func (r *GDRest) listEndpointsHandler() http.HandlerFunc {
 	return http.HandlerFunc(func(w http.ResponseWriter, req *http.Request) {
 		var resp api.ListEndpointsResp
-		walker := func(route *mux.Route, router *mux.Router, ancestors []*mux.Route) error {
-			t, err := route.GetPathTemplate()
-			if err != nil {
-				return err
-			}
-			m, err := route.GetMethods()
-			if err != nil {
-				return err
-			}
-			resp = append(resp, api.Endpoint{
-				Name:    route.GetName(),
-				Methods: m,
-				Path:    t,
-			})
-			return nil
-		}
 		ctx := req.Context()
-		r.Routes.Walk(walker)
+		for _, r := range AllRoutes {
+			resp = append(resp, api.Endpoint{
+				Name:         r.Name,
+				Method:       r.Method,
+				Path:         r.Pattern,
+				RequestType:  r.RequestType,
+				ResponseType: r.ResponseType,
+			})
+		}
 		restutils.SendHTTPResponse(ctx, w, http.StatusOK, resp)
 	})
 }

@@ -5,6 +5,7 @@ import (
 	"flag"
 	"io/ioutil"
 	"os"
+	"strings"
 	"text/template"
 
 	"github.com/gluster/glusterd2/pkg/api"
@@ -14,9 +15,9 @@ import (
 
 const endpointsTable = `# API Endpoints
 
-Name | Methods | Path
---- | --- | ---{{range $index, $element := .}}
-{{.Name}} | {{.Methods}} | {{.Path}}{{end}}
+Name | Methods | Path | Request | Response
+--- | --- | --- | --- | ---{{range $index, $element := .}}
+{{.Name}} | {{.Method}} | {{.Path}} | [{{.RequestType}}](https://godoc.org/github.com/gluster/glusterd2/pkg/api#{{.RequestType}}) | [{{.ResponseType}}](https://godoc.org/github.com/gluster/glusterd2/pkg/api#{{.ResponseType}}){{end}}
 `
 
 const outFile = "endpoints.md"
@@ -40,6 +41,14 @@ func main() {
 	var endpoints []api.Endpoint
 	if err := json.Unmarshal(content, &endpoints); err != nil {
 		log.Fatal(err)
+	}
+
+	var tmp []string
+	for i := range endpoints {
+		tmp = strings.Split(endpoints[i].RequestType, ".")
+		endpoints[i].RequestType = tmp[len(tmp)-1]
+		tmp = strings.Split(endpoints[i].ResponseType, ".")
+		endpoints[i].ResponseType = tmp[len(tmp)-1]
 	}
 
 	f, err := os.Create(outFile)

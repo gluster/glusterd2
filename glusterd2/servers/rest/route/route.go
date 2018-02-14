@@ -9,11 +9,14 @@ import (
 // This route style comes from the tutorial on
 // http://thenewstack.io/make-a-restful-json-api-go/
 type Route struct {
-	Name        string
-	Method      string
-	Pattern     string
-	Version     int
-	HandlerFunc http.HandlerFunc
+	Name         string
+	Description  string
+	Method       string
+	Pattern      string
+	Version      int
+	RequestType  string
+	ResponseType string // Success
+	HandlerFunc  http.HandlerFunc
 }
 
 // Routes is a table of many Route's
