@@ -11,6 +11,8 @@ import (
 	"time"
 
 	"github.com/gluster/glusterd2/glusterd2/middleware"
+	restutils "github.com/gluster/glusterd2/glusterd2/servers/rest/utils"
+	"github.com/gluster/glusterd2/pkg/api"
 	"github.com/gluster/glusterd2/pkg/tlsmatcher"
 
 	"github.com/cockroachdb/cmux"
@@ -75,8 +77,10 @@ func NewMuxed(m cmux.CMux) *GDRest {
 
 	// Expose /statedump endpoint (uses expvar) if enabled
 	if ok := config.GetBool("statedump"); ok {
-		rest.Routes.Handle("/statedump", expvar.Handler())
+		rest.Routes.Handle("/statedump", expvar.Handler()).Methods("GET").Name("Statedump")
 	}
+
+	rest.Routes.Handle("/endpoints", rest.listEndpointsHandler()).Methods("GET").Name("List Endpoints")
 
 	// Chain of ordered middlewares.
 	rest.server.Handler = alice.New(
@@ -121,4 +125,21 @@ func (r *GDRest) Stop() {
 	log.Info("stopped glusterd ReST server")
 
 	r.stopCh <- struct{}{}
+}
+
+func (r *GDRest) listEndpointsHandler() http.HandlerFunc {
+	return http.HandlerFunc(func(w http.ResponseWriter, req *http.Request) {
+		var resp api.ListEndpointsResp
+		ctx := req.Context()
+		for _, r := range AllRoutes {
+			resp = append(resp, api.Endpoint{
+				Name:         r.Name,
+				Method:       r.Method,
+				Path:         r.Pattern,
+				RequestType:  r.RequestType,
+				ResponseType: r.ResponseType,
+			})
+		}
+		restutils.SendHTTPResponse(ctx, w, http.StatusOK, resp)
+	})
 }
