@@ -3,6 +3,8 @@ package volumecommands
 
 import (
 	"github.com/gluster/glusterd2/glusterd2/servers/rest/route"
+	"github.com/gluster/glusterd2/pkg/api"
+	"github.com/gluster/glusterd2/pkg/utils"
 )
 
 // Command is a holding struct used to implement the GlusterD Command interface
@@ -13,17 +15,21 @@ type Command struct {
 func (c *Command) Routes() route.Routes {
 	return route.Routes{
 		route.Route{
-			Name:        "VolumeCreate",
-			Method:      "POST",
-			Pattern:     "/volumes",
-			Version:     1,
-			HandlerFunc: volumeCreateHandler},
+			Name:         "VolumeCreate",
+			Method:       "POST",
+			Pattern:      "/volumes",
+			Version:      1,
+			RequestType:  utils.GetTypeString((*api.VolCreateReq)(nil)),
+			ResponseType: utils.GetTypeString((*api.VolumeCreateResp)(nil)),
+			HandlerFunc:  volumeCreateHandler},
 		route.Route{
-			Name:        "VolumeExpand",
-			Method:      "POST",
-			Pattern:     "/volumes/{volname}/expand",
-			Version:     1,
-			HandlerFunc: volumeExpandHandler},
+			Name:         "VolumeExpand",
+			Method:       "POST",
+			Pattern:      "/volumes/{volname}/expand",
+			Version:      1,
+			RequestType:  utils.GetTypeString((*api.VolExpandReq)(nil)),
+			ResponseType: utils.GetTypeString((*api.VolumeExpandResp)(nil)),
+			HandlerFunc:  volumeExpandHandler},
 		// TODO: Implmement volume reset as
 		// DELETE /volumes/{volname}/options
 		route.Route{
@@ -33,16 +39,18 @@ func (c *Command) Routes() route.Routes {
 			Version:     1,
 			HandlerFunc: volumeOptionsHandler},
 		route.Route{
-			Name:        "OptionGroupList",
-			Method:      "GET",
-			Pattern:     "/volumes/options-group",
-			Version:     1,
-			HandlerFunc: optionGroupListHandler},
+			Name:         "OptionGroupList",
+			Method:       "GET",
+			Pattern:      "/volumes/options-group",
+			Version:      1,
+			ResponseType: utils.GetTypeString((*api.OptionGroupListResp)(nil)),
+			HandlerFunc:  optionGroupListHandler},
 		route.Route{
 			Name:        "OptionGroupCreate",
 			Method:      "POST",
 			Pattern:     "/volumes/options-group",
 			Version:     1,
+			RequestType: utils.GetTypeString((*api.OptionGroupReq)(nil)),
 			HandlerFunc: optionGroupCreateHandler},
 		route.Route{
 			Name:        "OptionGroupDelete",
@@ -57,29 +65,33 @@ func (c *Command) Routes() route.Routes {
 			Version:     1,
 			HandlerFunc: volumeDeleteHandler},
 		route.Route{
-			Name:        "VolumeInfo",
-			Method:      "GET",
-			Pattern:     "/volumes/{volname}",
-			Version:     1,
-			HandlerFunc: volumeInfoHandler},
+			Name:         "VolumeInfo",
+			Method:       "GET",
+			Pattern:      "/volumes/{volname}",
+			Version:      1,
+			ResponseType: utils.GetTypeString((*api.VolumeGetResp)(nil)),
+			HandlerFunc:  volumeInfoHandler},
 		route.Route{
-			Name:        "VolumeBricksStatus",
-			Method:      "GET",
-			Pattern:     "/volumes/{volname}/bricks",
-			Version:     1,
-			HandlerFunc: volumeBricksStatusHandler},
+			Name:         "VolumeBricksStatus",
+			Method:       "GET",
+			Pattern:      "/volumes/{volname}/bricks",
+			Version:      1,
+			ResponseType: utils.GetTypeString((*api.BricksStatusResp)(nil)),
+			HandlerFunc:  volumeBricksStatusHandler},
 		route.Route{
-			Name:        "VolumeStatus",
-			Method:      "GET",
-			Pattern:     "/volumes/{volname}/status",
-			Version:     1,
-			HandlerFunc: volumeStatusHandler},
+			Name:         "VolumeStatus",
+			Method:       "GET",
+			Pattern:      "/volumes/{volname}/status",
+			Version:      1,
+			ResponseType: utils.GetTypeString((*api.VolumeStatusResp)(nil)),
+			HandlerFunc:  volumeStatusHandler},
 		route.Route{
-			Name:        "VolumeList",
-			Method:      "GET",
-			Pattern:     "/volumes",
-			Version:     1,
-			HandlerFunc: volumeListHandler},
+			Name:         "VolumeList",
+			Method:       "GET",
+			Pattern:      "/volumes",
+			Version:      1,
+			ResponseType: utils.GetTypeString((*api.VolumeListResp)(nil)),
+			HandlerFunc:  volumeListHandler},
 		route.Route{
 			Name:        "VolumeStart",
 			Method:      "POST",

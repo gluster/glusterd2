@@ -10,11 +10,15 @@ import (
 	log "github.com/sirupsen/logrus"
 )
 
+// AllRoutes is global list of all API endpoints
+var AllRoutes route.Routes
+
 // setRoutes adds the given routes to the GlusterD Rest server
 func (r *GDRest) setRoutes(routes route.Routes) {
+	var urlPattern string
 	for _, route := range routes {
-		var urlPattern string
-		if route.Name == "GetVersion" {
+		// Set routes in mux.Routes
+		if route.Version == 0 {
 			urlPattern = route.Pattern
 		} else {
 			urlPattern = fmt.Sprintf("/v%d%s", route.Version, route.Pattern)
@@ -23,13 +27,15 @@ func (r *GDRest) setRoutes(routes route.Routes) {
 			"name":   route.Name,
 			"path":   urlPattern,
 			"method": route.Method,
-		}).Debug("Registering new route")
-
+		}).Debug("Registering new mux route")
 		r.Routes.
 			Methods(route.Method).
 			Path(urlPattern).
 			Name(route.Name).
 			Handler(route.HandlerFunc)
+
+		// Set our global copy of all routes
+		AllRoutes = append(AllRoutes, route)
 	}
 }
 
