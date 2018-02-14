@@ -61,7 +61,7 @@ var bitrotEnableCmd = &cobra.Command{
 				"volume": volname,
 				"error":  err.Error(),
 			}).Error("failed to enable bitrot")
-			failure(fmt.Sprintf("Failed to enable bitrot for volume %s\n", volname), 1)
+			failure(fmt.Sprintf("Failed to enable bitrot for volume %s\n", volname), err, 1)
 		}
 		fmt.Printf("Bitrot enabled successfully for volume %s\n", volname)
 	},
@@ -80,7 +80,7 @@ var bitrotDisableCmd = &cobra.Command{
 				"volume": volname,
 				"error":  err.Error(),
 			}).Error("failed to disable bitrot")
-			failure(fmt.Sprintf("Failed to disable bitrot for volume %s\n", volname), 1)
+			failure(fmt.Sprintf("Failed to disable bitrot for volume %s\n", volname), err, 1)
 		}
 		fmt.Printf("Bitrot disabled successfully for volume '%s'\n", volname)
 	},
@@ -103,7 +103,7 @@ var bitrotScrubThrottleCmd = &cobra.Command{
 				"value":  args[1],
 				"error":  err.Error(),
 			}).Error("failed to set scrub-throttle")
-			failure(fmt.Sprintf("Failed to set bitrot scrub throttle to %s for volume %s", args[1], volname), 1)
+			failure(fmt.Sprintf("Failed to set bitrot scrub throttle to %s for volume %s", args[1], volname), err, 1)
 		}
 		fmt.Printf("Bitrot scrub throttle set successfully to %s for volume %s\n", args[1], volname)
 	},
@@ -126,7 +126,7 @@ var bitrotScrubFrequencyCmd = &cobra.Command{
 				"value":  args[1],
 				"error":  err.Error(),
 			}).Error("failed to set scrub-frequency")
-			failure(fmt.Sprintf("Failed to set bitrot scrub frequency to %s for volume %s", args[1], volname), 1)
+			failure(fmt.Sprintf("Failed to set bitrot scrub frequency to %s for volume %s", args[1], volname), err, 1)
 		}
 		fmt.Printf("Bitrot scrub frequency is set successfully to %s for volume %s\n", args[1], volname)
 	},
@@ -151,7 +151,7 @@ var bitrotScrubCmd = &cobra.Command{
 					"value":  args[1],
 					"error":  err.Error(),
 				}).Error("Bitrot scrub", scrubCmd, "command failed")
-				failure(fmt.Sprintf("Failed to %s bitrot scrub for volume %s", args[1], volname), 1)
+				failure(fmt.Sprintf("Failed to %s bitrot scrub for volume %s", args[1], volname), err, 1)
 			}
 			fmt.Printf("Bitrot scrub %s is successful for volume %s\n", args[1], volname)
 
@@ -162,7 +162,7 @@ var bitrotScrubCmd = &cobra.Command{
 					"volume": volname,
 					"error":  err.Error(),
 				}).Error("failed to get bitrot scrub status")
-				failure(fmt.Sprintf("Failed to get bitrot scrub status for volume %s\n", volname), 1)
+				failure(fmt.Sprintf("Failed to get bitrot scrub status for volume %s\n", volname), err, 1)
 			}
 			fmt.Println()
 			fmt.Printf("Volume: %s\n", scrubStatus.Volume)
@@ -183,7 +183,7 @@ var bitrotScrubCmd = &cobra.Command{
 				/* Printing last scrub duration time in human readable form*/
 				scrubTime, err := strconv.Atoi(nodeInfo.LastScrubDuration)
 				if err != nil {
-					failure(fmt.Sprintf("Failed to parse bitrot scrub status for volume %s\n", volname), 1)
+					failure(fmt.Sprintf("Failed to parse bitrot scrub status for volume %s\n", volname), err, 1)
 				}
 				seconds := scrubTime % 60
 				minutes := (scrubTime / 60) % 60
@@ -207,13 +207,13 @@ var bitrotScrubCmd = &cobra.Command{
 					"volume": volname,
 					"error":  err.Error(),
 				}).Error("failed to start bitrot scrub on demand")
-				failure(fmt.Sprintf("Failed to start bitrot scrub on demand for volume %s\n", volname), 1)
+				failure(fmt.Sprintf("Failed to start bitrot scrub on demand for volume %s\n", volname), err, 1)
 			}
 			fmt.Printf("Bitrot scrub on demand started successfully for volume %s\n", volname)
 		default:
 			failure(fmt.Sprintf(
 				"Invalid scrub value: %s\nUsage: glustercli bitrot scrub <volname> {pause|resume|status|ondemand}",
-				scrubCmd), 1)
+				scrubCmd), nil, 1)
 		}
 
 	},

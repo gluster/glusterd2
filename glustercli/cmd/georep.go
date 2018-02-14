@@ -45,12 +45,18 @@ Rerun the Session Create command with --force once the issues related to Remote 
 )
 
 var (
-	flagGeorepCmdForce      bool
-	flagGeorepShowAllConfig bool
+	flagGeorepCmdForce            bool
+	flagGeorepShowAllConfig       bool
+	flagGeorepRemoteGlusterdHTTPS bool
+	flagGeorepRemoteGlusterdHost  string
+	flagGeorepRemoteGlusterdPort  int
 )
 
 func init() {
 	// Geo-rep Create
+	georepCreateCmd.Flags().BoolVarP(&flagGeorepRemoteGlusterdHTTPS, "remote-glusterd-https", "", false, "Remote Glusterd HTTPS")
+	georepCreateCmd.Flags().StringVarP(&flagGeorepRemoteGlusterdHost, "remote-glusterd-host", "", "", "Remote Glusterd Host")
+	georepCreateCmd.Flags().IntVarP(&flagGeorepRemoteGlusterdPort, "remote-glusterd-port", "", 24007, "Remote Glusterd Port")
 	georepCreateCmd.Flags().BoolVarP(&flagGeorepCmdForce, "force", "f", false, "Force")
 	georepCmd.AddCommand(georepCreateCmd)
 
@@ -165,14 +171,17 @@ var georepCreateCmd = &cobra.Command{
 
 		masterdata, err := getVolumeDetails(volname, nil)
 		if err != nil {
-			failure(errGeorepSessionCreationFailed+err.Error(), 1)
+			failure(errGeorepSessionCreationFailed, err, 1)
 		}
 
 		rclient := getRemoteClient(remotehost)
 
 		remotevoldata, err := getVolumeDetails(remotevol, rclient)
 		if err != nil {
-			failure(errGeorepSessionCreationFailed+err.Error(), 1)
+			handleGlusterdConnectFailure(errGeorepSessionCreationFailed, err, flagGeorepRemoteGlusterdHTTPS, flagGeorepRemoteGlusterdHost, flagGeorepRemoteGlusterdPort, 1)
+
+			// If not Glusterd connect Failure
+			failure(errGeorepSessionCreationFailed, err, 1)
 		}
 
 		// Generate SSH Keys from all nodes of Master Volume
@@ -183,7 +192,7 @@ var georepCreateCmd = &cobra.Command{
 				"error":  err.Error(),
 			}).Error("failed to generate SSH Keys")
 
-			failure(errGeorepSessionCreationFailed+errGeorepSSHKeysGenerate, 1)
+			failure(errGeorepSessionCreationFailed+errGeorepSSHKeysGenerate, err, 1)
 		}
 
 		_, err = client.GeorepCreate(masterdata.id, remotevoldata.id, georepapi.GeorepCreateReq{
@@ -196,7 +205,7 @@ var georepCreateCmd = &cobra.Command{
 
 		if err != nil {
 			log.WithField("volume", volname).Println("georep session creation failed")
-			failure(errGeorepSessionCreationFailed+"\nError: "+err.Error(), 1)
+			failure(errGeorepSessionCreationFailed, err, 1)
 		}
 
 		err = rclient.GeorepSSHKeysPush(remotevol, sshkeys)
@@ -205,7 +214,11 @@ var georepCreateCmd = &cobra.Command{
 				"volume": remotevol,
 				"error":  err.Error(),
 			}).Error("failed to push SSH Keys to Remote Cluster")
-			failure(errGeorepSSHKeysPush, 1)
+
+			handleGlusterdConnectFailure(errGeorepSessionCreationFailed, err, flagGeorepRemoteGlusterdHTTPS, flagGeorepRemoteGlusterdHost, flagGeorepRemoteGlusterdPort, 1)
+
+			// If not Glusterd connect issue
+			failure(errGeorepSSHKeysPush, err, 1)
 		}
 
 		fmt.Println("Geo-replication session created successfully")
@@ -241,7 +254,7 @@ func (a *georepAction) String() string {
 func handleGeorepAction(args []string, action georepAction) {
 	masterdata, remotedata, err := getVolIDs(args)
 	if err != nil {
-		failure(fmt.Sprintf("Geo-replication %s failed.\n%s", action.String(), err.Error()), 1)
+		failure(fmt.Sprintf("Geo-replication %s failed.\n", action.String()), err, 1)
 	}
 	switch action {
 	case georepStart:
@@ -261,7 +274,7 @@ func handleGeorepAction(args []string, action georepAction) {
 			"volume": masterdata.volname,
 			"error":  err.Error(),
 		}).Error("geo-replication", action.String(), "failed")
-		failure(fmt.Sprintf("Geo-replication %s failed with %s", action.String(), err.Error()), 1)
+		failure(fmt.Sprintf("Geo-replication %s failed", action.String()), err, 1)
 	}
 	fmt.Println("Geo-replication session", action.String(), "successful")
 }
@@ -313,7 +326,19 @@ var georepDeleteCmd = &cobra.Command{
 
 func getRemoteClient(host string) *restclient.Client {
 	// TODO: Handle Remote Cluster Authentication and certificates and URL scheme
-	return restclient.New("http://"+host+":24007", "", "", "", true)
+	scheme := "http"
+	if flagGeorepRemoteGlusterdHTTPS {
+		scheme = "https"
+	}
+	if flagGeorepRemoteGlusterdHost != "" {
+		host = flagGeorepRemoteGlusterdHost
+	}
+
+	// Set Global based on final decision
+	flagGeorepRemoteGlusterdHost = host
+
+	return restclient.New(fmt.Sprintf("%s://%s:%d", scheme, host, flagGeorepRemoteGlusterdPort),
+		"", "", "", true)
 }
 
 func getVolIDs(pargs []string) (*volumeDetails, *volumeDetails, error) {
@@ -347,7 +372,7 @@ var georepStatusCmd = &cobra.Command{
 		var err error
 		masterdata, remotedata, err := getVolIDs(args)
 		if err != nil {
-			failure(errGeorepStatusCommandFailed+err.Error(), 1)
+			failure(errGeorepStatusCommandFailed, err, 1)
 		}
 
 		var sessions []georepapi.GeorepSession
@@ -355,7 +380,7 @@ var georepStatusCmd = &cobra.Command{
 		if masterdata == nil || remotedata == nil {
 			allSessions, err := client.GeorepStatus("", "")
 			if err != nil {
-				failure(errGeorepStatusCommandFailed+err.Error(), 1)
+				failure(errGeorepStatusCommandFailed, err, 1)
 			}
 			for _, s := range allSessions {
 				if masterdata != nil && s.MasterID.String() != masterdata.id {
@@ -366,14 +391,14 @@ var georepStatusCmd = &cobra.Command{
 				}
 				sessionDetail, err := client.GeorepStatus(s.MasterID.String(), s.RemoteID.String())
 				if err != nil {
-					failure(errGeorepStatusCommandFailed+err.Error(), 1)
+					failure(errGeorepStatusCommandFailed, err, 1)
 				}
 				sessions = append(sessions, sessionDetail[0])
 			}
 		} else {
 			sessions, err = client.GeorepStatus(masterdata.id, remotedata.id)
 			if err != nil {
-				failure(errGeorepStatusCommandFailed+err.Error(), 1)
+				failure(errGeorepStatusCommandFailed, err, 1)
 			}
 		}
 
@@ -418,12 +443,12 @@ var georepGetCmd = &cobra.Command{
 
 		masterdata, remotedata, err := getVolIDs(args)
 		if err != nil {
-			failure(err.Error(), 1)
+			failure("Error getting Volume IDs", err, 1)
 		}
 
 		opts, err := client.GeorepGet(masterdata.id, remotedata.id)
 		if err != nil {
-			failure(err.Error(), 1)
+			failure("Error getting Options", err, 1)
 		}
 
 		table := tablewriter.NewWriter(os.Stdout)
@@ -489,7 +514,7 @@ var georepSetCmd = &cobra.Command{
 		var err error
 		masterdata, remotedata, err := getVolIDs(args)
 		if err != nil {
-			failure(err.Error(), 1)
+			failure("Error getting Volume IDs", err, 1)
 		}
 
 		opts := make(map[string]string)
@@ -497,7 +522,7 @@ var georepSetCmd = &cobra.Command{
 
 		err = client.GeorepSet(masterdata.id, remotedata.id, opts)
 		if err != nil {
-			failure(err.Error(), 1)
+			failure("Geo-replication session config set failed", err, 1)
 		}
 		fmt.Println("Geo-replication session config set successfully")
 	},
@@ -511,12 +536,12 @@ var georepResetCmd = &cobra.Command{
 		var err error
 		masterdata, remotedata, err := getVolIDs(args)
 		if err != nil {
-			failure(err.Error(), 1)
+			failure(err.Error(), err, 1)
 		}
 
 		err = client.GeorepReset(masterdata.id, remotedata.id, args[2:])
 		if err != nil {
-			failure(err.Error(), 1)
+			failure("Geo-replication session config reset failed", err, 1)
 		}
 		fmt.Println("Geo-replication session config reset successfully")
 	},
