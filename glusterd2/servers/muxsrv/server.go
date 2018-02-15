@@ -4,8 +4,8 @@ package muxsrv
 import (
 	"net"
 
+	"github.com/cockroachdb/cmux"
 	log "github.com/sirupsen/logrus"
-	"github.com/soheilhy/cmux"
 	config "github.com/spf13/viper"
 )
 

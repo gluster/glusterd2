@@ -11,8 +11,7 @@ import (
 
 const (
 	// SourceField is the field name used for logging source location.
-	// This field name is consumed by the prefixed formatter.
-	SourceField = "prefix"
+	SourceField = "source"
 	gd2Repo     = "github.com/gluster/glusterd2"
 )
 
