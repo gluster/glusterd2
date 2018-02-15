@@ -9,7 +9,6 @@ import (
 	"strings"
 
 	log "github.com/sirupsen/logrus"
-	prefixed "github.com/x-cray/logrus-prefixed-formatter"
 )
 
 const (
@@ -72,7 +71,7 @@ func Init(logdir string, logFileName string, logLevel string, verboseLogEntry bo
 		return err
 	}
 	log.SetLevel(l)
-	log.SetFormatter(&prefixed.TextFormatter{FullTimestamp: true, TimestampFormat: timestampFormat})
+	log.SetFormatter(&log.TextFormatter{FullTimestamp: true, TimestampFormat: timestampFormat})
 
 	if strings.ToLower(logFileName) == "stderr" || logFileName == "-" {
 		setLogOutput(os.Stderr)
