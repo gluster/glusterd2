@@ -3,9 +3,9 @@
 # dependencies in Fedora. So until they are updated, build with the bundled
 # dependencies
 # TODO: Disable bundled builds once dependencies are met
-%global with_bundled 0
+%global with_bundled 1
 %else
-%global with_bundled 0
+%global with_bundled 1
 %endif
 
 %if 0%{?with_debug}
