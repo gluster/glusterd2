@@ -37,6 +37,7 @@ func (c *Command) Routes() route.Routes {
 			Method:      "POST",
 			Pattern:     "/volumes/{volname}/options",
 			Version:     1,
+			RequestType: utils.GetTypeString((*api.VolOptionReq)(nil)),
 			HandlerFunc: volumeOptionsHandler},
 		route.Route{
 			Name:         "OptionGroupList",
