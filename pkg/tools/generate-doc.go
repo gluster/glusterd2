@@ -13,14 +13,28 @@ import (
 	log "github.com/sirupsen/logrus"
 )
 
-const endpointsTable = `# API Endpoints
+// TODO: Fix this template by making a sub-template and removing markdown
+// links if the strings are empty.
+
+const endpointsTable = `
+<!---
+This file is generated using commands described below. DO NOT EDIT.
+
+$ curl -o endpoints.json -s -X GET http://127.0.0.1:24007/endpoints
+$ go build pkg/tools/generate-doc.go
+$ ./generate-doc
+-->
+
+# REST API Endpoints Reference
 
 Name | Methods | Path | Request | Response
 --- | --- | --- | --- | ---{{range $index, $element := .}}
 {{.Name}} | {{.Method}} | {{.Path}} | [{{.RequestType}}](https://godoc.org/github.com/gluster/glusterd2/pkg/api#{{.RequestType}}) | [{{.ResponseType}}](https://godoc.org/github.com/gluster/glusterd2/pkg/api#{{.ResponseType}}){{end}}
 `
 
-const outFile = "endpoints.md"
+// TODO: Consider making this code comment instead of markdown in the
+// file pkg/api/doc.go to be rendered by godoc in HTML
+const outFile = "doc/endpoints.md"
 
 // Example:
 // 	$ curl -o endpoints.json -s -X GET http://127.0.0.1:24007/endpoints
