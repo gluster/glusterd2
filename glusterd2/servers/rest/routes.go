@@ -1,13 +1,18 @@
 package rest
 
 import (
+	"expvar"
 	"fmt"
+	"net/http"
 
 	"github.com/gluster/glusterd2/glusterd2/commands"
 	"github.com/gluster/glusterd2/glusterd2/plugin"
 	"github.com/gluster/glusterd2/glusterd2/servers/rest/route"
+	"github.com/gluster/glusterd2/pkg/api"
+	"github.com/gluster/glusterd2/pkg/utils"
 
 	log "github.com/sirupsen/logrus"
+	config "github.com/spf13/viper"
 )
 
 // AllRoutes is global list of all API endpoints
@@ -56,4 +61,24 @@ func (r *GDRest) registerRoutes() {
 		}
 		p.RegisterStepFuncs()
 	}
+
+	// Expose /statedump and /endpoints handlers
+	var moreRoutes route.Routes
+
+	if ok := config.GetBool("statedump"); ok {
+		moreRoutes = append(moreRoutes, route.Route{
+			Name:        "Statedump",
+			Method:      "GET",
+			Pattern:     "/statedump",
+			HandlerFunc: expvar.Handler().(http.HandlerFunc)})
+	}
+
+	moreRoutes = append(moreRoutes, route.Route{
+		Name:         "List Endpoints",
+		Method:       "GET",
+		Pattern:      "/endpoints",
+		ResponseType: utils.GetTypeString((*api.ListEndpointsResp)(nil)),
+		HandlerFunc:  r.listEndpointsHandler()})
+
+	r.setRoutes(moreRoutes)
 }
