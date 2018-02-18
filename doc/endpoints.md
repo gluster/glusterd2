@@ -1,11 +1,20 @@
-# API Endpoints
+
+<!---
+This file is generated using commands described below. DO NOT EDIT.
+
+$ curl -o endpoints.json -s -X GET http://127.0.0.1:24007/endpoints
+$ go build pkg/tools/generate-doc.go
+$ ./generate-doc
+-->
+
+# REST API Endpoints Reference
 
 Name | Methods | Path | Request | Response
 --- | --- | --- | --- | ---
 GetVersion | GET | /version | [](https://godoc.org/github.com/gluster/glusterd2/pkg/api#) | [VersionResp](https://godoc.org/github.com/gluster/glusterd2/pkg/api#VersionResp)
 VolumeCreate | POST | /volumes | [VolCreateReq](https://godoc.org/github.com/gluster/glusterd2/pkg/api#VolCreateReq) | [VolumeCreateResp](https://godoc.org/github.com/gluster/glusterd2/pkg/api#VolumeCreateResp)
 VolumeExpand | POST | /volumes/{volname}/expand | [VolExpandReq](https://godoc.org/github.com/gluster/glusterd2/pkg/api#VolExpandReq) | [VolumeExpandResp](https://godoc.org/github.com/gluster/glusterd2/pkg/api#VolumeExpandResp)
-VolumeOptions | POST | /volumes/{volname}/options | [](https://godoc.org/github.com/gluster/glusterd2/pkg/api#) | [](https://godoc.org/github.com/gluster/glusterd2/pkg/api#)
+VolumeOptions | POST | /volumes/{volname}/options | [VolOptionReq](https://godoc.org/github.com/gluster/glusterd2/pkg/api#VolOptionReq) | [](https://godoc.org/github.com/gluster/glusterd2/pkg/api#)
 OptionGroupList | GET | /volumes/options-group | [](https://godoc.org/github.com/gluster/glusterd2/pkg/api#) | [OptionGroupListResp](https://godoc.org/github.com/gluster/glusterd2/pkg/api#OptionGroupListResp)
 OptionGroupCreate | POST | /volumes/options-group | [OptionGroupReq](https://godoc.org/github.com/gluster/glusterd2/pkg/api#OptionGroupReq) | [](https://godoc.org/github.com/gluster/glusterd2/pkg/api#)
 OptionGroupDelete | DELETE | /volumes/options-group/{groupname} | [](https://godoc.org/github.com/gluster/glusterd2/pkg/api#) | [](https://godoc.org/github.com/gluster/glusterd2/pkg/api#)
@@ -18,10 +27,10 @@ VolumeStart | POST | /volumes/{volname}/start | [](https://godoc.org/github.com/
 VolumeStop | POST | /volumes/{volname}/stop | [](https://godoc.org/github.com/gluster/glusterd2/pkg/api#) | [](https://godoc.org/github.com/gluster/glusterd2/pkg/api#)
 VolfilesGenerate | POST | /volfiles | [](https://godoc.org/github.com/gluster/glusterd2/pkg/api#) | [](https://godoc.org/github.com/gluster/glusterd2/pkg/api#)
 VolfilesGet | GET | /volfiles | [](https://godoc.org/github.com/gluster/glusterd2/pkg/api#) | [](https://godoc.org/github.com/gluster/glusterd2/pkg/api#)
-GetPeer | GET | /peers/{peerid} | [](https://godoc.org/github.com/gluster/glusterd2/pkg/api#) | [](https://godoc.org/github.com/gluster/glusterd2/pkg/api#)
-GetPeers | GET | /peers | [](https://godoc.org/github.com/gluster/glusterd2/pkg/api#) | [](https://godoc.org/github.com/gluster/glusterd2/pkg/api#)
+GetPeer | GET | /peers/{peerid} | [](https://godoc.org/github.com/gluster/glusterd2/pkg/api#) | [PeerGetResp](https://godoc.org/github.com/gluster/glusterd2/pkg/api#PeerGetResp)
+GetPeers | GET | /peers | [](https://godoc.org/github.com/gluster/glusterd2/pkg/api#) | [PeerListResp](https://godoc.org/github.com/gluster/glusterd2/pkg/api#PeerListResp)
 DeletePeer | DELETE | /peers/{peerid} | [](https://godoc.org/github.com/gluster/glusterd2/pkg/api#) | [](https://godoc.org/github.com/gluster/glusterd2/pkg/api#)
-AddPeer | POST | /peers | [](https://godoc.org/github.com/gluster/glusterd2/pkg/api#) | [](https://godoc.org/github.com/gluster/glusterd2/pkg/api#)
+AddPeer | POST | /peers | [PeerAddReq](https://godoc.org/github.com/gluster/glusterd2/pkg/api#PeerAddReq) | [PeerAddResp](https://godoc.org/github.com/gluster/glusterd2/pkg/api#PeerAddResp)
 GeoreplicationCreate | POST | /geo-replication/{mastervolid}/{remotevolid} | [](https://godoc.org/github.com/gluster/glusterd2/pkg/api#) | [](https://godoc.org/github.com/gluster/glusterd2/pkg/api#)
 GeoreplicationStart | POST | /geo-replication/{mastervolid}/{remotevolid}/start | [](https://godoc.org/github.com/gluster/glusterd2/pkg/api#) | [](https://godoc.org/github.com/gluster/glusterd2/pkg/api#)
 GeoreplicationStop | POST | /geo-replication/{mastervolid}/{remotevolid}/stop | [](https://godoc.org/github.com/gluster/glusterd2/pkg/api#) | [](https://godoc.org/github.com/gluster/glusterd2/pkg/api#)
@@ -50,3 +59,5 @@ WebhookDelete | DELETE | /events/webhook | [](https://godoc.org/github.com/glust
 WebhookList | GET | /events/webhook | [](https://godoc.org/github.com/gluster/glusterd2/pkg/api#) | [](https://godoc.org/github.com/gluster/glusterd2/pkg/api#)
 GlustershEnable | POST | /volumes/{name}/heal/enable | [](https://godoc.org/github.com/gluster/glusterd2/pkg/api#) | [](https://godoc.org/github.com/gluster/glusterd2/pkg/api#)
 GlustershDisable | POST | /volumes/{name}/heal/disable | [](https://godoc.org/github.com/gluster/glusterd2/pkg/api#) | [](https://godoc.org/github.com/gluster/glusterd2/pkg/api#)
+Statedump | GET | /statedump | [](https://godoc.org/github.com/gluster/glusterd2/pkg/api#) | [](https://godoc.org/github.com/gluster/glusterd2/pkg/api#)
+List Endpoints | GET | /endpoints | [](https://godoc.org/github.com/gluster/glusterd2/pkg/api#) | [ListEndpointsResp](https://godoc.org/github.com/gluster/glusterd2/pkg/api#ListEndpointsResp)
