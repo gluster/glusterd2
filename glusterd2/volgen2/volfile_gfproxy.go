@@ -28,7 +28,7 @@ func generateGfproxydVolfile(volfile *Volfile, vol *volume.Volinfo, nodeid uuid.
 		Add("performance/read-ahead", vol, nil).
 		Add("cluster/distribute", vol, nil)
 
-	clusterGraph(dht, vol, nodeid, nil)
+	clusterGraph(volfile, dht, vol, nodeid, nil)
 }
 
 func init() {

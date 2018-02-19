@@ -19,7 +19,7 @@ func generateBitdVolfile(volfile *Volfile, clusterinfo []*volume.Volinfo, nodeid
 		if exists && val == "on" {
 			name := fmt.Sprintf("%s-bit-rot-%d", vol.Name, volIdx)
 			bitdvol := bitd.Add("features/bit-rot", vol, nil).SetName(name).SetIgnoreOptions([]string{"scrubber"})
-			clusterGraph(bitdvol, vol, nodeid, &clusterGraphFilters{onlyLocalBricks: true})
+			clusterGraph(volfile, bitdvol, vol, nodeid, &clusterGraphFilters{onlyLocalBricks: true})
 		}
 	}
 }

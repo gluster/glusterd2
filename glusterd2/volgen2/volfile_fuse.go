@@ -20,7 +20,7 @@ func generateTCPFuseVolfile(volfile *Volfile, vol *volume.Volinfo, nodeid uuid.U
 		Add("performance/write-behind", vol, nil).
 		Add("cluster/distribute", vol, nil)
 
-	clusterGraph(dht, vol, nodeid, nil)
+	clusterGraph(volfile, dht, vol, nodeid, nil)
 }
 
 func init() {
