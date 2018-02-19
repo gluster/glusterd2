@@ -4,6 +4,7 @@ package device
 import (
 	"context"
 	"encoding/json"
+	"fmt"
 
 	"github.com/gluster/glusterd2/glusterd2/store"
 	"github.com/gluster/glusterd2/pkg/api"
@@ -11,21 +12,23 @@ import (
 
 const (
 	devicePrefix string = "devices/"
+	peerPrefix string = "peers/"
 )
 
 // GetDevice returns devices of specified peer from the store
 func GetDevice(peerid string) (*api.Device, error) {
-	resp, err := store.Store.Get(context.TODO(), devicePrefix+peerid)
+	resp, err := store.Store.Get(context.TODO(), peerPrefix+peerid+devicePrefix)
 	if err != nil {
 		return nil, err
 	}
-	if len(resp.Kvs) > 0 {
+	fmt.Printf("Printing Get Device %s", resp)
+	/*if len(resp.Kvs) > 0 {
 		var deviceDetail api.Device
 		if err := json.Unmarshal(resp.Kvs[0].Value, &deviceDetail); err != nil {
 			return nil, err
 		}
 		return &deviceDetail, nil
-	}
+	}*/
 
 	return nil, nil
 }
@@ -39,7 +42,7 @@ func AddOrUpdateDevice(d *api.Device) error {
 
 	idStr := d.PeerID.String()
 
-	if _, err := store.Store.Put(context.TODO(), devicePrefix+idStr, string(json)); err != nil {
+	if _, err := store.Store.Put(context.TODO(), peerPrefix+idStr+devicePrefix, string(json)); err != nil {
 		return err
 	}
 

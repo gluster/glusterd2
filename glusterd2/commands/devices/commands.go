@@ -15,7 +15,7 @@ func (c *Command) Routes() route.Routes {
 		route.Route{
 			Name:        "DeviceAdd",
 			Method:      "POST",
-			Pattern:     "/devices",
+			Pattern:     "/peers/{peerid}/devices",
 			Version:     1,
 			HandlerFunc: deviceAddHandler},
 	}

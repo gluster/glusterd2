@@ -15,8 +15,7 @@ const (
 
 // AddDeviceReq structure
 type AddDeviceReq struct {
-	PeerID uuid.UUID `json:"peer-id"`
-	Names  []string  `json:"names"`
+	Devices  []string  `json:"devices"`
 }
 
 // Device is the added device info
