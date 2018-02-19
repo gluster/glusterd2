@@ -35,14 +35,14 @@ func (e OptionNotFoundError) Error() string {
 // key should be in the [<graph>].<xlator>.<name> form.
 // Returns an error otherwise.
 func FindOption(k string) (*options.Option, error) {
-	// Interested only in <xlator>.<name> part of the key as optMap is indexed
+	// Interested only in <xlator>.<name> part of the key as OptMap is indexed
 	// using them.
 	_, xl, name, err := options.SplitKey(k)
 	if err != nil {
 		return nil, err
 	}
 
-	opt, ok := optMap[xl+"."+name]
+	opt, ok := OptMap[xl+"."+name]
 	if !ok {
 		return nil, OptionNotFoundError(k)
 	}
