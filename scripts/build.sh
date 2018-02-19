@@ -42,8 +42,15 @@ else
     echo "Plugins Disabled"
 fi
 
+if [ "$FASTBUILD" == "yes" ];then
+  # Enable the `go build -i` flag to install dependencies during build and
+  # allow faster rebuilds of GD2.
+  INSTALLFLAG="-i"
+fi
+
+
 echo "Building $BIN $VERSION"
 
-go build -i -ldflags "${LDFLAGS}" -o $OUTDIR/$BIN -tags "$GOBUILD_TAGS" $GOPKG || exit 1
+go build $INSTALLFLAG -ldflags "${LDFLAGS}" -o $OUTDIR/$BIN -tags "$GOBUILD_TAGS" $GOPKG || exit 1
 
 echo "Built $PACKAGE $VERSION at $OUTDIR/$BIN"

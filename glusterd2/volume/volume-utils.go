@@ -36,3 +36,12 @@ func IsBitrotEnabled(v *Volinfo) bool {
 	}
 	return false
 }
+
+// IsQuotaEnabled returns true if bitrot is enabled for a volume and false otherwise
+func IsQuotaEnabled(v *Volinfo) bool {
+	val, exists := v.Options[VkeyFeaturesQuota]
+	if exists && val == "on" {
+		return true
+	}
+	return false
+}

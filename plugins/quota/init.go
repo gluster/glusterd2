@@ -2,6 +2,7 @@ package quota
 
 import (
 	"github.com/gluster/glusterd2/glusterd2/servers/rest/route"
+	"github.com/gluster/glusterd2/glusterd2/transaction"
 	"github.com/gluster/glusterd2/pkg/sunrpc"
 )
 
@@ -58,5 +59,6 @@ func (p *Plugin) RestRoutes() route.Routes {
 // RegisterStepFuncs registers transaction step functions with
 // Glusterd Transaction framework
 func (p *Plugin) RegisterStepFuncs() {
+	transaction.RegisterStepFunc(QuotadStart, "quota-enable.DaemonStart")
 	return
 }

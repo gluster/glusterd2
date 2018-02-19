@@ -55,10 +55,13 @@ var peerProbeCmd = &cobra.Command{
 		hostname := cmd.Flags().Args()[0]
 		peer, err := client.PeerProbe(hostname)
 		if err != nil {
-			log.WithField("host", hostname).Println("peer probe failed")
-			failure(fmt.Sprintf("Peer probe failed with %s", err.Error()), 1)
+			log.WithFields(log.Fields{
+				"host":  hostname,
+				"error": err.Error(),
+			}).Error("peer probe failed")
+			failure("Peer probe failed", err, 1)
 		}
-		fmt.Println("Peer probe success")
+		fmt.Println("Peer probe successful")
 		table := tablewriter.NewWriter(os.Stdout)
 		table.SetHeader([]string{"ID", "Name", "PeerAddresses"})
 		table.Append([]string{peer.ID.String(), peer.Name, strings.Join(peer.PeerAddresses, ",")})
@@ -74,8 +77,11 @@ var peerDetachCmd = &cobra.Command{
 		hostname := cmd.Flags().Args()[0]
 		err := client.PeerDetach(hostname)
 		if err != nil {
-			log.WithField("host", hostname).Println("peer detach failed")
-			failure(fmt.Sprintf("Peer detach failed with %s", err.Error()), 1)
+			log.WithFields(log.Fields{
+				"host":  hostname,
+				"error": err.Error(),
+			}).Error("peer detach failed")
+			failure("Peer detach failed", err, 1)
 		}
 		fmt.Println("Peer detach success")
 	},
@@ -84,8 +90,10 @@ var peerDetachCmd = &cobra.Command{
 func peerStatusHandler(cmd *cobra.Command) {
 	peers, err := client.Peers()
 	if err != nil {
-		log.Println("peer status failed")
-		failure(fmt.Sprintf("Error getting Peers list %s", err.Error()), 1)
+		log.WithFields(log.Fields{
+			"error": err.Error(),
+		}).Error("peer status failed")
+		failure("Failed to get Peers list", err, 1)
 	}
 	table := tablewriter.NewWriter(os.Stdout)
 	table.SetHeader([]string{"ID", "Name", "PeerAddresses"})

@@ -28,6 +28,7 @@ GD2LOGDIR = $(LOGDIR)/$(GD2)
 DEPENV ?=
 
 PLUGINS ?= yes
+FASTBUILD ?= yes
 
 .PHONY: all build check check-go check-reqs install vendor-update vendor-install verify release check-protoc $(GD2_BIN) $(GD2_BUILD) $(CLI_BIN) $(CLI_BUILD) cli $(GD2_CONF) gd2conf test dist dist-vendor
 
@@ -50,13 +51,13 @@ check-reqs:
 
 $(GD2_BIN): $(GD2_BUILD)
 $(GD2_BUILD):
-	@PLUGINS=$(PLUGINS) ./scripts/build.sh glusterd2
+	@PLUGINS=$(PLUGINS) FASTBUILD=$(FASTBUILD) ./scripts/build.sh glusterd2
 	@echo
 
 $(CLI_BIN) cli: $(CLI_BUILD)
 $(CLI_BUILD):
-	@./scripts/build.sh glustercli
-	@./scripts/build.sh glustercli/generate_bash_completion
+	@FASTBUILD=$(FASTBUILD) ./scripts/build.sh glustercli
+	@FASTBUILD=$(FASTBUILD) ./scripts/build.sh glustercli/generate_bash_completion
 	@./$(CLI_BASH_COMPLETION_GEN_BIN) $(CLI_BASH_COMPLETION_BUILD)
 	@echo
 

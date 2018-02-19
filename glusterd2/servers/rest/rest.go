@@ -5,17 +5,19 @@ import (
 	"context"
 	"crypto/rand"
 	"crypto/tls"
-	"expvar"
 	"net"
 	"net/http"
 	"time"
 
 	"github.com/gluster/glusterd2/glusterd2/middleware"
+	restutils "github.com/gluster/glusterd2/glusterd2/servers/rest/utils"
+	"github.com/gluster/glusterd2/pkg/api"
+	"github.com/gluster/glusterd2/pkg/tlsmatcher"
 
+	"github.com/cockroachdb/cmux"
 	"github.com/gorilla/mux"
 	"github.com/justinas/alice"
 	log "github.com/sirupsen/logrus"
-	"github.com/soheilhy/cmux"
 	config "github.com/spf13/viper"
 )
 
@@ -56,7 +58,7 @@ func NewMuxed(m cmux.CMux) *GDRest {
 	keyfile := config.GetString("key-file")
 
 	if certfile != "" && keyfile != "" {
-		if l, err := tlsListener(m.Match(cmux.TLS()), certfile, keyfile); err != nil {
+		if l, err := tlsListener(m.Match(tlsmatcher.TLS12), certfile, keyfile); err != nil {
 			// TODO: Don't use Fatal(), bubble up error till main()
 			// NOTE: Methods of suture.Service interface do not return error
 			log.WithFields(log.Fields{
@@ -71,11 +73,6 @@ func NewMuxed(m cmux.CMux) *GDRest {
 	}
 
 	rest.registerRoutes()
-
-	// Expose /statedump endpoint (uses expvar) if enabled
-	if ok := config.GetBool("statedump"); ok {
-		rest.Routes.Handle("/statedump", expvar.Handler())
-	}
 
 	// Chain of ordered middlewares.
 	rest.server.Handler = alice.New(
@@ -120,4 +117,21 @@ func (r *GDRest) Stop() {
 	log.Info("stopped glusterd ReST server")
 
 	r.stopCh <- struct{}{}
+}
+
+func (r *GDRest) listEndpointsHandler() http.HandlerFunc {
+	return http.HandlerFunc(func(w http.ResponseWriter, req *http.Request) {
+		var resp api.ListEndpointsResp
+		ctx := req.Context()
+		for _, r := range AllRoutes {
+			resp = append(resp, api.Endpoint{
+				Name:         r.Name,
+				Method:       r.Method,
+				Path:         r.Pattern,
+				RequestType:  r.RequestType,
+				ResponseType: r.ResponseType,
+			})
+		}
+		restutils.SendHTTPResponse(ctx, w, http.StatusOK, resp)
+	})
 }

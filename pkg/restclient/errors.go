@@ -14,5 +14,5 @@ type UnexpectedStatusError struct {
 }
 
 func (e *UnexpectedStatusError) Error() string {
-	return fmt.Sprintf("%s (expected=%d actual=%d)", e.resp, e.expected, e.actual)
+	return fmt.Sprintf("Request failed with HTTP Status code %d", e.actual)
 }
