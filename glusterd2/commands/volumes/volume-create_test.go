@@ -8,7 +8,6 @@ import (
 
 	"github.com/gluster/glusterd2/glusterd2/brick"
 	"github.com/gluster/glusterd2/glusterd2/peer"
-	"github.com/gluster/glusterd2/glusterd2/transaction"
 	"github.com/gluster/glusterd2/glusterd2/volume"
 	"github.com/gluster/glusterd2/pkg/api"
 	gderrors "github.com/gluster/glusterd2/pkg/errors"
@@ -72,40 +71,5 @@ func TestCreateVolinfo(t *testing.T) {
 		return nil, errBad
 	}).Restore()
 	_, e = createVolinfo(msg)
-	assert.Equal(t, errBad, e)
-}
-
-// TestValidateVolumeCreate validates validateVolumeCreate()
-func TestValidateVolumeCreate(t *testing.T) {
-	msg := new(api.VolCreateReq)
-
-	msg.Name = "vol"
-	u := uuid.NewRandom()
-	msg.Subvols = []api.SubvolReq{{Bricks: []api.BrickReq{
-		{NodeID: u.String(), Path: "/tmp/b1"},
-		{NodeID: u.String(), Path: "/tmp/b2"},
-	}}}
-
-	c := transaction.NewMockCtx()
-	c.Set("req", msg)
-
-	defer testutils.Patch(&volume.ValidateBrickEntriesFunc, func(bricks []brick.Brickinfo, volID uuid.UUID, force bool) (int, error) {
-		return 0, nil
-	}).Restore()
-	defer testutils.Patch(&peer.GetPeerIDByAddrF, peer.GetPeerIDByAddrMockGood).Restore()
-	defer testutils.Patch(&peer.GetPeerF, peer.GetPeerFMockGood).Restore()
-
-	vol, e := createVolinfo(msg)
-	assert.Nil(t, e)
-	c.Set("volinfo", vol)
-
-	e = validateVolumeCreate(c)
-	assert.Nil(t, e)
-
-	// Mock validateBrickEntries failure
-	defer testutils.Patch(&volume.ValidateBrickEntriesFunc, func(bricks []brick.Brickinfo, volID uuid.UUID, force bool) (int, error) {
-		return 0, errBad
-	}).Restore()
-	e = validateVolumeCreate(c)
 	assert.Equal(t, errBad, e)
 }

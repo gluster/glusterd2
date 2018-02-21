@@ -4,7 +4,11 @@ import (
 	"context"
 	"encoding/json"
 	"errors"
+	"os"
+	"path/filepath"
 
+	"github.com/gluster/glusterd2/glusterd2/brick"
+	"github.com/gluster/glusterd2/glusterd2/gdctx"
 	"github.com/gluster/glusterd2/glusterd2/servers/sunrpc"
 	"github.com/gluster/glusterd2/glusterd2/store"
 	"github.com/gluster/glusterd2/glusterd2/transaction"
@@ -13,7 +17,13 @@ import (
 	"github.com/gluster/glusterd2/glusterd2/xlator"
 	"github.com/gluster/glusterd2/glusterd2/xlator/options"
 	"github.com/gluster/glusterd2/pkg/api"
+
+	"github.com/pborman/uuid"
+	log "github.com/sirupsen/logrus"
+	"golang.org/x/sys/unix"
 )
+
+const volumeIDXattrKey = "trusted.glusterfs.volume-id"
 
 // validateOptions validates if the options and their values are valid and can
 // be set on a volume.
@@ -101,22 +111,118 @@ func notifyVolfileChange(c transaction.TxnCtx) error {
 	return nil
 }
 
+func validateBricks(c transaction.TxnCtx) error {
+
+	var err error
+
+	var bricks []brick.Brickinfo
+	if err = c.Get("bricks", &bricks); err != nil {
+		return err
+	}
+
+	var checks brick.InitChecks
+	if err = c.Get("brick-checks", &checks); err != nil {
+		return err
+	}
+
+	for _, b := range bricks {
+		if !uuid.Equal(b.NodeID, gdctx.MyUUID) {
+			continue
+		}
+
+		if err = b.Validate(checks); err != nil {
+			c.Logger().WithError(err).WithField(
+				"brick", b.Path).Debug("Brick validation failed")
+			return err
+		}
+	}
+
+	return nil
+}
+
+func initBricks(c transaction.TxnCtx) error {
+
+	var err error
+
+	var bricks []brick.Brickinfo
+	if err = c.Get("bricks", &bricks); err != nil {
+		return err
+	}
+
+	var checks brick.InitChecks
+	if err = c.Get("brick-checks", &checks); err != nil {
+		return err
+	}
+
+	flags := 0
+	if checks.IsInUse {
+		// Perform a pure replace operation, which fails if the named
+		// attribute does not already exist.
+		flags = unix.XATTR_CREATE
+	}
+	for _, b := range bricks {
+		if !uuid.Equal(b.NodeID, gdctx.MyUUID) {
+			continue
+		}
+
+		err = unix.Setxattr(b.Path, volumeIDXattrKey, []byte(b.VolumeID), flags)
+		if err != nil {
+			log.WithError(err).WithFields(log.Fields{
+				"path": b.Path,
+				"key":  volumeIDXattrKey}).Error("Setxattr failed")
+			return err
+		}
+
+		path := filepath.Join(b.Path, ".glusterfs")
+		err = os.MkdirAll(path, os.ModeDir|os.ModePerm)
+		if err != nil {
+			log.WithError(err).WithField(
+				"path", path).Error("MkdirAll failed")
+			return err
+		}
+	}
+
+	return nil
+}
+
+func undoInitBricks(c transaction.TxnCtx) error {
+
+	var bricks []brick.Brickinfo
+	if err := c.Get("bricks", &bricks); err != nil {
+		return err
+	}
+
+	// FIXME: This is prone to races. See issue #314
+
+	for _, b := range bricks {
+		if !uuid.Equal(b.NodeID, gdctx.MyUUID) {
+			continue
+		}
+
+		unix.Removexattr(b.Path, volumeIDXattrKey)
+	}
+
+	return nil
+}
+
 func storeVolume(c transaction.TxnCtx) error {
 
 	var volinfo volume.Volinfo
 	if err := c.Get("volinfo", &volinfo); err != nil {
+		c.Logger().WithError(err).WithField(
+			"key", "volinfo").Debug("Failed to get key from store")
 		return err
 	}
 
 	if err := volume.AddOrUpdateVolumeFunc(&volinfo); err != nil {
 		c.Logger().WithError(err).WithField(
-			"volume", volinfo.Name).Debug("storeVolume: failed to store volume info")
+			"volume", volinfo.Name).Debug("failed to store volume info")
 		return err
 	}
 
 	if err := volgen.Generate(); err != nil {
 		c.Logger().WithError(err).WithField(
-			"volume", volinfo.Name).Debug("generateVolfiles: failed to generate volfiles")
+			"volume", volinfo.Name).Debug("failed to generate volfiles")
 		return err
 	}
 

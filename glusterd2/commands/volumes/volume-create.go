@@ -6,6 +6,7 @@ import (
 	"net/http"
 	"strings"
 
+	"github.com/gluster/glusterd2/glusterd2/brick"
 	"github.com/gluster/glusterd2/glusterd2/events"
 	"github.com/gluster/glusterd2/glusterd2/gdctx"
 	restutils "github.com/gluster/glusterd2/glusterd2/servers/rest/utils"
@@ -148,39 +149,25 @@ func createVolinfo(req *api.VolCreateReq) (*volume.Volinfo, error) {
 	return v, nil
 }
 
-func validateVolumeCreate(c transaction.TxnCtx) error {
-
-	var req api.VolCreateReq
-	err := c.Get("req", &req)
-	if err != nil {
-		return err
-	}
-
-	var volinfo volume.Volinfo
-	err = c.Get("volinfo", &volinfo)
-	if err != nil {
-		return err
-	}
-
-	// FIXME: Return values of this function are inconsistent and unused
-	if _, err = volume.ValidateBrickEntriesFunc(volinfo.GetBricks(), volinfo.ID, req.Force); err != nil {
-		c.Logger().WithError(err).WithField(
-			"volume", volinfo.Name).Debug("validateVolumeCreate: failed to validate bricks")
-		return err
-	}
-
-	return nil
-}
-
-func rollBackVolumeCreate(c transaction.TxnCtx) error {
+// This undo is for storeVolume() used during volume create
+func undoStoreVolumeOnCreate(c transaction.TxnCtx) error {
 
 	var volinfo volume.Volinfo
 	if err := c.Get("volinfo", &volinfo); err != nil {
+		c.Logger().WithError(err).WithField(
+			"key", "volinfo").Debug("Failed to get key from store")
 		return err
 	}
 
-	// TODO: Clean xattrs set if any. ValidateBrickEntriesFunc()
-	// does a lot of things that it's not supposed to do.
+	if err := deleteVolfiles(c); err != nil {
+		c.Logger().WithError(err).WithField(
+			"volume", volinfo.Name).Warn("Failed to delete volfiles")
+	}
+
+	if err := deleteVolume(c); err != nil {
+		c.Logger().WithError(err).WithField(
+			"volume", volinfo.Name).Warn("Failed to delete volinfo from store")
+	}
 
 	return nil
 }
@@ -190,9 +177,11 @@ func registerVolCreateStepFuncs() {
 		name string
 		sf   transaction.StepFunc
 	}{
-		{"vol-create.Validate", validateVolumeCreate},
+		{"vol-create.ValidateBricks", validateBricks},
+		{"vol-create.InitBricks", initBricks},
+		{"vol-create.UndoInitBricks", undoInitBricks},
 		{"vol-create.StoreVolume", storeVolume},
-		{"vol-create.Rollback", rollBackVolumeCreate},
+		{"vol-create.UndoStoreVolume", undoStoreVolumeOnCreate},
 	}
 	for _, sf := range sfs {
 		transaction.RegisterStepFunc(sf.sf, sf.name)
@@ -207,7 +196,7 @@ func volumeCreateHandler(w http.ResponseWriter, r *http.Request) {
 	req := new(api.VolCreateReq)
 	httpStatus, err := unmarshalVolCreateRequest(req, r)
 	if err != nil {
-		logger.WithError(err).Error("Failed to unmarshal volume request")
+		logger.WithError(err).Error("Failed to unmarshal volume create request")
 		restutils.SendHTTPError(ctx, w, httpStatus, err.Error(), api.ErrCodeDefault)
 		return
 	}
@@ -248,21 +237,20 @@ func volumeCreateHandler(w http.ResponseWriter, r *http.Request) {
 	txn.Steps = []*transaction.Step{
 		lock,
 		{
-			DoFunc: "vol-create.Validate",
+			DoFunc: "vol-create.ValidateBricks",
 			Nodes:  nodes,
 		},
 		{
-			DoFunc: "vol-create.StoreVolume",
-			Nodes:  []uuid.UUID{gdctx.MyUUID},
+			DoFunc:   "vol-create.InitBricks",
+			UndoFunc: "vol-create.UndoInitBricks",
+			Nodes:    nodes,
+		},
+		{
+			DoFunc:   "vol-create.StoreVolume",
+			UndoFunc: "vol-create.UndoStoreVolume",
+			Nodes:    []uuid.UUID{gdctx.MyUUID},
 		},
 		unlock,
-	}
-
-	err = txn.Ctx.Set("req", req)
-	if err != nil {
-		logger.WithError(err).Error("failed to set request in transaction context")
-		restutils.SendHTTPError(ctx, w, http.StatusInternalServerError, err.Error(), api.ErrCodeDefault)
-		return
 	}
 
 	vol, err := createVolinfo(req)
@@ -278,9 +266,31 @@ func volumeCreateHandler(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	err = txn.Ctx.Set("volinfo", vol)
+	err = txn.Ctx.Set("bricks", vol.GetBricks())
 	if err != nil {
-		logger.WithError(err).Error("failed to set volinfo in transaction context")
+		logger.WithError(err).WithField("key", "bricks").Error("failed to set key in transaction context")
+		restutils.SendHTTPError(ctx, w, http.StatusInternalServerError, err.Error(), api.ErrCodeDefault)
+		return
+	}
+
+	// TODO: Expose the granularity provided by InitChecks in the API.
+	var checks brick.InitChecks
+	if !req.Force {
+		checks.IsInUse = true
+		checks.IsMount = true
+		checks.IsOnRoot = true
+	}
+
+	err = txn.Ctx.Set("brick-checks", &checks)
+	if err != nil {
+		logger.WithError(err).WithField("key", "brick-checks").Error("failed to set key in transaction context")
+		restutils.SendHTTPError(ctx, w, http.StatusInternalServerError, err.Error(), api.ErrCodeDefault)
+		return
+	}
+
+	err = txn.Ctx.Set("volinfo", &vol)
+	if err != nil {
+		logger.WithError(err).WithField("key", "volinfo").Error("failed to set key in transaction context")
 		restutils.SendHTTPError(ctx, w, http.StatusInternalServerError, err.Error(), api.ErrCodeDefault)
 		return
 	}
