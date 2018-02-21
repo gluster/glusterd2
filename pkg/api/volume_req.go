@@ -37,6 +37,7 @@ type VolOptionReq struct {
 type VolExpandReq struct {
 	ReplicaCount int        `json:"replica,omitempty"`
 	Bricks       []BrickReq `json:"bricks"`
+	Force        bool       `json:"force,omitempty"`
 }
 
 // VolumeOption represents an option that is part of a profile
