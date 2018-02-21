@@ -2,6 +2,7 @@ package volgen2
 
 import (
 	"fmt"
+	"strings"
 
 	"github.com/gluster/glusterd2/glusterd2/volume"
 
@@ -23,8 +24,10 @@ func typeInSubvolType(ele volume.SubvolType, list []volume.SubvolType) bool {
 	return false
 }
 
-func clusterGraph(dht *Entry, vol *volume.Volinfo, nodeid uuid.UUID, filters *clusterGraphFilters) {
+func clusterGraph(volfile *Volfile, dht *Entry, vol *volume.Volinfo, nodeid uuid.UUID, filters *clusterGraphFilters) {
 	numSubvols := len(vol.Subvols)
+	decommissionedBricks := []string{}
+
 	for _, subvol := range vol.Subvols {
 		var parent *Entry
 
@@ -65,7 +68,16 @@ func clusterGraph(dht *Entry, vol *volume.Volinfo, nodeid uuid.UUID, filters *cl
 
 				name := fmt.Sprintf("%s-client-%d", subvol.Name, brickIdx)
 				parent.Add("protocol/client", vol, &b).SetName(name)
+				if b.Decommissioned {
+					decommissionedBricks = append(decommissionedBricks, name)
+				}
 			}
 		}
+	}
+
+	if len(decommissionedBricks) > 0 && volfile.Name == "rebalance" {
+		dht.SetExtraOptions(map[string]string{
+			"decommissioned-bricks": strings.Join(decommissionedBricks, " "),
+		})
 	}
 }

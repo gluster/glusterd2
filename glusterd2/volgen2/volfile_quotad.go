@@ -19,7 +19,7 @@ func generateQuotadVolfile(volfile *Volfile, clusterinfo []*volume.Volinfo, node
 
 	for _, v := range clusterinfo {
 		dht := quota.Add("cluster/distribute", v, nil).SetName(v.Name)
-		clusterGraph(dht, v, nodeid, nil)
+		clusterGraph(volfile, dht, v, nodeid, nil)
 	}
 }
 

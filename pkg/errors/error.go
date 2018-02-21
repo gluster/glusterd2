@@ -40,4 +40,5 @@ var (
 	ErrUnmarshallFailed        = errors.New("failed to unmarshall from json")
 	ErrGfproxydAlreadyEnabled  = errors.New("Gfproxyd is already enabled")
 	ErrGfproxydAlreadyDisabled = errors.New("Gfproxyd is already disabled")
+	ErrClusterNotFound         = errors.New("Cluster instance not found in store")
 )

@@ -19,7 +19,7 @@ func generateScrubVolfile(volfile *Volfile, clusterinfo []*volume.Volinfo, nodei
 		if exists && val == "on" {
 			name := fmt.Sprintf("%s-bit-rot-%d", vol.Name, volIdx)
 			scrubvol := scrub.Add("features/bit-rot", vol, nil).SetName(name)
-			clusterGraph(scrubvol, vol, nodeid, &clusterGraphFilters{onlyLocalBricks: true})
+			clusterGraph(volfile, scrubvol, vol, nodeid, &clusterGraphFilters{onlyLocalBricks: true})
 		}
 	}
 }
