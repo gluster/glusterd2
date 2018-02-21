@@ -200,6 +200,7 @@ func undoInitBricks(c transaction.TxnCtx) error {
 		}
 
 		unix.Removexattr(b.Path, volumeIDXattrKey)
+		os.Remove(filepath.Join(b.Path, ".glusterfs"))
 	}
 
 	return nil
