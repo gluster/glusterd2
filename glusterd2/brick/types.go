@@ -17,13 +17,14 @@ const (
 
 // Brickinfo is the static information about the brick
 type Brickinfo struct {
-	ID         uuid.UUID
-	Hostname   string
-	NodeID     uuid.UUID
-	Path       string
-	VolumeName string
-	VolumeID   uuid.UUID
-	Type       Type
+	ID             uuid.UUID
+	Hostname       string
+	NodeID         uuid.UUID
+	Path           string
+	VolumeName     string
+	VolumeID       uuid.UUID
+	Type           Type
+	Decommissioned bool
 }
 
 func (b *Brickinfo) String() string {

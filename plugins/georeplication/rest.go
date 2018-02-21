@@ -81,6 +81,11 @@ func georepCreateHandler(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
+	if uuid.Equal(masterid, remoteid) {
+		restutils.SendHTTPError(ctx, w, http.StatusBadRequest, "Master and Remote Volume can't be same", api.ErrCodeDefault)
+		return
+	}
+
 	// Parse the JSON body to get additional details of request
 	var req georepapi.GeorepCreateReq
 	if err := restutils.UnmarshalRequest(r, &req); err != nil {
@@ -175,7 +180,6 @@ func georepCreateHandler(w http.ResponseWriter, r *http.Request) {
 			Nodes:  []uuid.UUID{gdctx.MyUUID},
 		},
 		{
-			// Required because bitrot-stub should be enabled on brick side
 			DoFunc: "vol-option.NotifyVolfileChange",
 			Nodes:  txn.Nodes,
 		},
@@ -186,8 +190,16 @@ func georepCreateHandler(w http.ResponseWriter, r *http.Request) {
 		unlock,
 	}
 
-	txn.Ctx.Set("geosession", geoSession)
-	txn.Ctx.Set("volinfo", vol)
+	if err = txn.Ctx.Set("geosession", geoSession); err != nil {
+		logger.WithError(err).Error("failed to set geosession in transaction context")
+		restutils.SendHTTPError(ctx, w, http.StatusInternalServerError, err.Error(), api.ErrCodeDefault)
+		return
+	}
+	if err = txn.Ctx.Set("volinfo", vol); err != nil {
+		logger.WithError(err).Error("failed to set volinfo in transaction context")
+		restutils.SendHTTPError(ctx, w, http.StatusInternalServerError, err.Error(), api.ErrCodeDefault)
+		return
+	}
 
 	err = txn.Do()
 	if err != nil {
@@ -305,8 +317,18 @@ func georepActionHandler(w http.ResponseWriter, r *http.Request, action actionTy
 		},
 		unlock,
 	}
-	txn.Ctx.Set("mastervolid", masterid.String())
-	txn.Ctx.Set("remotevolid", remoteid.String())
+
+	if err = txn.Ctx.Set("mastervolid", masterid.String()); err != nil {
+		logger.WithError(err).Error("failed to set mastervolid in transaction context")
+		restutils.SendHTTPError(ctx, w, http.StatusInternalServerError, err.Error(), api.ErrCodeDefault)
+		return
+	}
+
+	if err = txn.Ctx.Set("remotevolid", remoteid.String()); err != nil {
+		logger.WithError(err).Error("failed to set remotevolid in transaction context")
+		restutils.SendHTTPError(ctx, w, http.StatusInternalServerError, err.Error(), api.ErrCodeDefault)
+		return
+	}
 
 	err = txn.Do()
 	if err != nil {
@@ -397,8 +419,18 @@ func georepDeleteHandler(w http.ResponseWriter, r *http.Request) {
 		},
 		unlock,
 	}
-	txn.Ctx.Set("mastervolid", masterid.String())
-	txn.Ctx.Set("remotevolid", remoteid.String())
+
+	if err = txn.Ctx.Set("mastervolid", masterid.String()); err != nil {
+		logger.WithError(err).Error("failed to set mastervolid in transaction context")
+		restutils.SendHTTPError(ctx, w, http.StatusInternalServerError, err.Error(), api.ErrCodeDefault)
+		return
+	}
+
+	if err = txn.Ctx.Set("remotevolid", remoteid.String()); err != nil {
+		logger.WithError(err).Error("failed to set remotevolid in transaction context")
+		restutils.SendHTTPError(ctx, w, http.StatusInternalServerError, err.Error(), api.ErrCodeDefault)
+		return
+	}
 
 	err = txn.Do()
 	if err != nil {
@@ -465,8 +497,17 @@ func georepStatusHandler(w http.ResponseWriter, r *http.Request) {
 		},
 	}
 
-	txn.Ctx.Set("mastervolid", masterid.String())
-	txn.Ctx.Set("remotevolid", remoteid.String())
+	if err = txn.Ctx.Set("mastervolid", masterid.String()); err != nil {
+		logger.WithError(err).Error("failed to set mastervolid in transaction context")
+		restutils.SendHTTPError(ctx, w, http.StatusInternalServerError, err.Error(), api.ErrCodeDefault)
+		return
+	}
+
+	if err = txn.Ctx.Set("remotevolid", remoteid.String()); err != nil {
+		logger.WithError(err).Error("failed to set remotevolid in transaction context")
+		restutils.SendHTTPError(ctx, w, http.StatusInternalServerError, err.Error(), api.ErrCodeDefault)
+		return
+	}
 
 	e = txn.Do()
 	if e != nil {
@@ -735,10 +776,29 @@ func georepConfigSetHandler(w http.ResponseWriter, r *http.Request) {
 		unlock,
 	}
 
-	txn.Ctx.Set("mastervolid", masterid.String())
-	txn.Ctx.Set("remotevolid", remoteid.String())
-	txn.Ctx.Set("session", geoSession)
-	txn.Ctx.Set("restartRequired", restartRequired)
+	if err = txn.Ctx.Set("mastervolid", masterid.String()); err != nil {
+		logger.WithError(err).Error("failed to set mastervolid in transaction context")
+		restutils.SendHTTPError(ctx, w, http.StatusInternalServerError, err.Error(), api.ErrCodeDefault)
+		return
+	}
+
+	if err = txn.Ctx.Set("remotevolid", remoteid.String()); err != nil {
+		logger.WithError(err).Error("failed to set remotevolid in transaction context")
+		restutils.SendHTTPError(ctx, w, http.StatusInternalServerError, err.Error(), api.ErrCodeDefault)
+		return
+	}
+
+	if err = txn.Ctx.Set("session", geoSession); err != nil {
+		logger.WithError(err).Error("failed to set geosession in transaction context")
+		restutils.SendHTTPError(ctx, w, http.StatusInternalServerError, err.Error(), api.ErrCodeDefault)
+		return
+	}
+
+	if err = txn.Ctx.Set("restartRequired", restartRequired); err != nil {
+		logger.WithError(err).Error("failed to set restartrequired in transaction context")
+		restutils.SendHTTPError(ctx, w, http.StatusInternalServerError, err.Error(), api.ErrCodeDefault)
+		return
+	}
 
 	e = txn.Do()
 	if e != nil {
@@ -844,10 +904,29 @@ func georepConfigResetHandler(w http.ResponseWriter, r *http.Request) {
 		unlock,
 	}
 
-	txn.Ctx.Set("mastervolid", masterid.String())
-	txn.Ctx.Set("remotevolid", remoteid.String())
-	txn.Ctx.Set("session", geoSession)
-	txn.Ctx.Set("restartRequired", restartRequired)
+	if err = txn.Ctx.Set("mastervolid", masterid.String()); err != nil {
+		logger.WithError(err).Error("failed to set mastervolid in transaction context")
+		restutils.SendHTTPError(ctx, w, http.StatusInternalServerError, err.Error(), api.ErrCodeDefault)
+		return
+	}
+
+	if err = txn.Ctx.Set("remotevolid", remoteid.String()); err != nil {
+		logger.WithError(err).Error("failed to set remotevolid in transaction context")
+		restutils.SendHTTPError(ctx, w, http.StatusInternalServerError, err.Error(), api.ErrCodeDefault)
+		return
+	}
+
+	if err = txn.Ctx.Set("session", geoSession); err != nil {
+		logger.WithError(err).Error("failed to set geosession in transaction context")
+		restutils.SendHTTPError(ctx, w, http.StatusInternalServerError, err.Error(), api.ErrCodeDefault)
+		return
+	}
+
+	if err = txn.Ctx.Set("restartRequired", restartRequired); err != nil {
+		logger.WithError(err).Error("failed to set restartrequired in transaction context")
+		restutils.SendHTTPError(ctx, w, http.StatusInternalServerError, err.Error(), api.ErrCodeDefault)
+		return
+	}
 
 	e = txn.Do()
 	if e != nil {
@@ -911,7 +990,11 @@ func georepSSHKeyGenerateHandler(w http.ResponseWriter, r *http.Request) {
 		unlock,
 	}
 
-	txn.Ctx.Set("volname", volname)
+	if err = txn.Ctx.Set("volname", volname); err != nil {
+		logger.WithError(err).Error("failed to set volname in transaction context")
+		restutils.SendHTTPError(ctx, w, http.StatusInternalServerError, err.Error(), api.ErrCodeDefault)
+		return
+	}
 
 	err = txn.Do()
 	if err != nil {
@@ -999,8 +1082,17 @@ func georepSSHKeyPushHandler(w http.ResponseWriter, r *http.Request) {
 		unlock,
 	}
 
-	txn.Ctx.Set("sshkeys", sshkeys)
-	txn.Ctx.Set("user", user)
+	if err = txn.Ctx.Set("sshkeys", sshkeys); err != nil {
+		logger.WithError(err).Error("failed to set sshkeys in transaction context")
+		restutils.SendHTTPError(ctx, w, http.StatusInternalServerError, err.Error(), api.ErrCodeDefault)
+		return
+	}
+
+	if err = txn.Ctx.Set("user", user); err != nil {
+		logger.WithError(err).Error("failed to set user in transaction context")
+		restutils.SendHTTPError(ctx, w, http.StatusInternalServerError, err.Error(), api.ErrCodeDefault)
+		return
+	}
 
 	err = txn.Do()
 	if err != nil {
