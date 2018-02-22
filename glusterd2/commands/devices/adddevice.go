@@ -2,7 +2,6 @@ package devicecommands
 
 import (
 	"net/http"
-	"fmt"
 
 	"github.com/gluster/glusterd2/glusterd2/device"
 	"github.com/gluster/glusterd2/glusterd2/gdctx"
@@ -11,8 +10,8 @@ import (
 	"github.com/gluster/glusterd2/glusterd2/transaction"
 	"github.com/gluster/glusterd2/pkg/api"
 
-	"github.com/pborman/uuid"
 	"github.com/gorilla/mux"
+	"github.com/pborman/uuid"
 )
 
 func deviceAddHandler(w http.ResponseWriter, r *http.Request) {
@@ -28,18 +27,16 @@ func deviceAddHandler(w http.ResponseWriter, r *http.Request) {
 	}
 	peerID := mux.Vars(r)["peerid"]
 	if peerID == "" {
-                restutils.SendHTTPError(ctx, w, http.StatusBadRequest, "peerid not present in request", api.ErrCodeDefault)
-                return
-        }
-	fmt.Printf("Printing peer ID %s", peerID)
+		restutils.SendHTTPError(ctx, w, http.StatusBadRequest, "peerid not present in request", api.ErrCodeDefault)
+		return
+	}
 	p, err := peer.GetPeer(peerID)
 	if err != nil {
-                logger.WithError(err).WithField("peerid", peerID).Error("Peer ID not found in store")
-                restutils.SendHTTPError(ctx, w, http.StatusNotFound, "Peer Id not found in store", api.ErrCodeDefault)
-                return
-        }
+		logger.WithError(err).WithField("peerid", peerID).Error("Peer ID not found in store")
+		restutils.SendHTTPError(ctx, w, http.StatusNotFound, "Peer Id not found in store", api.ErrCodeDefault)
+		return
+	}
 	var v []api.DeviceInfo
-	fmt.Printf("Printing Peer  %s",p)
 	for _, name := range req.Devices {
 		tempInfo := api.DeviceInfo{
 			Name: name,
@@ -49,13 +46,10 @@ func deviceAddHandler(w http.ResponseWriter, r *http.Request) {
 	txn := transaction.NewTxn(ctx)
 	defer txn.Cleanup()
 
-	nodes := make([]uuid.UUID, 0)
-	nodes = append(nodes, uuid.UUID(peerID))
-
-	txn.Nodes = nodes
+	txn.Nodes = []uuid.UUID{p.ID}
 	txn.Steps = []*transaction.Step{
 		{
-			DoFunc: "prepare-device.Commit",
+			DoFunc: "prepare-device",
 			Nodes:  txn.Nodes,
 		},
 	}

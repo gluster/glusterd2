@@ -1,65 +1,70 @@
 package eventlistener
 
 import (
-	log "github.com/sirupsen/logrus"
 	"net"
+
+	log "github.com/sirupsen/logrus"
+	config "github.com/spf13/viper"
 )
+
+const packetBufferSize = 1024
 
 // EventListener is server for listening to UDP messages
 type EventListener struct {
-	connection *net.UDPConn
-	stopCh     chan struct{}
+	udpConn *net.UDPConn
+	stopCh  chan struct{}
 }
 
-// New Initializes event listener
+// New initializes event listener
 func New() *EventListener {
-	ServerAddr, err := net.ResolveUDPAddr("udp", ":24009")
+
+	udpAddr, err := net.ResolveUDPAddr("udp", config.GetString("clientaddress"))
 	if err != nil {
-		log.WithError(err).Error("UDP address resolution failed")
+		// TODO: Bubble up error instead of Fatal()
+		log.WithError(err).WithField("address",
+			config.GetString("clientaddress")).Fatal("UDP address resolution failed")
 	}
 
-	ServerConn, err := net.ListenUDP("udp", ServerAddr)
+	udpConn, err := net.ListenUDP("udp", udpAddr)
 	if err != nil {
-		log.WithError(err).Error("Error getting server connection")
+		// TODO: Bubble up error instead of Fatal()
+		log.WithError(err).Fatal("ListenUDP() failed")
 	}
 
-	eventlistener := &EventListener{
-		connection: ServerConn,
-		stopCh:     make(chan struct{}),
+	return &EventListener{
+		udpConn: udpConn,
+		stopCh:  make(chan struct{}),
 	}
-
-	log.Info("Initialized Event listener")
-
-	return eventlistener
 }
 
-// Serve will start accepting UDP messages on udp port
-// 24009.
-func (e *EventListener) Serve() {
+// Serve will start accepting UDP messages.
+func (l *EventListener) Serve() {
 
-	buf := make([]byte, 1024)
-	log.Info("Started Event listener")
+	log.WithFields(log.Fields{
+		"address":   config.GetString("clientaddress"),
+		"transport": "udp"}).Info("started event listener")
 
+	buf := make([]byte, packetBufferSize)
 	for {
 		select {
-		case <-e.stopCh:
-			e.connection.Close()
-			log.Info("Stopped Event listener")
+		case <-l.stopCh:
+			log.Info("stopped event listener")
 			return
 		default:
 		}
 
-		size, addr, err := e.connection.ReadFromUDP(buf)
+		size, addr, err := l.udpConn.ReadFromUDP(buf)
 		if err != nil {
 			log.WithError(err).Error("Error while reading UDP message")
+			continue
 		}
 
-		handleMessage(string(buf[0:size]), addr, err)
-
+		handleMessage(string(buf[:size]), addr)
 	}
 }
 
 // Stop stops the UDP server
-func (e *EventListener) Stop() {
-	close(e.stopCh)
+func (l *EventListener) Stop() {
+	close(l.stopCh)
+	l.udpConn.Close()
 }

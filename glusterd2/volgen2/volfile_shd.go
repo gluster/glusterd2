@@ -15,7 +15,7 @@ func generateShdVolfile(volfile *Volfile, clusterinfo []*volume.Volinfo, nodeid 
 			volume.SubvolReplicate,
 			volume.SubvolDisperse,
 		}}
-		clusterGraph(shd, vol, nodeid, &filters)
+		clusterGraph(volfile, shd, vol, nodeid, &filters)
 	}
 }
 

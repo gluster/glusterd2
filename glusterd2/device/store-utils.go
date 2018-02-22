@@ -2,49 +2,47 @@
 package device
 
 import (
-	"context"
 	"encoding/json"
-	"fmt"
 
-	"github.com/gluster/glusterd2/glusterd2/store"
+	peer "github.com/gluster/glusterd2/glusterd2/peer"
 	"github.com/gluster/glusterd2/pkg/api"
 )
 
 const (
-	devicePrefix string = "devices/"
-	peerPrefix string = "peers/"
+	devicePrefix string = "/devices/"
+	peerPrefix   string = "peers/"
 )
 
 // GetDevice returns devices of specified peer from the store
-func GetDevice(peerid string) (*api.Device, error) {
-	resp, err := store.Store.Get(context.TODO(), peerPrefix+peerid+devicePrefix)
+func GetDevice(peerID string) ([]api.DeviceInfo, error) {
+	p, err := peer.GetPeer(peerID)
 	if err != nil {
 		return nil, err
 	}
-	fmt.Printf("Printing Get Device %s", resp)
-	/*if len(resp.Kvs) > 0 {
-		var deviceDetail api.Device
-		if err := json.Unmarshal(resp.Kvs[0].Value, &deviceDetail); err != nil {
+	if len(p.MetaData["devices"]) > 0 {
+		var deviceInfo []api.DeviceInfo
+		if err := json.Unmarshal([]byte(p.MetaData["devices"]), &deviceInfo); err != nil {
 			return nil, err
 		}
-		return &deviceDetail, nil
-	}*/
-
+		return deviceInfo, nil
+	}
 	return nil, nil
 }
 
 // AddOrUpdateDevice adds device to specific peer
-func AddOrUpdateDevice(d *api.Device) error {
-	json, err := json.Marshal(d)
+func AddOrUpdateDevice(d []api.DeviceInfo, peerID string) error {
+	deviceJSON, err := json.Marshal(d)
 	if err != nil {
 		return err
 	}
 
-	idStr := d.PeerID.String()
-
-	if _, err := store.Store.Put(context.TODO(), peerPrefix+idStr+devicePrefix, string(json)); err != nil {
+	p, err := peer.GetPeer(peerID)
+	p.MetaData["devices"] = string(deviceJSON)
+	err = peer.AddOrUpdatePeer(p)
+	if err != nil {
 		return err
 	}
 
 	return nil
+
 }

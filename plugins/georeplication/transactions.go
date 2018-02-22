@@ -70,6 +70,11 @@ func gsyncdAction(c transaction.TxnCtx, action actionType) error {
 
 	switch action {
 	case actionStart:
+		// Create Geo-replication Log dir if not exists
+		err = os.MkdirAll(path.Join(config.GetString("logdir"), "glusterfs", "geo-replication"), os.ModeDir|os.ModePerm)
+		if err != nil {
+			return err
+		}
 		err = configFileGenerate(sessioninfo)
 		if err != nil {
 			return err
@@ -239,7 +244,7 @@ func configFileGenerate(session *georepapi.GeorepSession) error {
 	configFile := gsyncdDaemon.ConfigFile()
 
 	// Create Config dir if not exists
-	err = os.MkdirAll(path.Dir(configFile), 755)
+	err = os.MkdirAll(path.Dir(configFile), os.ModeDir|os.ModePerm)
 	if err != nil {
 		return err
 	}
@@ -357,7 +362,7 @@ func txnSSHKeysGenerate(c transaction.TxnCtx) error {
 	)
 
 	// Create Directory if not exists
-	err = os.MkdirAll(path.Dir(secretPemFile), 755)
+	err = os.MkdirAll(path.Dir(secretPemFile), os.ModeDir|os.ModePerm)
 	if err != nil {
 		return err
 	}

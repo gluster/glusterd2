@@ -339,3 +339,19 @@ func ValidateXlator(o *Option, val string) error {
 func ValidateOption(o *Option, val string) error {
 	return ErrInvalidArg
 }
+
+// StringToBoolean converts probable boolean strings to True or False
+func StringToBoolean(val string) (bool, error) {
+	if val == "" {
+		return false, ErrEmptyArg
+	}
+
+	switch strings.ToLower(val) {
+	case "on", "yes", "true", "enable", "1":
+		return true, nil
+	case "off", "no", "false", "disable", "0":
+		return false, nil
+	default:
+		return false, ErrInvalidArg
+	}
+}

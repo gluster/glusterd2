@@ -38,4 +38,5 @@ var (
 	ErrUnknownValue            = errors.New("unknown value specified")
 	ErrGetFailed               = errors.New("failed to get value from the store")
 	ErrUnmarshallFailed        = errors.New("failed to unmarshall from json")
+	ErrClusterNotFound         = errors.New("Cluster instance not found in store")
 )

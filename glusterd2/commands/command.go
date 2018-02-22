@@ -3,6 +3,7 @@ package commands
 
 import (
 	"github.com/gluster/glusterd2/glusterd2/commands/devices"
+	"github.com/gluster/glusterd2/glusterd2/commands/global"
 	"github.com/gluster/glusterd2/glusterd2/commands/peers"
 	"github.com/gluster/glusterd2/glusterd2/commands/version"
 	"github.com/gluster/glusterd2/glusterd2/commands/volumes"
@@ -23,4 +24,5 @@ var Commands = []Command{
 	&volumecommands.Command{},
 	&peercommands.Command{},
 	&devicecommands.Command{},
+	&globalcommands.Command{},
 }

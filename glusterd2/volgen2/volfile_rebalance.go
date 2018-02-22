@@ -12,7 +12,7 @@ func generateRebalanceVolfile(volfile *Volfile, vol *volume.Volinfo, nodeid uuid
 	dht := volfile.RootEntry.Add("debug/io-stats", vol, nil).SetName(vol.Name).
 		Add("cluster/distribute", vol, nil)
 
-	clusterGraph(dht, vol, nodeid, nil)
+	clusterGraph(volfile, dht, vol, nodeid, nil)
 }
 
 func init() {
