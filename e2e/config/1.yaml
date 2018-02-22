@@ -1,6 +1,0 @@
-workdir: "/tmp/gd2_func_test/w1"
-logfile: "w1.log"
-peeraddress: "127.0.0.1:24008"
-clientaddress: "127.0.0.1:24007"
-etcdcurls: "http://127.0.0.1:2479"
-etcdpurls: "http://127.0.0.1:2480"

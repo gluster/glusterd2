@@ -13,7 +13,7 @@ func TestGlusterShd(t *testing.T) {
 
 	r := require.New(t)
 
-	gds, err := setupCluster("./config/1.yaml", "./config/2.yaml")
+	gds, err := setupCluster("./config/1.toml", "./config/2.toml")
 	r.Nil(err)
 	defer teardownCluster(gds)
 

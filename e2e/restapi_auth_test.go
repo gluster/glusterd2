@@ -12,7 +12,7 @@ import (
 func TestRESTAPIAuth(t *testing.T) {
 	r := require.New(t)
 
-	g1, err := spawnGlusterd("./config/4.yaml", true)
+	g1, err := spawnGlusterd("./config/4.toml", true)
 	r.Nil(err)
 	defer g1.Stop()
 	defer g1.EraseWorkdir()

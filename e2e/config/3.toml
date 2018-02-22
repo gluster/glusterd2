@@ -1,0 +1,6 @@
+workdir = "/tmp/gd2_func_test/w3"
+logfile = "w3.log"
+peeraddress = "127.0.0.1:22008"
+clientaddress = "127.0.0.1:22007"
+etcdcurls = "http://127.0.0.1:2279"
+etcdpurls = "http://127.0.0.1:2280"
