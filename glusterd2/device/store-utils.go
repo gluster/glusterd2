@@ -8,20 +8,15 @@ import (
 	"github.com/gluster/glusterd2/pkg/api"
 )
 
-const (
-	devicePrefix string = "/devices/"
-	peerPrefix   string = "peers/"
-)
-
-// GetDevice returns devices of specified peer from the store
-func GetDevice(peerID string) ([]api.DeviceInfo, error) {
-	p, err := peer.GetPeer(peerID)
+// GetDevices returns devices of specified peer from the store
+func GetDevices(peerID string) ([]api.DeviceInfo, error) {
+	peerInfo, err := peer.GetPeer(peerID)
 	if err != nil {
 		return nil, err
 	}
-	if len(p.MetaData["devices"]) > 0 {
+	if len(peerInfo.MetaData["devices"]) > 0 {
 		var deviceInfo []api.DeviceInfo
-		if err := json.Unmarshal([]byte(p.MetaData["devices"]), &deviceInfo); err != nil {
+		if err := json.Unmarshal([]byte(peerInfo.MetaData["devices"]), &deviceInfo); err != nil {
 			return nil, err
 		}
 		return deviceInfo, nil
@@ -29,16 +24,24 @@ func GetDevice(peerID string) ([]api.DeviceInfo, error) {
 	return nil, nil
 }
 
-// AddOrUpdateDevice adds device to specific peer
-func AddOrUpdateDevice(d []api.DeviceInfo, peerID string) error {
-	deviceJSON, err := json.Marshal(d)
+// AddDevices adds device to specific peer
+func AddDevices(devices []api.DeviceInfo, peerID string) error {
+	deviceDetails, err := GetDevices(peerID)
+	peerInfo, err := peer.GetPeer(peerID)
 	if err != nil {
 		return err
 	}
-
-	p, err := peer.GetPeer(peerID)
-	p.MetaData["devices"] = string(deviceJSON)
-	err = peer.AddOrUpdatePeer(p)
+	if deviceDetails != nil {
+		for _, element := range devices {
+			devices = append(deviceDetails, element)
+		}
+	}
+	deviceJSON, err := json.Marshal(devices)
+	if err != nil {
+		return err
+	}
+	peerInfo.MetaData["devices"] = string(deviceJSON)
+	err = peer.AddOrUpdatePeer(peerInfo)
 	if err != nil {
 		return err
 	}

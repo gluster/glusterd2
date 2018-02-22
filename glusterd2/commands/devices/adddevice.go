@@ -3,7 +3,6 @@ package devicecommands
 import (
 	"net/http"
 
-	"github.com/gluster/glusterd2/glusterd2/device"
 	"github.com/gluster/glusterd2/glusterd2/gdctx"
 	"github.com/gluster/glusterd2/glusterd2/peer"
 	restutils "github.com/gluster/glusterd2/glusterd2/servers/rest/utils"
@@ -30,38 +29,53 @@ func deviceAddHandler(w http.ResponseWriter, r *http.Request) {
 		restutils.SendHTTPError(ctx, w, http.StatusBadRequest, "peerid not present in request", api.ErrCodeDefault)
 		return
 	}
-	p, err := peer.GetPeer(peerID)
+	peerInfo, err := peer.GetPeer(peerID)
 	if err != nil {
 		logger.WithError(err).WithField("peerid", peerID).Error("Peer ID not found in store")
 		restutils.SendHTTPError(ctx, w, http.StatusNotFound, "Peer Id not found in store", api.ErrCodeDefault)
 		return
 	}
-	var v []api.DeviceInfo
-	for _, name := range req.Devices {
-		tempInfo := api.DeviceInfo{
-			Name: name,
-		}
-		v = append(v, tempInfo)
-	}
+	/*
+		var deviceList []api.DeviceInfo
+		for _, name := range req.Devices {
+			tempDevice := api.DeviceInfo{
+				Name: name,
+			}
+			deviceList = append(deviceList, tempDevice)
+		}*/
 	txn := transaction.NewTxn(ctx)
 	defer txn.Cleanup()
-
-	txn.Nodes = []uuid.UUID{p.ID}
+	lock, unlock, err := transaction.CreateLockSteps(string(peerInfo.ID))
+	txn.Nodes = []uuid.UUID{peerInfo.ID}
 	txn.Steps = []*transaction.Step{
+		lock,
 		{
 			DoFunc: "prepare-device",
 			Nodes:  txn.Nodes,
 		},
+		unlock,
 	}
-	txn.Ctx.Set("peerid", peerID)
-	txn.Ctx.Set("device-details", v)
-
-	err = txn.Do()
+	err = txn.Ctx.Set("peerid", peerID)
 	if err != nil {
-		logger.WithError(err).Error("Transaction Failed")
-		restutils.SendHTTPError(ctx, w, http.StatusInternalServerError, "Transaction Failed", api.ErrCodeDefault)
+		logger.WithError(err).Error("Failed to set data for transaction")
+		restutils.SendHTTPError(ctx, w, http.StatusInternalServerError, err.Error(), api.ErrCodeDefault)
 		return
 	}
-	deviceInfo, _ := device.GetDevice(peerID)
-	restutils.SendHTTPResponse(ctx, w, http.StatusOK, deviceInfo)
+	err = txn.Ctx.Set("device-details", req)
+	if err != nil {
+		logger.WithError(err).Error("Failed to set data for transaction")
+		restutils.SendHTTPError(ctx, w, http.StatusInternalServerError, err.Error(), api.ErrCodeDefault)
+		return
+	}
+	err = txn.Do()
+	if err != nil {
+		logger.WithError(err).Error("Transaction to prepare device failed")
+		restutils.SendHTTPError(ctx, w, http.StatusInternalServerError, "Transaction to prepare device failed", api.ErrCodeDefault)
+		return
+	}
+	peerInfo, err = peer.GetPeer(peerID)
+	if err != nil {
+		logger.WithError(err).Error("Failed to get peer from store")
+	}
+	restutils.SendHTTPResponse(ctx, w, http.StatusOK, peerInfo)
 }

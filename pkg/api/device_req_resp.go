@@ -15,3 +15,6 @@ const (
 type AddDeviceReq struct {
 	Devices []string `json:"devices"`
 }
+
+// DeviceAddResp is the success response sent to a AddDeviceReq request
+type DeviceAddResp Peer
