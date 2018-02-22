@@ -168,11 +168,7 @@ func (c *clientCodec) ReadResponseHeader(resp *rpc.Response) error {
 	delete(c.pending, resp.Seq)
 	c.mutex.Unlock()
 
-	if err := c.checkReplyForErr(&reply); err != nil {
-		return err
-	}
-
-	return nil
+	return c.checkReplyForErr(&reply)
 }
 
 func (c *clientCodec) ReadResponseBody(result interface{}) error {
