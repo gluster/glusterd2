@@ -1,4 +1,3 @@
-// Package device stores device information in the store
 package device
 
 import (
@@ -32,9 +31,7 @@ func AddDevices(devices []api.DeviceInfo, peerID string) error {
 		return err
 	}
 	if deviceDetails != nil {
-		for _, element := range devices {
-			devices = append(deviceDetails, element)
-		}
+		devices = append(devices, deviceDetails...)
 	}
 	deviceJSON, err := json.Marshal(devices)
 	if err != nil {

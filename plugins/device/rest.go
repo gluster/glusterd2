@@ -1,4 +1,4 @@
-package devicecommands
+package device
 
 import (
 	"net/http"
@@ -8,6 +8,7 @@ import (
 	restutils "github.com/gluster/glusterd2/glusterd2/servers/rest/utils"
 	"github.com/gluster/glusterd2/glusterd2/transaction"
 	"github.com/gluster/glusterd2/pkg/api"
+	deviceapi "github.com/gluster/glusterd2/plugins/device/api"
 
 	"github.com/gorilla/mux"
 	"github.com/pborman/uuid"
@@ -18,7 +19,7 @@ func deviceAddHandler(w http.ResponseWriter, r *http.Request) {
 	ctx := r.Context()
 	logger := gdctx.GetReqLogger(ctx)
 
-	req := new(api.AddDeviceReq)
+	req := new(deviceapi.AddDeviceReq)
 	if err := restutils.UnmarshalRequest(r, req); err != nil {
 		logger.WithError(err).Error("Failed to Unmarshal request")
 		restutils.SendHTTPError(ctx, w, http.StatusBadRequest, "Unable to marshal request", api.ErrCodeDefault)
@@ -35,14 +36,6 @@ func deviceAddHandler(w http.ResponseWriter, r *http.Request) {
 		restutils.SendHTTPError(ctx, w, http.StatusNotFound, "Peer Id not found in store", api.ErrCodeDefault)
 		return
 	}
-	/*
-		var deviceList []api.DeviceInfo
-		for _, name := range req.Devices {
-			tempDevice := api.DeviceInfo{
-				Name: name,
-			}
-			deviceList = append(deviceList, tempDevice)
-		}*/
 	txn := transaction.NewTxn(ctx)
 	defer txn.Cleanup()
 	lock, unlock, err := transaction.CreateLockSteps(string(peerInfo.ID))

@@ -8,6 +8,7 @@ import (
 	"github.com/gluster/glusterd2/plugins/georeplication"
 	"github.com/gluster/glusterd2/plugins/glustershd"
 	"github.com/gluster/glusterd2/plugins/quota"
+	"github.com/gluster/glusterd2/plugins/device"
 )
 
 // PluginsList is a list of plugins which implements GlusterdPlugin interface
@@ -17,4 +18,5 @@ var PluginsList = []GlusterdPlugin{
 	&quota.Plugin{},
 	&events.Plugin{},
 	&glustershd.Plugin{},
+	&device.Plugin{},
 }
