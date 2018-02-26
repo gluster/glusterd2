@@ -105,15 +105,30 @@ func updateVolinfoOnExpand(c transaction.TxnCtx) error {
 		return err
 	}
 
-	// Update all Subvols Replica count
-	for idx := range volinfo.Subvols {
-		volinfo.Subvols[idx].ReplicaCount = newReplicaCount
-	}
-
 	// TODO: Assumption, all subvols are same
 	// If New Replica count is different than existing then add one brick to each subvolume
-	if newReplicaCount != volinfo.Subvols[0].ReplicaCount {
-		for idx, b := range newBricks {
+	// Or if the Volume consists of only one subvolume.
+	var addNewSubvolume bool
+	switch volinfo.Subvols[0].Type {
+	case volume.SubvolDistribute:
+		addNewSubvolume = false
+	case volume.SubvolReplicate:
+		if newReplicaCount != volinfo.Subvols[0].ReplicaCount {
+			addNewSubvolume = false
+		}
+	default:
+		addNewSubvolume = true
+	}
+
+	if !addNewSubvolume {
+		idx := 0
+		for _, b := range newBricks {
+			// If number of bricks specified in add brick is more than
+			// the number of sub volumes. For example, if number of subvolumes is 2
+			// but 4 bricks specified in add brick command.
+			if idx >= len(volinfo.Subvols) {
+				idx = 0
+			}
 			volinfo.Subvols[idx].Bricks = append(volinfo.Subvols[idx].Bricks, b)
 		}
 	} else {
@@ -130,6 +145,12 @@ func updateVolinfoOnExpand(c transaction.TxnCtx) error {
 			subvolIdx = subvolIdx + 1
 		}
 	}
+
+	// Update all Subvols Replica count
+	for idx := range volinfo.Subvols {
+		volinfo.Subvols[idx].ReplicaCount = newReplicaCount
+	}
+
 	volinfo.DistCount = len(volinfo.Subvols)
 
 	// update new volinfo in txn ctx
