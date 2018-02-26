@@ -46,6 +46,9 @@ var (
 
 	// Stop Command Flags
 	flagStopCmdForce bool
+
+	// Expand Command Flags
+	flagExpandCmdForce bool
 )
 
 func init() {
@@ -80,6 +83,7 @@ func init() {
 
 	// Volume Expand
 	volumeExpandCmd.Flags().IntVarP(&flagCreateCmdReplicaCount, "replica", "", 0, "Replica Count")
+	volumeExpandCmd.Flags().BoolVarP(&flagExpandCmdForce, "force", "f", false, "Force")
 	volumeCmd.AddCommand(volumeExpandCmd)
 
 	RootCmd.AddCommand(volumeCmd)
@@ -505,6 +509,7 @@ var volumeExpandCmd = &cobra.Command{
 		vol, err := client.VolumeExpand(volname, api.VolExpandReq{
 			ReplicaCount: flagCreateCmdReplicaCount,
 			Bricks:       bricks, // string of format <UUID>:<path>
+			Force:        flagExpandCmdForce,
 		})
 		if err != nil {
 			log.WithFields(log.Fields{

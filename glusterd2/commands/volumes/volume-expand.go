@@ -18,21 +18,6 @@ import (
 	log "github.com/sirupsen/logrus"
 )
 
-func checkBricksOnExpand(c transaction.TxnCtx) error {
-
-	var newBricks []brick.Brickinfo
-	if err := c.Get("newbricks", &newBricks); err != nil {
-		return err
-	}
-
-	// TODO: Fix return values
-	if _, err := volume.ValidateBrickEntriesFunc(newBricks, newBricks[0].VolumeID, true); err != nil {
-		return err
-	}
-
-	return nil
-}
-
 func startBricksOnExpand(c transaction.TxnCtx) error {
 
 	var volinfo volume.Volinfo
@@ -41,7 +26,7 @@ func startBricksOnExpand(c transaction.TxnCtx) error {
 	}
 
 	var newBricks []brick.Brickinfo
-	if err := c.Get("newbricks", &newBricks); err != nil {
+	if err := c.Get("bricks", &newBricks); err != nil {
 		return err
 	}
 
@@ -72,7 +57,7 @@ func startBricksOnExpand(c transaction.TxnCtx) error {
 func undoStartBricksOnExpand(c transaction.TxnCtx) error {
 
 	var newBricks []brick.Brickinfo
-	if err := c.Get("newbricks", &newBricks); err != nil {
+	if err := c.Get("bricks", &newBricks); err != nil {
 		return err
 	}
 
@@ -106,7 +91,7 @@ func undoStartBricksOnExpand(c transaction.TxnCtx) error {
 func updateVolinfoOnExpand(c transaction.TxnCtx) error {
 
 	var newBricks []brick.Brickinfo
-	if err := c.Get("newbricks", &newBricks); err != nil {
+	if err := c.Get("bricks", &newBricks); err != nil {
 		return err
 	}
 
@@ -184,14 +169,21 @@ func updateVolinfoOnExpand(c transaction.TxnCtx) error {
 }
 
 func registerVolExpandStepFuncs() {
-	// NOTE: If txn steps are more granular, then the entire txn becomes more
-	// resilient to recovery from failures i.e easier/better undo, but at
-	// the expense of more number of co-ordinated network requests.
-	transaction.RegisterStepFunc(checkBricksOnExpand, "vol-expand.CheckBrick")
-	transaction.RegisterStepFunc(startBricksOnExpand, "vol-expand.StartBrick")
-	transaction.RegisterStepFunc(undoStartBricksOnExpand, "vol-expand.UndoStartBrick")
-	transaction.RegisterStepFunc(updateVolinfoOnExpand, "vol-expand.UpdateVolinfo") // only on initiator node
-	transaction.RegisterStepFunc(notifyVolfileChange, "vol-expand.NotifyClients")
+	var sfs = []struct {
+		name string
+		sf   transaction.StepFunc
+	}{
+		{"vol-expand.ValidateBricks", validateBricks},
+		{"vol-expand.InitBricks", initBricks},
+		{"vol-expand.UndoInitBricks", undoInitBricks},
+		{"vol-expand.StartBrick", startBricksOnExpand},
+		{"vol-expand.UndoStartBrick", undoStartBricksOnExpand},
+		{"vol-expand.UpdateVolinfo", updateVolinfoOnExpand},
+		{"vol-expand.NotifyClients", notifyVolfileChange},
+	}
+	for _, sf := range sfs {
+		transaction.RegisterStepFunc(sf.sf, sf.name)
+	}
 }
 
 func volumeExpandHandler(w http.ResponseWriter, r *http.Request) {
@@ -261,8 +253,13 @@ func volumeExpandHandler(w http.ResponseWriter, r *http.Request) {
 	txn.Steps = []*transaction.Step{
 		lock,
 		{
-			DoFunc: "vol-expand.CheckBrick",
+			DoFunc: "vol-expand.ValidateBricks",
 			Nodes:  nodes,
+		},
+		{
+			DoFunc:   "vol-expand.InitBricks",
+			UndoFunc: "vol-expand.UndoInitBricks",
+			Nodes:    nodes,
 		},
 		{
 			DoFunc: "vol-expand.UpdateVolinfo",
@@ -287,7 +284,21 @@ func volumeExpandHandler(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	if err := txn.Ctx.Set("newbricks", newBricks); err != nil {
+	if err := txn.Ctx.Set("bricks", newBricks); err != nil {
+		restutils.SendHTTPError(ctx, w, http.StatusInternalServerError, err.Error(), api.ErrCodeDefault)
+		return
+	}
+
+	var checks brick.InitChecks
+	if !req.Force {
+		checks.IsInUse = true
+		checks.IsMount = true
+		checks.IsOnRoot = true
+	}
+
+	err = txn.Ctx.Set("brick-checks", &checks)
+	if err != nil {
+		logger.WithError(err).WithField("key", "brick-checks").Error("failed to set key in transaction context")
 		restutils.SendHTTPError(ctx, w, http.StatusInternalServerError, err.Error(), api.ErrCodeDefault)
 		return
 	}

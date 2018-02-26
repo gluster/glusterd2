@@ -18,12 +18,6 @@ type PeerAddReq struct {
 	MetaData  map[string]string `json:"metadata"`
 }
 
-// DeviceInfo represents structure in which devices are to be store in Peer MetaData
-type DeviceInfo struct {
-	Name  string `json:"name"`
-	State string `json:"state"`
-}
-
 // PeerAddResp is the success response sent to a PeerAddReq request
 type PeerAddResp Peer
 

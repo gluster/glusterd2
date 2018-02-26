@@ -5,7 +5,6 @@ import (
 	"strings"
 
 	"github.com/gluster/glusterd2/glusterd2/transaction"
-	"github.com/gluster/glusterd2/pkg/api"
 	deviceapi "github.com/gluster/glusterd2/plugins/device/api"
 
 	"github.com/pborman/uuid"
@@ -15,17 +14,17 @@ import (
 func txnPrepareDevice(c transaction.TxnCtx) error {
 	var peerID uuid.UUID
 	var req deviceapi.AddDeviceReq
-	var deviceList []api.DeviceInfo
+	var deviceList []deviceapi.Info
 	if err := c.Get("peerid", peerID); err != nil {
 		c.Logger().WithError(err).Error("Failed transaction, cannot find peer-id")
 		return err
 	}
-	if err := c.Get("device-details", req); err != nil {
+	if err := c.Get("req", req); err != nil {
 		c.Logger().WithError(err).Error("Failed transaction, cannot find device-details")
 		return err
 	}
 	for _, name := range req.Devices {
-		tempDevice := api.DeviceInfo{
+		tempDevice := deviceapi.Info{
 			Name: name,
 		}
 		deviceList = append(deviceList, tempDevice)
@@ -48,6 +47,7 @@ func txnPrepareDevice(c transaction.TxnCtx) error {
 	err := AddDevices(deviceList, peerID.String())
 	if err != nil {
 		log.WithError(err).Error("Couldn't add deviceinfo to store")
+		return err
 	}
 	return nil
 }

@@ -4,17 +4,17 @@ import (
 	"encoding/json"
 
 	peer "github.com/gluster/glusterd2/glusterd2/peer"
-	"github.com/gluster/glusterd2/pkg/api"
+	deviceapi "github.com/gluster/glusterd2/plugins/device/api"
 )
 
 // GetDevices returns devices of specified peer from the store
-func GetDevices(peerID string) ([]api.DeviceInfo, error) {
+func GetDevices(peerID string) ([]deviceapi.Info, error) {
 	peerInfo, err := peer.GetPeer(peerID)
 	if err != nil {
 		return nil, err
 	}
 	if len(peerInfo.MetaData["devices"]) > 0 {
-		var deviceInfo []api.DeviceInfo
+		var deviceInfo []deviceapi.Info
 		if err := json.Unmarshal([]byte(peerInfo.MetaData["devices"]), &deviceInfo); err != nil {
 			return nil, err
 		}
@@ -24,8 +24,11 @@ func GetDevices(peerID string) ([]api.DeviceInfo, error) {
 }
 
 // AddDevices adds device to specific peer
-func AddDevices(devices []api.DeviceInfo, peerID string) error {
+func AddDevices(devices []deviceapi.Info, peerID string) error {
 	deviceDetails, err := GetDevices(peerID)
+	if err != nil {
+		return err
+	}
 	peerInfo, err := peer.GetPeer(peerID)
 	if err != nil {
 		return err

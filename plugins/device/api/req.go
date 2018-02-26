@@ -15,4 +15,3 @@ const (
 type AddDeviceReq struct {
 	Devices []string `json:"devices"`
 }
-

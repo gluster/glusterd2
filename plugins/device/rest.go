@@ -38,7 +38,7 @@ func deviceAddHandler(w http.ResponseWriter, r *http.Request) {
 	}
 	txn := transaction.NewTxn(ctx)
 	defer txn.Cleanup()
-	lock, unlock, err := transaction.CreateLockSteps(string(peerInfo.ID))
+	lock, unlock, err := transaction.CreateLockSteps(peerInfo.ID.String())
 	txn.Nodes = []uuid.UUID{peerInfo.ID}
 	txn.Steps = []*transaction.Step{
 		lock,
@@ -54,7 +54,7 @@ func deviceAddHandler(w http.ResponseWriter, r *http.Request) {
 		restutils.SendHTTPError(ctx, w, http.StatusInternalServerError, err.Error(), api.ErrCodeDefault)
 		return
 	}
-	err = txn.Ctx.Set("device-details", req)
+	err = txn.Ctx.Set("req", req)
 	if err != nil {
 		logger.WithError(err).Error("Failed to set data for transaction")
 		restutils.SendHTTPError(ctx, w, http.StatusInternalServerError, err.Error(), api.ErrCodeDefault)
@@ -69,6 +69,8 @@ func deviceAddHandler(w http.ResponseWriter, r *http.Request) {
 	peerInfo, err = peer.GetPeer(peerID)
 	if err != nil {
 		logger.WithError(err).Error("Failed to get peer from store")
+		restutils.SendHTTPError(ctx, w, http.StatusInternalServerError, "Failed to get peer from store", api.ErrCodeDefault)
+		return
 	}
 	restutils.SendHTTPResponse(ctx, w, http.StatusOK, peerInfo)
 }
