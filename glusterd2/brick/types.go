@@ -3,6 +3,7 @@ package brick
 import (
 	"fmt"
 
+	"github.com/gluster/glusterd2/pkg/utils"
 	"github.com/pborman/uuid"
 	"golang.org/x/sys/unix"
 )
@@ -28,6 +29,18 @@ type Brickinfo struct {
 	VolumeID       uuid.UUID
 	Type           Type
 	Decommissioned bool
+}
+
+//Brickstatus gives status of brick
+type Brickstatus struct {
+	Info      Brickinfo
+	Online    bool
+	Pid       int
+	Port      int
+	FS        string
+	MountOpts string
+	Device    string
+	Size      utils.SizeInfo
 }
 
 func (b *Brickinfo) String() string {

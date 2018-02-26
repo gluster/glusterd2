@@ -1,4 +1,4 @@
-package volumecommands
+package volume
 
 import (
 	"bufio"
@@ -12,8 +12,7 @@ import (
 	"strings"
 	"syscall"
 
-	"github.com/gluster/glusterd2/pkg/api"
-
+	"github.com/gluster/glusterd2/pkg/utils"
 	config "github.com/spf13/viper"
 )
 
@@ -50,8 +49,8 @@ func mountVolume(name string, mountpoint string) error {
 	return cmd.Wait() // glusterfs daemonizes itself
 }
 
-func createSizeInfo(fstat *syscall.Statfs_t) *api.SizeInfo {
-	var s api.SizeInfo
+func createSizeInfo(fstat *syscall.Statfs_t) *utils.SizeInfo {
+	var s utils.SizeInfo
 	if fstat != nil {
 		s.Capacity = fstat.Blocks * uint64(fstat.Bsize)
 		s.Free = fstat.Bfree * uint64(fstat.Bsize)
@@ -60,7 +59,8 @@ func createSizeInfo(fstat *syscall.Statfs_t) *api.SizeInfo {
 	return &s
 }
 
-func volumeUsage(volname string) (*api.SizeInfo, error) {
+//UsageInfo gives the size information of a gluster volume
+func UsageInfo(volname string) (*utils.SizeInfo, error) {
 
 	tempDir, err := ioutil.TempDir(config.GetString("rundir"), "gd2mount")
 	if err != nil {

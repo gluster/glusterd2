@@ -4,7 +4,16 @@ import (
 	"github.com/gluster/glusterd2/glusterd2/brick"
 	"github.com/gluster/glusterd2/glusterd2/volume"
 	"github.com/gluster/glusterd2/pkg/api"
+	"github.com/gluster/glusterd2/pkg/utils"
 )
+
+func createSizeInfo(size *utils.SizeInfo) api.SizeInfo {
+	return api.SizeInfo{
+		Used:     size.Used,
+		Free:     size.Free,
+		Capacity: size.Capacity,
+	}
+}
 
 func createBrickInfo(b *brick.Brickinfo) api.BrickInfo {
 	return api.BrickInfo{

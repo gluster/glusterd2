@@ -1,6 +1,12 @@
 package volume
 
 import (
+	"strings"
+	"syscall"
+
+	"github.com/gluster/glusterd2/glusterd2/brick"
+	"github.com/gluster/glusterd2/glusterd2/daemon"
+	"github.com/gluster/glusterd2/glusterd2/pmap"
 	"github.com/gluster/glusterd2/pkg/errors"
 
 	"github.com/pborman/uuid"
@@ -44,4 +50,54 @@ func IsQuotaEnabled(v *Volinfo) bool {
 		return true
 	}
 	return false
+}
+
+//CheckBricksStatus will give detailed information about brick
+func CheckBricksStatus(volinfo *Volinfo) ([]brick.Brickstatus, error) {
+
+	var brickStatuses []brick.Brickstatus
+	mtabEntries, err := getMounts()
+	if err != nil {
+		log.WithError(err).Error("Failed to read /etc/mtab file.")
+		return brickStatuses, err
+	}
+
+	for _, binfo := range volinfo.GetLocalBricks() {
+		brickDaemon, err := brick.NewGlusterfsd(binfo)
+		if err != nil {
+			return brickStatuses, err
+		}
+
+		s := brick.Brickstatus{
+			Info: binfo,
+		}
+
+		if pidOnFile, err := daemon.ReadPidFromFile(brickDaemon.PidFile()); err == nil {
+			if _, err := daemon.GetProcess(pidOnFile); err == nil {
+				s.Online = true
+				s.Pid = pidOnFile
+				s.Port = pmap.RegistrySearch(binfo.Path, pmap.GfPmapPortBrickserver)
+			}
+		}
+
+		var fstat syscall.Statfs_t
+		if err := syscall.Statfs(binfo.Path, &fstat); err != nil {
+			log.WithError(err).WithField("path",
+				binfo.Path).Error("syscall.Statfs() failed")
+		} else {
+			s.Size = *(createSizeInfo(&fstat))
+		}
+
+		for _, m := range mtabEntries {
+			if strings.HasPrefix(binfo.Path, m.mntDir) {
+				s.MountOpts = m.mntOpts
+				s.Device = m.fsName
+				s.FS = m.mntType
+			}
+		}
+
+		brickStatuses = append(brickStatuses, s)
+	}
+
+	return brickStatuses, nil
 }

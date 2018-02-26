@@ -23,12 +23,13 @@ func volumeStatusHandler(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	s, err := volumeUsage(v.Name)
+	s, err := volume.UsageInfo(v.Name)
 	if err != nil {
 		logger.WithError(err).WithField("volume", v.Name).Error("Failed to get volume size info")
 	}
+	size := createSizeInfo(s)
 
-	resp := createVolumeStatusResp(v, s)
+	resp := createVolumeStatusResp(v, &size)
 	restutils.SendHTTPResponse(ctx, w, http.StatusOK, resp)
 }
 

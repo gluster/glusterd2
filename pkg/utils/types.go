@@ -8,3 +8,10 @@ import "reflect"
 func GetTypeString(i interface{}) string {
 	return reflect.TypeOf(i).Elem().String()
 }
+
+// SizeInfo represents sizing information.
+type SizeInfo struct {
+	Capacity uint64
+	Used     uint64
+	Free     uint64
+}
