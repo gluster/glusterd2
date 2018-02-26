@@ -117,6 +117,7 @@ func testVolumeExpand(t *testing.T) {
 			{NodeID: gds[0].PeerID(), Path: brickPaths[2]},
 			{NodeID: gds[1].PeerID(), Path: brickPaths[3]},
 		},
+		Force: true,
 	}
 	_, err := client.VolumeExpand(volname, expandReq)
 	r.Nil(err)

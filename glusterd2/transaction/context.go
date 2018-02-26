@@ -115,27 +115,24 @@ func (c *Tctx) SetNodeResult(nodeID uuid.UUID, key string, value interface{}) er
 // Get gets the value for the given key if available.
 // Returns error if not found.
 func (c *Tctx) Get(key string, value interface{}) error {
+
 	storeKey := c.prefix + "/" + key
-	r, e := store.Store.Get(context.TODO(), storeKey)
-	if e != nil {
-		c.log.WithFields(log.Fields{
-			"error": e,
-			"key":   storeKey,
-		}).Error("failed to get value")
-		return e
+	r, err := store.Store.Get(context.TODO(), storeKey)
+	if err != nil {
+		c.log.WithError(err).WithField("key", storeKey).Error("failed to get value from store")
+		return err
 	}
 
 	if r.Count == 0 {
+		c.log.WithError(err).WithField("key", storeKey).Debug("key not found in store")
 		return errors.New("key not found")
 	}
 
-	if e = json.Unmarshal(r.Kvs[0].Value, value); e != nil {
-		c.log.WithFields(log.Fields{
-			"error": e,
-			"key":   key,
-		}).Error("failed to unmarshal value")
+	if err = json.Unmarshal(r.Kvs[0].Value, value); err != nil {
+		c.log.WithError(err).WithField("key", storeKey).Error("failed to unmarshall value")
 	}
-	return e
+
+	return err
 }
 
 // GetNodeResult is similar to Get but prefixes the key with node UUID

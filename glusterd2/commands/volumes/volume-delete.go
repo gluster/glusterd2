@@ -17,27 +17,20 @@ import (
 
 func deleteVolfiles(c transaction.TxnCtx) error {
 
-	var volname string
-	if err := c.Get("volname", &volname); err != nil {
+	var volinfo volume.Volinfo
+	if err := c.Get("volinfo", &volinfo); err != nil {
 		return err
 	}
 
-	volinfo, err := volume.GetVolume(volname)
-	if err != nil {
-		return err
-	}
-
-	if err := volgen.DeleteClientVolfile(volinfo); err != nil {
-		// Log and continue, ignore the cleanup error
+	if err := volgen.DeleteClientVolfile(&volinfo); err != nil {
 		c.Logger().WithError(err).WithField(
-			"volume", volinfo.Name).Warn("deleteVolfiles: failed to delete client volfile")
+			"volume", volinfo.Name).Warn("failed to delete client volfile")
 	}
 
 	for _, b := range volinfo.GetLocalBricks() {
 		if err := volgen.DeleteBrickVolfile(&b); err != nil {
-			// Log and continue, ignore the volfile cleanup error
 			c.Logger().WithError(err).WithField(
-				"brick", b.Path).Warn("deleteVolfiles: failed to delete brick volfile")
+				"brick", b.Path).Warn("failed to delete brick volfile")
 		}
 	}
 
@@ -46,12 +39,12 @@ func deleteVolfiles(c transaction.TxnCtx) error {
 
 func deleteVolume(c transaction.TxnCtx) error {
 
-	var volname string
-	if err := c.Get("volname", &volname); err != nil {
+	var volinfo volume.Volinfo
+	if err := c.Get("volinfo", &volinfo); err != nil {
 		return err
 	}
 
-	return volume.DeleteVolume(volname)
+	return volume.DeleteVolume(volinfo.Name)
 }
 
 func registerVolDeleteStepFuncs() {
@@ -73,13 +66,13 @@ func volumeDeleteHandler(w http.ResponseWriter, r *http.Request) {
 	logger := gdctx.GetReqLogger(ctx)
 
 	volname := mux.Vars(r)["volname"]
-	vol, err := volume.GetVolume(volname)
+	volinfo, err := volume.GetVolume(volname)
 	if err != nil {
 		restutils.SendHTTPError(ctx, w, http.StatusNotFound, err.Error(), api.ErrCodeDefault)
 		return
 	}
 
-	if vol.State == volume.VolStarted {
+	if volinfo.State == volume.VolStarted {
 		restutils.SendHTTPError(ctx, w, http.StatusForbidden, "volume is not stopped", api.ErrCodeDefault)
 		return
 	}
@@ -96,7 +89,7 @@ func volumeDeleteHandler(w http.ResponseWriter, r *http.Request) {
 		lock,
 		{
 			DoFunc: "vol-delete.Commit",
-			Nodes:  vol.Nodes(),
+			Nodes:  volinfo.Nodes(),
 		},
 		{
 			DoFunc: "vol-delete.Store",
@@ -105,7 +98,7 @@ func volumeDeleteHandler(w http.ResponseWriter, r *http.Request) {
 		unlock,
 	}
 
-	txn.Ctx.Set("volname", volname)
+	txn.Ctx.Set("volinfo", volinfo)
 	if err = txn.Do(); err != nil {
 		logger.WithError(err).WithField(
 			"volume", volname).Error("failed to delete the volume")
@@ -117,6 +110,6 @@ func volumeDeleteHandler(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	events.Broadcast(newVolumeEvent(eventVolumeDeleted, vol))
+	events.Broadcast(newVolumeEvent(eventVolumeDeleted, volinfo))
 	restutils.SendHTTPResponse(ctx, w, http.StatusOK, nil)
 }
