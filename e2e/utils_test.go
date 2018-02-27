@@ -15,14 +15,15 @@ import (
 
 	"github.com/gluster/glusterd2/pkg/api"
 	"github.com/gluster/glusterd2/pkg/restclient"
-	"gopkg.in/yaml.v2"
+
+	toml "github.com/pelletier/go-toml"
 )
 
 type gdProcess struct {
 	Cmd           *exec.Cmd
-	ClientAddress string `yaml:"clientaddress"`
-	PeerAddress   string `yaml:"peeraddress"`
-	Workdir       string `yaml:"workdir"`
+	ClientAddress string `toml:"clientaddress"`
+	PeerAddress   string `toml:"peeraddress"`
+	Workdir       string `toml:"workdir"`
 	uuid          string
 }
 
@@ -98,7 +99,7 @@ func spawnGlusterd(configFilePath string, cleanStart bool) (*gdProcess, error) {
 	}
 
 	g := gdProcess{}
-	if err = yaml.Unmarshal(fContent, &g); err != nil {
+	if err = toml.Unmarshal(fContent, &g); err != nil {
 		return nil, err
 	}
 
