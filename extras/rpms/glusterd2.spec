@@ -24,8 +24,8 @@
 %global gd2make %{__make} PREFIX=%{_prefix} EXEC_PREFIX=%{_exec_prefix} BINDIR=%{_bindir} SBINDIR=%{_sbindir} DATADIR=%{_datadir} LOCALSTATEDIR=%{_sharedstatedir} LOGDIR=%{_localstatedir}/log SYSCONFDIR=%{_sysconfdir} FASTBUILD=off
 
 Name: %{repo}
-Version: 4.0rc0
-Release: 2%{?dist}
+Version: 4.0.0
+Release: 1%{?dist}
 Summary: The GlusterFS management daemon (preview)
 License: GPLv2 or LGPLv3+
 URL: https://%{provider_prefix}
@@ -45,7 +45,7 @@ BuildRequires: golang(github.com/cespare/xxhash)
 BuildRequires: golang(github.com/cockroachdb/cmux)
 BuildRequires: golang(github.com/coreos/etcd/clientv3)
 BuildRequires: golang(github.com/coreos/etcd/clientv3/concurrency)
-#BuildRequires: golang(github.com/coreos/etcd/clientv3/namespace)
+BuildRequires: golang(github.com/coreos/etcd/clientv3/namespace)
 BuildRequires: golang(github.com/coreos/etcd/embed)
 BuildRequires: golang(github.com/coreos/etcd/etcdserver/etcdserverpb)
 BuildRequires: golang(github.com/coreos/etcd/pkg/transport)
@@ -70,7 +70,7 @@ BuildRequires: golang(golang.org/x/sys/unix)
 BuildRequires: golang(google.golang.org/grpc)
 %endif
 
-Requires: glusterfs-server >= 4.0rc0
+Requires: glusterfs-server >= 4.0.0
 %{?systemd_requires}
 
 %description
@@ -120,6 +120,9 @@ install -d -m 0755 %{buildroot}%{_localstatedir}/log/%{name}
 %{_sysconfdir}/bash_completion.d/glustercli.sh
 
 %changelog
+* Wed Feb 28 2018 Kaushal M <kshlmster@gmail.com> - 4.0.0
+- Update to v4.0.0
+
 * Wed Feb 14 2018 Kaushal M <kshlmster@gmail.com> - 4.0rc0-2
 - Update spec to support unbundled/vendored builds
 - Fedora defaults to bundled builds till all required dependencies are available
