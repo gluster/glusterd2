@@ -71,6 +71,7 @@ BuildRequires: golang(google.golang.org/grpc)
 %endif
 
 Requires: glusterfs-server >= 4.0.0
+Requires: /usr/bin/strings
 %{?systemd_requires}
 
 %description
