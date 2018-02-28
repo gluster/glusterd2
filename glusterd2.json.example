@@ -1,5 +1,0 @@
-{
-  "localstatedir": "/var/lib/glusterd",
-  "peeraddress": ":24008",
-  "clientaddress":":24007"
-}
