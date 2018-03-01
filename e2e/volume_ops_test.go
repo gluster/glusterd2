@@ -31,7 +31,7 @@ func TestVolume(t *testing.T) {
 
 	r := require.New(t)
 
-	gds, err = setupCluster("./config/1.yaml", "./config/2.yaml")
+	gds, err = setupCluster("./config/1.toml", "./config/2.toml")
 	r.Nil(err)
 	defer teardownCluster(gds)
 
@@ -117,6 +117,7 @@ func testVolumeExpand(t *testing.T) {
 			{NodeID: gds[0].PeerID(), Path: brickPaths[2]},
 			{NodeID: gds[1].PeerID(), Path: brickPaths[3]},
 		},
+		Force: true,
 	}
 	_, err := client.VolumeExpand(volname, expandReq)
 	r.Nil(err)
@@ -191,7 +192,7 @@ func TestVolumeOptions(t *testing.T) {
 
 	r := require.New(t)
 
-	gds, err := setupCluster("./config/1.yaml")
+	gds, err := setupCluster("./config/1.toml")
 	r.Nil(err)
 	defer teardownCluster(gds)
 

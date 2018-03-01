@@ -51,15 +51,15 @@ $ mkdir -p /var/lib/gd2
 ```
 
 **Create a config file:** This is optional but if your VM/machine has multiple network interfaces, it is recommended to create a config file. The config file location can be passed to Glusterd2 using the `--config` option.
-Glusterd2 will also pick up conf files named `glusterd.{yaml|json|toml}` if available in `/etc/glusterd2/` or the current directory.
+Glusterd2 will also pick up conf file named `glusterd2.toml` if available in `/etc/glusterd2/` or the current directory.
 
-```yaml
-$ cat conf.yaml
-workdir: "/var/lib/gd2"
-peeraddress: "192.168.56.101:24008"
-clientaddress: "192.168.56.101:24007"
-etcdcurls: "http://192.168.56.101:2379"
-etcdpurls: "http://192.168.56.101:2380"
+```toml
+$ cat conf.toml
+workdir = "/var/lib/gd2"
+peeraddress = "192.168.56.101:24008"
+clientaddress = "192.168.56.101:24007"
+etcdcurls = "http://192.168.56.101:2379"
+etcdpurls = "http://192.168.56.101:2380"
 ```
 
 Replace the IP address accordingly on each node.
@@ -67,13 +67,13 @@ Replace the IP address accordingly on each node.
 **Start glusterd2 process:** Glusterd2 is not a daemon and currently can run only in the foreground.
 
 ```sh
-# ./glusterd2 --config conf.yaml
+# ./glusterd2 --config conf.toml
 ```
 
 You will see an output similar to the following:
 ```log
 INFO[2017-08-28T16:03:58+05:30] Starting GlusterD                             pid=1650
-INFO[2017-08-28T16:03:58+05:30] loaded configuration from file                file=conf.yaml
+INFO[2017-08-28T16:03:58+05:30] loaded configuration from file                file=conf.toml
 INFO[2017-08-28T16:03:58+05:30] Generated new UUID                            uuid=19db62df-799b-47f1-80e4-0f5400896e05
 INFO[2017-08-28T16:03:58+05:30] started muxsrv listener                      
 INFO[2017-08-28T16:03:58+05:30] Started GlusterD ReST server                  ip:port=192.168.56.101:24007

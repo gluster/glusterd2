@@ -6,7 +6,7 @@ Before=network-online.target
 Conflicts=glusterd.service
 
 [Service]
-ExecStart=/usr/sbin/glusterd2
+ExecStart=/usr/sbin/glusterd2 --config=/etc/glusterd2/glusterd2.toml
 KillMode=process
 
 [Install]

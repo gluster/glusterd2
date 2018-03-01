@@ -21,10 +21,7 @@ func validateOptionSet(req api.OptionGroupReq) error {
 	if err := validateOptions(o1); err != nil {
 		return err
 	}
-	if err := validateOptions(o2); err != nil {
-		return err
-	}
-	return nil
+	return validateOptions(o2)
 }
 
 func optionGroupCreateHandler(w http.ResponseWriter, r *http.Request) {

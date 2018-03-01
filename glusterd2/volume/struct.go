@@ -6,7 +6,6 @@ import (
 	"encoding/json"
 	"errors"
 	"net"
-	"net/http"
 	"path/filepath"
 	"strconv"
 
@@ -14,7 +13,6 @@ import (
 	"github.com/gluster/glusterd2/glusterd2/gdctx"
 	"github.com/gluster/glusterd2/glusterd2/peer"
 	"github.com/gluster/glusterd2/pkg/api"
-	"github.com/gluster/glusterd2/pkg/utils"
 
 	"github.com/pborman/uuid"
 	log "github.com/sirupsen/logrus"
@@ -51,10 +49,7 @@ const (
 )
 
 var (
-	// ValidateBrickEntriesFunc validates the brick list
-	ValidateBrickEntriesFunc   = ValidateBrickEntries
-	validateBrickPathStatsFunc = utils.ValidateBrickPathStats
-	absFilePath                = filepath.Abs
+	absFilePath = filepath.Abs
 	// NewBrickEntriesFunc creates the brick list
 	NewBrickEntriesFunc = NewBrickEntries
 )
@@ -183,39 +178,6 @@ func NewBrickEntries(bricks []api.BrickReq, volName string, volID uuid.UUID) ([]
 		brickInfos = append(brickInfos, binfo)
 	}
 	return brickInfos, nil
-}
-
-// ValidateBrickEntries validates the brick list
-func ValidateBrickEntries(bricks []brick.Brickinfo, volID uuid.UUID, force bool) (int, error) {
-
-	var err error
-	for _, b := range bricks {
-		if !uuid.Equal(b.NodeID, gdctx.MyUUID) {
-			continue
-		}
-
-		err = utils.ValidateBrickPathLength(b.Path)
-		if err != nil {
-			return http.StatusBadRequest, err
-		}
-		err = utils.ValidateBrickSubDirLength(b.Path)
-		if err != nil {
-			return http.StatusBadRequest, err
-		}
-		err = isBrickPathAvailable(b.NodeID, b.Path)
-		if err != nil {
-			return http.StatusBadRequest, err
-		}
-		err = validateBrickPathStatsFunc(b.Path, force)
-		if err != nil {
-			return http.StatusBadRequest, err
-		}
-		err = utils.ValidateXattrSupport(b.Path, volID, force)
-		if err != nil {
-			return http.StatusBadRequest, err
-		}
-	}
-	return 0, nil
 }
 
 func (v *Volinfo) String() string {

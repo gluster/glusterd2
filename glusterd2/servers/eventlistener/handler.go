@@ -2,15 +2,17 @@ package eventlistener
 
 import (
 	"encoding/json"
-	"github.com/gluster/glusterd2/glusterd2/gdctx"
-	events "github.com/gluster/glusterd2/plugins/events"
-	eventsapi "github.com/gluster/glusterd2/plugins/events/api"
-	log "github.com/sirupsen/logrus"
 	"net"
 	"net/http"
 	"strconv"
 	"strings"
 	"time"
+
+	"github.com/gluster/glusterd2/glusterd2/gdctx"
+	"github.com/gluster/glusterd2/plugins/events"
+	eventsapi "github.com/gluster/glusterd2/plugins/events/api"
+
+	log "github.com/sirupsen/logrus"
 )
 
 func getWebhooks() []*eventsapi.Webhook {
@@ -69,7 +71,7 @@ func webhookPublish(webhook *eventsapi.Webhook, message string) {
 	return
 }
 
-func handleMessage(inMessage string, addr *net.UDPAddr, err error) {
+func handleMessage(inMessage string, addr *net.UDPAddr) {
 	data := strings.SplitN(inMessage, " ", 3)
 	if len(data) != 3 {
 		log.WithFields(log.Fields{

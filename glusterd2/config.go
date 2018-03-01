@@ -44,7 +44,7 @@ func parseFlags() {
 	flag.String("workdir", "", "Working directory for GlusterD. (default: current directory)")
 	flag.String("localstatedir", "", "Directory to store local state information. (default: workdir)")
 	flag.String("rundir", "", "Directory to store runtime data. (default: workdir/run)")
-	flag.String("config", "", "Configuration file for GlusterD. By default looks for glusterd2.(yaml|toml|json) in [/usr/local]/etc/glusterd2 and current working directory.")
+	flag.String("config", "", "Configuration file for GlusterD. By default looks for glusterd2.toml in [/usr/local]/etc/glusterd2 and current working directory.")
 
 	flag.String(logging.DirFlag, "", logging.DirHelp+" (default: workdir/log)")
 	flag.String(logging.FileFlag, "STDOUT", logging.FileHelp)
@@ -135,6 +135,9 @@ func initConfig(confFile string) error {
 	// If a config file was given, read in configration from that file.
 	// If the file is not present panic.
 
+	// Limit config to toml only to avoid confusion with multiple config types
+	config.SetConfigType("toml")
+
 	if confFile == "" {
 		config.SetConfigName(defaultConfName)
 		for _, p := range defaultConfPaths {
@@ -148,7 +151,7 @@ func initConfig(confFile string) error {
 		if confFile == "" {
 			log.WithFields(log.Fields{
 				"paths":  defaultConfPaths,
-				"config": defaultConfName + ".(toml|yaml|json)",
+				"config": defaultConfName + ".toml",
 				"error":  err,
 			}).Debug("failed to read any config files, continuing with defaults")
 		} else {
