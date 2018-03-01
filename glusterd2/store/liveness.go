@@ -11,7 +11,9 @@ import (
 )
 
 const (
-	livenessKeyPrefix = "alive/"
+	// LivenessKeyPrefix is the prefix in store where peers publish
+	// their liveness information.
+	LivenessKeyPrefix = "alive/"
 )
 
 // IsNodeAlive returns true if the node specified is alive as seen by the store
@@ -34,7 +36,7 @@ func (s *GDStore) IsNodeAlive(nodeID interface{}) bool {
 	ctx, cancel := context.WithTimeout(context.Background(), 5*time.Second)
 	defer cancel()
 
-	key := livenessKeyPrefix + keySuffix
+	key := LivenessKeyPrefix + keySuffix
 	resp, err := s.Get(ctx, key)
 	if err != nil {
 		return false
@@ -45,8 +47,16 @@ func (s *GDStore) IsNodeAlive(nodeID interface{}) bool {
 
 func (s *GDStore) publishLiveness() error {
 	// publish liveness of this instance into the store
-	key := livenessKeyPrefix + gdctx.MyUUID.String()
+	key := LivenessKeyPrefix + gdctx.MyUUID.String()
 	_, err := s.Put(context.TODO(), key, "", clientv3.WithLease(s.Session.Lease()))
+
+	return err
+}
+
+func (s *GDStore) revokeLiveness() error {
+	// revoke liveness (to be invoked during graceful shutdowns)
+	key := LivenessKeyPrefix + gdctx.MyUUID.String()
+	_, err := s.Delete(context.TODO(), key)
 
 	return err
 }

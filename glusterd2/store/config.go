@@ -16,7 +16,7 @@ import (
 )
 
 const (
-	noEmbedOpt       = "no-embed"
+	noEmbedOpt       = "noembed"
 	etcdEndpointsOpt = "etcdendpoints"
 	etcdCURLsOpt     = "etcdcurls"
 	etcdPURLsOpt     = "etcdpurls"

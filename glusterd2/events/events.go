@@ -58,11 +58,13 @@ func Start() error {
 	StartGlobal()
 	startEventLogger()
 	registerGaneshaHandler()
+	startLivenessWatcher()
 	return nil
 }
 
 // Stop stops the events framework, events will no longer be broadcast
 func Stop() error {
+	stopLivenessWatcher()
 	stopEventLogger()
 	StopGlobal()
 	stopHandlers()
