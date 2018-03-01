@@ -108,6 +108,10 @@ func New(conf *Config) (*GDStore, error) {
 
 // Close closes the store connections
 func (s *GDStore) Close() {
+	if err := s.revokeLiveness(); err != nil {
+		log.WithError(err).Error("failed to revoke liveness")
+	}
+
 	if s.ee != nil {
 		s.closeEmbedStore()
 	} else {

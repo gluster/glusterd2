@@ -50,3 +50,10 @@ func (s *GDStore) publishLiveness() error {
 
 	return err
 }
+
+func (s *GDStore) revokeLiveness() error {
+	// revoke liveness (to be invoked during graceful shutdowns)
+	key := livenessKeyPrefix + gdctx.MyUUID.String()
+	_, err := s.Delete(context.TODO(), key)
+	return err
+}
