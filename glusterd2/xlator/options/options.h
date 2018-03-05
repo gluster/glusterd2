@@ -41,6 +41,13 @@ typedef enum {
         OPT_FLAG_DOC         = 1 << 5,
 } opt_flags_t;
 
+typedef enum {
+        OPT_STATUS_ADVANCED       = 0,
+        OPT_STATUS_BASIC          = 1,
+        OPT_STATUS_EXPERIMENTAL   = 2,
+        OPT_STATUS_DEPRECATED     = 3,
+} opt_level_t;
+
 #define GF_MAX_RELEASES 4
 #define ZR_VOLUME_MAX_NUM_KEY    4
 #define ZR_OPTION_MAX_ARRAY_SIZE 64
@@ -59,4 +66,5 @@ typedef struct volume_options {
         uint32_t                flags;
         char                    *tags[ZR_OPTION_MAX_ARRAY_SIZE];
         char                    *setkey;
+        opt_level_t             level;
 } volume_option_t;
