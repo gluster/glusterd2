@@ -14,13 +14,13 @@ var (
 
 // MaxOpVersion and APIVersion supported
 const (
-	MaxOpVersion = 40000
+	MaxOpVersion = 40100
 	APIVersion   = 1
 )
 
 // GlusterdVersion and GitSHA
 var (
-	GlusterdVersion = "4.0dev"
+	GlusterdVersion = "4.1dev"
 	GitSHA          = ""
 )
 
