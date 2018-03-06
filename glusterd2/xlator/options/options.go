@@ -336,10 +336,46 @@ func ValidateStr(o *Option, val string) error {
 
 // ValidateTime validates if the option is valid time format
 func ValidateTime(o *Option, val string) error {
-	if validate.IsTime(val, "hh:mm:ss") != true {
-		return ErrInvalidArg
+	var time int    // to convert given value from other formates to seconds
+	var tStr string // temp value which has the int without "min" ...
+	multiplier := 1
+	if strings.HasSuffix(val, "sec") {
+		tStr = strings.TrimSuffix(val, "sec")
+	} else if strings.HasSuffix(val, "s") {
+		tStr = strings.TrimSuffix(val, "s")
+	} else if strings.HasSuffix(val, "min") {
+		tStr = strings.TrimSuffix(val, "min")
+		multiplier = 60
+	} else if strings.HasSuffix(val, "m") {
+		tStr = strings.TrimSuffix(val, "m")
+		multiplier = 60
+	} else if strings.HasSuffix(val, "hr") {
+		tStr = strings.TrimSuffix(val, "hr")
+		multiplier = 60 * 60
+	} else if strings.HasSuffix(val, "h") {
+		tStr = strings.TrimSuffix(val, "h")
+		multiplier = 60 * 60
+	} else if strings.HasSuffix(val, "days") {
+		tStr = strings.TrimSuffix(val, "days")
+		multiplier = 60 * 60 * 24
+	} else if strings.HasSuffix(val, "d") {
+		tStr = strings.TrimSuffix(val, "d")
+		multiplier = 60 * 60 * 24
+	} else if strings.HasSuffix(val, "w") {
+		tStr = strings.TrimSuffix(val, "w")
+		multiplier = 60 * 60 * 24 * 7
+	} else if strings.HasSuffix(val, "wk") {
+		tStr = strings.TrimSuffix(val, "wk")
+		multiplier = 60 * 60 * 24 * 7
+	} else {
+		tStr = val
 	}
-	return nil
+	time, err := strconv.Atoi(tStr)
+	if err != nil {
+		return err
+	}
+	time = time * multiplier
+	return ValidateRange(o, strconv.Itoa(time))
 }
 
 // ValidateXlator validates if the option is a valid xlator
