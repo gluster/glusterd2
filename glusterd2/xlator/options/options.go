@@ -48,13 +48,24 @@ type OptionFlag uint
 
 // These are the available OptionFlags
 const (
-	OptionFlagNone     = 0
-	OptionFlagSettable = 1 << iota
+	OptionFlagNone     OptionFlag = 0
+	OptionFlagSettable            = 1 << iota
 	OptionFlagClientOpt
 	OptionFlagGlobal
 	OptionFlagForce
 	OptionFlagNeverReset
 	OptionFlagDoc
+)
+
+// OptionLevel is the level at which option is visible to users
+type OptionLevel uint
+
+// These are the available option levels
+const (
+	OptionStatusAdvanced OptionLevel = iota
+	OptionStatusBasic
+	OptionStatusExperimental
+	OptionStatusDeprecated
 )
 
 // ErrInvalidArg validates if argument is Invalid
@@ -82,6 +93,7 @@ type Option struct {
 	Flags        uint32
 	Tags         []string
 	SetKey       string
+	Level        OptionLevel
 }
 
 // Validate checks if the given value string can be set as the value for the
