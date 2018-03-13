@@ -46,6 +46,15 @@ func (c *Command) Routes() route.Routes {
 			ResponseType: utils.GetTypeString((*api.PeerAddResp)(nil)),
 			HandlerFunc:  addPeerHandler,
 		},
+		route.Route{
+			Name:         "EditMetaData",
+			Method:       "POST",
+			Pattern:      "/peers/{peerid}/metadata",
+			Version:      1,
+			RequestType:  utils.GetTypeString((*api.MetaDataEditReq)(nil)),
+			ResponseType: utils.GetTypeString((*api.MetaDataEditResp)(nil)),
+			HandlerFunc:  editMetaData,
+		},
 	}
 }
 

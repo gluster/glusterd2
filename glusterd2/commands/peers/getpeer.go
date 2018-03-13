@@ -36,5 +36,6 @@ func createPeerGetResp(p *peer.Peer) *api.PeerGetResp {
 		PeerAddresses:   p.PeerAddresses,
 		ClientAddresses: p.ClientAddresses,
 		Online:          store.Store.IsNodeAlive(p.ID),
+		MetaData:        p.MetaData,
 	}
 }

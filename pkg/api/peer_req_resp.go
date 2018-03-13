@@ -18,8 +18,16 @@ type PeerAddReq struct {
 	MetaData  map[string]string `json:"metadata"`
 }
 
+// MetaDataEditReq represents an incoming request to edit metadata of peer
+type MetaDataEditReq struct {
+	MetaData map[string]string `json:"metadata"`
+}
+
 // PeerAddResp is the success response sent to a PeerAddReq request
 type PeerAddResp Peer
+
+// MetaDataEditResp is the success response sent to a MetaDataEditReq request
+type MetaDataEditResp Peer
 
 // PeerGetResp is the response sent for a peer get request
 type PeerGetResp Peer
