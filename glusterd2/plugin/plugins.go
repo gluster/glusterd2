@@ -7,6 +7,7 @@ import (
 	"github.com/gluster/glusterd2/plugins/device"
 	"github.com/gluster/glusterd2/plugins/events"
 	"github.com/gluster/glusterd2/plugins/georeplication"
+	"github.com/gluster/glusterd2/plugins/gfproxyd"
 	"github.com/gluster/glusterd2/plugins/glustershd"
 	"github.com/gluster/glusterd2/plugins/quota"
 )
@@ -18,5 +19,6 @@ var PluginsList = []GlusterdPlugin{
 	&quota.Plugin{},
 	&events.Plugin{},
 	&glustershd.Plugin{},
+	&gfproxyd.Plugin{},
 	&device.Plugin{},
 }
