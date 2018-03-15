@@ -4,6 +4,7 @@ import (
 	"os/exec"
 	"strings"
 
+	"github.com/gluster/glusterd2/glusterd2/peer"
 	"github.com/gluster/glusterd2/glusterd2/transaction"
 	deviceapi "github.com/gluster/glusterd2/plugins/device/api"
 
@@ -47,6 +48,36 @@ func txnPrepareDevice(c transaction.TxnCtx) error {
 	err := AddDevices(deviceList, peerID.String())
 	if err != nil {
 		log.WithError(err).Error("Couldn't add deviceinfo to store")
+		return err
+	}
+	return nil
+}
+
+func txnEditGroup(c transaction.TxnCtx) error {
+	var peerID string
+	var groupID string
+	var req deviceapi.EditGroupReq
+	if err := c.Get("peerid", peerID); err != nil {
+		c.Logger().WithError(err).Error("Failed transaction, cannot find peer-id")
+		return err
+	}
+	if err := c.Get("groupid", groupID); err != nil {
+		c.Logger().WithError(err).Error("Failed transaction, cannot find group-id")
+		return err
+	}
+	if err := c.Get("req", req); err != nil {
+		c.Logger().WithError(err).Error("Failed transaction, cannot find group details")
+		return err
+	}
+	peerInfo, err := peer.GetPeer(peerID)
+	if err != nil {
+		c.Logger().WithError(err).WithField("peerid", peerID).Error("Peer ID not found in store")
+		return err
+	}
+	peerInfo.MetaData["_group"] = req.Group
+	err = peer.AddOrUpdatePeer(peerInfo)
+	if err != nil {
+		c.Logger().WithError(err).WithField("peerid", peerID).Error("Failed to update peer Info")
 		return err
 	}
 	return nil

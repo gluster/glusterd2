@@ -15,3 +15,7 @@ const (
 type AddDeviceReq struct {
 	Devices []string `json:"devices"`
 }
+
+type EditGroupReq struct {
+	Group string `json:"group"`
+}
