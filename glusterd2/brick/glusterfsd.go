@@ -33,8 +33,10 @@ type Glusterfsd struct {
 	socketfilepath string
 	pidfilepath    string
 
-	// For internal use
+	// For internal use.
 	brickinfo Brickinfo
+	// List of bricks multiplexed to this glusterfsd process
+	//bricklist []Brickinfo
 }
 
 // Name returns human-friendly name of the brick process. This is used for logging.
@@ -125,6 +127,9 @@ func NewGlusterfsd(binfo Brickinfo) (*Glusterfsd, error) {
 	if e != nil {
 		return nil, e
 	}
+
+	//var bricks []Brickinfo
+	//append(bricks, binfo)
 	brickObject := &Glusterfsd{binarypath: path, brickinfo: binfo}
 	return brickObject, nil
 }

@@ -40,3 +40,29 @@ func UpdateCluster(c *Cluster) error {
 	}
 	return nil
 }
+
+func GetGlobalOptionVal(key string) (string, error) {
+	globalopt, found := GlobalOptMap[key]
+	if !found {
+		return "", errors.ErrInvalidGlobalOption
+	}
+
+	c, err := GetCluster()
+	// ErrClusterNotFound here implies that no global option has yet been explicitly set. Ignoring it.
+	if err != nil && err != errors.ErrClusterNotFound {
+		return "", err
+	}
+
+	var val string
+	if c == nil {
+		val = globalopt.DefaultValue
+	} else {
+		var found bool
+		val, found = c.Options[key]
+		if !found {
+			val = globalopt.DefaultValue
+		}
+	}
+
+	return val, nil
+}

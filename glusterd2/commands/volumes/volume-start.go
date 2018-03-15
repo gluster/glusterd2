@@ -3,10 +3,15 @@ package volumecommands
 import (
 	"net/http"
 
+	"github.com/gluster/glusterd2/glusterd2/brick"
+	"github.com/gluster/glusterd2/glusterd2/cluster"
+	"github.com/gluster/glusterd2/glusterd2/daemon"
 	"github.com/gluster/glusterd2/glusterd2/events"
 	"github.com/gluster/glusterd2/glusterd2/gdctx"
+	"github.com/gluster/glusterd2/glusterd2/pmap"
 	restutils "github.com/gluster/glusterd2/glusterd2/servers/rest/utils"
 	"github.com/gluster/glusterd2/glusterd2/transaction"
+	"github.com/gluster/glusterd2/glusterd2/volgen"
 	"github.com/gluster/glusterd2/glusterd2/volume"
 	"github.com/gluster/glusterd2/pkg/api"
 	"github.com/gluster/glusterd2/pkg/errors"
@@ -29,8 +34,75 @@ func startAllBricks(c transaction.TxnCtx) error {
 			"brick":  b.String(),
 		}).Info("Starting brick")
 
-		if err := b.StartBrick(); err != nil {
+		brickmux, err := cluster.IsBrickMuxEnabled()
+		if err != nil {
 			return err
+		}
+
+		if !brickmux {
+			if err := b.StartBrick(); err != nil {
+				return err
+			}
+			continue
+		}
+
+		// Find a compatible brick
+		// If you can get the rpc client, then send an attach request
+
+		compatBrick, err := FindCompatibleBrick(&b)
+		if err != nil {
+			return err
+		}
+
+		if compatBrick != nil {
+
+			// Get the rpc client corresponding to the brick
+			client, err := GetBrickRPCClient(compatBrick)
+			if err != nil {
+				// If you can't get an rpc client connection then start a separate brick process
+				c.Logger().WithError(err).WithField(
+					"brick", b.String()).Error("failed to connect to brick")
+				if err := b.StartBrick(); err != nil {
+					return err
+				}
+				return nil
+			}
+
+			req := &brick.GfBrickOpReq{
+				Name: volgen.GetBrickVolFileID(b.VolumeName, b.NodeID.String(), b.Path),
+				Op:   int(brick.OpBrickAttach),
+			}
+
+			var rsp brick.GfBrickOpRsp
+			err = client.Call("Brick.OpBrickAttach", req, &rsp)
+			if err != nil || rsp.OpRet != 0 {
+				c.Logger().WithError(err).WithField(
+					"brick", b.String()).Error("failed to send attach RPC, starting brick process")
+				if err := b.StartBrick(); err != nil {
+					return err
+				}
+			}
+
+			compatPort := pmap.RegistrySearch(compatBrick.Path, pmap.GfPmapPortBrickserver)
+			pmap.RegistryExtend(compatPort, b.Path, pmap.GfPmapPortBrickserver)
+
+			brickDaemon, err := brick.NewGlusterfsd(b)
+			if err != nil {
+				return err
+			}
+
+			compatBrickDaemon, err := brick.NewGlusterfsd(*compatBrick)
+			if err != nil {
+				return err
+			}
+
+			if pidOnFile, err := daemon.ReadPidFromFile(compatBrickDaemon.PidFile()); err == nil {
+				daemon.WritePidToFile(pidOnFile, brickDaemon.PidFile())
+			}
+		} else {
+			if err := b.StartBrick(); err != nil {
+				return err
+			}
 		}
 	}
 
