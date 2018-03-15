@@ -13,4 +13,5 @@ type Info struct {
 // AddDeviceResp is the success response sent to a AddDeviceReq request
 type AddDeviceResp api.Peer
 
-type EditGroupResp api.Peer
+// PeerEditGroupResp is the success response sent to a EditGroup request
+type PeerEditGroupResp api.Peer

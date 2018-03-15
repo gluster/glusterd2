@@ -16,6 +16,7 @@ type AddDeviceReq struct {
 	Devices []string `json:"devices"`
 }
 
-type EditGroupReq struct {
+// PeerEditGroupReq structure
+type PeerEditGroupReq struct {
 	Group string `json:"group"`
 }

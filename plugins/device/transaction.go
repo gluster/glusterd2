@@ -53,20 +53,16 @@ func txnPrepareDevice(c transaction.TxnCtx) error {
 	return nil
 }
 
-func txnEditGroup(c transaction.TxnCtx) error {
+func txnPeerEditGroup(c transaction.TxnCtx) error {
+
 	var peerID string
-	var groupID string
-	var req deviceapi.EditGroupReq
 	if err := c.Get("peerid", peerID); err != nil {
-		c.Logger().WithError(err).Error("Failed transaction, cannot find peer-id")
+		c.Logger().WithError(err).WithField("PeerID", peerID).Error("Failed transaction, cannot find peer-id")
 		return err
 	}
-	if err := c.Get("groupid", groupID); err != nil {
-		c.Logger().WithError(err).Error("Failed transaction, cannot find group-id")
-		return err
-	}
+	var req deviceapi.PeerEditGroupReq
 	if err := c.Get("req", req); err != nil {
-		c.Logger().WithError(err).Error("Failed transaction, cannot find group details")
+		c.Logger().WithError(err).WithField("req", req).Error("Failed transaction, cannot find req")
 		return err
 	}
 	peerInfo, err := peer.GetPeer(peerID)
@@ -77,7 +73,7 @@ func txnEditGroup(c transaction.TxnCtx) error {
 	peerInfo.MetaData["_group"] = req.Group
 	err = peer.AddOrUpdatePeer(peerInfo)
 	if err != nil {
-		c.Logger().WithError(err).WithField("peerid", peerID).Error("Failed to update peer Info")
+		c.Logger().WithError(err).WithField("GroupID", req.Group).WithField("peerid", peerID).Error("Failed to update peer Info")
 		return err
 	}
 	return nil
