@@ -47,18 +47,18 @@ func (c *Command) Routes() route.Routes {
 			HandlerFunc:  addPeerHandler,
 		},
 		route.Route{
-			Name:         "EditMetaData",
+			Name:         "PeerEdit",
 			Method:       "POST",
-			Pattern:      "/peers/{peerid}/metadata",
+			Pattern:      "/peers/{peerid}",
 			Version:      1,
-			RequestType:  utils.GetTypeString((*api.MetaDataEditReq)(nil)),
-			ResponseType: utils.GetTypeString((*api.MetaDataEditResp)(nil)),
-			HandlerFunc:  editMetaData,
+			RequestType:  utils.GetTypeString((*api.PeerEditReq)(nil)),
+			ResponseType: utils.GetTypeString((*api.PeerEditResp)(nil)),
+			HandlerFunc:  peerEdit,
 		},
 	}
 }
 
 // RegisterStepFuncs implements a required function for the Command interface
 func (c *Command) RegisterStepFuncs() {
-	return
+	registerPeerEditStepFuncs()
 }

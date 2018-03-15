@@ -1,9 +1,5 @@
-%if 0%{fedora}
-# Feb 14 2018 - GD2 does not build with the already available Go package
-# dependencies in Fedora. So until they are updated, build with the bundled
-# dependencies
-# TODO: Disable bundled builds once dependencies are met
-%global with_bundled 1
+%if 0%{?fedora}
+%global with_bundled 0
 %else
 %global with_bundled 1
 %endif
@@ -13,6 +9,8 @@
 %else
 %global debug_package   %{nil}
 %endif
+
+%{!?go_arches: %global go_arches x86_64 aarch64 ppc64le }
 
 %global provider github
 %global provider_tld com
