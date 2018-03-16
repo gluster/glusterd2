@@ -27,5 +27,5 @@ func volumeInfoHandler(w http.ResponseWriter, r *http.Request) {
 }
 
 func createVolumeGetResp(v *volume.Volinfo) *api.VolumeGetResp {
-	return (*api.VolumeGetResp)(createVolumeInfoResp(v))
+	return (*api.VolumeGetResp)(volume.CreateVolumeInfoResp(v))
 }

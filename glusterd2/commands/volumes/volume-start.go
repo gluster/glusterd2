@@ -33,7 +33,7 @@ func startAllBricks(c transaction.TxnCtx) error {
 			"brick":  b.String(),
 		}).Info("Starting brick")
 
-		if err := startBrick(b); err != nil {
+		if err := b.StartBrick(); err != nil {
 			return err
 		}
 	}
@@ -68,7 +68,7 @@ func stopAllBricks(c transaction.TxnCtx) error {
 			"brick":  b.String(),
 		}).Info("volume start failed, stopping brick")
 
-		if err := stopBrick(b); err != nil {
+		if err := b.StopBrick(); err != nil {
 			return err
 		}
 	}
