@@ -51,10 +51,10 @@ func TestVolume(t *testing.T) {
 	// Run tests that depend on this volume
 	t.Run("Start", testVolumeStart)
 	t.Run("Mount", testVolumeMount)
+	t.Run("Status", testVolumeStatus)
 	t.Run("Stop", testVolumeStop)
 	t.Run("List", testVolumeList)
 	t.Run("Info", testVolumeInfo)
-	t.Run("Status", testVolumeStatus)
 
 	// delete volume
 	t.Run("Delete", testVolumeDelete)

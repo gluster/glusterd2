@@ -23,18 +23,27 @@ func volumeStatusHandler(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	s, err := volumeUsage(v.Name)
-	if err != nil {
-		logger.WithError(err).WithField("volume", v.Name).Error("Failed to get volume size info")
+	if v.State != volume.VolStarted {
+		restutils.SendHTTPError(ctx, w, http.StatusBadRequest, errors.ErrVolNotStarted.Error(), api.ErrCodeDefault)
+		return
 	}
 
-	resp := createVolumeStatusResp(v, s)
+	s, err := volume.UsageInfo(v.Name)
+	if err != nil {
+		logger.WithError(err).WithField("volume", v.Name).Error("Failed to get volume size info")
+		restutils.SendHTTPError(ctx, w, http.StatusInternalServerError, "Failed to get Volume size info", api.ErrCodeDefault)
+		return
+
+	}
+	size := createSizeInfo(s)
+
+	resp := createVolumeStatusResp(v, &size)
 	restutils.SendHTTPResponse(ctx, w, http.StatusOK, resp)
 }
 
 func createVolumeStatusResp(v *volume.Volinfo, s *api.SizeInfo) *api.VolumeStatusResp {
 	resp := &api.VolumeStatusResp{
-		Info: *(createVolumeInfoResp(v)),
+		Info: *(volume.CreateVolumeInfoResp(v)),
 	}
 
 	if s != nil {

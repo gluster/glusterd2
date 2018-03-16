@@ -2,19 +2,14 @@ package volumecommands
 
 import (
 	"net/http"
-	"strings"
-	"syscall"
 
 	"github.com/gluster/glusterd2/glusterd2/brick"
-	"github.com/gluster/glusterd2/glusterd2/daemon"
 	"github.com/gluster/glusterd2/glusterd2/gdctx"
-	"github.com/gluster/glusterd2/glusterd2/pmap"
 	restutils "github.com/gluster/glusterd2/glusterd2/servers/rest/utils"
 	"github.com/gluster/glusterd2/glusterd2/transaction"
 	"github.com/gluster/glusterd2/glusterd2/volume"
 	"github.com/gluster/glusterd2/pkg/api"
 	"github.com/gluster/glusterd2/pkg/errors"
-
 	"github.com/gorilla/mux"
 )
 
@@ -22,8 +17,29 @@ const (
 	brickStatusTxnKey string = "brickstatuses"
 )
 
-func checkBricksStatus(ctx transaction.TxnCtx) error {
+func registerBricksStatusStepFuncs() {
+	transaction.RegisterStepFunc(bricksStatus, "bricks-status.Check")
+}
 
+func createBrickStatusRsp(brickStatuses []brick.Brickstatus) []*api.BrickStatus {
+	var brickStatusesRsp []*api.BrickStatus
+	for _, status := range brickStatuses {
+		s := &api.BrickStatus{
+			Info:      brick.CreateBrickInfo(&status.Info),
+			Online:    status.Online,
+			Pid:       status.Pid,
+			Port:      status.Port,
+			FS:        status.FS,
+			MountOpts: status.MountOpts,
+			Device:    status.Device,
+			Size:      brick.CreateBrickSizeInfo(&status.Size),
+		}
+		brickStatusesRsp = append(brickStatusesRsp, s)
+	}
+	return brickStatusesRsp
+}
+
+func bricksStatus(ctx transaction.TxnCtx) error {
 	var volname string
 	if err := ctx.Get("volname", &volname); err != nil {
 		ctx.Logger().WithError(err).Error("Failed to get key from transaction context.")
@@ -35,61 +51,18 @@ func checkBricksStatus(ctx transaction.TxnCtx) error {
 		ctx.Logger().WithError(err).Error("Failed to get volume information from store.")
 		return err
 	}
-
-	mtabEntries, err := getMounts()
+	brickStatuses, err := volume.CheckBricksStatus(vol)
 	if err != nil {
-		ctx.Logger().WithError(err).Error("Failed to read /etc/mtab file.")
+		ctx.Logger().WithError(err).Error("Failed to get brick status information.")
 		return err
 	}
-
-	var brickStatuses []*api.BrickStatus
-	for _, binfo := range vol.GetLocalBricks() {
-		brickDaemon, err := brick.NewGlusterfsd(binfo)
-		if err != nil {
-			return err
-		}
-
-		s := &api.BrickStatus{
-			Info: createBrickInfo(&binfo),
-		}
-
-		if pidOnFile, err := daemon.ReadPidFromFile(brickDaemon.PidFile()); err == nil {
-			if _, err := daemon.GetProcess(pidOnFile); err == nil {
-				s.Online = true
-				s.Pid = pidOnFile
-				s.Port = pmap.RegistrySearch(binfo.Path, pmap.GfPmapPortBrickserver)
-			}
-		}
-
-		var fstat syscall.Statfs_t
-		if err := syscall.Statfs(binfo.Path, &fstat); err != nil {
-			ctx.Logger().WithError(err).WithField("path",
-				binfo.Path).Error("syscall.Statfs() failed")
-		} else {
-			s.Size = *(createSizeInfo(&fstat))
-		}
-
-		for _, m := range mtabEntries {
-			if strings.HasPrefix(binfo.Path, m.mntDir) {
-				s.MountOpts = m.mntOpts
-				s.Device = m.fsName
-				s.FS = m.mntType
-			}
-		}
-
-		brickStatuses = append(brickStatuses, s)
-	}
-
+	brickStatusesRsp := createBrickStatusRsp(brickStatuses)
 	// Store the results in transaction context. This will be consumed by
 	// the node that initiated the transaction.
-	ctx.SetNodeResult(gdctx.MyUUID, brickStatusTxnKey, brickStatuses)
+	ctx.SetNodeResult(gdctx.MyUUID, brickStatusTxnKey, brickStatusesRsp)
 	return nil
-}
 
-func registerBricksStatusStepFuncs() {
-	transaction.RegisterStepFunc(checkBricksStatus, "bricks-status.Check")
 }
-
 func volumeBricksStatusHandler(w http.ResponseWriter, r *http.Request) {
 
 	ctx := r.Context()
@@ -140,7 +113,7 @@ func createBricksStatusResp(ctx transaction.TxnCtx, vol *volume.Volinfo) (*api.B
 	bmap := make(map[string]*api.BrickStatus)
 	for _, b := range vol.GetBricks() {
 		bmap[b.ID.String()] = &api.BrickStatus{
-			Info: createBrickInfo(&b),
+			Info: brick.CreateBrickInfo(&b),
 		}
 	}
 

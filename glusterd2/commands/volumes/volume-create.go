@@ -319,7 +319,7 @@ func volumeCreateHandler(w http.ResponseWriter, r *http.Request) {
 }
 
 func createVolumeCreateResp(v *volume.Volinfo) *api.VolumeCreateResp {
-	return (*api.VolumeCreateResp)(createVolumeInfoResp(v))
+	return (*api.VolumeCreateResp)(volume.CreateVolumeInfoResp(v))
 }
 
 func checkDisperseParams(req *api.SubvolReq, s *volume.Subvol) error {
