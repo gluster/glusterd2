@@ -17,11 +17,11 @@ then
 	export PATH=$PATH:/usr/local/go/bin
 fi
 
-# also needs git, hg, bzr, svn gcc and make
+# also needs git, hg, bzr, svn, gcc and make
 yum -y install git mercurial bzr subversion gcc make
 
-# Install nightly GlusterFS RPMs built off master
-curl -o /etc/yum.repos.d/glusterfs-nighthly-master.repo http://artifacts.ci.centos.org/gluster/nightly/master.repo
+# Install nightly GlusterFS RPMs
+curl -o /etc/yum.repos.d/glusterfs-nighthly-master.repo http://artifacts.ci.centos.org/gluster/nightly/release-4.0.repo
 yum -y install epel-release
 yum -y install glusterfs-server
 
