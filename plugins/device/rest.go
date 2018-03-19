@@ -21,13 +21,13 @@ func deviceAddHandler(w http.ResponseWriter, r *http.Request) {
 
 	req := new(deviceapi.AddDeviceReq)
 	if err := restutils.UnmarshalRequest(r, req); err != nil {
-		logger.WithError(err).Error("Failed to Unmarshal request")
-		restutils.SendHTTPError(ctx, w, http.StatusBadRequest, "Unable to marshal request", api.ErrCodeDefault)
+		logger.WithError(err).Error("Failed to unmarshal request")
+		restutils.SendHTTPError(ctx, w, http.StatusBadRequest, "Unable to unmarshal request", api.ErrCodeDefault)
 		return
 	}
 	peerID := mux.Vars(r)["peerid"]
-	if peerID == "" {
-		restutils.SendHTTPError(ctx, w, http.StatusBadRequest, "peerid not present in request", api.ErrCodeDefault)
+	if uuid.Parse(peerID) == nil {
+		restutils.SendHTTPError(ctx, w, http.StatusBadRequest, "Invalid peer id passed in request", api.ErrCodeDefault)
 		return
 	}
 	peerInfo, err := peer.GetPeer(peerID)
@@ -50,13 +50,13 @@ func deviceAddHandler(w http.ResponseWriter, r *http.Request) {
 	}
 	err = txn.Ctx.Set("peerid", peerID)
 	if err != nil {
-		logger.WithError(err).Error("Failed to set data for transaction")
+		logger.WithError(err).WithField("peerid", peerID).Error("Failed to set peerid in transaction context")
 		restutils.SendHTTPError(ctx, w, http.StatusInternalServerError, err.Error(), api.ErrCodeDefault)
 		return
 	}
 	err = txn.Ctx.Set("req", req)
 	if err != nil {
-		logger.WithError(err).Error("Failed to set data for transaction")
+		logger.WithError(err).WithField("req-key", req).Error("Failed to set unmarshalled request information  in transaction context")
 		restutils.SendHTTPError(ctx, w, http.StatusInternalServerError, err.Error(), api.ErrCodeDefault)
 		return
 	}
@@ -68,7 +68,7 @@ func deviceAddHandler(w http.ResponseWriter, r *http.Request) {
 	}
 	peerInfo, err = peer.GetPeer(peerID)
 	if err != nil {
-		logger.WithError(err).Error("Failed to get peer from store")
+		logger.WithError(err).WithField("peerid", peerID).Error("Failed to get peer from store")
 		restutils.SendHTTPError(ctx, w, http.StatusInternalServerError, "Failed to get peer from store", api.ErrCodeDefault)
 		return
 	}
@@ -83,13 +83,13 @@ func peerEditGroupHandler(w http.ResponseWriter, r *http.Request) {
 	req := new(deviceapi.PeerEditGroupReq)
 	if err := restutils.UnmarshalRequest(r, req); err != nil {
 		logger.WithError(err).Error("Failed to Unmarshal request")
-		restutils.SendHTTPError(ctx, w, http.StatusBadRequest, "Unable to marshal request", api.ErrCodeDefault)
+		restutils.SendHTTPError(ctx, w, http.StatusBadRequest, "Unable to unmarshal request", api.ErrCodeDefault)
 		return
 	}
 
 	peerID := mux.Vars(r)["peerid"]
-	if peerID == "" {
-		restutils.SendHTTPError(ctx, w, http.StatusBadRequest, "peerid not present in request", api.ErrCodeDefault)
+	if uuid.Parse(peerID) == nil {
+		restutils.SendHTTPError(ctx, w, http.StatusBadRequest, "Invalid peer id passed in request", api.ErrCodeDefault)
 		return
 	}
 	txn := transaction.NewTxn(ctx)
@@ -105,13 +105,13 @@ func peerEditGroupHandler(w http.ResponseWriter, r *http.Request) {
 	}
 	err = txn.Ctx.Set("peerid", peerID)
 	if err != nil {
-		logger.WithError(err).WithField("PeerID", peerID).Error("Failed to set data for transaction")
+		logger.WithError(err).WithField("PeerID", peerID).Error("Failed to set peerid data in transaction context")
 		restutils.SendHTTPError(ctx, w, http.StatusInternalServerError, err.Error(), api.ErrCodeDefault)
 		return
 	}
 	err = txn.Ctx.Set("req", req)
 	if err != nil {
-		logger.WithError(err).WithField("req", req).Error("Failed to set data for transaction")
+		logger.WithError(err).WithField("req", req).Error("Failed to set unmarshalled request data in transaction context")
 		restutils.SendHTTPError(ctx, w, http.StatusInternalServerError, err.Error(), api.ErrCodeDefault)
 		return
 	}
@@ -121,11 +121,5 @@ func peerEditGroupHandler(w http.ResponseWriter, r *http.Request) {
 		restutils.SendHTTPError(ctx, w, http.StatusInternalServerError, "Transaction to edit group failed", api.ErrCodeDefault)
 		return
 	}
-	peerInfo, err := peer.GetPeer(peerID)
-	if err != nil {
-		logger.WithError(err).WithField("PeerID", peerID).Error("Failed to get peer from store")
-		restutils.SendHTTPError(ctx, w, http.StatusInternalServerError, "Failed to get peer from store", api.ErrCodeDefault)
-		return
-	}
-	restutils.SendHTTPResponse(ctx, w, http.StatusOK, peerInfo)
+	restutils.SendHTTPResponse(ctx, w, http.StatusOK, nil)
 }

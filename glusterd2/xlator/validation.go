@@ -94,8 +94,6 @@ func registerAllValidations() error {
 	if err := registerValidation("bit-rot", validateBitrot); err != nil {
 		return err
 	}
-	if err := registerValidation("quota", validateQuota); err != nil {
-		return err
-	}
-	return nil
+	err := registerValidation("quota", validateQuota)
+	return err
 }
