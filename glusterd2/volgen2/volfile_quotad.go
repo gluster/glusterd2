@@ -18,6 +18,10 @@ func generateQuotadVolfile(volfile *Volfile, clusterinfo []*volume.Volinfo, node
 	quota := volfile.RootEntry.Add("features/quotad", nil, nil).SetName("quotad").SetExtraOptions(quotaOpts)
 
 	for _, v := range clusterinfo {
+		if v.SnapVol == true {
+			continue
+		}
+
 		dht := quota.Add("cluster/distribute", v, nil).SetName(v.Name)
 		clusterGraph(volfile, dht, v, nodeid, nil)
 	}

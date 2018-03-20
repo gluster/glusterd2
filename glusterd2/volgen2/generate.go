@@ -135,15 +135,12 @@ func Generate() error {
 	if err != nil {
 		return err
 	}
-	err = generateVolfiles(clusterinfo)
-	if err != nil {
-		return err
-	}
 
-	clusterinfo, err = snapshot.GetSnapshotVolumes()
+	snapClusterInfo, err := snapshot.GetSnapshotVolumes()
 	if err != nil {
 		return err
 	}
+	clusterinfo = append(clusterinfo, snapClusterInfo...)
 	err = generateVolfiles(clusterinfo)
 	if err != nil {
 		return err

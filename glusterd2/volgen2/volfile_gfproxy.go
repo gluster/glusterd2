@@ -7,6 +7,10 @@ import (
 )
 
 func generateTCPGfProxyFuseVolfile(volfile *Volfile, vol *volume.Volinfo, nodeid uuid.UUID) {
+	if vol.SnapVol == true {
+		return
+	}
+
 	volfile.FileName = "gfproxy-client/" + vol.Name
 
 	volfile.RootEntry.Add("debug/io-stats", vol, nil).SetName(vol.Name).
@@ -15,6 +19,10 @@ func generateTCPGfProxyFuseVolfile(volfile *Volfile, vol *volume.Volinfo, nodeid
 }
 
 func generateGfproxydVolfile(volfile *Volfile, vol *volume.Volinfo, nodeid uuid.UUID) {
+	if vol.SnapVol == true {
+		return
+	}
+
 	volfile.FileName = "gfproxyd/" + vol.Name
 
 	dht := volfile.RootEntry.Add("protocol/server", vol, nil).SetExtraData(map[string]string{"brick.path": "", "brick.hostname": ""}).
