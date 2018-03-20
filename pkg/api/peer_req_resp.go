@@ -26,7 +26,7 @@ type PeerEditReq struct {
 // PeerAddResp is the success response sent to a PeerAddReq request
 type PeerAddResp Peer
 
-// MetaDataEditResp is the success response sent to a MetaDataEditReq request
+// PeerEditResp is the success response sent to a MetaDataEditReq request
 type PeerEditResp Peer
 
 // PeerGetResp is the response sent for a peer get request

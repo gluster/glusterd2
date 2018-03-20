@@ -3,7 +3,6 @@ package peercommands
 import (
 	"net/http"
 	"strings"
-	//"fmt"
 
 	"github.com/gluster/glusterd2/glusterd2/gdctx"
 	"github.com/gluster/glusterd2/glusterd2/peer"
@@ -15,7 +14,7 @@ import (
 	"github.com/pborman/uuid"
 )
 
-func peerEdit(w http.ResponseWriter, r *http.Request) {
+func editPeer(w http.ResponseWriter, r *http.Request) {
 
 	ctx := r.Context()
 	logger := gdctx.GetReqLogger(ctx)
@@ -29,6 +28,7 @@ func peerEdit(w http.ResponseWriter, r *http.Request) {
 		if strings.HasPrefix(k, "_") {
 			logger.WithField("Metadata field", req.MetaData).Error("Restricted key passed in Metadata Field")
 			restutils.SendHTTPError(ctx, w, http.StatusInternalServerError, "Restricted Metadata keys used in Metadata field", api.ErrCodeDefault)
+			return
 		}
 	}
 	peerID := mux.Vars(r)["peerid"]
@@ -72,13 +72,13 @@ func peerEdit(w http.ResponseWriter, r *http.Request) {
 		restutils.SendHTTPError(ctx, w, http.StatusInternalServerError, "Transaction to update metadata failed", api.ErrCodeDefault)
 		return
 	}
-	peerInfo, err := peer.GetPeer(peerID)
-	if err != nil {
-		logger.WithError(err).WithField("peerid", peerID).Error("Peer ID not found in store")
-		restutils.SendHTTPError(ctx, w, http.StatusNotFound, "Peer Id not found in store", api.ErrCodeDefault)
+	var peerInfo peer.Peer
+	if err := txn.Ctx.Get("peerInfo", &peerInfo); err != nil {
+		logger.WithError(err).Error("Failed to retrieve peer information from transaction context")
+		restutils.SendHTTPError(ctx, w, http.StatusInternalServerError, "Failed to retrieve peer information", api.ErrCodeDefault)
 		return
 	}
-	resp := createPeerAddResp(peerInfo)
+	resp := createPeerEditResp(&peerInfo)
 	restutils.SendHTTPResponse(ctx, w, http.StatusCreated, resp)
 
 }
@@ -100,13 +100,22 @@ func txnEditPeer(c transaction.TxnCtx) error {
 		c.Logger().WithError(err).WithField("peerid", peerID).Error("Peer ID not found in store")
 		return err
 	}
-
 	for k, v := range req.MetaData {
-		peerInfo.MetaData[k] = v
+		if peerInfo.MetaData != nil {
+			peerInfo.MetaData[k] = v
+		} else {
+			peerInfo.MetaData = make(map[string]string)
+			peerInfo.MetaData[k] = v
+		}
 	}
 	err = peer.AddOrUpdatePeer(peerInfo)
 	if err != nil {
 		c.Logger().WithError(err).WithField("peerid", peerID).Error("Failed to update peer Info")
+		return err
+	}
+	err = c.Set("peerInfo", peerInfo)
+	if err != nil {
+		c.Logger().WithError(err).WithField("peerid", peerID).Error("Failed to set peer info in transaction context")
 		return err
 	}
 	return nil
@@ -121,5 +130,15 @@ func registerPeerEditStepFuncs() {
 	}
 	for _, sf := range sfs {
 		transaction.RegisterStepFunc(sf.sf, sf.name)
+	}
+}
+
+func createPeerEditResp(p *peer.Peer) *api.PeerEditResp {
+	return &api.PeerEditResp{
+		ID:              p.ID,
+		Name:            p.Name,
+		PeerAddresses:   p.PeerAddresses,
+		ClientAddresses: p.ClientAddresses,
+		MetaData:        p.MetaData,
 	}
 }

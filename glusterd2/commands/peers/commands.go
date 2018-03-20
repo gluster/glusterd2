@@ -53,7 +53,7 @@ func (c *Command) Routes() route.Routes {
 			Version:      1,
 			RequestType:  utils.GetTypeString((*api.PeerEditReq)(nil)),
 			ResponseType: utils.GetTypeString((*api.PeerEditResp)(nil)),
-			HandlerFunc:  peerEdit,
+			HandlerFunc:  editPeer,
 		},
 	}
 }
