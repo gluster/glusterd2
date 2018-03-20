@@ -47,7 +47,7 @@ func (c *Command) Routes() route.Routes {
 			HandlerFunc:  addPeerHandler,
 		},
 		route.Route{
-			Name:         "PeerEdit",
+			Name:         "EditPeer",
 			Method:       "POST",
 			Pattern:      "/peers/{peerid}",
 			Version:      1,

@@ -46,6 +46,7 @@ func AddSelfDetails() error {
 		Name:          gdctx.HostName,
 		PeerAddresses: []string{config.GetString("peeraddress")},
 	}
+
 	p.ClientAddresses, err = normalizeAddrs()
 	if err != nil {
 		return err

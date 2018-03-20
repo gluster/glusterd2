@@ -1,0 +1,13 @@
+# Rotate client logs
+/var/log/glusterd2/*.log /var/log/glusterd2/store/*.log {
+  sharedscripts
+  weekly
+  rotate 52
+  missingok
+  compress
+  delaycompress
+  notifempty
+  postrotate
+    /usr/bin/killall -HUP glusterd2 > /dev/null 2>&1 || true
+  endscript
+}
