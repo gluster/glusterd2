@@ -4,17 +4,12 @@ package utils
 import (
 	"context"
 	"encoding/json"
+	"fmt"
 	"net/http"
 
 	"github.com/gluster/glusterd2/glusterd2/gdctx"
 	"github.com/gluster/glusterd2/pkg/api"
 )
-
-// APIError is the placeholder for error string to report back to the client
-type APIError struct {
-	Code  api.ErrorCode `json:"error_code"`
-	Error string        `json:"error"`
-}
 
 // UnmarshalRequest unmarshals JSON in `r` into `v`
 func UnmarshalRequest(r *http.Request, v interface{}) error {
@@ -44,8 +39,11 @@ func SendHTTPResponse(ctx context.Context, w http.ResponseWriter, statusCode int
 	}
 }
 
-// SendHTTPError sends an error response to the client.
-func SendHTTPError(ctx context.Context, w http.ResponseWriter, statusCode int, errMsg string, errCode api.ErrorCode) {
+// SendHTTPError sends an error response to the client. The caller of this
+// function can pass either the error or one or more error code(s) exported by
+// api package.
+func SendHTTPError(ctx context.Context, w http.ResponseWriter, statusCode int,
+	err interface{}, errCodes ...api.ErrorCode) {
 
 	w.Header().Set("Content-Type", "application/json; charset=UTF-8")
 	w.Header().Set("X-Gluster-Node-Id", gdctx.MyUUID.String())
@@ -53,7 +51,20 @@ func SendHTTPError(ctx context.Context, w http.ResponseWriter, statusCode int, e
 
 	w.WriteHeader(statusCode)
 
-	resp := APIError{Code: errCode, Error: errMsg}
+	var resp api.ErrorResp
+	errMsg := fmt.Sprint(err)
+	if errMsg != "" || len(errCodes) == 0 {
+		resp.Errors = append(resp.Errors, api.HTTPError{
+			Code:    int(api.ErrCodeGeneric),
+			Message: errMsg})
+	} else {
+		for _, code := range errCodes {
+			resp.Errors = append(resp.Errors, api.HTTPError{
+				Code:    int(code),
+				Message: api.ErrorCodeMap[code]})
+		}
+	}
+
 	if err := json.NewEncoder(w).Encode(resp); err != nil {
 		logger := gdctx.GetReqLogger(ctx)
 		logger.WithError(err).Error("Failed to send the response -", resp)

@@ -16,7 +16,7 @@ func getGlobalOptionsHandler(w http.ResponseWriter, r *http.Request) {
 	c, err := cluster.GetCluster()
 	// ErrClusterNotFound here implies that no global option has yet been explicitly set. Ignoring it.
 	if err != nil && err != errors.ErrClusterNotFound {
-		restutils.SendHTTPError(ctx, w, http.StatusInternalServerError, fmt.Sprintf("Problem retrieving cluster information from etcd store: %s", err.Error()), api.ErrCodeDefault)
+		restutils.SendHTTPError(ctx, w, http.StatusInternalServerError, fmt.Sprintf("Problem retrieving cluster information from etcd store: %s", err.Error()))
 		return
 	}
 
