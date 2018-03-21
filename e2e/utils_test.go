@@ -1,6 +1,7 @@
 package e2e
 
 import (
+	"bytes"
 	"encoding/json"
 	"errors"
 	"fmt"
@@ -10,6 +11,7 @@ import (
 	"os/exec"
 	"path"
 	"path/filepath"
+	"strconv"
 	"strings"
 	"syscall"
 	"testing"
@@ -345,4 +347,27 @@ func loopDevicesCleanup(t *testing.T) error {
 
 func formatVolName(volName string) string {
 	return strings.Replace(volName, "/", "-", 1)
+}
+
+func isProcessRunning(pidpath string) bool {
+	content, err := ioutil.ReadFile(pidpath)
+	if err != nil {
+		return false
+	}
+
+	pid, err := strconv.Atoi(string(bytes.TrimSpace(content)))
+	if err != nil {
+		return false
+	}
+
+	process, err := os.FindProcess(pid)
+	if err != nil {
+		return false
+	}
+
+	if err = process.Signal(syscall.Signal(0)); err != nil {
+		return false
+	}
+
+	return true
 }

@@ -205,15 +205,15 @@ func volumeOptionsHandler(w http.ResponseWriter, r *http.Request) {
 			Nodes:  []uuid.UUID{gdctx.MyUUID},
 		},
 		{
+			DoFunc:   "vol-option.UpdateVolinfo",
+			UndoFunc: "vol-option.UpdateVolinfo.Undo",
+			Nodes:    []uuid.UUID{gdctx.MyUUID},
+		},
+		{
 			DoFunc:   "vol-option.XlatorActionDoSet",
 			UndoFunc: "vol-option.XlatorActionUndoSet",
 			Nodes:    volinfo.Nodes(),
 			Skip:     !isActionStepRequired(req.Options),
-		},
-		{
-			DoFunc:   "vol-option.UpdateVolinfo",
-			UndoFunc: "vol-option.UpdateVolinfo.Undo",
-			Nodes:    []uuid.UUID{gdctx.MyUUID},
 		},
 		{
 			DoFunc: "vol-option.NotifyVolfileChange",

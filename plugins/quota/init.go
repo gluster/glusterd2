@@ -2,7 +2,6 @@ package quota
 
 import (
 	"github.com/gluster/glusterd2/glusterd2/servers/rest/route"
-	"github.com/gluster/glusterd2/glusterd2/transaction"
 )
 
 const name = "quota"
@@ -19,18 +18,6 @@ func (p *Plugin) Name() string {
 // RestRoutes returns list of REST API routes to register with Glusterd
 func (p *Plugin) RestRoutes() route.Routes {
 	return route.Routes{
-		route.Route{
-			Name:        "QuotaEnable",
-			Method:      "POST",
-			Pattern:     "/quota/{volname}",
-			Version:     1,
-			HandlerFunc: quotaEnableHandler},
-		route.Route{
-			Name:        "QuotaDisable",
-			Method:      "DELETE",
-			Pattern:     "/quota/{volname}",
-			Version:     1,
-			HandlerFunc: quotaDisableHandler},
 		route.Route{
 			Name:        "QuotaList",
 			Method:      "GET",
@@ -55,6 +42,5 @@ func (p *Plugin) RestRoutes() route.Routes {
 // RegisterStepFuncs registers transaction step functions with
 // Glusterd Transaction framework
 func (p *Plugin) RegisterStepFuncs() {
-	transaction.RegisterStepFunc(QuotadStart, "quota-enable.DaemonStart")
 	return
 }
