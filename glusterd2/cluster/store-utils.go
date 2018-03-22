@@ -41,6 +41,7 @@ func UpdateCluster(c *Cluster) error {
 	return nil
 }
 
+// GetGlobalOptionVal returns global option value
 func GetGlobalOptionVal(key string) (string, error) {
 	globalopt, found := GlobalOptMap[key]
 	if !found {

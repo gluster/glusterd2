@@ -86,18 +86,21 @@ func startAllBricks(c transaction.TxnCtx) error {
 			compatPort := pmap.RegistrySearch(compatBrick.Path, pmap.GfPmapPortBrickserver)
 			pmap.RegistryExtend(compatPort, b.Path, pmap.GfPmapPortBrickserver)
 
-			brickDaemon, err := brick.NewGlusterfsd(b)
+			compatBrickDaemon, err := brick.GetBrickProcessByPort(compatPort)
 			if err != nil {
 				return err
 			}
-
-			compatBrickDaemon, err := brick.NewGlusterfsd(*compatBrick)
-			if err != nil {
-				return err
-			}
-
 			if pidOnFile, err := daemon.ReadPidFromFile(compatBrickDaemon.PidFile()); err == nil {
-				daemon.WritePidToFile(pidOnFile, brickDaemon.PidFile())
+				daemon.WritePidToFile(pidOnFile, brick.GetPidFilePathForBrick(b))
+			}
+
+			// Update brick process info in store
+			compatBrickDaemon.Bricklist = compatBrickDaemon.AddBrick(b)
+
+			if err := brick.UpdateBrickProcess(compatBrickDaemon); err != nil {
+				c.Logger().WithField("name", compatBrickDaemon.Name()).WithError(err).Warn(
+					"failed to save daemon information into store, daemon may not be restarted correctly on GlusterD restart")
+				return err
 			}
 		} else {
 			if err := b.StartBrick(); err != nil {

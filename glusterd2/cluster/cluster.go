@@ -30,6 +30,7 @@ type GlobalOption struct {
 	Type         options.OptionType
 }
 
+// IsBrickMuxEnabled returns whether brick multiplexing is enabled
 func IsBrickMuxEnabled() (bool, error) {
 	val, err := GetGlobalOptionVal("cluster.brick-multiplex")
 	if err != nil {
@@ -44,6 +45,7 @@ func IsBrickMuxEnabled() (bool, error) {
 	return boolval, nil
 }
 
+// MaxBricksPerGlusterfsd returns the maximum number of bricks allowed per brick process
 func MaxBricksPerGlusterfsd() (int, error) {
 	val, err := GetGlobalOptionVal("cluster.max-bricks-per-process")
 	if err != nil {

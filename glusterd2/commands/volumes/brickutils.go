@@ -4,21 +4,42 @@ import (
 	"errors"
 	"fmt"
 	"net/rpc"
-	"os/exec"
 	"reflect"
-	"syscall"
-	"time"
 
 	"github.com/gluster/glusterd2/glusterd2/brick"
+	"github.com/gluster/glusterd2/glusterd2/cluster"
 	"github.com/gluster/glusterd2/glusterd2/daemon"
+	"github.com/gluster/glusterd2/glusterd2/pmap"
 	"github.com/gluster/glusterd2/glusterd2/volume"
 	"github.com/gluster/glusterd2/pkg/api"
 
 	"github.com/pborman/uuid"
+
+	log "github.com/sirupsen/logrus"
 )
+
+// GetBrickRPCClient gets the rpc client corresponding to the brick
+func GetBrickRPCClient(b *brick.Brickinfo) (*rpc.Client, error) {
+	brickDaemon, err := brick.NewGlusterfsd(*b)
+	if err != nil {
+		return nil, err
+	}
+
+	client, err := daemon.GetRPCClient(brickDaemon)
+	if err != nil {
+		return nil, err
+	}
+	return client, nil
+}
 
 // findCompatibleBrickInVol finds compatible brick for multiplexing from a specific volume
 func findCompatibleBrickInVol(b *brick.Brickinfo, v *volume.Volinfo) (*brick.Brickinfo, error) {
+	brickmuxLimit, err := cluster.MaxBricksPerGlusterfsd()
+	if err != nil {
+		log.WithError(err).Info("Couldn't get limit on brick multiplexing. Continue with no limits set on number of bricks per process.")
+		brickmuxLimit = 0
+	}
+
 	for _, localBrick := range v.GetLocalBricks() {
 		if b.Path == localBrick.Path {
 			continue
@@ -28,7 +49,17 @@ func findCompatibleBrickInVol(b *brick.Brickinfo, v *volume.Volinfo) (*brick.Bri
 			continue
 		}
 
-		// TODO Check for brick-mux limit
+		port := pmap.RegistrySearch(localBrick.Path, pmap.GfPmapPortBrickserver)
+		localBrickproc, err := brick.GetBrickProcessByPort(port)
+		if err != nil {
+			continue
+		}
+
+		if brickmuxLimit != 0 {
+			if len(localBrickproc.Bricklist) >= brickmuxLimit {
+				continue
+			}
+		}
 
 		return &localBrick, nil
 	}

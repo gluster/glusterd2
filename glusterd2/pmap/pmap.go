@@ -180,6 +180,7 @@ func registryBind(port int, brickname string, ptype PortType, xprt interface{}) 
 	}
 }
 
+// RegistryExtend is called to add a brick to the portmap
 func RegistryExtend(port int, brickname string, ptype PortType) {
 
 	if port > gfPortMax {
