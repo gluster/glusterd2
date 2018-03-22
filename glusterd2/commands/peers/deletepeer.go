@@ -9,7 +9,6 @@ import (
 	restutils "github.com/gluster/glusterd2/glusterd2/servers/rest/utils"
 	"github.com/gluster/glusterd2/glusterd2/store"
 	"github.com/gluster/glusterd2/glusterd2/volume"
-	"github.com/gluster/glusterd2/pkg/api"
 	"github.com/gluster/glusterd2/pkg/utils"
 
 	"github.com/gorilla/mux"
@@ -23,7 +22,7 @@ func deletePeerHandler(w http.ResponseWriter, r *http.Request) {
 
 	id := mux.Vars(r)["peerid"]
 	if uuid.Parse(id) == nil {
-		restutils.SendHTTPError(ctx, w, http.StatusBadRequest, "Invalid peer id passed", api.ErrCodeDefault)
+		restutils.SendHTTPError(ctx, w, http.StatusBadRequest, "Invalid peer id passed")
 		return
 	}
 
@@ -40,49 +39,49 @@ func deletePeerHandler(w http.ResponseWriter, r *http.Request) {
 	p, err := peer.GetPeerF(id)
 	if err != nil {
 		logger.WithError(err).Error("failed to get peer")
-		restutils.SendHTTPError(ctx, w, http.StatusInternalServerError, "could not validate delete request", api.ErrCodeDefault)
+		restutils.SendHTTPError(ctx, w, http.StatusInternalServerError, "could not validate delete request")
 		return
 	} else if p == nil {
 		logger.Debug("request denied, received request to remove unknown peer")
-		restutils.SendHTTPError(ctx, w, http.StatusNotFound, "peer not found in cluster", api.ErrCodeDefault)
+		restutils.SendHTTPError(ctx, w, http.StatusNotFound, "peer not found in cluster")
 		return
 	}
 
 	// You cannot remove yourself
 	if id == gdctx.MyUUID.String() {
 		logger.Debug("request denied, received request to delete self from cluster")
-		restutils.SendHTTPError(ctx, w, http.StatusBadRequest, "removing self is disallowed.", api.ErrCodeDefault)
+		restutils.SendHTTPError(ctx, w, http.StatusBadRequest, "removing self is disallowed.")
 		return
 	}
 
 	// Check if any volumes exist with bricks on this peer
 	if exists, err := bricksExist(id); err != nil {
 		logger.WithError(err).Error("failed to check if bricks exist on peer")
-		restutils.SendHTTPError(ctx, w, http.StatusInternalServerError, "could not validate delete request", api.ErrCodeDefault)
+		restutils.SendHTTPError(ctx, w, http.StatusInternalServerError, "could not validate delete request")
 		return
 	} else if exists {
 		logger.Debug("request denied, peer has bricks")
-		restutils.SendHTTPError(ctx, w, http.StatusForbidden, "cannot delete peer, peer has bricks", api.ErrCodeDefault)
+		restutils.SendHTTPError(ctx, w, http.StatusForbidden, "cannot delete peer, peer has bricks")
 		return
 	}
 
 	// Remove the peer details from the store
 	if err := peer.DeletePeer(id); err != nil {
 		logger.WithError(err).WithField("peer", id).Error("failed to remove peer from the store")
-		restutils.SendHTTPError(ctx, w, http.StatusInternalServerError, err.Error(), api.ErrCodeDefault)
+		restutils.SendHTTPError(ctx, w, http.StatusInternalServerError, err)
 		return
 	}
 
 	remotePeerAddress, err := utils.FormRemotePeerAddress(p.PeerAddresses[0])
 	if err != nil {
 		logger.WithError(err).WithField("address", p.PeerAddresses[0]).Error("failed to parse peer address")
-		restutils.SendHTTPError(ctx, w, http.StatusBadRequest, "failed to parse remote address", api.ErrCodeDefault)
+		restutils.SendHTTPError(ctx, w, http.StatusBadRequest, "failed to parse remote address")
 		return
 	}
 
 	client, err := getPeerServiceClient(remotePeerAddress)
 	if err != nil {
-		restutils.SendHTTPError(ctx, w, http.StatusInternalServerError, err.Error(), api.ErrCodeDefault)
+		restutils.SendHTTPError(ctx, w, http.StatusInternalServerError, err)
 		return
 	}
 	defer client.conn.Close()
@@ -93,12 +92,12 @@ func deletePeerHandler(w http.ResponseWriter, r *http.Request) {
 	rsp, err := client.LeaveCluster()
 	if err != nil {
 		logger.WithError(err).Error("sending Leave request failed")
-		restutils.SendHTTPError(ctx, w, http.StatusInternalServerError, "failed to send leave cluster request", api.ErrCodeDefault)
+		restutils.SendHTTPError(ctx, w, http.StatusInternalServerError, "failed to send leave cluster request")
 		return
 	} else if Error(rsp.Err) != ErrNone {
 		err = Error(rsp.Err)
 		logger.WithError(err).Error("leave request failed")
-		restutils.SendHTTPError(ctx, w, http.StatusInternalServerError, err.Error(), api.ErrCodeDefault)
+		restutils.SendHTTPError(ctx, w, http.StatusInternalServerError, err)
 		return
 	}
 	logger.Debug("peer left cluster")

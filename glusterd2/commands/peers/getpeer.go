@@ -18,13 +18,13 @@ func getPeerHandler(w http.ResponseWriter, r *http.Request) {
 
 	id := mux.Vars(r)["peerid"]
 	if uuid.Parse(id) == nil {
-		restutils.SendHTTPError(ctx, w, http.StatusBadRequest, "Invalid peer id passed", api.ErrCodeDefault)
+		restutils.SendHTTPError(ctx, w, http.StatusBadRequest, "Invalid peer id passed")
 		return
 	}
 
 	peer, err := peer.GetPeerF(id)
 	if err != nil {
-		restutils.SendHTTPError(ctx, w, http.StatusNotFound, err.Error(), api.ErrCodeDefault)
+		restutils.SendHTTPError(ctx, w, http.StatusNotFound, err)
 	}
 
 	resp := createPeerGetResp(peer)

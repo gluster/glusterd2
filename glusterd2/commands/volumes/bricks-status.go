@@ -71,7 +71,7 @@ func volumeBricksStatusHandler(w http.ResponseWriter, r *http.Request) {
 	volname := mux.Vars(r)["volname"]
 	vol, err := volume.GetVolume(volname)
 	if err != nil {
-		restutils.SendHTTPError(ctx, w, http.StatusNotFound, errors.ErrVolNotFound.Error(), api.ErrCodeDefault)
+		restutils.SendHTTPError(ctx, w, http.StatusNotFound, errors.ErrVolNotFound)
 		return
 	}
 
@@ -92,7 +92,7 @@ func volumeBricksStatusHandler(w http.ResponseWriter, r *http.Request) {
 	err = txn.Do()
 	if err != nil {
 		logger.WithError(err).WithField("volume", volname).Error("Failed to get volume status")
-		restutils.SendHTTPError(ctx, w, http.StatusInternalServerError, err.Error(), api.ErrCodeDefault)
+		restutils.SendHTTPError(ctx, w, http.StatusInternalServerError, err)
 		return
 	}
 
@@ -100,7 +100,7 @@ func volumeBricksStatusHandler(w http.ResponseWriter, r *http.Request) {
 	if err != nil {
 		errMsg := "Failed to aggregate brick status results from multiple nodes."
 		logger.WithField("error", err.Error()).Error("volumeStatusHandler:" + errMsg)
-		restutils.SendHTTPError(ctx, w, http.StatusInternalServerError, errMsg, api.ErrCodeDefault)
+		restutils.SendHTTPError(ctx, w, http.StatusInternalServerError, errMsg)
 		return
 	}
 

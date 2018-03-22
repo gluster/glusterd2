@@ -15,14 +15,14 @@ func setGlobalOptionsHandler(w http.ResponseWriter, r *http.Request) {
 
 	var req api.GlobalOptionReq
 	if err := restutils.UnmarshalRequest(r, &req); err != nil {
-		restutils.SendHTTPError(ctx, w, http.StatusUnprocessableEntity, errors.ErrJSONParsingFailed.Error(), api.ErrCodeDefault)
+		restutils.SendHTTPError(ctx, w, http.StatusUnprocessableEntity, errors.ErrJSONParsingFailed)
 		return
 	}
 
 	c, err := cluster.GetCluster()
 	// ErrClusterNotFound here implies that no global option has yet been explicitly set. Ignoring it.
 	if err != nil && err != errors.ErrClusterNotFound {
-		restutils.SendHTTPError(ctx, w, http.StatusInternalServerError, fmt.Sprintf("Problem retrieving cluster information from etcd store: %s", err.Error()), api.ErrCodeDefault)
+		restutils.SendHTTPError(ctx, w, http.StatusInternalServerError, fmt.Sprintf("Problem retrieving cluster information from etcd store: %s", err.Error()))
 		return
 	}
 
@@ -36,14 +36,14 @@ func setGlobalOptionsHandler(w http.ResponseWriter, r *http.Request) {
 			}
 			c.Options[k] = v
 		} else {
-			restutils.SendHTTPError(ctx, w, http.StatusInternalServerError, fmt.Sprintf("Invalid global option: %s", k), api.ErrCodeDefault)
+			restutils.SendHTTPError(ctx, w, http.StatusInternalServerError, fmt.Sprintf("Invalid global option: %s", k))
 			continue
 		}
 	}
 
 	if err := cluster.UpdateCluster(c); err != nil {
 		restutils.SendHTTPError(ctx, w, http.StatusInternalServerError,
-			fmt.Sprint("Failed to update store with cluster attributes %s", err.Error()), api.ErrCodeDefault)
+			fmt.Sprint("Failed to update store with cluster attributes %s", err.Error()))
 		return
 	}
 

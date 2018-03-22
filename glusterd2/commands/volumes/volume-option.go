@@ -37,37 +37,37 @@ func volumeOptionsHandler(w http.ResponseWriter, r *http.Request) {
 	volname := mux.Vars(r)["volname"]
 	volinfo, err := volume.GetVolume(volname)
 	if err != nil {
-		restutils.SendHTTPError(ctx, w, http.StatusBadRequest, errors.ErrVolNotFound.Error(), api.ErrCodeDefault)
+		restutils.SendHTTPError(ctx, w, http.StatusBadRequest, errors.ErrVolNotFound)
 		return
 	}
 
 	var req api.VolOptionReq
 	if err := restutils.UnmarshalRequest(r, &req); err != nil {
-		restutils.SendHTTPError(ctx, w, http.StatusUnprocessableEntity, errors.ErrJSONParsingFailed.Error(), api.ErrCodeDefault)
+		restutils.SendHTTPError(ctx, w, http.StatusUnprocessableEntity, errors.ErrJSONParsingFailed)
 		return
 	}
 
 	var options map[string]string
 	if options, err = expandOptions(req.Options); err != nil {
-		restutils.SendHTTPError(ctx, w, http.StatusInternalServerError, err.Error(), api.ErrCodeDefault)
+		restutils.SendHTTPError(ctx, w, http.StatusInternalServerError, err)
 		return
 	}
 
 	if err := validateOptions(options); err != nil {
 		logger.WithError(err).Error("failed to set volume option")
-		restutils.SendHTTPError(ctx, w, http.StatusBadRequest, fmt.Sprintf("failed to set volume option: %s", err.Error()), api.ErrCodeDefault)
+		restutils.SendHTTPError(ctx, w, http.StatusBadRequest, fmt.Sprintf("failed to set volume option: %s", err.Error()))
 		return
 	}
 
 	if err := validateXlatorOptions(req.Options, volinfo); err != nil {
 		logger.WithError(err).Error("validation failed")
-		restutils.SendHTTPError(ctx, w, http.StatusBadRequest, fmt.Sprintf("failed to set volume option: %s", err.Error()), api.ErrCodeDefault)
+		restutils.SendHTTPError(ctx, w, http.StatusBadRequest, fmt.Sprintf("failed to set volume option: %s", err.Error()))
 		return
 	}
 
 	lock, unlock, err := transaction.CreateLockSteps(volinfo.Name)
 	if err != nil {
-		restutils.SendHTTPError(ctx, w, http.StatusInternalServerError, err.Error(), api.ErrCodeDefault)
+		restutils.SendHTTPError(ctx, w, http.StatusInternalServerError, err)
 		return
 	}
 
@@ -76,7 +76,7 @@ func volumeOptionsHandler(w http.ResponseWriter, r *http.Request) {
 
 	allNodes, err := peer.GetPeerIDs()
 	if err != nil {
-		restutils.SendHTTPError(ctx, w, http.StatusInternalServerError, err.Error(), api.ErrCodeDefault)
+		restutils.SendHTTPError(ctx, w, http.StatusInternalServerError, err)
 		return
 	}
 
@@ -104,16 +104,16 @@ func volumeOptionsHandler(w http.ResponseWriter, r *http.Request) {
 
 	if err := txn.Ctx.Set("volinfo", volinfo); err != nil {
 		logger.WithError(err).Error("failed to set volinfo in transaction context")
-		restutils.SendHTTPError(ctx, w, http.StatusInternalServerError, err.Error(), api.ErrCodeDefault)
+		restutils.SendHTTPError(ctx, w, http.StatusInternalServerError, err)
 		return
 	}
 
 	if err := txn.Do(); err != nil {
 		logger.WithError(err).Error("volume option transaction failed")
 		if err == transaction.ErrLockTimeout {
-			restutils.SendHTTPError(ctx, w, http.StatusConflict, err.Error(), api.ErrCodeDefault)
+			restutils.SendHTTPError(ctx, w, http.StatusConflict, err)
 		} else {
-			restutils.SendHTTPError(ctx, w, http.StatusInternalServerError, err.Error(), api.ErrCodeDefault)
+			restutils.SendHTTPError(ctx, w, http.StatusInternalServerError, err)
 		}
 		return
 	}

@@ -15,7 +15,7 @@ func getPeersHandler(w http.ResponseWriter, r *http.Request) {
 
 	peers, err := peer.GetPeersF()
 	if err != nil {
-		restutils.SendHTTPError(ctx, w, http.StatusNotFound, err.Error(), api.ErrCodeDefault)
+		restutils.SendHTTPError(ctx, w, http.StatusNotFound, err)
 	}
 
 	resp := createPeerListResp(peers)

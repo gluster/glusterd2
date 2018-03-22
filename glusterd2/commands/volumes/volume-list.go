@@ -14,7 +14,7 @@ func volumeListHandler(w http.ResponseWriter, r *http.Request) {
 
 	volumes, err := volume.GetVolumes()
 	if err != nil {
-		restutils.SendHTTPError(ctx, w, http.StatusNotFound, err.Error(), api.ErrCodeDefault)
+		restutils.SendHTTPError(ctx, w, http.StatusNotFound, err)
 	}
 
 	resp := createVolumeListResp(volumes)
