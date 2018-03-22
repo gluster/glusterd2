@@ -8,6 +8,8 @@ import (
 	"github.com/gluster/glusterd2/glusterd2/store"
 	"github.com/gluster/glusterd2/pkg/api"
 	"github.com/gorilla/mux"
+
+	"github.com/pborman/uuid"
 )
 
 func getPeerHandler(w http.ResponseWriter, r *http.Request) {
@@ -15,14 +17,14 @@ func getPeerHandler(w http.ResponseWriter, r *http.Request) {
 	ctx := r.Context()
 
 	id := mux.Vars(r)["peerid"]
-	if id == "" {
-		restutils.SendHTTPError(ctx, w, http.StatusBadRequest, "peerid not present in request", api.ErrCodeDefault)
+	if uuid.Parse(id) == nil {
+		restutils.SendHTTPError(ctx, w, http.StatusBadRequest, "Invalid peer id passed")
 		return
 	}
 
 	peer, err := peer.GetPeerF(id)
 	if err != nil {
-		restutils.SendHTTPError(ctx, w, http.StatusNotFound, err.Error(), api.ErrCodeDefault)
+		restutils.SendHTTPError(ctx, w, http.StatusNotFound, err)
 	}
 
 	resp := createPeerGetResp(peer)

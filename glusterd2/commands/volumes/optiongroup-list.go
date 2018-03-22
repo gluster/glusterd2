@@ -15,13 +15,13 @@ func optionGroupListHandler(w http.ResponseWriter, r *http.Request) {
 
 	resp, err := store.Store.Get(context.TODO(), "groupoptions")
 	if err != nil {
-		restutils.SendHTTPError(ctx, w, http.StatusInternalServerError, err.Error(), api.ErrCodeDefault)
+		restutils.SendHTTPError(ctx, w, http.StatusInternalServerError, err)
 		return
 	}
 
 	var groupOptions map[string][]api.VolumeOption
 	if err := json.Unmarshal(resp.Kvs[0].Value, &groupOptions); err != nil {
-		restutils.SendHTTPError(ctx, w, http.StatusInternalServerError, err.Error(), api.ErrCodeDefault)
+		restutils.SendHTTPError(ctx, w, http.StatusInternalServerError, err)
 		return
 	}
 

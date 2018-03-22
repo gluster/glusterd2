@@ -8,7 +8,6 @@ import (
 	restutils "github.com/gluster/glusterd2/glusterd2/servers/rest/utils"
 	"github.com/gluster/glusterd2/glusterd2/transaction"
 	"github.com/gluster/glusterd2/glusterd2/volume"
-	"github.com/gluster/glusterd2/pkg/api"
 	"github.com/gluster/glusterd2/pkg/errors"
 
 	"github.com/gorilla/mux"
@@ -89,11 +88,11 @@ func volumeStartHandler(w http.ResponseWriter, r *http.Request) {
 	volname := mux.Vars(r)["volname"]
 	vol, e := volume.GetVolume(volname)
 	if e != nil {
-		restutils.SendHTTPError(ctx, w, http.StatusNotFound, errors.ErrVolNotFound.Error(), api.ErrCodeDefault)
+		restutils.SendHTTPError(ctx, w, http.StatusNotFound, errors.ErrVolNotFound)
 		return
 	}
 	if vol.State == volume.VolStarted {
-		restutils.SendHTTPError(ctx, w, http.StatusBadRequest, errors.ErrVolAlreadyStarted.Error(), api.ErrCodeDefault)
+		restutils.SendHTTPError(ctx, w, http.StatusBadRequest, errors.ErrVolAlreadyStarted)
 		return
 	}
 
@@ -102,7 +101,7 @@ func volumeStartHandler(w http.ResponseWriter, r *http.Request) {
 	defer txn.Cleanup()
 	lock, unlock, err := transaction.CreateLockSteps(volname)
 	if err != nil {
-		restutils.SendHTTPError(ctx, w, http.StatusInternalServerError, err.Error(), api.ErrCodeDefault)
+		restutils.SendHTTPError(ctx, w, http.StatusInternalServerError, err)
 		return
 	}
 
@@ -123,7 +122,7 @@ func volumeStartHandler(w http.ResponseWriter, r *http.Request) {
 			"error":  err.Error(),
 			"volume": volname,
 		}).Error("failed to start volume")
-		restutils.SendHTTPError(ctx, w, http.StatusInternalServerError, err.Error(), api.ErrCodeDefault)
+		restutils.SendHTTPError(ctx, w, http.StatusInternalServerError, err)
 		return
 	}
 
@@ -131,7 +130,7 @@ func volumeStartHandler(w http.ResponseWriter, r *http.Request) {
 
 	e = volume.AddOrUpdateVolumeFunc(vol)
 	if e != nil {
-		restutils.SendHTTPError(ctx, w, http.StatusInternalServerError, e.Error(), api.ErrCodeDefault)
+		restutils.SendHTTPError(ctx, w, http.StatusInternalServerError, e)
 		return
 	}
 

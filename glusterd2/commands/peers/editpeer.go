@@ -21,28 +21,29 @@ func editPeer(w http.ResponseWriter, r *http.Request) {
 
 	var req api.PeerEditReq
 	if err := restutils.UnmarshalRequest(r, &req); err != nil {
-		restutils.SendHTTPError(ctx, w, http.StatusBadRequest, err.Error(), api.ErrCodeDefault)
+		restutils.SendHTTPError(ctx, w, http.StatusBadRequest, err)
 		return
 	}
-	for k := range req.MetaData {
-		if strings.HasPrefix(k, "_") {
-			logger.WithField("metadata-key", req.MetaData).Error("Key names starting with '_' are restricted in Metadata field")
-			restutils.SendHTTPError(ctx, w, http.StatusInternalServerError, "Key names starting with '_' are restricted in Metadata field", api.ErrCodeDefault)
-			return
-		}
-	}
+
 	peerID := mux.Vars(r)["peerid"]
 	if uuid.Parse(peerID) == nil {
-		restutils.SendHTTPError(ctx, w, http.StatusBadRequest, "Invalid peerID passed in url", api.ErrCodeDefault)
+		restutils.SendHTTPError(ctx, w, http.StatusBadRequest, "Invalid peerID passed in url")
 		return
+	}
+
+	for key := range req.MetaData {
+		if strings.HasPrefix(key, "_") {
+			logger.WithField("metadata-key", key).Error("Key names starting with '_' are restricted in metadata field")
+			restutils.SendHTTPError(ctx, w, http.StatusInternalServerError, "Key names starting with '_' are restricted in metadata field")
+			return
+		}
 	}
 
 	txn := transaction.NewTxn(ctx)
 	defer txn.Cleanup()
-	lock, unlock, err := transaction.CreateLockSteps(string(peerID))
+	lock, unlock, err := transaction.CreateLockSteps(peerID)
 	if err != nil {
-		logger.WithError(err).WithField("peerid", peerID).Error("Failed to get lock on peer")
-		restutils.SendHTTPError(ctx, w, http.StatusNotFound, "Failed to get lock on peer", api.ErrCodeDefault)
+		restutils.SendHTTPError(ctx, w, http.StatusInternalServerError, err)
 		return
 	}
 
@@ -56,26 +57,26 @@ func editPeer(w http.ResponseWriter, r *http.Request) {
 	}
 	err = txn.Ctx.Set("peerid", peerID)
 	if err != nil {
-		logger.WithError(err).WithField("peerid", peerID).Error("Failed to set peerID in transaction context")
-		restutils.SendHTTPError(ctx, w, http.StatusInternalServerError, err.Error(), api.ErrCodeDefault)
+		logger.WithError(err).WithField("key", peerID).Error("Failed to set key in transaction context")
+		restutils.SendHTTPError(ctx, w, http.StatusInternalServerError, err)
 		return
 	}
 	err = txn.Ctx.Set("req", req)
 	if err != nil {
-		logger.WithError(err).WithField("req-key", req).Error("Failed to set unmarshalled request information in transaction context")
-		restutils.SendHTTPError(ctx, w, http.StatusInternalServerError, err.Error(), api.ErrCodeDefault)
+		logger.WithError(err).WithField("key", "req").Error("Failed to set key in transaction context")
+		restutils.SendHTTPError(ctx, w, http.StatusInternalServerError, err)
 		return
 	}
 	err = txn.Do()
 	if err != nil {
 		logger.WithError(err).Error("Transaction to update peer failed")
-		restutils.SendHTTPError(ctx, w, http.StatusInternalServerError, "Transaction to update metadata failed", api.ErrCodeDefault)
+		restutils.SendHTTPError(ctx, w, http.StatusInternalServerError, "Transaction to update peer failed")
 		return
 	}
 	var peerInfo peer.Peer
 	if err := txn.Ctx.Get("peerInfo", &peerInfo); err != nil {
-		logger.WithError(err).Error("Failed to retrieve peer information in transaction context")
-		restutils.SendHTTPError(ctx, w, http.StatusInternalServerError, "Failed to retrieve peer information in transaction context", api.ErrCodeDefault)
+		logger.WithError(err).WithField("key", "peerInfo").Error("Failed to get key from transaction context")
+		restutils.SendHTTPError(ctx, w, http.StatusInternalServerError, "Failed to get key from  transaction context")
 		return
 	}
 	resp := createPeerEditResp(&peerInfo)
@@ -86,13 +87,13 @@ func editPeer(w http.ResponseWriter, r *http.Request) {
 func txnPeerEdit(c transaction.TxnCtx) error {
 	var peerID string
 	if err := c.Get("peerid", &peerID); err != nil {
-		c.Logger().WithError(err).WithField("peerid", peerID).Error("Failed transaction, cannot fetch peer-id from transaction context")
+		c.Logger().WithError(err).WithField("key", "peerID").Error("Failed to get key from transaction context")
 		return err
 	}
 
 	var req api.PeerEditReq
 	if err := c.Get("req", &req); err != nil {
-		c.Logger().WithError(err).WithField("req-key", req).Error("Failed transaction, cannot fetch request-information from transaction context")
+		c.Logger().WithError(err).WithField("key", "req").Error("Failed to get key from transaction context")
 		return err
 	}
 	peerInfo, err := peer.GetPeer(peerID)
@@ -115,7 +116,7 @@ func txnPeerEdit(c transaction.TxnCtx) error {
 	}
 	err = c.Set("peerInfo", peerInfo)
 	if err != nil {
-		c.Logger().WithError(err).WithField("peerid", peerID).Error("Failed to set peer info in transaction context")
+		c.Logger().WithError(err).WithField("key", "peerInfo").Error("Failed to set key in transaction context")
 		return err
 	}
 	return nil

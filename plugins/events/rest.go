@@ -1,11 +1,11 @@
 package events
 
 import (
-	"github.com/gluster/glusterd2/pkg/errors"
 	"net/http"
 
+	"github.com/gluster/glusterd2/pkg/errors"
+
 	restutils "github.com/gluster/glusterd2/glusterd2/servers/rest/utils"
-	"github.com/gluster/glusterd2/pkg/api"
 	eventsapi "github.com/gluster/glusterd2/plugins/events/api"
 )
 
@@ -20,12 +20,12 @@ func webhookAddHandler(w http.ResponseWriter, r *http.Request) {
 	if err := restutils.UnmarshalRequest(r, &req); err != nil {
 		restutils.SendHTTPError(
 			ctx, w, http.StatusUnprocessableEntity,
-			errors.ErrJSONParsingFailed.Error(), api.ErrCodeDefault)
+			errors.ErrJSONParsingFailed)
 		return
 	}
 
 	if req.URL == "" {
-		restutils.SendHTTPError(ctx, w, http.StatusBadRequest, "Webhook Url is required field", api.ErrCodeDefault)
+		restutils.SendHTTPError(ctx, w, http.StatusBadRequest, "Webhook Url is required field")
 		return
 	}
 
@@ -34,18 +34,18 @@ func webhookAddHandler(w http.ResponseWriter, r *http.Request) {
 	if err != nil {
 		restutils.SendHTTPError(
 			ctx, w, http.StatusInternalServerError,
-			"Could not check if webhook already exists", api.ErrCodeDefault)
+			"Could not check if webhook already exists")
 		return
 	}
 	if exists {
-		restutils.SendHTTPError(ctx, w, http.StatusConflict, "Webhook already exists", api.ErrCodeDefault)
+		restutils.SendHTTPError(ctx, w, http.StatusConflict, "Webhook already exists")
 		return
 	}
 
 	if err := addWebhook(req); err != nil {
 		restutils.SendHTTPError(
 			ctx, w, http.StatusInternalServerError,
-			"Could not add webhook", api.ErrCodeDefault)
+			"Could not add webhook")
 		return
 	}
 
@@ -58,12 +58,12 @@ func webhookDeleteHandler(w http.ResponseWriter, r *http.Request) {
 	var req eventsapi.Webhook
 	if err := restutils.UnmarshalRequest(r, &req); err != nil {
 		restutils.SendHTTPError(ctx, w, http.StatusUnprocessableEntity,
-			errors.ErrJSONParsingFailed.Error(), api.ErrCodeDefault)
+			errors.ErrJSONParsingFailed)
 		return
 	}
 
 	if req.URL == "" {
-		restutils.SendHTTPError(ctx, w, http.StatusBadRequest, "Webhook Url is required field", api.ErrCodeDefault)
+		restutils.SendHTTPError(ctx, w, http.StatusBadRequest, "Webhook Url is required field")
 		return
 	}
 
@@ -72,20 +72,18 @@ func webhookDeleteHandler(w http.ResponseWriter, r *http.Request) {
 	if err != nil {
 		restutils.SendHTTPError(
 			ctx, w, http.StatusInternalServerError,
-			"Could not check if webhook already exists",
-			api.ErrCodeDefault)
+			"Could not check if webhook already exists")
 		return
 	}
 	if !exists {
-		restutils.SendHTTPError(ctx, w, http.StatusConflict, "Webhook does not exist", api.ErrCodeDefault)
+		restutils.SendHTTPError(ctx, w, http.StatusConflict, "Webhook does not exist")
 		return
 	}
 
 	if err := deleteWebhook(req); err != nil {
 		restutils.SendHTTPError(
 			ctx, w, http.StatusInternalServerError,
-			"Could not delete webhook",
-			api.ErrCodeDefault)
+			"Could not delete webhook")
 		return
 	}
 	restutils.SendHTTPResponse(ctx, w, http.StatusOK, "Webhook Deleted")
@@ -98,8 +96,7 @@ func webhookListHandler(w http.ResponseWriter, r *http.Request) {
 	if err != nil {
 		restutils.SendHTTPError(
 			ctx, w, http.StatusInternalServerError,
-			"Could not retrive webhook list",
-			api.ErrCodeDefault)
+			"Could not retrive webhook list")
 		return
 	}
 
