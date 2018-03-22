@@ -10,7 +10,6 @@ import (
 	restutils "github.com/gluster/glusterd2/glusterd2/servers/rest/utils"
 	"github.com/gluster/glusterd2/glusterd2/transaction"
 	"github.com/gluster/glusterd2/glusterd2/volume"
-	"github.com/gluster/glusterd2/pkg/api"
 	"github.com/gluster/glusterd2/pkg/errors"
 
 	"github.com/gorilla/mux"
@@ -86,11 +85,11 @@ func volumeStopHandler(w http.ResponseWriter, r *http.Request) {
 	volname := mux.Vars(r)["volname"]
 	vol, e := volume.GetVolume(volname)
 	if e != nil {
-		restutils.SendHTTPError(ctx, w, http.StatusNotFound, errors.ErrVolNotFound.Error(), api.ErrCodeDefault)
+		restutils.SendHTTPError(ctx, w, http.StatusNotFound, errors.ErrVolNotFound)
 		return
 	}
 	if vol.State == volume.VolStopped {
-		restutils.SendHTTPError(ctx, w, http.StatusBadRequest, errors.ErrVolAlreadyStopped.Error(), api.ErrCodeDefault)
+		restutils.SendHTTPError(ctx, w, http.StatusBadRequest, errors.ErrVolAlreadyStopped)
 		return
 	}
 
@@ -99,7 +98,7 @@ func volumeStopHandler(w http.ResponseWriter, r *http.Request) {
 	defer txn.Cleanup()
 	lock, unlock, err := transaction.CreateLockSteps(volname)
 	if err != nil {
-		restutils.SendHTTPError(ctx, w, http.StatusInternalServerError, err.Error(), api.ErrCodeDefault)
+		restutils.SendHTTPError(ctx, w, http.StatusInternalServerError, err)
 		return
 	}
 	txn.Steps = []*transaction.Step{
@@ -116,9 +115,9 @@ func volumeStopHandler(w http.ResponseWriter, r *http.Request) {
 		logger.WithError(err).WithField(
 			"volume", volname).Error("failed to stop volume")
 		if err == transaction.ErrLockTimeout {
-			restutils.SendHTTPError(ctx, w, http.StatusConflict, err.Error(), api.ErrCodeDefault)
+			restutils.SendHTTPError(ctx, w, http.StatusConflict, err)
 		} else {
-			restutils.SendHTTPError(ctx, w, http.StatusInternalServerError, err.Error(), api.ErrCodeDefault)
+			restutils.SendHTTPError(ctx, w, http.StatusInternalServerError, err)
 		}
 		return
 	}
@@ -127,7 +126,7 @@ func volumeStopHandler(w http.ResponseWriter, r *http.Request) {
 
 	e = volume.AddOrUpdateVolumeFunc(vol)
 	if e != nil {
-		restutils.SendHTTPError(ctx, w, http.StatusInternalServerError, e.Error(), api.ErrCodeDefault)
+		restutils.SendHTTPError(ctx, w, http.StatusInternalServerError, e)
 		return
 	}
 	events.Broadcast(newVolumeEvent(eventVolumeStopped, vol))

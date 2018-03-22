@@ -7,7 +7,6 @@ import (
 	restutils "github.com/gluster/glusterd2/glusterd2/servers/rest/utils"
 	"github.com/gluster/glusterd2/glusterd2/transaction"
 	"github.com/gluster/glusterd2/glusterd2/volume"
-	"github.com/gluster/glusterd2/pkg/api"
 	"github.com/gluster/glusterd2/pkg/errors"
 
 	"github.com/gorilla/mux"
@@ -34,7 +33,7 @@ func glustershEnableHandler(w http.ResponseWriter, r *http.Request) {
 	//validate volume name
 	v, err := volume.GetVolume(volname)
 	if err != nil {
-		restutils.SendHTTPError(ctx, w, http.StatusNotFound, errors.ErrVolNotFound.Error(), api.ErrCodeDefault)
+		restutils.SendHTTPError(ctx, w, http.StatusNotFound, errors.ErrVolNotFound)
 		return
 	}
 	// Store initial volinfo before changing the HealFlag
@@ -43,12 +42,12 @@ func glustershEnableHandler(w http.ResponseWriter, r *http.Request) {
 
 	// validate volume type
 	if !isVolReplicate(v.Type) {
-		restutils.SendHTTPError(ctx, w, http.StatusBadRequest, "Volume Type not supported", api.ErrCodeDefault)
+		restutils.SendHTTPError(ctx, w, http.StatusBadRequest, "Volume Type not supported")
 		return
 	}
 
 	if v.State != volume.VolStarted {
-		restutils.SendHTTPError(ctx, w, http.StatusBadRequest, "Volume should be in started state.", api.ErrCodeDefault)
+		restutils.SendHTTPError(ctx, w, http.StatusBadRequest, "Volume should be in started state.")
 		return
 
 	}
@@ -60,7 +59,7 @@ func glustershEnableHandler(w http.ResponseWriter, r *http.Request) {
 	//Lock on Volume Name
 	lock, unlock, err := transaction.CreateLockSteps(volname)
 	if err != nil {
-		restutils.SendHTTPError(ctx, w, http.StatusInternalServerError, err.Error(), api.ErrCodeDefault)
+		restutils.SendHTTPError(ctx, w, http.StatusInternalServerError, err)
 		return
 	}
 
@@ -87,20 +86,20 @@ func glustershEnableHandler(w http.ResponseWriter, r *http.Request) {
 
 	if err := txn.Ctx.Set("volinfo", v); err != nil {
 		logger.WithError(err).Error("failed to set volinfo in transaction context")
-		restutils.SendHTTPError(ctx, w, http.StatusInternalServerError, err.Error(), api.ErrCodeDefault)
+		restutils.SendHTTPError(ctx, w, http.StatusInternalServerError, err)
 		return
 	}
 
 	if err := txn.Ctx.Set("oldvolinfo", oldvolinfo); err != nil {
 		logger.WithError(err).Error("failed to set volinfo in transaction context")
-		restutils.SendHTTPError(ctx, w, http.StatusInternalServerError, err.Error(), api.ErrCodeDefault)
+		restutils.SendHTTPError(ctx, w, http.StatusInternalServerError, err)
 		return
 	}
 
 	err = txn.Do()
 	if err != nil {
 		logger.WithError(err).Error("failed to start self heal daemon")
-		restutils.SendHTTPError(ctx, w, http.StatusInternalServerError, err.Error(), api.ErrCodeDefault)
+		restutils.SendHTTPError(ctx, w, http.StatusInternalServerError, err)
 		return
 	}
 
@@ -117,7 +116,7 @@ func glustershDisableHandler(w http.ResponseWriter, r *http.Request) {
 	//validate volume name
 	v, err := volume.GetVolume(volname)
 	if err != nil {
-		restutils.SendHTTPError(ctx, w, http.StatusNotFound, errors.ErrVolNotFound.Error(), api.ErrCodeDefault)
+		restutils.SendHTTPError(ctx, w, http.StatusNotFound, errors.ErrVolNotFound)
 		return
 	}
 	// Store initial volinfo before changing the HealFlag
@@ -126,7 +125,7 @@ func glustershDisableHandler(w http.ResponseWriter, r *http.Request) {
 
 	// validate volume type
 	if !isVolReplicate(v.Type) {
-		restutils.SendHTTPError(ctx, w, http.StatusBadRequest, "Volume Type not supported", api.ErrCodeDefault)
+		restutils.SendHTTPError(ctx, w, http.StatusBadRequest, "Volume Type not supported")
 		return
 	}
 
@@ -138,7 +137,7 @@ func glustershDisableHandler(w http.ResponseWriter, r *http.Request) {
 	// Lock on volume name.
 	lock, unlock, err := transaction.CreateLockSteps(volname)
 	if err != nil {
-		restutils.SendHTTPError(ctx, w, http.StatusInternalServerError, err.Error(), api.ErrCodeDefault)
+		restutils.SendHTTPError(ctx, w, http.StatusInternalServerError, err)
 		return
 	}
 
@@ -166,13 +165,13 @@ func glustershDisableHandler(w http.ResponseWriter, r *http.Request) {
 
 	if err := txn.Ctx.Set("volinfo", v); err != nil {
 		logger.WithError(err).Error("failed to set volinfo in transaction context")
-		restutils.SendHTTPError(ctx, w, http.StatusInternalServerError, err.Error(), api.ErrCodeDefault)
+		restutils.SendHTTPError(ctx, w, http.StatusInternalServerError, err)
 		return
 	}
 
 	if err := txn.Ctx.Set("oldvolinfo", oldvolinfo); err != nil {
 		logger.WithError(err).Error("failed to set volinfo in transaction context")
-		restutils.SendHTTPError(ctx, w, http.StatusInternalServerError, err.Error(), api.ErrCodeDefault)
+		restutils.SendHTTPError(ctx, w, http.StatusInternalServerError, err)
 		return
 	}
 
@@ -182,7 +181,7 @@ func glustershDisableHandler(w http.ResponseWriter, r *http.Request) {
 			"error":   err.Error(),
 			"volname": volname,
 		}).Error("failed to stop self heal daemon")
-		restutils.SendHTTPError(ctx, w, http.StatusInternalServerError, err.Error(), api.ErrCodeDefault)
+		restutils.SendHTTPError(ctx, w, http.StatusInternalServerError, err)
 		return
 	}
 
