@@ -21,8 +21,8 @@ func deletePeerHandler(w http.ResponseWriter, r *http.Request) {
 	logger := gdctx.GetReqLogger(ctx)
 
 	id := mux.Vars(r)["peerid"]
-	if id == "" {
-		restutils.SendHTTPError(ctx, w, http.StatusBadRequest, "peerid not present in the request")
+	if uuid.Parse(id) == nil {
+		restutils.SendHTTPError(ctx, w, http.StatusBadRequest, "Invalid peer id passed")
 		return
 	}
 
