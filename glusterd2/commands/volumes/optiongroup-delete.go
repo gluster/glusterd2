@@ -18,24 +18,24 @@ func optionGroupDeleteHandler(w http.ResponseWriter, r *http.Request) {
 
 	resp, err := store.Store.Get(context.TODO(), "groupoptions")
 	if err != nil {
-		restutils.SendHTTPError(ctx, w, http.StatusInternalServerError, err.Error(), api.ErrCodeDefault)
+		restutils.SendHTTPError(ctx, w, http.StatusInternalServerError, err)
 		return
 	}
 
 	var groupOptions map[string][]api.VolumeOption
 	if err := json.Unmarshal(resp.Kvs[0].Value, &groupOptions); err != nil {
-		restutils.SendHTTPError(ctx, w, http.StatusInternalServerError, err.Error(), api.ErrCodeDefault)
+		restutils.SendHTTPError(ctx, w, http.StatusInternalServerError, err)
 		return
 	}
 
 	_, ok := groupOptions[groupName]
 	if !ok {
-		restutils.SendHTTPError(ctx, w, http.StatusBadRequest, "invalid group name specified", api.ErrCodeDefault)
+		restutils.SendHTTPError(ctx, w, http.StatusBadRequest, "invalid group name specified")
 		return
 	}
 
 	if _, ok := defaultGroupOptions[groupName]; ok {
-		restutils.SendHTTPError(ctx, w, http.StatusBadRequest, "cannot delete builtin groups", api.ErrCodeDefault)
+		restutils.SendHTTPError(ctx, w, http.StatusBadRequest, "cannot delete builtin groups")
 		return
 	}
 
@@ -43,11 +43,11 @@ func optionGroupDeleteHandler(w http.ResponseWriter, r *http.Request) {
 
 	groupOptionsJSON, err := json.Marshal(groupOptions)
 	if err != nil {
-		restutils.SendHTTPError(ctx, w, http.StatusInternalServerError, err.Error(), api.ErrCodeDefault)
+		restutils.SendHTTPError(ctx, w, http.StatusInternalServerError, err)
 		return
 	}
 	if _, err := store.Store.Put(context.TODO(), "groupoptions", string(groupOptionsJSON)); err != nil {
-		restutils.SendHTTPError(ctx, w, http.StatusInternalServerError, err.Error(), api.ErrCodeDefault)
+		restutils.SendHTTPError(ctx, w, http.StatusInternalServerError, err)
 		return
 	}
 

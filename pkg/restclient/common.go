@@ -35,12 +35,13 @@ func New(baseURL string, username string, password string, cacert string, insecu
 }
 
 func parseHTTPError(jsonData []byte) string {
-	var errstr api.HTTPError
+	var errstr api.ErrorResp
 	err := json.Unmarshal(jsonData, &errstr)
 	if err != nil {
 		return ""
 	}
-	return errstr.Error
+	// There's only a single error most of the times
+	return errstr.Errors[0].Message
 }
 
 func getAuthToken(username string, password string) string {

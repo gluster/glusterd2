@@ -195,13 +195,13 @@ func volumeExpandHandler(w http.ResponseWriter, r *http.Request) {
 
 	volinfo, err := volume.GetVolume(volname)
 	if err != nil {
-		restutils.SendHTTPError(ctx, w, http.StatusNotFound, errors.ErrVolNotFound.Error(), api.ErrCodeDefault)
+		restutils.SendHTTPError(ctx, w, http.StatusNotFound, errors.ErrVolNotFound)
 		return
 	}
 
 	var req api.VolExpandReq
 	if err := restutils.UnmarshalRequest(r, &req); err != nil {
-		restutils.SendHTTPError(ctx, w, http.StatusUnprocessableEntity, errors.ErrJSONParsingFailed.Error(), api.ErrCodeDefault)
+		restutils.SendHTTPError(ctx, w, http.StatusUnprocessableEntity, errors.ErrJSONParsingFailed)
 		return
 	}
 
@@ -219,24 +219,24 @@ func volumeExpandHandler(w http.ResponseWriter, r *http.Request) {
 	}
 
 	if newBrickCount%newReplicaCount != 0 {
-		restutils.SendHTTPError(ctx, w, http.StatusUnprocessableEntity, "Invalid number of bricks", api.ErrCodeDefault)
+		restutils.SendHTTPError(ctx, w, http.StatusUnprocessableEntity, "Invalid number of bricks")
 		return
 	}
 
 	if volinfo.Type == volume.Replicate && req.ReplicaCount != 0 {
 		// TODO: Only considered first sub volume's ReplicaCount
 		if req.ReplicaCount < volinfo.Subvols[0].ReplicaCount {
-			restutils.SendHTTPError(ctx, w, http.StatusUnprocessableEntity, "Invalid number of bricks", api.ErrCodeDefault)
+			restutils.SendHTTPError(ctx, w, http.StatusUnprocessableEntity, "Invalid number of bricks")
 			return
 		} else if req.ReplicaCount == volinfo.Subvols[0].ReplicaCount {
-			restutils.SendHTTPError(ctx, w, http.StatusUnprocessableEntity, "Replica count is same", api.ErrCodeDefault)
+			restutils.SendHTTPError(ctx, w, http.StatusUnprocessableEntity, "Replica count is same")
 			return
 		}
 	}
 
 	lock, unlock, err := transaction.CreateLockSteps(volinfo.Name)
 	if err != nil {
-		restutils.SendHTTPError(ctx, w, http.StatusInternalServerError, err.Error(), api.ErrCodeDefault)
+		restutils.SendHTTPError(ctx, w, http.StatusInternalServerError, err)
 		return
 	}
 
@@ -246,7 +246,7 @@ func volumeExpandHandler(w http.ResponseWriter, r *http.Request) {
 	nodes, err := nodesFromVolumeExpandReq(&req)
 	if err != nil {
 		logger.WithError(err).Error("could not prepare node list")
-		restutils.SendHTTPError(ctx, w, http.StatusInternalServerError, err.Error(), api.ErrCodeDefault)
+		restutils.SendHTTPError(ctx, w, http.StatusInternalServerError, err)
 		return
 	}
 
@@ -280,12 +280,12 @@ func volumeExpandHandler(w http.ResponseWriter, r *http.Request) {
 	newBricks, err := volume.NewBrickEntriesFunc(req.Bricks, volinfo.Name, volinfo.ID)
 	if err != nil {
 		logger.WithError(err).Error("failed to create new brick entries")
-		restutils.SendHTTPError(ctx, w, http.StatusInternalServerError, err.Error(), api.ErrCodeDefault)
+		restutils.SendHTTPError(ctx, w, http.StatusInternalServerError, err)
 		return
 	}
 
 	if err := txn.Ctx.Set("bricks", newBricks); err != nil {
-		restutils.SendHTTPError(ctx, w, http.StatusInternalServerError, err.Error(), api.ErrCodeDefault)
+		restutils.SendHTTPError(ctx, w, http.StatusInternalServerError, err)
 		return
 	}
 
@@ -299,33 +299,33 @@ func volumeExpandHandler(w http.ResponseWriter, r *http.Request) {
 	err = txn.Ctx.Set("brick-checks", &checks)
 	if err != nil {
 		logger.WithError(err).WithField("key", "brick-checks").Error("failed to set key in transaction context")
-		restutils.SendHTTPError(ctx, w, http.StatusInternalServerError, err.Error(), api.ErrCodeDefault)
+		restutils.SendHTTPError(ctx, w, http.StatusInternalServerError, err)
 		return
 	}
 
 	if err := txn.Ctx.Set("newreplicacount", newReplicaCount); err != nil {
-		restutils.SendHTTPError(ctx, w, http.StatusInternalServerError, err.Error(), api.ErrCodeDefault)
+		restutils.SendHTTPError(ctx, w, http.StatusInternalServerError, err)
 		return
 	}
 
 	if err := txn.Ctx.Set("oldvolinfo", volinfo); err != nil {
-		restutils.SendHTTPError(ctx, w, http.StatusInternalServerError, err.Error(), api.ErrCodeDefault)
+		restutils.SendHTTPError(ctx, w, http.StatusInternalServerError, err)
 		return
 	}
 
 	if err = txn.Do(); err != nil {
 		logger.WithError(err).Error("volume expand transaction failed")
 		if err == transaction.ErrLockTimeout {
-			restutils.SendHTTPError(ctx, w, http.StatusConflict, err.Error(), api.ErrCodeDefault)
+			restutils.SendHTTPError(ctx, w, http.StatusConflict, err)
 		} else {
-			restutils.SendHTTPError(ctx, w, http.StatusInternalServerError, err.Error(), api.ErrCodeDefault)
+			restutils.SendHTTPError(ctx, w, http.StatusInternalServerError, err)
 		}
 		return
 	}
 
 	newvolinfo, err := volume.GetVolume(volname)
 	if err != nil {
-		restutils.SendHTTPError(ctx, w, http.StatusInternalServerError, err.Error(), api.ErrCodeDefault)
+		restutils.SendHTTPError(ctx, w, http.StatusInternalServerError, err)
 		return
 	}
 

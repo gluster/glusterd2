@@ -9,7 +9,6 @@ import (
 	"github.com/gluster/glusterd2/glusterd2/transaction"
 	"github.com/gluster/glusterd2/glusterd2/volume"
 	"github.com/gluster/glusterd2/glusterd2/xlator"
-	"github.com/gluster/glusterd2/pkg/api"
 	"github.com/gluster/glusterd2/pkg/errors"
 	bitrotapi "github.com/gluster/glusterd2/plugins/bitrot/api"
 	"github.com/gorilla/mux"
@@ -29,19 +28,19 @@ func bitrotEnableHandler(w http.ResponseWriter, r *http.Request) {
 	// Validate volume existence
 	volinfo, err := volume.GetVolume(volName)
 	if err != nil {
-		restutils.SendHTTPError(ctx, w, http.StatusNotFound, errors.ErrVolNotFound.Error(), api.ErrCodeDefault)
+		restutils.SendHTTPError(ctx, w, http.StatusNotFound, errors.ErrVolNotFound)
 		return
 	}
 
 	// Check if volume is started
 	if volinfo.State != volume.VolStarted {
-		restutils.SendHTTPError(ctx, w, http.StatusBadRequest, errors.ErrVolNotStarted.Error(), api.ErrCodeDefault)
+		restutils.SendHTTPError(ctx, w, http.StatusBadRequest, errors.ErrVolNotStarted)
 		return
 	}
 
 	// Check if bitrot is already enabled
 	if volume.IsBitrotEnabled(volinfo) {
-		restutils.SendHTTPError(ctx, w, http.StatusBadRequest, errors.ErrBitrotAlreadyEnabled.Error(), api.ErrCodeDefault)
+		restutils.SendHTTPError(ctx, w, http.StatusBadRequest, errors.ErrBitrotAlreadyEnabled)
 		return
 	}
 
@@ -58,14 +57,14 @@ func bitrotEnableHandler(w http.ResponseWriter, r *http.Request) {
 
 	if err := txn.Ctx.Set("volinfo", volinfo); err != nil {
 		logger.WithError(err).Error("failed to set volinfo in transaction context")
-		restutils.SendHTTPError(ctx, w, http.StatusInternalServerError, err.Error(), api.ErrCodeDefault)
+		restutils.SendHTTPError(ctx, w, http.StatusInternalServerError, err)
 		return
 	}
 
 	//Lock on Volume Name
 	lock, unlock, err := transaction.CreateLockSteps(volName)
 	if err != nil {
-		restutils.SendHTTPError(ctx, w, http.StatusInternalServerError, err.Error(), api.ErrCodeDefault)
+		restutils.SendHTTPError(ctx, w, http.StatusInternalServerError, err)
 		return
 	}
 
@@ -99,7 +98,7 @@ func bitrotEnableHandler(w http.ResponseWriter, r *http.Request) {
 			"error":   err.Error(),
 			"volname": volName,
 		}).Error("failed to enable bitrot")
-		restutils.SendHTTPError(ctx, w, http.StatusInternalServerError, err.Error(), api.ErrCodeDefault)
+		restutils.SendHTTPError(ctx, w, http.StatusInternalServerError, err)
 		return
 	}
 	restutils.SendHTTPResponse(ctx, w, http.StatusOK, "Bitrot enabled successfully")
@@ -116,13 +115,13 @@ func bitrotDisableHandler(w http.ResponseWriter, r *http.Request) {
 	// Validate volume existence
 	volinfo, err := volume.GetVolume(volName)
 	if err != nil {
-		restutils.SendHTTPError(ctx, w, http.StatusNotFound, errors.ErrVolNotFound.Error(), api.ErrCodeDefault)
+		restutils.SendHTTPError(ctx, w, http.StatusNotFound, errors.ErrVolNotFound)
 		return
 	}
 
 	// Check if bitrot is already disabled
 	if !volume.IsBitrotEnabled(volinfo) {
-		restutils.SendHTTPError(ctx, w, http.StatusBadRequest, errors.ErrBitrotAlreadyDisabled.Error(), api.ErrCodeDefault)
+		restutils.SendHTTPError(ctx, w, http.StatusBadRequest, errors.ErrBitrotAlreadyDisabled)
 		return
 	}
 
@@ -137,14 +136,14 @@ func bitrotDisableHandler(w http.ResponseWriter, r *http.Request) {
 
 	if err := txn.Ctx.Set("volinfo", volinfo); err != nil {
 		logger.WithError(err).Error("failed to set volinfo in transaction context")
-		restutils.SendHTTPError(ctx, w, http.StatusInternalServerError, err.Error(), api.ErrCodeDefault)
+		restutils.SendHTTPError(ctx, w, http.StatusInternalServerError, err)
 		return
 	}
 
 	//Lock on Volume Name
 	lock, unlock, err := transaction.CreateLockSteps(volName)
 	if err != nil {
-		restutils.SendHTTPError(ctx, w, http.StatusInternalServerError, err.Error(), api.ErrCodeDefault)
+		restutils.SendHTTPError(ctx, w, http.StatusInternalServerError, err)
 		return
 	}
 
@@ -174,7 +173,7 @@ func bitrotDisableHandler(w http.ResponseWriter, r *http.Request) {
 			"error":   err.Error(),
 			"volname": volName,
 		}).Error("failed to disable bitrot")
-		restutils.SendHTTPError(ctx, w, http.StatusInternalServerError, err.Error(), api.ErrCodeDefault)
+		restutils.SendHTTPError(ctx, w, http.StatusInternalServerError, err)
 		return
 	}
 
@@ -192,19 +191,19 @@ func bitrotScrubOndemandHandler(w http.ResponseWriter, r *http.Request) {
 	// Validate volume existence
 	volinfo, err := volume.GetVolume(volName)
 	if err != nil {
-		restutils.SendHTTPError(ctx, w, http.StatusNotFound, errors.ErrVolNotFound.Error(), api.ErrCodeDefault)
+		restutils.SendHTTPError(ctx, w, http.StatusNotFound, errors.ErrVolNotFound)
 		return
 	}
 
 	// Check if volume is started
 	if volinfo.State != volume.VolStarted {
-		restutils.SendHTTPError(ctx, w, http.StatusBadRequest, errors.ErrVolNotStarted.Error(), api.ErrCodeDefault)
+		restutils.SendHTTPError(ctx, w, http.StatusBadRequest, errors.ErrVolNotStarted)
 		return
 	}
 
 	// Check if bitrot is disabled
 	if !volume.IsBitrotEnabled(volinfo) {
-		restutils.SendHTTPError(ctx, w, http.StatusBadRequest, errors.ErrBitrotNotEnabled.Error(), api.ErrCodeDefault)
+		restutils.SendHTTPError(ctx, w, http.StatusBadRequest, errors.ErrBitrotNotEnabled)
 		return
 	}
 
@@ -215,7 +214,7 @@ func bitrotScrubOndemandHandler(w http.ResponseWriter, r *http.Request) {
 	//Lock on Volume Name
 	lock, unlock, err := transaction.CreateLockSteps(volName)
 	if err != nil {
-		restutils.SendHTTPError(ctx, w, http.StatusInternalServerError, err.Error(), api.ErrCodeDefault)
+		restutils.SendHTTPError(ctx, w, http.StatusInternalServerError, err)
 		return
 	}
 
@@ -236,7 +235,7 @@ func bitrotScrubOndemandHandler(w http.ResponseWriter, r *http.Request) {
 			"error":   err.Error(),
 			"volname": volName,
 		}).Error("failed to start scrubber")
-		restutils.SendHTTPError(ctx, w, http.StatusInternalServerError, err.Error(), api.ErrCodeDefault)
+		restutils.SendHTTPError(ctx, w, http.StatusInternalServerError, err)
 		return
 	}
 	restutils.SendHTTPResponse(ctx, w, http.StatusOK, "Scrubber started successfully")
@@ -254,21 +253,21 @@ func bitrotScrubStatusHandler(w http.ResponseWriter, r *http.Request) {
 	volinfo, err := volume.GetVolume(volName)
 	if err != nil {
 		restutils.SendHTTPError(ctx, w, http.StatusNotFound,
-			errors.ErrVolNotFound.Error(), api.ErrCodeDefault)
+			errors.ErrVolNotFound)
 		return
 	}
 
 	// Check if volume is started
 	if volinfo.State != volume.VolStarted {
 		restutils.SendHTTPError(ctx, w, http.StatusBadRequest,
-			errors.ErrVolNotStarted.Error(), api.ErrCodeDefault)
+			errors.ErrVolNotStarted)
 		return
 	}
 
 	// Check if bitrot is disabled
 	if !volume.IsBitrotEnabled(volinfo) {
 		restutils.SendHTTPError(ctx, w, http.StatusBadRequest,
-			errors.ErrBitrotNotEnabled.Error(), api.ErrCodeDefault)
+			errors.ErrBitrotNotEnabled)
 		return
 	}
 
@@ -280,7 +279,7 @@ func bitrotScrubStatusHandler(w http.ResponseWriter, r *http.Request) {
 	lock, unlock, err := transaction.CreateLockSteps(volName)
 	if err != nil {
 		restutils.SendHTTPError(ctx, w, http.StatusInternalServerError,
-			err.Error(), api.ErrCodeDefault)
+			err)
 		return
 	}
 
@@ -306,7 +305,7 @@ func bitrotScrubStatusHandler(w http.ResponseWriter, r *http.Request) {
 			"volname": volName,
 		}).Error("failed to get scrubber status")
 		restutils.SendHTTPError(ctx, w, http.StatusInternalServerError,
-			err.Error(), api.ErrCodeDefault)
+			err)
 		return
 	}
 
@@ -315,7 +314,7 @@ func bitrotScrubStatusHandler(w http.ResponseWriter, r *http.Request) {
 		errMsg := "Failed to aggregate scrub status results from multiple nodes."
 		logger.WithField("error", err.Error()).Error("bitrotScrubStatusHandler:" + errMsg)
 		restutils.SendHTTPError(ctx, w, http.StatusInternalServerError,
-			errMsg, api.ErrCodeDefault)
+			errMsg)
 		return
 	}
 	restutils.SendHTTPResponse(ctx, w, http.StatusOK, result)
