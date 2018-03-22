@@ -17,7 +17,7 @@ type ErrorCode uint16
 
 const (
 	// ErrCodeGeneric represents generic error code for API responses
-	ErrCodeGeneric ErrorCode = iota
+	ErrCodeGeneric ErrorCode = iota + 1
 )
 
 // ErrorCodeMap maps error code to it's textual message

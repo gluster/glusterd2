@@ -41,7 +41,10 @@ func SendHTTPResponse(ctx context.Context, w http.ResponseWriter, statusCode int
 
 // SendHTTPError sends an error response to the client. The caller of this
 // function can pass either the error or one or more error code(s) exported by
-// api package.
+// api package. Example usage:
+// SendHTTPError(ctx, http.StatusBadRequest, err) // Pass error as is
+// SendHTTPError(ctx, http.StatusBadRequest, "", api.ErrorCode) // Specify error code
+// SendHTTPError(ctx, http.StatusBadRequest, "custom error") // Pass specific error string
 func SendHTTPError(ctx context.Context, w http.ResponseWriter, statusCode int,
 	err interface{}, errCodes ...api.ErrorCode) {
 
@@ -53,7 +56,7 @@ func SendHTTPError(ctx context.Context, w http.ResponseWriter, statusCode int,
 
 	var resp api.ErrorResp
 	errMsg := fmt.Sprint(err)
-	if errMsg != "" || len(errCodes) == 0 {
+	if errMsg != "" || errMsg != "<nil>" || len(errCodes) == 0 {
 		resp.Errors = append(resp.Errors, api.HTTPError{
 			Code:    int(api.ErrCodeGeneric),
 			Message: errMsg})
