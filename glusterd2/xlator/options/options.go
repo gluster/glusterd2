@@ -102,6 +102,21 @@ func (o *Option) IsSettable() bool {
 	return (o.Flags & OptionFlagSettable) != 0
 }
 
+// IsAdvanced returns true if the option is an advanced option
+func (o *Option) IsAdvanced() bool {
+	return o.Level == OptionStatusAdvanced
+}
+
+// IsExperimental returns true if the option is experimental
+func (o *Option) IsExperimental() bool {
+	return o.Level == OptionStatusExperimental
+}
+
+// IsDeprecated returns true if the option is deprcated
+func (o *Option) IsDeprecated() bool {
+	return o.Level == OptionStatusDeprecated
+}
+
 // Validate checks if the given value string can be set as the value for the
 // Option.
 // Returns are error if it is not possible, nil otherwise.

@@ -30,7 +30,9 @@ type VolCreateReq struct {
 
 // VolOptionReq represents an incoming request to set volume options
 type VolOptionReq struct {
-	Options map[string]string `json:"options"`
+	Options      map[string]string `json:"options"`
+	Advanced     bool              `json:"advanced"`
+	Experimental bool              `json:"experimental"`
 }
 
 // VolExpandReq represents a request to expand the volume by adding more bricks
@@ -54,4 +56,8 @@ type OptionGroup struct {
 }
 
 // OptionGroupReq represents a request to create a new option group
-type OptionGroupReq OptionGroup
+type OptionGroupReq struct {
+	OptionGroup
+	Advanced     bool
+	Experimental bool
+}

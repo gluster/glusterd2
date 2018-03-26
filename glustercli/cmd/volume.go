@@ -22,7 +22,6 @@ const (
 	helpVolumeStopCmd   = "Stop a Gluster Volume"
 	helpVolumeDeleteCmd = "Delete a Gluster Volume"
 	helpVolumeGetCmd    = "Get Gluster Volume Options"
-	helpVolumeSetCmd    = "Set a Gluster Volume Option"
 	helpVolumeResetCmd  = "Reset a Gluster Volume Option"
 	helpVolumeInfoCmd   = "Get Gluster Volume Info"
 	helpVolumeListCmd   = "List all Gluster Volumes"
@@ -75,7 +74,6 @@ func init() {
 	volumeCmd.AddCommand(volumeDeleteCmd)
 
 	volumeCmd.AddCommand(volumeGetCmd)
-	volumeCmd.AddCommand(volumeSetCmd)
 	volumeCmd.AddCommand(volumeResetCmd)
 	volumeCmd.AddCommand(volumeInfoCmd)
 	volumeCmd.AddCommand(volumeStatusCmd)
@@ -273,51 +271,6 @@ var volumeGetCmd = &cobra.Command{
 	Run: func(cmd *cobra.Command, args []string) {
 		volname := cmd.Flags().Args()[0]
 		fmt.Println("GET:", volname)
-	},
-}
-
-func volumeOptionJSONHandler(cmd *cobra.Command, volname string, options []string) error {
-	vopt := make(map[string]string)
-	for op, val := range options {
-		if op%2 == 0 {
-			vopt[val] = options[op+1]
-		}
-	}
-
-	if volname == "all" {
-		err := client.GlobalOptionSet(api.GlobalOptionReq{
-			Options: vopt,
-		})
-		return err
-	}
-
-	err := client.VolumeSet(volname, api.VolOptionReq{
-		Options: vopt,
-	})
-	return err
-}
-
-var volumeSetCmd = &cobra.Command{
-	Use:   "set",
-	Short: helpVolumeSetCmd,
-	Args:  cobra.MinimumNArgs(3),
-	Run: func(cmd *cobra.Command, args []string) {
-		if (len(cmd.Flags().Args())-1)%2 == 0 {
-			volname := cmd.Flags().Args()[0]
-			options := cmd.Flags().Args()[1:]
-			err := volumeOptionJSONHandler(cmd, volname, options)
-			if err != nil {
-				log.WithFields(log.Fields{
-					"volume": volname,
-					"error":  err.Error(),
-				}).Error("volume option set failed")
-				failure("Volume option set failed", err, 1)
-			} else {
-				fmt.Printf("Options set successfully for %s volume\n", volname)
-			}
-		} else {
-			fmt.Println("Incorrect volume options")
-		}
 	},
 }
 
