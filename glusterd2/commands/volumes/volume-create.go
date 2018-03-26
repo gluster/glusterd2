@@ -213,7 +213,7 @@ func volumeCreateHandler(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	if req.Options, err = expandOptions(req.Options); err != nil {
+	if req.Options, err = expandGroupOptions(req.Options); err != nil {
 		restutils.SendHTTPError(ctx, w, http.StatusInternalServerError, err)
 		return
 	}

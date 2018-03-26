@@ -68,7 +68,7 @@ func validateXlatorOptions(opts map[string]string, volinfo *volume.Volinfo) erro
 	return nil
 }
 
-func expandOptions(opts map[string]string) (map[string]string, error) {
+func expandGroupOptions(opts map[string]string) (map[string]string, error) {
 	resp, err := store.Store.Get(context.TODO(), "groupoptions")
 	if err != nil {
 		return nil, err
