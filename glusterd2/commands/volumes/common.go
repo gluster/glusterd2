@@ -41,7 +41,7 @@ func validateOptions(opts map[string]string) error {
 		}
 
 		if err := o.Validate(v); err != nil {
-			return err
+			return fmt.Errorf("Failed to validate value(%s) for key(%s): %s", k, v, err.Error())
 		}
 		// TODO: Check op-version
 	}
