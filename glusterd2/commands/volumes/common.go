@@ -4,6 +4,7 @@ import (
 	"context"
 	"encoding/json"
 	"errors"
+	"fmt"
 	"os"
 	"path/filepath"
 
@@ -33,6 +34,10 @@ func validateOptions(opts map[string]string) error {
 		o, err := xlator.FindOption(k)
 		if err != nil {
 			return err
+		}
+
+		if !o.IsSettable() {
+			return fmt.Errorf("Option %s cannot be set", k)
 		}
 
 		if err := o.Validate(v); err != nil {
