@@ -40,7 +40,7 @@ func AddDevices(devices []deviceapi.Info, peerID string) error {
 	if err != nil {
 		return err
 	}
-	peerInfo.MetaData["devices"] = string(deviceJSON)
+	peerInfo.MetaData["_devices"] = string(deviceJSON)
 	err = peer.AddOrUpdatePeer(peerInfo)
 	if err != nil {
 		return err

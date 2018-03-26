@@ -197,31 +197,31 @@ func volumeCreateHandler(w http.ResponseWriter, r *http.Request) {
 	httpStatus, err := unmarshalVolCreateRequest(req, r)
 	if err != nil {
 		logger.WithError(err).Error("Failed to unmarshal volume create request")
-		restutils.SendHTTPError(ctx, w, httpStatus, err.Error(), api.ErrCodeDefault)
+		restutils.SendHTTPError(ctx, w, httpStatus, err)
 		return
 	}
 
 	if volume.ExistsFunc(req.Name) {
-		restutils.SendHTTPError(ctx, w, http.StatusInternalServerError, gderrors.ErrVolExists.Error(), api.ErrCodeDefault)
+		restutils.SendHTTPError(ctx, w, http.StatusInternalServerError, gderrors.ErrVolExists)
 		return
 	}
 
 	nodes, err := nodesFromVolumeCreateReq(req)
 	if err != nil {
 		logger.WithError(err).Error("could not prepare node list")
-		restutils.SendHTTPError(ctx, w, http.StatusInternalServerError, err.Error(), api.ErrCodeDefault)
+		restutils.SendHTTPError(ctx, w, http.StatusInternalServerError, err)
 		return
 	}
 
 	if req.Options, err = expandOptions(req.Options); err != nil {
-		restutils.SendHTTPError(ctx, w, http.StatusInternalServerError, err.Error(), api.ErrCodeDefault)
+		restutils.SendHTTPError(ctx, w, http.StatusInternalServerError, err)
 		return
 	}
 
 	if err := validateOptions(req.Options); err != nil {
 		logger.WithField("option", err.Error()).Error("invalid volume option specified")
 		msg := fmt.Sprintf("invalid volume option specified: %s", err.Error())
-		restutils.SendHTTPError(ctx, w, http.StatusBadRequest, msg, api.ErrCodeDefault)
+		restutils.SendHTTPError(ctx, w, http.StatusBadRequest, msg)
 		return
 	}
 
@@ -230,7 +230,7 @@ func volumeCreateHandler(w http.ResponseWriter, r *http.Request) {
 
 	lock, unlock, err := transaction.CreateLockSteps(req.Name)
 	if err != nil {
-		restutils.SendHTTPError(ctx, w, http.StatusInternalServerError, err.Error(), api.ErrCodeDefault)
+		restutils.SendHTTPError(ctx, w, http.StatusInternalServerError, err)
 		return
 	}
 
@@ -256,20 +256,20 @@ func volumeCreateHandler(w http.ResponseWriter, r *http.Request) {
 	vol, err := createVolinfo(req)
 	if err != nil {
 		logger.WithError(err).Error("failed to create volinfo")
-		restutils.SendHTTPError(ctx, w, http.StatusInternalServerError, err.Error(), api.ErrCodeDefault)
+		restutils.SendHTTPError(ctx, w, http.StatusInternalServerError, err)
 		return
 	}
 
 	if err := validateXlatorOptions(req.Options, vol); err != nil {
 		logger.WithError(err).Error("validation failed")
-		restutils.SendHTTPError(ctx, w, http.StatusBadRequest, fmt.Sprintf("failed to set volume option: %s", err.Error()), api.ErrCodeDefault)
+		restutils.SendHTTPError(ctx, w, http.StatusBadRequest, fmt.Sprintf("failed to set volume option: %s", err.Error()))
 		return
 	}
 
 	err = txn.Ctx.Set("bricks", vol.GetBricks())
 	if err != nil {
 		logger.WithError(err).WithField("key", "bricks").Error("failed to set key in transaction context")
-		restutils.SendHTTPError(ctx, w, http.StatusInternalServerError, err.Error(), api.ErrCodeDefault)
+		restutils.SendHTTPError(ctx, w, http.StatusInternalServerError, err)
 		return
 	}
 
@@ -284,14 +284,14 @@ func volumeCreateHandler(w http.ResponseWriter, r *http.Request) {
 	err = txn.Ctx.Set("brick-checks", &checks)
 	if err != nil {
 		logger.WithError(err).WithField("key", "brick-checks").Error("failed to set key in transaction context")
-		restutils.SendHTTPError(ctx, w, http.StatusInternalServerError, err.Error(), api.ErrCodeDefault)
+		restutils.SendHTTPError(ctx, w, http.StatusInternalServerError, err)
 		return
 	}
 
 	err = txn.Ctx.Set("volinfo", &vol)
 	if err != nil {
 		logger.WithError(err).WithField("key", "volinfo").Error("failed to set key in transaction context")
-		restutils.SendHTTPError(ctx, w, http.StatusInternalServerError, err.Error(), api.ErrCodeDefault)
+		restutils.SendHTTPError(ctx, w, http.StatusInternalServerError, err)
 		return
 	}
 
@@ -299,15 +299,15 @@ func volumeCreateHandler(w http.ResponseWriter, r *http.Request) {
 	if err != nil {
 		logger.WithError(err).Error("volume create transaction failed")
 		if err == transaction.ErrLockTimeout {
-			restutils.SendHTTPError(ctx, w, http.StatusConflict, err.Error(), api.ErrCodeDefault)
+			restutils.SendHTTPError(ctx, w, http.StatusConflict, err)
 		} else {
-			restutils.SendHTTPError(ctx, w, http.StatusInternalServerError, err.Error(), api.ErrCodeDefault)
+			restutils.SendHTTPError(ctx, w, http.StatusInternalServerError, err)
 		}
 		return
 	}
 
 	if err = txn.Ctx.Get("volinfo", &vol); err != nil {
-		restutils.SendHTTPError(ctx, w, http.StatusInternalServerError, "failed to get volinfo", api.ErrCodeDefault)
+		restutils.SendHTTPError(ctx, w, http.StatusInternalServerError, "failed to get volinfo")
 		return
 	}
 

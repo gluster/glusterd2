@@ -16,7 +16,7 @@ type AddDeviceReq struct {
 	Devices []string `json:"devices"`
 }
 
-// PeerEditGroupReq structure
-type PeerEditGroupReq struct {
-	Group string `json:"group"`
+// PeerEditZoneReq structure
+type PeerEditZoneReq struct {
+	Zone string `json:"zone"`
 }

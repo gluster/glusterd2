@@ -90,10 +90,16 @@ type Option struct {
 	ValidateType OptionValidateType
 	OpVersion    []uint32
 	Deprecated   []uint32
-	Flags        uint32
+	Flags        OptionFlag
 	Tags         []string
 	SetKey       string
 	Level        OptionLevel
+}
+
+// IsSettable returns true if the option can be set by a user, returns false
+// otherwise.
+func (o *Option) IsSettable() bool {
+	return (o.Flags & OptionFlagSettable) != 0
 }
 
 // Validate checks if the given value string can be set as the value for the

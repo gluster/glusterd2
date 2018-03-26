@@ -47,6 +47,13 @@ func AddSelfDetails() error {
 		PeerAddresses: []string{config.GetString("peeraddress")},
 	}
 
+	if p.MetaData == nil {
+		p.MetaData = make(map[string]string)
+	}
+	if p.MetaData["_zone"] == "" {
+		p.MetaData["_zone"] = p.ID.String()
+	}
+
 	p.ClientAddresses, err = normalizeAddrs()
 	if err != nil {
 		return err

@@ -35,13 +35,13 @@ func (p *Plugin) RestRoutes() route.Routes {
 			HandlerFunc:  deviceAddHandler,
 		},
 		route.Route{
-			Name:         "PeerEditGroup",
+			Name:         "PeerEditZone",
 			Method:       "POST",
-			Pattern:      "/peers/{peerid}/group",
+			Pattern:      "/peers/{peerid}/zone",
 			Version:      1,
-			RequestType:  utils.GetTypeString((*deviceapi.PeerEditGroupReq)(nil)),
-			ResponseType: utils.GetTypeString((*deviceapi.PeerEditGroupResp)(nil)),
-			HandlerFunc:  peerEditGroupHandler,
+			RequestType:  utils.GetTypeString((*deviceapi.PeerEditZoneReq)(nil)),
+			ResponseType: utils.GetTypeString((*deviceapi.PeerEditZoneResp)(nil)),
+			HandlerFunc:  peerEditZoneHandler,
 		},
 	}
 }
@@ -50,5 +50,4 @@ func (p *Plugin) RestRoutes() route.Routes {
 // Glusterd Transaction framework
 func (p *Plugin) RegisterStepFuncs() {
 	transaction.RegisterStepFunc(txnPrepareDevice, "prepare-device")
-	transaction.RegisterStepFunc(txnPeerEditGroup, "peer-edit-group")
 }
