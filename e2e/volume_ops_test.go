@@ -239,6 +239,19 @@ func TestVolumeOptions(t *testing.T) {
 		r.NotNil(err)
 	}
 
+	// test options that are settable and not settable
+	createReq.Options = nil
+	_, err = client.VolumeCreate(createReq)
+	r.Nil(err)
+	var optionReq api.VolOptionReq
+	settableKey := "afr.use-compound-fops"
+	optionReq.Options = map[string]string{settableKey: "on"}
+	r.Nil(client.VolumeSet(volname, optionReq))
+	notSettableKey := "afr.consistent-io"
+	optionReq.Options = map[string]string{notSettableKey: "on"}
+	r.NotNil(client.VolumeSet(volname, optionReq))
+	r.Nil(client.VolumeDelete(volname))
+
 	// group option test cases
 	groupOpKeys := []string{"profile.test"}
 	for _, validKey := range groupOpKeys {
