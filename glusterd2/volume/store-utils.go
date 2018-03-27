@@ -17,8 +17,6 @@ const (
 )
 
 var (
-	//ExistsFunc check whether a given volume exist or not
-	ExistsFunc = Exists
 	// AddOrUpdateVolumeFunc marshals to volume object and passes to store to add/update
 	AddOrUpdateVolumeFunc = AddOrUpdateVolume
 )
