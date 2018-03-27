@@ -7,7 +7,6 @@ import (
 	"github.com/gluster/glusterd2/glusterd2/volume"
 	"github.com/gluster/glusterd2/glusterd2/xlator"
 	"github.com/gluster/glusterd2/pkg/api"
-	"github.com/gluster/glusterd2/pkg/errors"
 
 	"github.com/gorilla/mux"
 )
@@ -19,7 +18,7 @@ func volumeOptionsGetHandler(w http.ResponseWriter, r *http.Request) {
 	volname := mux.Vars(r)["volname"]
 	v, err := volume.GetVolume(volname)
 	if err != nil {
-		restutils.SendHTTPError(ctx, w, http.StatusNotFound, errors.ErrVolNotFound.Error(), api.ErrCodeDefault)
+		restutils.SendHTTPError(ctx, w, http.StatusNotFound, err)
 		return
 	}
 
@@ -51,9 +50,9 @@ func createVolumeOptionsGetResp(v *volume.Volinfo) *api.VolumeOptionsGetResp {
 					Value:        val,
 					Modified:     modified,
 					DefaultValue: opt.DefaultValue,
+					OptLevel:     api.OptionLevel(opt.Level),
 				})
 			}
-
 		}
 	}
 	return &resp
