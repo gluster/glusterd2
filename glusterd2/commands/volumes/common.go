@@ -116,6 +116,7 @@ func notifyVolfileChange(c transaction.TxnCtx) error {
 	return nil
 }
 
+// This txn step is used in volume create and in volume expand
 func validateBricks(c transaction.TxnCtx) error {
 
 	var err error
@@ -145,6 +146,7 @@ func validateBricks(c transaction.TxnCtx) error {
 	return nil
 }
 
+// This txn step is used in volume create and in volume expand
 func initBricks(c transaction.TxnCtx) error {
 
 	var err error
@@ -190,6 +192,7 @@ func initBricks(c transaction.TxnCtx) error {
 	return nil
 }
 
+// This txn step is used in volume create and in volume expand
 func undoInitBricks(c transaction.TxnCtx) error {
 
 	var bricks []brick.Brickinfo
