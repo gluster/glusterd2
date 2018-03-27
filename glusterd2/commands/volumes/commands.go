@@ -33,17 +33,19 @@ func (c *Command) Routes() route.Routes {
 		// TODO: Implmement volume reset as
 		// DELETE /volumes/{volname}/options
 		route.Route{
-			Name:        "VolumeOptionGet",
-			Method:      "GET",
-			Pattern:     "/volumes/{volname}/options/{optname}",
-			Version:     1,
-			HandlerFunc: volumeOptionGetHandler},
+			Name:         "VolumeOptionGet",
+			Method:       "GET",
+			Pattern:      "/volumes/{volname}/options/{optname}",
+			Version:      1,
+			ResponseType: utils.GetTypeString((*api.VolumeOptionGetResp)(nil)),
+			HandlerFunc:  volumeOptionGetHandler},
 		route.Route{
-			Name:        "VolumeOptionsGet",
-			Method:      "GET",
-			Pattern:     "/volumes/{volname}/options",
-			Version:     1,
-			HandlerFunc: volumeOptionsGetHandler},
+			Name:         "VolumeOptionsGet",
+			Method:       "GET",
+			Pattern:      "/volumes/{volname}/options",
+			Version:      1,
+			ResponseType: utils.GetTypeString((*api.VolumeOptionsGetResp)(nil)),
+			HandlerFunc:  volumeOptionsGetHandler},
 		route.Route{
 			Name:         "VolumeOptions",
 			Method:       "POST",
