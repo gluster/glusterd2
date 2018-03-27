@@ -46,10 +46,19 @@ func (c *Command) Routes() route.Routes {
 			ResponseType: utils.GetTypeString((*api.PeerAddResp)(nil)),
 			HandlerFunc:  addPeerHandler,
 		},
+		route.Route{
+			Name:         "EditPeer",
+			Method:       "POST",
+			Pattern:      "/peers/{peerid}",
+			Version:      1,
+			RequestType:  utils.GetTypeString((*api.PeerEditReq)(nil)),
+			ResponseType: utils.GetTypeString((*api.PeerEditResp)(nil)),
+			HandlerFunc:  editPeer,
+		},
 	}
 }
 
 // RegisterStepFuncs implements a required function for the Command interface
 func (c *Command) RegisterStepFuncs() {
-	return
+	registerPeerEditStepFuncs()
 }
