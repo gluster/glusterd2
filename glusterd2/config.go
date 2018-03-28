@@ -60,6 +60,9 @@ func parseFlags() {
 	flag.String("cert-file", "", "Certificate used for SSL/TLS connections from clients to glusterd2.")
 	flag.String("key-file", "", "Private key for the SSL/TLS certificate.")
 
+	// PID file
+	flag.String("pidfile", "", "PID file path(default: rundir/gluster/glusterd2.pid)")
+
 	store.InitFlags()
 
 	flag.Parse()
@@ -89,6 +92,10 @@ func setDefaults() error {
 
 	if config.GetString(logging.DirFlag) == "" {
 		config.SetDefault(logging.DirFlag, path.Join(config.GetString("localstatedir"), "log"))
+	}
+
+	if config.GetString("pidfile") == "" {
+		config.SetDefault("pidfile", path.Join(config.GetString("rundir"), "glusterd2.pid"))
 	}
 
 	// Set default peer port. This shouldn't be configurable.
