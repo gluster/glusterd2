@@ -16,7 +16,7 @@ const (
 )
 
 var (
-	flagSetAdv, flagSetExp bool
+	flagSetAdv, flagSetExp, flagSetDep bool
 
 	volumeSetCmd = &cobra.Command{
 		Use:   "set <volname> <option> <value> [<option> <value>]...",
@@ -30,6 +30,7 @@ var (
 func init() {
 	volumeSetCmd.Flags().BoolVar(&flagSetAdv, "advanced", false, "Allow setting advanced options")
 	volumeSetCmd.Flags().BoolVar(&flagSetExp, "experimental", false, "Allow setting experimental options")
+	volumeSetCmd.Flags().BoolVar(&flagSetDep, "deprecated", false, "Allow setting deprecated options")
 	volumeCmd.AddCommand(volumeSetCmd)
 }
 
@@ -80,6 +81,7 @@ func volumeOptionJSONHandler(cmd *cobra.Command, volname string, options []strin
 		Options:      vopt,
 		Advanced:     flagSetAdv,
 		Experimental: flagSetExp,
+		Deprecated:   flagSetDep,
 	})
 	return err
 }

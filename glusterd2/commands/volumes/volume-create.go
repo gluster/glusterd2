@@ -218,7 +218,7 @@ func volumeCreateHandler(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	if err := validateOptions(req.Options, false, false); err != nil {
+	if err := validateOptions(req.Options, false, false, false); err != nil {
 		logger.WithField("option", err.Error()).Error("invalid volume option specified")
 		msg := fmt.Sprintf("invalid volume option specified: %s", err.Error())
 		restutils.SendHTTPError(ctx, w, http.StatusBadRequest, msg)

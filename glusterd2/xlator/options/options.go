@@ -48,13 +48,16 @@ type OptionFlag uint
 
 // These are the available OptionFlags
 const (
-	OptionFlagNone     OptionFlag = 0
-	OptionFlagSettable            = 1 << iota
+	OptionFlagSettable OptionFlag = 1 << iota
 	OptionFlagClientOpt
 	OptionFlagGlobal
 	OptionFlagForce
 	OptionFlagNeverReset
 	OptionFlagDoc
+	// Setting FlagNone instead of the beginning as iota starts incrementing from
+	// the first line in a const block, not the first line it is used.
+	// Ref: https://github.com/golang/go/wiki/Iota
+	OptionFlagNone = 0
 )
 
 // OptionLevel is the level at which option is visible to users
@@ -99,7 +102,7 @@ type Option struct {
 // IsSettable returns true if the option can be set by a user, returns false
 // otherwise.
 func (o *Option) IsSettable() bool {
-	return (o.Flags & OptionFlagSettable) != 0
+	return (o.Flags & OptionFlagSettable) == OptionFlagSettable
 }
 
 // IsAdvanced returns true if the option is an advanced option

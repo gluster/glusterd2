@@ -18,10 +18,10 @@ func validateOptionSet(req api.OptionGroupReq) error {
 		o1[o.Name] = o.OnValue
 		o2[o.Name] = o.OffValue
 	}
-	if err := validateOptions(o1, req.Advanced, req.Experimental); err != nil {
+	if err := validateOptions(o1, req.Advanced, req.Experimental, req.Deprecated); err != nil {
 		return err
 	}
-	return validateOptions(o2, req.Advanced, req.Experimental)
+	return validateOptions(o2, req.Advanced, req.Experimental, req.Deprecated)
 }
 
 func optionGroupCreateHandler(w http.ResponseWriter, r *http.Request) {

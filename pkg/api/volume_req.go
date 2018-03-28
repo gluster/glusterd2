@@ -33,6 +33,7 @@ type VolOptionReq struct {
 	Options      map[string]string `json:"options"`
 	Advanced     bool              `json:"advanced"`
 	Experimental bool              `json:"experimental"`
+	Deprecated   bool              `json:"deprecated"`
 }
 
 // VolExpandReq represents a request to expand the volume by adding more bricks
@@ -58,6 +59,7 @@ type OptionGroup struct {
 // OptionGroupReq represents a request to create a new option group
 type OptionGroupReq struct {
 	OptionGroup
-	Advanced     bool
-	Experimental bool
+	Advanced     bool `json:"advanced"`
+	Experimental bool `json:"experimental"`
+	Deprecated   bool `json:"deprecated"`
 }
