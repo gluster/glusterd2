@@ -26,8 +26,8 @@ const (
 	defaultLogLevel      = "debug"
 	defaultClientAddress = ":24007"
 	defaultPeerAddress   = ":24008"
-
-	defaultConfName = "glusterd2"
+	defaultConfName      = "glusterd2"
+	defaultRunDir        = "/var/run/gluster"
 )
 
 // Slices,Arrays cannot be constants :(
@@ -43,7 +43,7 @@ var (
 func parseFlags() {
 	flag.String("workdir", "", "Working directory for GlusterD. (default: current directory)")
 	flag.String("localstatedir", "", "Directory to store local state information. (default: workdir)")
-	flag.String("rundir", "", "Directory to store runtime data. (default: workdir/run)")
+	flag.String("rundir", defaultRunDir, "Directory to store runtime data.")
 	flag.String("config", "", "Configuration file for GlusterD. By default looks for glusterd2.toml in [/usr/local]/etc/glusterd2 and current working directory.")
 
 	flag.String(logging.DirFlag, "", logging.DirHelp+" (default: workdir/log)")
@@ -84,10 +84,6 @@ func setDefaults() error {
 
 	if config.GetString("localstatedir") == "" {
 		config.SetDefault("localstatedir", wd)
-	}
-
-	if config.GetString("rundir") == "" {
-		config.SetDefault("rundir", path.Join(config.GetString("localstatedir"), "run"))
 	}
 
 	if config.GetString(logging.DirFlag) == "" {
