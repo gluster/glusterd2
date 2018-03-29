@@ -159,7 +159,6 @@ func initGD2Supervisor() *suture.Supervisor {
 func createDirectories() error {
 	dirs := []string{config.GetString("localstatedir"),
 		config.GetString("rundir"), config.GetString("logdir"),
-		path.Join(config.GetString("rundir"), "gluster"),
 		path.Join(config.GetString("logdir"), "glusterfs/bricks"),
 		"/var/run/gluster", // issue #476
 	}

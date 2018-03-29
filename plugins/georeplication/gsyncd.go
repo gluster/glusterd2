@@ -78,9 +78,8 @@ func (g *Gsyncd) PidFile() string {
 		return g.pidfilepath
 	}
 
-	rundir := config.GetString("rundir")
 	pidfilename := fmt.Sprintf("gsyncd-%s-%s-%s.pid", g.sessioninfo.MasterVol, g.sessioninfo.RemoteHosts[0].Hostname, g.sessioninfo.RemoteVol)
-	g.pidfilepath = path.Join(rundir, "gluster", pidfilename)
+	g.pidfilepath = path.Join(config.GetString("rundir"), pidfilename)
 	return g.pidfilepath
 }
 
