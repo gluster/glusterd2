@@ -16,6 +16,7 @@ import (
 	"github.com/gluster/glusterd2/glusterd2/store"
 	"github.com/gluster/glusterd2/glusterd2/volgen"
 	"github.com/gluster/glusterd2/glusterd2/xlator"
+	"github.com/gluster/glusterd2/pkg/errors"
 	"github.com/gluster/glusterd2/pkg/logging"
 	"github.com/gluster/glusterd2/pkg/utils"
 	"github.com/gluster/glusterd2/version"
@@ -68,6 +69,11 @@ func main() {
 	// Create directories inside workdir - run dir, logdir etc
 	if err := createDirectories(); err != nil {
 		log.WithError(err).Fatal("Failed to create or access directories")
+	}
+
+	// Create pidfile if specified
+	if err := createPidFile(); err != nil {
+		log.WithError(err).Fatal("Failed to create pid file")
 	}
 
 	if err := gdctx.InitUUID(); err != nil {
@@ -129,6 +135,7 @@ func main() {
 			super.Stop()
 			events.Stop()
 			store.Close()
+			_ = os.Remove(config.GetString("pidfile"))
 			log.Info("Stopped GlusterD")
 			return
 		case unix.SIGHUP:
@@ -159,7 +166,6 @@ func initGD2Supervisor() *suture.Supervisor {
 func createDirectories() error {
 	dirs := []string{config.GetString("localstatedir"),
 		config.GetString("rundir"), config.GetString("logdir"),
-		path.Join(config.GetString("rundir"), "gluster"),
 		path.Join(config.GetString("logdir"), "glusterfs/bricks"),
 		"/var/run/gluster", // issue #476
 	}
@@ -169,4 +175,20 @@ func createDirectories() error {
 		}
 	}
 	return nil
+}
+
+func createPidFile() error {
+	pidfile := config.GetString("pidfile")
+
+	// Check if pidfile exists and already running
+	pid, err := daemon.ReadPidFromFile(pidfile)
+	if err == nil {
+		// Check if process is running
+		_, err := daemon.GetProcess(pid)
+		if err == nil {
+			return errors.ErrProcessAlreadyRunning
+		}
+	}
+
+	return daemon.WritePidToFile(os.Getpid(), pidfile)
 }

@@ -1,4 +1,5 @@
 workdir = "/tmp/gd2_func_test/w3"
+rundir = "/tmp/gd2_func_test/w3/run/gluster"
 logfile = "w3.log"
 peeraddress = "127.0.0.1:22008"
 clientaddress = "127.0.0.1:22007"

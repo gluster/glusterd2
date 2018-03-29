@@ -71,7 +71,7 @@ func (q *Quotad) SocketFile() string {
 		return q.socketfilepath
 	}
 
-	glusterdSockDir := path.Join(config.GetString("rundir"), "gluster")
+	glusterdSockDir := config.GetString("rundir")
 	q.socketfilepath = fmt.Sprintf("%s/quotad-%x.socket", glusterdSockDir,
 		xxhash.Sum64String(gdctx.MyUUID.String()))
 
@@ -90,9 +90,7 @@ func NewQuotad() (*Quotad, error) {
 		return nil, e
 	}
 	pidfilepath := path.Join(
-		config.GetString("rundir"),
-		"quotad", "quotad.pid",
-	)
+		config.GetString("rundir"), "quotad.pid")
 	logfilepath := path.Join(
 		config.GetString("logdir"), "glusterfs",
 		"quotad", "quotad.log",
