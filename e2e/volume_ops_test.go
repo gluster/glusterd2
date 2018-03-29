@@ -244,6 +244,9 @@ func TestVolumeOptions(t *testing.T) {
 	_, err = client.VolumeCreate(createReq)
 	r.Nil(err)
 	var optionReq api.VolOptionReq
+	// XXX: Setting advanced, as all options are advanced by default
+	// TODO: Remove this later if the default changes
+	optionReq.Advanced = true
 	settableKey := "afr.use-compound-fops"
 	optionReq.Options = map[string]string{settableKey: "on"}
 	r.Nil(client.VolumeSet(volname, optionReq))
@@ -279,7 +282,10 @@ func TestVolumeOptions(t *testing.T) {
 			Name: "profile.test2",
 			Options: []api.VolumeOption{{"opt1", "on", "off"},
 				{"opt2", "enable", "disable"},
-				{"opt3", "off", "on"}}},
+				{"opt3", "off", "on"},
+			},
+		},
+		Advanced: true,
 	}
 	err = client.OptionGroupCreate(optionGroupReq)
 	r.NotNil(err)
@@ -288,7 +294,10 @@ func TestVolumeOptions(t *testing.T) {
 		OptionGroup: api.OptionGroup{
 			Name: "profile.test2",
 			Options: []api.VolumeOption{{"afr.eager-lock", "on", "off"},
-				{"gfproxy.afr.eager-lock", "on", "off"}}},
+				{"gfproxy.afr.eager-lock", "on", "off"},
+			},
+		},
+		Advanced: true,
 	}
 	err = client.OptionGroupCreate(optionGroupReq)
 	r.Nil(err)
