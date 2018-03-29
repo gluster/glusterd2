@@ -262,12 +262,18 @@ func TestVolumeOptions(t *testing.T) {
 		Advanced: true,
 	}
 
-	// valid option test cases
 	validOpKeys := []string{"gfproxy.afr.eager-lock", "afr.eager-lock"}
+	invalidOpKeys := []string{"..eager-lock", "a.b.afr.eager-lock", "afr.non-existent", "eager-lock"}
+
+	// valid option test cases
 	for _, validKey := range validOpKeys {
 		createReq.Options = map[string]string{validKey: "on"}
 
 		_, err = client.VolumeCreate(createReq)
+		r.Nil(err)
+
+		// test volume get on valid keys
+		_, err = client.VolumeGet(volname, validKey)
 		r.Nil(err)
 
 		err = client.VolumeDelete(volname)
@@ -275,12 +281,22 @@ func TestVolumeOptions(t *testing.T) {
 	}
 
 	// invalid option test cases
-	invalidOpKeys := []string{"..eager-lock", "a.b.afr.eager-lock", "afr.non-existent", "eager-lock"}
 	for _, invalidKey := range invalidOpKeys {
+		createReq.Options = map[string]string{}
+		_, err = client.VolumeCreate(createReq)
+		r.Nil(err)
+
+		_, err = client.VolumeGet(volname, invalidKey)
+		r.NotNil(err)
+
+		err = client.VolumeDelete(volname)
+		r.Nil(err)
+
 		createReq.Options = map[string]string{invalidKey: "on"}
 
 		_, err = client.VolumeCreate(createReq)
 		r.NotNil(err)
+
 	}
 
 	// test options that are settable and not settable

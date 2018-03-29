@@ -13,6 +13,7 @@ var (
 		"OptionStatusBasic":        OptionStatusBasic,
 		"OptionStatusExperimental": OptionStatusExperimental,
 		"OptionStatusDeprecated":   OptionStatusDeprecated,
+		"OptionStatusUndefined":    OptionStatusUndefined,
 	}
 
 	_OptionLevelValueToName = map[OptionLevel]string{
@@ -20,6 +21,7 @@ var (
 		OptionStatusBasic:        "OptionStatusBasic",
 		OptionStatusExperimental: "OptionStatusExperimental",
 		OptionStatusDeprecated:   "OptionStatusDeprecated",
+		OptionStatusUndefined:    "OptionStatusUndefined",
 	}
 )
 
@@ -31,6 +33,7 @@ func init() {
 			interface{}(OptionStatusBasic).(fmt.Stringer).String():        OptionStatusBasic,
 			interface{}(OptionStatusExperimental).(fmt.Stringer).String(): OptionStatusExperimental,
 			interface{}(OptionStatusDeprecated).(fmt.Stringer).String():   OptionStatusDeprecated,
+			interface{}(OptionStatusUndefined).(fmt.Stringer).String():    OptionStatusUndefined,
 		}
 	}
 }
