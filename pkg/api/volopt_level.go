@@ -10,6 +10,7 @@ const (
 	OptionStatusBasic
 	OptionStatusExperimental
 	OptionStatusDeprecated
+	OptionStatusUndefined
 )
 
 func (l OptionLevel) String() string {
@@ -23,6 +24,6 @@ func (l OptionLevel) String() string {
 	case OptionStatusDeprecated:
 		return "Deprecated"
 	default:
-		return "invalid option level"
+		return "Undefined"
 	}
 }
