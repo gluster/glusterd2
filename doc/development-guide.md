@@ -5,7 +5,7 @@ Glusterd2 is written in Go and if you are new to the language, it is **highly** 
 * [Set up](https://golang.org/doc/code.html) Go development environment on your machine.
 * Read [Effective Go](https://golang.org/doc/effective_go.html) for best practices.
 
-## Development
+## Development Workflow
 
 ### Workspace and repository setup
 
@@ -44,7 +44,15 @@ Here is a short guide on how to work on a new patch.  In this example, we will w
 1. `$ git pull`
 1. `$ git checkout -b hellopatch`
 
-Do your work here and commit. You will need to provide unit tests and functional tests for your changes wherever applicable. Ensure that the tests pass with your changes:
+Do your work here and commit.
+
+Run linting checks and static code check:
+
+`$ make verify`
+
+You will need to provide unit tests and functional tests for your changes
+wherever applicable. Ensure that the tests pass with your changes. The
+functional tests needs to be run as root user.
 
 `# make test`
 
@@ -54,3 +62,36 @@ Once you are ready to push, you will type the following:
 
 **Creating A Pull Request:**   
 When you are satisfied with your changes, you will then need to go to your repo in GitHub.com and create a pull request for your branch. Automated tests will be run against the pull request. Your pull request will be reviewed and merged.
+
+## Troubleshooting and Debugging
+
+**Dumping etcd key and values:**
+
+Download `etcdctl` binary from [etcd releases](https://github.com/coreos/etcd/releases).
+Run the following command to dump all keys and values in etcd to stdout. Replace
+`endpoints` argument to point to etcd client URL if etcd is running on a
+different ip and port.
+
+```sh
+ETCDCTL_API=3 etcdctl get --prefix=true "" --endpoints=[127.0.0.1:2379]
+```
+
+**Connecting to external etcd cluster:**
+
+Edit **glusterd2.toml** config option and add `noembed` option with specifying
+the etcd endpoint:
+
+```toml
+etcdcurls = "http://127.0.0.1:2379"
+noembed = true
+```
+
+**Generating REST API documentation:**
+
+```sh
+$ curl -o endpoints.json -s -X GET http://127.0.0.1:24007/endpoints
+$ go build pkg/tools/generate-doc.go
+$ ./generate-doc
+```
+
+You should commit the generated file `doc/endpoints.md`

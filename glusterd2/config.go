@@ -26,8 +26,8 @@ const (
 	defaultLogLevel      = "debug"
 	defaultClientAddress = ":24007"
 	defaultPeerAddress   = ":24008"
-
-	defaultConfName = "glusterd2"
+	defaultConfName      = "glusterd2"
+	defaultRunDir        = "/var/run/gluster"
 )
 
 // Slices,Arrays cannot be constants :(
@@ -43,7 +43,7 @@ var (
 func parseFlags() {
 	flag.String("workdir", "", "Working directory for GlusterD. (default: current directory)")
 	flag.String("localstatedir", "", "Directory to store local state information. (default: workdir)")
-	flag.String("rundir", "", "Directory to store runtime data. (default: workdir/run)")
+	flag.String("rundir", defaultRunDir, "Directory to store runtime data.")
 	flag.String("config", "", "Configuration file for GlusterD. By default looks for glusterd2.toml in [/usr/local]/etc/glusterd2 and current working directory.")
 
 	flag.String(logging.DirFlag, "", logging.DirHelp+" (default: workdir/log)")
@@ -59,6 +59,9 @@ func parseFlags() {
 	// TODO: SSL/TLS is currently only implemented for REST interface
 	flag.String("cert-file", "", "Certificate used for SSL/TLS connections from clients to glusterd2.")
 	flag.String("key-file", "", "Private key for the SSL/TLS certificate.")
+
+	// PID file
+	flag.String("pidfile", "", "PID file path(default: rundir/gluster/glusterd2.pid)")
 
 	store.InitFlags()
 
@@ -83,12 +86,12 @@ func setDefaults() error {
 		config.SetDefault("localstatedir", wd)
 	}
 
-	if config.GetString("rundir") == "" {
-		config.SetDefault("rundir", path.Join(config.GetString("localstatedir"), "run"))
-	}
-
 	if config.GetString(logging.DirFlag) == "" {
 		config.SetDefault(logging.DirFlag, path.Join(config.GetString("localstatedir"), "log"))
+	}
+
+	if config.GetString("pidfile") == "" {
+		config.SetDefault("pidfile", path.Join(config.GetString("rundir"), "glusterd2.pid"))
 	}
 
 	// Set default peer port. This shouldn't be configurable.
@@ -120,6 +123,7 @@ func (v valueType) String() string {
 }
 
 func dumpConfigToLog() {
+	log.WithField("file", config.ConfigFileUsed()).Info("loaded configuration from file")
 	l := log.NewEntry(log.StandardLogger())
 
 	for k, v := range config.AllSettings() {
@@ -159,8 +163,6 @@ func initConfig(confFile string) error {
 				"failed to read given config file")
 			return err
 		}
-	} else {
-		log.WithField("file", config.ConfigFileUsed()).Info("loaded configuration from file")
 	}
 
 	// Use config given by flags
@@ -171,6 +173,5 @@ func initConfig(confFile string) error {
 		return err
 	}
 
-	dumpConfigToLog()
 	return nil
 }
