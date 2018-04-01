@@ -12,18 +12,18 @@ import (
 
 func txnPrepareDevice(c transaction.TxnCtx) error {
 	var peerID string
-	var req deviceapi.AddDeviceReq
+	var devices []string
 	var deviceList []deviceapi.Info
 
 	if err := c.Get("peerid", &peerID); err != nil {
 		c.Logger().WithError(err).WithField("key", "peerid").Error("Failed to get key from transaction context")
 		return err
 	}
-	if err := c.Get("req", &req); err != nil {
+	if err := c.Get("devices", &devices); err != nil {
 		c.Logger().WithError(err).WithField("key", "req").Error("Failed to get key from transaction context")
 		return err
 	}
-	for _, name := range req.Devices {
+	for _, name := range devices {
 		tempDevice := deviceapi.Info{
 			Name: name,
 		}

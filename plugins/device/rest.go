@@ -36,6 +36,13 @@ func deviceAddHandler(w http.ResponseWriter, r *http.Request) {
 		restutils.SendHTTPError(ctx, w, http.StatusNotFound, "Peer-id not found in store")
 		return
 	}
+
+	devices, err := CheckIfDeviceExist(req.Devices, peerInfo.MetaData["_devices"])
+	if err != nil {
+		logger.WithError(err).WithField("device", req.Devices).Error("Device already exist")
+		restutils.SendHTTPError(ctx, w, http.StatusInternalServerError, "Devices already exist")
+		return
+	}
 	txn := transaction.NewTxn(ctx)
 	defer txn.Cleanup()
 	lock, unlock, err := transaction.CreateLockSteps(peerID)
@@ -58,9 +65,9 @@ func deviceAddHandler(w http.ResponseWriter, r *http.Request) {
 		restutils.SendHTTPError(ctx, w, http.StatusInternalServerError, err)
 		return
 	}
-	err = txn.Ctx.Set("req", &req)
+	err = txn.Ctx.Set("devices", &devices)
 	if err != nil {
-		logger.WithError(err).WithField("key", "req").Error("Failed to set key in transaction context")
+		logger.WithError(err).WithField("key", "devices").Error("Failed to set key in transaction context")
 		restutils.SendHTTPError(ctx, w, http.StatusInternalServerError, err)
 		return
 	}
