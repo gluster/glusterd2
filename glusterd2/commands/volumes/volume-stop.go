@@ -18,28 +18,19 @@ import (
 
 func stopBricks(c transaction.TxnCtx) error {
 
-	var volname string
-	if err := c.Get("volname", &volname); err != nil {
-		c.Logger().WithError(err).WithField(
-			"key", "volname").Error("failed to get value for key from context")
+	var volinfo volume.Volinfo
+	if err := c.Get("volinfo", &volinfo); err != nil {
 		return err
 	}
 
-	vol, err := volume.GetVolume(volname)
-	if err != nil {
-		c.Logger().WithError(err).WithField(
-			"volume", volname).Error("failed to get volinfo for volume")
-		return err
-	}
-
-	for _, b := range vol.GetLocalBricks() {
+	for _, b := range volinfo.GetLocalBricks() {
 		brickDaemon, err := brick.NewGlusterfsd(b)
 		if err != nil {
 			return err
 		}
 
 		c.Logger().WithFields(log.Fields{
-			"volume": volname, "brick": b.String()}).Info("Stopping brick")
+			"volume": volinfo.Name, "brick": b.String()}).Info("Stopping brick")
 
 		client, err := daemon.GetRPCClient(brickDaemon)
 		if err != nil {
@@ -70,50 +61,24 @@ func stopBricks(c transaction.TxnCtx) error {
 			}).WithError(err).Warn("failed to delete brick entry from store, it may be restarted on GlusterD restart")
 		}
 	}
+
 	return nil
 }
 
 func registerVolStopStepFuncs() {
-	transaction.RegisterStepFunc(stopBricks, "vol-stop.Commit")
+	transaction.RegisterStepFunc(stopBricks, "vol-stop.StopBricks")
 }
 
 func volumeStopHandler(w http.ResponseWriter, r *http.Request) {
 
 	ctx := r.Context()
 	logger := gdctx.GetReqLogger(ctx)
-
 	volname := mux.Vars(r)["volname"]
-	vol, e := volume.GetVolume(volname)
-	if e != nil {
-		restutils.SendHTTPError(ctx, w, http.StatusNotFound, errors.ErrVolNotFound)
-		return
-	}
-	if vol.State == volume.VolStopped {
-		restutils.SendHTTPError(ctx, w, http.StatusBadRequest, errors.ErrVolAlreadyStopped)
-		return
-	}
 
-	// A simple one-step transaction to stop brick processes
-	txn := transaction.NewTxn(ctx)
-	defer txn.Cleanup()
-	lock, unlock, err := transaction.CreateLockSteps(volname)
-	if err != nil {
-		restutils.SendHTTPError(ctx, w, http.StatusInternalServerError, err)
-		return
-	}
-	txn.Steps = []*transaction.Step{
-		lock,
-		{
-			DoFunc: "vol-stop.Commit",
-			Nodes:  vol.Nodes(),
-		},
-		unlock,
-	}
-	txn.Ctx.Set("volname", volname)
-
-	if err = txn.Do(); err != nil {
-		logger.WithError(err).WithField(
-			"volume", volname).Error("failed to stop volume")
+	lock, unlock := transaction.CreateLockFuncs(volname)
+	// Taking a lock outside the txn as volinfo.Nodes() must also
+	// be populated holding the lock. See issue #510
+	if err := lock(ctx); err != nil {
 		if err == transaction.ErrLockTimeout {
 			restutils.SendHTTPError(ctx, w, http.StatusConflict, err)
 		} else {
@@ -121,14 +86,49 @@ func volumeStopHandler(w http.ResponseWriter, r *http.Request) {
 		}
 		return
 	}
+	defer unlock(ctx)
 
-	vol.State = volume.VolStopped
-
-	e = volume.AddOrUpdateVolumeFunc(vol)
-	if e != nil {
-		restutils.SendHTTPError(ctx, w, http.StatusInternalServerError, e)
+	volinfo, err := volume.GetVolume(volname)
+	if err != nil {
+		// TODO: Distinguish between volume not present (404) and
+		// store access failure (503)
+		restutils.SendHTTPError(ctx, w, http.StatusNotFound, errors.ErrVolNotFound)
 		return
 	}
-	events.Broadcast(newVolumeEvent(eventVolumeStopped, vol))
-	restutils.SendHTTPResponse(ctx, w, http.StatusOK, vol)
+
+	if volinfo.State == volume.VolStopped {
+		restutils.SendHTTPError(ctx, w, http.StatusBadRequest, errors.ErrVolAlreadyStopped)
+		return
+	}
+
+	txn := transaction.NewTxn(ctx)
+	defer txn.Cleanup()
+
+	txn.Steps = []*transaction.Step{
+		{
+			DoFunc: "vol-stop.StopBricks",
+			Nodes:  volinfo.Nodes(),
+		},
+	}
+
+	if err := txn.Ctx.Set("volinfo", volinfo); err != nil {
+		restutils.SendHTTPError(ctx, w, http.StatusInternalServerError, err)
+		return
+	}
+
+	if err := txn.Do(); err != nil {
+		logger.WithError(err).WithField(
+			"volume", volname).Error("transaction to stop volume failed")
+		restutils.SendHTTPError(ctx, w, http.StatusInternalServerError, err)
+		return
+	}
+
+	volinfo.State = volume.VolStopped
+	if err := volume.AddOrUpdateVolumeFunc(volinfo); err != nil {
+		restutils.SendHTTPError(ctx, w, http.StatusInternalServerError, err)
+		return
+	}
+
+	events.Broadcast(newVolumeEvent(eventVolumeStopped, volinfo))
+	restutils.SendHTTPResponse(ctx, w, http.StatusOK, volinfo)
 }
