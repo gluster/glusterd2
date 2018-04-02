@@ -41,7 +41,7 @@ func validateOptions(opts map[string]string) error {
 		}
 
 		if err := o.Validate(v); err != nil {
-			return err
+			return fmt.Errorf("Failed to validate value(%s) for key(%s): %s", k, v, err.Error())
 		}
 		// TODO: Check op-version
 	}
@@ -68,7 +68,7 @@ func validateXlatorOptions(opts map[string]string, volinfo *volume.Volinfo) erro
 	return nil
 }
 
-func expandOptions(opts map[string]string) (map[string]string, error) {
+func expandGroupOptions(opts map[string]string) (map[string]string, error) {
 	resp, err := store.Store.Get(context.TODO(), "groupoptions")
 	if err != nil {
 		return nil, err
@@ -116,6 +116,7 @@ func notifyVolfileChange(c transaction.TxnCtx) error {
 	return nil
 }
 
+// This txn step is used in volume create and in volume expand
 func validateBricks(c transaction.TxnCtx) error {
 
 	var err error
@@ -145,6 +146,7 @@ func validateBricks(c transaction.TxnCtx) error {
 	return nil
 }
 
+// This txn step is used in volume create and in volume expand
 func initBricks(c transaction.TxnCtx) error {
 
 	var err error
@@ -190,6 +192,7 @@ func initBricks(c transaction.TxnCtx) error {
 	return nil
 }
 
+// This txn step is used in volume create and in volume expand
 func undoInitBricks(c transaction.TxnCtx) error {
 
 	var bricks []brick.Brickinfo
