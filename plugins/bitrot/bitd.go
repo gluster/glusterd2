@@ -48,7 +48,7 @@ func (b *Bitd) SocketFile() string {
 		return b.socketfilepath
 	}
 
-	glusterdSockDir := path.Join(config.GetString("rundir"), "gluster")
+	glusterdSockDir := config.GetString("rundir")
 	b.socketfilepath = fmt.Sprintf("%s/bitd-%x.socket", glusterdSockDir, xxhash.Sum64String(gdctx.MyUUID.String()))
 
 	return b.socketfilepath

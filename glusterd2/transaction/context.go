@@ -84,24 +84,18 @@ func (c *Tctx) WithPrefix(prefix string) *Tctx {
 // Set attaches the given key-value pair to the context.
 // If the key exists, the value will be updated.
 func (c *Tctx) Set(key string, value interface{}) error {
-	json, e := json.Marshal(value)
-	if e != nil {
-		c.log.WithFields(log.Fields{
-			"error": e,
-			"key":   key,
-		}).Error("failed to marshal value")
-		return e
+	json, err := json.Marshal(value)
+	if err != nil {
+		c.log.WithError(err).WithField("key", key).Error("failed to marshal value")
+		return err
 	}
 
 	storeKey := c.prefix + "/" + key
-	_, e = store.Store.Put(context.TODO(), storeKey, string(json))
-	if e != nil {
-		c.log.WithFields(log.Fields{
-			"error": e,
-			"key":   storeKey,
-		}).Error("failed to set value")
+	_, err = store.Store.Put(context.TODO(), storeKey, string(json))
+	if err != nil {
+		c.log.WithError(err).WithField("key", key).Error("failed to set key in transaction context")
 	}
-	return e
+	return err
 }
 
 // SetNodeResult is similar to Set but prefixes the key with the node UUID
@@ -119,7 +113,7 @@ func (c *Tctx) Get(key string, value interface{}) error {
 	storeKey := c.prefix + "/" + key
 	r, err := store.Store.Get(context.TODO(), storeKey)
 	if err != nil {
-		c.log.WithError(err).WithField("key", storeKey).Error("failed to get value from store")
+		c.log.WithError(err).WithField("key", storeKey).Error("failed to get value from transaction context")
 		return err
 	}
 

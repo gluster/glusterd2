@@ -98,7 +98,7 @@ func (b *Glusterfsd) SocketFile() string {
 
 	// Then xxhash of the above path shall be the name of socket file.
 	// Example: /var/run/gluster/<xxhash-hash>.socket
-	glusterdSockDir := path.Join(config.GetString("rundir"), "gluster")
+	glusterdSockDir := config.GetString("rundir")
 	b.socketfilepath = fmt.Sprintf("%s/%x.socket", glusterdSockDir, xxhash.Sum64String(fakeSockFilePath))
 
 	return b.socketfilepath
@@ -111,11 +111,10 @@ func (b *Glusterfsd) PidFile() string {
 		return b.pidfilepath
 	}
 
-	rundir := config.GetString("rundir")
 	brickPathWithoutSlashes := strings.Trim(strings.Replace(b.brickinfo.Path, "/", "-", -1), "-")
 	// FIXME: The brick can no longer clean this up on clean shut down
 	pidfilename := fmt.Sprintf("%s-%s.pid", b.brickinfo.NodeID.String(), brickPathWithoutSlashes)
-	b.pidfilepath = path.Join(rundir, "gluster", pidfilename)
+	b.pidfilepath = path.Join(config.GetString("rundir"), pidfilename)
 
 	return b.pidfilepath
 }

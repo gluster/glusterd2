@@ -149,7 +149,7 @@ func georepCreateHandler(w http.ResponseWriter, r *http.Request) {
 		geoSession = newGeorepSession(masterid, remoteid, req)
 
 		// Set Required Geo-rep Configurations
-		geoSession.Options["gluster-rundir"] = path.Join(config.GetString("rundir"), "gluster")
+		geoSession.Options["gluster-rundir"] = config.GetString("rundir")
 		geoSession.Options["glusterd-workdir"] = config.GetString("localstatedir")
 		geoSession.Options["gluster-logdir"] = path.Join(config.GetString("logdir"), "glusterfs")
 	}

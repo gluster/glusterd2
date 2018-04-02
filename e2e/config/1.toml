@@ -1,4 +1,5 @@
 workdir = "/tmp/gd2_func_test/w1"
+rundir = "/tmp/gd2_func_test/w1/run/gluster"
 logfile = "w1.log"
 peeraddress = "127.0.0.1:24008"
 clientaddress = "127.0.0.1:24007"

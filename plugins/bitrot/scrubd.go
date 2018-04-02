@@ -48,7 +48,7 @@ func (s *Scrubd) SocketFile() string {
 		return s.socketfilepath
 	}
 
-	glusterdSockDir := path.Join(config.GetString("rundir"), "gluster")
+	glusterdSockDir := config.GetString("rundir")
 	s.socketfilepath = fmt.Sprintf("%s/scrub-%x.socket", glusterdSockDir, xxhash.Sum64String(gdctx.MyUUID.String()))
 
 	return s.socketfilepath
