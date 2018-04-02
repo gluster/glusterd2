@@ -10,6 +10,7 @@ import (
 	restutils "github.com/gluster/glusterd2/glusterd2/servers/rest/utils"
 	"github.com/gluster/glusterd2/glusterd2/transaction"
 	"github.com/gluster/glusterd2/glusterd2/volume"
+	"github.com/gluster/glusterd2/pkg/api"
 	"github.com/gluster/glusterd2/pkg/errors"
 
 	"github.com/gorilla/mux"
@@ -129,6 +130,13 @@ func volumeStopHandler(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
+	logger.WithField("volume-name", volinfo.Name).Info("volume stopped")
 	events.Broadcast(newVolumeEvent(eventVolumeStopped, volinfo))
-	restutils.SendHTTPResponse(ctx, w, http.StatusOK, volinfo)
+
+	resp := createVolumeStopResp(volinfo)
+	restutils.SendHTTPResponse(ctx, w, http.StatusOK, resp)
+}
+
+func createVolumeStopResp(v *volume.Volinfo) *api.VolumeStopResp {
+	return (*api.VolumeStopResp)(volume.CreateVolumeInfoResp(v))
 }

@@ -8,6 +8,7 @@ import (
 	restutils "github.com/gluster/glusterd2/glusterd2/servers/rest/utils"
 	"github.com/gluster/glusterd2/glusterd2/transaction"
 	"github.com/gluster/glusterd2/glusterd2/volume"
+	"github.com/gluster/glusterd2/pkg/api"
 	"github.com/gluster/glusterd2/pkg/errors"
 
 	"github.com/gorilla/mux"
@@ -123,6 +124,13 @@ func volumeStartHandler(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
+	logger.WithField("volume-name", volinfo.Name).Info("volume started")
 	events.Broadcast(newVolumeEvent(eventVolumeStarted, volinfo))
-	restutils.SendHTTPResponse(ctx, w, http.StatusOK, volinfo)
+
+	resp := createVolumeStartResp(volinfo)
+	restutils.SendHTTPResponse(ctx, w, http.StatusOK, resp)
+}
+
+func createVolumeStartResp(v *volume.Volinfo) *api.VolumeStartResp {
+	return (*api.VolumeStartResp)(volume.CreateVolumeInfoResp(v))
 }
