@@ -216,6 +216,9 @@ func TestVolumeOptions(t *testing.T) {
 			},
 		},
 		Force: true,
+		// XXX: Setting advanced, as all options are advanced by default
+		// TODO: Remove this later if the default changes
+		Advanced: true,
 	}
 
 	// valid option test cases
@@ -247,6 +250,7 @@ func TestVolumeOptions(t *testing.T) {
 	// XXX: Setting advanced, as all options are advanced by default
 	// TODO: Remove this later if the default changes
 	optionReq.Advanced = true
+
 	settableKey := "afr.use-compound-fops"
 	optionReq.Options = map[string]string{settableKey: "on"}
 	r.Nil(client.VolumeSet(volname, optionReq))
@@ -285,6 +289,8 @@ func TestVolumeOptions(t *testing.T) {
 				{"opt3", "off", "on"},
 			},
 		},
+		// XXX: Setting advanced, as all options are advanced by default
+		// TODO: Remove this later if the default changes
 		Advanced: true,
 	}
 	err = client.OptionGroupCreate(optionGroupReq)
@@ -297,6 +303,8 @@ func TestVolumeOptions(t *testing.T) {
 				{"gfproxy.afr.eager-lock", "on", "off"},
 			},
 		},
+		// XXX: Setting advanced, as all options are advanced by default
+		// TODO: Remove this later if the default changes
 		Advanced: true,
 	}
 	err = client.OptionGroupCreate(optionGroupReq)

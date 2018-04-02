@@ -30,16 +30,6 @@ const (
 )
 
 var (
-	// Create Command Flags
-	flagCreateCmdStripeCount       int
-	flagCreateCmdReplicaCount      int
-	flagCreateCmdArbiterCount      int
-	flagCreateCmdDisperseCount     int
-	flagCreateCmdDisperseDataCount int
-	flagCreateCmdRedundancyCount   int
-	flagCreateCmdTransport         string
-	flagCreateCmdForce             bool
-
 	// Start Command Flags
 	flagStartCmdForce bool
 
@@ -47,21 +37,11 @@ var (
 	flagStopCmdForce bool
 
 	// Expand Command Flags
-	flagExpandCmdForce bool
+	flagExpandCmdReplicaCount int
+	flagExpandCmdForce        bool
 )
 
 func init() {
-	// Volume Create
-	volumeCreateCmd.Flags().IntVarP(&flagCreateCmdStripeCount, "stripe", "", 0, "Stripe Count")
-	volumeCreateCmd.Flags().IntVarP(&flagCreateCmdReplicaCount, "replica", "", 0, "Replica Count")
-	volumeCreateCmd.Flags().IntVarP(&flagCreateCmdArbiterCount, "arbiter", "", 0, "Arbiter Count")
-	volumeCreateCmd.Flags().IntVarP(&flagCreateCmdDisperseCount, "disperse", "", 0, "Disperse Count")
-	volumeCreateCmd.Flags().IntVarP(&flagCreateCmdDisperseDataCount, "disperse-data", "", 0, "Disperse Data Count")
-	volumeCreateCmd.Flags().IntVarP(&flagCreateCmdRedundancyCount, "redundancy", "", 0, "Redundancy Count")
-	volumeCreateCmd.Flags().StringVarP(&flagCreateCmdTransport, "transport", "", "tcp", "Transport")
-	volumeCreateCmd.Flags().BoolVarP(&flagCreateCmdForce, "force", "f", false, "Force")
-	volumeCmd.AddCommand(volumeCreateCmd)
-
 	// Volume Start
 	volumeStartCmd.Flags().BoolVarP(&flagStartCmdForce, "force", "f", false, "Force")
 	volumeCmd.AddCommand(volumeStartCmd)
@@ -80,7 +60,7 @@ func init() {
 	volumeCmd.AddCommand(volumeListCmd)
 
 	// Volume Expand
-	volumeExpandCmd.Flags().IntVarP(&flagCreateCmdReplicaCount, "replica", "", 0, "Replica Count")
+	volumeExpandCmd.Flags().IntVarP(&flagExpandCmdReplicaCount, "replica", "", 0, "Replica Count")
 	volumeExpandCmd.Flags().BoolVarP(&flagExpandCmdForce, "force", "f", false, "Force")
 	volumeCmd.AddCommand(volumeExpandCmd)
 
@@ -145,69 +125,6 @@ func bricksAsUUID(bricks []string) ([]api.BrickReq, error) {
 	}
 
 	return brickUUIDs, nil
-}
-
-var volumeCreateCmd = &cobra.Command{
-	Use:   "create",
-	Short: helpVolumeCreateCmd,
-	Args:  cobra.MinimumNArgs(2),
-	Run: func(cmd *cobra.Command, args []string) {
-		volname := cmd.Flags().Args()[0]
-		bricks, err := bricksAsUUID(cmd.Flags().Args()[1:])
-		if err != nil {
-			log.WithFields(log.Fields{
-				"error":  err.Error(),
-				"volume": volname,
-			}).Error("error getting brick UUIDs")
-			failure("Error getting brick UUIDs", err, 1)
-		}
-
-		numBricks := len(bricks)
-		subvols := []api.SubvolReq{}
-		if flagCreateCmdReplicaCount > 0 {
-			// Replicate Volume Support
-			numSubvols := numBricks / flagCreateCmdReplicaCount
-
-			for i := 0; i < numSubvols; i++ {
-				idx := i * flagCreateCmdReplicaCount
-
-				// If Arbiter is set, set it as Brick Type for last brick
-				if flagCreateCmdArbiterCount > 0 {
-					bricks[idx+flagCreateCmdReplicaCount-1].Type = "arbiter"
-				}
-
-				subvols = append(subvols, api.SubvolReq{
-					Type:         "replicate",
-					Bricks:       bricks[idx : idx+flagCreateCmdReplicaCount],
-					ReplicaCount: flagCreateCmdReplicaCount,
-					ArbiterCount: flagCreateCmdArbiterCount,
-				})
-			}
-		} else {
-			// Default Distribute Volume
-			subvols = []api.SubvolReq{
-				{
-					Type:   "distribute",
-					Bricks: bricks,
-				},
-			}
-		}
-
-		vol, err := client.VolumeCreate(api.VolCreateReq{
-			Name:    volname,
-			Subvols: subvols,
-			Force:   flagCreateCmdForce,
-		})
-		if err != nil {
-			log.WithFields(log.Fields{
-				"volume": volname,
-				"error":  err.Error(),
-			}).Error("volume creation failed")
-			failure("Volume creation failed", err, 1)
-		}
-		fmt.Printf("%s Volume created successfully\n", vol.Name)
-		fmt.Println("Volume ID: ", vol.ID)
-	},
 }
 
 var volumeStartCmd = &cobra.Command{
@@ -460,7 +377,7 @@ var volumeExpandCmd = &cobra.Command{
 			failure("Error getting brick UUIDs", err, 1)
 		}
 		vol, err := client.VolumeExpand(volname, api.VolExpandReq{
-			ReplicaCount: flagCreateCmdReplicaCount,
+			ReplicaCount: flagExpandCmdReplicaCount,
 			Bricks:       bricks, // string of format <UUID>:<path>
 			Force:        flagExpandCmdForce,
 		})

@@ -21,19 +21,22 @@ type SubvolReq struct {
 
 // VolCreateReq represents a Volume Create Request
 type VolCreateReq struct {
-	Name      string            `json:"name"`
-	Transport string            `json:"transport,omitempty"`
-	Subvols   []SubvolReq       `json:"subvols"`
-	Options   map[string]string `json:"options,omitempty"`
-	Force     bool              `json:"force,omitempty"`
+	Name         string            `json:"name"`
+	Transport    string            `json:"transport,omitempty"`
+	Subvols      []SubvolReq       `json:"subvols"`
+	Options      map[string]string `json:"options,omitempty"`
+	Force        bool              `json:"force,omitempty"`
+	Advanced     bool              `json:"advanced,omitempty"`
+	Experimental bool              `json:"experimental,omitempty"`
+	Deprecated   bool              `json:"deprecated,omitempty"`
 }
 
 // VolOptionReq represents an incoming request to set volume options
 type VolOptionReq struct {
 	Options      map[string]string `json:"options"`
-	Advanced     bool              `json:"advanced"`
-	Experimental bool              `json:"experimental"`
-	Deprecated   bool              `json:"deprecated"`
+	Advanced     bool              `json:"advanced,omitempty"`
+	Experimental bool              `json:"experimental,omitempty"`
+	Deprecated   bool              `json:"deprecated,omitempty"`
 }
 
 // VolExpandReq represents a request to expand the volume by adding more bricks
@@ -59,7 +62,7 @@ type OptionGroup struct {
 // OptionGroupReq represents a request to create a new option group
 type OptionGroupReq struct {
 	OptionGroup
-	Advanced     bool `json:"advanced"`
-	Experimental bool `json:"experimental"`
-	Deprecated   bool `json:"deprecated"`
+	Advanced     bool `json:"advanced,omitempty"`
+	Experimental bool `json:"experimental,omitempty"`
+	Deprecated   bool `json:"deprecated,omitempty"`
 }
