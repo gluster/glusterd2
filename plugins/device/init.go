@@ -34,15 +34,6 @@ func (p *Plugin) RestRoutes() route.Routes {
 			ResponseType: utils.GetTypeString((*deviceapi.AddDeviceResp)(nil)),
 			HandlerFunc:  deviceAddHandler,
 		},
-		route.Route{
-			Name:         "PeerEditZone",
-			Method:       "POST",
-			Pattern:      "/peers/{peerid}/zone",
-			Version:      1,
-			RequestType:  utils.GetTypeString((*deviceapi.PeerEditZoneReq)(nil)),
-			ResponseType: utils.GetTypeString((*deviceapi.PeerEditZoneResp)(nil)),
-			HandlerFunc:  peerEditZoneHandler,
-		},
 	}
 }
 

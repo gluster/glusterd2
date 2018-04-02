@@ -1,13 +1,9 @@
 package device
 
 import (
-	"os/exec"
-	"strings"
-
 	"github.com/gluster/glusterd2/glusterd2/transaction"
 	deviceapi "github.com/gluster/glusterd2/plugins/device/api"
-
-	log "github.com/sirupsen/logrus"
+	"github.com/gluster/glusterd2/plugins/device/cmdexec"
 )
 
 func txnPrepareDevice(c transaction.TxnCtx) error {
@@ -30,15 +26,8 @@ func txnPrepareDevice(c transaction.TxnCtx) error {
 		deviceList = append(deviceList, tempDevice)
 	}
 	for index, element := range deviceList {
-		pvcreateCmd := exec.Command("pvcreate", "--metadatasize=128M", "--dataalignment=256K", element.Name)
-		if err := pvcreateCmd.Run(); err != nil {
-			c.Logger().WithError(err).WithField("device", element.Name).Error("pvcreate failed for device")
-			deviceList[index].State = deviceapi.DeviceFailed
-			continue
-		}
-		vgcreateCmd := exec.Command("vgcreate", strings.Replace("vg"+element.Name, "/", "-", -1), element.Name)
-		if err := vgcreateCmd.Run(); err != nil {
-			c.Logger().WithError(err).WithField("device", element.Name).Error("vgcreate failed for device")
+		err := cmdexec.DeviceSetup(element.Name)
+		if err != nil {
 			deviceList[index].State = deviceapi.DeviceFailed
 			continue
 		}
@@ -46,7 +35,7 @@ func txnPrepareDevice(c transaction.TxnCtx) error {
 	}
 	err := AddDevices(deviceList, peerID)
 	if err != nil {
-		log.WithError(err).Error("Couldn't add deviceinfo to store")
+		c.Logger().WithError(err).Error("Couldn't add deviceinfo to store")
 		return err
 	}
 	return nil

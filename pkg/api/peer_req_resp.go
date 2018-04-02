@@ -21,6 +21,7 @@ type PeerAddReq struct {
 
 // PeerEditReq represents an incoming request to edit metadata of peer
 type PeerEditReq struct {
+	Zone     string            `json:"zone"`
 	MetaData map[string]string `json:"metadata"`
 }
 

@@ -15,8 +15,3 @@ const (
 type AddDeviceReq struct {
 	Devices []string `json:"devices"`
 }
-
-// PeerEditZoneReq structure
-type PeerEditZoneReq struct {
-	Zone string `json:"zone"`
-}

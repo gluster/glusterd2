@@ -101,6 +101,7 @@ func txnPeerEdit(c transaction.TxnCtx) error {
 		c.Logger().WithError(err).WithField("peerid", peerID).Error("Peer ID not found in store")
 		return err
 	}
+
 	for k, v := range req.MetaData {
 		if peerInfo.MetaData != nil {
 			peerInfo.MetaData[k] = v
@@ -108,6 +109,10 @@ func txnPeerEdit(c transaction.TxnCtx) error {
 			peerInfo.MetaData = make(map[string]string)
 			peerInfo.MetaData[k] = v
 		}
+	}
+
+	if req.Zone != "" {
+		peerInfo.MetaData["_zone"] = req.Zone
 	}
 	err = peer.AddOrUpdatePeer(peerInfo)
 	if err != nil {
