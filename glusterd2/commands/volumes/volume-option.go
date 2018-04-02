@@ -48,7 +48,7 @@ func volumeOptionsHandler(w http.ResponseWriter, r *http.Request) {
 	}
 
 	var options map[string]string
-	if options, err = expandOptions(req.Options); err != nil {
+	if options, err = expandGroupOptions(req.Options); err != nil {
 		restutils.SendHTTPError(ctx, w, http.StatusInternalServerError, err)
 		return
 	}
