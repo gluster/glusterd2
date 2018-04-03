@@ -5,6 +5,8 @@ import (
 	"os"
 	"os/exec"
 
+	"github.com/gluster/glusterd2/pkg/api"
+
 	log "github.com/sirupsen/logrus"
 )
 
@@ -17,7 +19,7 @@ const dbusScript = "/usr/libexec/ganesha/dbus-send.sh"
 
 type ganesha struct{}
 
-func (g *ganesha) Handle(e *Event) {
+func (g *ganesha) Handle(e *api.Event) {
 	var option string
 	if e.Name == eventVolumeStarted {
 		option = "on"

@@ -3,6 +3,7 @@ package peercommands
 import (
 	"github.com/gluster/glusterd2/glusterd2/events"
 	"github.com/gluster/glusterd2/glusterd2/peer"
+	"github.com/gluster/glusterd2/pkg/api"
 )
 
 type peerEvent string
@@ -12,7 +13,7 @@ const (
 	eventPeerRemoved           = "peer.removed"
 )
 
-func newPeerEvent(e peerEvent, p *peer.Peer) *events.Event {
+func newPeerEvent(e peerEvent, p *peer.Peer) *api.Event {
 	data := map[string]string{
 		"peer.id":   p.ID.String(),
 		"peer.name": p.Name,
