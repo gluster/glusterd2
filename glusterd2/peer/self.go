@@ -39,25 +39,29 @@ func normalizeAddrs() ([]string, error) {
 
 // AddSelfDetails results in the peer adding its own details into etcd
 func AddSelfDetails() error {
-	var err error
 
+	var err error
 	p := &Peer{
 		ID:            gdctx.MyUUID,
 		Name:          gdctx.HostName,
 		PeerAddresses: []string{config.GetString("peeraddress")},
 	}
-
-	if p.MetaData == nil {
-		p.MetaData = make(map[string]string)
-	}
-	if p.MetaData["_zone"] == "" {
-		p.MetaData["_zone"] = p.ID.String()
-	}
-
 	p.ClientAddresses, err = normalizeAddrs()
 	if err != nil {
 		return err
 	}
+	peerInfo, err := GetPeer(string(gdctx.MyUUID))
+	if err != nil {
 
-	return AddOrUpdatePeer(p)
+		if p.MetaData == nil {
+			p.MetaData = make(map[string]string)
+		}
+		if p.MetaData["_zone"] == "" {
+			p.MetaData["_zone"] = p.ID.String()
+		}
+
+		return AddOrUpdatePeer(p)
+	}
+	peerInfo.MetaData = p.MetaData
+	return nil
 }
