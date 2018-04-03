@@ -6,14 +6,17 @@ import (
 
 	"github.com/gluster/glusterd2/glusterd2/gdctx"
 	"github.com/gluster/glusterd2/glusterd2/store"
+	"github.com/gluster/glusterd2/pkg/api"
 
 	"github.com/coreos/etcd/clientv3"
 	"github.com/pborman/uuid"
 	log "github.com/sirupsen/logrus"
+	config "github.com/spf13/viper"
 )
 
 const (
-	eventsPrefix = "events/"
+	eventsPrefix           = "events/"
+	defaultEventsTTL int64 = 600
 )
 
 var (
@@ -25,8 +28,8 @@ var (
 )
 
 // globalHandler listens for events that are global and broadcasts them across the cluster
-func globalHandler(ev *Event) {
-	if !ev.global {
+func globalHandler(ev *api.Event) {
+	if !ev.Global {
 		return
 	}
 
@@ -41,9 +44,13 @@ func globalHandler(ev *Event) {
 	}
 
 	// Putting event with a TTL so that we don't have stale events lingering in store
-	// Using a TTL of 10 seconds should allow all members in the cluster to receive event
-	// TODO: Allow timeout to be customizable
-	l, err := store.Store.Grant(store.Store.Ctx(), 10)
+	// Using a TTL of 10 minutes(configurable) should allow all members in the
+	// cluster to receive event
+	eventsttl := config.GetInt64("eventsttl")
+	if eventsttl == 0 {
+		eventsttl = defaultEventsTTL
+	}
+	l, err := store.Store.Grant(store.Store.Ctx(), eventsttl)
 	if err != nil {
 		log.WithFields(log.Fields{
 			"event.id":   ev.ID.String(),
@@ -72,7 +79,7 @@ func globalListener(glStop chan struct{}) {
 				return
 			}
 			for _, sev := range resp.Events {
-				var ev Event
+				var ev api.Event
 				if err := json.Unmarshal(sev.Kv.Value, &ev); err != nil {
 					log.WithField("event.id", string(sev.Kv.Key)).WithError(err).Error("could not unmarshal global event")
 					continue

@@ -12,6 +12,7 @@ func createVgName(device string) string {
 	return vgName
 }
 
+// DeviceSetup is used to prepare device before using devices.
 func DeviceSetup(device string) error {
 
 	var err error
@@ -29,14 +30,15 @@ func DeviceSetup(device string) error {
 
 	defer func() {
 		if err != nil {
-			DeleteDevice(device)
+			DeviceDelete(device)
 		}
 	}()
 	return nil
 
 }
 
-func DeleteDevice(device string) {
+// DeviceDelete is used to clean up devices.
+func DeviceDelete(device string) {
 	vgName := createVgName(device)
 	vgremoveCmd := exec.Command("vgremove", vgName)
 	if err := vgremoveCmd.Run(); err != nil {
