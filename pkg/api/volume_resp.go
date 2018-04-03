@@ -80,6 +80,12 @@ type VolumeGetResp VolumeInfo
 // VolumeExpandResp is the response sent for a volume expand request.
 type VolumeExpandResp VolumeInfo
 
+// VolumeStartResp is the response sent for a volume start request.
+type VolumeStartResp VolumeInfo
+
+// VolumeStopResp is the response sent for a volume stop request.
+type VolumeStopResp VolumeInfo
+
 // VolumeListResp is the response sent for a volume list request.
 type VolumeListResp []VolumeGetResp
 
