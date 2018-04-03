@@ -4,6 +4,7 @@ import (
 	"strconv"
 
 	"github.com/gluster/glusterd2/glusterd2/events"
+	"github.com/gluster/glusterd2/pkg/api"
 )
 
 type daemonEvent string
@@ -21,7 +22,7 @@ const (
 )
 
 // newEvent returns an event of given type with daemon data filled
-func newEvent(d Daemon, e daemonEvent, pid int) *events.Event {
+func newEvent(d Daemon, e daemonEvent, pid int) *api.Event {
 	data := map[string]string{
 		"name":   d.Name(),
 		"id":     d.ID(),

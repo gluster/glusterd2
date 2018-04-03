@@ -8,7 +8,9 @@ import (
 	"net/http"
 	"os/exec"
 	"path"
+	"strings"
 
+	"github.com/gluster/glusterd2/glusterd2/events"
 	"github.com/gluster/glusterd2/glusterd2/gdctx"
 	restutils "github.com/gluster/glusterd2/glusterd2/servers/rest/utils"
 	"github.com/gluster/glusterd2/glusterd2/transaction"
@@ -211,6 +213,8 @@ func georepCreateHandler(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
+	events.Broadcast(newGeorepEvent(eventGeorepCreated, geoSession, nil))
+
 	restutils.SendHTTPResponse(ctx, w, http.StatusCreated, geoSession)
 }
 
@@ -290,19 +294,24 @@ func georepActionHandler(w http.ResponseWriter, r *http.Request, action actionTy
 
 	doFunc := ""
 	stateToSet := ""
+	var eventToSet georepEvent
 	switch action {
 	case actionStart:
 		doFunc = "georeplication-start.Commit"
 		stateToSet = georepapi.GeorepStatusStarted
+		eventToSet = eventGeorepStarted
 	case actionPause:
 		doFunc = "georeplication-pause.Commit"
 		stateToSet = georepapi.GeorepStatusPaused
+		eventToSet = eventGeorepPaused
 	case actionResume:
 		doFunc = "georeplication-resume.Commit"
 		stateToSet = georepapi.GeorepStatusStarted
+		eventToSet = eventGeorepResumed
 	case actionStop:
 		doFunc = "georeplication-stop.Commit"
 		stateToSet = georepapi.GeorepStatusStopped
+		eventToSet = eventGeorepStopped
 	default:
 		restutils.SendHTTPError(ctx, w, http.StatusInternalServerError, "Unknown action")
 		return
@@ -347,6 +356,8 @@ func georepActionHandler(w http.ResponseWriter, r *http.Request, action actionTy
 		restutils.SendHTTPError(ctx, w, http.StatusInternalServerError, e)
 		return
 	}
+
+	events.Broadcast(newGeorepEvent(eventToSet, geoSession, nil))
 
 	restutils.SendHTTPResponse(ctx, w, http.StatusOK, geoSession)
 }
@@ -441,6 +452,7 @@ func georepDeleteHandler(w http.ResponseWriter, r *http.Request) {
 		restutils.SendHTTPError(ctx, w, http.StatusInternalServerError, e)
 		return
 	}
+	events.Broadcast(newGeorepEvent(eventGeorepDeleted, geoSession, nil))
 
 	restutils.SendHTTPResponse(ctx, w, http.StatusOK, nil)
 }
@@ -810,6 +822,16 @@ func georepConfigSetHandler(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
+	var allopts []string
+	for k, v := range req {
+		allopts = append(allopts, k+"="+v)
+	}
+	setOpts := map[string]string{
+		"options": strings.Join(allopts, ","),
+	}
+
+	events.Broadcast(newGeorepEvent(eventGeorepConfigSet, geoSession, &setOpts))
+
 	restutils.SendHTTPResponse(ctx, w, http.StatusOK, geoSession.Options)
 }
 
@@ -937,6 +959,10 @@ func georepConfigResetHandler(w http.ResponseWriter, r *http.Request) {
 		restutils.SendHTTPError(ctx, w, http.StatusInternalServerError, e)
 		return
 	}
+
+	events.Broadcast(newGeorepEvent(eventGeorepConfigReset, geoSession,
+		&map[string]string{"options": strings.Join(req, ",")},
+	))
 
 	restutils.SendHTTPResponse(ctx, w, http.StatusOK, geoSession.Options)
 }

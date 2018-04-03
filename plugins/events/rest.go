@@ -108,3 +108,17 @@ func webhookListHandler(w http.ResponseWriter, r *http.Request) {
 
 	restutils.SendHTTPResponse(ctx, w, http.StatusOK, resp)
 }
+
+func eventsListHandler(w http.ResponseWriter, r *http.Request) {
+	ctx := r.Context()
+
+	events, err := GetEventsList()
+	if err != nil {
+		restutils.SendHTTPError(
+			ctx, w, http.StatusInternalServerError,
+			"Could not retrive events list")
+		return
+	}
+
+	restutils.SendHTTPResponse(ctx, w, http.StatusOK, events)
+}
