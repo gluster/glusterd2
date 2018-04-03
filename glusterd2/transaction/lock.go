@@ -84,3 +84,54 @@ func CreateLockSteps(key string) (*Step, *Step, error) {
 
 	return lockStep, unlockStep, nil
 }
+
+// LockUnlockFunc is signature of functions used for distributed locking
+// and unlocking.
+type LockUnlockFunc func(ctx context.Context) error
+
+// CreateLockFuncs creates and returns functions for distributed lock and
+// unlock. This is similar to CreateLockSteps() but returns normal functions.
+func CreateLockFuncs(key string) (LockUnlockFunc, LockUnlockFunc) {
+
+	key = lockPrefix + key
+	locker := concurrency.NewMutex(store.Store.Session, key)
+
+	// TODO: There is an opportunity for refactor here to re-use code
+	// between CreateLockFunc and CreateLockSteps. This variant doesn't
+	// have registry either.
+
+	lockFunc := func(ctx context.Context) error {
+		logger := gdctx.GetReqLogger(ctx)
+
+		ctx, cancel := context.WithTimeout(ctx, lockObtainTimeout)
+		defer cancel()
+
+		logger.WithField("key", key).Debug("attempting to lock")
+		err := locker.Lock(ctx)
+		switch err {
+		case nil:
+			logger.WithField("key", key).Debug("lock obtained")
+		case context.DeadlineExceeded:
+			// Propagate this all the way back to the client as a HTTP 409 response
+			logger.WithField("key", key).Debug("timeout: failed to obtain lock")
+			err = ErrLockTimeout
+		}
+
+		return err
+	}
+
+	unlockFunc := func(ctx context.Context) error {
+		logger := gdctx.GetReqLogger(ctx)
+
+		logger.WithField("key", key).Debug("attempting to unlock")
+		if err := locker.Unlock(context.Background()); err != nil {
+			logger.WithField("key", key).WithError(err).Error("unlock failed")
+			return err
+		}
+
+		logger.WithField("key", key).Debug("lock unlocked")
+		return nil
+	}
+
+	return lockFunc, unlockFunc
+}
