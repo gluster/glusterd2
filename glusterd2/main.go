@@ -14,7 +14,6 @@ import (
 	"github.com/gluster/glusterd2/glusterd2/peer"
 	"github.com/gluster/glusterd2/glusterd2/servers"
 	"github.com/gluster/glusterd2/glusterd2/store"
-	"github.com/gluster/glusterd2/glusterd2/volgen"
 	"github.com/gluster/glusterd2/glusterd2/xlator"
 	"github.com/gluster/glusterd2/pkg/errors"
 	"github.com/gluster/glusterd2/pkg/logging"
@@ -95,11 +94,6 @@ func main() {
 	// Load all possible xlator options
 	if err := xlator.Load(); err != nil {
 		log.WithError(err).Fatal("Failed to load xlator options")
-	}
-
-	// Load volgen templates
-	if err := volgen.LoadTemplates(); err != nil {
-		log.WithError(err).Fatal("Failed to load volgen templates")
 	}
 
 	// Initialize etcd store (etcd client connection)
