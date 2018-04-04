@@ -46,7 +46,7 @@ func validateOptions(opts map[string]string, adv, exp, dep bool) error {
 		case o.IsExperimental() && !exp:
 			return fmt.Errorf("Option %s is an experimental option. To set it pass the experimental flag", k)
 
-		case o.IsDeprecated() && !!dep:
+		case o.IsDeprecated() && !dep:
 			// TODO: Return deprecation version and alternative option if available
 			return fmt.Errorf("Option %s will be deprecated in future releases. To set it pass the deprecated flag", k)
 		}
