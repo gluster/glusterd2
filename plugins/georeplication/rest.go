@@ -546,7 +546,7 @@ func georepStatusHandler(w http.ResponseWriter, r *http.Request) {
 		// Set default values to all status fields, If a node or worker is down and
 		// status not available these default values will be sent back in response
 		geoSession.Workers = append(geoSession.Workers, georepapi.GeorepWorker{
-			MasterNode:                 b.Hostname,
+			MasterPeerHostname:         b.Hostname,
 			MasterPeerID:               b.PeerID.String(),
 			MasterBrickPath:            b.Path,
 			MasterBrick:                b.PeerID.String() + ":" + b.Path,
@@ -554,7 +554,7 @@ func georepStatusHandler(w http.ResponseWriter, r *http.Request) {
 			LastSyncedTime:             "N/A",
 			LastSyncedTimeUTC:          "N/A",
 			LastEntrySyncedTime:        "N/A",
-			RemoteNode:                 "N/A",
+			RemotePeerHostname:         "N/A",
 			CheckpointTime:             "N/A",
 			CheckpointTimeUTC:          "N/A",
 			CheckpointCompleted:        "N/A",
@@ -577,7 +577,7 @@ func georepStatusHandler(w http.ResponseWriter, r *http.Request) {
 		geoSession.Workers[idx].LastSyncedTime = statusData.LastSyncedTime
 		geoSession.Workers[idx].LastSyncedTimeUTC = statusData.LastSyncedTimeUTC
 		geoSession.Workers[idx].LastEntrySyncedTime = statusData.LastEntrySyncedTime
-		geoSession.Workers[idx].RemoteNode = statusData.RemoteNode
+		geoSession.Workers[idx].RemotePeerHostname = statusData.RemotePeerHostname
 		geoSession.Workers[idx].CheckpointTime = statusData.CheckpointTime
 		geoSession.Workers[idx].CheckpointTimeUTC = statusData.CheckpointTimeUTC
 		geoSession.Workers[idx].CheckpointCompleted = statusData.CheckpointCompleted
