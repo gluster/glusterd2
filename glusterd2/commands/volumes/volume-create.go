@@ -78,7 +78,7 @@ func volumeCreateHandler(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	if err := validateOptions(req.Options); err != nil {
+	if err := validateOptions(req.Options, req.Advanced, req.Experimental, req.Deprecated); err != nil {
 		restutils.SendHTTPError(ctx, w, http.StatusBadRequest, err)
 		return
 	}
