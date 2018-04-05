@@ -29,8 +29,8 @@ func getSampleBricks(b1 string, b2 string) []api.BrickReq {
 
 	lhost := uuid.NewRandom()
 	return []api.BrickReq{
-		{NodeID: lhost.String(), Path: b1},
-		{NodeID: lhost.String(), Path: b2},
+		{PeerID: lhost.String(), Path: b1},
+		{PeerID: lhost.String(), Path: b2},
 	}
 }
 
@@ -51,8 +51,8 @@ func TestNewBrickEntry(t *testing.T) {
 
 	// Some negative tests
 	mockBricks := []api.BrickReq{
-		{NodeID: "", Path: "/tmp/b1"},
-		{NodeID: "", Path: "/tmp/b2"},
+		{PeerID: "", Path: "/tmp/b1"},
+		{PeerID: "", Path: "/tmp/b2"},
 	} //with out IPs
 	_, err = NewBrickEntriesFunc(mockBricks, "volume", nil)
 	assert.NotNil(t, err)

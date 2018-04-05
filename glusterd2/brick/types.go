@@ -22,7 +22,7 @@ const (
 type Brickinfo struct {
 	ID             uuid.UUID
 	Hostname       string
-	NodeID         uuid.UUID
+	PeerID         uuid.UUID
 	Path           string
 	VolumeName     string
 	VolumeID       uuid.UUID
@@ -50,7 +50,7 @@ type Brickstatus struct {
 }
 
 func (b *Brickinfo) String() string {
-	return b.NodeID.String() + ":" + b.Path
+	return b.PeerID.String() + ":" + b.Path
 }
 
 // StringMap returns a map[string]string representation of the Brickinfo
@@ -59,7 +59,7 @@ func (b *Brickinfo) StringMap() map[string]string {
 
 	m["brick.id"] = b.ID.String()
 	m["brick.hostname"] = b.Hostname
-	m["brick.nodeid"] = b.NodeID.String()
+	m["brick.peerid"] = b.PeerID.String()
 	m["brick.path"] = b.Path
 	m["brick.volumename"] = b.VolumeName
 	m["brick.volumeid"] = b.VolumeID.String()

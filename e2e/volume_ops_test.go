@@ -81,16 +81,16 @@ func testVolumeCreate(t *testing.T) {
 				ReplicaCount: 2,
 				Type:         "replicate",
 				Bricks: []api.BrickReq{
-					{NodeID: gds[0].PeerID(), Path: brickPaths[0]},
-					{NodeID: gds[1].PeerID(), Path: brickPaths[1]},
+					{PeerID: gds[0].PeerID(), Path: brickPaths[0]},
+					{PeerID: gds[1].PeerID(), Path: brickPaths[1]},
 				},
 			},
 			{
 				Type:         "replicate",
 				ReplicaCount: 2,
 				Bricks: []api.BrickReq{
-					{NodeID: gds[0].PeerID(), Path: brickPaths[2]},
-					{NodeID: gds[1].PeerID(), Path: brickPaths[3]},
+					{PeerID: gds[0].PeerID(), Path: brickPaths[2]},
+					{PeerID: gds[1].PeerID(), Path: brickPaths[3]},
 				},
 			},
 		},
@@ -112,10 +112,10 @@ func testVolumeExpand(t *testing.T) {
 
 	expandReq := api.VolExpandReq{
 		Bricks: []api.BrickReq{
-			{NodeID: gds[0].PeerID(), Path: brickPaths[0]},
-			{NodeID: gds[1].PeerID(), Path: brickPaths[1]},
-			{NodeID: gds[0].PeerID(), Path: brickPaths[2]},
-			{NodeID: gds[1].PeerID(), Path: brickPaths[3]},
+			{PeerID: gds[0].PeerID(), Path: brickPaths[0]},
+			{PeerID: gds[1].PeerID(), Path: brickPaths[1]},
+			{PeerID: gds[0].PeerID(), Path: brickPaths[2]},
+			{PeerID: gds[1].PeerID(), Path: brickPaths[3]},
 		},
 		Force: true,
 	}
@@ -211,7 +211,7 @@ func TestVolumeOptions(t *testing.T) {
 			{
 				Type: "distribute",
 				Bricks: []api.BrickReq{
-					{NodeID: gds[0].PeerID(), Path: brickPath},
+					{PeerID: gds[0].PeerID(), Path: brickPath},
 				},
 			},
 		},
@@ -334,9 +334,9 @@ func testDisperse(t *testing.T) {
 			{
 				Type: "disperse",
 				Bricks: []api.BrickReq{
-					{NodeID: gds[0].PeerID(), Path: brickPaths[0]},
-					{NodeID: gds[1].PeerID(), Path: brickPaths[1]},
-					{NodeID: gds[0].PeerID(), Path: brickPaths[2]},
+					{PeerID: gds[0].PeerID(), Path: brickPaths[0]},
+					{PeerID: gds[1].PeerID(), Path: brickPaths[1]},
+					{PeerID: gds[0].PeerID(), Path: brickPaths[2]},
 				},
 				DisperseRedundancy: 1,
 			},
