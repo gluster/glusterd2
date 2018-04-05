@@ -547,9 +547,9 @@ func georepStatusHandler(w http.ResponseWriter, r *http.Request) {
 		// status not available these default values will be sent back in response
 		geoSession.Workers = append(geoSession.Workers, georepapi.GeorepWorker{
 			MasterNode:                 b.Hostname,
-			MasterNodeID:               b.NodeID.String(),
+			MasterNodeID:               b.PeerID.String(),
 			MasterBrickPath:            b.Path,
-			MasterBrick:                b.NodeID.String() + ":" + b.Path,
+			MasterBrick:                b.PeerID.String() + ":" + b.Path,
 			Status:                     "Unknown",
 			LastSyncedTime:             "N/A",
 			LastSyncedTimeUTC:          "N/A",

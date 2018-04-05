@@ -3,7 +3,7 @@ package api
 // BrickReq represents Brick Request
 type BrickReq struct {
 	Type   string `json:"type"`
-	NodeID string `json:"nodeid"`
+	PeerID string `json:"peerid"`
 	Path   string `json:"path"`
 }
 

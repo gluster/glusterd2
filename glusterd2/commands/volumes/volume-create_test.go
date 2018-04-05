@@ -27,8 +27,8 @@ func TestCreateVolinfo(t *testing.T) {
 	u := uuid.NewRandom()
 	msg.Name = "vol"
 	msg.Subvols = []api.SubvolReq{{Bricks: []api.BrickReq{
-		{NodeID: u.String(), Path: "/tmp/b1"},
-		{NodeID: u.String(), Path: "/tmp/b2"},
+		{PeerID: u.String(), Path: "/tmp/b1"},
+		{PeerID: u.String(), Path: "/tmp/b2"},
 	}}}
 	vol, e := newVolinfo(msg)
 	assert.Nil(t, e)
