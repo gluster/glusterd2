@@ -8,7 +8,6 @@ import (
 
 func txnPrepareDevice(c transaction.TxnCtx) error {
 	var peerID string
-
 	if err := c.Get("peerid", &peerID); err != nil {
 		c.Logger().WithError(err).WithField("key", "peerid").Error("Failed to get key from transaction context")
 		return err
@@ -27,14 +26,16 @@ func txnPrepareDevice(c transaction.TxnCtx) error {
 		}
 		deviceList = append(deviceList, tempDevice)
 	}
-	for index, element := range deviceList {
-		err := cmdexec.DeviceSetup(element.Name)
+
+	for index, device := range deviceList {
+		err := cmdexec.DeviceSetup(device.Name)
 		if err != nil {
 			deviceList[index].State = deviceapi.DeviceFailed
 			continue
 		}
 		deviceList[index].State = deviceapi.DeviceEnabled
 	}
+
 	err := AddDevices(deviceList, peerID)
 	if err != nil {
 		c.Logger().WithError(err).Error("Couldn't add deviceinfo to store")

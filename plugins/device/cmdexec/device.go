@@ -16,6 +16,11 @@ func createVgName(device string) string {
 func DeviceSetup(device string) error {
 
 	var err error
+	defer func() {
+		if err != nil {
+			DeviceCleanup(device)
+		}
+	}()
 	pvcreateCmd := exec.Command("pvcreate", "--metadatasize=128M", "--dataalignment=256K", device)
 	if err := pvcreateCmd.Run(); err != nil {
 		log.WithError(err).WithField("device", device).Error("pvcreate failed for device")
@@ -28,17 +33,12 @@ func DeviceSetup(device string) error {
 		return err
 	}
 
-	defer func() {
-		if err != nil {
-			DeviceDelete(device)
-		}
-	}()
 	return nil
 
 }
 
-// DeviceDelete is used to clean up devices.
-func DeviceDelete(device string) {
+// DeviceCleanup is used to clean up devices.
+func DeviceCleanup(device string) {
 	vgName := createVgName(device)
 	vgremoveCmd := exec.Command("vgremove", vgName)
 	if err := vgremoveCmd.Run(); err != nil {
