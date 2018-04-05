@@ -257,7 +257,7 @@ func configFileGenerate(session *georepapi.GeorepSession) error {
 	// Remote host and UUID details
 	var remote []string
 	for _, sh := range session.RemoteHosts {
-		remote = append(remote, sh.NodeID.String()+":"+sh.Hostname)
+		remote = append(remote, sh.PeerID.String()+":"+sh.Hostname)
 	}
 	confdata = append(confdata,
 		fmt.Sprintf("slave-bricks=%s", strings.Join(remote, ",")),
@@ -367,7 +367,7 @@ func txnSSHKeysGenerate(c transaction.TxnCtx) error {
 		return err
 	}
 
-	sshkey := georepapi.GeorepSSHPublicKey{NodeID: gdctx.MyUUID}
+	sshkey := georepapi.GeorepSSHPublicKey{PeerID: gdctx.MyUUID}
 
 	// Generate secret.pem file if not available
 	if _, err := os.Stat(secretPemFile); os.IsNotExist(err) {
