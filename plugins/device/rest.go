@@ -36,7 +36,7 @@ func deviceAddHandler(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	devices, err := CheckIfDeviceExist(req.Devices, peerInfo.MetaData["_devices"])
+	devices, err := CheckIfDeviceExist(req.Devices, peerInfo.Metadata["_devices"])
 	if err != nil {
 		logger.WithError(err).WithField("device", req.Devices).Error("Device already exist")
 		restutils.SendHTTPError(ctx, w, http.StatusInternalServerError, "Devices already exist")

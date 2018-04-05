@@ -26,7 +26,7 @@ func addPeerHandler(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	for key := range req.MetaData {
+	for key := range req.Metadata {
 		if strings.HasPrefix(key, "_") {
 			logger.WithField("metadata-key", key).Error("Key names starting with '_' are restricted in metadata field")
 			restutils.SendHTTPError(ctx, w, http.StatusInternalServerError, "Key names starting with '_' are restricted in metadata field")
@@ -89,14 +89,14 @@ func addPeerHandler(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	if newpeer.MetaData == nil {
-		newpeer.MetaData = make(map[string]string)
+	if newpeer.Metadata == nil {
+		newpeer.Metadata = make(map[string]string)
 	}
 	if req.Zone != "" {
-		newpeer.MetaData["_zone"] = req.Zone
+		newpeer.Metadata["_zone"] = req.Zone
 	}
-	for key, value := range req.MetaData {
-		newpeer.MetaData[key] = value
+	for key, value := range req.Metadata {
+		newpeer.Metadata[key] = value
 	}
 
 	err = peer.AddOrUpdatePeer(newpeer)
@@ -118,6 +118,6 @@ func createPeerAddResp(p *peer.Peer) *api.PeerAddResp {
 		Name:            p.Name,
 		PeerAddresses:   p.PeerAddresses,
 		ClientAddresses: p.ClientAddresses,
-		MetaData:        p.MetaData,
+		Metadata:        p.Metadata,
 	}
 }

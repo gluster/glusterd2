@@ -53,15 +53,15 @@ func AddSelfDetails() error {
 	peerInfo, err := GetPeer(string(gdctx.MyUUID))
 	if err != nil {
 
-		if p.MetaData == nil {
-			p.MetaData = make(map[string]string)
+		if p.Metadata == nil {
+			p.Metadata = make(map[string]string)
 		}
-		if p.MetaData["_zone"] == "" {
-			p.MetaData["_zone"] = p.ID.String()
+		if p.Metadata["_zone"] == "" {
+			p.Metadata["_zone"] = p.ID.String()
 		}
 
 		return AddOrUpdatePeer(p)
 	}
-	peerInfo.MetaData = p.MetaData
+	peerInfo.Metadata = p.Metadata
 	return nil
 }

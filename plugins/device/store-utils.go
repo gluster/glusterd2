@@ -14,9 +14,9 @@ func GetDevices(peerID string) ([]deviceapi.Info, error) {
 	if err != nil {
 		return nil, err
 	}
-	if len(peerInfo.MetaData["devices"]) > 0 {
+	if len(peerInfo.Metadata["devices"]) > 0 {
 		var deviceInfo []deviceapi.Info
-		if err := json.Unmarshal([]byte(peerInfo.MetaData["devices"]), &deviceInfo); err != nil {
+		if err := json.Unmarshal([]byte(peerInfo.Metadata["devices"]), &deviceInfo); err != nil {
 			return nil, err
 		}
 		return deviceInfo, nil
@@ -73,7 +73,7 @@ func AddDevices(devices []deviceapi.Info, peerID string) error {
 	if err != nil {
 		return err
 	}
-	peerInfo.MetaData["_devices"] = string(deviceJSON)
+	peerInfo.Metadata["_devices"] = string(deviceJSON)
 	err = peer.AddOrUpdatePeer(peerInfo)
 	if err != nil {
 		return err
