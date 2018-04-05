@@ -143,7 +143,7 @@ func validateBricks(c transaction.TxnCtx) error {
 	}
 
 	for _, b := range bricks {
-		if !uuid.Equal(b.NodeID, gdctx.MyUUID) {
+		if !uuid.Equal(b.PeerID, gdctx.MyUUID) {
 			continue
 		}
 
@@ -179,7 +179,7 @@ func initBricks(c transaction.TxnCtx) error {
 		flags = unix.XATTR_CREATE
 	}
 	for _, b := range bricks {
-		if !uuid.Equal(b.NodeID, gdctx.MyUUID) {
+		if !uuid.Equal(b.PeerID, gdctx.MyUUID) {
 			continue
 		}
 
@@ -214,7 +214,7 @@ func undoInitBricks(c transaction.TxnCtx) error {
 	// FIXME: This is prone to races. See issue #314
 
 	for _, b := range bricks {
-		if !uuid.Equal(b.NodeID, gdctx.MyUUID) {
+		if !uuid.Equal(b.PeerID, gdctx.MyUUID) {
 			continue
 		}
 

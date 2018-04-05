@@ -37,7 +37,7 @@ func startBricksOnExpand(c transaction.TxnCtx) error {
 	// Start the bricks
 	for _, b := range newBricks {
 
-		if !uuid.Equal(b.NodeID, gdctx.MyUUID) {
+		if !uuid.Equal(b.PeerID, gdctx.MyUUID) {
 			continue
 		}
 
@@ -64,7 +64,7 @@ func undoStartBricksOnExpand(c transaction.TxnCtx) error {
 	// Stop the new bricks and delete brick volfile
 	for _, b := range newBricks {
 
-		if !uuid.Equal(b.NodeID, gdctx.MyUUID) {
+		if !uuid.Equal(b.PeerID, gdctx.MyUUID) {
 			continue
 		}
 

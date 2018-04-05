@@ -90,7 +90,7 @@ func bricksAsUUID(bricks []string) ([]api.BrickReq, error) {
 		for _, b := range bricks {
 			bData := strings.Split(b, ":")
 			bs = append(bs, api.BrickReq{
-				NodeID: bData[0],
+				PeerID: bData[0],
 				Path:   bData[1],
 			})
 		}
@@ -112,7 +112,7 @@ func bricksAsUUID(bricks []string) ([]api.BrickReq, error) {
 				// TODO: Normalize presence/absence of port in peer address
 				if strings.Split(addr, ":")[0] == strings.Split(host, ":")[0] {
 					brickUUIDs = append(brickUUIDs, api.BrickReq{
-						NodeID: peer.ID.String(),
+						PeerID: peer.ID.String(),
 						Path:   path,
 					})
 				}
@@ -235,9 +235,9 @@ func volumeInfoDisplay(vol api.VolumeGetResp) {
 	for sIdx, subvol := range vol.Subvols {
 		for bIdx, brick := range subvol.Bricks {
 			if brick.Type == api.Arbiter {
-				fmt.Printf("Brick%d: %s:%s (arbiter)\n", sIdx+bIdx+1, brick.NodeID, brick.Path)
+				fmt.Printf("Brick%d: %s:%s (arbiter)\n", sIdx+bIdx+1, brick.PeerID, brick.Path)
 			} else {
-				fmt.Printf("Brick%d: %s:%s\n", sIdx+bIdx+1, brick.NodeID, brick.Path)
+				fmt.Printf("Brick%d: %s:%s\n", sIdx+bIdx+1, brick.PeerID, brick.Path)
 			}
 		}
 	}
