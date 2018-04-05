@@ -266,7 +266,7 @@ func configFileGenerate(session *georepapi.GeorepSession) error {
 	// Master Bricks details
 	var master []string
 	for _, b := range vol.GetBricks() {
-		master = append(master, b.NodeID.String()+":"+b.Hostname+":"+b.Path)
+		master = append(master, b.PeerID.String()+":"+b.Hostname+":"+b.Path)
 	}
 	confdata = append(confdata,
 		fmt.Sprintf("master-bricks=%s", strings.Join(master, ",")),

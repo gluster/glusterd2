@@ -37,8 +37,8 @@ func TestGeorepCreateDelete(t *testing.T) {
 			{
 				Type: "distribute",
 				Bricks: []api.BrickReq{
-					{NodeID: gds[0].PeerID(), Path: brickPaths[0]},
-					{NodeID: gds[0].PeerID(), Path: brickPaths[1]},
+					{PeerID: gds[0].PeerID(), Path: brickPaths[0]},
+					{PeerID: gds[0].PeerID(), Path: brickPaths[1]},
 				},
 			},
 		},
@@ -54,8 +54,8 @@ func TestGeorepCreateDelete(t *testing.T) {
 			{
 				Type: "distribute",
 				Bricks: []api.BrickReq{
-					{NodeID: gds[1].PeerID(), Path: brickPaths[2]},
-					{NodeID: gds[1].PeerID(), Path: brickPaths[3]},
+					{PeerID: gds[1].PeerID(), Path: brickPaths[2]},
+					{PeerID: gds[1].PeerID(), Path: brickPaths[3]},
 				},
 			},
 		},

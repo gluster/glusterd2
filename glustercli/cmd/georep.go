@@ -138,9 +138,9 @@ func getVolumeDetails(volname string, rclient *restclient.Client) (*volumeDetail
 		nodes := make(map[string]bool)
 		for _, subvol := range vols[0].Subvols {
 			for _, brick := range subvol.Bricks {
-				if _, ok := nodes[brick.NodeID.String()]; !ok {
-					nodes[brick.NodeID.String()] = true
-					nodesdata = append(nodesdata, georepapi.GeorepRemoteHostReq{NodeID: brick.NodeID.String(), Hostname: brick.Hostname})
+				if _, ok := nodes[brick.PeerID.String()]; !ok {
+					nodes[brick.PeerID.String()] = true
+					nodesdata = append(nodesdata, georepapi.GeorepRemoteHostReq{NodeID: brick.PeerID.String(), Hostname: brick.Hostname})
 				}
 			}
 		}

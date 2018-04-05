@@ -142,17 +142,17 @@ func NewBrickEntries(bricks []api.BrickReq, volName string, volID uuid.UUID) ([]
 	var binfo brick.Brickinfo
 
 	for _, b := range bricks {
-		u := uuid.Parse(b.NodeID)
+		u := uuid.Parse(b.PeerID)
 		if u == nil {
 			return nil, errors.New("Invalid UUID specified as host for brick")
 		}
 
-		p, e := peer.GetPeerF(b.NodeID)
+		p, e := peer.GetPeerF(b.PeerID)
 		if e != nil {
 			return nil, e
 		}
 
-		binfo.NodeID = u
+		binfo.PeerID = u
 		// TODO: Have a better way to select peer address here
 		binfo.Hostname, _, _ = net.SplitHostPort(p.PeerAddresses[0])
 
@@ -194,7 +194,7 @@ func (v *Volinfo) getBricks(onlyLocal bool) []brick.Brickinfo {
 
 	for _, subvol := range v.Subvols {
 		for _, b := range subvol.Bricks {
-			if onlyLocal && !uuid.Equal(b.NodeID, gdctx.MyUUID) {
+			if onlyLocal && !uuid.Equal(b.PeerID, gdctx.MyUUID) {
 				continue
 			}
 			bricks = append(bricks, b)
@@ -223,14 +223,14 @@ func (v *Volinfo) Nodes() []uuid.UUID {
 		// Add node to the slice only if it isn't present already
 		present = false
 		for _, n := range nodes {
-			if uuid.Equal(b.NodeID, n) == true {
+			if uuid.Equal(b.PeerID, n) == true {
 				present = true
 				break
 			}
 		}
 
 		if present == false {
-			nodes = append(nodes, b.NodeID)
+			nodes = append(nodes, b.PeerID)
 		}
 	}
 
@@ -252,7 +252,7 @@ func (v *Volinfo) Peers() []*peer.Peer {
 
 	resultDict := make(map[string]*peer.Peer)
 	for _, b := range v.GetBricks() {
-		resultDict[b.NodeID.String()] = pDict[b.NodeID.String()]
+		resultDict[b.PeerID.String()] = pDict[b.PeerID.String()]
 	}
 
 	var peers []*peer.Peer

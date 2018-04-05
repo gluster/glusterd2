@@ -9,7 +9,7 @@ type BrickInfo struct {
 	Path       string    `json:"path"`
 	VolumeID   uuid.UUID `json:"volume-id"`
 	VolumeName string    `json:"volume-name"`
-	NodeID     uuid.UUID `json:"node-id"`
+	PeerID     uuid.UUID `json:"peer-id"`
 	Hostname   string    `json:"host"`
 	Type       BrickType `json:"type"`
 }

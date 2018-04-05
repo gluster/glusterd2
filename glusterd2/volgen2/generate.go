@@ -12,8 +12,8 @@ func nodesFromClusterInfo(clusterinfo []*volume.Volinfo) map[string]uuid.UUID {
 	for _, vol := range clusterinfo {
 		for _, subvol := range vol.Subvols {
 			for _, brick := range subvol.Bricks {
-				if _, ok := set[brick.NodeID.String()]; !ok {
-					set[brick.NodeID.String()] = brick.NodeID
+				if _, ok := set[brick.PeerID.String()]; !ok {
+					set[brick.PeerID.String()] = brick.PeerID
 				}
 			}
 		}
