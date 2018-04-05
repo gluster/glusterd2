@@ -36,36 +36,48 @@ func volumeResetHandler(w http.ResponseWriter, r *http.Request) {
 	volname := mux.Vars(r)["volname"]
 	volinfo, err := volume.GetVolume(volname)
 	if err != nil {
-		restutils.SendHTTPError(ctx, w, http.StatusBadRequest, errors.ErrVolNotFound.Error(), api.ErrCodeDefault)
+		restutils.SendHTTPError(ctx, w, http.StatusBadRequest, errors.ErrVolNotFound)
 		return
 	}
 
-	var req api.VolOptionReq
+	var req api.VolOptionResetReq
 	if err := restutils.UnmarshalRequest(r, &req); err != nil {
-		restutils.SendHTTPError(ctx, w, http.StatusUnprocessableEntity, errors.ErrJSONParsingFailed.Error(), api.ErrCodeDefault)
+		restutils.SendHTTPError(ctx, w, http.StatusUnprocessableEntity, errors.ErrJSONParsingFailed)
 		return
 	}
 
 	txn := transaction.NewTxn(ctx)
+	// Delete the option after checking for volopt flags
+	success := false
 	for _, k := range req.Options {
 		if _, ok := volinfo.Options[k]; ok {
-			err = txn.Ctx.Delete(k)
-			if err != nil {
-				logger.WithError(err).Error("Option trying to reset is not set or invalid option")
+			if !volinfo.Options[k].VOLOPT_FLAG_NEVER_RESET {
+				if !volinfo.Options[k].VOLOPT_FLAG_FORCE {
+					delete(volinfo.Options, k)
+					success = true
+				} else if volinfo.Options[k].VOLOPT_FLAG_FORCE && req.Force {
+					delete(volinfo.Options, k)
+					success = true
+				}
 			}
+		} else {
+			logger.WithError(err).Error("Option trying to reset is not set or invalid option")
 		}
 	}
-	defer txn.Cleanup()
+	// Check if an option was reset, else return.
+	if !success {
+		return
+	}
 
 	lock, unlock, err := transaction.CreateLockSteps(volinfo.Name)
 	if err != nil {
-		restutils.SendHTTPError(ctx, w, http.StatusInternalServerError, err.Error(), api.ErrCodeDefault)
+		restutils.SendHTTPError(ctx, w, http.StatusInternalServerError, err)
 		return
 	}
 
 	allNodes, err := peer.GetPeerIDs()
 	if err != nil {
-		restutils.SendHTTPError(ctx, w, http.StatusInternalServerError, err.Error(), api.ErrCodeDefault)
+		restutils.SendHTTPError(ctx, w, http.StatusInternalServerError, err)
 		return
 	}
 
@@ -82,27 +94,23 @@ func volumeResetHandler(w http.ResponseWriter, r *http.Request) {
 		unlock,
 	}
 
-	for k, v := range req.Options {
-		// TODO: Normalize <graph>.<xlator>.<option> and just
-		// <xlator>.<option> to avoid ambiguity and duplication.
-		// For example, currently both the following representations
-		// will be stored in volinfo:
-		// {"afr.eager-lock":"on","gfproxy.afr.eager-lock":"on"}
-		volinfo.Options[k] = v
+	// Reset the Options with new values
+	for key, value := range req.Options {
+		volinfo.Options[key] = value
 	}
 
 	if err := txn.Ctx.Set("volinfo", volinfo); err != nil {
 		logger.WithError(err).Error("failed to set volinfo in transaction context")
-		restutils.SendHTTPError(ctx, w, http.StatusInternalServerError, err.Error(), api.ErrCodeDefault)
+		restutils.SendHTTPError(ctx, w, http.StatusInternalServerError, err)
 		return
 	}
 
 	if err := txn.Do(); err != nil {
 		logger.WithError(err).Error("volume option transaction failed")
 		if err == transaction.ErrLockTimeout {
-			restutils.SendHTTPError(ctx, w, http.StatusConflict, err.Error(), api.ErrCodeDefault)
+			restutils.SendHTTPError(ctx, w, http.StatusConflict, err)
 		} else {
-			restutils.SendHTTPError(ctx, w, http.StatusInternalServerError, err.Error(), api.ErrCodeDefault)
+			restutils.SendHTTPError(ctx, w, http.StatusInternalServerError, err)
 		}
 		return
 	}

@@ -42,8 +42,8 @@ type VolOptionReq struct {
 
 // VolOptionResetReq represents a request to reset volume options
 type VolOptionResetReq struct {
-	Options []string `json:"options"`
-	Force   bool     `json:"force,omitempty"`
+	Options map[string]string `json:"options"`
+	Force   bool              `json:"force,omitempty"`
 }
 
 // VolExpandReq represents a request to expand the volume by adding more bricks
