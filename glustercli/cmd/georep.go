@@ -418,10 +418,10 @@ var georepStatusCmd = &cobra.Command{
 				table.SetHeader([]string{"Master Brick", "Status", "Crawl Status", "Remote Node", "Last Synced", "Checkpoint Time", "Checkpoint Completion Time"})
 				for _, worker := range session.Workers {
 					table.Append([]string{
-						worker.MasterNode + ":" + worker.MasterBrickPath,
+						worker.MasterPeerHostname + ":" + worker.MasterBrickPath,
 						worker.Status,
 						worker.CrawlStatus,
-						worker.RemoteNode,
+						worker.RemotePeerHostname,
 						worker.LastSyncedTime,
 						worker.CheckpointTime,
 						worker.CheckpointCompletedTime,
