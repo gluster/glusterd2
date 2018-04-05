@@ -32,7 +32,7 @@ func newGeorepSession(mastervolid uuid.UUID, remotevolid uuid.UUID, req georepap
 	}
 	remotehosts := make([]georepapi.GeorepRemoteHost, len(req.RemoteHosts))
 	for idx, s := range req.RemoteHosts {
-		remotehosts[idx].NodeID = uuid.Parse(s.NodeID)
+		remotehosts[idx].PeerID = uuid.Parse(s.PeerID)
 		remotehosts[idx].Hostname = s.Hostname
 	}
 
@@ -547,7 +547,7 @@ func georepStatusHandler(w http.ResponseWriter, r *http.Request) {
 		// status not available these default values will be sent back in response
 		geoSession.Workers = append(geoSession.Workers, georepapi.GeorepWorker{
 			MasterNode:                 b.Hostname,
-			MasterNodeID:               b.PeerID.String(),
+			MasterPeerID:               b.PeerID.String(),
 			MasterBrickPath:            b.Path,
 			MasterBrick:                b.PeerID.String() + ":" + b.Path,
 			Status:                     "Unknown",
@@ -572,7 +572,7 @@ func georepStatusHandler(w http.ResponseWriter, r *http.Request) {
 	// assignment. So that order of the workers will be maintained similar
 	// to order of bricks in Master Volume
 	for idx, w := range geoSession.Workers {
-		statusData := (*result)[w.MasterNodeID+":"+w.MasterBrickPath]
+		statusData := (*result)[w.MasterPeerID+":"+w.MasterBrickPath]
 		geoSession.Workers[idx].Status = statusData.Status
 		geoSession.Workers[idx].LastSyncedTime = statusData.LastSyncedTime
 		geoSession.Workers[idx].LastSyncedTimeUTC = statusData.LastSyncedTimeUTC

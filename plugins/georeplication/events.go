@@ -29,7 +29,7 @@ func newGeorepEvent(e georepEvent, session *georepapi.GeorepSession, extra *map[
 			"remote.name":   session.RemoteVol,
 			"remote.id":     session.RemoteID.String(),
 			"remote.host":   session.RemoteHosts[0].Hostname,
-			"remote.peerid": session.RemoteHosts[0].NodeID.String(),
+			"remote.peerid": session.RemoteHosts[0].PeerID.String(),
 			"remote.user":   session.RemoteUser,
 		}
 	}
