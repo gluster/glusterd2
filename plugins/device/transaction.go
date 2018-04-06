@@ -30,9 +30,11 @@ func txnPrepareDevice(c transaction.TxnCtx) error {
 	for index, device := range deviceList {
 		err := cmdexec.DeviceSetup(device.Name)
 		if err != nil {
+			c.Logger().WithError(err).WithField("device", device.Name).Error("Failed to setup device, setting device status to 'DeviceFailed'")
 			deviceList[index].State = deviceapi.DeviceFailed
 			continue
 		}
+		c.Logger().WithError(err).WithField("device", device.Name).Error("Setup device successful, setting device status to 'DeviceEnabled'")
 		deviceList[index].State = deviceapi.DeviceEnabled
 	}
 

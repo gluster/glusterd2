@@ -5,6 +5,7 @@ import (
 	"net"
 
 	"github.com/gluster/glusterd2/glusterd2/gdctx"
+	"github.com/gluster/glusterd2/pkg/errors"
 
 	config "github.com/spf13/viper"
 )
@@ -51,13 +52,16 @@ func AddSelfDetails() error {
 		return err
 	}
 	peerInfo, err := GetPeer(gdctx.MyUUID.String())
-	if err != nil {
+	if err == errors.ErrPeerNotFound {
 
 		p.Metadata = make(map[string]string)
 		p.Metadata["_zone"] = p.ID.String()
 
 		return AddOrUpdatePeer(p)
+	} else if err != nil {
+		return nil
 	}
+
 	p.Metadata = peerInfo.Metadata
 	return nil
 }

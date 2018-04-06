@@ -103,12 +103,7 @@ func txnPeerEdit(c transaction.TxnCtx) error {
 	}
 
 	for k, v := range req.Metadata {
-		if peerInfo.Metadata != nil {
-			peerInfo.Metadata[k] = v
-		} else {
-			peerInfo.Metadata = make(map[string]string)
-			peerInfo.Metadata[k] = v
-		}
+		peerInfo.Metadata[k] = v
 	}
 
 	if req.Zone != "" {

@@ -13,7 +13,7 @@ import (
 )
 
 var (
-	expNodeID    = expvar.NewString("node-id")
+	expPeerID    = expvar.NewString("peer-id")
 	expClusterID = expvar.NewString("cluster-id")
 )
 
@@ -28,7 +28,7 @@ const uuidFileName = "uuid.toml"
 
 // UUIDConfig is a type that is read from and written to uuidFileName file.
 type UUIDConfig struct {
-	NodeID    string `toml:"node-id"`
+	PeerID    string `toml:"peer-id"`
 	ClusterID string `toml:"cluster-id"`
 }
 
@@ -44,9 +44,9 @@ func (cfg *UUIDConfig) reload() error {
 		}
 	}
 
-	if cfg.NodeID == "" {
-		cfg.NodeID = uuid.New()
-		log.WithField("node-id", cfg.NodeID).Info("Generated new node ID")
+	if cfg.PeerID == "" {
+		cfg.PeerID = uuid.New()
+		log.WithField("peer-id", cfg.PeerID).Info("Generated new peer ID")
 	}
 
 	if cfg.ClusterID == "" {
@@ -54,9 +54,9 @@ func (cfg *UUIDConfig) reload() error {
 		log.WithField("cluster-id", cfg.ClusterID).Info("Generated new cluster ID")
 	}
 
-	MyUUID = uuid.Parse(cfg.NodeID)
+	MyUUID = uuid.Parse(cfg.PeerID)
 	MyClusterID = uuid.Parse(cfg.ClusterID)
-	expNodeID.Set(MyUUID.String())
+	expPeerID.Set(MyUUID.String())
 	expClusterID.Set(MyClusterID.String())
 
 	return nil
@@ -76,7 +76,7 @@ func (cfg *UUIDConfig) save() error {
 // UpdateClusterID shall update the cluster ID and save it to file.
 func UpdateClusterID(id string) error {
 	cfg := &UUIDConfig{
-		NodeID:    MyUUID.String(),
+		PeerID:    MyUUID.String(),
 		ClusterID: id,
 	}
 
