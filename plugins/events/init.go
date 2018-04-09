@@ -40,6 +40,12 @@ func (p *Plugin) RestRoutes() route.Routes {
 			Pattern:     "/events/webhook",
 			Version:     1,
 			HandlerFunc: webhookListHandler},
+		route.Route{
+			Name:        "EventsList",
+			Method:      "GET",
+			Pattern:     "/events",
+			Version:     1,
+			HandlerFunc: eventsListHandler},
 	}
 }
 

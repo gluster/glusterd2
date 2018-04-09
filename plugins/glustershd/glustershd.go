@@ -45,7 +45,7 @@ func (shd *Glustershd) Args() string {
 	volFileID := "gluster/glustershd"
 
 	logFile := path.Join(config.GetString("logdir"), "glusterfs", "glustershd.log")
-	glusterdSockDir := path.Join(config.GetString("rundir"), "gluster")
+	glusterdSockDir := config.GetString("rundir")
 	socketfilepath := fmt.Sprintf("%s/%x.socket", glusterdSockDir, xxhash.Sum64String(gdctx.MyUUID.String()))
 
 	var buffer bytes.Buffer
@@ -72,8 +72,7 @@ func (shd *Glustershd) PidFile() string {
 		return shd.pidfilepath
 	}
 
-	rundir := config.GetString("rundir")
-	shd.pidfilepath = path.Join(rundir, "gluster", "glustershd.pid")
+	shd.pidfilepath = path.Join(config.GetString("rundir"), "glustershd.pid")
 
 	return shd.pidfilepath
 }

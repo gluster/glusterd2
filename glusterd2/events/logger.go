@@ -7,9 +7,10 @@ import (
 	"os"
 	"path"
 
+	"github.com/gluster/glusterd2/pkg/api"
 	"github.com/gluster/glusterd2/pkg/logging"
-	log "github.com/sirupsen/logrus"
 
+	log "github.com/sirupsen/logrus"
 	config "github.com/spf13/viper"
 )
 
@@ -22,7 +23,7 @@ type eventLogger struct {
 	wc  io.WriteCloser
 }
 
-func (l *eventLogger) Handle(e *Event) {
+func (l *eventLogger) Handle(e *api.Event) {
 
 	b := new(bytes.Buffer)
 	if err := json.NewEncoder(b).Encode(e); err != nil {

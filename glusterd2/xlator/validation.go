@@ -52,6 +52,32 @@ func validateBitrot(v *volume.Volinfo, key string, value string) error {
 	return nil
 }
 
+func validateQuota(v *volume.Volinfo, key string, value string) error {
+
+	// Check if quota is already enabled
+	if volume.IsQuotaEnabled(v) == false {
+		err := fmt.Errorf("Quota not enabled to set this value: '%s'", key)
+		return err
+	}
+
+	switch key {
+	case "deem-statfs":
+		return nil
+	case "hard-timeout":
+		return nil
+	case "soft-timeout":
+		return nil
+	case "alert-time":
+		return nil
+	case "default-soft-limit":
+		return nil
+	default:
+		err := fmt.Errorf("'%s' is not a valid quota option", key)
+		return err
+	}
+	return nil
+}
+
 func registerValidation(xlator string, vf validationFunc) error {
 	xl, err := Find(xlator)
 	if err != nil {
@@ -65,5 +91,9 @@ func registerAllValidations() error {
 	if err := registerValidation("afr", validateReplica); err != nil {
 		return err
 	}
-	return registerValidation("bit-rot", validateBitrot)
+	if err := registerValidation("bit-rot", validateBitrot); err != nil {
+		return err
+	}
+	err := registerValidation("quota", validateQuota)
+	return err
 }

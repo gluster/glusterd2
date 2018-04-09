@@ -18,10 +18,10 @@ func validateOptionSet(req api.OptionGroupReq) error {
 		o1[o.Name] = o.OnValue
 		o2[o.Name] = o.OffValue
 	}
-	if err := validateOptions(o1); err != nil {
+	if err := validateOptions(o1, req.Advanced, req.Experimental, req.Deprecated); err != nil {
 		return err
 	}
-	return validateOptions(o2)
+	return validateOptions(o2, req.Advanced, req.Experimental, req.Deprecated)
 }
 
 func optionGroupCreateHandler(w http.ResponseWriter, r *http.Request) {
@@ -29,24 +29,24 @@ func optionGroupCreateHandler(w http.ResponseWriter, r *http.Request) {
 
 	var req api.OptionGroupReq
 	if err := restutils.UnmarshalRequest(r, &req); err != nil {
-		restutils.SendHTTPError(ctx, w, http.StatusUnprocessableEntity, errors.ErrJSONParsingFailed.Error(), api.ErrCodeDefault)
+		restutils.SendHTTPError(ctx, w, http.StatusUnprocessableEntity, errors.ErrJSONParsingFailed)
 		return
 	}
 
 	if err := validateOptionSet(req); err != nil {
-		restutils.SendHTTPError(ctx, w, http.StatusBadRequest, err.Error(), api.ErrCodeDefault)
+		restutils.SendHTTPError(ctx, w, http.StatusBadRequest, err)
 		return
 	}
 
 	resp, err := store.Store.Get(context.TODO(), "groupoptions")
 	if err != nil {
-		restutils.SendHTTPError(ctx, w, http.StatusInternalServerError, err.Error(), api.ErrCodeDefault)
+		restutils.SendHTTPError(ctx, w, http.StatusInternalServerError, err)
 		return
 	}
 
 	var groupOptions map[string][]api.VolumeOption
 	if err := json.Unmarshal(resp.Kvs[0].Value, &groupOptions); err != nil {
-		restutils.SendHTTPError(ctx, w, http.StatusInternalServerError, err.Error(), api.ErrCodeDefault)
+		restutils.SendHTTPError(ctx, w, http.StatusInternalServerError, err)
 		return
 	}
 
@@ -58,11 +58,11 @@ func optionGroupCreateHandler(w http.ResponseWriter, r *http.Request) {
 
 	groupOptionsJSON, err := json.Marshal(groupOptions)
 	if err != nil {
-		restutils.SendHTTPError(ctx, w, http.StatusInternalServerError, err.Error(), api.ErrCodeDefault)
+		restutils.SendHTTPError(ctx, w, http.StatusInternalServerError, err)
 		return
 	}
 	if _, err := store.Store.Put(context.TODO(), "groupoptions", string(groupOptionsJSON)); err != nil {
-		restutils.SendHTTPError(ctx, w, http.StatusInternalServerError, err.Error(), api.ErrCodeDefault)
+		restutils.SendHTTPError(ctx, w, http.StatusInternalServerError, err)
 		return
 	}
 

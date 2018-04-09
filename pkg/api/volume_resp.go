@@ -9,7 +9,7 @@ type BrickInfo struct {
 	Path       string    `json:"path"`
 	VolumeID   uuid.UUID `json:"volume-id"`
 	VolumeName string    `json:"volume-name"`
-	NodeID     uuid.UUID `json:"node-id"`
+	PeerID     uuid.UUID `json:"peer-id"`
 	Hostname   string    `json:"host"`
 	Type       BrickType `json:"type"`
 }
@@ -79,6 +79,12 @@ type VolumeGetResp VolumeInfo
 
 // VolumeExpandResp is the response sent for a volume expand request.
 type VolumeExpandResp VolumeInfo
+
+// VolumeStartResp is the response sent for a volume start request.
+type VolumeStartResp VolumeInfo
+
+// VolumeStopResp is the response sent for a volume stop request.
+type VolumeStopResp VolumeInfo
 
 // VolumeListResp is the response sent for a volume list request.
 type VolumeListResp []VolumeGetResp

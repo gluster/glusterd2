@@ -4,6 +4,7 @@ import (
 	"context"
 	"encoding/json"
 	"errors"
+	"fmt"
 	"os"
 	"path/filepath"
 
@@ -27,7 +28,7 @@ const volumeIDXattrKey = "trusted.glusterfs.volume-id"
 
 // validateOptions validates if the options and their values are valid and can
 // be set on a volume.
-func validateOptions(opts map[string]string) error {
+func validateOptions(opts map[string]string, adv, exp, dep bool) error {
 
 	for k, v := range opts {
 		o, err := xlator.FindOption(k)
@@ -35,8 +36,23 @@ func validateOptions(opts map[string]string) error {
 			return err
 		}
 
+		switch {
+		case !o.IsSettable():
+			return fmt.Errorf("Option %s cannot be set", k)
+
+		case o.IsAdvanced() && !adv:
+			return fmt.Errorf("Option %s is an advanced option. To set it pass the advanced flag", k)
+
+		case o.IsExperimental() && !exp:
+			return fmt.Errorf("Option %s is an experimental option. To set it pass the experimental flag", k)
+
+		case o.IsDeprecated() && !dep:
+			// TODO: Return deprecation version and alternative option if available
+			return fmt.Errorf("Option %s will be deprecated in future releases. To set it pass the deprecated flag", k)
+		}
+
 		if err := o.Validate(v); err != nil {
-			return err
+			return fmt.Errorf("Failed to validate value(%s) for key(%s): %s", k, v, err.Error())
 		}
 		// TODO: Check op-version
 	}
@@ -63,7 +79,7 @@ func validateXlatorOptions(opts map[string]string, volinfo *volume.Volinfo) erro
 	return nil
 }
 
-func expandOptions(opts map[string]string) (map[string]string, error) {
+func expandGroupOptions(opts map[string]string) (map[string]string, error) {
 	resp, err := store.Store.Get(context.TODO(), "groupoptions")
 	if err != nil {
 		return nil, err
@@ -111,6 +127,7 @@ func notifyVolfileChange(c transaction.TxnCtx) error {
 	return nil
 }
 
+// This txn step is used in volume create and in volume expand
 func validateBricks(c transaction.TxnCtx) error {
 
 	var err error
@@ -126,7 +143,7 @@ func validateBricks(c transaction.TxnCtx) error {
 	}
 
 	for _, b := range bricks {
-		if !uuid.Equal(b.NodeID, gdctx.MyUUID) {
+		if !uuid.Equal(b.PeerID, gdctx.MyUUID) {
 			continue
 		}
 
@@ -140,6 +157,7 @@ func validateBricks(c transaction.TxnCtx) error {
 	return nil
 }
 
+// This txn step is used in volume create and in volume expand
 func initBricks(c transaction.TxnCtx) error {
 
 	var err error
@@ -161,7 +179,7 @@ func initBricks(c transaction.TxnCtx) error {
 		flags = unix.XATTR_CREATE
 	}
 	for _, b := range bricks {
-		if !uuid.Equal(b.NodeID, gdctx.MyUUID) {
+		if !uuid.Equal(b.PeerID, gdctx.MyUUID) {
 			continue
 		}
 
@@ -185,6 +203,7 @@ func initBricks(c transaction.TxnCtx) error {
 	return nil
 }
 
+// This txn step is used in volume create and in volume expand
 func undoInitBricks(c transaction.TxnCtx) error {
 
 	var bricks []brick.Brickinfo
@@ -195,7 +214,7 @@ func undoInitBricks(c transaction.TxnCtx) error {
 	// FIXME: This is prone to races. See issue #314
 
 	for _, b := range bricks {
-		if !uuid.Equal(b.NodeID, gdctx.MyUUID) {
+		if !uuid.Equal(b.PeerID, gdctx.MyUUID) {
 			continue
 		}
 

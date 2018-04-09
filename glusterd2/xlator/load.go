@@ -60,7 +60,7 @@ func structifyOption(cOpt *C.volume_option_t) *options.Option {
 	opt.DefaultValue = C.GoString(cOpt.default_value)
 	opt.Description = C.GoString(cOpt.description)
 	opt.ValidateType = options.OptionValidateType(cOpt.validate)
-	opt.Flags = uint32(cOpt.flags)
+	opt.Flags = options.OptionFlag(cOpt.flags)
 	opt.SetKey = C.GoString(cOpt.setkey)
 	opt.Level = options.OptionLevel(cOpt.level)
 

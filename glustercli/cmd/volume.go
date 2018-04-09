@@ -21,7 +21,6 @@ const (
 	helpVolumeStopCmd   = "Stop a Gluster Volume"
 	helpVolumeDeleteCmd = "Delete a Gluster Volume"
 	helpVolumeGetCmd    = "Get Gluster Volume Options"
-	helpVolumeSetCmd    = "Set a Gluster Volume Option"
 	helpVolumeResetCmd  = "Reset a Gluster Volume Option"
 	helpVolumeInfoCmd   = "Get Gluster Volume Info"
 	helpVolumeListCmd   = "List all Gluster Volumes"
@@ -30,16 +29,6 @@ const (
 )
 
 var (
-	// Create Command Flags
-	flagCreateCmdStripeCount       int
-	flagCreateCmdReplicaCount      int
-	flagCreateCmdArbiterCount      int
-	flagCreateCmdDisperseCount     int
-	flagCreateCmdDisperseDataCount int
-	flagCreateCmdRedundancyCount   int
-	flagCreateCmdTransport         string
-	flagCreateCmdForce             bool
-
 	// Start Command Flags
 	flagStartCmdForce bool
 
@@ -47,21 +36,11 @@ var (
 	flagStopCmdForce bool
 
 	// Expand Command Flags
-	flagExpandCmdForce bool
+	flagExpandCmdReplicaCount int
+	flagExpandCmdForce        bool
 )
 
 func init() {
-	// Volume Create
-	volumeCreateCmd.Flags().IntVarP(&flagCreateCmdStripeCount, "stripe", "", 0, "Stripe Count")
-	volumeCreateCmd.Flags().IntVarP(&flagCreateCmdReplicaCount, "replica", "", 0, "Replica Count")
-	volumeCreateCmd.Flags().IntVarP(&flagCreateCmdArbiterCount, "arbiter", "", 0, "Arbiter Count")
-	volumeCreateCmd.Flags().IntVarP(&flagCreateCmdDisperseCount, "disperse", "", 0, "Disperse Count")
-	volumeCreateCmd.Flags().IntVarP(&flagCreateCmdDisperseDataCount, "disperse-data", "", 0, "Disperse Data Count")
-	volumeCreateCmd.Flags().IntVarP(&flagCreateCmdRedundancyCount, "redundancy", "", 0, "Redundancy Count")
-	volumeCreateCmd.Flags().StringVarP(&flagCreateCmdTransport, "transport", "", "tcp", "Transport")
-	volumeCreateCmd.Flags().BoolVarP(&flagCreateCmdForce, "force", "f", false, "Force")
-	volumeCmd.AddCommand(volumeCreateCmd)
-
 	// Volume Start
 	volumeStartCmd.Flags().BoolVarP(&flagStartCmdForce, "force", "f", false, "Force")
 	volumeCmd.AddCommand(volumeStartCmd)
@@ -74,14 +53,13 @@ func init() {
 	volumeCmd.AddCommand(volumeDeleteCmd)
 
 	volumeCmd.AddCommand(volumeGetCmd)
-	volumeCmd.AddCommand(volumeSetCmd)
 	volumeCmd.AddCommand(volumeResetCmd)
 	volumeCmd.AddCommand(volumeInfoCmd)
 	volumeCmd.AddCommand(volumeStatusCmd)
 	volumeCmd.AddCommand(volumeListCmd)
 
 	// Volume Expand
-	volumeExpandCmd.Flags().IntVarP(&flagCreateCmdReplicaCount, "replica", "", 0, "Replica Count")
+	volumeExpandCmd.Flags().IntVarP(&flagExpandCmdReplicaCount, "replica", "", 0, "Replica Count")
 	volumeExpandCmd.Flags().BoolVarP(&flagExpandCmdForce, "force", "f", false, "Force")
 	volumeCmd.AddCommand(volumeExpandCmd)
 
@@ -111,7 +89,7 @@ func bricksAsUUID(bricks []string) ([]api.BrickReq, error) {
 		for _, b := range bricks {
 			bData := strings.Split(b, ":")
 			bs = append(bs, api.BrickReq{
-				NodeID: bData[0],
+				PeerID: bData[0],
 				Path:   bData[1],
 			})
 		}
@@ -133,7 +111,7 @@ func bricksAsUUID(bricks []string) ([]api.BrickReq, error) {
 				// TODO: Normalize presence/absence of port in peer address
 				if strings.Split(addr, ":")[0] == strings.Split(host, ":")[0] {
 					brickUUIDs = append(brickUUIDs, api.BrickReq{
-						NodeID: peer.ID.String(),
+						PeerID: peer.ID.String(),
 						Path:   path,
 					})
 				}
@@ -146,69 +124,6 @@ func bricksAsUUID(bricks []string) ([]api.BrickReq, error) {
 	}
 
 	return brickUUIDs, nil
-}
-
-var volumeCreateCmd = &cobra.Command{
-	Use:   "create",
-	Short: helpVolumeCreateCmd,
-	Args:  cobra.MinimumNArgs(2),
-	Run: func(cmd *cobra.Command, args []string) {
-		volname := cmd.Flags().Args()[0]
-		bricks, err := bricksAsUUID(cmd.Flags().Args()[1:])
-		if err != nil {
-			log.WithFields(log.Fields{
-				"error":  err.Error(),
-				"volume": volname,
-			}).Error("error getting brick UUIDs")
-			failure("Error getting brick UUIDs", err, 1)
-		}
-
-		numBricks := len(bricks)
-		subvols := []api.SubvolReq{}
-		if flagCreateCmdReplicaCount > 0 {
-			// Replicate Volume Support
-			numSubvols := numBricks / flagCreateCmdReplicaCount
-
-			for i := 0; i < numSubvols; i++ {
-				idx := i * flagCreateCmdReplicaCount
-
-				// If Arbiter is set, set it as Brick Type for last brick
-				if flagCreateCmdArbiterCount > 0 {
-					bricks[idx+flagCreateCmdReplicaCount-1].Type = "arbiter"
-				}
-
-				subvols = append(subvols, api.SubvolReq{
-					Type:         "replicate",
-					Bricks:       bricks[idx : idx+flagCreateCmdReplicaCount],
-					ReplicaCount: flagCreateCmdReplicaCount,
-					ArbiterCount: flagCreateCmdArbiterCount,
-				})
-			}
-		} else {
-			// Default Distribute Volume
-			subvols = []api.SubvolReq{
-				{
-					Type:   "distribute",
-					Bricks: bricks,
-				},
-			}
-		}
-
-		vol, err := client.VolumeCreate(api.VolCreateReq{
-			Name:    volname,
-			Subvols: subvols,
-			Force:   flagCreateCmdForce,
-		})
-		if err != nil {
-			log.WithFields(log.Fields{
-				"volume": volname,
-				"error":  err.Error(),
-			}).Error("volume creation failed")
-			failure("Volume creation failed", err, 1)
-		}
-		fmt.Printf("%s Volume created successfully\n", vol.Name)
-		fmt.Println("Volume ID: ", vol.ID)
-	},
 }
 
 var volumeStartCmd = &cobra.Command{
@@ -263,51 +178,6 @@ var volumeGetCmd = &cobra.Command{
 	},
 }
 
-func volumeOptionJSONHandler(cmd *cobra.Command, volname string, options []string) error {
-	vopt := make(map[string]string)
-	for op, val := range options {
-		if op%2 == 0 {
-			vopt[val] = options[op+1]
-		}
-	}
-
-	if volname == "all" {
-		err := client.GlobalOptionSet(api.GlobalOptionReq{
-			Options: vopt,
-		})
-		return err
-	}
-
-	err := client.VolumeSet(volname, api.VolOptionReq{
-		Options: vopt,
-	})
-	return err
-}
-
-var volumeSetCmd = &cobra.Command{
-	Use:   "set",
-	Short: helpVolumeSetCmd,
-	Args:  cobra.MinimumNArgs(3),
-	Run: func(cmd *cobra.Command, args []string) {
-		if (len(cmd.Flags().Args())-1)%2 == 0 {
-			volname := cmd.Flags().Args()[0]
-			options := cmd.Flags().Args()[1:]
-			err := volumeOptionJSONHandler(cmd, volname, options)
-			if err != nil {
-				log.WithFields(log.Fields{
-					"volume": volname,
-					"error":  err.Error(),
-				}).Error("volume option set failed")
-				failure("Volume option set failed", err, 1)
-			} else {
-				fmt.Printf("Options set successfully for %s volume\n", volname)
-			}
-		} else {
-			fmt.Println("Incorrect volume options")
-		}
-	},
-}
-
 var volumeResetCmd = &cobra.Command{
 	Use:   "reset",
 	Short: helpVolumeResetCmd,
@@ -352,9 +222,9 @@ func volumeInfoDisplay(vol api.VolumeGetResp) {
 	for sIdx, subvol := range vol.Subvols {
 		for bIdx, brick := range subvol.Bricks {
 			if brick.Type == api.Arbiter {
-				fmt.Printf("Brick%d: %s:%s (arbiter)\n", sIdx+bIdx+1, brick.NodeID, brick.Path)
+				fmt.Printf("Brick%d: %s:%s (arbiter)\n", sIdx+bIdx+1, brick.PeerID, brick.Path)
 			} else {
-				fmt.Printf("Brick%d: %s:%s\n", sIdx+bIdx+1, brick.NodeID, brick.Path)
+				fmt.Printf("Brick%d: %s:%s\n", sIdx+bIdx+1, brick.PeerID, brick.Path)
 			}
 		}
 	}
@@ -478,7 +348,7 @@ var volumeExpandCmd = &cobra.Command{
 			failure("Error getting brick UUIDs", err, 1)
 		}
 		vol, err := client.VolumeExpand(volname, api.VolExpandReq{
-			ReplicaCount: flagCreateCmdReplicaCount,
+			ReplicaCount: flagExpandCmdReplicaCount,
 			Bricks:       bricks, // string of format <UUID>:<path>
 			Force:        flagExpandCmdForce,
 		})

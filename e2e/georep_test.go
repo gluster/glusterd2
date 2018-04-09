@@ -37,8 +37,8 @@ func TestGeorepCreateDelete(t *testing.T) {
 			{
 				Type: "distribute",
 				Bricks: []api.BrickReq{
-					{NodeID: gds[0].PeerID(), Path: brickPaths[0]},
-					{NodeID: gds[0].PeerID(), Path: brickPaths[1]},
+					{PeerID: gds[0].PeerID(), Path: brickPaths[0]},
+					{PeerID: gds[0].PeerID(), Path: brickPaths[1]},
 				},
 			},
 		},
@@ -54,8 +54,8 @@ func TestGeorepCreateDelete(t *testing.T) {
 			{
 				Type: "distribute",
 				Bricks: []api.BrickReq{
-					{NodeID: gds[1].PeerID(), Path: brickPaths[2]},
-					{NodeID: gds[1].PeerID(), Path: brickPaths[3]},
+					{PeerID: gds[1].PeerID(), Path: brickPaths[2]},
+					{PeerID: gds[1].PeerID(), Path: brickPaths[3]},
 				},
 			},
 		},
@@ -68,7 +68,7 @@ func TestGeorepCreateDelete(t *testing.T) {
 		MasterVol: volname1,
 		RemoteVol: volname2,
 		RemoteHosts: []georepapi.GeorepRemoteHostReq{
-			{NodeID: gds[1].PeerID(), Hostname: gds[1].PeerAddress},
+			{PeerID: gds[1].PeerID(), Hostname: gds[1].PeerAddress},
 		},
 	}
 

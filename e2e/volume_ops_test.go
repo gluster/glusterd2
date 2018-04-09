@@ -51,10 +51,10 @@ func TestVolume(t *testing.T) {
 	// Run tests that depend on this volume
 	t.Run("Start", testVolumeStart)
 	t.Run("Mount", testVolumeMount)
+	t.Run("Status", testVolumeStatus)
 	t.Run("Stop", testVolumeStop)
 	t.Run("List", testVolumeList)
 	t.Run("Info", testVolumeInfo)
-	t.Run("Status", testVolumeStatus)
 
 	// delete volume
 	t.Run("Delete", testVolumeDelete)
@@ -81,16 +81,16 @@ func testVolumeCreate(t *testing.T) {
 				ReplicaCount: 2,
 				Type:         "replicate",
 				Bricks: []api.BrickReq{
-					{NodeID: gds[0].PeerID(), Path: brickPaths[0]},
-					{NodeID: gds[1].PeerID(), Path: brickPaths[1]},
+					{PeerID: gds[0].PeerID(), Path: brickPaths[0]},
+					{PeerID: gds[1].PeerID(), Path: brickPaths[1]},
 				},
 			},
 			{
 				Type:         "replicate",
 				ReplicaCount: 2,
 				Bricks: []api.BrickReq{
-					{NodeID: gds[0].PeerID(), Path: brickPaths[2]},
-					{NodeID: gds[1].PeerID(), Path: brickPaths[3]},
+					{PeerID: gds[0].PeerID(), Path: brickPaths[2]},
+					{PeerID: gds[1].PeerID(), Path: brickPaths[3]},
 				},
 			},
 		},
@@ -112,10 +112,10 @@ func testVolumeExpand(t *testing.T) {
 
 	expandReq := api.VolExpandReq{
 		Bricks: []api.BrickReq{
-			{NodeID: gds[0].PeerID(), Path: brickPaths[0]},
-			{NodeID: gds[1].PeerID(), Path: brickPaths[1]},
-			{NodeID: gds[0].PeerID(), Path: brickPaths[2]},
-			{NodeID: gds[1].PeerID(), Path: brickPaths[3]},
+			{PeerID: gds[0].PeerID(), Path: brickPaths[0]},
+			{PeerID: gds[1].PeerID(), Path: brickPaths[1]},
+			{PeerID: gds[0].PeerID(), Path: brickPaths[2]},
+			{PeerID: gds[1].PeerID(), Path: brickPaths[3]},
 		},
 		Force: true,
 	}
@@ -211,11 +211,14 @@ func TestVolumeOptions(t *testing.T) {
 			{
 				Type: "distribute",
 				Bricks: []api.BrickReq{
-					{NodeID: gds[0].PeerID(), Path: brickPath},
+					{PeerID: gds[0].PeerID(), Path: brickPath},
 				},
 			},
 		},
 		Force: true,
+		// XXX: Setting advanced, as all options are advanced by default
+		// TODO: Remove this later if the default changes
+		Advanced: true,
 	}
 
 	// valid option test cases
@@ -238,6 +241,23 @@ func TestVolumeOptions(t *testing.T) {
 		_, err = client.VolumeCreate(createReq)
 		r.NotNil(err)
 	}
+
+	// test options that are settable and not settable
+	createReq.Options = nil
+	_, err = client.VolumeCreate(createReq)
+	r.Nil(err)
+	var optionReq api.VolOptionReq
+	// XXX: Setting advanced, as all options are advanced by default
+	// TODO: Remove this later if the default changes
+	optionReq.Advanced = true
+
+	settableKey := "afr.use-compound-fops"
+	optionReq.Options = map[string]string{settableKey: "on"}
+	r.Nil(client.VolumeSet(volname, optionReq))
+	notSettableKey := "afr.consistent-io"
+	optionReq.Options = map[string]string{notSettableKey: "on"}
+	r.NotNil(client.VolumeSet(volname, optionReq))
+	r.Nil(client.VolumeDelete(volname))
 
 	// group option test cases
 	groupOpKeys := []string{"profile.test"}
@@ -262,17 +282,31 @@ func TestVolumeOptions(t *testing.T) {
 	}
 
 	optionGroupReq := api.OptionGroupReq{
-		Name: "profile.test2",
-		Options: []api.VolumeOption{{"opt1", "on", "off"},
-			{"opt2", "enable", "disable"},
-			{"opt3", "off", "on"}}}
+		OptionGroup: api.OptionGroup{
+			Name: "profile.test2",
+			Options: []api.VolumeOption{{"opt1", "on", "off"},
+				{"opt2", "enable", "disable"},
+				{"opt3", "off", "on"},
+			},
+		},
+		// XXX: Setting advanced, as all options are advanced by default
+		// TODO: Remove this later if the default changes
+		Advanced: true,
+	}
 	err = client.OptionGroupCreate(optionGroupReq)
 	r.NotNil(err)
 
 	optionGroupReq = api.OptionGroupReq{
-		Name: "profile.test2",
-		Options: []api.VolumeOption{{"afr.eager-lock", "on", "off"},
-			{"gfproxy.afr.eager-lock", "on", "off"}}}
+		OptionGroup: api.OptionGroup{
+			Name: "profile.test2",
+			Options: []api.VolumeOption{{"afr.eager-lock", "on", "off"},
+				{"gfproxy.afr.eager-lock", "on", "off"},
+			},
+		},
+		// XXX: Setting advanced, as all options are advanced by default
+		// TODO: Remove this later if the default changes
+		Advanced: true,
+	}
 	err = client.OptionGroupCreate(optionGroupReq)
 	r.Nil(err)
 
@@ -300,9 +334,9 @@ func testDisperse(t *testing.T) {
 			{
 				Type: "disperse",
 				Bricks: []api.BrickReq{
-					{NodeID: gds[0].PeerID(), Path: brickPaths[0]},
-					{NodeID: gds[1].PeerID(), Path: brickPaths[1]},
-					{NodeID: gds[0].PeerID(), Path: brickPaths[2]},
+					{PeerID: gds[0].PeerID(), Path: brickPaths[0]},
+					{PeerID: gds[1].PeerID(), Path: brickPaths[1]},
+					{PeerID: gds[0].PeerID(), Path: brickPaths[2]},
 				},
 				DisperseRedundancy: 1,
 			},

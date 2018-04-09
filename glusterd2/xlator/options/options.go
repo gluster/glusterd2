@@ -48,13 +48,16 @@ type OptionFlag uint
 
 // These are the available OptionFlags
 const (
-	OptionFlagNone     OptionFlag = 0
-	OptionFlagSettable            = 1 << iota
+	OptionFlagSettable OptionFlag = 1 << iota
 	OptionFlagClientOpt
 	OptionFlagGlobal
 	OptionFlagForce
 	OptionFlagNeverReset
 	OptionFlagDoc
+	// Setting FlagNone instead of the beginning as iota starts incrementing from
+	// the first line in a const block, not the first line it is used.
+	// Ref: https://github.com/golang/go/wiki/Iota
+	OptionFlagNone = 0
 )
 
 // OptionLevel is the level at which option is visible to users
@@ -90,10 +93,31 @@ type Option struct {
 	ValidateType OptionValidateType
 	OpVersion    []uint32
 	Deprecated   []uint32
-	Flags        uint32
+	Flags        OptionFlag
 	Tags         []string
 	SetKey       string
 	Level        OptionLevel
+}
+
+// IsSettable returns true if the option can be set by a user, returns false
+// otherwise.
+func (o *Option) IsSettable() bool {
+	return (o.Flags & OptionFlagSettable) == OptionFlagSettable
+}
+
+// IsAdvanced returns true if the option is an advanced option
+func (o *Option) IsAdvanced() bool {
+	return o.Level == OptionStatusAdvanced
+}
+
+// IsExperimental returns true if the option is experimental
+func (o *Option) IsExperimental() bool {
+	return o.Level == OptionStatusExperimental
+}
+
+// IsDeprecated returns true if the option is deprcated
+func (o *Option) IsDeprecated() bool {
+	return o.Level == OptionStatusDeprecated
 }
 
 // Validate checks if the given value string can be set as the value for the
@@ -336,10 +360,46 @@ func ValidateStr(o *Option, val string) error {
 
 // ValidateTime validates if the option is valid time format
 func ValidateTime(o *Option, val string) error {
-	if validate.IsTime(val, "hh:mm:ss") != true {
-		return ErrInvalidArg
+	var time int    // to convert given value from other formates to seconds
+	var tStr string // temp value which has the int without "min" ...
+	multiplier := 1
+	if strings.HasSuffix(val, "sec") {
+		tStr = strings.TrimSuffix(val, "sec")
+	} else if strings.HasSuffix(val, "s") {
+		tStr = strings.TrimSuffix(val, "s")
+	} else if strings.HasSuffix(val, "min") {
+		tStr = strings.TrimSuffix(val, "min")
+		multiplier = 60
+	} else if strings.HasSuffix(val, "m") {
+		tStr = strings.TrimSuffix(val, "m")
+		multiplier = 60
+	} else if strings.HasSuffix(val, "hr") {
+		tStr = strings.TrimSuffix(val, "hr")
+		multiplier = 60 * 60
+	} else if strings.HasSuffix(val, "h") {
+		tStr = strings.TrimSuffix(val, "h")
+		multiplier = 60 * 60
+	} else if strings.HasSuffix(val, "days") {
+		tStr = strings.TrimSuffix(val, "days")
+		multiplier = 60 * 60 * 24
+	} else if strings.HasSuffix(val, "d") {
+		tStr = strings.TrimSuffix(val, "d")
+		multiplier = 60 * 60 * 24
+	} else if strings.HasSuffix(val, "w") {
+		tStr = strings.TrimSuffix(val, "w")
+		multiplier = 60 * 60 * 24 * 7
+	} else if strings.HasSuffix(val, "wk") {
+		tStr = strings.TrimSuffix(val, "wk")
+		multiplier = 60 * 60 * 24 * 7
+	} else {
+		tStr = val
 	}
-	return nil
+	time, err := strconv.Atoi(tStr)
+	if err != nil {
+		return err
+	}
+	time = time * multiplier
+	return ValidateRange(o, strconv.Itoa(time))
 }
 
 // ValidateXlator validates if the option is a valid xlator

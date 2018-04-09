@@ -1,4 +1,4 @@
-package volumecommands
+package volume
 
 import (
 	"bufio"
@@ -12,10 +12,27 @@ import (
 	"strings"
 	"syscall"
 
-	"github.com/gluster/glusterd2/pkg/api"
-
 	config "github.com/spf13/viper"
 )
+
+//For now duplicating SizeInfo till we have a common package for both brick and volume
+
+// SizeInfo represents sizing information.
+type SizeInfo struct {
+	Capacity uint64
+	Used     uint64
+	Free     uint64
+}
+
+func createSizeInfo(fstat *syscall.Statfs_t) *SizeInfo {
+	var s SizeInfo
+	if fstat != nil {
+		s.Capacity = fstat.Blocks * uint64(fstat.Bsize)
+		s.Free = fstat.Bfree * uint64(fstat.Bsize)
+		s.Used = s.Capacity - s.Free
+	}
+	return &s
+}
 
 const fuseSuperMagic = 1702057286
 
@@ -50,17 +67,8 @@ func mountVolume(name string, mountpoint string) error {
 	return cmd.Wait() // glusterfs daemonizes itself
 }
 
-func createSizeInfo(fstat *syscall.Statfs_t) *api.SizeInfo {
-	var s api.SizeInfo
-	if fstat != nil {
-		s.Capacity = fstat.Blocks * uint64(fstat.Bsize)
-		s.Free = fstat.Bfree * uint64(fstat.Bsize)
-		s.Used = s.Capacity - s.Free
-	}
-	return &s
-}
-
-func volumeUsage(volname string) (*api.SizeInfo, error) {
+//UsageInfo gives the size information of a gluster volume
+func UsageInfo(volname string) (*SizeInfo, error) {
 
 	tempDir, err := ioutil.TempDir(config.GetString("rundir"), "gd2mount")
 	if err != nil {
