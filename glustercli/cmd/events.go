@@ -4,7 +4,6 @@ import (
 	"fmt"
 	"strings"
 
-	log "github.com/sirupsen/logrus"
 	"github.com/spf13/cobra"
 )
 
@@ -46,10 +45,6 @@ var eventsWebhookAddCmd = &cobra.Command{
 		url := args[0]
 		err := client.WebhookAdd(url, flagWebhookAddCmdToken, flagWebhookAddCmdSecret)
 		if err != nil {
-			log.WithFields(log.Fields{
-				"url":   url,
-				"error": err.Error(),
-			}).Error("failed to add webhook")
 			failure("Failed to add Webhook", err, 1)
 		}
 		fmt.Printf("Webhook %s added successfully\n", url)
@@ -64,10 +59,6 @@ var eventsWebhookDeleteCmd = &cobra.Command{
 		url := args[0]
 		err := client.WebhookDelete(url)
 		if err != nil {
-			log.WithFields(log.Fields{
-				"url":   url,
-				"error": err.Error(),
-			}).Error("failed to delete webhook")
 			failure("Failed to delete Webhook", err, 1)
 		}
 		fmt.Printf("Webhook %s deleted successfully\n", url)
@@ -81,9 +72,6 @@ var eventsWebhookListCmd = &cobra.Command{
 	Run: func(cmd *cobra.Command, args []string) {
 		webhooks, err := client.Webhooks()
 		if err != nil {
-			log.WithFields(log.Fields{
-				"error": err.Error(),
-			}).Error("failed to get list of Webhooks")
 			failure("Failed to get list of registered Webhooks", err, 1)
 		}
 
