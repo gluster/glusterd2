@@ -1,3 +1,5 @@
+required = ["github.com/alecthomas/gometalinter"]
+
 [[constraint]]
   name = "github.com/cespare/xxhash"
   version = "~1.0.0"
