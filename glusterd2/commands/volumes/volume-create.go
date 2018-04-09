@@ -21,7 +21,7 @@ func validateVolCreateReq(req *api.VolCreateReq) error {
 		return gderrors.ErrEmptyVolName
 	}
 
-	if req.Transport != "" && (req.Transport != "tcp" || req.Transport != "rdma") {
+	if req.Transport != "" && req.Transport != "tcp" && req.Transport != "rdma" {
 		return errors.New("Invalid transport. Supported values: tcp or rdma")
 	}
 
