@@ -94,8 +94,8 @@ func (b *Glusterfsd) SocketFile() string {
 	// Example: /var/lib/glusterd/vols/<vol-name>/run/<host-name>-<brick-path>
 	brickPathWithoutSlashes := strings.Trim(strings.Replace(b.Binfo.Path, "/", "-", -1), "-")
 	// FIXME: The brick can no longer clean this up on clean shut down
-	fakeSockFileName := fmt.Sprintf("%s-%s", b.brickinfo.PeerID.String(), brickPathWithoutSlashes)
-	volumedir := utils.GetVolumeDir(b.brickinfo.VolumeName)
+	fakeSockFileName := fmt.Sprintf("%s-%s", b.Binfo.PeerID.String(), brickPathWithoutSlashes)
+	volumedir := utils.GetVolumeDir(b.Binfo.VolumeName)
 	fakeSockFilePath := path.Join(volumedir, "run", fakeSockFileName)
 
 	// Then xxhash of the above path shall be the name of socket file.
@@ -117,7 +117,7 @@ func (b *Glusterfsd) PidFile() string {
 		return b.pidfilepath
 	}
 
-	return GetPidFilePathForBrick(b.brickinfo)
+	return GetPidFilePathForBrick(b.Binfo)
 }
 
 // GetPidFilePathForBrick returns pidfile path for a brick

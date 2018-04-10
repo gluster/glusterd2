@@ -1,7 +1,6 @@
 package volumecommands
 
 import (
-	"errors"
 	"fmt"
 	"net/rpc"
 	"reflect"

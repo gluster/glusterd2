@@ -69,7 +69,7 @@ func startAllBricks(c transaction.TxnCtx) error {
 			}
 
 			req := &brick.GfBrickOpReq{
-				Name: volgen.GetBrickVolFileID(b.VolumeName, b.NodeID.String(), b.Path),
+				Name: volgen.GetBrickVolFileID(b.VolumeName, b.PeerID.String(), b.Path),
 				Op:   int(brick.OpBrickAttach),
 			}
 
