@@ -49,15 +49,15 @@ type VolExpandReq struct {
 
 // VolumeOption represents an option that is part of a profile
 type VolumeOption struct {
-	Name     string `json:"name"`
-	OnValue  string `json:"onvalue"`
-	OffValue string `json:"offvalue"`
+	Name    string `json:"name"`
+	OnValue string `json:"onvalue"`
 }
 
 // OptionGroup represents a group of options
 type OptionGroup struct {
-	Name    string         `json:"name"`
-	Options []VolumeOption `json:"options"`
+	Name        string         `json:"name"`
+	Options     []VolumeOption `json:"options"`
+	Description string         `json:"description"`
 }
 
 // OptionGroupReq represents a request to create a new option group
