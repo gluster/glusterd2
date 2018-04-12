@@ -12,6 +12,7 @@ const (
 	ErrStoreReconfigFailed
 	ErrUnknownPeer
 	ErrClusterIDUpdateFailed
+	ErrAnotherReqInProgress
 	ErrMax
 )
 
@@ -24,6 +25,7 @@ func init() {
 	errorStrings[ErrStoreReconfigFailed] = "store reconfigure failed on peer"
 	errorStrings[ErrUnknownPeer] = "request received from unknown peer"
 	errorStrings[ErrClusterIDUpdateFailed] = "failed to set and store new cluster ID"
+	errorStrings[ErrAnotherReqInProgress] = "already processing another join/leave request"
 }
 
 func (e Error) String() string {

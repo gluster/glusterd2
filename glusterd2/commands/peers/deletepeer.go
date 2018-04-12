@@ -97,7 +97,11 @@ func deletePeerHandler(w http.ResponseWriter, r *http.Request) {
 	} else if Error(rsp.Err) != ErrNone {
 		err = Error(rsp.Err)
 		logger.WithError(err).Error("leave request failed")
-		restutils.SendHTTPError(ctx, w, http.StatusInternalServerError, err)
+		if rsp.Err == int32(ErrAnotherReqInProgress) {
+			restutils.SendHTTPError(ctx, w, http.StatusConflict, err)
+		} else {
+			restutils.SendHTTPError(ctx, w, http.StatusInternalServerError, err)
+		}
 		return
 	}
 	logger.Debug("peer left cluster")
