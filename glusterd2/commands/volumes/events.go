@@ -9,10 +9,11 @@ import (
 type volumeEvent string
 
 const (
-	eventVolumeCreated volumeEvent = "volume.created"
-	eventVolumeStarted             = "volume.started"
-	eventVolumeStopped             = "volume.stopped"
-	eventVolumeDeleted             = "volume.deleted"
+	eventVolumeCreated  volumeEvent = "volume.created"
+	eventVolumeExpanded             = "volume.expanded"
+	eventVolumeStarted              = "volume.started"
+	eventVolumeStopped              = "volume.stopped"
+	eventVolumeDeleted              = "volume.deleted"
 )
 
 func newVolumeEvent(e volumeEvent, v *volume.Volinfo) *api.Event {
