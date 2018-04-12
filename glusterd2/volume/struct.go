@@ -273,5 +273,4 @@ func SubvolTypeToString(subvolType SubvolType) string {
 	default:
 		return "distribute"
 	}
-	return ""
 }
