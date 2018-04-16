@@ -173,6 +173,14 @@ func createDirectories() error {
 	dirs := []string{config.GetString("localstatedir"),
 		config.GetString("rundir"), config.GetString("logdir"),
 		path.Join(config.GetString("logdir"), "glusterfs/bricks"),
+		path.Join(config.GetString("hooksdir"), "create/post"),
+		path.Join(config.GetString("hooksdir"), "start/post"),
+		path.Join(config.GetString("hooksdir"), "stop/post"),
+		path.Join(config.GetString("hooksdir"), "set/post"),
+		path.Join(config.GetString("hooksdir"), "reset/post"),
+		path.Join(config.GetString("hooksdir"), "delete/post"),
+		path.Join(config.GetString("hooksdir"), "add-brick/post"),
+		path.Join(config.GetString("hooksdir"), "remove-brick/post"),
 		"/var/run/gluster", // issue #476
 	}
 	for _, dirpath := range dirs {

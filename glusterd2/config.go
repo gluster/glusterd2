@@ -86,6 +86,8 @@ func setDefaults() error {
 		config.SetDefault("localstatedir", wd)
 	}
 
+	config.SetDefault("hooksdir", config.GetString("localstatedir")+"/hooks")
+
 	if config.GetString(logging.DirFlag) == "" {
 		config.SetDefault(logging.DirFlag, path.Join(config.GetString("localstatedir"), "log"))
 	}
