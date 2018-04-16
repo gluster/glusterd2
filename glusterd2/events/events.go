@@ -41,6 +41,7 @@ func Start() error {
 	StartGlobal()
 	startEventLogger()
 	registerGaneshaHandler()
+	registerHooksHandler()
 	startLivenessWatcher()
 	return nil
 }
