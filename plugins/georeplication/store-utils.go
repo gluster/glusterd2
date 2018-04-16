@@ -98,7 +98,7 @@ func addOrUpdateSSHKey(volname string, sshkey georepapi.GeorepSSHPublicKey) erro
 		return e
 	}
 
-	_, e = store.Store.Put(context.TODO(), georepSSHKeysPrefix+volname+"/"+sshkey.NodeID.String(), string(json))
+	_, e = store.Store.Put(context.TODO(), georepSSHKeysPrefix+volname+"/"+sshkey.PeerID.String(), string(json))
 	if e != nil {
 		log.WithError(e).Error("Couldn't add SSH public key to Store")
 		return e

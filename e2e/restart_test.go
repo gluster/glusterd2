@@ -29,7 +29,7 @@ func TestRestart(t *testing.T) {
 			{
 				Type: "distribute",
 				Bricks: []api.BrickReq{
-					{NodeID: gd.PeerID(), Path: dir},
+					{PeerID: gd.PeerID(), Path: dir},
 				},
 			},
 		},

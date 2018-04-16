@@ -123,6 +123,7 @@ func (v valueType) String() string {
 }
 
 func dumpConfigToLog() {
+	log.WithField("file", config.ConfigFileUsed()).Info("loaded configuration from file")
 	l := log.NewEntry(log.StandardLogger())
 
 	for k, v := range config.AllSettings() {
@@ -162,8 +163,6 @@ func initConfig(confFile string) error {
 				"failed to read given config file")
 			return err
 		}
-	} else {
-		log.WithField("file", config.ConfigFileUsed()).Info("loaded configuration from file")
 	}
 
 	// Use config given by flags
@@ -174,6 +173,5 @@ func initConfig(confFile string) error {
 		return err
 	}
 
-	dumpConfigToLog()
 	return nil
 }

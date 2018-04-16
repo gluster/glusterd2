@@ -62,7 +62,7 @@ func clusterGraph(volfile *Volfile, dht *Entry, vol *volume.Volinfo, nodeid uuid
 		if parent != nil {
 			for brickIdx, b := range subvol.Bricks {
 				// If local bricks only
-				if filters != nil && filters.onlyLocalBricks && !uuid.Equal(b.NodeID, nodeid) {
+				if filters != nil && filters.onlyLocalBricks && !uuid.Equal(b.PeerID, nodeid) {
 					continue
 				}
 

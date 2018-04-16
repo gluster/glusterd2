@@ -92,13 +92,13 @@ func GenerateBrickVolfile(vol *volume.Volinfo, b *brick.Brickinfo) error {
 		return err
 	}
 
-	return bg.WriteToFile(getBrickVolFilePath(vol.Name, b.NodeID.String(), b.Path))
+	return bg.WriteToFile(getBrickVolFilePath(vol.Name, b.PeerID.String(), b.Path))
 }
 
 // DeleteBrickVolfile deletes the brick volfile of a single brick
 func DeleteBrickVolfile(b *brick.Brickinfo) error {
 
-	path := getBrickVolFilePath(b.VolumeName, b.NodeID.String(), b.Path)
+	path := getBrickVolFilePath(b.VolumeName, b.PeerID.String(), b.Path)
 	return os.Remove(path)
 }
 
@@ -108,9 +108,9 @@ func getClientVolFilePath(volname string) string {
 	return path.Join(dir, file)
 }
 
-func getBrickVolFilePath(volname string, brickNodeID string, brickPath string) string {
+func getBrickVolFilePath(volname string, brickPeerID string, brickPath string) string {
 	dir := utils.GetVolumeDir(volname)
 	brickPathWithoutSlashes := strings.Trim(strings.Replace(brickPath, "/", "-", -1), "-")
-	file := fmt.Sprintf("%s.%s.%s.vol", volname, brickNodeID, brickPathWithoutSlashes)
+	file := fmt.Sprintf("%s.%s.%s.vol", volname, brickPeerID, brickPathWithoutSlashes)
 	return path.Join(dir, file)
 }

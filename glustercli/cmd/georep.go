@@ -138,9 +138,9 @@ func getVolumeDetails(volname string, rclient *restclient.Client) (*volumeDetail
 		nodes := make(map[string]bool)
 		for _, subvol := range vols[0].Subvols {
 			for _, brick := range subvol.Bricks {
-				if _, ok := nodes[brick.NodeID.String()]; !ok {
-					nodes[brick.NodeID.String()] = true
-					nodesdata = append(nodesdata, georepapi.GeorepRemoteHostReq{NodeID: brick.NodeID.String(), Hostname: brick.Hostname})
+				if _, ok := nodes[brick.PeerID.String()]; !ok {
+					nodes[brick.PeerID.String()] = true
+					nodesdata = append(nodesdata, georepapi.GeorepRemoteHostReq{PeerID: brick.PeerID.String(), Hostname: brick.Hostname})
 				}
 			}
 		}
@@ -418,10 +418,10 @@ var georepStatusCmd = &cobra.Command{
 				table.SetHeader([]string{"Master Brick", "Status", "Crawl Status", "Remote Node", "Last Synced", "Checkpoint Time", "Checkpoint Completion Time"})
 				for _, worker := range session.Workers {
 					table.Append([]string{
-						worker.MasterNode + ":" + worker.MasterBrickPath,
+						worker.MasterPeerHostname + ":" + worker.MasterBrickPath,
 						worker.Status,
 						worker.CrawlStatus,
-						worker.RemoteNode,
+						worker.RemotePeerHostname,
 						worker.LastSyncedTime,
 						worker.CheckpointTime,
 						worker.CheckpointCompletedTime,

@@ -92,7 +92,7 @@ func (b *Glusterfsd) SocketFile() string {
 	// Example: /var/lib/glusterd/vols/<vol-name>/run/<host-name>-<brick-path>
 	brickPathWithoutSlashes := strings.Trim(strings.Replace(b.brickinfo.Path, "/", "-", -1), "-")
 	// FIXME: The brick can no longer clean this up on clean shut down
-	fakeSockFileName := fmt.Sprintf("%s-%s", b.brickinfo.NodeID.String(), brickPathWithoutSlashes)
+	fakeSockFileName := fmt.Sprintf("%s-%s", b.brickinfo.PeerID.String(), brickPathWithoutSlashes)
 	volumedir := utils.GetVolumeDir(b.brickinfo.VolumeName)
 	fakeSockFilePath := path.Join(volumedir, "run", fakeSockFileName)
 
@@ -113,7 +113,7 @@ func (b *Glusterfsd) PidFile() string {
 
 	brickPathWithoutSlashes := strings.Trim(strings.Replace(b.brickinfo.Path, "/", "-", -1), "-")
 	// FIXME: The brick can no longer clean this up on clean shut down
-	pidfilename := fmt.Sprintf("%s-%s.pid", b.brickinfo.NodeID.String(), brickPathWithoutSlashes)
+	pidfilename := fmt.Sprintf("%s-%s.pid", b.brickinfo.PeerID.String(), brickPathWithoutSlashes)
 	b.pidfilepath = path.Join(config.GetString("rundir"), pidfilename)
 
 	return b.pidfilepath
@@ -215,7 +215,7 @@ func CreateBrickInfo(b *Brickinfo) api.BrickInfo {
 		Path:       b.Path,
 		VolumeID:   b.VolumeID,
 		VolumeName: b.VolumeName,
-		NodeID:     b.NodeID,
+		PeerID:     b.PeerID,
 		Hostname:   b.Hostname,
 		Type:       api.BrickType(b.Type),
 	}

@@ -75,7 +75,6 @@ func validateQuota(v *volume.Volinfo, key string, value string) error {
 		err := fmt.Errorf("'%s' is not a valid quota option", key)
 		return err
 	}
-	return nil
 }
 
 func registerValidation(xlator string, vf validationFunc) error {

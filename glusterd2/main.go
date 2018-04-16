@@ -14,7 +14,6 @@ import (
 	"github.com/gluster/glusterd2/glusterd2/peer"
 	"github.com/gluster/glusterd2/glusterd2/servers"
 	"github.com/gluster/glusterd2/glusterd2/store"
-	"github.com/gluster/glusterd2/glusterd2/volgen"
 	"github.com/gluster/glusterd2/glusterd2/xlator"
 	"github.com/gluster/glusterd2/pkg/errors"
 	"github.com/gluster/glusterd2/pkg/logging"
@@ -50,16 +49,28 @@ func main() {
 		log.WithError(err).Fatal("Failed to initialize logging")
 	}
 
-	log.WithFields(log.Fields{
-		"pid":     os.Getpid(),
-		"version": version.GlusterdVersion,
-	}).Debug("Starting GlusterD")
-
 	// Read config file
 	confFile, _ := flag.CommandLine.GetString("config")
 	if err := initConfig(confFile); err != nil {
 		log.WithError(err).Fatal("Failed to initialize config")
 	}
+
+	logLevel2 := config.GetString("loglevel")
+	logdir2 := config.GetString("logdir")
+	logFileName2 := config.GetString("logfile")
+
+	if logLevel != logLevel2 || logdir != logdir2 || logFileName != logFileName2 {
+		if err := logging.Init(logdir2, logFileName2, logLevel2, true); err != nil {
+			log.WithError(err).Fatal("Failed to re-initialize logging")
+		}
+	}
+
+	log.WithFields(log.Fields{
+		"pid":     os.Getpid(),
+		"version": version.GlusterdVersion,
+	}).Debug("Starting GlusterD")
+
+	dumpConfigToLog()
 
 	workdir := config.GetString("workdir")
 	if err := os.Chdir(workdir); err != nil {
@@ -83,11 +94,6 @@ func main() {
 	// Load all possible xlator options
 	if err := xlator.Load(); err != nil {
 		log.WithError(err).Fatal("Failed to load xlator options")
-	}
-
-	// Load volgen templates
-	if err := volgen.LoadTemplates(); err != nil {
-		log.WithError(err).Fatal("Failed to load volgen templates")
 	}
 
 	// Initialize etcd store (etcd client connection)
@@ -141,9 +147,9 @@ func main() {
 		case unix.SIGHUP:
 			// Logrotate case, when Log rotated, Reopen the log file and
 			// re-initiate the logger instance.
-			if strings.ToLower(logFileName) != "stderr" && strings.ToLower(logFileName) != "stdout" && logFileName != "-" {
+			if strings.ToLower(logFileName2) != "stderr" && strings.ToLower(logFileName2) != "stdout" && logFileName2 != "-" {
 				log.Info("Received SIGHUP, Reloading log file")
-				if err := logging.Init(logdir, logFileName, logLevel, true); err != nil {
+				if err := logging.Init(logdir2, logFileName2, logLevel2, true); err != nil {
 					log.WithError(err).Fatal("Could not re-initialize logging")
 				}
 			}

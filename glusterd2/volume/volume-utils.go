@@ -19,7 +19,7 @@ import (
 
 // isBrickPathAvailable validates whether the brick is consumed by other
 // volume
-func isBrickPathAvailable(nodeID uuid.UUID, brickPath string) error {
+func isBrickPathAvailable(peerID uuid.UUID, brickPath string) error {
 	volumes, e := GetVolumes()
 	if e != nil || volumes == nil {
 		// In case cluster doesn't have any volumes configured yet,
@@ -29,7 +29,7 @@ func isBrickPathAvailable(nodeID uuid.UUID, brickPath string) error {
 	}
 	for _, v := range volumes {
 		for _, b := range v.GetBricks() {
-			if uuid.Equal(b.NodeID, nodeID) && b.Path == brickPath {
+			if uuid.Equal(b.PeerID, peerID) && b.Path == brickPath {
 				log.Error("Brick is already used by ", v.Name)
 				return gderrors.ErrBrickPathAlreadyInUse
 			}

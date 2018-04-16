@@ -56,7 +56,7 @@ func SendHTTPError(ctx context.Context, w http.ResponseWriter, statusCode int,
 
 	var resp api.ErrorResp
 	errMsg := fmt.Sprint(err)
-	if errMsg != "" || errMsg != "<nil>" || len(errCodes) == 0 {
+	if errMsg != "" && errMsg != "<nil>" || len(errCodes) == 0 {
 		resp.Errors = append(resp.Errors, api.HTTPError{
 			Code:    int(api.ErrCodeGeneric),
 			Message: errMsg})

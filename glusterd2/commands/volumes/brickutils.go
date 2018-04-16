@@ -1,7 +1,7 @@
 package volumecommands
 
 import (
-	"errors"
+	"fmt"
 
 	"github.com/gluster/glusterd2/pkg/api"
 
@@ -9,15 +9,15 @@ import (
 )
 
 func nodesFromVolumeCreateReq(req *api.VolCreateReq) ([]uuid.UUID, error) {
-	var nodesMap = make(map[string]int)
+	var nodesMap = make(map[string]bool)
 	var nodes []uuid.UUID
 	for _, subvol := range req.Subvols {
 		for _, brick := range subvol.Bricks {
-			if _, ok := nodesMap[brick.NodeID]; !ok {
-				nodesMap[brick.NodeID] = 1
-				u := uuid.Parse(brick.NodeID)
+			if _, ok := nodesMap[brick.PeerID]; !ok {
+				nodesMap[brick.PeerID] = true
+				u := uuid.Parse(brick.PeerID)
 				if u == nil {
-					return nil, errors.New("Unable to parse Node ID")
+					return nil, fmt.Errorf("Failed to parse peer ID: %s", brick.PeerID)
 				}
 				nodes = append(nodes, u)
 			}
@@ -27,14 +27,14 @@ func nodesFromVolumeCreateReq(req *api.VolCreateReq) ([]uuid.UUID, error) {
 }
 
 func nodesFromVolumeExpandReq(req *api.VolExpandReq) ([]uuid.UUID, error) {
-	var nodesMap = make(map[string]int)
+	var nodesMap = make(map[string]bool)
 	var nodes []uuid.UUID
 	for _, brick := range req.Bricks {
-		if _, ok := nodesMap[brick.NodeID]; !ok {
-			nodesMap[brick.NodeID] = 1
-			u := uuid.Parse(brick.NodeID)
+		if _, ok := nodesMap[brick.PeerID]; !ok {
+			nodesMap[brick.PeerID] = true
+			u := uuid.Parse(brick.PeerID)
 			if u == nil {
-				return nil, errors.New("Unable to parse Node ID")
+				return nil, fmt.Errorf("Failed to parse peer ID: %s", brick.PeerID)
 			}
 			nodes = append(nodes, u)
 		}

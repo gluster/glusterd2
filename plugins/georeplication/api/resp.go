@@ -35,21 +35,21 @@ const (
 
 // GeorepRemoteHost represents Remote host UUID and Hostname
 type GeorepRemoteHost struct {
-	NodeID   uuid.UUID `json:"nodeid"`
+	PeerID   uuid.UUID `json:"nodeid"`
 	Hostname string    `json:"host"`
 }
 
 // GeorepWorker represents Geo-replication Worker
 type GeorepWorker struct {
-	MasterNode                 string `json:"master_node"`
-	MasterNodeID               string `json:"node_id"`
+	MasterPeerHostname         string `json:"master_peer_hostname"`
+	MasterPeerID               string `json:"peer_id"`
 	MasterBrickPath            string `json:"master_brick_path"`
 	MasterBrick                string `json:"master_brick"`
 	Status                     string `json:"worker_status"`
 	LastSyncedTime             string `json:"last_synced"`
 	LastSyncedTimeUTC          string `json:"last_synced_utc"`
 	LastEntrySyncedTime        string `json:"last_synced_entry"`
-	RemoteNode                 string `json:"remote_node"`
+	RemotePeerHostname         string `json:"remote_peer_hostname"`
 	CheckpointTime             string `json:"checkpoint_time"`
 	CheckpointTimeUTC          string `json:"checkpoint_time_utc"`
 	CheckpointCompleted        string `json:"checkpoint_completed"`
@@ -64,7 +64,7 @@ type GeorepWorker struct {
 
 // GeorepSSHPublicKey represents one nodes SSH Public key
 type GeorepSSHPublicKey struct {
-	NodeID    uuid.UUID `json:"nodeid"`
+	PeerID    uuid.UUID `json:"nodeid"`
 	GsyncdKey string    `json:"gsyncd"`
 	TarKey    string    `json:"tar"`
 }

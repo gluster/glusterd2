@@ -8,7 +8,9 @@ import (
 	"net/http"
 	"os/exec"
 	"path"
+	"strings"
 
+	"github.com/gluster/glusterd2/glusterd2/events"
 	"github.com/gluster/glusterd2/glusterd2/gdctx"
 	restutils "github.com/gluster/glusterd2/glusterd2/servers/rest/utils"
 	"github.com/gluster/glusterd2/glusterd2/transaction"
@@ -30,7 +32,7 @@ func newGeorepSession(mastervolid uuid.UUID, remotevolid uuid.UUID, req georepap
 	}
 	remotehosts := make([]georepapi.GeorepRemoteHost, len(req.RemoteHosts))
 	for idx, s := range req.RemoteHosts {
-		remotehosts[idx].NodeID = uuid.Parse(s.NodeID)
+		remotehosts[idx].PeerID = uuid.Parse(s.PeerID)
 		remotehosts[idx].Hostname = s.Hostname
 	}
 
@@ -211,6 +213,8 @@ func georepCreateHandler(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
+	events.Broadcast(newGeorepEvent(eventGeorepCreated, geoSession, nil))
+
 	restutils.SendHTTPResponse(ctx, w, http.StatusCreated, geoSession)
 }
 
@@ -290,19 +294,24 @@ func georepActionHandler(w http.ResponseWriter, r *http.Request, action actionTy
 
 	doFunc := ""
 	stateToSet := ""
+	var eventToSet georepEvent
 	switch action {
 	case actionStart:
 		doFunc = "georeplication-start.Commit"
 		stateToSet = georepapi.GeorepStatusStarted
+		eventToSet = eventGeorepStarted
 	case actionPause:
 		doFunc = "georeplication-pause.Commit"
 		stateToSet = georepapi.GeorepStatusPaused
+		eventToSet = eventGeorepPaused
 	case actionResume:
 		doFunc = "georeplication-resume.Commit"
 		stateToSet = georepapi.GeorepStatusStarted
+		eventToSet = eventGeorepResumed
 	case actionStop:
 		doFunc = "georeplication-stop.Commit"
 		stateToSet = georepapi.GeorepStatusStopped
+		eventToSet = eventGeorepStopped
 	default:
 		restutils.SendHTTPError(ctx, w, http.StatusInternalServerError, "Unknown action")
 		return
@@ -347,6 +356,8 @@ func georepActionHandler(w http.ResponseWriter, r *http.Request, action actionTy
 		restutils.SendHTTPError(ctx, w, http.StatusInternalServerError, e)
 		return
 	}
+
+	events.Broadcast(newGeorepEvent(eventToSet, geoSession, nil))
 
 	restutils.SendHTTPResponse(ctx, w, http.StatusOK, geoSession)
 }
@@ -441,6 +452,7 @@ func georepDeleteHandler(w http.ResponseWriter, r *http.Request) {
 		restutils.SendHTTPError(ctx, w, http.StatusInternalServerError, e)
 		return
 	}
+	events.Broadcast(newGeorepEvent(eventGeorepDeleted, geoSession, nil))
 
 	restutils.SendHTTPResponse(ctx, w, http.StatusOK, nil)
 }
@@ -534,15 +546,15 @@ func georepStatusHandler(w http.ResponseWriter, r *http.Request) {
 		// Set default values to all status fields, If a node or worker is down and
 		// status not available these default values will be sent back in response
 		geoSession.Workers = append(geoSession.Workers, georepapi.GeorepWorker{
-			MasterNode:                 b.Hostname,
-			MasterNodeID:               b.NodeID.String(),
+			MasterPeerHostname:         b.Hostname,
+			MasterPeerID:               b.PeerID.String(),
 			MasterBrickPath:            b.Path,
-			MasterBrick:                b.NodeID.String() + ":" + b.Path,
+			MasterBrick:                b.PeerID.String() + ":" + b.Path,
 			Status:                     "Unknown",
 			LastSyncedTime:             "N/A",
 			LastSyncedTimeUTC:          "N/A",
 			LastEntrySyncedTime:        "N/A",
-			RemoteNode:                 "N/A",
+			RemotePeerHostname:         "N/A",
 			CheckpointTime:             "N/A",
 			CheckpointTimeUTC:          "N/A",
 			CheckpointCompleted:        "N/A",
@@ -560,12 +572,12 @@ func georepStatusHandler(w http.ResponseWriter, r *http.Request) {
 	// assignment. So that order of the workers will be maintained similar
 	// to order of bricks in Master Volume
 	for idx, w := range geoSession.Workers {
-		statusData := (*result)[w.MasterNodeID+":"+w.MasterBrickPath]
+		statusData := (*result)[w.MasterPeerID+":"+w.MasterBrickPath]
 		geoSession.Workers[idx].Status = statusData.Status
 		geoSession.Workers[idx].LastSyncedTime = statusData.LastSyncedTime
 		geoSession.Workers[idx].LastSyncedTimeUTC = statusData.LastSyncedTimeUTC
 		geoSession.Workers[idx].LastEntrySyncedTime = statusData.LastEntrySyncedTime
-		geoSession.Workers[idx].RemoteNode = statusData.RemoteNode
+		geoSession.Workers[idx].RemotePeerHostname = statusData.RemotePeerHostname
 		geoSession.Workers[idx].CheckpointTime = statusData.CheckpointTime
 		geoSession.Workers[idx].CheckpointTimeUTC = statusData.CheckpointTimeUTC
 		geoSession.Workers[idx].CheckpointCompleted = statusData.CheckpointCompleted
@@ -810,6 +822,16 @@ func georepConfigSetHandler(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
+	var allopts []string
+	for k, v := range req {
+		allopts = append(allopts, k+"="+v)
+	}
+	setOpts := map[string]string{
+		"options": strings.Join(allopts, ","),
+	}
+
+	events.Broadcast(newGeorepEvent(eventGeorepConfigSet, geoSession, &setOpts))
+
 	restutils.SendHTTPResponse(ctx, w, http.StatusOK, geoSession.Options)
 }
 
@@ -937,6 +959,10 @@ func georepConfigResetHandler(w http.ResponseWriter, r *http.Request) {
 		restutils.SendHTTPError(ctx, w, http.StatusInternalServerError, e)
 		return
 	}
+
+	events.Broadcast(newGeorepEvent(eventGeorepConfigReset, geoSession,
+		&map[string]string{"options": strings.Join(req, ",")},
+	))
 
 	restutils.SendHTTPResponse(ctx, w, http.StatusOK, geoSession.Options)
 }
