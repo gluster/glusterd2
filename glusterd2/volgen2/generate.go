@@ -1,9 +1,9 @@
 package volgen2
 
 import (
+	"github.com/gluster/glusterd2/glusterd2/snapshot"
 	"github.com/gluster/glusterd2/glusterd2/volume"
 	"github.com/gluster/glusterd2/pkg/utils"
-	"github.com/gluster/glusterd2/plugins/snapshot"
 
 	"github.com/pborman/uuid"
 )

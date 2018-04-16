@@ -4,9 +4,9 @@ import (
 	"net/http"
 
 	restutils "github.com/gluster/glusterd2/glusterd2/servers/rest/utils"
+	"github.com/gluster/glusterd2/glusterd2/snapshot"
 	"github.com/gluster/glusterd2/glusterd2/volume"
 	"github.com/gluster/glusterd2/pkg/api"
-	"github.com/gluster/glusterd2/plugins/snapshot"
 	"github.com/gorilla/mux"
 )
 

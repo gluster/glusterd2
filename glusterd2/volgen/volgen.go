@@ -10,10 +10,10 @@ import (
 	"strings"
 
 	"github.com/gluster/glusterd2/glusterd2/brick"
+	"github.com/gluster/glusterd2/glusterd2/snapshot"
 	"github.com/gluster/glusterd2/glusterd2/store"
 	"github.com/gluster/glusterd2/glusterd2/volume"
 	"github.com/gluster/glusterd2/pkg/utils"
-	"github.com/gluster/glusterd2/plugins/snapshot"
 )
 
 const (

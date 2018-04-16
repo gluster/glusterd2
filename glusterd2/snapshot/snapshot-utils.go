@@ -8,8 +8,8 @@ import (
 
 	"github.com/gluster/glusterd2/glusterd2/brick"
 	"github.com/gluster/glusterd2/glusterd2/gdctx"
+	"github.com/gluster/glusterd2/glusterd2/snapshot/lvm"
 	"github.com/gluster/glusterd2/glusterd2/volume"
-	"github.com/gluster/glusterd2/plugins/snapshot/lvm"
 	"github.com/pborman/uuid"
 	log "github.com/sirupsen/logrus"
 	"golang.org/x/sys/unix"
@@ -95,13 +95,13 @@ func ActivateDeactivateFunc(snapinfo *Snapinfo, b []brick.Brickinfo, activate bo
 			if err := MountSnapBrickDirectory(volinfo, &b[i]); err != nil {
 				return err
 			}
-			if err := b[i].StartBrick(true); err != nil {
+			if err := b[i].StartBrick(); err != nil {
 				return err
 			}
 
 		} else {
 			var err error
-			if err = b[i].StopBrick(true); err != nil {
+			if err = b[i].StopBrick(); err != nil {
 				return err
 			}
 

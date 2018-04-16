@@ -9,7 +9,6 @@ import (
 	"github.com/gluster/glusterd2/plugins/georeplication"
 	"github.com/gluster/glusterd2/plugins/glustershd"
 	"github.com/gluster/glusterd2/plugins/quota"
-	"github.com/gluster/glusterd2/plugins/snapshot/snapshotcommands"
 
 	// ensure init() of non-plugins also gets executed
 	_ "github.com/gluster/glusterd2/plugins/afr"
@@ -24,5 +23,4 @@ var PluginsList = []GlusterdPlugin{
 	&events.Plugin{},
 	&glustershd.Plugin{},
 	&device.Plugin{},
-	&snapshotcommands.Plugin{},
 }

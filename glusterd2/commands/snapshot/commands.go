@@ -5,25 +5,26 @@ import (
 
 	"github.com/gluster/glusterd2/glusterd2/servers/rest/route"
 	restutils "github.com/gluster/glusterd2/glusterd2/servers/rest/utils"
-	"github.com/gluster/glusterd2/pkg/sunrpc"
 )
 
-// Plugin is a structure which implements GlusterdPlugin interface
-type Plugin struct {
+// Command is a structure which implements GlusterD Command interface
+type Command struct {
 }
 
+/*
 // Name returns name of plugin
-func (p *Plugin) Name() string {
+func (p *Command) Name() string {
 	return "snapshot"
 }
 
 // SunRPCProgram returns sunrpc program to register with Glusterd
-func (p *Plugin) SunRPCProgram() sunrpc.Program {
+func (p *Command) SunRPCProgram() sunrpc.Program {
 	return nil
 }
+*/
 
-// RestRoutes returns list of REST API routes to register with Glusterd
-func (p *Plugin) RestRoutes() route.Routes {
+// Routes returns list of REST API routes to register with Glusterd
+func (c *Command) Routes() route.Routes {
 	return route.Routes{
 		route.Route{
 			Name:        "SnapshotCreate",
@@ -145,7 +146,7 @@ func snapshotConfigResetHandler(w http.ResponseWriter, r *http.Request) {
 
 // RegisterStepFuncs registers transaction step functions with
 // Glusterd Transaction framework
-func (p *Plugin) RegisterStepFuncs() {
+func (c *Command) RegisterStepFuncs() {
 	registerSnapCreateStepFuncs()
 	registerSnapActivateStepFuncs()
 	registerSnapDeactivateStepFuncs()

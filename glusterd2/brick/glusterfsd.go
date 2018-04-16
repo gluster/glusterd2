@@ -32,8 +32,6 @@ type Glusterfsd struct {
 	args           string
 	socketfilepath string
 	pidfilepath    string
-	//SnapVol stores weather snap brick or not
-	SnapVol bool
 
 	// For internal use
 	brickinfo Brickinfo
@@ -58,7 +56,7 @@ func (b *Glusterfsd) Args() string {
 
 	brickPort := strconv.Itoa(pmap.AssignPort(0, b.brickinfo.Path))
 
-	volFileID := b.brickinfo.VolumeName + "." + strconv.FormatBool(b.SnapVol) + "." + gdctx.MyUUID.String() + "." + brickPathWithoutSlashes
+	volFileID := b.brickinfo.VolumeName + "." + gdctx.MyUUID.String() + "." + brickPathWithoutSlashes
 
 	shost, sport, _ := net.SplitHostPort(config.GetString("clientaddress"))
 	if shost == "" {
@@ -165,14 +163,13 @@ func errorContainsErrno(err error, errno syscall.Errno) bool {
 // These functions are used in vol-create, vol-expand and vol-shrink (TBD)
 
 //StartBrick starts glusterfsd process
-func (b Brickinfo) StartBrick(snapVol bool) error {
+func (b Brickinfo) StartBrick() error {
 
 	brickDaemon, err := NewGlusterfsd(b)
 	if err != nil {
 		return err
 	}
 
-	brickDaemon.SnapVol = snapVol
 	for i := 0; i < BrickStartMaxRetries; i++ {
 		err = daemon.Start(brickDaemon, true)
 		if err != nil {
@@ -192,13 +189,12 @@ func (b Brickinfo) StartBrick(snapVol bool) error {
 }
 
 //StopBrick will stop glusterfsd process
-func (b Brickinfo) StopBrick(snapVol bool) error {
+func (b Brickinfo) StopBrick() error {
 
 	brickDaemon, err := NewGlusterfsd(b)
 	if err != nil {
 		return err
 	}
-	brickDaemon.SnapVol = snapVol
 	return daemon.Stop(brickDaemon, true)
 }
 
