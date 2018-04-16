@@ -7,12 +7,15 @@ import (
 	"github.com/gluster/glusterd2/glusterd2/servers/peerrpc"
 	"github.com/gluster/glusterd2/glusterd2/store"
 	"github.com/gluster/glusterd2/glusterd2/volume"
+	"github.com/gluster/glusterd2/pkg/utils"
 	"github.com/pborman/uuid"
 
 	log "github.com/sirupsen/logrus"
 	"golang.org/x/net/context"
 	"google.golang.org/grpc"
 )
+
+var mutex = &utils.MutexWithTry{}
 
 // PeerService implements the PeerService gRPC service
 type PeerService int
@@ -31,6 +34,13 @@ func (p *PeerService) Join(ctx context.Context, req *JoinReq) (*JoinRsp, error) 
 	logger := log.WithFields(log.Fields{
 		"remotepeer":    req.PeerID,
 		"remotecluster": req.ClusterID})
+
+	if mutex.TryLock() {
+		defer mutex.Unlock()
+	} else {
+		logger.Info("rejecting join request, already processing another join/leave request")
+		return &JoinRsp{"", int32(ErrAnotherReqInProgress)}, nil
+	}
 
 	logger.Info("handling new incoming join cluster request")
 
@@ -84,6 +94,13 @@ func (p *PeerService) Join(ctx context.Context, req *JoinReq) (*JoinRsp, error) 
 // Leave makes the peer leave its current cluster, and restart as a single node cluster
 func (p *PeerService) Leave(ctx context.Context, req *LeaveReq) (*LeaveRsp, error) {
 	logger := log.WithField("remotepeer", req.PeerID)
+
+	if mutex.TryLock() {
+		defer mutex.Unlock()
+	} else {
+		logger.Info("rejecting leave request, already processing another join/leave request")
+		return &LeaveRsp{int32(ErrAnotherReqInProgress)}, nil
+	}
 
 	logger.Info("handling incoming leave cluster request")
 
