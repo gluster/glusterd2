@@ -132,7 +132,8 @@ type gfStatedump struct {
 // specified host to take statedump. The clients will examine if the PID
 // it received in notification is same as it's own PID. If yes, it will
 // take it's own statedump.
-func ClientStatedump(host string, pid int) {
+func ClientStatedump(volname string, host string, pid int, logger log.FieldLogger) {
+
 	clientsList.RLock()
 	defer clientsList.RUnlock()
 
@@ -145,10 +146,14 @@ func ClientStatedump(host string, pid int) {
 	for conn := range clientsList.c {
 		h, _, _ := net.SplitHostPort(conn.RemoteAddr().String())
 		if utils.IsAddressSame(h, host) {
+			// TODO: Our RPC framework doesn't yet support tagging
+			// each connection with information whether it's a
+			// client or brick, or which volume the client is
+			// connected to etc. We can filter by volume name here
+			// and send RPCs to only those clients.
 			go func(c net.Conn) {
 				if err := callbackClient(c, p, &gfStatedump{uint32(pid)}); err != nil {
-					// TODO: Use context logger if this is part of a user triggered operation
-					log.WithError(err).WithFields(log.Fields{
+					logger.WithError(err).WithFields(log.Fields{
 						"client":    c.RemoteAddr().String(),
 						"procedure": gfCbkStatedump,
 					}).Warn("Failed to notify RPC client")

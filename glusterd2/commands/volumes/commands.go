@@ -109,6 +109,13 @@ func (c *Command) Routes() route.Routes {
 			ResponseType: utils.GetTypeString((*api.VolumeStopResp)(nil)),
 			HandlerFunc:  volumeStopHandler},
 		route.Route{
+			Name:        "Statedump",
+			Method:      "POST",
+			Pattern:     "/volumes/{volname}/statedump",
+			Version:     1,
+			RequestType: utils.GetTypeString((*api.VolStatedumpReq)(nil)),
+			HandlerFunc: volumeStatedumpHandler},
+		route.Route{
 			Name:        "VolfilesGenerate",
 			Method:      "POST",
 			Pattern:     "/volfiles",
@@ -132,4 +139,5 @@ func (c *Command) RegisterStepFuncs() {
 	registerBricksStatusStepFuncs()
 	registerVolExpandStepFuncs()
 	registerVolOptionStepFuncs()
+	registerVolStatedumpFuncs()
 }
