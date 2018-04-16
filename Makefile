@@ -3,6 +3,7 @@ include  ./extras/make/paths.mk
 GD2 = glusterd2
 
 BUILDDIR = build
+MANDIR = man
 BASH_COMPLETIONDIR = /etc/bash_completion.d
 
 GD2_BIN = $(GD2)
@@ -17,6 +18,9 @@ CLI_BASH_COMPLETION_GEN_BIN = $(BUILDDIR)/generate_bash_completion
 CLI_BASH_COMPLETION_BUILD = $(BUILDDIR)/$(CLI_BIN).sh
 CLI_BASH_COMPLETION_INSTALL = $(DESTDIR)$(BASH_COMPLETIONDIR)/$(CLI_BIN).sh
 
+MAN_BUILD = $(BUILDDIR)/$(MANDIR)
+MAN_INSTALL = $(DESTDIR)$(DATADIR)/$(MANDIR)/man8
+
 GD2_CONF = $(GD2).toml
 GD2CONF_BUILDSCRIPT=./scripts/gen-gd2conf.sh
 GD2CONF_BUILD = $(BUILDDIR)/$(GD2_CONF)
@@ -30,7 +34,7 @@ DEPENV ?=
 PLUGINS ?= yes
 FASTBUILD ?= yes
 
-.PHONY: all build check check-go check-reqs install vendor-update vendor-install verify release check-protoc $(GD2_BIN) $(GD2_BUILD) $(CLI_BIN) $(CLI_BUILD) cli $(GD2_CONF) gd2conf test dist dist-vendor functest
+.PHONY: all build check check-go check-reqs install vendor-update vendor-install verify release check-protoc $(GD2_BIN) $(GD2_BUILD) $(CLI_BIN) $(CLI_BUILD) cli $(GD2_CONF) gd2conf test dist dist-vendor functest man-gd2 man-cli
 
 all: build
 
@@ -49,12 +53,12 @@ check-reqs:
 	@./scripts/check-reqs.sh
 	@echo
 
-$(GD2_BIN): $(GD2_BUILD)
+$(GD2_BIN): $(GD2_BUILD) man-gd2
 $(GD2_BUILD):
 	@PLUGINS=$(PLUGINS) FASTBUILD=$(FASTBUILD) ./scripts/build.sh glusterd2
 	@echo
 
-$(CLI_BIN) cli: $(CLI_BUILD)
+$(CLI_BIN) cli: $(CLI_BUILD) man-cli
 $(CLI_BUILD):
 	@FASTBUILD=$(FASTBUILD) ./scripts/build.sh glustercli
 	@FASTBUILD=$(FASTBUILD) ./scripts/build.sh glustercli/generate_bash_completion
@@ -65,11 +69,21 @@ $(GD2_CONF) gd2conf: $(GD2CONF_BUILD)
 $(GD2CONF_BUILD):
 	@GD2STATEDIR=$(GD2STATEDIR) GD2LOGDIR=$(GD2LOGDIR) $(GD2CONF_BUILDSCRIPT)
 
+man-gd2:
+	@mkdir -p $(BUILDDIR)/$(MANDIR)/
+	@gzip -c doc/glusterd2.8 > $(BUILDDIR)/$(MANDIR)/glusterd2.8.gz
+
+man-cli:
+	@mkdir -p $(BUILDDIR)/$(MANDIR)/
+	@gzip -c doc/glustercli.8 > $(BUILDDIR)/$(MANDIR)/glustercli.8.gz
+
 install:
 	install -D $(GD2_BUILD) $(GD2_INSTALL)
 	install -D $(CLI_BUILD) $(CLI_INSTALL)
 	install -D -m 0644 $(GD2CONF_BUILD) $(GD2CONF_INSTALL)
 	install -D -m 0644 $(CLI_BASH_COMPLETION_BUILD) $(CLI_BASH_COMPLETION_INSTALL)
+	install -m 0644 $(MAN_BUILD)/glusterd2.8.gz $(MAN_INSTALL)
+	install -m 0644 $(MAN_BUILD)/glustercli.8.gz $(MAN_INSTALL)
 	@echo
 
 vendor-update:
