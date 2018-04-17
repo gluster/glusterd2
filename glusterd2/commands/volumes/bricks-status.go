@@ -110,9 +110,9 @@ func volumeBricksStatusHandler(w http.ResponseWriter, r *http.Request) {
 func createBricksStatusResp(ctx transaction.TxnCtx, vol *volume.Volinfo) (*api.BricksStatusResp, error) {
 
 	// bmap is a map of brick statuses keyed by brick ID
-	bmap := make(map[string]*api.BrickStatus)
+	bmap := make(map[string]api.BrickStatus)
 	for _, b := range vol.GetBricks() {
-		bmap[b.ID.String()] = &api.BrickStatus{
+		bmap[b.ID.String()] = api.BrickStatus{
 			Info: brick.CreateBrickInfo(&b),
 		}
 	}
@@ -128,12 +128,12 @@ func createBricksStatusResp(ctx transaction.TxnCtx, vol *volume.Volinfo) (*api.B
 			continue
 		}
 		for _, b := range tmp {
-			bmap[b.Info.ID.String()] = &b
+			bmap[b.Info.ID.String()] = b
 		}
 	}
 
 	for _, v := range bmap {
-		resp = append(resp, *v)
+		resp = append(resp, v)
 	}
 
 	return &resp, nil
