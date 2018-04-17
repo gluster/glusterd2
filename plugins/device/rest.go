@@ -35,6 +35,16 @@ func deviceAddHandler(w http.ResponseWriter, r *http.Request) {
 		restutils.SendHTTPError(ctx, w, http.StatusNotFound, "Peer-id not found in store")
 		return
 	}
+	lock, unlock := transaction.CreateLockFuncs(peerID)
+	if err := lock(ctx); err != nil {
+		if err == transaction.ErrLockTimeout {
+			restutils.SendHTTPError(ctx, w, http.StatusConflict, err)
+		} else {
+			restutils.SendHTTPError(ctx, w, http.StatusInternalServerError, err)
+		}
+		return
+	}
+	defer unlock(ctx)
 
 	devices, err := CheckIfDeviceExist(req.Devices, peerInfo.Metadata["_devices"])
 	if err != nil {
@@ -42,21 +52,16 @@ func deviceAddHandler(w http.ResponseWriter, r *http.Request) {
 		restutils.SendHTTPError(ctx, w, http.StatusInternalServerError, "Devices already exists")
 		return
 	}
+
 	txn := transaction.NewTxn(ctx)
 	defer txn.Cleanup()
-	lock, unlock, err := transaction.CreateLockSteps(peerID)
-	if err != nil {
-		restutils.SendHTTPError(ctx, w, http.StatusInternalServerError, err)
-		return
-	}
+
 	txn.Nodes = []uuid.UUID{peerInfo.ID}
 	txn.Steps = []*transaction.Step{
-		lock,
 		{
 			DoFunc: "prepare-device",
 			Nodes:  txn.Nodes,
 		},
-		unlock,
 	}
 	err = txn.Ctx.Set("peerid", &peerID)
 	if err != nil {
@@ -82,5 +87,6 @@ func deviceAddHandler(w http.ResponseWriter, r *http.Request) {
 		restutils.SendHTTPError(ctx, w, http.StatusInternalServerError, "Failed to get peer from store")
 		return
 	}
+	unlock(ctx)
 	restutils.SendHTTPResponse(ctx, w, http.StatusOK, peerInfo)
 }
