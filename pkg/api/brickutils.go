@@ -1,14 +1,13 @@
-package volumecommands
+package api
 
 import (
 	"fmt"
 
-	"github.com/gluster/glusterd2/pkg/api"
-
 	"github.com/pborman/uuid"
 )
 
-func nodesFromVolumeCreateReq(req *api.VolCreateReq) ([]uuid.UUID, error) {
+// Nodes extracts the list of nodes from Volume Create request
+func (req *VolCreateReq) Nodes() ([]uuid.UUID, error) {
 	var nodesMap = make(map[string]bool)
 	var nodes []uuid.UUID
 	for _, subvol := range req.Subvols {
@@ -26,7 +25,8 @@ func nodesFromVolumeCreateReq(req *api.VolCreateReq) ([]uuid.UUID, error) {
 	return nodes, nil
 }
 
-func nodesFromVolumeExpandReq(req *api.VolExpandReq) ([]uuid.UUID, error) {
+// Nodes extracts list of Peer IDs from Volume Expand request
+func (req *VolExpandReq) Nodes() ([]uuid.UUID, error) {
 	var nodesMap = make(map[string]bool)
 	var nodes []uuid.UUID
 	for _, brick := range req.Bricks {

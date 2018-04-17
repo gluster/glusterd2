@@ -110,7 +110,7 @@ func volumeCreateHandler(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	nodes, err := nodesFromVolumeCreateReq(&req)
+	nodes, err := req.Nodes()
 	if err != nil {
 		restutils.SendHTTPError(ctx, w, http.StatusBadRequest, err)
 		return
@@ -172,7 +172,7 @@ func volumeCreateHandler(w http.ResponseWriter, r *http.Request) {
 	}
 
 	logger.WithField("volume-name", volinfo.Name).Info("new volume created")
-	events.Broadcast(newVolumeEvent(eventVolumeCreated, volinfo))
+	events.Broadcast(volume.NewEvent(volume.EventVolumeCreated, volinfo))
 
 	resp := createVolumeCreateResp(volinfo)
 	restutils.SendHTTPResponse(ctx, w, http.StatusCreated, resp)
