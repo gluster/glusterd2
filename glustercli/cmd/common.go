@@ -41,13 +41,13 @@ func handleGlusterdConnectFailure(msg string, err error, https bool, host string
 			scheme = "https"
 		}
 		os.Stderr.WriteString(msg + "\n\n")
-		os.Stderr.WriteString(fmt.Sprintf(errFailedToConnectToGlusterd, scheme, flagHostname, flagPort))
+		os.Stderr.WriteString(fmt.Sprintf(errFailedToConnectToGlusterd, scheme, FlagHostname, FlagPort))
 		os.Exit(errcode)
 	}
 }
 
 func failure(msg string, err error, errcode int) {
-	handleGlusterdConnectFailure(msg, err, flagHTTPS, flagHostname, flagPort, errcode)
+	handleGlusterdConnectFailure(msg, err, FlagHTTPS, FlagHostname, FlagPort, errcode)
 
 	// If different error
 	os.Stderr.WriteString(msg + "\n")
