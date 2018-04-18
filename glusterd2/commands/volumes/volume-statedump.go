@@ -94,7 +94,7 @@ func volumeStatedumpHandler(w http.ResponseWriter, r *http.Request) {
 
 	var req api.VolStatedumpReq
 	if err := restutils.UnmarshalRequest(r, &req); err != nil {
-		restutils.SendHTTPError(ctx, w, http.StatusBadRequest, err)
+		restutils.SendHTTPError(ctx, w, http.StatusBadRequest, gderrors.ErrJSONParsingFailed)
 		return
 	}
 
