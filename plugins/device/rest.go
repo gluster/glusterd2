@@ -1,6 +1,7 @@
 package device
 
 import (
+	"encoding/json"
 	"net/http"
 
 	"github.com/gluster/glusterd2/glusterd2/gdctx"
@@ -29,12 +30,6 @@ func deviceAddHandler(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	peerInfo, err := peer.GetPeer(peerID)
-	if err != nil {
-		logger.WithError(err).WithField("peerid", peerID).Error("Peer-id not found in store")
-		restutils.SendHTTPError(ctx, w, http.StatusNotFound, "Peer-id not found in store")
-		return
-	}
 	lock, unlock := transaction.CreateLockFuncs(peerID)
 	if err := lock(ctx); err != nil {
 		if err == transaction.ErrLockTimeout {
@@ -46,10 +41,23 @@ func deviceAddHandler(w http.ResponseWriter, r *http.Request) {
 	}
 	defer unlock(ctx)
 
-	devices, err := CheckIfDeviceExist(req.Devices, peerInfo.Metadata["_devices"])
+	peerInfo, err := peer.GetPeer(peerID)
 	if err != nil {
-		logger.WithError(err).WithField("device", req.Devices).Error("Device already exists")
-		restutils.SendHTTPError(ctx, w, http.StatusInternalServerError, "Devices already exists")
+		logger.WithError(err).WithField("peerid", peerID).Error("Peer-id not found in store")
+		restutils.SendHTTPError(ctx, w, http.StatusNotFound, "Peer-id not found in store")
+		return
+	}
+
+	var devices []deviceapi.Info
+	err = json.Unmarshal([]byte(peerInfo.Metadata["_"]), &devices)
+	if err != nil {
+		logger.WithError(err).WithField("peerid", peerID).Error(err)
+		restutils.SendHTTPError(ctx, w, http.StatusInternalServerError, err)
+		return
+	}
+	if !CheckIfDeviceExist(req.Devices, devices) {
+		logger.WithError(err).WithField("device", req.Devices).Error("One or more  already exists")
+		restutils.SendHTTPError(ctx, w, http.StatusInternalServerError, "One or more  already exists")
 		return
 	}
 
@@ -69,9 +77,9 @@ func deviceAddHandler(w http.ResponseWriter, r *http.Request) {
 		restutils.SendHTTPError(ctx, w, http.StatusInternalServerError, err)
 		return
 	}
-	err = txn.Ctx.Set("devices", &devices)
+	err = txn.Ctx.Set("", &req.Devices)
 	if err != nil {
-		logger.WithError(err).WithField("key", "devices").Error("Failed to set key in transaction context")
+		logger.WithError(err).WithField("key", "").Error("Failed to set key in transaction context")
 		restutils.SendHTTPError(ctx, w, http.StatusInternalServerError, err)
 		return
 	}
@@ -87,6 +95,5 @@ func deviceAddHandler(w http.ResponseWriter, r *http.Request) {
 		restutils.SendHTTPError(ctx, w, http.StatusInternalServerError, "Failed to get peer from store")
 		return
 	}
-	unlock(ctx)
 	restutils.SendHTTPResponse(ctx, w, http.StatusOK, peerInfo)
 }
