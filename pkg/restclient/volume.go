@@ -83,6 +83,12 @@ func (c *Client) VolumeExpand(volname string, req api.VolExpandReq) (api.VolumeE
 	return vol, err
 }
 
+// VolumeStatedump takes statedump of various daemons
+func (c *Client) VolumeStatedump(volname string, req api.VolStatedumpReq) error {
+	url := fmt.Sprintf("/v1/volumes/%s/statedump", volname)
+	return c.post(url, req, http.StatusOK, nil)
+}
+
 // OptionGroupCreate creates a new option group
 func (c *Client) OptionGroupCreate(req api.OptionGroupReq) error {
 	return c.post("/v1/volumes/options-group", req, http.StatusCreated, nil)

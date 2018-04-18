@@ -66,3 +66,18 @@ type OptionGroupReq struct {
 	Experimental bool `json:"experimental,omitempty"`
 	Deprecated   bool `json:"deprecated,omitempty"`
 }
+
+// ClientStatedump uniquely identifies a client (only gfapi) connected to
+// glusterd2
+type ClientStatedump struct {
+	Host string `json:"host" valid:"host,required"`
+	Pid  int    `json:"pid" valid:"required"`
+}
+
+// VolStatedumpReq represents a request to take statedump of various processes
+// of a volume
+type VolStatedumpReq struct {
+	Bricks bool            `json:"bricks,omitempty"`
+	Quota  bool            `json:"quotad,omitempty"`
+	Client ClientStatedump `json:"client,omitempty"`
+}

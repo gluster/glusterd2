@@ -6,7 +6,10 @@ import (
 	"net"
 	"os"
 	"os/exec"
+	"path/filepath"
+	"strings"
 	"testing"
+	"time"
 
 	"github.com/gluster/glusterd2/pkg/api"
 	"github.com/gluster/glusterd2/pkg/restclient"
@@ -52,6 +55,7 @@ func TestVolume(t *testing.T) {
 	t.Run("Start", testVolumeStart)
 	t.Run("Mount", testVolumeMount)
 	t.Run("Status", testVolumeStatus)
+	t.Run("Statedump", testVolumeStatedump)
 	t.Run("Stop", testVolumeStop)
 	t.Run("List", testVolumeList)
 	t.Run("Info", testVolumeInfo)
@@ -160,6 +164,38 @@ func testVolumeStatus(t *testing.T) {
 
 	_, err := client.VolumeStatus(volname)
 	r.Nil(err)
+}
+
+func testVolumeStatedump(t *testing.T) {
+	r := require.New(t)
+
+	// Get statedump dir
+	args := []string{"--print-statedumpdir"}
+	cmdOut, err := exec.Command("gluster", args...).Output()
+	r.Nil(err)
+	statedumpDir := strings.TrimSpace(string(cmdOut))
+
+	// statedump file pattern: hyphenated-brickpath.<pid>.dump.<timestamp>
+	pattern := statedumpDir + "/*[0-9]*.dump.[0-9]*"
+
+	// remove old statedump files
+	files, err := filepath.Glob(pattern)
+	r.Nil(err)
+	for _, f := range files {
+		os.Remove(f)
+	}
+
+	// take statedump
+	var req api.VolStatedumpReq
+	req.Bricks = true
+	r.Nil(client.VolumeStatedump(volname, req))
+	// give it some time to ensure the statedumps are generated
+	time.Sleep(1 * time.Second)
+
+	// Check if statedump have been generated for all bricks
+	files, err = filepath.Glob(pattern)
+	r.Nil(err)
+	r.Equal(len(files), 8) // 4 bricks during vol create + 4 after expand
 }
 
 // testVolumeMount mounts checks if the volume mounts successfully and unmounts it
