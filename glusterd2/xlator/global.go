@@ -1,7 +1,12 @@
 package xlator
 
 import (
+	"fmt"
+	"runtime/debug"
+
 	"github.com/gluster/glusterd2/glusterd2/xlator/options"
+
+	log "github.com/sirupsen/logrus"
 )
 
 var (
@@ -15,6 +20,15 @@ var (
 // Load load all available xlators and intializes the xlators and options maps
 func Load() (err error) {
 
+	defer func() {
+		if r := recover(); r != nil {
+			log.Info(string(debug.Stack()))
+			err = fmt.Errorf("recover()ed at xlator.Load(): %s", r)
+			log.Error("Your version of glusterfs is incomaptible. ",
+				"Please install latest glusterfs from source (branch: master)")
+		}
+	}()
+
 	xls, err := loadAllXlators()
 	if err != nil {
 		return
@@ -23,8 +37,9 @@ func Load() (err error) {
 
 	loadOptions()
 
-	if err := registerAllValidations(); err != nil {
-		return err
+	err = registerAllValidations()
+	if err != nil {
+		return
 	}
 
 	return
