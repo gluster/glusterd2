@@ -19,7 +19,7 @@ func webhookAddHandler(w http.ResponseWriter, r *http.Request) {
 	var req eventsapi.Webhook
 	if err := restutils.UnmarshalRequest(r, &req); err != nil {
 		restutils.SendHTTPError(
-			ctx, w, http.StatusUnprocessableEntity,
+			ctx, w, http.StatusBadRequest,
 			errors.ErrJSONParsingFailed)
 		return
 	}
@@ -57,7 +57,7 @@ func webhookDeleteHandler(w http.ResponseWriter, r *http.Request) {
 
 	var req eventsapi.Webhook
 	if err := restutils.UnmarshalRequest(r, &req); err != nil {
-		restutils.SendHTTPError(ctx, w, http.StatusUnprocessableEntity,
+		restutils.SendHTTPError(ctx, w, http.StatusBadRequest,
 			errors.ErrJSONParsingFailed)
 		return
 	}

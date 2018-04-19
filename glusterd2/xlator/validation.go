@@ -77,6 +77,22 @@ func validateQuota(v *volume.Volinfo, key string, value string) error {
 	}
 }
 
+func validateDht(v *volume.Volinfo, key string, value string) error {
+	var err error
+	if strings.Contains(key, "readdirplus-for-dir") {
+		if value == "on" {
+			val, exists := v.Options["features.cache-invalidation"]
+			if exists && val == "on" {
+				return nil
+			}
+			err = fmt.Errorf("Enable \"features.cache-invalidation\" before enabling %s",
+				key)
+			return err
+		}
+	}
+	return nil
+}
+
 func registerValidation(xlator string, vf validationFunc) error {
 	xl, err := Find(xlator)
 	if err != nil {
@@ -93,6 +109,11 @@ func registerAllValidations() error {
 	if err := registerValidation("bit-rot", validateBitrot); err != nil {
 		return err
 	}
-	err := registerValidation("quota", validateQuota)
-	return err
+	if err := registerValidation("quota", validateQuota); err != nil {
+		return err
+	}
+	if err := registerValidation("dht", validateDht); err != nil {
+		return err
+	}
+	return nil
 }

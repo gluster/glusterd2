@@ -9,6 +9,7 @@ import (
 	restutils "github.com/gluster/glusterd2/glusterd2/servers/rest/utils"
 	"github.com/gluster/glusterd2/glusterd2/transaction"
 	"github.com/gluster/glusterd2/pkg/api"
+	"github.com/gluster/glusterd2/pkg/errors"
 
 	"github.com/gorilla/mux"
 	"github.com/pborman/uuid"
@@ -21,7 +22,7 @@ func editPeer(w http.ResponseWriter, r *http.Request) {
 
 	var req api.PeerEditReq
 	if err := restutils.UnmarshalRequest(r, &req); err != nil {
-		restutils.SendHTTPError(ctx, w, http.StatusBadRequest, err)
+		restutils.SendHTTPError(ctx, w, http.StatusBadRequest, errors.ErrJSONParsingFailed)
 		return
 	}
 

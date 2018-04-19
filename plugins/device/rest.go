@@ -8,6 +8,7 @@ import (
 	"github.com/gluster/glusterd2/glusterd2/peer"
 	restutils "github.com/gluster/glusterd2/glusterd2/servers/rest/utils"
 	"github.com/gluster/glusterd2/glusterd2/transaction"
+	"github.com/gluster/glusterd2/pkg/errors"
 	deviceapi "github.com/gluster/glusterd2/plugins/device/api"
 
 	"github.com/gorilla/mux"
@@ -26,7 +27,8 @@ func deviceAddHandler(w http.ResponseWriter, r *http.Request) {
 
 	req := new(deviceapi.AddDeviceReq)
 	if err := restutils.UnmarshalRequest(r, req); err != nil {
-		restutils.SendHTTPError(ctx, w, http.StatusBadRequest, err)
+		logger.WithError(err).Error("Failed to Unmarshal request")
+		restutils.SendHTTPError(ctx, w, http.StatusBadRequest, errors.ErrJSONParsingFailed)
 		return
 	}
 

@@ -22,7 +22,7 @@ func addPeerHandler(w http.ResponseWriter, r *http.Request) {
 
 	var req api.PeerAddReq
 	if err := restutils.UnmarshalRequest(r, &req); err != nil {
-		restutils.SendHTTPError(ctx, w, http.StatusBadRequest, err)
+		restutils.SendHTTPError(ctx, w, http.StatusBadRequest, errors.ErrJSONParsingFailed)
 		return
 	}
 
