@@ -63,7 +63,7 @@ func volumeCreateHandler(w http.ResponseWriter, r *http.Request) {
 
 	var req api.VolCreateReq
 	if err := restutils.UnmarshalRequest(r, &req); err != nil {
-		restutils.SendHTTPError(ctx, w, http.StatusUnprocessableEntity, err)
+		restutils.SendHTTPError(ctx, w, http.StatusBadRequest, gderrors.ErrJSONParsingFailed)
 		return
 	}
 

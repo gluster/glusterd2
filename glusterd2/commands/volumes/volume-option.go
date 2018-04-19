@@ -87,7 +87,7 @@ func volumeOptionsHandler(w http.ResponseWriter, r *http.Request) {
 
 	var req api.VolOptionReq
 	if err := restutils.UnmarshalRequest(r, &req); err != nil {
-		restutils.SendHTTPError(ctx, w, http.StatusUnprocessableEntity, errors.ErrJSONParsingFailed)
+		restutils.SendHTTPError(ctx, w, http.StatusBadRequest, errors.ErrJSONParsingFailed)
 		return
 	}
 

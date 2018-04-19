@@ -90,7 +90,7 @@ func georepCreateHandler(w http.ResponseWriter, r *http.Request) {
 	// Parse the JSON body to get additional details of request
 	var req georepapi.GeorepCreateReq
 	if err := restutils.UnmarshalRequest(r, &req); err != nil {
-		restutils.SendHTTPError(ctx, w, http.StatusUnprocessableEntity, errors.ErrJSONParsingFailed)
+		restutils.SendHTTPError(ctx, w, http.StatusBadRequest, errors.ErrJSONParsingFailed)
 		return
 	}
 
@@ -236,7 +236,7 @@ func georepActionHandler(w http.ResponseWriter, r *http.Request, action actionTy
 	// Parse the JSON body to get additional details of request
 	var req georepapi.GeorepCommandsReq
 	if err := restutils.UnmarshalRequest(r, &req); err != nil {
-		restutils.SendHTTPError(ctx, w, http.StatusUnprocessableEntity, errors.ErrJSONParsingFailed)
+		restutils.SendHTTPError(ctx, w, http.StatusBadRequest, errors.ErrJSONParsingFailed)
 		return
 	}
 
@@ -709,7 +709,7 @@ func georepConfigSetHandler(w http.ResponseWriter, r *http.Request) {
 	// Parse the JSON body to get additional details of request
 	var req map[string]string
 	if err := restutils.UnmarshalRequest(r, &req); err != nil {
-		restutils.SendHTTPError(ctx, w, http.StatusUnprocessableEntity, errors.ErrJSONParsingFailed)
+		restutils.SendHTTPError(ctx, w, http.StatusBadRequest, errors.ErrJSONParsingFailed)
 		return
 	}
 
@@ -852,7 +852,7 @@ func georepConfigResetHandler(w http.ResponseWriter, r *http.Request) {
 	// Parse the JSON body to get additional details of request
 	var req []string
 	if err := restutils.UnmarshalRequest(r, &req); err != nil {
-		restutils.SendHTTPError(ctx, w, http.StatusUnprocessableEntity, errors.ErrJSONParsingFailed)
+		restutils.SendHTTPError(ctx, w, http.StatusBadRequest, errors.ErrJSONParsingFailed)
 		return
 	}
 
@@ -1082,7 +1082,7 @@ func georepSSHKeyPushHandler(w http.ResponseWriter, r *http.Request) {
 	// Parse the JSON body to get additional details of request
 	var sshkeys []georepapi.GeorepSSHPublicKey
 	if err := restutils.UnmarshalRequest(r, &sshkeys); err != nil {
-		restutils.SendHTTPError(ctx, w, http.StatusUnprocessableEntity, errors.ErrJSONParsingFailed)
+		restutils.SendHTTPError(ctx, w, http.StatusBadRequest, errors.ErrJSONParsingFailed)
 		return
 	}
 
