@@ -84,7 +84,6 @@ vendor-install:
 
 verify: check-reqs
 	@./scripts/lint-check.sh
-	@gometalinter -D gotype -E gofmt --errors --deadline=5m -j 4 --vendor
 
 test: check-reqs
 	@./test.sh $(TESTOPTIONS)
