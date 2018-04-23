@@ -88,7 +88,6 @@ verify: check-reqs
 
 test: check-reqs
 	@./test.sh $(TESTOPTIONS)
-	@go test $$(go list ./... | sed '/e2e/d;/vendor/d')
 
 functest: check-reqs
 	@go test ./e2e -v -functest
