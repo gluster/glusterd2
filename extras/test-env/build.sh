@@ -15,7 +15,7 @@ set -e
 # This should trigger builds for new tags.
 
 # If not running in the hub environment set up the hub variables to use
-if [ "x${IMAGE_NAME}" = "x" -o "x${DOCKER_TAG}" = "x" ]; then
+if [[ "x${IMAGE_NAME}" = "x" || "x${DOCKER_TAG}" = "x" ]]; then
   pkg_version="$(dirname $0)/../../scripts/pkg-version"
   # Doing it this way because pkg-version returns a dirty version when there
   # are commits beyond the latest tag
