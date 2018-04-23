@@ -87,6 +87,7 @@ verify: check-reqs
 	@gometalinter -D gotype -E gofmt --errors --deadline=5m -j 4 --vendor
 
 test: check-reqs
+	@./test.sh $(TESTOPTIONS)
 	@go test $$(go list ./... | sed '/e2e/d;/vendor/d')
 
 functest: check-reqs
