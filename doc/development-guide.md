@@ -46,15 +46,16 @@ Here is a short guide on how to work on a new patch.  In this example, we will w
 
 Do your work here and commit.
 
-Run linting checks and static code check:
+Run the test suite, which includes linting checks, static code check, and unit
+tests:
 
-`$ make verify`
+`$ make tests`
 
 You will need to provide unit tests and functional tests for your changes
 wherever applicable. Ensure that the tests pass with your changes. The
-functional tests needs to be run as root user.
+functional tests needs to be run as root user. To run the functional tests:
 
-`# make test`
+`# make functest`
 
 Once you are ready to push, you will type the following:
 
