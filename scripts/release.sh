@@ -3,7 +3,7 @@
 ## This script builds a GlusterD-2.0 binary and creates an archive, and then signs it.
 ## Should be called from the root of the GD2 repo
 
-VERSION=$($(dirname $0)/pkg-version --full)
+VERSION=$("$(dirname "$0")"/pkg-version --full)
 OS=$(go env GOOS)
 ARCH=$(go env GOARCH)
 GD2=glusterd2
@@ -14,14 +14,14 @@ ARCHIVE=$TAR.xz
 
 TMPDIR=$(mktemp -d)
 
-if [ -e $ARCHIVE ]; then
+if [ -e "$ARCHIVE" ]; then
   echo "Release archive $ARCHIVE exists."
   echo "Do you want to clean and start again?(y/N)"
-  read answer
+  read -r answer
   case "$answer" in
     y|Y)
       echo "Cleaning previously built release"
-      rm -rf $RELEASEDIR
+      rm -rf "$RELEASEDIR"
       echo
       ;;
     *)
@@ -30,22 +30,22 @@ if [ -e $ARCHIVE ]; then
   esac
 fi
 
-mkdir -p $RELEASEDIR
+mkdir -p "$RELEASEDIR"
 
 echo "Making GlusterD-2.0 release $VERSION"
 echo
 
-cp build/glusterd2 $TMPDIR
-cp build/glustercli $TMPDIR
-cp build/glusterd2.toml $TMPDIR/glusterd2.toml.example
-mkdir $TMPDIR/bash_completion
-cp build/glustercli.sh $TMPDIR/bash_completion/glustercli.sh
+cp build/glusterd2 "$TMPDIR"
+cp build/glustercli "$TMPDIR"
+cp build/glusterd2.toml "$TMPDIR/glusterd2.toml.example"
+mkdir "$TMPDIR/bash_completion"
+cp build/glustercli.sh "$TMPDIR/bash_completion/glustercli.sh"
 echo
 
 # Create release archive
 echo "Creating release archive"
-tar -cf $TAR -C $TMPDIR . || exit 1
-xz $TAR || exit 1
+tar -cf "$TAR" -C "$TMPDIR" . || exit 1
+xz "$TAR" || exit 1
 echo "Created release archive $RELEASEDIR/$ARCHIVE"
 echo
 
@@ -53,11 +53,11 @@ echo
 # Requires that a default gpg key be set up
 echo "Signing archive"
 SIGNFILE=$ARCHIVE.asc
-gpg --armor --output $SIGNFILE --detach-sign $ARCHIVE || exit 1
+gpg --armor --output "$SIGNFILE" --detach-sign "$ARCHIVE" || exit 1
 echo "Signed archive, signature in $SIGNFILE"
 
-rm -rf $TMPDIR
+rm -rf "$TMPDIR"
 
 # Also create source tarballs
-$(dirname $0)/dist.sh $RELEASEDIR
-VENDOR=y $(dirname $0)/dist.sh $RELEASEDIR
+"$(dirname "$0")/dist.sh" "$RELEASEDIR"
+VENDOR=y "$(dirname "$0")/dist.sh" "$RELEASEDIR"
