@@ -15,7 +15,7 @@ REQ_PROTOC_VERSION="$REQ_PROTOC_MAJOR_VERSION.$REQ_PROTOC_MINOR_VERSION"
 missing() {
   echo "Protobuf compiler (protoc) $REQ_PROTOC_VERSION or later is missing on this system."
   echo "Install protoc ${REQ_PROTOC_VERSION} using the preferred method for your system."
-  echo "Refer to https://developers.google.com/protocol-buffers/ if Protobuf $REQ_PROTO_VERSION is not available in the system repositories."
+  echo "Refer to https://developers.google.com/protocol-buffers/ if Protobuf $REQ_PROTOC_VERSION is not available in the system repositories."
 
   exit 1
 }
