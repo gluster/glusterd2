@@ -170,10 +170,15 @@ func testVolumeStatedump(t *testing.T) {
 	r := require.New(t)
 
 	// Get statedump dir
+	var statedumpDir string
 	args := []string{"--print-statedumpdir"}
-	cmdOut, err := exec.Command("gluster", args...).Output()
-	r.Nil(err)
-	statedumpDir := strings.TrimSpace(string(cmdOut))
+	cmdOut, err := exec.Command("glusterfsd", args...).Output()
+	if err == nil {
+		statedumpDir = strings.TrimSpace(string(cmdOut))
+	} else {
+		// fallback to hard-coded value
+		statedumpDir = "/var/run/gluster"
+	}
 
 	// statedump file pattern: hyphenated-brickpath.<pid>.dump.<timestamp>
 	pattern := statedumpDir + "/*[0-9]*.dump.[0-9]*"
