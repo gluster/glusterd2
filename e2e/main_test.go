@@ -9,8 +9,9 @@ import (
 )
 
 var (
-	binDir   string
-	functest bool
+	binDir      string
+	baseWorkdir = "/tmp/gd2_func_test"
+	functest    bool
 )
 
 func TestMain(m *testing.M) {
@@ -18,6 +19,7 @@ func TestMain(m *testing.M) {
 
 	flag.BoolVar(&functest, "functest", false, "Run or skip functional test")
 	flag.StringVar(&binDir, "bindir", defBinDir, "The directory containing glusterd2 binary")
+	flag.StringVar(&baseWorkdir, "workdir", baseWorkdir, "The base directory for test working directories")
 	flag.Parse()
 
 	if !functest {
@@ -32,7 +34,7 @@ func TestMain(m *testing.M) {
 	}
 
 	// Cleanup leftovers from previous test runs. But don't cleanup after.
-	os.RemoveAll("/tmp/gd2_func_test")
+	os.RemoveAll(baseWorkdir)
 
 	v := m.Run()
 	os.Exit(v)
