@@ -1,4 +1,4 @@
-#/bin/bash
+#!/bin/bash
 
 # NOTE: This script needs be run from the root of the GD2 repository
 
