@@ -34,15 +34,12 @@ cd $GD2SRC
 # install vendored dependencies
 make vendor-install
 
-# run linters
-make verify
-
 # verify build
 make glusterd2
 make glustercli
 make gd2conf
 
-# run unit-tests
+# run tests
 make test
 
 # run functional tests

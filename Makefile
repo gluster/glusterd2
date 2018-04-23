@@ -82,9 +82,6 @@ vendor-install:
 	@$(DEPENV) dep ensure
 	@echo
 
-verify: check-reqs
-	@./scripts/lint-check.sh
-
 test: check-reqs
 	@./test.sh $(TESTOPTIONS)
 
