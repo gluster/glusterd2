@@ -86,10 +86,10 @@ verify: check-reqs
 	@./scripts/lint-check.sh
 	@gometalinter -D gotype -E gofmt --errors --deadline=5m -j 4 --vendor
 
-test:
+test: check-reqs
 	@go test $$(go list ./... | sed '/e2e/d;/vendor/d')
 
-functest:
+functest: check-reqs
 	@go test ./e2e -v -functest
 
 release: build
