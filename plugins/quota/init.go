@@ -3,7 +3,6 @@ package quota
 import (
 	"github.com/gluster/glusterd2/glusterd2/servers/rest/route"
 	"github.com/gluster/glusterd2/glusterd2/transaction"
-	"github.com/gluster/glusterd2/pkg/sunrpc"
 )
 
 // Plugin is a structure which implements GlusterdPlugin interface
@@ -13,11 +12,6 @@ type Plugin struct {
 // Name returns name of plugin
 func (p *Plugin) Name() string {
 	return "quota"
-}
-
-// SunRPCProgram returns sunrpc program to register with Glusterd
-func (p *Plugin) SunRPCProgram() sunrpc.Program {
-	return nil
 }
 
 // RestRoutes returns list of REST API routes to register with Glusterd

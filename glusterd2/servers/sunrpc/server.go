@@ -9,7 +9,6 @@ import (
 	"strconv"
 	"sync"
 
-	"github.com/gluster/glusterd2/glusterd2/plugin"
 	"github.com/gluster/glusterd2/glusterd2/pmap"
 	"github.com/gluster/glusterd2/pkg/sunrpc"
 
@@ -92,14 +91,6 @@ func NewMuxed(m cmux.CMux) *SunRPC {
 		newGfHandshake(),
 		newGfDump(),
 		pmap.NewGfPortmap(),
-	}
-
-	for _, p := range plugin.PluginsList {
-		rpcProcs := p.SunRPCProgram()
-		if rpcProcs != nil {
-			programsList = append(programsList, rpcProcs)
-			log.WithField("plugin", p.Name()).Debug("loaded sunrpc procedures from plugin")
-		}
 	}
 
 	port := getPortFromListener(srv.tcpListener)
