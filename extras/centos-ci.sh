@@ -44,3 +44,6 @@ make gd2conf
 
 # run unit-tests
 make test
+
+# run functional tests
+make functest

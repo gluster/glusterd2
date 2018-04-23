@@ -30,7 +30,7 @@ DEPENV ?=
 PLUGINS ?= yes
 FASTBUILD ?= yes
 
-.PHONY: all build check check-go check-reqs install vendor-update vendor-install verify release check-protoc $(GD2_BIN) $(GD2_BUILD) $(CLI_BIN) $(CLI_BUILD) cli $(GD2_CONF) gd2conf test dist dist-vendor
+.PHONY: all build check check-go check-reqs install vendor-update vendor-install verify release check-protoc $(GD2_BIN) $(GD2_BUILD) $(CLI_BIN) $(CLI_BUILD) cli $(GD2_CONF) gd2conf test dist dist-vendor functest
 
 all: build
 
@@ -88,6 +88,8 @@ verify: check-reqs
 
 test:
 	@go test $$(go list ./... | sed '/e2e/d;/vendor/d')
+
+functest:
 	@go test ./e2e -v -functest
 
 release: build
