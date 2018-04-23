@@ -193,6 +193,10 @@ func teardownCluster(gds []*gdProcess) error {
 		gd.Stop()
 		gd.EraseWorkdir()
 	}
+	processes := []string{"glusterfs", "glusterfsd", "glustershd"}
+	for _, p := range processes {
+		exec.Command("killall", p).Run()
+	}
 	return nil
 }
 
