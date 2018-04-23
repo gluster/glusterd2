@@ -394,15 +394,15 @@ func testDisperse(t *testing.T) {
 	r.Nil(err)
 	defer os.RemoveAll(mntPath)
 
+	time.Sleep(1 * time.Second)
+
 	host, _, _ := net.SplitHostPort(gds[0].ClientAddress)
 
 	mntCmd := exec.Command("mount", "-t", "glusterfs", host+":"+disperseVolName, mntPath)
-
-	umntCmd := exec.Command("umount", mntPath)
-
 	err = mntCmd.Run()
 	r.Nil(err, fmt.Sprintf("disperse volume mount failed: %s", err))
 
+	umntCmd := exec.Command("umount", mntPath)
 	err = umntCmd.Run()
 	r.Nil(err, fmt.Sprintf("disperse volume unmount failed: %s", err))
 
