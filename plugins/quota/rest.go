@@ -50,7 +50,11 @@ func quotaEnableHandler(w http.ResponseWriter, r *http.Request) {
 	// Validate volume existence
 	vol, err := volume.GetVolume(volName)
 	if err != nil {
-		restutils.SendHTTPError(ctx, w, http.StatusNotFound, errors.ErrVolNotFound)
+		if err == errors.ErrVolNotFound {
+			restutils.SendHTTPError(ctx, w, http.StatusNotFound, errors.ErrVolNotFound)
+		} else {
+			restutils.SendHTTPError(ctx, w, http.StatusInternalServerError, err)
+		}
 		return
 	}
 

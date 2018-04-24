@@ -3,9 +3,9 @@ package volume
 import (
 	"context"
 	"encoding/json"
-	"errors"
 
 	"github.com/gluster/glusterd2/glusterd2/store"
+	gderror "github.com/gluster/glusterd2/pkg/errors"
 
 	"github.com/coreos/etcd/clientv3"
 	"github.com/pborman/uuid"
@@ -49,7 +49,7 @@ func GetVolume(name string) (*Volinfo, error) {
 
 	if resp.Count != 1 {
 		log.WithField("volume", name).Error("volume not found")
-		return nil, errors.New("volume not found")
+		return nil, gderror.ErrVolNotFound
 	}
 
 	if e = json.Unmarshal(resp.Kvs[0].Value, &v); e != nil {
