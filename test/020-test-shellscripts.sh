@@ -13,7 +13,9 @@ test_shellcheck() {
 		if grep -q '^#.*HEKETI-SKIP-SHELLCHECK' "${1}"; then
 			return 0
 		fi
-		shellcheck -x -e SC2181,SC2029,SC1091,SC1090,SC2012 "${1}"
+		# Note: Older shellcheck versions do not know '-x'.
+		#       Removing the use of -x for now.
+		shellcheck -e SC2181,SC2029,SC1091,SC1090,SC2012 "${1}"
 	else
 		return 0
 	fi
