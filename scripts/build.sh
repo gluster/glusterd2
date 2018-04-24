@@ -20,13 +20,13 @@ if [[ "XX$PACKAGE" == "XX" ]]; then
 fi
 
 OUTDIR=${2:-build}
-mkdir -p $OUTDIR
+mkdir -p "$OUTDIR"
 
 REPO_PATH="github.com/gluster/glusterd2"
 GOPKG="${REPO_PATH}/${PACKAGE}"
-BIN=$(basename $PACKAGE)
+BIN=$(basename "$PACKAGE")
 
-VERSION=$($(dirname $0)/pkg-version --full)
+VERSION=$("$(dirname "$0")/pkg-version" --full)
 [[ -f VERSION ]] && source VERSION
 GIT_SHA=${GIT_SHA:-$(git rev-parse --short HEAD || echo "undefined")}
 GIT_SHA_FULL=${GIT_SHA_FULL:-$(git rev-parse HEAD || echo "undefined")}
@@ -51,6 +51,6 @@ fi
 
 echo "Building $BIN $VERSION"
 
-go build $INSTALLFLAG -ldflags "${LDFLAGS}" -o $OUTDIR/$BIN -tags "$GOBUILD_TAGS" $GOPKG || exit 1
+go build $INSTALLFLAG -ldflags "${LDFLAGS}" -o "$OUTDIR/$BIN" -tags "$GOBUILD_TAGS" "$GOPKG" || exit 1
 
 echo "Built $PACKAGE $VERSION at $OUTDIR/$BIN"
