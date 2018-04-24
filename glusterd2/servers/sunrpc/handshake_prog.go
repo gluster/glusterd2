@@ -38,10 +38,10 @@ func newGfHandshake() *GfHandshake {
 		progNum:     hndskProgNum,
 		progVersion: hndskProgVersion,
 		procedures: []sunrpc.Procedure{
-			{sunrpc.ProcedureID{ProgramNumber: hndskProgNum, ProgramVersion: hndskProgVersion,
-				ProcedureNumber: gfHndskGetSpec}, "ServerGetspec"},
-			{sunrpc.ProcedureID{ProgramNumber: hndskProgNum, ProgramVersion: hndskProgVersion,
-				ProcedureNumber: gfHndskGetVolumeInfo}, "ServerGetVolumeInfo"},
+			{ID: sunrpc.ProcedureID{ProgramNumber: hndskProgNum, ProgramVersion: hndskProgVersion,
+				ProcedureNumber: gfHndskGetSpec}, Name: "ServerGetspec"},
+			{ID: sunrpc.ProcedureID{ProgramNumber: hndskProgNum, ProgramVersion: hndskProgVersion,
+				ProcedureNumber: gfHndskGetVolumeInfo}, Name: "ServerGetVolumeInfo"},
 		},
 	}
 }
