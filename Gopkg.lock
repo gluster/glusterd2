@@ -2,6 +2,18 @@
 
 
 [[projects]]
+  name = "github.com/alecthomas/gometalinter"
+  packages = ["."]
+  revision = "46cc1ea3778b247666c2949669a3333c532fa9c6"
+  version = "v2.0.5"
+
+[[projects]]
+  branch = "master"
+  name = "github.com/alecthomas/units"
+  packages = ["."]
+  revision = "2efee857e7cfd4f3d0138cc3cbb1b4966962b93a"
+
+[[projects]]
   name = "github.com/asaskevich/govalidator"
   packages = ["."]
   revision = "521b25f4b05fd26bec69d9dedeb8f9c9a83939a8"
@@ -33,76 +45,7 @@
 
 [[projects]]
   name = "github.com/coreos/etcd"
-  packages = [
-    "alarm",
-    "auth",
-    "auth/authpb",
-    "client",
-    "clientv3",
-    "clientv3/concurrency",
-    "clientv3/namespace",
-    "compactor",
-    "discovery",
-    "embed",
-    "error",
-    "etcdserver",
-    "etcdserver/api",
-    "etcdserver/api/etcdhttp",
-    "etcdserver/api/v2http",
-    "etcdserver/api/v2http/httptypes",
-    "etcdserver/api/v3client",
-    "etcdserver/api/v3election",
-    "etcdserver/api/v3election/v3electionpb",
-    "etcdserver/api/v3election/v3electionpb/gw",
-    "etcdserver/api/v3lock",
-    "etcdserver/api/v3lock/v3lockpb",
-    "etcdserver/api/v3lock/v3lockpb/gw",
-    "etcdserver/api/v3rpc",
-    "etcdserver/api/v3rpc/rpctypes",
-    "etcdserver/auth",
-    "etcdserver/etcdserverpb",
-    "etcdserver/etcdserverpb/gw",
-    "etcdserver/membership",
-    "etcdserver/stats",
-    "lease",
-    "lease/leasehttp",
-    "lease/leasepb",
-    "mvcc",
-    "mvcc/backend",
-    "mvcc/mvccpb",
-    "pkg/adt",
-    "pkg/contention",
-    "pkg/cors",
-    "pkg/cpuutil",
-    "pkg/crc",
-    "pkg/debugutil",
-    "pkg/fileutil",
-    "pkg/httputil",
-    "pkg/idutil",
-    "pkg/ioutil",
-    "pkg/logutil",
-    "pkg/monotime",
-    "pkg/netutil",
-    "pkg/pathutil",
-    "pkg/pbutil",
-    "pkg/runtime",
-    "pkg/schedule",
-    "pkg/srv",
-    "pkg/tlsutil",
-    "pkg/transport",
-    "pkg/types",
-    "pkg/wait",
-    "proxy/grpcproxy/adapter",
-    "raft",
-    "raft/raftpb",
-    "rafthttp",
-    "snap",
-    "snap/snappb",
-    "store",
-    "version",
-    "wal",
-    "wal/walpb"
-  ]
+  packages = ["alarm","auth","auth/authpb","client","clientv3","clientv3/concurrency","clientv3/namespace","compactor","discovery","embed","error","etcdserver","etcdserver/api","etcdserver/api/etcdhttp","etcdserver/api/v2http","etcdserver/api/v2http/httptypes","etcdserver/api/v3client","etcdserver/api/v3election","etcdserver/api/v3election/v3electionpb","etcdserver/api/v3election/v3electionpb/gw","etcdserver/api/v3lock","etcdserver/api/v3lock/v3lockpb","etcdserver/api/v3lock/v3lockpb/gw","etcdserver/api/v3rpc","etcdserver/api/v3rpc/rpctypes","etcdserver/auth","etcdserver/etcdserverpb","etcdserver/etcdserverpb/gw","etcdserver/membership","etcdserver/stats","lease","lease/leasehttp","lease/leasepb","mvcc","mvcc/backend","mvcc/mvccpb","pkg/adt","pkg/contention","pkg/cors","pkg/cpuutil","pkg/crc","pkg/debugutil","pkg/fileutil","pkg/httputil","pkg/idutil","pkg/ioutil","pkg/logutil","pkg/monotime","pkg/netutil","pkg/pathutil","pkg/pbutil","pkg/runtime","pkg/schedule","pkg/srv","pkg/tlsutil","pkg/transport","pkg/types","pkg/wait","proxy/grpcproxy/adapter","raft","raft/raftpb","rafthttp","snap","snap/snappb","store","version","wal","wal/walpb"]
   revision = "f1d7dd87da3e8feab4aaf675b8e29c6a5ed5f58b"
   version = "v3.2.9"
 
@@ -155,11 +98,7 @@
 
 [[projects]]
   name = "github.com/golang/protobuf"
-  packages = [
-    "jsonpb",
-    "proto",
-    "ptypes/struct"
-  ]
+  packages = ["jsonpb","proto","ptypes/struct"]
   revision = "925541529c1fa6821df4e44ce2723319eb2be768"
   version = "v1.0.0"
 
@@ -167,6 +106,12 @@
   name = "github.com/google/btree"
   packages = ["."]
   revision = "925471ac9e2131377a91e1595defec898166fe49"
+
+[[projects]]
+  branch = "master"
+  name = "github.com/google/shlex"
+  packages = ["."]
+  revision = "6f45313302b9c56850fc17f99e40caebce98c716"
 
 [[projects]]
   branch = "master"
@@ -194,27 +139,13 @@
 
 [[projects]]
   name = "github.com/grpc-ecosystem/grpc-gateway"
-  packages = [
-    "runtime",
-    "runtime/internal",
-    "utilities"
-  ]
+  packages = ["runtime","runtime/internal","utilities"]
   revision = "18d159699f2e83fc5bb9ef2f79465ca3f3122676"
   version = "v1.2.0"
 
 [[projects]]
   name = "github.com/hashicorp/hcl"
-  packages = [
-    ".",
-    "hcl/ast",
-    "hcl/parser",
-    "hcl/scanner",
-    "hcl/strconv",
-    "hcl/token",
-    "json/parser",
-    "json/scanner",
-    "json/token"
-  ]
+  packages = [".","hcl/ast","hcl/parser","hcl/scanner","hcl/strconv","hcl/token","json/parser","json/scanner","json/token"]
   revision = "630949a3c5fa3c613328e1b8256052cbc2327c9b"
 
 [[projects]]
@@ -256,6 +187,12 @@
   name = "github.com/mitchellh/mapstructure"
   packages = ["."]
   revision = "db1efb556f84b25a0a13a04aad883943538ad2e0"
+
+[[projects]]
+  name = "github.com/nicksnyder/go-i18n"
+  packages = ["i18n","i18n/bundle","i18n/language","i18n/translation"]
+  revision = "0dc1626d56435e9d605a29875701721c54bc9bbd"
+  version = "v1.10.0"
 
 [[projects]]
   branch = "master"
@@ -301,19 +238,12 @@
 
 [[projects]]
   name = "github.com/prometheus/common"
-  packages = [
-    "expfmt",
-    "internal/bitbucket.org/ww/goautoneg",
-    "model"
-  ]
+  packages = ["expfmt","internal/bitbucket.org/ww/goautoneg","model"]
   revision = "49fee292b27bfff7f354ee0f64e1bc4850462edf"
 
 [[projects]]
   name = "github.com/prometheus/procfs"
-  packages = [
-    ".",
-    "xfs"
-  ]
+  packages = [".","xfs"]
   revision = "a1dba9ce8baed984a2495b658c82687f8157b98f"
 
 [[projects]]
@@ -330,10 +260,7 @@
 
 [[projects]]
   name = "github.com/spf13/afero"
-  packages = [
-    ".",
-    "mem"
-  ]
+  packages = [".","mem"]
   revision = "9be650865eab0c12963d8753212f4f9c66cdcf12"
 
 [[projects]]
@@ -366,10 +293,7 @@
 
 [[projects]]
   name = "github.com/stretchr/testify"
-  packages = [
-    "assert",
-    "require"
-  ]
+  packages = ["assert","require"]
   revision = "12b6f73e6084dad08a7c6e575284b177ecafbc71"
   version = "v1.2.1"
 
@@ -392,66 +316,37 @@
 
 [[projects]]
   name = "golang.org/x/crypto"
-  packages = [
-    "bcrypt",
-    "blowfish",
-    "ssh/terminal"
-  ]
+  packages = ["bcrypt","blowfish","ssh/terminal"]
   revision = "9419663f5a44be8b34ca85f08abc5fe1be11f8a3"
 
 [[projects]]
   branch = "master"
   name = "golang.org/x/net"
-  packages = [
-    "context",
-    "http2",
-    "http2/hpack",
-    "idna",
-    "internal/timeseries",
-    "lex/httplex",
-    "trace"
-  ]
+  packages = ["context","http2","http2/hpack","idna","internal/timeseries","lex/httplex","trace"]
   revision = "f5dfe339be1d06f81b22525fe34671ee7d2c8904"
 
 [[projects]]
   branch = "master"
   name = "golang.org/x/sys"
-  packages = [
-    "unix",
-    "windows"
-  ]
+  packages = ["unix","windows"]
   revision = "37707fdb30a5b38865cfb95e5aab41707daec7fd"
 
 [[projects]]
   name = "golang.org/x/text"
-  packages = [
-    "internal/gen",
-    "internal/triegen",
-    "internal/ucd",
-    "secure/bidirule",
-    "transform",
-    "unicode/bidi",
-    "unicode/cldr",
-    "unicode/norm",
-    "unicode/rangetable"
-  ]
+  packages = ["internal/gen","internal/triegen","internal/ucd","secure/bidirule","transform","unicode/bidi","unicode/cldr","unicode/norm","unicode/rangetable"]
   revision = "0ad425fe45e885577bef05dc1c50f72e33188b16"
 
 [[projects]]
   name = "google.golang.org/grpc"
-  packages = [
-    ".",
-    "codes",
-    "credentials",
-    "grpclog",
-    "internal",
-    "metadata",
-    "naming",
-    "peer",
-    "transport"
-  ]
+  packages = [".","codes","credentials","grpclog","internal","metadata","naming","peer","transport"]
   revision = "777daa17ff9b5daef1cfdf915088a2ada3332bf0"
   version = "v1.0.4"
+
+[[projects]]
+  branch = "v3-unstable"
+  name = "gopkg.in/alecthomas/kingpin.v3-unstable"
+  packages = ["."]
+  revision = "2b154cee082ef5c544fa8ea1750b9eb6581b0040"
 
 [[projects]]
   branch = "v2"
@@ -462,6 +357,6 @@
 [solve-meta]
   analyzer-name = "dep"
   analyzer-version = 1
-  inputs-digest = "19dda7f9b0c842a769bea1b5d69e3a41f5b7de536176724a9cdebc241dd0e96c"
+  inputs-digest = "2a1d8964a570e3bd28bf1cb0b94dc468b4dd2b54d8d5e8950c1ce68bff663701"
   solver-name = "gps-cdcl"
   solver-version = 1
