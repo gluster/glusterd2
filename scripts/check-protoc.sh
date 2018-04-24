@@ -22,11 +22,9 @@ missing() {
 
 check_protoc_version() {
 
-  INST_VERS_STR=$($PROTOC --version) || missing
-
-  INST_PROTOC_VERSION=$(expr "$INST_VERS_STR" : ".*libprotoc \([^ ]*\)")
-  INST_PROTOC_MAJOR_VERSION=$(expr "$INST_PROTOC_VERSION" | cut -d. -f1)
-  INST_PROTOC_MINOR_VERSION=$(expr "$INST_PROTOC_VERSION" | cut -d. -f2)
+  INST_PROTOC_VERSION=$(protoc --version | sed -e 's/.*libprotoc *//')
+  INST_PROTOC_MAJOR_VERSION=$(echo "$INST_PROTOC_VERSION" | cut -d. -f1)
+  INST_PROTOC_MINOR_VERSION=$(echo "$INST_PROTOC_VERSION" | cut -d. -f2)
 
   if [ "$REQ_PROTOC_MAJOR_VERSION" -gt "$INST_PROTOC_MAJOR_VERSION" ]; then
     missing
