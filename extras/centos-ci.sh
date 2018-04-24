@@ -40,7 +40,7 @@ make glustercli
 make gd2conf
 
 # run tests
-make test
+make test TESTOPTIONS=-v
 
 # run functional tests
 make functest
