@@ -21,3 +21,5 @@ VERSION
 # Ignore endpoints generated file
 endpoints.json
 generate-doc
+# Ignore vi backup files
+*~
