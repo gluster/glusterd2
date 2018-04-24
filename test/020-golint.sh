@@ -1,4 +1,4 @@
-#/bin/bash
+#!/bin/bash
 
 # NOTE: This script needs be run from the root of the GD2 repository
 
@@ -8,8 +8,8 @@
 RETVAL=0
 GENERATED_FILES="*(.pb|_string).go"
 
-for file in $(find . -path ./vendor -prune -o -type f -name '*.go' -print | grep -E -v $GENERATED_FILES); do
-  golint -set_exit_status $file
+for file in $(find . -path ./vendor -prune -o -type f -name '*.go' -print | grep -E -v "$GENERATED_FILES"); do
+  golint -set_exit_status "$file"
   if [[ $? -eq 1 ]]; then
     RETVAL=1
   fi

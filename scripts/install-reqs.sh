@@ -8,8 +8,9 @@ install_dep() {
   DEPURL="https://github.com/golang/dep/releases/download/${DEPVER}/dep-linux-amd64"
   type dep >/dev/null 2>&1
   if [ $? -eq 0 ]; then
-    local version=$(dep version | awk '/^ version/{print $3}')
-    if [[ $version == $DEPVER || $version >  $DEPVER ]]; then
+    local version
+    version=$(dep version | awk '/^ version/{print $3}')
+    if [[ $version == "$DEPVER" || $version >  $DEPVER ]]; then
       echo "dep ${DEPVER} or greater is already installed"
       return
     fi
@@ -17,8 +18,8 @@ install_dep() {
 
   echo "Installing dep. Version: ${DEPVER}"
   DEPBIN=$GOPATH/bin/dep
-  curl -L -o $DEPBIN $DEPURL
-  chmod +x $DEPBIN
+  curl -L -o "$DEPBIN" $DEPURL
+  chmod +x "$DEPBIN"
 }
 
 install_gometalinter() {
@@ -33,9 +34,9 @@ install_gometalinter() {
   fi
 
   echo "Installing gometalinter. Version: ${LINTER_VER}"
-  curl -L -o $GOBINDIR/$LINTER_TARBALL $LINTER_URL
-  tar -zxf $GOBINDIR/$LINTER_TARBALL --overwrite --strip-components 1 --exclude={COPYING,*.md} -C $GOBINDIR
-  rm -f $GOBINDIR/$LINTER_TARBALL
+  curl -L -o "$GOBINDIR/$LINTER_TARBALL" $LINTER_URL
+  tar -zxf "$GOBINDIR/$LINTER_TARBALL" --overwrite --strip-components 1 --exclude={COPYING,*.md} -C "$GOBINDIR"
+  rm -f "$GOBINDIR/$LINTER_TARBALL"
 }
 
 install_dep
