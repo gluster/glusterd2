@@ -26,7 +26,7 @@ yum -y install epel-release
 yum -y install glusterfs-server
 
 export GD2SRC=$GOPATH/src/github.com/gluster/glusterd2
-cd $GD2SRC
+cd "$GD2SRC"
 
 # install the build and test requirements
 ./scripts/install-reqs.sh
