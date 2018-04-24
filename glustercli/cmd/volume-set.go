@@ -31,6 +31,7 @@ func init() {
 	volumeSetCmd.Flags().BoolVar(&flagSetAdv, "advanced", false, "Allow setting advanced options")
 	volumeSetCmd.Flags().BoolVar(&flagSetExp, "experimental", false, "Allow setting experimental options")
 	volumeSetCmd.Flags().BoolVar(&flagSetDep, "deprecated", false, "Allow setting deprecated options")
+	volumeSetCmd.Flags().BoolVarP(&verbose, "verbose", "v", false, "verbose output")
 	volumeCmd.AddCommand(volumeSetCmd)
 }
 
@@ -52,10 +53,12 @@ func volumeSetCmdRun(cmd *cobra.Command, args []string) {
 	volname := args[0]
 	options := args[1:]
 	if err := volumeOptionJSONHandler(cmd, volname, options); err != nil {
-		log.WithFields(log.Fields{
-			"volume": volname,
-			"error":  err.Error(),
-		}).Error("volume option set failed")
+		if verbose {
+			log.WithFields(log.Fields{
+				"volume": volname,
+				"error":  err.Error(),
+			}).Error("volume option set failed")
+		}
 		failure("Volume option set failed", err, 1)
 	} else {
 		fmt.Printf("Options set successfully for %s volume\n", volname)

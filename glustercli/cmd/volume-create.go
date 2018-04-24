@@ -49,7 +49,7 @@ func init() {
 	volumeCreateCmd.Flags().MarkHidden("advanced")
 	volumeCreateCmd.Flags().MarkHidden("experimental")
 	volumeCreateCmd.Flags().MarkHidden("deprecated")
-
+	volumeCreateCmd.Flags().BoolVarP(&verbose, "verbose", "v", false, "verbose output")
 	volumeCmd.AddCommand(volumeCreateCmd)
 }
 
@@ -57,10 +57,12 @@ func volumeCreateCmdRun(cmd *cobra.Command, args []string) {
 	volname := args[0]
 	bricks, err := bricksAsUUID(args[1:])
 	if err != nil {
-		log.WithFields(log.Fields{
-			"error":  err.Error(),
-			"volume": volname,
-		}).Error("error getting brick UUIDs")
+		if verbose {
+			log.WithFields(log.Fields{
+				"error":  err.Error(),
+				"volume": volname,
+			}).Error("error getting brick UUIDs")
+		}
 		failure("Error getting brick UUIDs", err, 1)
 	}
 
@@ -101,10 +103,12 @@ func volumeCreateCmdRun(cmd *cobra.Command, args []string) {
 		Force:   flagCreateForce,
 	})
 	if err != nil {
-		log.WithFields(log.Fields{
-			"volume": volname,
-			"error":  err.Error(),
-		}).Error("volume creation failed")
+		if verbose {
+			log.WithFields(log.Fields{
+				"volume": volname,
+				"error":  err.Error(),
+			}).Error("volume creation failed")
+		}
 		failure("Volume creation failed", err, 1)
 	}
 	fmt.Printf("%s Volume created successfully\n", vol.Name)

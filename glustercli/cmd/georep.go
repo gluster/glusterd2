@@ -58,26 +58,32 @@ func init() {
 	georepCreateCmd.Flags().StringVarP(&flagGeorepRemoteGlusterdHost, "remote-glusterd-host", "", "", "Remote Glusterd Host")
 	georepCreateCmd.Flags().IntVarP(&flagGeorepRemoteGlusterdPort, "remote-glusterd-port", "", 24007, "Remote Glusterd Port")
 	georepCreateCmd.Flags().BoolVarP(&flagGeorepCmdForce, "force", "f", false, "Force")
+	georepCreateCmd.Flags().BoolVarP(&verbose, "verbose", "v", false, "verbose output")
 	georepCmd.AddCommand(georepCreateCmd)
 
 	// Geo-rep Start
 	georepStartCmd.Flags().BoolVarP(&flagGeorepCmdForce, "force", "f", false, "Force")
+	georepStartCmd.Flags().BoolVarP(&verbose, "verbose", "v", false, "verbose output")
 	georepCmd.AddCommand(georepStartCmd)
 
 	// Geo-rep Stop
 	georepStopCmd.Flags().BoolVarP(&flagGeorepCmdForce, "force", "f", false, "Force")
+	georepStopCmd.Flags().BoolVarP(&verbose, "verbose", "v", false, "verbose output")
 	georepCmd.AddCommand(georepStopCmd)
 
 	// Geo-rep Delete
 	georepDeleteCmd.Flags().BoolVarP(&flagGeorepCmdForce, "force", "f", false, "Force")
+	georepDeleteCmd.Flags().BoolVarP(&verbose, "verbose", "v", false, "verbose output")
 	georepCmd.AddCommand(georepDeleteCmd)
 
 	// Geo-rep Pause
 	georepPauseCmd.Flags().BoolVarP(&flagGeorepCmdForce, "force", "f", false, "Force")
+	georepPauseCmd.Flags().BoolVarP(&verbose, "verbose", "v", false, "verbose output")
 	georepCmd.AddCommand(georepPauseCmd)
 
 	// Geo-rep Resume
 	georepResumeCmd.Flags().BoolVarP(&flagGeorepCmdForce, "force", "f", false, "Force")
+	georepResumeCmd.Flags().BoolVarP(&verbose, "verbose", "v", false, "verbose output")
 	georepCmd.AddCommand(georepResumeCmd)
 
 	// Geo-rep Status
@@ -85,6 +91,7 @@ func init() {
 
 	// Geo-rep Config
 	georepGetCmd.Flags().BoolVarP(&flagGeorepShowAllConfig, "show-all", "a", false, "Show all Configurations")
+	georepGetCmd.Flags().BoolVarP(&verbose, "verbose", "v", false, "verbose output")
 	georepCmd.AddCommand(georepGetCmd)
 	georepCmd.AddCommand(georepSetCmd)
 	georepCmd.AddCommand(georepResetCmd)
@@ -123,11 +130,12 @@ func getVolumeDetails(volname string, rclient *restclient.Client) (*volumeDetail
 		if !master {
 			emsg = errGeorepRemoteInfoNotAvailable
 		}
-
-		log.WithFields(log.Fields{
-			"volume": volname,
-			"error":  err.Error(),
-		}).Error("failed to get Volume details")
+		if verbose {
+			log.WithFields(log.Fields{
+				"volume": volname,
+				"error":  err.Error(),
+			}).Error("failed to get Volume details")
+		}
 		return nil, errors.New(emsg)
 	}
 
@@ -187,11 +195,12 @@ var georepCreateCmd = &cobra.Command{
 		// Generate SSH Keys from all nodes of Master Volume
 		sshkeys, err := client.GeorepSSHKeysGenerate(volname)
 		if err != nil {
-			log.WithFields(log.Fields{
-				"volume": volname,
-				"error":  err.Error(),
-			}).Error("failed to generate SSH Keys")
-
+			if verbose {
+				log.WithFields(log.Fields{
+					"volume": volname,
+					"error":  err.Error(),
+				}).Error("failed to generate SSH Keys")
+			}
 			failure(errGeorepSessionCreationFailed+errGeorepSSHKeysGenerate, err, 1)
 		}
 
@@ -204,17 +213,20 @@ var georepCreateCmd = &cobra.Command{
 		})
 
 		if err != nil {
-			log.WithField("volume", volname).Println("georep session creation failed")
+			if verbose {
+				log.WithField("volume", volname).Println("georep session creation failed")
+			}
 			failure(errGeorepSessionCreationFailed, err, 1)
 		}
 
 		err = rclient.GeorepSSHKeysPush(remotevol, sshkeys)
 		if err != nil {
-			log.WithFields(log.Fields{
-				"volume": remotevol,
-				"error":  err.Error(),
-			}).Error("failed to push SSH Keys to Remote Cluster")
-
+			if verbose {
+				log.WithFields(log.Fields{
+					"volume": remotevol,
+					"error":  err.Error(),
+				}).Error("failed to push SSH Keys to Remote Cluster")
+			}
 			handleGlusterdConnectFailure(errGeorepSessionCreationFailed, err, flagGeorepRemoteGlusterdHTTPS, flagGeorepRemoteGlusterdHost, flagGeorepRemoteGlusterdPort, 1)
 
 			// If not Glusterd connect issue
@@ -270,10 +282,12 @@ func handleGeorepAction(args []string, action georepAction) {
 	}
 
 	if err != nil {
-		log.WithFields(log.Fields{
-			"volume": masterdata.volname,
-			"error":  err.Error(),
-		}).Error("geo-replication", action.String(), "failed")
+		if verbose {
+			log.WithFields(log.Fields{
+				"volume": masterdata.volname,
+				"error":  err.Error(),
+			}).Error("geo-replication", action.String(), "failed")
+		}
 		failure(fmt.Sprintf("Geo-replication %s failed", action.String()), err, 1)
 	}
 	fmt.Println("Geo-replication session", action.String(), "successful")

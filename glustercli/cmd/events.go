@@ -24,10 +24,14 @@ var (
 func init() {
 	eventsWebhookAddCmd.Flags().StringVarP(&flagWebhookAddCmdToken, "bearer-token", "t", "", "Bearer Token")
 	eventsWebhookAddCmd.Flags().StringVarP(&flagWebhookAddCmdSecret, "secret", "s", "", "Secret to generate JWT Bearer Token")
+	eventsWebhookAddCmd.Flags().BoolVarP(&verbose, "verbose", "v", false, "verbose output")
+
 	eventsCmd.AddCommand(eventsWebhookAddCmd)
 
+	eventsWebhookDeleteCmd.Flags().BoolVarP(&verbose, "verbose", "v", false, "verbose output")
 	eventsCmd.AddCommand(eventsWebhookDeleteCmd)
 
+	eventsWebhookListCmd.Flags().BoolVarP(&verbose, "verbose", "v", false, "verbose output")
 	eventsCmd.AddCommand(eventsWebhookListCmd)
 
 	RootCmd.AddCommand(eventsCmd)
@@ -46,10 +50,12 @@ var eventsWebhookAddCmd = &cobra.Command{
 		url := args[0]
 		err := client.WebhookAdd(url, flagWebhookAddCmdToken, flagWebhookAddCmdSecret)
 		if err != nil {
-			log.WithFields(log.Fields{
-				"url":   url,
-				"error": err.Error(),
-			}).Error("failed to add webhook")
+			if verbose {
+				log.WithFields(log.Fields{
+					"url":   url,
+					"error": err.Error(),
+				}).Error("failed to add webhook")
+			}
 			failure("Failed to add Webhook", err, 1)
 		}
 		fmt.Printf("Webhook %s added successfully\n", url)
@@ -64,10 +70,12 @@ var eventsWebhookDeleteCmd = &cobra.Command{
 		url := args[0]
 		err := client.WebhookDelete(url)
 		if err != nil {
-			log.WithFields(log.Fields{
-				"url":   url,
-				"error": err.Error(),
-			}).Error("failed to delete webhook")
+			if verbose {
+				log.WithFields(log.Fields{
+					"url":   url,
+					"error": err.Error(),
+				}).Error("failed to delete webhook")
+			}
 			failure("Failed to delete Webhook", err, 1)
 		}
 		fmt.Printf("Webhook %s deleted successfully\n", url)
@@ -81,9 +89,11 @@ var eventsWebhookListCmd = &cobra.Command{
 	Run: func(cmd *cobra.Command, args []string) {
 		webhooks, err := client.Webhooks()
 		if err != nil {
-			log.WithFields(log.Fields{
-				"error": err.Error(),
-			}).Error("failed to get list of Webhooks")
+			if verbose {
+				log.WithFields(log.Fields{
+					"error": err.Error(),
+				}).Error("failed to get list of Webhooks")
+			}
 			failure("Failed to get list of registered Webhooks", err, 1)
 		}
 
