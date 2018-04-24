@@ -9,6 +9,8 @@ $ ./generate-doc
 
 # REST API Endpoints Reference
 
+**Note:** Fields in request structs marked with "omitempty" struct tag are optional.
+
 Name | Methods | Path | Request | Response
 --- | --- | --- | --- | ---
 GetVersion | GET | /version | [](https://godoc.org/github.com/gluster/glusterd2/pkg/api#) | [VersionResp](https://godoc.org/github.com/gluster/glusterd2/pkg/api#VersionResp)
