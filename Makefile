@@ -30,7 +30,7 @@ DEPENV ?=
 PLUGINS ?= yes
 FASTBUILD ?= yes
 
-.PHONY: all build check check-go check-reqs install vendor-update vendor-install verify release check-protoc $(GD2_BIN) $(GD2_BUILD) $(CLI_BIN) $(CLI_BUILD) cli $(GD2_CONF) gd2conf test dist dist-vendor
+.PHONY: all build check check-go check-reqs install vendor-update vendor-install verify release check-protoc $(GD2_BIN) $(GD2_BUILD) $(CLI_BIN) $(CLI_BUILD) cli $(GD2_CONF) gd2conf test dist dist-vendor functest
 
 all: build
 
@@ -82,12 +82,10 @@ vendor-install:
 	@$(DEPENV) dep ensure
 	@echo
 
-verify: check-reqs
-	@./scripts/lint-check.sh
-	@gometalinter -D gotype -E gofmt --errors --deadline=5m -j 4 --vendor
+test: check-reqs
+	@./test.sh $(TESTOPTIONS)
 
-test:
-	@go test $$(go list ./... | sed '/e2e/d;/vendor/d')
+functest: check-reqs
 	@go test ./e2e -v -functest
 
 release: build
