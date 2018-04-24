@@ -43,7 +43,7 @@ func setGlobalOptionsHandler(w http.ResponseWriter, r *http.Request) {
 
 	if err := cluster.UpdateCluster(c); err != nil {
 		restutils.SendHTTPError(ctx, w, http.StatusInternalServerError,
-			fmt.Sprint("Failed to update store with cluster attributes %s", err.Error()))
+			fmt.Sprintf("Failed to update store with cluster attributes %s", err.Error()))
 		return
 	}
 

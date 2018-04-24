@@ -325,9 +325,9 @@ func TestVolumeOptions(t *testing.T) {
 	optionGroupReq := api.OptionGroupReq{
 		OptionGroup: api.OptionGroup{
 			Name: "profile.test2",
-			Options: []api.VolumeOption{{"opt1", "on", "off"},
-				{"opt2", "enable", "disable"},
-				{"opt3", "off", "on"},
+			Options: []api.VolumeOption{{Name: "opt1", OnValue: "on", OffValue: "off"},
+				{Name: "opt2", OnValue: "enable", OffValue: "disable"},
+				{Name: "opt3", OnValue: "off", OffValue: "on"},
 			},
 		},
 		// XXX: Setting advanced, as all options are advanced by default
@@ -340,8 +340,8 @@ func TestVolumeOptions(t *testing.T) {
 	optionGroupReq = api.OptionGroupReq{
 		OptionGroup: api.OptionGroup{
 			Name: "profile.test2",
-			Options: []api.VolumeOption{{"afr.eager-lock", "on", "off"},
-				{"gfproxy.afr.eager-lock", "on", "off"},
+			Options: []api.VolumeOption{{Name: "afr.eager-lock", OnValue: "on", OffValue: "off"},
+				{Name: "gfproxy.afr.eager-lock", OnValue: "on", OffValue: "off"},
 			},
 		},
 		// XXX: Setting advanced, as all options are advanced by default
