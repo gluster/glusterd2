@@ -1,5 +1,5 @@
-workdir = "/tmp/gd2_func_test/w2"
-rundir = "/tmp/gd2_func_test/w2/run/gluster"
+workdir = "w2"
+rundir = "w2/run/gluster"
 logfile = "w2.log"
 peeraddress = "127.0.0.1:23008"
 clientaddress = "127.0.0.1:23007"
