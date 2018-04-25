@@ -9,6 +9,7 @@ import (
 	"os"
 	"os/exec"
 	"path"
+	"path/filepath"
 	"strings"
 	"syscall"
 	"time"
@@ -24,6 +25,7 @@ type gdProcess struct {
 	ClientAddress string `toml:"clientaddress"`
 	PeerAddress   string `toml:"peeraddress"`
 	Workdir       string `toml:"workdir"`
+	Rundir        string `toml:"rundir"`
 	uuid          string
 }
 
@@ -36,6 +38,17 @@ func (g *gdProcess) Stop() error {
 		return nil
 	}
 	return g.Cmd.Process.Kill()
+}
+
+func (g *gdProcess) UpdateDirs() {
+	g.Workdir = path.Clean(g.Workdir)
+	if !path.IsAbs(g.Workdir) {
+		g.Workdir = path.Join(baseWorkdir, g.Workdir)
+	}
+	g.Rundir = path.Clean(g.Rundir)
+	if !path.IsAbs(g.Rundir) {
+		g.Rundir = path.Join(baseWorkdir, g.Rundir)
+	}
 }
 
 func (g *gdProcess) EraseWorkdir() error {
@@ -103,6 +116,7 @@ func spawnGlusterd(configFilePath string, cleanStart bool) (*gdProcess, error) {
 		return nil, err
 	}
 
+	g.UpdateDirs()
 	if cleanStart {
 		g.EraseWorkdir() // cleanup leftovers from previous test
 	}
@@ -111,8 +125,14 @@ func spawnGlusterd(configFilePath string, cleanStart bool) (*gdProcess, error) {
 		return nil, err
 	}
 
+	absConfigFilePath, err := filepath.Abs(configFilePath)
+	if err != nil {
+		return nil, err
+	}
 	g.Cmd = exec.Command(path.Join(binDir, "glusterd2"),
-		"--config", configFilePath,
+		"--config", absConfigFilePath,
+		"--workdir", g.Workdir,
+		"--rundir", g.Rundir,
 		"--logdir", path.Join(g.Workdir, "log"),
 		"--logfile", "glusterd2.log")
 
