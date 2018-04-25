@@ -184,5 +184,6 @@ func CreateVolumeInfoResp(v *Volinfo) *api.VolumeInfo {
 		State:     api.VolState(v.State),
 		Options:   v.Options,
 		Subvols:   CreateSubvolInfo(&v.Subvols),
+		Metadata:  v.Metadata,
 	}
 }

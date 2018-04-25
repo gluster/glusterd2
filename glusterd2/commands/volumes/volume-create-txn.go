@@ -146,6 +146,12 @@ func newVolinfo(req *api.VolCreateReq) (*volume.Volinfo, error) {
 		return nil, err
 	}
 
+	if req.Metadata != nil {
+		volinfo.Metadata = req.Metadata
+	} else {
+		volinfo.Metadata = make(map[string]string)
+	}
+
 	return volinfo, nil
 }
 

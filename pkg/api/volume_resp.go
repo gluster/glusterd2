@@ -62,6 +62,7 @@ type VolumeInfo struct {
 	Options      map[string]string `json:"options"`
 	State        VolState          `json:"state"`
 	Subvols      []Subvol          `json:"subvols"`
+	Metadata     map[string]string `json:"metadata"`
 }
 
 // VolumeStatusResp response contains the statuses of all bricks of the volume.

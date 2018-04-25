@@ -30,6 +30,8 @@ func TestCreateVolinfo(t *testing.T) {
 		{PeerID: u.String(), Path: "/tmp/b1"},
 		{PeerID: u.String(), Path: "/tmp/b2"},
 	}}}
+	msg.Metadata = make(map[string]string)
+	msg.Metadata["owner"] = "gd2test"
 	vol, e := newVolinfo(msg)
 	assert.Nil(t, e)
 	assert.NotNil(t, vol)
