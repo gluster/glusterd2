@@ -37,6 +37,7 @@ type Glusterfsd struct {
 	Binfo     Brickinfo
 	Bricklist []Brickinfo
 	Port      int
+	Pid       int
 }
 
 // Name returns human-friendly name of the brick process. This is used for logging.
@@ -215,6 +216,7 @@ func (b Brickinfo) StartBrick() error {
 		}
 	}
 
+	brickDaemon.Pid, _ = daemon.ReadPidFromFile(brickDaemon.PidFile())
 	brickDaemon.Port = pmap.RegistrySearch(b.Path, pmap.GfPmapPortBrickserver)
 	brickDaemon.Bricklist = brickDaemon.AddBrick(b)
 
@@ -263,6 +265,19 @@ func (b Brickinfo) StopBrick() error {
 				"name": brickDaemon.Name(),
 				"id":   brickDaemon.ID(),
 			}).WithError(err).Warn("failed to delete brick entry from store, it may be restarted on GlusterD restart")
+		}
+
+		if err := DeleteBrickProcess(brickDaemon); err != nil {
+			log.WithFields(log.Fields{
+				"name": brickDaemon.Name(),
+				"id":   brickDaemon.ID(),
+			}).WithError(err).Warn("failed to delete brick process instance from store")
+		}
+
+		log.Infof("Brick daemon corresponding to brick %s deleted from store", brickDaemon.ID())
+	} else {
+		if err := UpdateBrickProcess(brickDaemon); err != nil {
+			return err
 		}
 	}
 

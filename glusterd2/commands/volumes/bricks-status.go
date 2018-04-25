@@ -115,11 +115,6 @@ func createBricksStatusResp(ctx transaction.TxnCtx, vol *volume.Volinfo) (*api.B
 
 	// bmap is a map of brick statuses keyed by brick ID
 	bmap := make(map[string]api.BrickStatus)
-	for _, b := range vol.GetBricks() {
-		bmap[b.ID.String()] = api.BrickStatus{
-			Info: brick.CreateBrickInfo(&b),
-		}
-	}
 
 	// Loop over each node that make up the volume and aggregate result
 	// of brick status check from each.

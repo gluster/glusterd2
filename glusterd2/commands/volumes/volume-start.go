@@ -46,26 +46,17 @@ func startAllBricks(c transaction.TxnCtx) error {
 			continue
 		}
 
-		// Find a compatible brick
-		// If you can get the rpc client, then send an attach request
-
-		compatBrick, err := FindCompatibleBrick(&b)
+		compatBrickProc, err := FindCompatibleBrickProcess(&b)
 		if err != nil {
 			return err
 		}
 
-		if compatBrick != nil {
+		if compatBrickProc != nil {
+			log.Infof("Found compatible brick process with pid %d", compatBrickProc.Pid)
 
-			// Get the rpc client corresponding to the brick
-			client, err := GetBrickRPCClient(compatBrick)
+			client, err := daemon.GetRPCClient(compatBrickProc)
 			if err != nil {
-				// If you can't get an rpc client connection then start a separate brick process
-				c.Logger().WithError(err).WithField(
-					"brick", b.String()).Error("failed to connect to brick")
-				if err := b.StartBrick(); err != nil {
-					return err
-				}
-				return nil
+				return err
 			}
 
 			req := &brick.GfBrickOpReq{
@@ -83,22 +74,15 @@ func startAllBricks(c transaction.TxnCtx) error {
 				}
 			}
 
-			compatPort := pmap.RegistrySearch(compatBrick.Path, pmap.GfPmapPortBrickserver)
-			pmap.RegistryExtend(compatPort, b.Path, pmap.GfPmapPortBrickserver)
+			pmap.RegistryExtend(compatBrickProc.Port, b.Path, pmap.GfPmapPortBrickserver)
 
-			compatBrickDaemon, err := brick.GetBrickProcessByPort(compatPort)
-			if err != nil {
-				return err
-			}
-			if pidOnFile, err := daemon.ReadPidFromFile(compatBrickDaemon.PidFile()); err == nil {
-				daemon.WritePidToFile(pidOnFile, brick.GetPidFilePathForBrick(b))
-			}
+			daemon.WritePidToFile(compatBrickProc.Pid, brick.GetPidFilePathForBrick(b))
 
 			// Update brick process info in store
-			compatBrickDaemon.Bricklist = compatBrickDaemon.AddBrick(b)
+			compatBrickProc.Bricklist = compatBrickProc.AddBrick(b)
 
-			if err := brick.UpdateBrickProcess(compatBrickDaemon); err != nil {
-				c.Logger().WithField("name", compatBrickDaemon.Name()).WithError(err).Warn(
+			if err := brick.UpdateBrickProcess(compatBrickProc); err != nil {
+				c.Logger().WithField("name", compatBrickProc.Name()).WithError(err).Warn(
 					"failed to save daemon information into store, daemon may not be restarted correctly on GlusterD restart")
 				return err
 			}

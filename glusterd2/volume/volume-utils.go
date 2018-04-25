@@ -49,21 +49,25 @@ func CheckBricksStatus(volinfo *Volinfo) ([]brick.Brickstatus, error) {
 	}
 
 	for _, binfo := range volinfo.GetLocalBricks() {
-		brickDaemon, err := brick.NewGlusterfsd(binfo)
-		if err != nil {
-			return brickStatuses, err
-		}
-
 		s := brick.Brickstatus{
 			Info: binfo,
 		}
 
-		if pidOnFile, err := daemon.ReadPidFromFile(brickDaemon.PidFile()); err == nil {
-			if _, err := daemon.GetProcess(pidOnFile); err == nil {
-				s.Online = true
-				s.Pid = pidOnFile
-				s.Port = pmap.RegistrySearch(binfo.Path, pmap.GfPmapPortBrickserver)
-			}
+		port := pmap.RegistrySearch(binfo.Path, pmap.GfPmapPortBrickserver)
+		if port == 0 {
+			log.Errorf("Couldn't get port information for brick %s", binfo.Path)
+			return brickStatuses, errors.New("Failed to get port information for brick")
+		}
+
+		brickDaemon, err := brick.GetBrickProcessByPort(port)
+		if err != nil {
+			return brickStatuses, err
+		}
+
+		if _, err := daemon.GetProcess(brickDaemon.Pid); err == nil {
+			s.Online = true
+			s.Pid = brickDaemon.Pid
+			s.Port = port
 		}
 
 		var fstat syscall.Statfs_t

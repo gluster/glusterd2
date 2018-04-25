@@ -2,7 +2,6 @@ package volumecommands
 
 import (
 	"fmt"
-	"net/rpc"
 	"reflect"
 
 	"github.com/gluster/glusterd2/glusterd2/brick"
@@ -17,22 +16,8 @@ import (
 	log "github.com/sirupsen/logrus"
 )
 
-// GetBrickRPCClient gets the rpc client corresponding to the brick
-func GetBrickRPCClient(b *brick.Brickinfo) (*rpc.Client, error) {
-	brickDaemon, err := brick.NewGlusterfsd(*b)
-	if err != nil {
-		return nil, err
-	}
-
-	client, err := daemon.GetRPCClient(brickDaemon)
-	if err != nil {
-		return nil, err
-	}
-	return client, nil
-}
-
 // findCompatibleBrickInVol finds compatible brick for multiplexing from a specific volume
-func findCompatibleBrickInVol(b *brick.Brickinfo, v *volume.Volinfo) (*brick.Brickinfo, error) {
+func findCompatibleBrickProcInVol(b *brick.Brickinfo, v *volume.Volinfo) (*brick.Glusterfsd, error) {
 	brickmuxLimit, err := cluster.MaxBricksPerGlusterfsd()
 	if err != nil {
 		log.WithError(err).Info("Couldn't get limit on brick multiplexing. Continue with no limits set on number of bricks per process.")
@@ -44,38 +29,46 @@ func findCompatibleBrickInVol(b *brick.Brickinfo, v *volume.Volinfo) (*brick.Bri
 			continue
 		}
 
-		if _, err := GetBrickRPCClient(&localBrick); err != nil {
+		port := pmap.RegistrySearch(localBrick.Path, pmap.GfPmapPortBrickserver)
+		if port == 0 {
+			// Couldn't find brick entry in portmap
 			continue
 		}
 
-		port := pmap.RegistrySearch(localBrick.Path, pmap.GfPmapPortBrickserver)
-		localBrickproc, err := brick.GetBrickProcessByPort(port)
+		localBrickProc, err := brick.GetBrickProcessByPort(port)
 		if err != nil {
 			continue
 		}
 
+		log.Infof("Got brick process for port %d", port)
+
 		if brickmuxLimit != 0 {
-			if len(localBrickproc.Bricklist) >= brickmuxLimit {
+			if len(localBrickProc.Bricklist) >= brickmuxLimit {
 				continue
 			}
 		}
 
-		return &localBrick, nil
+		_, err = daemon.GetRPCClient(localBrickProc)
+		if err != nil {
+			continue
+		}
+
+		return localBrickProc, nil
 	}
 
 	return nil, nil
 }
 
-// FindCompatibleBrick finds a compatible brick for multiplexing
-func FindCompatibleBrick(b *brick.Brickinfo) (*brick.Brickinfo, error) {
+// FindCompatibleBrickProcess finds a compatible brick process for multiplexing
+func FindCompatibleBrickProcess(b *brick.Brickinfo) (*brick.Glusterfsd, error) {
 	brickVolume, err := volume.GetVolume(b.VolumeName)
 	if err != nil {
 		return nil, err
 	}
 
-	compatBrick, err := findCompatibleBrickInVol(b, brickVolume)
-	if compatBrick != nil {
-		return compatBrick, nil
+	compatBrickProc, err := findCompatibleBrickProcInVol(b, brickVolume)
+	if compatBrickProc != nil {
+		return compatBrickProc, nil
 	}
 
 	vols, err := volume.GetVolumes()
@@ -88,9 +81,9 @@ func FindCompatibleBrick(b *brick.Brickinfo) (*brick.Brickinfo, error) {
 			continue
 		} else {
 			if reflect.DeepEqual(vol.Options, brickVolume.Options) {
-				compatBrick, _ := findCompatibleBrickInVol(b, vol)
-				if compatBrick != nil {
-					return compatBrick, nil
+				compatBrickProc, _ := findCompatibleBrickProcInVol(b, vol)
+				if compatBrickProc != nil {
+					return compatBrickProc, nil
 				}
 			}
 		}

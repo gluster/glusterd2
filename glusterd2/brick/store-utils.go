@@ -25,13 +25,20 @@ func UpdateBrickProcess(bp *Glusterfsd) error {
 		return e
 	}
 
-	_, e = store.Store.Put(context.TODO(), glusterfsdPrefix+bp.Binfo.Path, string(json))
+	_, e = store.Store.Put(context.TODO(), glusterfsdPrefix+bp.ID(), string(json))
 	if e != nil {
 		log.WithError(e).Error("Couldn't add glusterfsd to store")
 		return e
 	}
 	log.WithField("brick", bp.Binfo.Path).Info("Updated brick process")
 	return nil
+}
+
+// DeleteBrickProcess removes brick process instance from store
+func DeleteBrickProcess(bp *Glusterfsd) error {
+	_, err := store.Store.Delete(context.TODO(), glusterfsdPrefix+bp.ID())
+
+	return err
 }
 
 // GetBrickProcessByPort fetches the json object from the store and unmarshalls it into

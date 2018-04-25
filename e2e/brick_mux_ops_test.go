@@ -15,9 +15,6 @@ import (
 
 var (
 	testvols = []string{"testvol1", "testvol2"}
-
-	pidcount  = make(map[int]int)
-	portcount = make(map[int]int)
 )
 
 func TestBrickMuxVolumeOps(t *testing.T) {
@@ -49,44 +46,57 @@ func TestBrickMuxVolumeOps(t *testing.T) {
 	// Create the volumes
 	r.Nil(testVolsCreate(testvols), "volume creation failed")
 
+	// Start the volumes
 	for _, volname := range testvols {
 		err = client.VolumeStart(volname)
 		r.Nil(err, "volume %s start failed", volname)
 	}
 
-	r.Nil(testVolStatusAndUpdateCounts(testvols))
+	// Check if there are two brick processes
+	pidcount, portcount, err := testVolStatusAndUpdateCounts(testvols)
+	r.Nil(err)
 
-	r.True(len(pidcount) == 2, fmt.Sprintf("Pid count: %d", len(pidcount)))
-	r.True(len(portcount) == 2, fmt.Sprintf("Port count: %d", len(portcount)))
+	r.True(pidcount == 2, fmt.Sprintf("Pid count: %d", pidcount))
+	r.True(portcount == 2, fmt.Sprintf("Port count: %d", portcount))
 
-	r.Nil(testVolumesMounts(testvols))
+	//r.Nil(testVolumesMounts(testvols))
 
+	// Now set maximum number of bricks per brick process to 5
 	err = client.GlobalOptionSet(api.GlobalOptionReq{
 		Options: map[string]string{"cluster.max-bricks-per-process": "5"},
 	})
 	r.Nil(err)
 
+	// Create a 3rd volume
 	r.Nil(testVolsCreate([]string{"testvol3"}), "volume creation failed")
 
+	// Start the volume
 	err = client.VolumeStart("testvol3")
 	r.Nil(err, "volume testvol3 start failed")
 
-	r.Nil(testVolStatusAndUpdateCounts(append(testvols, "testvol3")))
+	// Number of bricks now up is 9. Number of brick processes should still remain 2
+	pidcount, portcount, err = testVolStatusAndUpdateCounts(append(testvols, "testvol3"))
+	r.Nil(err)
 
-	r.True(len(pidcount) == 2, fmt.Sprintf("Pid count: %d", len(pidcount)))
-	r.True(len(portcount) == 2, fmt.Sprintf("Port count: %d", len(portcount)))
+	r.True(pidcount == 2, fmt.Sprintf("Pid count: %d", pidcount))
+	r.True(portcount == 2, fmt.Sprintf("Port count: %d", portcount))
 
-	r.Nil(testVolumesMounts(append(testvols, "testvol3")))
+	//r.Nil(testVolumesMounts(append(testvols, "testvol3")))
 
+	// Stop 2nd volume
 	err = client.VolumeStop("testvol2")
 	r.Nil(err, "volume testvol2 stop failed")
 
+	// Start the volume
 	err = client.VolumeStart("testvol2")
 	r.Nil(err, "volume testvol2 start failed")
 
-	r.Nil(testVolStatusAndUpdateCounts(append(testvols, "testvol3")))
-	r.True(len(pidcount) == 2, fmt.Sprintf("Pid count: %d", len(pidcount)))
-	r.True(len(portcount) == 2, fmt.Sprintf("Port count: %d", len(portcount)))
+	// Check number of brick processes. Value should remain the same.
+	pidcount, portcount, err = testVolStatusAndUpdateCounts(append(testvols, "testvol3"))
+	r.Nil(err)
+
+	r.True(pidcount == 2, fmt.Sprintf("Pid count: %d", pidcount))
+	r.True(portcount == 2, fmt.Sprintf("Port count: %d", portcount))
 
 }
 
@@ -117,11 +127,15 @@ func testVolumesMounts(testvols []string) error {
 	return nil
 }
 
-func testVolStatusAndUpdateCounts(testvols []string) error {
+func testVolStatusAndUpdateCounts(testvols []string) (int, int, error) {
+
+	pidcount := make(map[int]int)
+	portcount := make(map[int]int)
+
 	for _, volname := range testvols {
 		volstatus, err := client.BricksStatus(volname)
 		if err != nil {
-			return err
+			return 0, 0, err
 		}
 
 		for _, brickstatus := range volstatus {
@@ -140,7 +154,7 @@ func testVolStatusAndUpdateCounts(testvols []string) error {
 			}
 		}
 	}
-	return nil
+	return len(pidcount), len(portcount), nil
 }
 
 func testVolsCreate(testvols []string) error {
