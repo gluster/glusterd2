@@ -16,7 +16,6 @@ var (
 - Glusterd is running(%s://%s:%d) and reachable from this node.
 - Make sure hostname/IP and Port specified in the command are valid
 `
-	verbose = false
 )
 
 func initRESTClient(hostname string, cacert string, insecure bool) {

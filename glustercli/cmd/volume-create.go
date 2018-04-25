@@ -49,7 +49,6 @@ func init() {
 	volumeCreateCmd.Flags().MarkHidden("advanced")
 	volumeCreateCmd.Flags().MarkHidden("experimental")
 	volumeCreateCmd.Flags().MarkHidden("deprecated")
-	volumeCreateCmd.Flags().BoolVarP(&verbose, "verbose", "v", false, "verbose output")
 	volumeCmd.AddCommand(volumeCreateCmd)
 }
 

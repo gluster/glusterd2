@@ -31,7 +31,6 @@ func init() {
 	volumeSetCmd.Flags().BoolVar(&flagSetAdv, "advanced", false, "Allow setting advanced options")
 	volumeSetCmd.Flags().BoolVar(&flagSetExp, "experimental", false, "Allow setting experimental options")
 	volumeSetCmd.Flags().BoolVar(&flagSetDep, "deprecated", false, "Allow setting deprecated options")
-	volumeSetCmd.Flags().BoolVarP(&verbose, "verbose", "v", false, "verbose output")
 	volumeCmd.AddCommand(volumeSetCmd)
 }
 

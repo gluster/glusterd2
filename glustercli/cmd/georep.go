@@ -58,32 +58,26 @@ func init() {
 	georepCreateCmd.Flags().StringVarP(&flagGeorepRemoteGlusterdHost, "remote-glusterd-host", "", "", "Remote Glusterd Host")
 	georepCreateCmd.Flags().IntVarP(&flagGeorepRemoteGlusterdPort, "remote-glusterd-port", "", 24007, "Remote Glusterd Port")
 	georepCreateCmd.Flags().BoolVarP(&flagGeorepCmdForce, "force", "f", false, "Force")
-	georepCreateCmd.Flags().BoolVarP(&verbose, "verbose", "v", false, "verbose output")
 	georepCmd.AddCommand(georepCreateCmd)
 
 	// Geo-rep Start
 	georepStartCmd.Flags().BoolVarP(&flagGeorepCmdForce, "force", "f", false, "Force")
-	georepStartCmd.Flags().BoolVarP(&verbose, "verbose", "v", false, "verbose output")
 	georepCmd.AddCommand(georepStartCmd)
 
 	// Geo-rep Stop
 	georepStopCmd.Flags().BoolVarP(&flagGeorepCmdForce, "force", "f", false, "Force")
-	georepStopCmd.Flags().BoolVarP(&verbose, "verbose", "v", false, "verbose output")
 	georepCmd.AddCommand(georepStopCmd)
 
 	// Geo-rep Delete
 	georepDeleteCmd.Flags().BoolVarP(&flagGeorepCmdForce, "force", "f", false, "Force")
-	georepDeleteCmd.Flags().BoolVarP(&verbose, "verbose", "v", false, "verbose output")
 	georepCmd.AddCommand(georepDeleteCmd)
 
 	// Geo-rep Pause
 	georepPauseCmd.Flags().BoolVarP(&flagGeorepCmdForce, "force", "f", false, "Force")
-	georepPauseCmd.Flags().BoolVarP(&verbose, "verbose", "v", false, "verbose output")
 	georepCmd.AddCommand(georepPauseCmd)
 
 	// Geo-rep Resume
 	georepResumeCmd.Flags().BoolVarP(&flagGeorepCmdForce, "force", "f", false, "Force")
-	georepResumeCmd.Flags().BoolVarP(&verbose, "verbose", "v", false, "verbose output")
 	georepCmd.AddCommand(georepResumeCmd)
 
 	// Geo-rep Status
@@ -91,7 +85,6 @@ func init() {
 
 	// Geo-rep Config
 	georepGetCmd.Flags().BoolVarP(&flagGeorepShowAllConfig, "show-all", "a", false, "Show all Configurations")
-	georepGetCmd.Flags().BoolVarP(&verbose, "verbose", "v", false, "verbose output")
 	georepCmd.AddCommand(georepGetCmd)
 	georepCmd.AddCommand(georepSetCmd)
 	georepCmd.AddCommand(georepResetCmd)

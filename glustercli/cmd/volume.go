@@ -44,34 +44,27 @@ var (
 func init() {
 	// Volume Start
 	volumeStartCmd.Flags().BoolVarP(&flagStartCmdForce, "force", "f", false, "Force")
-	volumeStartCmd.Flags().BoolVarP(&verbose, "verbose", "v", false, "verbose output")
 	volumeCmd.AddCommand(volumeStartCmd)
 
 	// Volume Stop
 	volumeStopCmd.Flags().BoolVarP(&flagStopCmdForce, "force", "f", false, "Force")
-	volumeStopCmd.Flags().BoolVarP(&verbose, "verbose", "v", false, "verbose output")
 	volumeCmd.AddCommand(volumeStopCmd)
 
 	// Volume Delete
-	volumeDeleteCmd.Flags().BoolVarP(&verbose, "verbose", "v", false, "verbose output")
 	volumeCmd.AddCommand(volumeDeleteCmd)
 
 	volumeCmd.AddCommand(volumeGetCmd)
 	volumeCmd.AddCommand(volumeResetCmd)
 
-	volumeInfoCmd.Flags().BoolVarP(&verbose, "verbose", "v", false, "verbose output")
 	volumeCmd.AddCommand(volumeInfoCmd)
 
-	volumeStatusCmd.Flags().BoolVarP(&verbose, "verbose", "v", false, "verbose output")
 	volumeCmd.AddCommand(volumeStatusCmd)
 
-	volumeListCmd.Flags().BoolVarP(&verbose, "verbose", "v", false, "verbose output")
 	volumeCmd.AddCommand(volumeListCmd)
 
 	// Volume Expand
 	volumeExpandCmd.Flags().IntVarP(&flagExpandCmdReplicaCount, "replica", "", 0, "Replica Count")
 	volumeExpandCmd.Flags().BoolVarP(&flagExpandCmdForce, "force", "f", false, "Force")
-	volumeExpandCmd.Flags().BoolVarP(&verbose, "verbose", "v", false, "verbose output")
 	volumeCmd.AddCommand(volumeExpandCmd)
 
 	RootCmd.AddCommand(volumeCmd)

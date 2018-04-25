@@ -13,7 +13,6 @@ var RootCmd = &cobra.Command{
 	Use:   "glustercli",
 	Short: "Gluster Console Manager (command line utility)",
 	PersistentPreRun: func(cmd *cobra.Command, args []string) {
-		//err := logging.Init(flagLogDir, flagLogFile, flagLogLevel, false)
 		err := logging.Init("", "stdout", flagLogLevel, false)
 		if err != nil {
 			fmt.Println("Error initializing log file ", err)
@@ -36,6 +35,7 @@ var (
 	flagCacert     string
 	flagInsecure   bool
 	flagLogLevel   string
+	verbose        bool
 )
 
 const (
@@ -49,6 +49,7 @@ func init() {
 	RootCmd.PersistentFlags().StringVarP(&flagHostname, "glusterd-host", "", "localhost", "Glusterd Host")
 	RootCmd.PersistentFlags().BoolVarP(&flagHTTPS, "glusterd-https", "", false, "Use HTTPS while connecting to Glusterd")
 	RootCmd.PersistentFlags().IntVarP(&flagPort, "glusterd-port", "", 24007, "Glusterd Port")
+	RootCmd.PersistentFlags().BoolVarP(&verbose, "verbose", "v", false, "verbose output")
 
 	// Log options
 	RootCmd.PersistentFlags().StringVarP(&flagLogLevel, logging.LevelFlag, "", defaultLogLevel, logging.LevelHelp)

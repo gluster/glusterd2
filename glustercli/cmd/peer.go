@@ -27,14 +27,11 @@ func init() {
 	peerCmd.AddCommand(peerProbeCmd)
 
 	peerDetachCmd.Flags().BoolVarP(&flagPeerDetachForce, "force", "f", false, "Force")
-	peerDetachCmd.Flags().BoolVarP(&verbose, "verbose", "v", false, "verbose output")
 
 	peerCmd.AddCommand(peerDetachCmd)
 
-	peerStatusCmd.Flags().BoolVarP(&verbose, "verbose", "v", false, "verbose output")
 	peerCmd.AddCommand(peerStatusCmd)
 
-	poolListCmd.Flags().BoolVarP(&verbose, "verbose", "v", false, "verbose output")
 	poolCmd.AddCommand(poolListCmd)
 
 	RootCmd.AddCommand(peerCmd)

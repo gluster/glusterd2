@@ -28,22 +28,16 @@ func init() {
 	// Bitrot Enable
 	bitrotCmd.AddCommand(bitrotEnableCmd)
 
-	bitrotEnableCmd.Flags().BoolVarP(&verbose, "verbose", "v", false, "verbose output")
-
 	// Bitrot Disable
-	bitrotDisableCmd.Flags().BoolVarP(&verbose, "verbose", "v", false, "verbose output")
 	bitrotCmd.AddCommand(bitrotDisableCmd)
 
 	// Configure scrub throttle
-	bitrotScrubThrottleCmd.Flags().BoolVarP(&verbose, "verbose", "v", false, "verbose output")
 	bitrotCmd.AddCommand(bitrotScrubThrottleCmd)
 
 	// Configure scrub frequency
-	bitrotScrubFrequencyCmd.Flags().BoolVarP(&verbose, "verbose", "v", false, "verbose output")
 	bitrotCmd.AddCommand(bitrotScrubFrequencyCmd)
 
 	// Bitrot scrub command
-	bitrotScrubCmd.Flags().BoolVarP(&verbose, "verbose", "v", false, "verbose output")
 	bitrotCmd.AddCommand(bitrotScrubCmd)
 
 	RootCmd.AddCommand(bitrotCmd)

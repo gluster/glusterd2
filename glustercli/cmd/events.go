@@ -24,14 +24,11 @@ var (
 func init() {
 	eventsWebhookAddCmd.Flags().StringVarP(&flagWebhookAddCmdToken, "bearer-token", "t", "", "Bearer Token")
 	eventsWebhookAddCmd.Flags().StringVarP(&flagWebhookAddCmdSecret, "secret", "s", "", "Secret to generate JWT Bearer Token")
-	eventsWebhookAddCmd.Flags().BoolVarP(&verbose, "verbose", "v", false, "verbose output")
 
 	eventsCmd.AddCommand(eventsWebhookAddCmd)
 
-	eventsWebhookDeleteCmd.Flags().BoolVarP(&verbose, "verbose", "v", false, "verbose output")
 	eventsCmd.AddCommand(eventsWebhookDeleteCmd)
 
-	eventsWebhookListCmd.Flags().BoolVarP(&verbose, "verbose", "v", false, "verbose output")
 	eventsCmd.AddCommand(eventsWebhookListCmd)
 
 	RootCmd.AddCommand(eventsCmd)
