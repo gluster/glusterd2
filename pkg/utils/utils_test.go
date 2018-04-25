@@ -88,6 +88,13 @@ func TestIsAddressSame(t *testing.T) {
 
 	resp = IsAddressSame("192.169.1.2", "192.168.1.1")
 	assert.False(t, resp)
+
+	resp = IsAddressSame("192.169.1.2", "192.168.1")
+	assert.False(t, resp)
+
+	resp = IsAddressSame("192.169.1", "192.168.1.1")
+	assert.False(t, resp)
+
 }
 
 func TestGetLocalIP(t *testing.T) {
