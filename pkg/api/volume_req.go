@@ -29,6 +29,7 @@ type VolCreateReq struct {
 	Advanced     bool              `json:"advanced,omitempty"`
 	Experimental bool              `json:"experimental,omitempty"`
 	Deprecated   bool              `json:"deprecated,omitempty"`
+	Metadata     map[string]string `json:"metadata,omitempty"`
 }
 
 // VolOptionReq represents an incoming request to set volume options
@@ -82,6 +83,7 @@ type VolStatedumpReq struct {
 	Client ClientStatedump `json:"client,omitempty"`
 }
 
-type VolEditMetadataReq struct {
+// VolEditReq represents a volume metadata edit request
+type VolEditReq struct {
 	Metadata map[string]string `json:"metadata"`
 }

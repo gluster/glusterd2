@@ -109,6 +109,7 @@ type Volinfo struct {
 	Auth        VolAuth // TODO: should not be returned to client
 	GraphMap    map[string]string
 	HealEnabled bool
+	Metadata    map[string]string
 }
 
 // VolAuth represents username and password used by trusted/internal clients

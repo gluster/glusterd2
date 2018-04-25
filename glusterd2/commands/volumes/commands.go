@@ -128,11 +128,12 @@ func (c *Command) Routes() route.Routes {
 			Version:     1,
 			HandlerFunc: volfilesListHandler},
 		route.Route{
-			Name:        "VolumeEditMetadata",
+			Name:        "EditVolume",
 			Method:      "POST",
-			Pattern:     "/volumes/{volname}/edit-metadata",
+			Pattern:     "/volumes/{volname}/edit",
+			Version:     1,
 			RequestType: utils.GetTypeString((*api.VolumeGetResp)(nil)),
-			HandlerFunc: volumeEditMetadataHandler},
+			HandlerFunc: volumeEditHandler},
 	}
 }
 
@@ -142,7 +143,6 @@ func (c *Command) RegisterStepFuncs() {
 	registerVolDeleteStepFuncs()
 	registerVolStartStepFuncs()
 	registerVolStopStepFuncs()
-	registerVolEditMetadataStepFuncs()
 	registerBricksStatusStepFuncs()
 	registerVolExpandStepFuncs()
 	registerVolOptionStepFuncs()

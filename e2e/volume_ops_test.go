@@ -65,6 +65,9 @@ func TestVolume(t *testing.T) {
 
 	// Disperse volume test
 	t.Run("Disperse", testDisperse)
+
+	// Edit Volume Metadata test
+	t.Run("Edit", testEditVolume)
 }
 
 func testVolumeCreate(t *testing.T) {
@@ -408,4 +411,42 @@ func testDisperse(t *testing.T) {
 
 	r.Nil(client.VolumeStop(disperseVolName), "disperse volume stop failed")
 	r.Nil(client.VolumeDelete(disperseVolName), "disperse volume delete failed")
+}
+
+func testEditVolume(t *testing.T) {
+	r := require.New(t)
+
+	var brickPaths []string
+
+	for i := 1; i <= 4; i++ {
+		brickPath, err := ioutil.TempDir(tmpDir, "brick")
+		r.Nil(err)
+		brickPaths = append(brickPaths, brickPath)
+	}
+
+	createReq := api.VolCreateReq{
+		Name: volname,
+		Subvols: []api.SubvolReq{
+			{
+				ReplicaCount: 2,
+				Type:         "replicate",
+				Bricks: []api.BrickReq{
+					{PeerID: gds[0].PeerID(), Path: brickPaths[0]},
+					{PeerID: gds[1].PeerID(), Path: brickPaths[1]},
+				},
+			},
+		},
+		Force: true,
+	}
+	_, err := client.VolumeCreate(createReq)
+
+	editMetadataReq := api.VolEditReq{
+		Metadata: map[string]string{
+			"owner": "gd2tests",
+		},
+	}
+	_, err = client.EditVolume(volname, editMetadataReq)
+	r.Nil(err)
+	err = client.VolumeDelete(volname)
+	r.Nil(err)
 }
