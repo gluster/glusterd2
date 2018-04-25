@@ -211,7 +211,6 @@ func setupCluster(configFiles ...string) ([]*gdProcess, error) {
 func teardownCluster(gds []*gdProcess) error {
 	for _, gd := range gds {
 		gd.Stop()
-		gd.EraseWorkdir()
 	}
 	processes := []string{"glusterfs", "glusterfsd", "glustershd"}
 	for _, p := range processes {
