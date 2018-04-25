@@ -33,7 +33,11 @@ func deviceAddHandler(w http.ResponseWriter, r *http.Request) {
 	peerInfo, err := peer.GetPeer(peerID)
 	if err != nil {
 		logger.WithError(err).WithField("peerid", peerID).Error("Peer ID not found in store")
-		restutils.SendHTTPError(ctx, w, http.StatusNotFound, "Peer Id not found in store")
+		if err == errors.ErrPeerNotFound {
+			restutils.SendHTTPError(ctx, w, http.StatusNotFound, errors.ErrPeerNotFound)
+		} else {
+			restutils.SendHTTPError(ctx, w, http.StatusInternalServerError, "Failed to get peer from store")
+		}
 		return
 	}
 	txn := transaction.NewTxn(ctx)

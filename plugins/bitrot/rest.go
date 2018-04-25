@@ -28,7 +28,11 @@ func bitrotEnableHandler(w http.ResponseWriter, r *http.Request) {
 	// Validate volume existence
 	volinfo, err := volume.GetVolume(volName)
 	if err != nil {
-		restutils.SendHTTPError(ctx, w, http.StatusNotFound, errors.ErrVolNotFound)
+		if err == errors.ErrVolNotFound {
+			restutils.SendHTTPError(ctx, w, http.StatusNotFound, errors.ErrVolNotFound)
+		} else {
+			restutils.SendHTTPError(ctx, w, http.StatusInternalServerError, err)
+		}
 		return
 	}
 
@@ -115,7 +119,11 @@ func bitrotDisableHandler(w http.ResponseWriter, r *http.Request) {
 	// Validate volume existence
 	volinfo, err := volume.GetVolume(volName)
 	if err != nil {
-		restutils.SendHTTPError(ctx, w, http.StatusNotFound, errors.ErrVolNotFound)
+		if err == errors.ErrVolNotFound {
+			restutils.SendHTTPError(ctx, w, http.StatusNotFound, errors.ErrVolNotFound)
+		} else {
+			restutils.SendHTTPError(ctx, w, http.StatusInternalServerError, err)
+		}
 		return
 	}
 
@@ -191,7 +199,11 @@ func bitrotScrubOndemandHandler(w http.ResponseWriter, r *http.Request) {
 	// Validate volume existence
 	volinfo, err := volume.GetVolume(volName)
 	if err != nil {
-		restutils.SendHTTPError(ctx, w, http.StatusNotFound, errors.ErrVolNotFound)
+		if err == errors.ErrVolNotFound {
+			restutils.SendHTTPError(ctx, w, http.StatusNotFound, errors.ErrVolNotFound)
+		} else {
+			restutils.SendHTTPError(ctx, w, http.StatusInternalServerError, err)
+		}
 		return
 	}
 
@@ -252,8 +264,11 @@ func bitrotScrubStatusHandler(w http.ResponseWriter, r *http.Request) {
 	// Validate volume existence
 	volinfo, err := volume.GetVolume(volName)
 	if err != nil {
-		restutils.SendHTTPError(ctx, w, http.StatusNotFound,
-			errors.ErrVolNotFound)
+		if err == errors.ErrVolNotFound {
+			restutils.SendHTTPError(ctx, w, http.StatusNotFound, errors.ErrVolNotFound)
+		} else {
+			restutils.SendHTTPError(ctx, w, http.StatusInternalServerError, err)
+		}
 		return
 	}
 

@@ -116,9 +116,11 @@ func volumeStatedumpHandler(w http.ResponseWriter, r *http.Request) {
 
 	volinfo, err := volume.GetVolume(volname)
 	if err != nil {
-		// TODO: Distinguish between volume not present (404) and
-		// store access failure (503)
-		restutils.SendHTTPError(ctx, w, http.StatusNotFound, gderrors.ErrVolNotFound)
+		if err == gderrors.ErrVolNotFound {
+			restutils.SendHTTPError(ctx, w, http.StatusNotFound, gderrors.ErrVolNotFound)
+		} else {
+			restutils.SendHTTPError(ctx, w, http.StatusInternalServerError, err)
+		}
 		return
 	}
 
