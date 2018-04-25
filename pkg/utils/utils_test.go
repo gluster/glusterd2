@@ -57,9 +57,6 @@ func TestInitDir(t *testing.T) {
 	err := InitDir(validPath)
 	assert.Nil(t, err)
 
-	err = InitDir("/abc")
-	assert.Contains(t, err.Error(), "permission denied")
-
 	os.Create(filePath)
 	defer os.Remove(filePath)
 

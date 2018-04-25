@@ -2,7 +2,7 @@ package utils
 
 import (
 	"testing"
-	//"github.com/stretchr/testify/assert"
+
 	config "github.com/spf13/viper"
 	"github.com/stretchr/testify/assert"
 )

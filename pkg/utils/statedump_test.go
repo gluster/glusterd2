@@ -7,8 +7,6 @@ import (
 	"testing"
 	"time"
 
-	config "github.com/spf13/viper"
-
 	"github.com/stretchr/testify/assert"
 )
 
@@ -18,7 +16,4 @@ func TestWriteStatedump(t *testing.T) {
 	WriteStatedump()
 	assert.FileExists(t, filename)
 	os.Remove(filename)
-
-	config.Set("rundir", "/abc")
-	WriteStatedump()
 }
