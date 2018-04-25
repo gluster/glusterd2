@@ -24,9 +24,10 @@ yum -y install git mercurial bzr subversion gcc make
 curl -o /etc/yum.repos.d/glusterfs-nighthly-master.repo http://artifacts.ci.centos.org/gluster/nightly/master.repo
 yum -y install epel-release
 yum -y install glusterfs-server
+yum -y install ShellCheck
 
 export GD2SRC=$GOPATH/src/github.com/gluster/glusterd2
-cd $GD2SRC
+cd "$GD2SRC"
 
 # install the build and test requirements
 ./scripts/install-reqs.sh
@@ -34,13 +35,13 @@ cd $GD2SRC
 # install vendored dependencies
 make vendor-install
 
-# run linters
-make verify
-
 # verify build
 make glusterd2
 make glustercli
 make gd2conf
 
-# run unit-tests
-make test
+# run tests
+make test TESTOPTIONS=-v
+
+# run functional tests
+make functest
