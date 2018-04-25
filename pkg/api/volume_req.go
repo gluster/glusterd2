@@ -81,3 +81,7 @@ type VolStatedumpReq struct {
 	Quota  bool            `json:"quotad,omitempty"`
 	Client ClientStatedump `json:"client,omitempty"`
 }
+
+type VolEditMetadataReq struct {
+	Metadata map[string]string `json:"metadata"`
+}
