@@ -9,6 +9,11 @@ import (
 	"github.com/pborman/uuid"
 )
 
+const (
+	thinArbiterOptionName  = "replicate.thin-arbiter"
+	thinArbiterDefaultPort = "24007"
+)
+
 type clusterGraphFilters struct {
 	onlyLocalBricks bool
 	noSubvolParent  bool
@@ -71,6 +76,31 @@ func clusterGraph(volfile *Volfile, dht *Entry, vol *volume.Volinfo, nodeid uuid
 				if b.Decommissioned {
 					decommissionedBricks = append(decommissionedBricks, name)
 				}
+			}
+
+			thinarbiter, exists := vol.Options[thinArbiterOptionName]
+			if exists && thinarbiter != "" {
+				taParts := strings.Split(thinarbiter, ":")
+				if len(taParts) != 2 && len(taParts) != 3 {
+					// Thin Arbiter Option may not be valid
+					continue
+				}
+
+				remotePort := thinArbiterDefaultPort
+				if len(taParts) >= 3 {
+					remotePort = taParts[2]
+				}
+
+				name := fmt.Sprintf("%s-thin-arbiter-client", subvol.Name)
+				parent.Add("protocol/client", vol, nil).
+					SetName(name).
+					SetExtraData(map[string]string{
+						"brick.hostname": taParts[0],
+						"brick.path":     taParts[1],
+					}).
+					SetExtraOptions(map[string]string{
+						"remote-port": remotePort,
+					})
 			}
 		}
 	}
