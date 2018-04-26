@@ -6,7 +6,6 @@ import (
 
 	"github.com/gluster/glusterd2/pkg/api"
 
-	log "github.com/sirupsen/logrus"
 	"github.com/spf13/cobra"
 )
 
@@ -52,10 +51,6 @@ func volumeSetCmdRun(cmd *cobra.Command, args []string) {
 	volname := args[0]
 	options := args[1:]
 	if err := volumeOptionJSONHandler(cmd, volname, options); err != nil {
-		log.WithFields(log.Fields{
-			"volume": volname,
-			"error":  err.Error(),
-		}).Error("volume option set failed")
 		failure("Volume option set failed", err, 1)
 	} else {
 		fmt.Printf("Options set successfully for %s volume\n", volname)

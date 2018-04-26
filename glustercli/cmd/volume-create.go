@@ -6,7 +6,6 @@ import (
 
 	"github.com/gluster/glusterd2/pkg/api"
 
-	log "github.com/sirupsen/logrus"
 	"github.com/spf13/cobra"
 )
 
@@ -61,10 +60,6 @@ func volumeCreateCmdRun(cmd *cobra.Command, args []string) {
 	volname := args[0]
 	bricks, err := bricksAsUUID(args[1:])
 	if err != nil {
-		log.WithFields(log.Fields{
-			"error":  err.Error(),
-			"volume": volname,
-		}).Error("error getting brick UUIDs")
 		failure("Error getting brick UUIDs", err, 1)
 	}
 
@@ -119,10 +114,6 @@ func volumeCreateCmdRun(cmd *cobra.Command, args []string) {
 
 	vol, err := client.VolumeCreate(req)
 	if err != nil {
-		log.WithFields(log.Fields{
-			"volume": volname,
-			"error":  err.Error(),
-		}).Error("volume creation failed")
 		failure("Volume creation failed", err, 1)
 	}
 	fmt.Printf("%s Volume created successfully\n", vol.Name)

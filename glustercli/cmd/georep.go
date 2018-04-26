@@ -10,7 +10,6 @@ import (
 	georepapi "github.com/gluster/glusterd2/plugins/georeplication/api"
 
 	"github.com/olekukonko/tablewriter"
-	log "github.com/sirupsen/logrus"
 	"github.com/spf13/cobra"
 )
 
@@ -124,10 +123,6 @@ func getVolumeDetails(volname string, rclient *restclient.Client) (*volumeDetail
 			emsg = errGeorepRemoteInfoNotAvailable
 		}
 
-		log.WithFields(log.Fields{
-			"volume": volname,
-			"error":  err.Error(),
-		}).Error("failed to get Volume details")
 		return nil, errors.New(emsg)
 	}
 
@@ -187,11 +182,6 @@ var georepCreateCmd = &cobra.Command{
 		// Generate SSH Keys from all nodes of Master Volume
 		sshkeys, err := client.GeorepSSHKeysGenerate(volname)
 		if err != nil {
-			log.WithFields(log.Fields{
-				"volume": volname,
-				"error":  err.Error(),
-			}).Error("failed to generate SSH Keys")
-
 			failure(errGeorepSessionCreationFailed+errGeorepSSHKeysGenerate, err, 1)
 		}
 
@@ -204,17 +194,11 @@ var georepCreateCmd = &cobra.Command{
 		})
 
 		if err != nil {
-			log.WithField("volume", volname).Println("georep session creation failed")
 			failure(errGeorepSessionCreationFailed, err, 1)
 		}
 
 		err = rclient.GeorepSSHKeysPush(remotevol, sshkeys)
 		if err != nil {
-			log.WithFields(log.Fields{
-				"volume": remotevol,
-				"error":  err.Error(),
-			}).Error("failed to push SSH Keys to Remote Cluster")
-
 			handleGlusterdConnectFailure(errGeorepSessionCreationFailed, err, flagGeorepRemoteGlusterdHTTPS, flagGeorepRemoteGlusterdHost, flagGeorepRemoteGlusterdPort, 1)
 
 			// If not Glusterd connect issue
@@ -270,10 +254,6 @@ func handleGeorepAction(args []string, action georepAction) {
 	}
 
 	if err != nil {
-		log.WithFields(log.Fields{
-			"volume": masterdata.volname,
-			"error":  err.Error(),
-		}).Error("geo-replication", action.String(), "failed")
 		failure(fmt.Sprintf("Geo-replication %s failed", action.String()), err, 1)
 	}
 	fmt.Println("Geo-replication session", action.String(), "successful")
