@@ -2,6 +2,7 @@ package cmd
 
 import (
 	"fmt"
+	"strings"
 
 	"github.com/gluster/glusterd2/pkg/api"
 
@@ -21,6 +22,7 @@ var (
 	flagCreateTransport                                                             string
 	flagCreateForce                                                                 bool
 	flagCreateAdvOpts, flagCreateExpOpts, flagCreateDepOpts                         bool
+	flagCreateThinArbiter                                                           string
 
 	volumeCreateCmd = &cobra.Command{
 		Use:   "create <volname> <brick> [<brick>]...",
@@ -35,6 +37,8 @@ func init() {
 	volumeCreateCmd.Flags().IntVar(&flagCreateStripeCount, "stripe", 0, "Stripe Count")
 	volumeCreateCmd.Flags().IntVar(&flagCreateReplicaCount, "replica", 0, "Replica Count")
 	volumeCreateCmd.Flags().IntVar(&flagCreateArbiterCount, "arbiter", 0, "Arbiter Count")
+	volumeCreateCmd.Flags().StringVar(&flagCreateThinArbiter, "thin-arbiter", "",
+		"Thin arbiter brick in the format <host>:<brick>[:<port>]. Port is optional and defaults to 24007")
 	volumeCreateCmd.Flags().IntVar(&flagCreateDisperseCount, "disperse", 0, "Disperse Count")
 	volumeCreateCmd.Flags().IntVar(&flagCreateDisperseDataCount, "disperse-data", 0, "Disperse Data Count")
 	volumeCreateCmd.Flags().IntVar(&flagCreateRedundancyCount, "redundancy", 0, "Redundancy Count")
@@ -95,11 +99,25 @@ func volumeCreateCmdRun(cmd *cobra.Command, args []string) {
 		}
 	}
 
-	vol, err := client.VolumeCreate(api.VolCreateReq{
+	req := api.VolCreateReq{
 		Name:    volname,
 		Subvols: subvols,
 		Force:   flagCreateForce,
-	})
+	}
+
+	// handle thin-arbiter
+	if cmd.Flags().Changed("thin-arbiter") {
+		if flagCreateReplicaCount != 2 {
+			fmt.Println("Thin arbiter can only be enabled for replica count 2")
+			return
+		}
+		if err := addThinArbiter(&req, cmd.Flag("thin-arbiter").Value.String()); err != nil {
+			fmt.Println(err)
+			return
+		}
+	}
+
+	vol, err := client.VolumeCreate(req)
 	if err != nil {
 		log.WithFields(log.Fields{
 			"volume": volname,
@@ -109,4 +127,21 @@ func volumeCreateCmdRun(cmd *cobra.Command, args []string) {
 	}
 	fmt.Printf("%s Volume created successfully\n", vol.Name)
 	fmt.Println("Volume ID: ", vol.ID)
+}
+
+func addThinArbiter(req *api.VolCreateReq, thinArbiter string) error {
+
+	s := strings.Split(thinArbiter, ":")
+	if len(s) != 2 && len(s) != 3 {
+		return fmt.Errorf("Thin arbiter brick must be of the form <host>:<brick> or <host>:<brick>:<port>")
+	}
+
+	// TODO: If required, handle this in a generic way, just like other
+	// volume set options that we're going to allow to be set during
+	// volume create.
+	req.Options = map[string]string{
+		"replicate.thin-arbiter": thinArbiter,
+	}
+	req.Advanced = true
+	return nil
 }
