@@ -50,7 +50,11 @@ func quotaEnableHandler(w http.ResponseWriter, r *http.Request) {
 	// Validate volume existence
 	vol, err := volume.GetVolume(volName)
 	if err != nil {
-		restutils.SendHTTPError(ctx, w, http.StatusNotFound, errors.ErrVolNotFound)
+		if err == errors.ErrVolNotFound {
+			restutils.SendHTTPError(ctx, w, http.StatusNotFound, errors.ErrVolNotFound)
+		} else {
+			restutils.SendHTTPError(ctx, w, http.StatusInternalServerError, err)
+		}
 		return
 	}
 
@@ -61,13 +65,13 @@ func quotaEnableHandler(w http.ResponseWriter, r *http.Request) {
 	}
 
 	// Check if quota is already enabled
-	if volume.IsQuotaEnabled(vol) {
+	if isQuotaEnabled(vol) {
 		restutils.SendHTTPError(ctx, w, http.StatusBadRequest, errors.ErrProcessAlreadyRunning)
 		return
 	}
 
 	// Enable quota
-	vol.Options[volume.VkeyFeaturesQuota] = "on"
+	vol.Options[quotaEnabledKey] = "on"
 
 	txn := transaction.NewTxn(ctx)
 	defer txn.Cleanup()

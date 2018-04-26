@@ -170,10 +170,15 @@ func testVolumeStatedump(t *testing.T) {
 	r := require.New(t)
 
 	// Get statedump dir
+	var statedumpDir string
 	args := []string{"--print-statedumpdir"}
-	cmdOut, err := exec.Command("gluster", args...).Output()
-	r.Nil(err)
-	statedumpDir := strings.TrimSpace(string(cmdOut))
+	cmdOut, err := exec.Command("glusterfsd", args...).Output()
+	if err == nil {
+		statedumpDir = strings.TrimSpace(string(cmdOut))
+	} else {
+		// fallback to hard-coded value
+		statedumpDir = "/var/run/gluster"
+	}
 
 	// statedump file pattern: hyphenated-brickpath.<pid>.dump.<timestamp>
 	pattern := statedumpDir + "/*[0-9]*.dump.[0-9]*"
@@ -221,7 +226,7 @@ func TestVolumeOptions(t *testing.T) {
 
 	// skip this test if glusterfs server packages and xlators are not
 	// installed
-	_, err := exec.Command("sh", "-c", "which glusterfsd").Output()
+	_, err := exec.Command("sh", "-c", "command -v glusterfsd").Output()
 	if err != nil {
 		t.SkipNow()
 	}
@@ -320,9 +325,9 @@ func TestVolumeOptions(t *testing.T) {
 	optionGroupReq := api.OptionGroupReq{
 		OptionGroup: api.OptionGroup{
 			Name: "profile.test2",
-			Options: []api.VolumeOption{{"opt1", "on", "off"},
-				{"opt2", "enable", "disable"},
-				{"opt3", "off", "on"},
+			Options: []api.VolumeOption{{Name: "opt1", OnValue: "on", OffValue: "off"},
+				{Name: "opt2", OnValue: "enable", OffValue: "disable"},
+				{Name: "opt3", OnValue: "off", OffValue: "on"},
 			},
 		},
 		// XXX: Setting advanced, as all options are advanced by default
@@ -335,8 +340,8 @@ func TestVolumeOptions(t *testing.T) {
 	optionGroupReq = api.OptionGroupReq{
 		OptionGroup: api.OptionGroup{
 			Name: "profile.test2",
-			Options: []api.VolumeOption{{"afr.eager-lock", "on", "off"},
-				{"gfproxy.afr.eager-lock", "on", "off"},
+			Options: []api.VolumeOption{{Name: "afr.eager-lock", OnValue: "on", OffValue: "off"},
+				{Name: "gfproxy.afr.eager-lock", OnValue: "on", OffValue: "off"},
 			},
 		},
 		// XXX: Setting advanced, as all options are advanced by default
@@ -389,15 +394,15 @@ func testDisperse(t *testing.T) {
 	r.Nil(err)
 	defer os.RemoveAll(mntPath)
 
+	time.Sleep(1 * time.Second)
+
 	host, _, _ := net.SplitHostPort(gds[0].ClientAddress)
 
 	mntCmd := exec.Command("mount", "-t", "glusterfs", host+":"+disperseVolName, mntPath)
-
-	umntCmd := exec.Command("umount", mntPath)
-
 	err = mntCmd.Run()
 	r.Nil(err, fmt.Sprintf("disperse volume mount failed: %s", err))
 
+	umntCmd := exec.Command("umount", mntPath)
 	err = umntCmd.Run()
 	r.Nil(err, fmt.Sprintf("disperse volume unmount failed: %s", err))
 

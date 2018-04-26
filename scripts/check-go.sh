@@ -18,9 +18,9 @@ check_go_version() {
 #Check if Go is installed
 INST_VERS_STR=$(go version) || missing
 
-INST_GO_VERSION=$(expr "$INST_VERS_STR" : ".*go version go\([^ ]*\) .*")
-INST_GO_MAJOR_VERSION=$(expr "$INST_GO_VERSION" | cut -d. -f1)
-INST_GO_MINOR_VERSION=$(expr "$INST_GO_VERSION" | cut -d. -f2)
+INST_GO_VERSION=$(expr "$INST_VERS_STR" : ".*go version go\\([^ ]*\\) .*")
+INST_GO_MAJOR_VERSION=$(echo "$INST_GO_VERSION" | cut -d. -f1)
+INST_GO_MINOR_VERSION=$(echo "$INST_GO_VERSION" | cut -d. -f2)
 
 if [ "$REQ_GO_MAJOR_VERSION" -gt "$INST_GO_MAJOR_VERSION" ]; then
         missing

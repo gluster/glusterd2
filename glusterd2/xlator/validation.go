@@ -6,11 +6,14 @@ import (
 	"strings"
 
 	"github.com/gluster/glusterd2/glusterd2/volume"
+
+	log "github.com/sirupsen/logrus"
 )
 
-type validationFunc func(*volume.Volinfo, string, string) error
+// ValidationFunc is a function that is invoked during volume set. Each plugin
+// or xlator can provide such validation function.
+type ValidationFunc func(*volume.Volinfo, string, string) error
 
-// Sample validation function
 func validateReplica(v *volume.Volinfo, key string, value string) error {
 	switch key {
 	case "metadata-self-heal":
@@ -19,62 +22,6 @@ func validateReplica(v *volume.Volinfo, key string, value string) error {
 		}
 	}
 	return nil
-}
-
-func validateBitrot(v *volume.Volinfo, key string, value string) error {
-	var err error
-	switch key {
-	case "scrub-throttle":
-		acceptedThrottleValues := []string{"lazy", "normal", "aggressive"}
-		if Contains(value, acceptedThrottleValues) {
-			return nil
-		}
-		err = fmt.Errorf("Invalid value specified for option '%s'. Possible values: {%s}",
-			key, strings.Join(acceptedThrottleValues, ", "))
-		return err
-	case "scrub-freq":
-		acceptedFrequencyValues := []string{"hourly", "daily", "weekly", "biweekly", "monthly"}
-		if Contains(value, acceptedFrequencyValues) {
-			return nil
-		}
-		err = fmt.Errorf("Invalid value specified for option '%s'. Possible values: {%s}",
-			key, strings.Join(acceptedFrequencyValues, ", "))
-		return err
-	case "scrub-state":
-		acceptedScrubStateValues := []string{"pause", "resume"}
-		if Contains(value, acceptedScrubStateValues) {
-			return nil
-		}
-		err = fmt.Errorf("Invalid value specified for option '%s'. Possible values: {%s}",
-			key, strings.Join(acceptedScrubStateValues, ", "))
-		return err
-	}
-	return nil
-}
-
-func validateQuota(v *volume.Volinfo, key string, value string) error {
-
-	// Check if quota is already enabled
-	if volume.IsQuotaEnabled(v) == false {
-		err := fmt.Errorf("Quota not enabled to set this value: '%s'", key)
-		return err
-	}
-
-	switch key {
-	case "deem-statfs":
-		return nil
-	case "hard-timeout":
-		return nil
-	case "soft-timeout":
-		return nil
-	case "alert-time":
-		return nil
-	case "default-soft-limit":
-		return nil
-	default:
-		err := fmt.Errorf("'%s' is not a valid quota option", key)
-		return err
-	}
 }
 
 func validateDht(v *volume.Volinfo, key string, value string) error {
@@ -93,9 +40,13 @@ func validateDht(v *volume.Volinfo, key string, value string) error {
 	return nil
 }
 
-func registerValidation(xlator string, vf validationFunc) error {
+// RegisterValidationFunc registers a xlator's validation function for calling
+// later during volume set operation.
+func RegisterValidationFunc(xlator string, vf ValidationFunc) error {
 	xl, err := Find(xlator)
 	if err != nil {
+		log.WithError(err).WithField("xlator",
+			xlator).Error("Could not register xlator validation function")
 		return err
 	}
 	xl.Validate = vf
@@ -103,16 +54,10 @@ func registerValidation(xlator string, vf validationFunc) error {
 }
 
 func registerAllValidations() error {
-	if err := registerValidation("afr", validateReplica); err != nil {
+	if err := RegisterValidationFunc("afr", validateReplica); err != nil {
 		return err
 	}
-	if err := registerValidation("bit-rot", validateBitrot); err != nil {
-		return err
-	}
-	if err := registerValidation("quota", validateQuota); err != nil {
-		return err
-	}
-	if err := registerValidation("dht", validateDht); err != nil {
+	if err := RegisterValidationFunc("dht", validateDht); err != nil {
 		return err
 	}
 	return nil

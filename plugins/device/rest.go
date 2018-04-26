@@ -45,8 +45,12 @@ func deviceAddHandler(w http.ResponseWriter, r *http.Request) {
 
 	peerInfo, err := peer.GetPeer(peerID)
 	if err != nil {
-		logger.WithError(err).WithField("peerid", peerID).Error("Peer-id not found in store")
-		restutils.SendHTTPError(ctx, w, http.StatusNotFound, "Peer-id not found in store")
+		logger.WithError(err).WithField("peerid", peerID).Error("Peer ID not found in store")
+		if err == errors.ErrPeerNotFound {
+			restutils.SendHTTPError(ctx, w, http.StatusNotFound, errors.ErrPeerNotFound)
+		} else {
+			restutils.SendHTTPError(ctx, w, http.StatusInternalServerError, "Failed to get peer from store")
+		}
 		return
 	}
 
@@ -58,8 +62,8 @@ func deviceAddHandler(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 	if !CheckIfDeviceExist(req.Devices, devices) {
-		logger.WithError(err).WithField("device", req.Devices).Error("One or more  already exists")
-		restutils.SendHTTPError(ctx, w, http.StatusInternalServerError, "One or more  already exists")
+		logger.WithError(err).WithField("device", req.Devices).Error(" One or more devices already exists")
+		restutils.SendHTTPError(ctx, w, http.StatusInternalServerError, " One or more devices already exists")
 		return
 	}
 

@@ -93,9 +93,6 @@ func addPeerHandler(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	if newpeer.Metadata == nil {
-		newpeer.Metadata = make(map[string]string)
-	}
 	if req.Zone != "" {
 		newpeer.Metadata["_zone"] = req.Zone
 	}

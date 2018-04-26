@@ -27,6 +27,8 @@ $ ./generate-doc
 
 # REST API Endpoints Reference
 
+**Note:** Fields in request structs marked with "omitempty" struct tag are optional.
+
 Name | Methods | Path | Request | Response
 --- | --- | --- | --- | ---{{range $index, $element := .}}
 {{.Name}} | {{.Method}} | {{.Path}} | [{{.RequestType}}](https://godoc.org/github.com/gluster/glusterd2/pkg/api#{{.RequestType}}) | [{{.ResponseType}}](https://godoc.org/github.com/gluster/glusterd2/pkg/api#{{.ResponseType}}){{end}}

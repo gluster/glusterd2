@@ -34,6 +34,7 @@ func WriteStatedump() {
 
 	if err := ioutil.WriteFile(dumpPath, respBody, 0644); err != nil {
 		log.WithError(err).WithField("file", dumpPath).Error("Failed to write statedump to file")
+		return
 	}
 	log.WithField("file", dumpPath).Info("Statedump written to file")
 }

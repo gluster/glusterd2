@@ -33,13 +33,13 @@ func TestAddRemovePeer(t *testing.T) {
 	_, err2 := client.PeerProbe(g2.PeerAddress)
 	r.Nil(err2)
 
-	time.Sleep(5 * time.Second)
+	time.Sleep(6 * time.Second)
 
 	// add peer: ask g1 to add g3 as peer
 	_, err3 := client.PeerProbe(g3.PeerAddress)
 	r.Nil(err3)
 
-	time.Sleep(5 * time.Second)
+	time.Sleep(6 * time.Second)
 
 	// list and check you have 3 peers in cluster
 	peers, err4 := client.Peers()

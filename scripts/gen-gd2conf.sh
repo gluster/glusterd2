@@ -12,12 +12,12 @@ GD2LOGDIR=${GD2LOGDIR:-$LOGDIR/$GD2}
 GD2RUNDIR=${GD2RUNDIR:-$RUNDIR/$GD2}
 
 OUTDIR=${1:-build}
-mkdir -p $OUTDIR
+mkdir -p "$OUTDIR"
 
 OUTPUT=$OUTDIR/$GD2.toml
 
 
-cat >$OUTPUT <<EOF
+cat >"$OUTPUT" <<EOF
 localstatedir = "$GD2STATEDIR"
 logdir = "$GD2LOGDIR"
 logfile = "$GD2.log"

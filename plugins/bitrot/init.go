@@ -3,8 +3,9 @@ package bitrot
 import (
 	"github.com/gluster/glusterd2/glusterd2/servers/rest/route"
 	"github.com/gluster/glusterd2/glusterd2/transaction"
-	"github.com/gluster/glusterd2/pkg/sunrpc"
 )
+
+const name = "bitrot"
 
 // Plugin is a structure which implements GlusterdPlugin interface
 type Plugin struct {
@@ -12,12 +13,7 @@ type Plugin struct {
 
 // Name returns name of plugin
 func (p *Plugin) Name() string {
-	return "bitrot"
-}
-
-// SunRPCProgram returns sunrpc program to register with Glusterd
-func (p *Plugin) SunRPCProgram() sunrpc.Program {
-	return nil
+	return name
 }
 
 // RestRoutes returns list of REST API routes to register with Glusterd

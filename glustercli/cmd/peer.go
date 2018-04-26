@@ -63,7 +63,7 @@ var peerProbeCmd = &cobra.Command{
 		}
 		fmt.Println("Peer probe successful")
 		table := tablewriter.NewWriter(os.Stdout)
-		table.SetHeader([]string{"ID", "Name", "PeerAddresses"})
+		table.SetHeader([]string{"ID", "Name", "Peer Addresses"})
 		table.Append([]string{peer.ID.String(), peer.Name, strings.Join(peer.PeerAddresses, ",")})
 		table.Render()
 	},
@@ -96,7 +96,7 @@ func peerStatusHandler(cmd *cobra.Command) {
 		failure("Failed to get Peers list", err, 1)
 	}
 	table := tablewriter.NewWriter(os.Stdout)
-	table.SetHeader([]string{"ID", "Name", "PeerAddresses"})
+	table.SetHeader([]string{"ID", "Name", "Peer Addresses"})
 	for _, peer := range peers {
 		table.Append([]string{peer.ID.String(), peer.Name, strings.Join(peer.PeerAddresses, ",")})
 	}

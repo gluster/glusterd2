@@ -13,9 +13,9 @@ func GetDevices(peerID string) ([]deviceapi.Info, error) {
 	if err != nil {
 		return nil, err
 	}
-	if len(peerInfo.Metadata["devices"]) > 0 {
+	if len(peerInfo.Metadata["_devices"]) > 0 {
 		var deviceInfo []deviceapi.Info
-		if err := json.Unmarshal([]byte(peerInfo.Metadata["devices"]), &deviceInfo); err != nil {
+		if err := json.Unmarshal([]byte(peerInfo.Metadata["_devices"]), &deviceInfo); err != nil {
 			return nil, err
 		}
 		return deviceInfo, nil

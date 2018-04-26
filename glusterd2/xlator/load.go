@@ -18,6 +18,8 @@ import (
 	"unsafe"
 
 	"github.com/gluster/glusterd2/glusterd2/xlator/options"
+
+	log "github.com/sirupsen/logrus"
 )
 
 const (
@@ -127,17 +129,14 @@ func loadXlator(xlPath string) (*Xlator, error) {
 
 func getXlatorsDir() string {
 
-	// glusterfs gets the path to xlator dir from a compile time flag named
-	// 'XLATORDIR' which gets passed through a -D flag to GCC. This isn't
-	// available to external programs via gluster CLI yet. When one or more
-	// versions of gluster are installed from source or otherwise, the
-	// following is the most fool-proof but hacky way to get the xlator dir
-	// location without making assumptions.
-
-	cmd := "strings -d `which glusterfsd` | awk '/glusterfs\\/.*\\/xlator$/'"
-	out, err := exec.Command("sh", "-c", cmd).Output()
+	out, err := exec.Command("glusterfsd", "--print-xlatordir").Output()
 	if err != nil {
-		return ""
+		// fallback to the old hack if https://review.gluster.org/19905 isn't present
+		cmd := "strings -d `command -v glusterfsd` | awk '/glusterfs\\/.*\\/xlator$/'"
+		out, err = exec.Command("sh", "-c", cmd).Output()
+		if err != nil {
+			return ""
+		}
 	}
 
 	return strings.TrimSpace(string(out))
@@ -148,10 +147,10 @@ func getXlatorsDir() string {
 func loadAllXlators() (map[string]*Xlator, error) {
 
 	xlatorsDir := getXlatorsDir()
-
 	if xlatorsDir == "" {
 		return nil, fmt.Errorf("No xlators dir found")
 	}
+	log.WithField("xlatordir", xlatorsDir).Debug("Xlators dir found")
 
 	s, err := os.Stat(xlatorsDir)
 	if err != nil {
