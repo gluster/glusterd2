@@ -153,20 +153,33 @@ func getVolumeDetails(volname string, rclient *restclient.Client) (*volumeDetail
 	}, nil
 }
 
+func parseRemoteData(data string) (string, string, string, error) {
+	remotehostvol := strings.Split(data, "::")
+
+	if len(remotehostvol) != 2 {
+		return "", "", "", errors.New("Invalid Remote Volume details, use <remoteuser>@<remotehost>::<remotevol> format")
+	}
+
+	remoteuserhost := strings.Split(remotehostvol[0], "@")
+	remoteuser := "root"
+	remotehost := remoteuserhost[0]
+	remotevol := remotehostvol[1]
+	if len(remoteuserhost) > 1 {
+		remotehost = remoteuserhost[1]
+		remoteuser = remoteuserhost[0]
+	}
+	return remoteuser, remotehost, remotevol, nil
+}
+
 var georepCreateCmd = &cobra.Command{
 	Use:   "create <master-volume> [<remote-user>@]<remote-host>::<remote-volume>",
 	Short: helpGeorepCreateCmd,
 	Args:  cobra.ExactArgs(2),
 	Run: func(cmd *cobra.Command, args []string) {
 		volname := args[0]
-		remotehostvol := strings.Split(args[1], "::")
-		remoteuserhost := strings.Split(remotehostvol[0], "@")
-		remoteuser := "root"
-		remotehost := remoteuserhost[0]
-		remotevol := remotehostvol[1]
-		if len(remoteuserhost) > 1 {
-			remotehost = remoteuserhost[1]
-			remoteuser = remoteuserhost[0]
+		remoteuser, remotehost, remotevol, err := parseRemoteData(args[1])
+		if err != nil {
+			failure(errGeorepSessionCreationFailed, err, 1)
 		}
 
 		masterdata, err := getVolumeDetails(volname, nil)
@@ -354,9 +367,12 @@ func getVolIDs(pargs []string) (*volumeDetails, *volumeDetails, error) {
 	}
 
 	if len(pargs) >= 2 {
-		remotehostvol := strings.Split(pargs[1], "::")
-		rclient := getRemoteClient(remotehostvol[0])
-		remotedata, err = getVolumeDetails(remotehostvol[1], rclient)
+		_, remotehost, remotevol, err := parseRemoteData(pargs[1])
+		if err != nil {
+			return nil, nil, err
+		}
+		rclient := getRemoteClient(remotehost)
+		remotedata, err = getVolumeDetails(remotevol, rclient)
 		if err != nil {
 			return nil, nil, err
 		}
