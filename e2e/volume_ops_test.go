@@ -226,7 +226,7 @@ func TestVolumeOptions(t *testing.T) {
 
 	// skip this test if glusterfs server packages and xlators are not
 	// installed
-	_, err := exec.Command("sh", "-c", "which glusterfsd").Output()
+	_, err := exec.Command("sh", "-c", "command -v glusterfsd").Output()
 	if err != nil {
 		t.SkipNow()
 	}
