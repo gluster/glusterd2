@@ -43,17 +43,17 @@ func bitrotEnableHandler(w http.ResponseWriter, r *http.Request) {
 	}
 
 	// Check if bitrot is already enabled
-	if volume.IsBitrotEnabled(volinfo) {
+	if isBitrotEnabled(volinfo) {
 		restutils.SendHTTPError(ctx, w, http.StatusBadRequest, errors.ErrBitrotAlreadyEnabled)
 		return
 	}
 
 	// Enable bitrot-stub
-	volinfo.Options[volume.VkeyFeaturesBitrot] = "on"
+	volinfo.Options[keyFeaturesBitrot] = "on"
 
 	/* Enable scrubber daemon (bit-rot.so). The same so acts as bitd and scrubber. With "scrubber" on, it behaves as
 	   scrubber othewise bitd */
-	volinfo.Options[volume.VkeyFeaturesScrub] = "true"
+	volinfo.Options[keyFeaturesScrub] = "true"
 
 	// Transaction which starts bitd and scrubber on all nodes.
 	txn := transaction.NewTxn(ctx)
@@ -128,15 +128,15 @@ func bitrotDisableHandler(w http.ResponseWriter, r *http.Request) {
 	}
 
 	// Check if bitrot is already disabled
-	if !volume.IsBitrotEnabled(volinfo) {
+	if !isBitrotEnabled(volinfo) {
 		restutils.SendHTTPError(ctx, w, http.StatusBadRequest, errors.ErrBitrotAlreadyDisabled)
 		return
 	}
 
 	// Disable bitrot-stub
-	volinfo.Options[volume.VkeyFeaturesBitrot] = "off"
+	volinfo.Options[keyFeaturesBitrot] = "off"
 	// Disable scrub by updating volinfo Options
-	volinfo.Options[volume.VkeyFeaturesScrub] = "false"
+	volinfo.Options[keyFeaturesScrub] = "false"
 
 	// Transaction which stop bitd and scrubber on all nodes.
 	txn := transaction.NewTxn(ctx)
@@ -214,7 +214,7 @@ func bitrotScrubOndemandHandler(w http.ResponseWriter, r *http.Request) {
 	}
 
 	// Check if bitrot is disabled
-	if !volume.IsBitrotEnabled(volinfo) {
+	if isBitrotEnabled(volinfo) {
 		restutils.SendHTTPError(ctx, w, http.StatusBadRequest, errors.ErrBitrotNotEnabled)
 		return
 	}
@@ -280,7 +280,7 @@ func bitrotScrubStatusHandler(w http.ResponseWriter, r *http.Request) {
 	}
 
 	// Check if bitrot is disabled
-	if !volume.IsBitrotEnabled(volinfo) {
+	if isBitrotEnabled(volinfo) {
 		restutils.SendHTTPError(ctx, w, http.StatusBadRequest,
 			errors.ErrBitrotNotEnabled)
 		return
@@ -343,10 +343,10 @@ func createScrubStatusResp(ctx transaction.TxnCtx, volinfo *volume.Volinfo) (*bi
 	// Fill generic info which are same for each node
 	resp.Volume = volinfo.Name
 	resp.State = "Active (Idle)"
-	resp.Frequency, exists = volinfo.Options[volume.VkeyScrubFrequency]
+	resp.Frequency, exists = volinfo.Options[keyScrubFrequency]
 	if !exists {
 		// If not available in Options, it's not set. Use default value
-		opt, err := xlator.FindOption(volume.VkeyScrubFrequency)
+		opt, err := xlator.FindOption(keyScrubFrequency)
 		if err != nil {
 			log.WithFields(log.Fields{
 				"error":   err.Error(),
@@ -357,10 +357,10 @@ func createScrubStatusResp(ctx transaction.TxnCtx, volinfo *volume.Volinfo) (*bi
 		resp.Frequency = opt.DefaultValue
 	}
 
-	resp.Throttle, exists = volinfo.Options[volume.VkeyScrubThrottle]
+	resp.Throttle, exists = volinfo.Options[keyScrubThrottle]
 	if !exists {
 		// If not available in Options, it's not set. Use default value
-		opt, err := xlator.FindOption(volume.VkeyScrubThrottle)
+		opt, err := xlator.FindOption(keyScrubThrottle)
 		if err != nil {
 			log.WithFields(log.Fields{
 				"error":   err.Error(),
