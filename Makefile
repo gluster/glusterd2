@@ -82,8 +82,8 @@ install:
 	install -D $(CLI_BUILD) $(CLI_INSTALL)
 	install -D -m 0644 $(GD2CONF_BUILD) $(GD2CONF_INSTALL)
 	install -D -m 0644 $(CLI_BASH_COMPLETION_BUILD) $(CLI_BASH_COMPLETION_INSTALL)
-	install -m 0644 $(MAN_BUILD)/glusterd2.8.gz $(MAN_INSTALL)
-	install -m 0644 $(MAN_BUILD)/glustercli.8.gz $(MAN_INSTALL)
+	install -D -m 0644 $(MAN_BUILD)/glusterd2.8.gz $(MAN_INSTALL)/glusterd2.8.gz
+	install -D -m 0644 $(MAN_BUILD)/glustercli.8.gz $(MAN_INSTALL)/glustercli.8.gz
 	@echo
 
 vendor-update:

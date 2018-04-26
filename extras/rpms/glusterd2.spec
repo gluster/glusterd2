@@ -121,8 +121,13 @@ install -D -p -m 0644 %{SOURCE1} %{buildroot}%{_sysconfdir}/logrotate.d/%{name}
 %dir %{_localstatedir}/log/%{name}
 %config(noreplace) %{_sysconfdir}/logrotate.d/%{name}
 %{_sysconfdir}/bash_completion.d/glustercli.sh
+%{_mandir}/man8/glusterd2.8.gz
+%{_mandir}/man8/glustercli.8.gz
 
 %changelog
+* Thu Apr 26 2018 Aravinda VK <avishwan@redhat.com>
+- Added manpage for glusterd2 and glustercli
+
 * Wed Mar 14 2018 Kaushal M <kshlmster@gmail.com> - 4.0.0-2
 - Add logrotate configuration
 - Correct BuildRequires on go_compiler
