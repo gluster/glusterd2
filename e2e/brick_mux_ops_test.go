@@ -59,7 +59,7 @@ func TestBrickMuxVolumeOps(t *testing.T) {
 	r.True(pidcount == 2, fmt.Sprintf("Pid count: %d", pidcount))
 	r.True(portcount == 2, fmt.Sprintf("Port count: %d", portcount))
 
-	//r.Nil(testVolumesMounts(testvols))
+	r.Nil(testVolumesMounts(testvols))
 
 	// Now set maximum number of bricks per brick process to 5
 	err = client.GlobalOptionSet(api.GlobalOptionReq{
@@ -81,7 +81,7 @@ func TestBrickMuxVolumeOps(t *testing.T) {
 	r.True(pidcount == 2, fmt.Sprintf("Pid count: %d", pidcount))
 	r.True(portcount == 2, fmt.Sprintf("Port count: %d", portcount))
 
-	//r.Nil(testVolumesMounts(append(testvols, "testvol3")))
+	r.Nil(testVolumesMounts(append(testvols, "testvol3")))
 
 	// Stop 2nd volume
 	err = client.VolumeStop("testvol2")
@@ -98,6 +98,30 @@ func TestBrickMuxVolumeOps(t *testing.T) {
 	r.True(pidcount == 2, fmt.Sprintf("Pid count: %d", pidcount))
 	r.True(portcount == 2, fmt.Sprintf("Port count: %d", portcount))
 
+	r.Nil(gds[0].Stop())
+
+	// Check gd2 restart scenario
+	gd, err := spawnGlusterd("./config/1.toml", false)
+	r.Nil(err)
+	r.True(gd.IsRunning())
+
+	// Check number of brick processes. Value should remain the same.
+	pidcount, portcount, err = testVolStatusAndUpdateCounts(append(testvols, "testvol3"))
+	r.Nil(err)
+
+	r.True(pidcount == 2, fmt.Sprintf("Pid count: %d", pidcount))
+	r.True(portcount == 2, fmt.Sprintf("Port count: %d", portcount))
+
+	// Stop and delete all the volumes
+	for _, volname := range append(testvols, "testvol3") {
+		err = client.VolumeStop(volname)
+		r.Nil(err, "volume %s stop failed", volname)
+
+		err = client.VolumeDelete(volname)
+		r.Nil(err, "volume %s delete failed", volname)
+	}
+
+	r.Nil(gd.Stop())
 }
 
 // testVolumesMounts checks if volumes mount successfully and unmounts them

@@ -193,8 +193,8 @@ func errorContainsErrno(err error, errno syscall.Errno) bool {
 
 // These functions are used in vol-create, vol-expand and vol-shrink (TBD)
 
-//StartBrick starts glusterfsd process
-func (b Brickinfo) StartBrick() error {
+//StartBrickProcess starts glusterfsd process
+func (b Brickinfo) StartBrickProcess() error {
 
 	brickDaemon, err := NewGlusterfsd(b)
 	if err != nil {
@@ -227,8 +227,8 @@ func (b Brickinfo) StartBrick() error {
 	return nil
 }
 
-//StopBrick will stop glusterfsd process
-func (b Brickinfo) StopBrick() error {
+//StopBrickProcess will stop glusterfsd process
+func (b Brickinfo) StopBrickProcess() error {
 	port := pmap.RegistrySearch(b.Path, pmap.GfPmapPortBrickserver)
 
 	brickDaemon, err := GetBrickProcessByPort(port)

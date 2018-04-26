@@ -3,15 +3,10 @@ package volumecommands
 import (
 	"net/http"
 
-	"github.com/gluster/glusterd2/glusterd2/brick"
-	"github.com/gluster/glusterd2/glusterd2/cluster"
-	"github.com/gluster/glusterd2/glusterd2/daemon"
 	"github.com/gluster/glusterd2/glusterd2/events"
 	"github.com/gluster/glusterd2/glusterd2/gdctx"
-	"github.com/gluster/glusterd2/glusterd2/pmap"
 	restutils "github.com/gluster/glusterd2/glusterd2/servers/rest/utils"
 	"github.com/gluster/glusterd2/glusterd2/transaction"
-	"github.com/gluster/glusterd2/glusterd2/volgen"
 	"github.com/gluster/glusterd2/glusterd2/volume"
 	"github.com/gluster/glusterd2/pkg/api"
 	"github.com/gluster/glusterd2/pkg/errors"
@@ -28,68 +23,8 @@ func startAllBricks(c transaction.TxnCtx) error {
 	}
 
 	for _, b := range volinfo.GetLocalBricks() {
-
-		c.Logger().WithFields(log.Fields{
-			"volume": b.VolumeName,
-			"brick":  b.String(),
-		}).Info("Starting brick")
-
-		brickmux, err := cluster.IsBrickMuxEnabled()
-		if err != nil {
+		if err := StartBrick(b); err != nil {
 			return err
-		}
-
-		if !brickmux {
-			if err := b.StartBrick(); err != nil {
-				return err
-			}
-			continue
-		}
-
-		compatBrickProc, err := FindCompatibleBrickProcess(&b)
-		if err != nil {
-			return err
-		}
-
-		if compatBrickProc != nil {
-			log.Infof("Found compatible brick process with pid %d", compatBrickProc.Pid)
-
-			client, err := daemon.GetRPCClient(compatBrickProc)
-			if err != nil {
-				return err
-			}
-
-			req := &brick.GfBrickOpReq{
-				Name: volgen.GetBrickVolFileID(b.VolumeName, b.PeerID.String(), b.Path),
-				Op:   int(brick.OpBrickAttach),
-			}
-
-			var rsp brick.GfBrickOpRsp
-			err = client.Call("Brick.OpBrickAttach", req, &rsp)
-			if err != nil || rsp.OpRet != 0 {
-				c.Logger().WithError(err).WithField(
-					"brick", b.String()).Error("failed to send attach RPC, starting brick process")
-				if err := b.StartBrick(); err != nil {
-					return err
-				}
-			}
-
-			pmap.RegistryExtend(compatBrickProc.Port, b.Path, pmap.GfPmapPortBrickserver)
-
-			daemon.WritePidToFile(compatBrickProc.Pid, brick.GetPidFilePathForBrick(b))
-
-			// Update brick process info in store
-			compatBrickProc.Bricklist = compatBrickProc.AddBrick(b)
-
-			if err := brick.UpdateBrickProcess(compatBrickProc); err != nil {
-				c.Logger().WithField("name", compatBrickProc.Name()).WithError(err).Warn(
-					"failed to save daemon information into store, daemon may not be restarted correctly on GlusterD restart")
-				return err
-			}
-		} else {
-			if err := b.StartBrick(); err != nil {
-				return err
-			}
 		}
 	}
 
@@ -109,7 +44,7 @@ func stopAllBricks(c transaction.TxnCtx) error {
 			"brick":  b.String(),
 		}).Info("volume start failed, stopping brick")
 
-		if err := b.StopBrick(); err != nil {
+		if err := b.StopBrickProcess(); err != nil {
 			return err
 		}
 	}

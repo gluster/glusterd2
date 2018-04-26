@@ -30,7 +30,6 @@ func UpdateBrickProcess(bp *Glusterfsd) error {
 		log.WithError(e).Error("Couldn't add glusterfsd to store")
 		return e
 	}
-	log.WithField("brick", bp.Binfo.Path).Info("Updated brick process")
 	return nil
 }
 
@@ -79,7 +78,6 @@ func GetBrickProcesses() ([]*Glusterfsd, error) {
 			continue
 		}
 
-		log.WithField("brick", bp.Binfo.Path).Info("Got brick process from etcd store")
 		bps[i] = &bp
 	}
 

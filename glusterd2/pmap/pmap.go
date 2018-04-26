@@ -187,6 +187,11 @@ func RegistryExtend(port int, brickname string, ptype PortType) {
 		return
 	}
 
+	if port > registry.LastAlloc {
+		registryBind(port, brickname, GfPmapPortBrickserver, nil)
+		return
+	}
+
 	registry.Lock()
 	defer registry.Unlock()
 

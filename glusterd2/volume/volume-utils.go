@@ -55,7 +55,6 @@ func CheckBricksStatus(volinfo *Volinfo) ([]brick.Brickstatus, error) {
 
 		port := pmap.RegistrySearch(binfo.Path, pmap.GfPmapPortBrickserver)
 		if port == 0 {
-			log.Errorf("Couldn't get port information for brick %s", binfo.Path)
 			return brickStatuses, errors.New("Failed to get port information for brick")
 		}
 

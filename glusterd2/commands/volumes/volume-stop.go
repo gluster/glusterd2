@@ -22,7 +22,7 @@ func stopBricks(c transaction.TxnCtx) error {
 	}
 
 	for _, b := range volinfo.GetLocalBricks() {
-		if err := b.StopBrick(); err != nil {
+		if err := b.StopBrickProcess(); err != nil {
 			return err
 		}
 		continue
