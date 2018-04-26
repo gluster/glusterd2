@@ -30,22 +30,6 @@ const (
 	VolStopped
 )
 
-const (
-	// VkeyFeaturesQuota is the key to check if quota is disabled or enabled
-	VkeyFeaturesQuota = "features.quota"
-)
-
-const (
-	// VkeyFeaturesBitrot is the key which enables/disables bitrot-stub
-	VkeyFeaturesBitrot = "bitrot-stub.bitrot"
-	// VkeyFeaturesScrub is the key which controls bit-rot.so to be scrubber/bitd
-	VkeyFeaturesScrub = "bit-rot.scrubber"
-	// VkeyScrubFrequency is the key for scrubber frequency
-	VkeyScrubFrequency = "bit-rot.scrub-freq"
-	// VkeyScrubThrottle is the key for controls scrubber throttle
-	VkeyScrubThrottle = "bit-rot.scrub-throttle"
-)
-
 var (
 	absFilePath = filepath.Abs
 	// NewBrickEntriesFunc creates the brick list
