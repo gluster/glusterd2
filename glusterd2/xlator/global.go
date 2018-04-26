@@ -24,7 +24,7 @@ func Load() (err error) {
 		if r := recover(); r != nil {
 			log.Info(string(debug.Stack()))
 			err = fmt.Errorf("recover()ed at xlator.Load(): %s", r)
-			log.Error("Your version of glusterfs is incomaptible. ",
+			log.Error("Your version of glusterfs is incompatible. ",
 				"Please install latest glusterfs from source (branch: master)")
 		}
 	}()
@@ -36,12 +36,6 @@ func Load() (err error) {
 	xlMap = xls
 
 	loadOptions()
-
-	err = registerAllValidations()
-	if err != nil {
-		return
-	}
-
 	return
 }
 

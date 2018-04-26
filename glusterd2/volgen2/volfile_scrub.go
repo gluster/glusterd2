@@ -15,7 +15,7 @@ func generateScrubVolfile(volfile *Volfile, clusterinfo []*volume.Volinfo, nodei
 
 	for volIdx, vol := range clusterinfo {
 		//If bitrot not enabled for volume, then skip those bricks
-		val, exists := vol.Options[volume.VkeyFeaturesBitrot]
+		val, exists := vol.Options["bitrot-stub.bitrot"]
 		if exists && val == "on" {
 			name := fmt.Sprintf("%s-bit-rot-%d", vol.Name, volIdx)
 			scrubvol := scrub.Add("features/bit-rot", vol, nil).SetName(name)
