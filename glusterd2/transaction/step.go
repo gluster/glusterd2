@@ -52,13 +52,23 @@ func runStepFuncOnNodes(name string, c TxnCtx, nodes []uuid.UUID) error {
 		go runStepFuncOnNode(name, c, node, done)
 	}
 
-	// TODO: Need to properly aggregate results
-	var err error
+	// Ideally, we have to cancel the pending go-routines on first error
+	// response received from any of the nodes. But that's really tricky
+	// to do. Serializing sequentially is the easiest fix but we lose
+	// concurrency. Instead, we let the do() function run on all nodes.
+
+	var err, lastErr error
 	for i >= 0 {
 		err = <-done
+		if err != nil {
+			// TODO: Need to properly aggregate results and
+			// check which node returned which error response.
+			lastErr = err
+		}
 		i--
 	}
-	return err
+
+	return lastErr
 }
 
 func runStepFuncOnNode(name string, c TxnCtx, node uuid.UUID, done chan<- error) {
