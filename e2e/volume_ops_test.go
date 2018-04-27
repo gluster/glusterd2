@@ -40,7 +40,7 @@ func TestVolume(t *testing.T) {
 
 	client = initRestclient(gds[0].ClientAddress)
 
-	tmpDir, err = ioutil.TempDir("", t.Name())
+	tmpDir, err = ioutil.TempDir(baseWorkdir, t.Name())
 	r.Nil(err)
 	t.Logf("Using temp dir: %s", tmpDir)
 	//defer os.RemoveAll(tmpDir)
@@ -237,7 +237,7 @@ func TestVolumeOptions(t *testing.T) {
 	r.Nil(err)
 	defer teardownCluster(gds)
 
-	brickDir, err := ioutil.TempDir("", t.Name())
+	brickDir, err := ioutil.TempDir(baseWorkdir, t.Name())
 	defer os.RemoveAll(brickDir)
 
 	brickPath, err := ioutil.TempDir(brickDir, "brick")

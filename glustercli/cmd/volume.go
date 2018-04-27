@@ -55,8 +55,11 @@ func init() {
 
 	volumeCmd.AddCommand(volumeGetCmd)
 	volumeCmd.AddCommand(volumeResetCmd)
+
 	volumeCmd.AddCommand(volumeInfoCmd)
+
 	volumeCmd.AddCommand(volumeStatusCmd)
+
 	volumeCmd.AddCommand(volumeListCmd)
 
 	// Volume Expand
@@ -142,10 +145,12 @@ var volumeStartCmd = &cobra.Command{
 		volname := cmd.Flags().Args()[0]
 		err := client.VolumeStart(volname)
 		if err != nil {
-			log.WithFields(log.Fields{
-				"volume": volname,
-				"error":  err.Error(),
-			}).Error("volume start failed")
+			if verbose {
+				log.WithFields(log.Fields{
+					"volume": volname,
+					"error":  err.Error(),
+				}).Error("volume start failed")
+			}
 			failure("volume start failed", err, 1)
 		}
 		fmt.Printf("Volume %s started successfully\n", volname)
@@ -160,10 +165,12 @@ var volumeStopCmd = &cobra.Command{
 		volname := cmd.Flags().Args()[0]
 		err := client.VolumeStop(volname)
 		if err != nil {
-			log.WithFields(log.Fields{
-				"volume": volname,
-				"error":  err.Error(),
-			}).Error("volume stop failed")
+			if verbose {
+				log.WithFields(log.Fields{
+					"volume": volname,
+					"error":  err.Error(),
+				}).Error("volume stop failed")
+			}
 			failure("Volume stop failed", err, 1)
 		}
 		fmt.Printf("Volume %s stopped successfully\n", volname)
@@ -178,10 +185,12 @@ var volumeDeleteCmd = &cobra.Command{
 		volname := cmd.Flags().Args()[0]
 		err := client.VolumeDelete(volname)
 		if err != nil {
-			log.WithFields(log.Fields{
-				"volume": volname,
-				"error":  err.Error(),
-			}).Error("volume deletion failed")
+			if verbose {
+				log.WithFields(log.Fields{
+					"volume": volname,
+					"error":  err.Error(),
+				}).Error("volume deletion failed")
+			}
 			failure("Volume deletion failed", err, 1)
 		}
 		fmt.Printf("Volume %s deleted successfully\n", volname)
@@ -289,9 +298,11 @@ var volumeInfoCmd = &cobra.Command{
 	Run: func(cmd *cobra.Command, args []string) {
 		err := volumeInfoHandler2(cmd, true)
 		if err != nil {
-			log.WithFields(log.Fields{
-				"error": err.Error(),
-			}).Error("error getting volumes list")
+			if verbose {
+				log.WithFields(log.Fields{
+					"error": err.Error(),
+				}).Error("error getting volumes list")
+			}
 			failure("Error getting Volumes list", err, 1)
 		}
 	},
@@ -304,9 +315,11 @@ var volumeListCmd = &cobra.Command{
 	Run: func(cmd *cobra.Command, args []string) {
 		err := volumeInfoHandler2(cmd, false)
 		if err != nil {
-			log.WithFields(log.Fields{
-				"error": err.Error(),
-			}).Error("error getting volumes list")
+			if verbose {
+				log.WithFields(log.Fields{
+					"error": err.Error(),
+				}).Error("error getting volumes list")
+			}
 			failure("Error getting Volumes list", err, 1)
 		}
 	},
@@ -338,9 +351,11 @@ func volumeStatusHandler(cmd *cobra.Command) error {
 			if err == nil {
 				volumeStatusDisplay(vol)
 			} else {
-				log.WithFields(log.Fields{
-					"error": err.Error(),
-				}).Error("error getting volume status")
+				if verbose {
+					log.WithFields(log.Fields{
+						"error": err.Error(),
+					}).Error("error getting volume status")
+				}
 				failure("Error getting Volume status", err, 1)
 			}
 		}
@@ -361,9 +376,11 @@ var volumeStatusCmd = &cobra.Command{
 	Run: func(cmd *cobra.Command, args []string) {
 		err := volumeStatusHandler(cmd)
 		if err != nil {
-			log.WithFields(log.Fields{
-				"error": err.Error(),
-			}).Error("error getting volume status")
+			if verbose {
+				log.WithFields(log.Fields{
+					"error": err.Error(),
+				}).Error("error getting volume status")
+			}
 			failure("Error getting Volume status", err, 1)
 		}
 	},
@@ -377,10 +394,12 @@ var volumeExpandCmd = &cobra.Command{
 		volname := cmd.Flags().Args()[0]
 		bricks, err := bricksAsUUID(cmd.Flags().Args()[1:])
 		if err != nil {
-			log.WithFields(log.Fields{
-				"volume": volname,
-				"error":  err.Error(),
-			}).Error("error getting brick UUIDs")
+			if verbose {
+				log.WithFields(log.Fields{
+					"volume": volname,
+					"error":  err.Error(),
+				}).Error("error getting brick UUIDs")
+			}
 			failure("Error getting brick UUIDs", err, 1)
 		}
 		vol, err := client.VolumeExpand(volname, api.VolExpandReq{
@@ -389,10 +408,12 @@ var volumeExpandCmd = &cobra.Command{
 			Force:        flagExpandCmdForce,
 		})
 		if err != nil {
-			log.WithFields(log.Fields{
-				"volume": volname,
-				"error":  err.Error(),
-			}).Error("volume expansion failed")
+			if verbose {
+				log.WithFields(log.Fields{
+					"volume": volname,
+					"error":  err.Error(),
+				}).Error("volume expansion failed")
+			}
 			failure("Addition of brick failed", err, 1)
 		}
 		fmt.Printf("%s Volume expanded successfully\n", vol.Name)
