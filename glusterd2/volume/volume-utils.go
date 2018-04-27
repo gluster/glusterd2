@@ -38,24 +38,6 @@ func isBrickPathAvailable(peerID uuid.UUID, brickPath string) error {
 	return nil
 }
 
-// IsBitrotEnabled returns true if bitrot is enabled for a volume and false otherwise
-func IsBitrotEnabled(v *Volinfo) bool {
-	val, exists := v.Options[VkeyFeaturesBitrot]
-	if exists && val == "on" {
-		return true
-	}
-	return false
-}
-
-// IsQuotaEnabled returns true if bitrot is enabled for a volume and false otherwise
-func IsQuotaEnabled(v *Volinfo) bool {
-	val, exists := v.Options[VkeyFeaturesQuota]
-	if exists && val == "on" {
-		return true
-	}
-	return false
-}
-
 //CheckBricksStatus will give detailed information about brick
 func CheckBricksStatus(volinfo *Volinfo) ([]brick.Brickstatus, error) {
 
