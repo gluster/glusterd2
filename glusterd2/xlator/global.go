@@ -36,12 +36,6 @@ func Load() (err error) {
 	xlMap = xls
 
 	loadOptions()
-
-	err = registerAllValidations()
-	if err != nil {
-		return
-	}
-
 	return
 }
 
