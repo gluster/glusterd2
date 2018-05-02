@@ -132,7 +132,7 @@ func getXlatorsDir() string {
 	out, err := exec.Command("glusterfsd", "--print-xlatordir").Output()
 	if err != nil {
 		// fallback to the old hack if https://review.gluster.org/19905 isn't present
-		cmd := "strings -d `which glusterfsd` | awk '/glusterfs\\/.*\\/xlator$/'"
+		cmd := "strings -d `command -v glusterfsd` | awk '/glusterfs\\/.*\\/xlator$/'"
 		out, err = exec.Command("sh", "-c", cmd).Output()
 		if err != nil {
 			return ""

@@ -12,7 +12,6 @@ import (
 	"github.com/gluster/glusterd2/pkg/errors"
 
 	"github.com/gorilla/mux"
-	"github.com/pborman/uuid"
 )
 
 func volumeEditHandler(w http.ResponseWriter, r *http.Request) {
@@ -31,8 +30,6 @@ func volumeEditHandler(w http.ResponseWriter, r *http.Request) {
 
 	//Lock on Volume Name
 	lock, unlock := transaction.CreateLockFuncs(volname)
-	// Taking a lock outside the txn as volinfo.Nodes() must also
-	// be populated holding the lock.
 	if err := lock(ctx); err != nil {
 		if err == transaction.ErrLockTimeout {
 			restutils.SendHTTPError(ctx, w, http.StatusConflict, err)
@@ -44,7 +41,7 @@ func volumeEditHandler(w http.ResponseWriter, r *http.Request) {
 	defer unlock(ctx)
 
 	//validate volume name
-	v, err := volume.GetVolume(volname)
+	volinfo, err := volume.GetVolume(volname)
 	if err != nil {
 		if err == errors.ErrVolNotFound {
 			restutils.SendHTTPError(ctx, w, http.StatusNotFound, errors.ErrVolNotFound)
@@ -54,41 +51,24 @@ func volumeEditHandler(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	for key := range req.Metadata {
+	for key, value := range req.Metadata {
 		if strings.HasPrefix(key, "_") {
 			logger.WithField("key", key).Error("Key names starting with '_' are restricted in metadata field")
 			restutils.SendHTTPError(ctx, w, http.StatusBadRequest, "Key names starting with '_' are restricted in metadata field")
 			return
 		}
+		volinfo.Metadata[key] = value
 	}
-
-	v.Metadata = req.Metadata
-
-	// Transaction which starts self heal daemon on all nodes with atleast one brick.
-	txn := transaction.NewTxn(ctx)
-	defer txn.Cleanup()
-
-	txn.Nodes = v.Nodes()
-	txn.Steps = []*transaction.Step{
-		{
-			DoFunc: "vol-option.UpdateVolinfo",
-			Nodes:  []uuid.UUID{gdctx.MyUUID},
-		},
-	}
-
-	if err := txn.Ctx.Set("volinfo", v); err != nil {
-		logger.WithError(err).WithField("key", "volinfo").Error("failed to set key in transaction context")
-		restutils.SendHTTPError(ctx, w, http.StatusInternalServerError, err)
+	if err := volume.AddOrUpdateVolumeFunc(volinfo); err != nil {
+		logger.WithError(err).WithField(
+			"volume", volinfo.Name).Debug("failed to store volume info")
+		restutils.SendHTTPError(ctx, w, http.StatusInternalServerError, "failed to store volume info")
 		return
 	}
-
-	err = txn.Do()
-	if err != nil {
-		logger.WithField("volname", volname).Error("failed to edit metadata")
-		restutils.SendHTTPError(ctx, w, http.StatusInternalServerError, err)
-		return
-	}
-
-	resp := createVolumeGetResp(v)
+	resp := createEditVolumeResp(volinfo)
 	restutils.SendHTTPResponse(ctx, w, http.StatusOK, resp)
+}
+
+func createEditVolumeResp(v *volume.Volinfo) *api.VolumeEditResp {
+	return (*api.VolumeEditResp)(volume.CreateVolumeInfoResp(v))
 }

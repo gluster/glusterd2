@@ -109,8 +109,8 @@ func (c *Client) OptionGroupDelete(group string) error {
 }
 
 // EditVolume edits the specified keys in volinfo of a volume
-func (c *Client) EditVolume(volname string, req api.VolEditReq) (api.VolumeGetResp, error) {
-	var resp api.VolumeGetResp
+func (c *Client) EditVolume(volname string, req api.VolEditReq) (api.VolumeEditResp, error) {
+	var resp api.VolumeEditResp
 	url := fmt.Sprintf("/v1/volumes/%s/edit", volname)
 	err := c.post(url, req, http.StatusOK, &resp)
 	return resp, err

@@ -1,6 +1,7 @@
 package e2e
 
 import (
+	"errors"
 	"fmt"
 	"io/ioutil"
 	"net"
@@ -40,7 +41,7 @@ func TestVolume(t *testing.T) {
 
 	client = initRestclient(gds[0].ClientAddress)
 
-	tmpDir, err = ioutil.TempDir("", t.Name())
+	tmpDir, err = ioutil.TempDir(baseWorkdir, t.Name())
 	r.Nil(err)
 	t.Logf("Using temp dir: %s", tmpDir)
 	//defer os.RemoveAll(tmpDir)
@@ -59,15 +60,13 @@ func TestVolume(t *testing.T) {
 	t.Run("Stop", testVolumeStop)
 	t.Run("List", testVolumeList)
 	t.Run("Info", testVolumeInfo)
+	t.Run("Edit", testEditVolume)
 
 	// delete volume
 	t.Run("Delete", testVolumeDelete)
 
 	// Disperse volume test
 	t.Run("Disperse", testDisperse)
-
-	// Edit Volume Metadata test
-	t.Run("Edit", testEditVolume)
 }
 
 func testVolumeCreate(t *testing.T) {
@@ -229,7 +228,7 @@ func TestVolumeOptions(t *testing.T) {
 
 	// skip this test if glusterfs server packages and xlators are not
 	// installed
-	_, err := exec.Command("sh", "-c", "which glusterfsd").Output()
+	_, err := exec.Command("sh", "-c", "command -v glusterfsd").Output()
 	if err != nil {
 		t.SkipNow()
 	}
@@ -240,7 +239,7 @@ func TestVolumeOptions(t *testing.T) {
 	r.Nil(err)
 	defer teardownCluster(gds)
 
-	brickDir, err := ioutil.TempDir("", t.Name())
+	brickDir, err := ioutil.TempDir(baseWorkdir, t.Name())
 	defer os.RemoveAll(brickDir)
 
 	brickPath, err := ioutil.TempDir(brickDir, "brick")
@@ -413,40 +412,39 @@ func testDisperse(t *testing.T) {
 	r.Nil(client.VolumeDelete(disperseVolName), "disperse volume delete failed")
 }
 
+func validateVolumeEdit(volinfo api.VolumeGetResp, editMetadataReq api.VolEditReq, resp api.VolumeEditResp) error {
+	for key, value := range editMetadataReq.Metadata {
+		if volinfo.Metadata[key] != value || resp.Metadata[key] != value {
+			err := errors.New("invalid response")
+			return err
+		}
+	}
+	return nil
+}
+
 func testEditVolume(t *testing.T) {
 	r := require.New(t)
-
-	var brickPaths []string
-
-	for i := 1; i <= 4; i++ {
-		brickPath, err := ioutil.TempDir(tmpDir, "brick")
-		r.Nil(err)
-		brickPaths = append(brickPaths, brickPath)
-	}
-
-	createReq := api.VolCreateReq{
-		Name: volname,
-		Subvols: []api.SubvolReq{
-			{
-				ReplicaCount: 2,
-				Type:         "replicate",
-				Bricks: []api.BrickReq{
-					{PeerID: gds[0].PeerID(), Path: brickPaths[0]},
-					{PeerID: gds[1].PeerID(), Path: brickPaths[1]},
-				},
-			},
-		},
-		Force: true,
-	}
-	_, err := client.VolumeCreate(createReq)
-
 	editMetadataReq := api.VolEditReq{
 		Metadata: map[string]string{
 			"owner": "gd2tests",
 		},
 	}
-	_, err = client.EditVolume(volname, editMetadataReq)
+	resp, err := client.EditVolume(volname, editMetadataReq)
 	r.Nil(err)
-	err = client.VolumeDelete(volname)
+	volinfo, err := client.Volumes(volname)
+	r.Nil(err)
+	err = validateVolumeEdit(volinfo[0], editMetadataReq, resp)
+	r.Nil(err)
+	editMetadataReq = api.VolEditReq{
+		Metadata: map[string]string{
+			"owner": "gd2functests",
+			"year":  "2018",
+		},
+	}
+	resp, err = client.EditVolume(volname, editMetadataReq)
+	r.Nil(err)
+	volinfo, err = client.Volumes(volname)
+	r.Nil(err)
+	err = validateVolumeEdit(volinfo[0], editMetadataReq, resp)
 	r.Nil(err)
 }
