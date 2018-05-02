@@ -20,6 +20,7 @@ type Step struct {
 	DoFunc   string
 	UndoFunc string
 	Nodes    []uuid.UUID
+	Skip     bool
 }
 
 var (
