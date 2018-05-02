@@ -87,6 +87,10 @@ func (t *Txn) Do() error {
 	expTxn.Add("initiated_txn_in_progress", 1)
 
 	for i, s := range t.Steps {
+		if s.Skip {
+			continue
+		}
+
 		if err := s.do(t.Ctx); err != nil {
 			if !t.DisableRollback {
 				t.Ctx.Logger().WithError(err).Error("Transaction failed, rolling back changes")
@@ -103,6 +107,9 @@ func (t *Txn) Do() error {
 // The Steps are undone in the reverse order, from the failed step.
 func (t *Txn) undo(n int) {
 	for i := n; i >= 0; i-- {
+		if t.Steps[i].Skip {
+			continue
+		}
 		t.Steps[i].undo(t.Ctx)
 	}
 }

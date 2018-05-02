@@ -25,7 +25,7 @@ func IsBitrotAffectedNode() bool {
 		return true
 	}
 	for _, v := range volumes {
-		val, exists := v.Options[volume.VkeyFeaturesBitrot]
+		val, exists := v.Options[keyFeaturesBitrot]
 		if exists && val == "off" {
 			continue
 		} else if v.State != volume.VolStarted {

@@ -5,13 +5,15 @@ import (
 	"github.com/gluster/glusterd2/glusterd2/transaction"
 )
 
+const name = "bitrot"
+
 // Plugin is a structure which implements GlusterdPlugin interface
 type Plugin struct {
 }
 
 // Name returns name of plugin
 func (p *Plugin) Name() string {
-	return "bitrot"
+	return name
 }
 
 // RestRoutes returns list of REST API routes to register with Glusterd
