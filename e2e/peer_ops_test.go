@@ -13,19 +13,16 @@ func TestAddRemovePeer(t *testing.T) {
 	g1, err := spawnGlusterd("./config/1.toml", true)
 	r.Nil(err)
 	defer g1.Stop()
-	defer g1.EraseWorkdir()
 	r.True(g1.IsRunning())
 
 	g2, err := spawnGlusterd("./config/2.toml", true)
 	r.Nil(err)
 	defer g2.Stop()
-	defer g2.EraseWorkdir()
 	r.True(g2.IsRunning())
 
 	g3, err := spawnGlusterd("./config/3.toml", true)
 	r.Nil(err)
 	defer g3.Stop()
-	defer g3.EraseWorkdir()
 	r.True(g3.IsRunning())
 
 	client := initRestclient(g1.ClientAddress)

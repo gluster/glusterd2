@@ -15,7 +15,6 @@ func TestRESTAPIAuth(t *testing.T) {
 	g1, err := spawnGlusterd("./config/4.toml", true)
 	r.Nil(err)
 	defer g1.Stop()
-	defer g1.EraseWorkdir()
 	r.True(g1.IsRunning())
 
 	secret, err := ioutil.ReadFile(g1.Workdir + "/auth")
