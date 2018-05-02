@@ -79,8 +79,8 @@ func CreateLockSteps(key string) (*Step, *Step, error) {
 		return nil, nil, err
 	}
 
-	lockStep := &Step{lockFunc, unlockFunc, []uuid.UUID{gdctx.MyUUID}}
-	unlockStep := &Step{unlockFunc, "", []uuid.UUID{gdctx.MyUUID}}
+	lockStep := &Step{lockFunc, unlockFunc, []uuid.UUID{gdctx.MyUUID}, false}
+	unlockStep := &Step{unlockFunc, "", []uuid.UUID{gdctx.MyUUID}, false}
 
 	return lockStep, unlockStep, nil
 }
