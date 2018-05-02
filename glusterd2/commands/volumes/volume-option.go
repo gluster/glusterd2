@@ -9,6 +9,8 @@ import (
 	restutils "github.com/gluster/glusterd2/glusterd2/servers/rest/utils"
 	"github.com/gluster/glusterd2/glusterd2/transaction"
 	"github.com/gluster/glusterd2/glusterd2/volume"
+	"github.com/gluster/glusterd2/glusterd2/xlator"
+	"github.com/gluster/glusterd2/glusterd2/xlator/options"
 	"github.com/gluster/glusterd2/pkg/api"
 	"github.com/gluster/glusterd2/pkg/errors"
 
@@ -35,17 +37,12 @@ func optionSetValidate(c transaction.TxnCtx) error {
 		return fmt.Errorf("Validation failed for volume option: %s", err.Error())
 	}
 
-	var volname string
-	if err := c.Get("volname", &volname); err != nil {
+	var volinfo volume.Volinfo
+	if err := c.Get("volinfo", &volinfo); err != nil {
 		return err
 	}
 
-	volinfo, err := volume.GetVolume(volname)
-	if err != nil {
-		return err
-	}
-
-	if err := validateXlatorOptions(req.Options, volinfo); err != nil {
+	if err := validateXlatorOptions(req.Options, &volinfo); err != nil {
 		return fmt.Errorf("Validation failed for volume option:: %s", err.Error())
 	}
 
@@ -65,12 +62,84 @@ func optionSetValidate(c transaction.TxnCtx) error {
 	return nil
 }
 
+type txnOpType uint8
+
+const (
+	txnDo txnOpType = iota
+	txnUndo
+)
+
+func xlatorActionDoSet(c transaction.TxnCtx) error {
+	return xlatorAction(c, txnDo)
+}
+
+func xlatorActionUndoSet(c transaction.TxnCtx) error {
+	return xlatorAction(c, txnUndo)
+}
+
+// This function can be reused when volume reset operation is implemented.
+// However, volume reset can be also be treated logically as volume set but
+// with the value set to default value.
+func xlatorAction(c transaction.TxnCtx, txnOp txnOpType) error {
+
+	var req api.VolOptionReq
+	if err := c.Get("req", &req); err != nil {
+		return err
+	}
+
+	var volinfo volume.Volinfo
+	if err := c.Get("volinfo", &volinfo); err != nil {
+		return err
+	}
+
+	var fn func(*volume.Volinfo, string, string) error
+	for k, v := range req.Options {
+		_, xl, key, err := options.SplitKey(k)
+		if err != nil {
+			return err
+		}
+		xltr, err := xlator.Find(xl)
+		if err != nil {
+			return err
+		}
+		if xltr.Actor != nil {
+			if txnOp == txnDo {
+				fn = xltr.Actor.Do
+			} else {
+				fn = xltr.Actor.Undo
+			}
+			if err := fn(&volinfo, key, v); err != nil {
+				return err
+			}
+		}
+	}
+
+	return nil
+}
+
+func isActionStepRequired(req *api.VolOptionReq) bool {
+
+	for k := range req.Options {
+		_, xl, _, err := options.SplitKey(k)
+		if err != nil {
+			continue
+		}
+		if xltr, err := xlator.Find(xl); err == nil && xltr.Actor != nil {
+			return true
+		}
+	}
+
+	return false
+}
+
 func registerVolOptionStepFuncs() {
 	var sfs = []struct {
 		name string
 		sf   transaction.StepFunc
 	}{
 		{"vol-option.Validate", optionSetValidate},
+		{"vol-option.XlatorActionDoSet", xlatorActionDoSet},
+		{"vol-option.XlatorActionUndoSet", xlatorActionUndoSet},
 		{"vol-option.UpdateVolinfo", storeVolume},
 		{"vol-option.NotifyVolfileChange", notifyVolfileChange},
 	}
@@ -91,9 +160,26 @@ func volumeOptionsHandler(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	lock, unlock, err := transaction.CreateLockSteps(volname)
+	lock, unlock := transaction.CreateLockFuncs(volname)
+	// Taking a lock outside the txn as volinfo.Nodes() must also
+	// be populated holding the lock.
+	if err := lock(ctx); err != nil {
+		if err == transaction.ErrLockTimeout {
+			restutils.SendHTTPError(ctx, w, http.StatusConflict, err)
+		} else {
+			restutils.SendHTTPError(ctx, w, http.StatusInternalServerError, err)
+		}
+		return
+	}
+	defer unlock(ctx)
+
+	volinfo, err := volume.GetVolume(volname)
 	if err != nil {
-		restutils.SendHTTPError(ctx, w, http.StatusInternalServerError, err)
+		if err == errors.ErrVolNotFound {
+			restutils.SendHTTPError(ctx, w, http.StatusNotFound, errors.ErrVolNotFound)
+		} else {
+			restutils.SendHTTPError(ctx, w, http.StatusInternalServerError, err)
+		}
 		return
 	}
 
@@ -107,10 +193,15 @@ func volumeOptionsHandler(w http.ResponseWriter, r *http.Request) {
 	}
 
 	txn.Steps = []*transaction.Step{
-		lock,
 		{
 			DoFunc: "vol-option.Validate",
 			Nodes:  []uuid.UUID{gdctx.MyUUID},
+		},
+		{
+			DoFunc:   "vol-option.XlatorActionDoSet",
+			UndoFunc: "vol-option.XlatorActionUndoSet",
+			Nodes:    volinfo.Nodes(),
+			Skip:     isActionStepRequired(&req),
 		},
 		{
 			DoFunc: "vol-option.UpdateVolinfo",
@@ -120,7 +211,6 @@ func volumeOptionsHandler(w http.ResponseWriter, r *http.Request) {
 			DoFunc: "vol-option.NotifyVolfileChange",
 			Nodes:  allNodes,
 		},
-		unlock,
 	}
 
 	if err := txn.Ctx.Set("req", &req); err != nil {
@@ -128,7 +218,7 @@ func volumeOptionsHandler(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	if err := txn.Ctx.Set("volname", volname); err != nil {
+	if err := txn.Ctx.Set("volinfo", volinfo); err != nil {
 		restutils.SendHTTPError(ctx, w, http.StatusInternalServerError, err)
 		return
 	}
@@ -143,7 +233,7 @@ func volumeOptionsHandler(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	volinfo, err := volume.GetVolume(volname)
+	volinfo, err = volume.GetVolume(volname)
 	if err != nil {
 		if err == errors.ErrVolNotFound {
 			restutils.SendHTTPError(ctx, w, http.StatusNotFound, errors.ErrVolNotFound)
