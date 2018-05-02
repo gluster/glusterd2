@@ -76,6 +76,13 @@ var volumeCmd = &cobra.Command{
 }
 
 func bricksAsUUID(bricks []string) ([]api.BrickReq, error) {
+	// Validate Brick format
+	for _, brick := range bricks {
+		hostBrickData := strings.Split(brick, ":")
+		if len(hostBrickData) != 2 {
+			return nil, errors.New("Invalid Brick details, use <host>:<path> or <peerid>:<path>")
+		}
+	}
 
 	// validate if <host> in <host>:<path> is already UUID
 	validUUIDs := 0
