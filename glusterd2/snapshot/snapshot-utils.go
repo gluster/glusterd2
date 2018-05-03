@@ -56,8 +56,8 @@ func MountSnapBrickDirectory(vol *volume.Volinfo, brickinfo *brick.Brickinfo) er
 	}
 	/*
 	   TODO
-	   *Move to snapshot package as it has no lvm related coomands
-	   *Handle already mounted path, eg: using start when a brick is down, mostly path could be mounted
+	   *Move to snapshot package as it has no lvm related coomands.
+	   *Handle already mounted path, eg: using start when a brick is down, mostly path could be mounted.
 	*/
 
 	if err := lvm.MountSnapshotDirectory(mountRoot, brickinfo); err != nil {
@@ -101,8 +101,10 @@ func ActivateDeactivateFunc(snapinfo *Snapinfo, b []brick.Brickinfo, activate bo
 
 		} else {
 			var err error
-			if err = b[i].StopBrick(); err != nil {
-				return err
+			if err = b[i].TerminateBrick(); err != nil {
+				if err = b[i].StopBrick(); err != nil {
+					return err
+				}
 			}
 
 			length := len(b[i].Path) - len(b[i].Mountdir)

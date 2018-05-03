@@ -7,11 +7,11 @@ import (
 )
 
 func generateTCPGfProxyFuseVolfile(volfile *Volfile, vol *volume.Volinfo, nodeid uuid.UUID) {
-	if vol.SnapVol == true {
-		return
-	}
 
-	volfile.FileName = "gfproxy-client/" + vol.Name
+	/*
+		Name should be different for snapshot
+	*/
+	volfile.FileName = "gfproxy-client/" + vol.VolfileID
 
 	volfile.RootEntry.Add("debug/io-stats", vol, nil).SetName(vol.Name).
 		Add("performance/write-behind", vol, nil).
@@ -19,9 +19,6 @@ func generateTCPGfProxyFuseVolfile(volfile *Volfile, vol *volume.Volinfo, nodeid
 }
 
 func generateGfproxydVolfile(volfile *Volfile, vol *volume.Volinfo, nodeid uuid.UUID) {
-	if vol.SnapVol == true {
-		return
-	}
 
 	volfile.FileName = "gfproxyd/" + vol.Name
 

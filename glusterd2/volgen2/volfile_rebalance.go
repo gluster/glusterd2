@@ -7,9 +7,6 @@ import (
 )
 
 func generateRebalanceVolfile(volfile *Volfile, vol *volume.Volinfo, nodeid uuid.UUID) {
-	if vol.SnapVol == true {
-		return
-	}
 
 	volfile.FileName = "rebalance/" + vol.Name
 

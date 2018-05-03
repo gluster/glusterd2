@@ -83,6 +83,7 @@ type Subvol struct {
 type Volinfo struct {
 	ID          uuid.UUID
 	Name        string
+	VolfileID   string
 	Type        VolType
 	Transport   string
 	DistCount   int
@@ -95,7 +96,6 @@ type Volinfo struct {
 	GraphMap    map[string]string
 	HealEnabled bool
 	Metadata    map[string]string
-	SnapVol     bool
 	SnapList    []string
 }
 

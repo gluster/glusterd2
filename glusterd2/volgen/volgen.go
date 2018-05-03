@@ -6,7 +6,6 @@ import (
 	"fmt"
 	"os"
 	"path"
-	"strconv"
 	"strings"
 
 	"github.com/gluster/glusterd2/glusterd2/brick"
@@ -64,7 +63,7 @@ func GenerateClientVolfile(vol *volume.Volinfo) error {
 	}
 
 	// XXX: Also write to file, during development
-	cg.WriteToFile(getClientVolFilePath(vol.Name, vol.SnapVol))
+	cg.WriteToFile(getClientVolFilePath(vol.Name))
 
 	return nil
 }
@@ -77,7 +76,7 @@ func DeleteClientVolfile(vol *volume.Volinfo) error {
 	}
 
 	// XXX: Also delete the file on disk
-	os.Remove(getClientVolFilePath(vol.Name, vol.SnapVol))
+	os.Remove(getClientVolFilePath(vol.Name))
 
 	return nil
 }
@@ -91,7 +90,7 @@ func DeleteClientSnapVolfile(snapInfo *snapshot.Snapinfo) error {
 
 	vol := &snapInfo.SnapVolinfo
 	// XXX: Also delete the file on disk
-	os.Remove(getClientVolFilePath(vol.Name, vol.SnapVol))
+	os.Remove(getClientVolFilePath(vol.Name))
 
 	return nil
 }
@@ -108,37 +107,27 @@ func GenerateBrickVolfile(vol *volume.Volinfo, b *brick.Brickinfo) error {
 		return err
 	}
 
-	return bg.WriteToFile(getBrickVolFilePath(vol.Name, b.PeerID.String(), b.Path, vol.SnapVol))
+	return bg.WriteToFile(getBrickVolFilePath(vol.Name, b.PeerID.String(), b.Path))
 }
 
 // DeleteBrickVolfile deletes the brick volfile of a single brick
-func DeleteBrickVolfile(b *brick.Brickinfo, snapVol bool) error {
+func DeleteBrickVolfile(b *brick.Brickinfo) error {
 
-	path := getBrickVolFilePath(b.VolumeName, b.PeerID.String(), b.Path, snapVol)
+	path := getBrickVolFilePath(b.VolumeName, b.PeerID.String(), b.Path)
 	return os.Remove(path)
 }
-func getClientVolFilePath(volname string, snapVol bool) string {
-	var dir string
-	if snapVol {
-		dir = utils.GetSnapshotDir(volname)
-	} else {
-		dir = utils.GetVolumeDir(volname)
-	}
+func getClientVolFilePath(volname string) string {
+	dir := utils.GetVolumeDir(volname)
 
 	file := fmt.Sprintf("%s.tcp-fuse.vol", volname)
 	return path.Join(dir, file)
 }
 
-func getBrickVolFilePath(volname string, brickNodeID string, brickPath string, snapVol bool) string {
-	var dir string
-	if snapVol {
-		dir = utils.GetSnapshotDir(volname)
-	} else {
-		dir = utils.GetVolumeDir(volname)
-	}
+func getBrickVolFilePath(volname string, brickNodeID string, brickPath string) string {
+	dir := utils.GetVolumeDir(volname)
 
 	brickPathWithoutSlashes := strings.Trim(strings.Replace(brickPath, "/", "-", -1), "-")
-	file := fmt.Sprintf("%s.%s.%s.%s.vol", volname, strconv.FormatBool(snapVol), brickNodeID, brickPathWithoutSlashes)
+	file := fmt.Sprintf("%s.%s.%s.vol", volname, brickNodeID, brickPathWithoutSlashes)
 
 	return path.Join(dir, file)
 }

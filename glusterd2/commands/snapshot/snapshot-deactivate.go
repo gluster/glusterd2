@@ -16,12 +16,18 @@ import (
 )
 
 func validateSnapDeactivate(c transaction.TxnCtx) error {
-	var snapinfo snapshot.Snapinfo
 	var brickinfos []brick.Brickinfo
+	var snapname string
 
-	if err := c.Get("snapinfo", &snapinfo); err != nil {
+	if err := c.Get("snapname", &snapname); err != nil {
 		return err
 	}
+
+	snapinfo, err := snapshot.GetSnapshot(snapname)
+	if err != nil {
+		return err
+	}
+
 	vol := &snapinfo.SnapVolinfo
 	switch vol.State == volume.VolStarted {
 	case true:
@@ -47,18 +53,25 @@ func validateSnapDeactivate(c transaction.TxnCtx) error {
 }
 
 func deactivateSnapshot(c transaction.TxnCtx) error {
-	var snapinfo snapshot.Snapinfo
 	var brickinfos []brick.Brickinfo
-	activate := false
-	if err := c.Get("snapinfo", &snapinfo); err != nil {
+	var snapname string
+
+	if err := c.Get("snapname", &snapname); err != nil {
 		return err
 	}
+
+	snapinfo, err := snapshot.GetSnapshot(snapname)
+	if err != nil {
+		return err
+	}
+
+	activate := false
 	if err := c.GetNodeResult(gdctx.MyUUID, "brickListToOperate", &brickinfos); err != nil {
 		log.WithError(err).Error("failed to set request in transaction context")
 		return err
 	}
 
-	err := snapshot.ActivateDeactivateFunc(&snapinfo, brickinfos, activate)
+	err = snapshot.ActivateDeactivateFunc(snapinfo, brickinfos, activate)
 	if err != nil {
 		return err
 	}
@@ -66,15 +79,21 @@ func deactivateSnapshot(c transaction.TxnCtx) error {
 
 }
 func storeSnapshotDeactivate(c transaction.TxnCtx) error {
-	var snapInfo snapshot.Snapinfo
-	if err := c.Get("snapinfo", &snapInfo); err != nil {
+	var snapname string
+
+	if err := c.Get("snapname", &snapname); err != nil {
 		return err
 	}
 
-	volinfo := &snapInfo.SnapVolinfo
+	snapinfo, err := snapshot.GetSnapshot(snapname)
+	if err != nil {
+		return err
+	}
+
+	volinfo := &snapinfo.SnapVolinfo
 	volinfo.State = volume.VolStopped
 
-	if err := snapshot.AddOrUpdateSnapFunc(&snapInfo); err != nil {
+	if err := snapshot.AddOrUpdateSnapFunc(snapinfo); err != nil {
 		c.Logger().WithError(err).WithField(
 			"snapshot", volinfo.Name).Debug("storeSnapshot: failed to store snapshot info")
 		return err
@@ -84,10 +103,16 @@ func storeSnapshotDeactivate(c transaction.TxnCtx) error {
 }
 
 func rollbackDeactivateSnapshot(c transaction.TxnCtx) error {
-	var snapinfo snapshot.Snapinfo
 	activate := true
 	var brickinfos []brick.Brickinfo
-	if err := c.Get("snapinfo", &snapinfo); err != nil {
+	var snapname string
+
+	if err := c.Get("snapname", &snapname); err != nil {
+		return err
+	}
+
+	snapinfo, err := snapshot.GetSnapshot(snapname)
+	if err != nil {
 		return err
 	}
 
@@ -96,7 +121,7 @@ func rollbackDeactivateSnapshot(c transaction.TxnCtx) error {
 		return err
 	}
 
-	err := snapshot.ActivateDeactivateFunc(&snapinfo, brickinfos, activate)
+	err = snapshot.ActivateDeactivateFunc(snapinfo, brickinfos, activate)
 
 	return err
 
@@ -119,6 +144,7 @@ func snapshotDeactivateHandler(w http.ResponseWriter, r *http.Request) {
 	snapinfo, err := snapshot.GetSnapshot(snapname)
 	if err != nil {
 		restutils.SendHTTPError(ctx, w, http.StatusNotFound, err)
+		return
 	}
 
 	vol = &snapinfo.SnapVolinfo
@@ -149,9 +175,9 @@ func snapshotDeactivateHandler(w http.ResponseWriter, r *http.Request) {
 
 		unlock,
 	}
-	err = txn.Ctx.Set("snapinfo", snapinfo)
+	err = txn.Ctx.Set("snapname", &snapname)
 	if err != nil {
-		log.WithError(err).Error("failed to set snapinfo in transaction context")
+		log.WithError(err).Error("failed to set snap name in transaction context")
 		restutils.SendHTTPError(ctx, w, http.StatusInternalServerError, err)
 		return
 	}

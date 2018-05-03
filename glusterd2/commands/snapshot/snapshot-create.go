@@ -203,7 +203,7 @@ func undoStoreSnapshotOnCreate(c transaction.TxnCtx) error {
 			"snapshot", snapshot.GetStorePath(&snapInfo)).Warn("failed to delete client volfile of snapshot")
 	}
 	for _, b := range volinfo.GetLocalBricks() {
-		if err := volgen.DeleteBrickVolfile(&b, false); err != nil {
+		if err := volgen.DeleteBrickVolfile(&b); err != nil {
 			c.Logger().WithError(err).WithField(
 				"brick", b.Path).Warn("failed to delete brick volfile")
 		}
@@ -473,6 +473,7 @@ func createSnapinfo(c transaction.TxnCtx) error {
 		"features.inode-quota",
 		"feature.deem-statfs",
 		"features.quota-deem-statfs",
+		"bitrot-stub.bitrot",
 	}
 
 	nodeData := make(map[string]snapshot.BrickMountData)
@@ -499,13 +500,19 @@ func createSnapinfo(c transaction.TxnCtx) error {
 	snapInfo := new(snapshot.Snapinfo)
 	snapVolinfo := &snapInfo.SnapVolinfo
 	duplicateVolinfo(volinfo, snapVolinfo)
+
+	snapInfo.OptionChange = make(map[string]string)
+
 	for _, key := range ignoreOps {
+		snapInfo.OptionChange[key] = snapVolinfo.Options[key]
 		delete(snapVolinfo.Options, key)
 	}
+
 	snapVolinfo.State = volume.VolCreated
 	snapVolinfo.GraphMap = volinfo.GraphMap
 	snapVolinfo.ID = uuid.NewRandom()
 	snapVolinfo.Name = req.SnapName
+	snapVolinfo.VolfileID = "snaps/" + req.SnapName
 	/*
 		TODO
 		For now disabling heal
@@ -522,7 +529,6 @@ func createSnapinfo(c transaction.TxnCtx) error {
 		return err
 	}
 
-	snapVolinfo.SnapVol = true
 	snapInfo.Description = req.Description
 	snapInfo.ParentVolume = req.VolName
 	/*
@@ -579,6 +585,9 @@ func validateOriginNodeSnapCreate(c transaction.TxnCtx) error {
 	var req api.SnapCreateReq
 	if err := c.Get("req", &req); err != nil {
 		return err
+	}
+	if snapshot.ExistsFunc(req.SnapName) {
+		return gderrors.ErrSnapExists
 	}
 
 	volinfo, err := volume.GetVolume(req.VolName)
@@ -644,13 +653,20 @@ func snapshotCreateHandler(w http.ResponseWriter, r *http.Request) {
 	}
 	if req.TimeStamp == true {
 		t := time.Now().UTC()
-		req.SnapName = req.SnapName + t.Format("_GMT.2006.01.02.15.04.05")
+		req.SnapName = req.SnapName + t.Format("_GMT_2006_01_02_15_04_05")
 	}
-
-	if snapshot.ExistsFunc(req.VolName + "/" + req.SnapName) {
-		restutils.SendHTTPError(ctx, w, http.StatusInternalServerError, err)
+	volLock, volUnlock := transaction.CreateLockFuncs(req.VolName)
+	// Taking a lock outside the txn as volinfo.Nodes() must also
+	// be populated holding the lock. See issue #510
+	if err := volLock(ctx); err != nil {
+		if err == transaction.ErrLockTimeout {
+			restutils.SendHTTPError(ctx, w, http.StatusConflict, err)
+		} else {
+			restutils.SendHTTPError(ctx, w, http.StatusInternalServerError, err)
+		}
 		return
 	}
+	defer volUnlock(ctx)
 
 	vol, e := volume.GetVolume(req.VolName)
 	if e != nil {
@@ -666,16 +682,10 @@ func snapshotCreateHandler(w http.ResponseWriter, r *http.Request) {
 		restutils.SendHTTPError(ctx, w, http.StatusInternalServerError, err)
 		return
 	}
-	volLock, volUnlock, err := transaction.CreateLockSteps(req.VolName)
-	if err != nil {
-		restutils.SendHTTPError(ctx, w, http.StatusInternalServerError, err)
-		return
-	}
 
 	txn.Nodes = vol.Nodes()
 
 	txn.Steps = []*transaction.Step{
-		volLock,
 		snapLock,
 		{
 			DoFunc: "snap-create.OriginNodeValidate",
@@ -711,7 +721,6 @@ func snapshotCreateHandler(w http.ResponseWriter, r *http.Request) {
 			Nodes:    []uuid.UUID{gdctx.MyUUID},
 		},
 		snapUnlock,
-		volUnlock,
 	}
 	err = txn.Ctx.Set("req", req)
 	if err != nil {

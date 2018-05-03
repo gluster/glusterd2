@@ -8,4 +8,5 @@ type Snapinfo struct {
 	SnapVolinfo  volume.Volinfo
 	ParentVolume string
 	Description  string
+	OptionChange map[string]string
 }

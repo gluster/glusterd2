@@ -7,11 +7,7 @@ import (
 )
 
 func generateTCPFuseVolfile(volfile *Volfile, vol *volume.Volinfo, nodeid uuid.UUID) {
-	if vol.SnapVol == true {
-		volfile.FileName = "snaps/" + vol.Name
-	} else {
-		volfile.FileName = vol.Name
-	}
+	volfile.FileName = vol.VolfileID
 
 	dht := volfile.RootEntry.Add("debug/io-stats", vol, nil).SetName(vol.Name).
 		Add("performance/io-threads", vol, nil).

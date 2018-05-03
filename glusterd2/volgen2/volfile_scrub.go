@@ -14,9 +14,6 @@ func generateScrubVolfile(volfile *Volfile, clusterinfo []*volume.Volinfo, nodei
 	scrub := volfile.RootEntry.Add("debug/io-stats", nil, nil).SetName("scrub")
 
 	for volIdx, vol := range clusterinfo {
-		if vol.SnapVol == true {
-			continue
-		}
 		//If bitrot not enabled for volume, then skip those bricks
 		val, exists := vol.Options["bitrot-stub.bitrot"]
 		if exists && val == "on" {

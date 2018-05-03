@@ -18,6 +18,7 @@ func snapshotInfoHandler(w http.ResponseWriter, r *http.Request) {
 	snap, err := snapshot.GetSnapshot(volname)
 	if err != nil {
 		restutils.SendHTTPError(ctx, w, http.StatusNotFound, err)
+		return
 	}
 
 	resp := createSnapGetResp(snap)
