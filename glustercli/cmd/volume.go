@@ -251,9 +251,9 @@ func volumeInfoDisplay(vol api.VolumeGetResp) {
 	for sIdx, subvol := range vol.Subvols {
 		for bIdx, brick := range subvol.Bricks {
 			if brick.Type == api.Arbiter {
-				fmt.Printf("Brick%d: %s:%s (arbiter)\n", sIdx+bIdx+1, brick.PeerID, brick.Path)
+				fmt.Printf("Brick%d: %s:%s (arbiter)\n", sIdx+bIdx+1, brick.Hostname, brick.Path)
 			} else {
-				fmt.Printf("Brick%d: %s:%s\n", sIdx+bIdx+1, brick.PeerID, brick.Path)
+				fmt.Printf("Brick%d: %s:%s\n", sIdx+bIdx+1, brick.Hostname, brick.Path)
 			}
 		}
 	}
