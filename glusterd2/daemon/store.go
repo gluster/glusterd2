@@ -16,7 +16,7 @@ const (
 	daemonsPrefix = "daemons/"
 )
 
-// save saves the daemon information in the store
+//  saves the daemon information in the store
 func saveDaemon(d Daemon) error {
 	p := path.Join(daemonsPrefix, gdctx.MyUUID.String(), d.ID())
 

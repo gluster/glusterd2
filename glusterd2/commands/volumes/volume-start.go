@@ -23,13 +23,7 @@ func startAllBricks(c transaction.TxnCtx) error {
 	}
 
 	for _, b := range volinfo.GetLocalBricks() {
-
-		c.Logger().WithFields(log.Fields{
-			"volume": b.VolumeName,
-			"brick":  b.String(),
-		}).Info("Starting brick")
-
-		if err := b.StartBrick(); err != nil {
+		if err := StartBrick(b); err != nil {
 			return err
 		}
 	}
@@ -50,7 +44,7 @@ func stopAllBricks(c transaction.TxnCtx) error {
 			"brick":  b.String(),
 		}).Info("volume start failed, stopping brick")
 
-		if err := b.StopBrick(); err != nil {
+		if err := b.StopBrickProcess(); err != nil {
 			return err
 		}
 	}

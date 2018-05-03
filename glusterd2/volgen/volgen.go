@@ -110,7 +110,12 @@ func getClientVolFilePath(volname string) string {
 
 func getBrickVolFilePath(volname string, brickPeerID string, brickPath string) string {
 	dir := utils.GetVolumeDir(volname)
-	brickPathWithoutSlashes := strings.Trim(strings.Replace(brickPath, "/", "-", -1), "-")
-	file := fmt.Sprintf("%s.%s.%s.vol", volname, brickPeerID, brickPathWithoutSlashes)
+	file := fmt.Sprintf("%s.vol", GetBrickVolFileID(volname, brickPeerID, brickPath))
 	return path.Join(dir, file)
+}
+
+// GetBrickVolFileID returns the volfile id for a brick
+func GetBrickVolFileID(volname string, brickPeerID string, brickPath string) string {
+	brickPathWithoutSlashes := strings.Trim(strings.Replace(brickPath, "/", "-", -1), "-")
+	return fmt.Sprintf("%s.%s.%s", volname, brickPeerID, brickPathWithoutSlashes)
 }

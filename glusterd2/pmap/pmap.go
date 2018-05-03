@@ -180,6 +180,26 @@ func registryBind(port int, brickname string, ptype PortType, xprt interface{}) 
 	}
 }
 
+// RegistryExtend is called to add a brick to the portmap
+func RegistryExtend(port int, brickname string, ptype PortType) {
+
+	if port > gfPortMax {
+		return
+	}
+
+	if port > registry.LastAlloc {
+		registryBind(port, brickname, GfPmapPortBrickserver, nil)
+		return
+	}
+
+	registry.Lock()
+	defer registry.Unlock()
+
+	if registry.Ports[port].Type == ptype {
+		registry.Ports[port].Bricks = append(registry.Ports[port].Bricks, brickname)
+	}
+}
+
 // opposite of append(), fast but doesn't maintain order
 func deleteFromSlice(list []string, query string) []string {
 

@@ -14,6 +14,7 @@ import (
 	"github.com/gluster/glusterd2/glusterd2/peer"
 	"github.com/gluster/glusterd2/glusterd2/servers"
 	"github.com/gluster/glusterd2/glusterd2/store"
+	"github.com/gluster/glusterd2/glusterd2/volume"
 	"github.com/gluster/glusterd2/glusterd2/xlator"
 	"github.com/gluster/glusterd2/pkg/errors"
 	"github.com/gluster/glusterd2/pkg/logging"
@@ -124,6 +125,17 @@ func main() {
 	super := initGD2Supervisor()
 	super.ServeBackground()
 	super.Add(servers.New())
+
+	vols, err := volume.GetVolumes()
+	if err != nil {
+		log.WithError(err).Error("Failed to get volume list from store. Bricks might not be started correctly.")
+	}
+
+	for _, v := range vols {
+		if err := volumecommands.RestartBricksInVolume(v); err != nil {
+			log.WithError(err).Errorf("Restart for bricks in volume %s failed", v.Name)
+		}
+	}
 
 	// Restart previously running daemons
 	daemon.StartAllDaemons()
