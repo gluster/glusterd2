@@ -85,7 +85,7 @@ func expandGroupOptions(opts map[string]string) (map[string]string, error) {
 		return nil, err
 	}
 
-	var groupOptions map[string][]api.VolumeOption
+	var groupOptions map[string]*api.OptionGroup
 	if err := json.Unmarshal(resp.Kvs[0].Value, &groupOptions); err != nil {
 		return nil, err
 	}
@@ -96,12 +96,16 @@ func expandGroupOptions(opts map[string]string) (map[string]string, error) {
 		if !ok {
 			options[opt] = val
 		} else {
-			for _, option := range optionSet {
+			for _, option := range optionSet.Options {
 				switch val {
 				case "on":
 					options[option.Name] = option.OnValue
 				case "off":
-					options[option.Name] = option.OffValue
+					op, err := xlator.FindOption(option.Name)
+					if err != nil {
+						return nil, err
+					}
+					options[option.Name] = op.DefaultValue
 				default:
 					return nil, errors.New("Need either on or off")
 				}
