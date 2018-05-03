@@ -35,6 +35,19 @@ func registerVolExpandStepFuncs() {
 		transaction.RegisterStepFunc(sf.sf, sf.name)
 	}
 }
+func checkDupBrickEntryVolExpand(req api.VolExpandReq) error {
+	dupEntry := map[string]bool{}
+
+	for _, brick := range req.Bricks {
+		if dupEntry[brick.PeerID+filepath.Clean(brick.Path)] == true {
+			return errors.ErrDuplicateBrickPath
+		}
+		dupEntry[brick.PeerID+filepath.Clean(brick.Path)] = true
+
+	}
+
+	return nil
+}
 
 func volumeExpandHandler(w http.ResponseWriter, r *http.Request) {
 
@@ -45,6 +58,11 @@ func volumeExpandHandler(w http.ResponseWriter, r *http.Request) {
 	var req api.VolExpandReq
 	if err := restutils.UnmarshalRequest(r, &req); err != nil {
 		restutils.SendHTTPError(ctx, w, http.StatusBadRequest, errors.ErrJSONParsingFailed)
+		return
+	}
+
+	if err := checkDupBrickEntryVolExpand(req); err != nil {
+		restutils.SendHTTPError(ctx, w, http.StatusBadRequest, err)
 		return
 	}
 
