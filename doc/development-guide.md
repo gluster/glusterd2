@@ -83,7 +83,7 @@ Edit **glusterd2.toml** config option and add `noembed` option with specifying
 the etcd endpoint:
 
 ```toml
-etcdcurls = "http://127.0.0.1:2379"
+etcdendpoints = "http://127.0.0.1:2379"
 noembed = true
 ```
 
