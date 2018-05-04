@@ -72,7 +72,9 @@ func volumeStatedumpCmdRun(cmd *cobra.Command, args []string) {
 		pid, _ := strconv.Atoi(s[1])
 		req.Client.Host = s[0]
 		req.Client.Pid = pid
-	} else {
+	}
+
+	if req.Quota == false && req.Client.Host == "" {
 		// TODO: The REST API doesn't support taking statedump of a single specified brick.
 		req.Bricks = true
 	}
