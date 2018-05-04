@@ -13,15 +13,10 @@ import (
 
 func validateOptionSet(req api.OptionGroupReq) error {
 	o1 := make(map[string]string)
-	o2 := make(map[string]string)
 	for _, o := range req.Options {
 		o1[o.Name] = o.OnValue
-		o2[o.Name] = o.OffValue
 	}
-	if err := validateOptions(o1, req.Advanced, req.Experimental, req.Deprecated); err != nil {
-		return err
-	}
-	return validateOptions(o2, req.Advanced, req.Experimental, req.Deprecated)
+	return validateOptions(o1, req.Advanced, req.Experimental, req.Deprecated)
 }
 
 func optionGroupCreateHandler(w http.ResponseWriter, r *http.Request) {
@@ -44,7 +39,7 @@ func optionGroupCreateHandler(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	var groupOptions map[string][]api.VolumeOption
+	var groupOptions map[string]*api.OptionGroup
 	if err := json.Unmarshal(resp.Kvs[0].Value, &groupOptions); err != nil {
 		restutils.SendHTTPError(ctx, w, http.StatusInternalServerError, err)
 		return
@@ -54,7 +49,12 @@ func optionGroupCreateHandler(w http.ResponseWriter, r *http.Request) {
 	for _, option := range req.Options {
 		optionSet = append(optionSet, option)
 	}
-	groupOptions[req.Name] = optionSet
+
+	groupOptions[req.Name] = &api.OptionGroup{
+		Name:        req.Name,
+		Options:     optionSet,
+		Description: req.Description,
+	}
 
 	groupOptionsJSON, err := json.Marshal(groupOptions)
 	if err != nil {
