@@ -7,6 +7,7 @@ import (
 	"strings"
 
 	"github.com/olekukonko/tablewriter"
+	"github.com/pborman/uuid"
 	log "github.com/sirupsen/logrus"
 	"github.com/spf13/cobra"
 )
@@ -14,7 +15,7 @@ import (
 const (
 	helpPeerCmd       = "Gluster Peer Management"
 	helpPeerProbeCmd  = "probe peer specified by <HOSTNAME>"
-	helpPeerDetachCmd = "detach peer specified by <HOSTNAME>"
+	helpPeerDetachCmd = "detach peer specified by <HOSTNAME or PeerID>"
 	helpPeerStatusCmd = "list status of peers"
 	helpPoolListCmd   = "list all the nodes in the pool (including localhost)"
 )
@@ -74,7 +75,7 @@ var peerProbeCmd = &cobra.Command{
 }
 
 var peerDetachCmd = &cobra.Command{
-	Use:   "detach <HOSTNAME>",
+	Use:   "detach <HOSTNAME or PeerID>",
 	Short: helpPeerDetachCmd,
 	Args:  cobra.ExactArgs(1),
 	Run: func(cmd *cobra.Command, args []string) {
@@ -134,6 +135,10 @@ var poolListCmd = &cobra.Command{
 
 // getPeerID return peerId of host
 func getPeerID(host string) (string, error) {
+
+	if uuid.Parse(host) != nil {
+		return host, nil
+	}
 	// Get Peers list to find Peer ID
 	peers, err := client.Peers()
 	if err != nil {
