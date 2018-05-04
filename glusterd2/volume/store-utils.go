@@ -65,13 +65,6 @@ func DeleteVolume(name string) error {
 	return e
 }
 
-// //DeleteVolOption passes the option name to store to delete the option key
-// func DeleteVolOption(name string, option string) error {
-// 	n := name + "/"
-// 	_, e := store.Store.Delete(context.TODO(), volumePrefix+n+option)
-// 	return e
-// }
-
 // GetVolumesList returns a map of volume names to their UUIDs
 func GetVolumesList() (map[string]uuid.UUID, error) {
 	resp, e := store.Store.Get(context.TODO(), volumePrefix, clientv3.WithPrefix())

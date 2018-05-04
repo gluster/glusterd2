@@ -16,19 +16,6 @@ import (
 	"github.com/pborman/uuid"
 )
 
-func registerVolResetStepFuncs() {
-	var sfs = []struct {
-		name string
-		sf   transaction.StepFunc
-	}{
-		{"vol-reset.Store", storeVolume},
-		{"vol-reset.NotifyVolfileChange", notifyVolfileChange},
-	}
-	for _, sf := range sfs {
-		transaction.RegisterStepFunc(sf.sf, sf.name)
-	}
-}
-
 func volumeResetHandler(w http.ResponseWriter, r *http.Request) {
 
 	ctx := r.Context()
@@ -49,30 +36,42 @@ func volumeResetHandler(w http.ResponseWriter, r *http.Request) {
 
 	txn := transaction.NewTxn(ctx)
 	// Delete the option after checking for volopt flags
-	success := false
+	opReset := false
 	for _, k := range req.Options {
 		// Check if the key is set or not
 		if _, ok := volinfo.Options[k]; ok {
 			op, err := xlator.FindOption(k)
 			// If key exists, check for NEVER_RESET and FORCE flags
 			if err != nil {
-				logger.WithError(err)
-			} else if op.IsNeverReset() {
-				logger.WithError(err).Error("Option %s needs NEVER_RESET flag to be set", k)
-			} else if op.IsForceRequired() {
+				restutils.SendHTTPError(ctx, w, http.StatusBadRequest, err)
+				return
+			}
+			if op.IsNeverReset() {
+				errMsg := "Reserved option, can't be reset"
+				restutils.SendHTTPError(ctx, w, http.StatusBadRequest, errMsg)
+				return
+			}
+			if op.IsForceRequired() {
 				if req.Force {
 					delete(volinfo.Options, k)
-					success = true
+					opReset = true
 				} else {
-					logger.WithError(err).Error("Option %s needs a force flag to be set", k)
+					errMsg := "Option needs force flag to be set"
+					restutils.SendHTTPError(ctx, w, http.StatusBadRequest, errMsg)
+					return
 				}
 			}
+			delete(volinfo.Options, k)
+			opReset = true
 		} else {
-			logger.WithError(err).Error("Option %s trying to reset is not set or invalid option", k)
+			errMsg := "Option trying to reset is not set or invalid option"
+			restutils.SendHTTPError(ctx, w, http.StatusBadRequest, errMsg)
+			return
 		}
 	}
 	// Check if an option was reset, else return.
-	if !success {
+	if !opReset {
+		restutils.SendHTTPResponse(ctx, w, http.StatusOK, volinfo.Options)
 		return
 	}
 
@@ -91,19 +90,14 @@ func volumeResetHandler(w http.ResponseWriter, r *http.Request) {
 	txn.Steps = []*transaction.Step{
 		lock,
 		{
-			DoFunc: "vol-reset.Store",
+			DoFunc: "vol-option.UpdateVolinfo",
 			Nodes:  []uuid.UUID{gdctx.MyUUID},
 		},
 		{
-			DoFunc: "vol-reset.NotifyVolfileChange",
+			DoFunc: "vol-option.NotifyVolfileChange",
 			Nodes:  allNodes,
 		},
 		unlock,
-	}
-
-	// Reset the Options with new values
-	for key, value := range req.Options {
-		volinfo.Options[key] = value
 	}
 
 	if err := txn.Ctx.Set("volinfo", volinfo); err != nil {

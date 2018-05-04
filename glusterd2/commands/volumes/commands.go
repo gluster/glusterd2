@@ -146,5 +146,4 @@ func (c *Command) RegisterStepFuncs() {
 	registerVolExpandStepFuncs()
 	registerVolOptionStepFuncs()
 	registerVolStatedumpFuncs()
-	registerVolResetStepFuncs()
 }
