@@ -8,6 +8,7 @@ import (
 	restutils "github.com/gluster/glusterd2/glusterd2/servers/rest/utils"
 	"github.com/gluster/glusterd2/glusterd2/transaction"
 	"github.com/gluster/glusterd2/glusterd2/volume"
+	"github.com/gluster/glusterd2/glusterd2/xlator"
 	"github.com/gluster/glusterd2/pkg/api"
 	"github.com/gluster/glusterd2/pkg/errors"
 
@@ -50,18 +51,24 @@ func volumeResetHandler(w http.ResponseWriter, r *http.Request) {
 	// Delete the option after checking for volopt flags
 	success := false
 	for _, k := range req.Options {
+		// Check if the key is set or not
 		if _, ok := volinfo.Options[k]; ok {
-			if !volinfo.Options[k].VOLOPT_FLAG_NEVER_RESET {
-				if !volinfo.Options[k].VOLOPT_FLAG_FORCE {
+			op, err := xlator.FindOption(k)
+			// If key exists, check for NEVER_RESET and FORCE flags
+			if err != nil {
+				logger.WithError(err)
+			} else if op.IsNeverReset() {
+				logger.WithError(err).Error("Option %s needs NEVER_RESET flag to be set", k)
+			} else if op.IsForceRequired() {
+				if req.Force {
 					delete(volinfo.Options, k)
 					success = true
-				} else if volinfo.Options[k].VOLOPT_FLAG_FORCE && req.Force {
-					delete(volinfo.Options, k)
-					success = true
+				} else {
+					logger.WithError(err).Error("Option %s needs a force flag to be set", k)
 				}
 			}
 		} else {
-			logger.WithError(err).Error("Option trying to reset is not set or invalid option")
+			logger.WithError(err).Error("Option %s trying to reset is not set or invalid option", k)
 		}
 	}
 	// Check if an option was reset, else return.

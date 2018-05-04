@@ -40,7 +40,7 @@ func (c *Command) Routes() route.Routes {
 			RequestType:  utils.GetTypeString((*api.VolOptionReq)(nil)),
 			ResponseType: utils.GetTypeString((*api.VolumeOptionResp)(nil)),
 			HandlerFunc:  volumeOptionsHandler},
-                route.Route{
+		route.Route{
 			Name:        "VolumeReset",
 			Method:      "DELETE",
 			Pattern:     "/volumes/{volname}/options",
