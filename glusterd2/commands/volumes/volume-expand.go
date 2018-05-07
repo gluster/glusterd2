@@ -2,6 +2,7 @@ package volumecommands
 
 import (
 	"net/http"
+	"path/filepath"
 
 	"github.com/gluster/glusterd2/glusterd2/events"
 	"github.com/gluster/glusterd2/glusterd2/gdctx"
@@ -34,6 +35,19 @@ func registerVolExpandStepFuncs() {
 		transaction.RegisterStepFunc(sf.sf, sf.name)
 	}
 }
+func checkDupBrickEntryVolExpand(req api.VolExpandReq) error {
+	dupEntry := map[string]bool{}
+
+	for _, brick := range req.Bricks {
+		if dupEntry[brick.PeerID+filepath.Clean(brick.Path)] == true {
+			return errors.ErrDuplicateBrickPath
+		}
+		dupEntry[brick.PeerID+filepath.Clean(brick.Path)] = true
+
+	}
+
+	return nil
+}
 
 func volumeExpandHandler(w http.ResponseWriter, r *http.Request) {
 
@@ -45,6 +59,31 @@ func volumeExpandHandler(w http.ResponseWriter, r *http.Request) {
 	if err := restutils.UnmarshalRequest(r, &req); err != nil {
 		restutils.SendHTTPError(ctx, w, http.StatusBadRequest, errors.ErrJSONParsingFailed)
 		return
+	}
+
+	if err := checkDupBrickEntryVolExpand(req); err != nil {
+		restutils.SendHTTPError(ctx, w, http.StatusBadRequest, err)
+		return
+	}
+
+	volinfo, err := volume.GetVolume(volname)
+	if err != nil {
+		restutils.SendHTTPError(ctx, w, http.StatusInternalServerError, err)
+		return
+	}
+
+	for index := range volinfo.Subvols {
+		for _, brick := range volinfo.Subvols[index].Bricks {
+
+			for _, b := range req.Bricks {
+
+				if brick.PeerID.String() == b.PeerID && brick.Path == filepath.Clean(b.Path) {
+					restutils.SendHTTPError(ctx, w, http.StatusBadRequest, errors.ErrDuplicateBrickPath)
+					return
+				}
+			}
+
+		}
 	}
 
 	lock, unlock, err := transaction.CreateLockSteps(volname)
@@ -124,7 +163,7 @@ func volumeExpandHandler(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	volinfo, err := volume.GetVolume(volname)
+	volinfo, err = volume.GetVolume(volname)
 	if err != nil {
 		restutils.SendHTTPError(ctx, w, http.StatusInternalServerError, err)
 		return
