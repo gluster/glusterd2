@@ -22,7 +22,7 @@ func optionGroupDeleteHandler(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	var groupOptions map[string][]api.VolumeOption
+	var groupOptions map[string]*api.OptionGroup
 	if err := json.Unmarshal(resp.Kvs[0].Value, &groupOptions); err != nil {
 		restutils.SendHTTPError(ctx, w, http.StatusInternalServerError, err)
 		return

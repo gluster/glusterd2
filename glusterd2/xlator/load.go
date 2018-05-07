@@ -124,6 +124,18 @@ func loadXlator(xlPath string) (*Xlator, error) {
 		xl.Options = append(xl.Options, structifyOption(&option))
 	}
 
+	if vfunc, ok := validationFuncs[xl.ID]; ok {
+		log.WithField("xlator",
+			xl.ID).Info("Registered validation function for xlator")
+		xl.Validate = vfunc
+	}
+
+	if actor, ok := optionActors[xl.ID]; ok {
+		log.WithField("xlator",
+			xl.ID).Debug("Registered option actor for xlator")
+		xl.Actor = actor
+	}
+
 	return xl, nil
 }
 
