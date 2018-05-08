@@ -1,6 +1,7 @@
 package transaction
 
 import (
+	"context"
 	"encoding/json"
 	"errors"
 
@@ -9,7 +10,6 @@ import (
 
 	"github.com/pborman/uuid"
 	log "github.com/sirupsen/logrus"
-	netctx "golang.org/x/net/context"
 	"google.golang.org/grpc"
 )
 
@@ -65,7 +65,7 @@ func RunStepOn(step string, node uuid.UUID, c TxnCtx) (TxnCtx, error) {
 
 	var rsp *TxnStepResp
 
-	rsp, err = client.RunStep(netctx.TODO(), req)
+	rsp, err = client.RunStep(context.TODO(), req)
 	if err != nil {
 		logger.WithFields(log.Fields{
 			"error": err,
