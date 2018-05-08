@@ -44,6 +44,6 @@ func TestAddRemovePeer(t *testing.T) {
 	r.Len(peers, 3)
 
 	// remove peer: ask g1 to remove g2 as peer
-	err5 := client.PeerDetachByID(g2.PeerID())
+	err5 := client.PeerDetach(g2.PeerID())
 	r.Nil(err5)
 }
