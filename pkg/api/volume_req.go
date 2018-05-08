@@ -85,5 +85,6 @@ type VolStatedumpReq struct {
 
 // VolEditReq represents a volume metadata edit request
 type VolEditReq struct {
-	Metadata map[string]string `json:"metadata"`
+	Metadata    map[string]string `json:"metadata"`
+	MetadataDel bool              `json:"metadatadel"`
 }
