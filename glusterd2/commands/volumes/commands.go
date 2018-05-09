@@ -41,6 +41,12 @@ func (c *Command) Routes() route.Routes {
 			ResponseType: utils.GetTypeString((*api.VolumeOptionResp)(nil)),
 			HandlerFunc:  volumeOptionsHandler},
 		route.Route{
+			Name:        "VolumeReset",
+			Method:      "DELETE",
+			Pattern:     "/volumes/{volname}/options",
+			Version:     1,
+			HandlerFunc: volumeResetHandler},
+		route.Route{
 			Name:         "OptionGroupList",
 			Method:       "GET",
 			Pattern:      "/volumes/options-group",

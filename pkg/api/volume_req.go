@@ -40,6 +40,12 @@ type VolOptionReq struct {
 	Deprecated   bool              `json:"deprecated,omitempty"`
 }
 
+// VolOptionResetReq represents a request to reset volume options
+type VolOptionResetReq struct {
+	Options []string `json:"options"`
+	Force   bool     `json:"force,omitempty"`
+}
+
 // VolExpandReq represents a request to expand the volume by adding more bricks
 type VolExpandReq struct {
 	ReplicaCount int        `json:"replica,omitempty"`
