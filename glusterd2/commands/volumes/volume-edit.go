@@ -57,7 +57,7 @@ func volumeEditHandler(w http.ResponseWriter, r *http.Request) {
 			restutils.SendHTTPError(ctx, w, http.StatusBadRequest, "Key names starting with '_' are restricted in metadata field")
 			return
 		}
-		if req.MetadataDel {
+		if req.DeleteMetadata {
 			delete(volinfo.Metadata, key)
 		} else {
 			volinfo.Metadata[key] = value

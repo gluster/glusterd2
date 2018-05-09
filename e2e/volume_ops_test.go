@@ -413,7 +413,7 @@ func testDisperse(t *testing.T) {
 }
 
 func validateVolumeEdit(volinfo api.VolumeGetResp, editMetadataReq api.VolEditReq, resp api.VolumeEditResp) error {
-	if editMetadataReq.MetadataDel {
+	if editMetadataReq.DeleteMetadata {
 		for key := range editMetadataReq.Metadata {
 			_, existinVolinfo := volinfo.Metadata[key]
 			_, existinResp := resp.Metadata[key]
@@ -439,7 +439,7 @@ func testEditVolume(t *testing.T) {
 		Metadata: map[string]string{
 			"owner": "gd2tests",
 		},
-		MetadataDel: false,
+		DeleteMetadata: false,
 	}
 	resp, err := client.EditVolume(volname, editMetadataReq)
 	r.Nil(err)
@@ -452,7 +452,7 @@ func testEditVolume(t *testing.T) {
 			"owner": "gd2functests",
 			"year":  "2018",
 		},
-		MetadataDel: false,
+		DeleteMetadata: false,
 	}
 	resp, err = client.EditVolume(volname, editMetadataReq)
 	r.Nil(err)
@@ -465,7 +465,7 @@ func testEditVolume(t *testing.T) {
 			"owner": "gd2functests",
 			"year":  "",
 		},
-		MetadataDel: true,
+		DeleteMetadata: true,
 	}
 	resp, err = client.EditVolume(volname, editMetadataReq)
 	r.Nil(err)
@@ -473,5 +473,4 @@ func testEditVolume(t *testing.T) {
 	r.Nil(err)
 	err = validateVolumeEdit(volinfo[0], editMetadataReq, resp)
 	r.Nil(err)
-
 }
