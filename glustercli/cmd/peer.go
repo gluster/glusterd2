@@ -14,10 +14,10 @@ import (
 
 const (
 	helpPeerCmd       = "Gluster Peer Management"
-	helpPeerProbeCmd  = "probe peer specified by <HOSTNAME>"
+	helpPeerAttachCmd = "attach peer specified by <HOSTNAME>"
 	helpPeerDetachCmd = "detach peer specified by <HOSTNAME or PeerID>"
 	helpPeerStatusCmd = "list status of peers"
-	helpPoolListCmd   = "list all the nodes in the pool (including localhost)"
+	helpPeerListCmd   = "list all the nodes in the pool (including localhost)"
 )
 
 var (
@@ -26,7 +26,7 @@ var (
 )
 
 func init() {
-	peerCmd.AddCommand(peerProbeCmd)
+	peerCmd.AddCommand(peerAttachCmd)
 
 	peerDetachCmd.Flags().BoolVarP(&flagPeerDetachForce, "force", "f", false, "Force")
 
@@ -34,10 +34,9 @@ func init() {
 
 	peerCmd.AddCommand(peerStatusCmd)
 
-	poolCmd.AddCommand(poolListCmd)
+	peerCmd.AddCommand(peerListCmd)
 
 	RootCmd.AddCommand(peerCmd)
-	RootCmd.AddCommand(poolCmd)
 }
 
 var peerCmd = &cobra.Command{
@@ -45,28 +44,23 @@ var peerCmd = &cobra.Command{
 	Short: helpPeerCmd,
 }
 
-var poolCmd = &cobra.Command{
-	Use:   "pool",
-	Short: helpPeerCmd,
-}
-
-var peerProbeCmd = &cobra.Command{
-	Use:   "probe <HOSTNAME>",
-	Short: helpPeerProbeCmd,
+var peerAttachCmd = &cobra.Command{
+	Use:   "attach <HOSTNAME>",
+	Short: helpPeerAttachCmd,
 	Args:  cobra.ExactArgs(1),
 	Run: func(cmd *cobra.Command, args []string) {
 		hostname := cmd.Flags().Args()[0]
-		peer, err := client.PeerProbe(hostname)
+		peer, err := client.PeerAttach(hostname)
 		if err != nil {
 			if verbose {
 				log.WithFields(log.Fields{
 					"host":  hostname,
 					"error": err.Error(),
-				}).Error("peer probe failed")
+				}).Error("peer attach failed")
 			}
-			failure("Peer probe failed", err, 1)
+			failure("Peer attach failed", err, 1)
 		}
-		fmt.Println("Peer probe successful")
+		fmt.Println("Peer attach successful")
 		table := tablewriter.NewWriter(os.Stdout)
 		table.SetHeader([]string{"ID", "Name", "Peer Addresses"})
 		table.Append([]string{peer.ID.String(), peer.Name, strings.Join(peer.PeerAddresses, ",")})
@@ -124,9 +118,9 @@ var peerStatusCmd = &cobra.Command{
 	},
 }
 
-var poolListCmd = &cobra.Command{
+var peerListCmd = &cobra.Command{
 	Use:   "list",
-	Short: helpPoolListCmd,
+	Short: helpPeerListCmd,
 	Args:  cobra.NoArgs,
 	Run: func(cmd *cobra.Command, args []string) {
 		peerStatusHandler(cmd)
