@@ -40,6 +40,12 @@ type VolOptionReq struct {
 	Deprecated   bool              `json:"deprecated,omitempty"`
 }
 
+// VolOptionResetReq represents a request to reset volume options
+type VolOptionResetReq struct {
+	Options []string `json:"options"`
+	Force   bool     `json:"force,omitempty"`
+}
+
 // VolExpandReq represents a request to expand the volume by adding more bricks
 type VolExpandReq struct {
 	ReplicaCount int        `json:"replica,omitempty"`
@@ -49,15 +55,15 @@ type VolExpandReq struct {
 
 // VolumeOption represents an option that is part of a profile
 type VolumeOption struct {
-	Name     string `json:"name"`
-	OnValue  string `json:"onvalue"`
-	OffValue string `json:"offvalue"`
+	Name    string `json:"name"`
+	OnValue string `json:"onvalue"`
 }
 
 // OptionGroup represents a group of options
 type OptionGroup struct {
-	Name    string         `json:"name"`
-	Options []VolumeOption `json:"options"`
+	Name        string         `json:"name"`
+	Options     []VolumeOption `json:"options"`
+	Description string         `json:"description"`
 }
 
 // OptionGroupReq represents a request to create a new option group

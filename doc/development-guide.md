@@ -74,7 +74,7 @@ Run the following command to dump all keys and values in etcd to stdout. Replace
 different ip and port.
 
 ```sh
-ETCDCTL_API=3 etcdctl get --prefix=true "" --endpoints=[127.0.0.1:2379]
+ETCDCTL_API=3 etcdctl get --prefix=true "" --endpoints="127.0.0.1:2379"
 ```
 
 **Connecting to external etcd cluster:**
@@ -83,7 +83,7 @@ Edit **glusterd2.toml** config option and add `noembed` option with specifying
 the etcd endpoint:
 
 ```toml
-etcdcurls = "http://127.0.0.1:2379"
+etcdendpoints = "http://127.0.0.1:2379"
 noembed = true
 ```
 

@@ -3,6 +3,7 @@ package volumecommands
 import (
 	"errors"
 	"net/http"
+	"path/filepath"
 
 	"github.com/gluster/glusterd2/glusterd2/events"
 	"github.com/gluster/glusterd2/glusterd2/gdctx"
@@ -38,6 +39,20 @@ func validateVolCreateReq(req *api.VolCreateReq) error {
 	return nil
 }
 
+func checkDupBrickEntryVolCreate(req api.VolCreateReq) error {
+	dupEntry := map[string]bool{}
+
+	for index := range req.Subvols {
+		for _, brick := range req.Subvols[index].Bricks {
+			if dupEntry[brick.PeerID+filepath.Clean(brick.Path)] == true {
+				return gderrors.ErrDuplicateBrickPath
+			}
+			dupEntry[brick.PeerID+filepath.Clean(brick.Path)] = true
+
+		}
+	}
+	return nil
+}
 func registerVolCreateStepFuncs() {
 	var sfs = []struct {
 		name string
@@ -68,6 +83,11 @@ func volumeCreateHandler(w http.ResponseWriter, r *http.Request) {
 	}
 
 	if err := validateVolCreateReq(&req); err != nil {
+		restutils.SendHTTPError(ctx, w, http.StatusBadRequest, err)
+		return
+	}
+
+	if err := checkDupBrickEntryVolCreate(req); err != nil {
 		restutils.SendHTTPError(ctx, w, http.StatusBadRequest, err)
 		return
 	}

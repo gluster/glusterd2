@@ -2,9 +2,9 @@ package xlator
 
 import (
 	"github.com/gluster/glusterd2/glusterd2/volume"
-
-	log "github.com/sirupsen/logrus"
 )
+
+var optionActors = make(map[string]OptionActor)
 
 // OptionActor is an interface that contains Do and Undo methods. These methods
 // are invoked during volume set on ALL nodes that make up the volume.
@@ -22,13 +22,6 @@ type OptionActor interface {
 // RegisterOptionActor registers a xlator's type implementing OptionActor
 // interface. The Do() and Undo() methods of the interface will be invoked
 // later during volume set operation.
-func RegisterOptionActor(xlator string, actor OptionActor) error {
-	xl, err := Find(xlator)
-	if err != nil {
-		log.WithError(err).WithField("xlator",
-			xlator).Error("Could not register xlator actor type")
-		return err
-	}
-	xl.Actor = actor
-	return nil
+func RegisterOptionActor(xlator string, actor OptionActor) {
+	optionActors[xlator] = actor
 }

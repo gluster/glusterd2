@@ -209,11 +209,11 @@ func georepCreateHandler(w http.ResponseWriter, r *http.Request) {
 	err = txn.Do()
 	if err != nil {
 		logger.WithFields(log.Fields{
-			"error":       e.Error(),
+			"error":       err.Error(),
 			"mastervolid": masterid,
 			"remotevolid": remoteid,
 		}).Error("failed to create geo-replication session")
-		restutils.SendHTTPError(ctx, w, http.StatusInternalServerError, e)
+		restutils.SendHTTPError(ctx, w, http.StatusInternalServerError, err)
 		return
 	}
 

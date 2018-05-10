@@ -105,6 +105,18 @@ func (o *Option) IsSettable() bool {
 	return (o.Flags & OptionFlagSettable) == OptionFlagSettable
 }
 
+// IsNeverReset returns true if the option should never be set by a user,
+// returns false otherwise.
+func (o *Option) IsNeverReset() bool {
+	return (o.Flags & OptionFlagNeverReset) == OptionFlagNeverReset
+}
+
+// IsForceRequired returns true if the option requires force variable for the
+// user to set returns false otherwise.
+func (o *Option) IsForceRequired() bool {
+	return (o.Flags & OptionFlagForce) == OptionFlagForce
+}
+
 // IsAdvanced returns true if the option is an advanced option
 func (o *Option) IsAdvanced() bool {
 	return o.Level == OptionStatusAdvanced

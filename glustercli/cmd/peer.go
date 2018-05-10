@@ -1,11 +1,13 @@
 package cmd
 
 import (
+	"errors"
 	"fmt"
 	"os"
 	"strings"
 
 	"github.com/olekukonko/tablewriter"
+	"github.com/pborman/uuid"
 	log "github.com/sirupsen/logrus"
 	"github.com/spf13/cobra"
 )
@@ -13,7 +15,7 @@ import (
 const (
 	helpPeerCmd       = "Gluster Peer Management"
 	helpPeerProbeCmd  = "probe peer specified by <HOSTNAME>"
-	helpPeerDetachCmd = "detach peer specified by <HOSTNAME>"
+	helpPeerDetachCmd = "detach peer specified by <HOSTNAME or PeerID>"
 	helpPeerStatusCmd = "list status of peers"
 	helpPoolListCmd   = "list all the nodes in the pool (including localhost)"
 )
@@ -73,12 +75,15 @@ var peerProbeCmd = &cobra.Command{
 }
 
 var peerDetachCmd = &cobra.Command{
-	Use:   "detach <HOSTNAME>",
+	Use:   "detach <HOSTNAME or PeerID>",
 	Short: helpPeerDetachCmd,
 	Args:  cobra.ExactArgs(1),
 	Run: func(cmd *cobra.Command, args []string) {
 		hostname := cmd.Flags().Args()[0]
-		err := client.PeerDetach(hostname)
+		peerID, err := getPeerID(hostname)
+		if err == nil {
+			err = client.PeerDetach(peerID)
+		}
 		if err != nil {
 			if verbose {
 				log.WithFields(log.Fields{
@@ -126,4 +131,43 @@ var poolListCmd = &cobra.Command{
 	Run: func(cmd *cobra.Command, args []string) {
 		peerStatusHandler(cmd)
 	},
+}
+
+// getPeerID return peerId of host
+func getPeerID(host string) (string, error) {
+
+	if uuid.Parse(host) != nil {
+		return host, nil
+	}
+	// Get Peers list to find Peer ID
+	peers, err := client.Peers()
+	if err != nil {
+		return "", err
+	}
+
+	peerID := ""
+
+	hostinfo := strings.Split(host, ":")
+	if len(hostinfo) == 1 {
+		host = host + ":24008"
+	}
+	// Find Peer ID using available information
+	for _, p := range peers {
+		for _, h := range p.PeerAddresses {
+			if h == host {
+				peerID = p.ID.String()
+				break
+			}
+		}
+		// If already got Peer ID
+		if peerID != "" {
+			break
+		}
+	}
+
+	if peerID == "" {
+		return "", errors.New("Unable to find Peer ID")
+	}
+
+	return peerID, nil
 }
