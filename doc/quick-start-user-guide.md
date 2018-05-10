@@ -109,7 +109,7 @@ $ curl -X POST http://192.168.56.101:24007/v1/peers --data @addpeer.json -H 'Con
 
 or using glustercli:
 
-    $ glustercli peer probe 192.168.56.102
+    $ glustercli peer attach 192.168.56.102
 
 You will get the Peer ID of the newly added peer as response.
 
@@ -123,7 +123,7 @@ $ curl -X GET http://192.168.56.101:24007/v1/peers
 
 or by using the glustercli:
 
-    $ glustercli pool list
+    $ glustercli peer list
 
 Note the UUIDs in the response. We will use the same in volume create request below.
 
