@@ -88,3 +88,9 @@ type VolStatedumpReq struct {
 	Quota  bool            `json:"quotad,omitempty"`
 	Client ClientStatedump `json:"client,omitempty"`
 }
+
+// VolEditReq represents a volume metadata edit request
+type VolEditReq struct {
+	Metadata       map[string]string `json:"metadata"`
+	DeleteMetadata bool              `json:"delete-metadata"`
+}
