@@ -200,10 +200,37 @@ var volumeDeleteCmd = &cobra.Command{
 var volumeGetCmd = &cobra.Command{
 	Use:   "get",
 	Short: helpVolumeGetCmd,
-	Args:  cobra.RangeArgs(1, 2),
+	Args:  cobra.ExactArgs(2),
 	Run: func(cmd *cobra.Command, args []string) {
-		volname := cmd.Flags().Args()[0]
-		fmt.Println("GET:", volname)
+		if len(args) == 2 {
+			volname := args[0]
+			optname := args[1]
+
+			opts, err := client.VolumeGet(volname, optname)
+			if err != nil {
+				log.WithFields(log.Fields{
+					"error": err.Error(),
+				}).Error("error getting volume options")
+				failure("Error getting Volume options", err, 1)
+			}
+
+			table := tablewriter.NewWriter(os.Stdout)
+			table.SetHeader([]string{"Name", "Value", "Modified", "DefaultValue"})
+			table.SetAlignment(tablewriter.ALIGN_LEFT)
+
+			for _, opt := range opts {
+				modifiedStr := "no"
+				if opt.Modified {
+					modifiedStr = "yes"
+				}
+
+				table.Append([]string{opt.OptName, opt.Value, modifiedStr, opt.DefaultValue})
+			}
+			table.Render()
+
+		} else {
+			fmt.Println("Incorrect volume options")
+		}
 	},
 }
 
