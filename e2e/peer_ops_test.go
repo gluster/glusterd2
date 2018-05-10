@@ -27,13 +27,13 @@ func TestAddRemovePeer(t *testing.T) {
 
 	client := initRestclient(g1.ClientAddress)
 
-	_, err2 := client.PeerProbe(g2.PeerAddress)
+	_, err2 := client.PeerAttach(g2.PeerAddress)
 	r.Nil(err2)
 
 	time.Sleep(6 * time.Second)
 
 	// add peer: ask g1 to add g3 as peer
-	_, err3 := client.PeerProbe(g3.PeerAddress)
+	_, err3 := client.PeerAttach(g3.PeerAddress)
 	r.Nil(err3)
 
 	time.Sleep(6 * time.Second)

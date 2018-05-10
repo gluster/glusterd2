@@ -7,8 +7,8 @@ import (
 	"github.com/gluster/glusterd2/pkg/api"
 )
 
-// PeerProbe adds a peer to the Cluster
-func (c *Client) PeerProbe(host string) (api.PeerAddResp, error) {
+// PeerAttach adds a peer to the Cluster
+func (c *Client) PeerAttach(host string) (api.PeerAddResp, error) {
 
 	peerAddReq := api.PeerAddReq{
 		Addresses: []string{host},
