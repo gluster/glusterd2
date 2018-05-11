@@ -14,23 +14,23 @@ import (
 
 const (
 	helpPeerCmd       = "Gluster Peer Management"
-	helpPeerAttachCmd = "attach peer specified by <HOSTNAME>"
-	helpPeerDetachCmd = "detach peer specified by <HOSTNAME or PeerID>"
+	helpPeerAddCmd    = "add peer specified by <HOSTNAME>"
+	helpPeerRemoveCmd = "remove peer specified by <HOSTNAME or PeerID>"
 	helpPeerStatusCmd = "list status of peers"
 	helpPeerListCmd   = "list all the nodes in the pool (including localhost)"
 )
 
 var (
-	// Peer Detach Command Flags
-	flagPeerDetachForce bool
+	// Peer Remove Command Flags
+	flagPeerRemoveForce bool
 )
 
 func init() {
-	peerCmd.AddCommand(peerAttachCmd)
+	peerCmd.AddCommand(peerAddCmd)
 
-	peerDetachCmd.Flags().BoolVarP(&flagPeerDetachForce, "force", "f", false, "Force")
+	peerRemoveCmd.Flags().BoolVarP(&flagPeerRemoveForce, "force", "f", false, "Force")
 
-	peerCmd.AddCommand(peerDetachCmd)
+	peerCmd.AddCommand(peerRemoveCmd)
 
 	peerCmd.AddCommand(peerStatusCmd)
 
@@ -44,23 +44,23 @@ var peerCmd = &cobra.Command{
 	Short: helpPeerCmd,
 }
 
-var peerAttachCmd = &cobra.Command{
-	Use:   "attach <HOSTNAME>",
-	Short: helpPeerAttachCmd,
+var peerAddCmd = &cobra.Command{
+	Use:   "add <HOSTNAME>",
+	Short: helpPeerAddCmd,
 	Args:  cobra.ExactArgs(1),
 	Run: func(cmd *cobra.Command, args []string) {
 		hostname := cmd.Flags().Args()[0]
-		peer, err := client.PeerAttach(hostname)
+		peer, err := client.PeerAdd(hostname)
 		if err != nil {
 			if verbose {
 				log.WithFields(log.Fields{
 					"host":  hostname,
 					"error": err.Error(),
-				}).Error("peer attach failed")
+				}).Error("peer add failed")
 			}
-			failure("Peer attach failed", err, 1)
+			failure("Peer add failed", err, 1)
 		}
-		fmt.Println("Peer attach successful")
+		fmt.Println("Peer add successful")
 		table := tablewriter.NewWriter(os.Stdout)
 		table.SetHeader([]string{"ID", "Name", "Peer Addresses"})
 		table.Append([]string{peer.ID.String(), peer.Name, strings.Join(peer.PeerAddresses, ",")})
@@ -68,26 +68,26 @@ var peerAttachCmd = &cobra.Command{
 	},
 }
 
-var peerDetachCmd = &cobra.Command{
-	Use:   "detach <HOSTNAME or PeerID>",
-	Short: helpPeerDetachCmd,
+var peerRemoveCmd = &cobra.Command{
+	Use:   "remove <HOSTNAME or PeerID>",
+	Short: helpPeerRemoveCmd,
 	Args:  cobra.ExactArgs(1),
 	Run: func(cmd *cobra.Command, args []string) {
 		hostname := cmd.Flags().Args()[0]
 		peerID, err := getPeerID(hostname)
 		if err == nil {
-			err = client.PeerDetach(peerID)
+			err = client.PeerRemove(peerID)
 		}
 		if err != nil {
 			if verbose {
 				log.WithFields(log.Fields{
 					"host":  hostname,
 					"error": err.Error(),
-				}).Error("peer detach failed")
+				}).Error("peer remove failed")
 			}
-			failure("Peer detach failed", err, 1)
+			failure("Peer remove failed", err, 1)
 		}
-		fmt.Println("Peer detach success")
+		fmt.Println("Peer remove success")
 	},
 }
 

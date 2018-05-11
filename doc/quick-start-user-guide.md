@@ -83,9 +83,9 @@ INFO[2017-08-28T16:03:58+05:30] started GlusterD SunRPC server                ip
 
 Now you have two nodes running glusterd2.
 
-> NOTE: Ensure that firewalld is configured (or stopped) to let traffic on ports ` before attaching a peer.
+> NOTE: Ensure that firewalld is configured (or stopped) to let traffic on ports ` before adding a peer.
 
-## Attach peer
+## Add peer
 
 Glusterd2 natively provides only ReST API for clients to perform management operations. A CLI is provided which interacts with glusterd2 using the [ReST APIs](https://github.com/gluster/glusterd2/wiki/ReST-API).
 
@@ -99,7 +99,7 @@ $ cat addpeer.json
 	"addresses": ["192.168.56.102"]
 }
 ```
-`addresses` takes a list of address by which the new host can be added. It can be FQDNs, short-names or IP addresses. Note that if you want to attach multiple peers use below API to attach each peer one at a time.
+`addresses` takes a list of address by which the new host can be added. It can be FQDNs, short-names or IP addresses. Note that if you want to add multiple peers use below API to add each peer one at a time.
 
 Send a HTTP request to `node1` to add `node2` as peer:
 
@@ -109,7 +109,7 @@ $ curl -X POST http://192.168.56.101:24007/v1/peers --data @addpeer.json -H 'Con
 
 or using glustercli:
 
-    $ glustercli peer attach 192.168.56.102
+    $ glustercli peer add 192.168.56.102
 
 You will get the Peer ID of the newly added peer as response.
 
@@ -199,4 +199,4 @@ Verify that `glusterfsd` process is running on both nodes.
 
 * Issues with 2 node clusters
   * Restarting glusterd2 does not restore the cluster
-  * Peer detach doesn't work
+  * Peer remove doesn't work
