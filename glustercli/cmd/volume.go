@@ -27,6 +27,7 @@ const (
 	helpVolumeListCmd   = "List all Gluster Volumes"
 	helpVolumeStatusCmd = "Get Gluster Volume Status"
 	helpVolumeExpandCmd = "Expand a Gluster Volume"
+	helpVolumeEditCmd   = "Edit metadata (key-value pairs) of a volume. Glusterd2 will not interpret these key and value in any way"
 )
 
 var (
@@ -39,6 +40,11 @@ var (
 	// Expand Command Flags
 	flagExpandCmdReplicaCount int
 	flagExpandCmdForce        bool
+
+	// Edit Command Flags
+	flagCmdMetadataKey    string
+	flagCmdMetadataValue  string
+	flagCmdDeleteMetadata bool
 )
 
 func init() {
@@ -66,6 +72,14 @@ func init() {
 	volumeExpandCmd.Flags().IntVarP(&flagExpandCmdReplicaCount, "replica", "", 0, "Replica Count")
 	volumeExpandCmd.Flags().BoolVarP(&flagExpandCmdForce, "force", "f", false, "Force")
 	volumeCmd.AddCommand(volumeExpandCmd)
+
+	// Volume Edit
+	volumeEditCmd.Flags().StringVar(&flagCmdMetadataKey, "key", "", "Metadata Key")
+	volumeEditCmd.Flags().StringVar(&flagCmdMetadataValue, "value", "", "Metadata Value")
+	volumeEditCmd.Flags().BoolVar(&flagCmdDeleteMetadata, "delete", false, "Delete Metadata")
+	volumeEditCmd.MarkFlagRequired("key")
+	volumeEditCmd.MarkFlagRequired("value")
+	volumeCmd.AddCommand(volumeEditCmd)
 
 	RootCmd.AddCommand(volumeCmd)
 }
@@ -417,5 +431,30 @@ var volumeExpandCmd = &cobra.Command{
 			failure("Addition of brick failed", err, 1)
 		}
 		fmt.Printf("%s Volume expanded successfully\n", vol.Name)
+	},
+}
+
+var volumeEditCmd = &cobra.Command{
+	Use:   "edit-metadata <volname> --key <key> --value <value> [--delete]",
+	Short: helpVolumeEditCmd,
+	Args:  cobra.ExactArgs(1),
+	Run: func(cmd *cobra.Command, args []string) {
+		volname := args[0]
+		metadata := make(map[string]string)
+		metadata[flagCmdMetadataKey] = flagCmdMetadataValue
+		editMetadataReq := api.VolEditReq{
+			Metadata:       metadata,
+			DeleteMetadata: flagCmdDeleteMetadata,
+		}
+		_, err := client.EditVolume(volname, editMetadataReq)
+		if err != nil {
+			if verbose {
+				log.WithFields(log.Fields{
+					"error": err.Error(),
+				}).Error("failed to edit metadata")
+			}
+			failure("Failed to edit metadata", err, 1)
+		}
+		fmt.Printf("Metadata edit successfull\n")
 	},
 }

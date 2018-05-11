@@ -95,3 +95,6 @@ type VolumeListResp []VolumeGetResp
 
 // OptionGroupListResp is the response sent for a group list request.
 type OptionGroupListResp []OptionGroup
+
+// VolumeEditResp is the response sent for a edit volume request
+type VolumeEditResp VolumeInfo

@@ -1,6 +1,7 @@
 package e2e
 
 import (
+	"errors"
 	"fmt"
 	"io/ioutil"
 	"net"
@@ -59,6 +60,7 @@ func TestVolume(t *testing.T) {
 	t.Run("Stop", testVolumeStop)
 	t.Run("List", testVolumeList)
 	t.Run("Info", testVolumeInfo)
+	t.Run("Edit", testEditVolume)
 
 	// delete volume
 	t.Run("Delete", testVolumeDelete)
@@ -409,4 +411,67 @@ func testDisperse(t *testing.T) {
 
 	r.Nil(client.VolumeStop(disperseVolName), "disperse volume stop failed")
 	r.Nil(client.VolumeDelete(disperseVolName), "disperse volume delete failed")
+}
+
+func validateVolumeEdit(volinfo api.VolumeGetResp, editMetadataReq api.VolEditReq, resp api.VolumeEditResp) error {
+	if editMetadataReq.DeleteMetadata {
+		for key := range editMetadataReq.Metadata {
+			_, existinVolinfo := volinfo.Metadata[key]
+			_, existinResp := resp.Metadata[key]
+			if existinVolinfo || existinResp {
+				err := errors.New("invalid response")
+				return err
+			}
+		}
+	} else {
+		for key, value := range editMetadataReq.Metadata {
+			if volinfo.Metadata[key] != value || resp.Metadata[key] != value {
+				err := errors.New("invalid response")
+				return err
+			}
+		}
+	}
+	return nil
+}
+
+func testEditVolume(t *testing.T) {
+	r := require.New(t)
+	editMetadataReq := api.VolEditReq{
+		Metadata: map[string]string{
+			"owner": "gd2tests",
+		},
+		DeleteMetadata: false,
+	}
+	resp, err := client.EditVolume(volname, editMetadataReq)
+	r.Nil(err)
+	volinfo, err := client.Volumes(volname)
+	r.Nil(err)
+	err = validateVolumeEdit(volinfo[0], editMetadataReq, resp)
+	r.Nil(err)
+	editMetadataReq = api.VolEditReq{
+		Metadata: map[string]string{
+			"owner": "gd2functests",
+			"year":  "2018",
+		},
+		DeleteMetadata: false,
+	}
+	resp, err = client.EditVolume(volname, editMetadataReq)
+	r.Nil(err)
+	volinfo, err = client.Volumes(volname)
+	r.Nil(err)
+	err = validateVolumeEdit(volinfo[0], editMetadataReq, resp)
+	r.Nil(err)
+	editMetadataReq = api.VolEditReq{
+		Metadata: map[string]string{
+			"owner": "gd2functests",
+			"year":  "",
+		},
+		DeleteMetadata: true,
+	}
+	resp, err = client.EditVolume(volname, editMetadataReq)
+	r.Nil(err)
+	volinfo, err = client.Volumes(volname)
+	r.Nil(err)
+	err = validateVolumeEdit(volinfo[0], editMetadataReq, resp)
+	r.Nil(err)
 }

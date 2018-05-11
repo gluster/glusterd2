@@ -139,16 +139,16 @@ $ cat volcreate.json
             {
                 "type": "replicate",
                 "bricks": [
-                    {"nodeid": "<uuid1>", "path": "/export/brick1/data"},
-                    {"nodeid": "<uuid2>", "path": "/export/brick2/data"}
+                    {"peerid": "<uuid1>", "path": "/export/brick1/data"},
+                    {"peerid": "<uuid2>", "path": "/export/brick2/data"}
                 ],
                 "replica": 2
             },
             {
                 "type": "replicate",
                 "bricks": [
-                    {"nodeid": "<uuid1>", "path": "/export/brick3/data"},
-                    {"nodeid": "<uuid2>", "path": "/export/brick4/data"}
+                    {"peerid": "<uuid1>", "path": "/export/brick3/data"},
+                    {"peerid": "<uuid2>", "path": "/export/brick4/data"}
                 ],
                 "replica": 2
             }

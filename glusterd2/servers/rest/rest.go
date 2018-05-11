@@ -76,8 +76,8 @@ func NewMuxed(m cmux.CMux) *GDRest {
 
 	// Chain of ordered middlewares.
 	rest.server.Handler = alice.New(
-		middleware.Expvar,
 		middleware.Recover,
+		middleware.Expvar,
 		middleware.ReqIDGenerator,
 		middleware.LogRequest,
 		middleware.Auth,

@@ -41,6 +41,13 @@ func (c *Command) Routes() route.Routes {
 			ResponseType: utils.GetTypeString((*api.VolumeOptionResp)(nil)),
 			HandlerFunc:  volumeOptionsHandler},
 		route.Route{
+			Name:        "VolumeReset",
+			Method:      "DELETE",
+			Pattern:     "/volumes/{volname}/options",
+			Version:     1,
+			RequestType: utils.GetTypeString((*api.VolOptionResetReq)(nil)),
+			HandlerFunc: volumeResetHandler},
+		route.Route{
 			Name:         "OptionGroupList",
 			Method:       "GET",
 			Pattern:      "/volumes/options-group",
@@ -127,6 +134,14 @@ func (c *Command) Routes() route.Routes {
 			Pattern:     "/volfiles",
 			Version:     1,
 			HandlerFunc: volfilesListHandler},
+		route.Route{
+			Name:         "EditVolume",
+			Method:       "POST",
+			Pattern:      "/volumes/{volname}/edit",
+			Version:      1,
+			RequestType:  utils.GetTypeString((*api.VolEditReq)(nil)),
+			ResponseType: utils.GetTypeString((*api.VolumeEditResp)(nil)),
+			HandlerFunc:  volumeEditHandler},
 	}
 }
 
