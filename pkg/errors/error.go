@@ -40,4 +40,6 @@ var (
 	ErrUnmarshallFailed        = errors.New("failed to unmarshall from json")
 	ErrClusterNotFound         = errors.New("Cluster instance not found in store")
 	ErrDuplicateBrickPath      = errors.New("Duplicate brick entry")
+	ErrVolNotDistribute        = errors.New("Not a distribute volume")
+	ErrRebalanceNotStarted     = errors.New("Rebalance not started")
 )
