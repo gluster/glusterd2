@@ -3,8 +3,20 @@ package restclient
 import (
 	"fmt"
 	"net/http"
+	"net/url"
 
 	"github.com/gluster/glusterd2/pkg/api"
+)
+
+// metadataFilter is a filter type
+type metadataFilter uint32
+
+// GetVolumes Filter Types
+const (
+	NoKeyAndValue metadataFilter = iota
+	OnlyKey
+	OnlyValue
+	KeyAndValue
 )
 
 // VolumeCreate creates Gluster Volume
@@ -14,11 +26,44 @@ func (c *Client) VolumeCreate(req api.VolCreateReq) (api.VolumeCreateResp, error
 	return vol, err
 }
 
+// getFilterType return the filter type for volume list/info
+func getFilterType(filterParams map[string]string) metadataFilter {
+	_, key := filterParams["key"]
+	_, value := filterParams["value"]
+	if key && !value {
+		return OnlyKey
+	} else if value && !key {
+		return OnlyValue
+	} else if value && key {
+		return KeyAndValue
+	}
+	return NoKeyAndValue
+}
+
+// getQueryString returns the query string for filtering volumes
+func getQueryString(filterParam map[string]string) string {
+	filterType := getFilterType(filterParam)
+	var queryString string
+	switch filterType {
+	case OnlyKey:
+		queryString = fmt.Sprintf("?key=%s", url.QueryEscape(filterParam["key"]))
+	case OnlyValue:
+		queryString = fmt.Sprintf("?value=%s", url.QueryEscape(filterParam["value"]))
+	case KeyAndValue:
+		queryString = fmt.Sprintf("?key=%s&value=%s", url.QueryEscape(filterParam["key"]), url.QueryEscape(filterParam["value"]))
+	}
+	return queryString
+}
+
 // Volumes returns list of all volumes
-func (c *Client) Volumes(volname string) (api.VolumeListResp, error) {
+func (c *Client) Volumes(volname string, filterParams ...map[string]string) (api.VolumeListResp, error) {
 	if volname == "" {
 		var vols api.VolumeListResp
-		url := fmt.Sprintf("/v1/volumes")
+		var queryString string
+		if len(filterParams) > 0 {
+			queryString = getQueryString(filterParams[0])
+		}
+		url := fmt.Sprintf("/v1/volumes%s", queryString)
 		err := c.get(url, nil, http.StatusOK, &vols)
 		return vols, err
 	}
