@@ -254,13 +254,16 @@ func volumeInfoDisplayNumbricks(vol api.VolumeGetResp) {
 }
 
 func volumeInfoDisplay(vol api.VolumeGetResp) {
-
 	fmt.Println()
 	fmt.Println("Volume Name:", vol.Name)
 	fmt.Println("Type:", vol.Type)
 	fmt.Println("Volume ID:", vol.ID)
 	fmt.Println("State:", vol.State)
 	fmt.Println("Transport-type:", vol.Transport)
+	fmt.Println("Options:")
+	for key, value := range vol.Options {
+		fmt.Printf("    %s: %s\n", key, value)
+	}
 	volumeInfoDisplayNumbricks(vol)
 	for sIdx, subvol := range vol.Subvols {
 		for bIdx, brick := range subvol.Bricks {
