@@ -1,8 +1,8 @@
 package eventlistener
 
 var eventtypes = []string{
-	"PEER_ATTACH",
-	"PEER_DETACH",
+	"PEER_ADD",
+	"PEER_REMOVE",
 	"VOLUME_CREATE",
 	"VOLUME_START",
 	"VOLUME_STOP",

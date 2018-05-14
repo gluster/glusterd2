@@ -7,8 +7,8 @@ import (
 	"github.com/gluster/glusterd2/pkg/api"
 )
 
-// PeerProbe adds a peer to the Cluster
-func (c *Client) PeerProbe(host string) (api.PeerAddResp, error) {
+// PeerAdd adds a peer to the Cluster
+func (c *Client) PeerAdd(host string) (api.PeerAddResp, error) {
 
 	peerAddReq := api.PeerAddReq{
 		Addresses: []string{host},
@@ -19,8 +19,8 @@ func (c *Client) PeerProbe(host string) (api.PeerAddResp, error) {
 	return resp, err
 }
 
-// PeerDetach detaches a peer from the Cluster
-func (c *Client) PeerDetach(peerid string) error {
+// PeerRemove removes a peer from the Cluster
+func (c *Client) PeerRemove(peerid string) error {
 	delURL := fmt.Sprintf("/v1/peers/%s", peerid)
 	return c.del(delURL, nil, http.StatusNoContent, nil)
 }
