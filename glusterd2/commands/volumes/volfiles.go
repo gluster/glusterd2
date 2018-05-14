@@ -69,6 +69,6 @@ func volfileGetHandler(w http.ResponseWriter, r *http.Request) {
 	}
 
 	restutils.SendHTTPResponse(ctx, w, http.StatusOK, nil)
-	w.Header().Set("Content-Type", "application/json; charset=UTF-8")
+	w.Header().Set("Content-Type", "text/plain; charset=UTF-8")
 	w.Write(volfiles)
 }
