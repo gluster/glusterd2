@@ -455,6 +455,6 @@ var volumeEditCmd = &cobra.Command{
 			}
 			failure("Failed to edit metadata", err, 1)
 		}
-		fmt.Printf("Metadata edit successfull\n")
+		fmt.Printf("Metadata edit successful\n")
 	},
 }

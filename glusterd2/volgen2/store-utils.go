@@ -4,9 +4,10 @@ import (
 	"context"
 	"strings"
 
-	"github.com/coreos/etcd/clientv3"
 	"github.com/gluster/glusterd2/glusterd2/store"
 	"github.com/gluster/glusterd2/pkg/errors"
+
+	"github.com/coreos/etcd/clientv3"
 )
 
 var (
@@ -37,7 +38,7 @@ func GetVolfiles() ([]string, error) {
 	return volfiles, nil
 }
 
-//GetVolfile return perticular volfile info
+//GetVolfile return particular volfile info
 func GetVolfile(volfileID string) ([]byte, error) {
 	volfile := volfilePrefix + volfileID
 	resp, e := store.Store.Get(context.TODO(), volfile, clientv3.WithPrefix())
