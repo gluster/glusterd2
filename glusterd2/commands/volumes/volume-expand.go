@@ -35,7 +35,8 @@ func registerVolExpandStepFuncs() {
 		transaction.RegisterStepFunc(sf.sf, sf.name)
 	}
 }
-func checkDupBrickEntryVolExpand(req api.VolExpandReq) error {
+
+func validateVolumeExpandReq(req api.VolExpandReq) error {
 	dupEntry := map[string]bool{}
 
 	for _, brick := range req.Bricks {
@@ -46,7 +47,8 @@ func checkDupBrickEntryVolExpand(req api.VolExpandReq) error {
 
 	}
 
-	return nil
+	return validateVolumeFlags(req.Flags)
+
 }
 
 func volumeExpandHandler(w http.ResponseWriter, r *http.Request) {
@@ -61,7 +63,7 @@ func volumeExpandHandler(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	if err := checkDupBrickEntryVolExpand(req); err != nil {
+	if err := validateVolumeExpandReq(req); err != nil {
 		restutils.SendHTTPError(ctx, w, http.StatusBadRequest, err)
 		return
 	}

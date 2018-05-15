@@ -20,6 +20,12 @@ type SubvolReq struct {
 }
 
 // VolCreateReq represents a Volume Create Request
+/*supported Flags
+"reuse-bricks" : for reusing of bricks
+"allow-root-dir" : allow root directory to create brick
+"allow-mount-as-brick" : reuse if its already mountpoint
+"create-brick-dir" : if brick dir is not present, create it
+*/
 type VolCreateReq struct {
 	Name         string            `json:"name"`
 	Transport    string            `json:"transport,omitempty"`
@@ -30,6 +36,7 @@ type VolCreateReq struct {
 	Experimental bool              `json:"experimental,omitempty"`
 	Deprecated   bool              `json:"deprecated,omitempty"`
 	Metadata     map[string]string `json:"metadata,omitempty"`
+	Flags        map[string]bool   `json:"flags,omitempty"`
 }
 
 // VolOptionReq represents an incoming request to set volume options
@@ -47,10 +54,17 @@ type VolOptionResetReq struct {
 }
 
 // VolExpandReq represents a request to expand the volume by adding more bricks
+/*supported Flags
+"reuse-bricks" : for reusing of bricks
+"allow-root-dir" : allow root directory to create brick
+"allow-mount-as-brick" : reuse if its already mountpoint
+"create-brick-dir" : if brick dir is not present, create it
+*/
 type VolExpandReq struct {
-	ReplicaCount int        `json:"replica,omitempty"`
-	Bricks       []BrickReq `json:"bricks"`
-	Force        bool       `json:"force,omitempty"`
+	ReplicaCount int             `json:"replica,omitempty"`
+	Bricks       []BrickReq      `json:"bricks"`
+	Force        bool            `json:"force,omitempty"`
+	Flags        map[string]bool `json:"flags,omitempty"`
 }
 
 // VolumeOption represents an option that is part of a profile

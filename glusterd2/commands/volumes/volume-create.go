@@ -43,7 +43,7 @@ func validateVolCreateReq(req *api.VolCreateReq) error {
 		}
 	}
 
-	return nil
+	return validateVolumeFlags(req.Flags)
 }
 
 func checkDupBrickEntryVolCreate(req api.VolCreateReq) error {

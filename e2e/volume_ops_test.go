@@ -48,7 +48,6 @@ func TestVolume(t *testing.T) {
 
 	// Create the volume
 	t.Run("Create", testVolumeCreate)
-
 	// Expand the volume
 	t.Run("Expand", testVolumeExpand)
 
@@ -112,17 +111,83 @@ func testVolumeCreate(t *testing.T) {
 	createReq.Name = "##@@#@!#@!!@#"
 	_, err = client.VolumeCreate(createReq)
 	r.NotNil(err)
+
 }
 
+func testVolumeCreateWithFlags(t *testing.T) {
+	r := require.New(t)
+
+	var brickPaths []string
+
+	for i := 1; i <= 4; i++ {
+		brickPaths = append(brickPaths, fmt.Sprintf(baseWorkdir+t.Name()+"/b/%d", i))
+	}
+
+	flags := make(map[string]bool)
+	//set flags to allow rootdir
+	flags["allow-root-dir"] = true
+	//set flags create brick dir
+	flags["create-brick-dir"] = true
+
+	createReqBrick := api.VolCreateReq{
+		Name: t.Name(),
+		Subvols: []api.SubvolReq{
+			{
+				ReplicaCount: 2,
+				Type:         "replicate",
+				Bricks: []api.BrickReq{
+					{PeerID: gds[0].PeerID(), Path: brickPaths[0]},
+					{PeerID: gds[1].PeerID(), Path: brickPaths[1]},
+				},
+			},
+			{
+				Type:         "replicate",
+				ReplicaCount: 2,
+				Bricks: []api.BrickReq{
+					{PeerID: gds[0].PeerID(), Path: brickPaths[2]},
+					{PeerID: gds[1].PeerID(), Path: brickPaths[3]},
+				},
+			},
+		},
+		Flags: flags,
+	}
+
+	_, err := client.VolumeCreate(createReqBrick)
+	r.Nil(err)
+
+	//delete volume
+	r.Nil(client.VolumeDelete(t.Name()))
+
+	createReqBrick.Name = t.Name()
+	//set reuse-brick flag
+	flags["reuse-bricks"] = true
+	createReqBrick.Flags = flags
+
+	_, err = client.VolumeCreate(createReqBrick)
+	r.Nil(err)
+
+	r.Nil(client.VolumeDelete(t.Name()))
+
+	//recreate deleted volume
+	_, err = client.VolumeCreate(createReqBrick)
+	r.Nil(err)
+
+	//delete volume
+	r.Nil(client.VolumeDelete(t.Name()))
+
+}
 func testVolumeExpand(t *testing.T) {
 	r := require.New(t)
 
 	var brickPaths []string
 	for i := 1; i <= 4; i++ {
-		brickPath, err := ioutil.TempDir(tmpDir, "brick")
-		r.Nil(err)
-		brickPaths = append(brickPaths, brickPath)
+		brickPaths = append(brickPaths, fmt.Sprintf(fmt.Sprintf(baseWorkdir+t.Name()+"/b/%d/", i)))
 	}
+
+	flags := make(map[string]bool)
+	//set flags to allow rootdir and create brick dir
+	flags["create-brick-dir"] = true
+	flags["allow-root-dir"] = true
 
 	expandReq := api.VolExpandReq{
 		Bricks: []api.BrickReq{
@@ -131,8 +196,10 @@ func testVolumeExpand(t *testing.T) {
 			{PeerID: gds[0].PeerID(), Path: brickPaths[2]},
 			{PeerID: gds[1].PeerID(), Path: brickPaths[3]},
 		},
-		Force: true,
+		Flags: flags,
 	}
+
+	//expand with new brick dir which is not created
 	_, err := client.VolumeExpand(volname, expandReq)
 	r.Nil(err)
 }
