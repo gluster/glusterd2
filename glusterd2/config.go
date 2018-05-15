@@ -171,9 +171,7 @@ func initConfig(confFile string) error {
 	config.BindPFlags(flag.CommandLine)
 
 	// Finally initialize missing config with defaults
-	if err := setDefaults(); err != nil {
-		return err
-	}
+	err := setDefaults()
 
-	return nil
+	return err
 }
