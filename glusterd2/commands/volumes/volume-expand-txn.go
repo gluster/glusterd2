@@ -73,11 +73,9 @@ func expandValidatePrepare(c transaction.TxnCtx) error {
 		return err
 	}
 
-	if err := c.Set("volinfo", volinfo); err != nil {
-		return err
-	}
+	err = c.Set("volinfo", volinfo)
 
-	return nil
+	return err
 }
 
 func startBricksOnExpand(c transaction.TxnCtx) error {

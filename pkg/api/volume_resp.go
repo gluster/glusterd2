@@ -76,6 +76,16 @@ type VolumeStatusResp struct {
 type VolumeCreateResp VolumeInfo
 
 // VolumeGetResp is the response sent for a volume get request.
+/* VolumeGetResp can also be filtered based on query parameters
+sent along with volume list/info api.
+Query Parameters can be either metadata key/value/both key and value.
+Example of API request-
+		1- /volumes -
+					a- GET 'http://localhost:24007/v1/volumes?key={keyname}&value={value}
+					b- GET 'http://localhost:24007/v1/volumes?key={keyname}'
+					c- GET 'http://localhost:24007/v1/volumes?value={value}'
+Note - Cannot use query parameters or cli flags if volname is also supplied.
+*/ 	
 type VolumeGetResp VolumeInfo
 
 // VolumeExpandResp is the response sent for a volume expand request.
@@ -91,6 +101,16 @@ type VolumeStopResp VolumeInfo
 type VolumeOptionResp VolumeInfo
 
 // VolumeListResp is the response sent for a volume list request.
+/* VolumeListResp can also be filtered based on query parameters
+sent along with volume list/info api.
+Query Parameters can be either metadata key/value/both key and value.
+Example of API request-
+		1- /volumes -
+					a- GET 'http://localhost:24007/v1/volumes?key={keyname}&value={value}
+					b- GET 'http://localhost:24007/v1/volumes?key={keyname}'
+					c- GET 'http://localhost:24007/v1/volumes?value={value}'
+Note - Cannot use query parameters or cli flags if volname is also supplied.
+*/ 	
 type VolumeListResp []VolumeGetResp
 
 // OptionGroupListResp is the response sent for a group list request.
