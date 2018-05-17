@@ -21,6 +21,12 @@ import (
 	config "github.com/spf13/viper"
 )
 
+const (
+	httpReadTimeout  = 10
+	httpWriteTimeout = 30
+	maxHeaderBytes   = 1 << 13 // 8KB
+)
+
 // GDRest is the GlusterD Rest server
 type GDRest struct {
 	Routes   *mux.Router
@@ -50,7 +56,11 @@ func NewMuxed(m cmux.CMux) *GDRest {
 
 	rest := &GDRest{
 		Routes: mux.NewRouter(),
-		server: &http.Server{},
+		server: &http.Server{
+			ReadTimeout:    httpReadTimeout * time.Second,
+			WriteTimeout:   httpWriteTimeout * time.Second,
+			MaxHeaderBytes: maxHeaderBytes,
+		},
 		stopCh: make(chan struct{}),
 	}
 
