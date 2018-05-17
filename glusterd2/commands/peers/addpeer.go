@@ -3,6 +3,7 @@ package peercommands
 import (
 	"fmt"
 	"net/http"
+	"sort"
 	"strings"
 
 	"github.com/gluster/glusterd2/glusterd2/events"
@@ -99,10 +100,22 @@ func addPeerHandler(w http.ResponseWriter, r *http.Request) {
 		newpeer.Metadata[key] = value
 	}
 
+	//check if remotePeerAddress already present
+	found := utils.StringInSlice(remotePeerAddress, newpeer.PeerAddresses)
+	//if not found prepend the remotePeerAddress to peer details
+	if !found {
+		newpeer.PeerAddresses = append([]string{remotePeerAddress}, newpeer.PeerAddresses...)
+	} else {
+		index := sort.StringSlice(newpeer.PeerAddresses).Search(remotePeerAddress)
+		//swap peer  address to index 0
+		sort.StringSlice(newpeer.PeerAddresses).Swap(0, index)
+	}
+
 	err = peer.AddOrUpdatePeer(newpeer)
 	if err != nil {
 		restutils.SendHTTPError(ctx, w, http.StatusInternalServerError, "Fail to add metadata to peer")
 	}
+
 	resp := createPeerAddResp(newpeer)
 	restutils.SendHTTPResponse(ctx, w, http.StatusCreated, resp)
 
