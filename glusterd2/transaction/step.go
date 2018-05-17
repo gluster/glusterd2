@@ -2,10 +2,12 @@ package transaction
 
 import (
 	"errors"
+	"fmt"
 
 	"github.com/gluster/glusterd2/glusterd2/gdctx"
 
 	"github.com/pborman/uuid"
+	log "github.com/sirupsen/logrus"
 )
 
 // StepFunc is the function that is supposed to be run during a transaction step
@@ -41,16 +43,19 @@ func (s *Step) undo(c TxnCtx) error {
 	return nil
 }
 
-func runStepFuncOnNodes(name string, c TxnCtx, nodes []uuid.UUID) error {
-	var (
-		i    int
-		node uuid.UUID
-	)
-	done := make(chan error)
-	defer close(done)
+type stepResp struct {
+	node uuid.UUID
+	step string
+	err  error
+}
 
-	for i, node = range nodes {
-		go runStepFuncOnNode(name, c, node, done)
+func runStepFuncOnNodes(stepName string, c TxnCtx, nodes []uuid.UUID) error {
+
+	respCh := make(chan stepResp, len(nodes))
+	defer close(respCh)
+
+	for _, node := range nodes {
+		go runStepFuncOnNode(stepName, c, node, respCh)
 	}
 
 	// Ideally, we have to cancel the pending go-routines on first error
@@ -58,35 +63,43 @@ func runStepFuncOnNodes(name string, c TxnCtx, nodes []uuid.UUID) error {
 	// to do. Serializing sequentially is the easiest fix but we lose
 	// concurrency. Instead, we let the do() function run on all nodes.
 
-	var err, lastErr error
-	for i >= 0 {
-		err = <-done
-		if err != nil {
-			// TODO: Need to properly aggregate results and
-			// check which node returned which error response.
-			lastErr = err
+	errCount := 0
+	var resp stepResp
+	for range nodes {
+		resp = <-respCh
+		if resp.err != nil {
+			errCount++
+			c.Logger().WithFields(log.Fields{
+				"step": resp.step, "node": resp.node,
+			}).WithError(resp.err).Error("Step failed on node.")
 		}
-		i--
 	}
 
-	return lastErr
+	if errCount != 0 {
+		return fmt.Errorf("Step %s failed on %d nodes", stepName, errCount)
+	}
+
+	return nil
 }
 
-func runStepFuncOnNode(name string, c TxnCtx, node uuid.UUID, done chan<- error) {
+func runStepFuncOnNode(stepName string, c TxnCtx, node uuid.UUID, respCh chan<- stepResp) {
+
+	c.Logger().WithFields(log.Fields{
+		"step": stepName, "node": node,
+	}).Debug("Running step on node.")
+
+	var err error
 	if uuid.Equal(node, gdctx.MyUUID) {
-		done <- runStepFuncLocal(name, c)
+		// this (local) node
+		if stepFunc, ok := getStepFunc(stepName); ok {
+			err = stepFunc(c)
+		} else {
+			err = ErrStepFuncNotFound
+		}
 	} else {
-		done <- runStepOn(name, node, c)
+		// remote node
+		err = runStepOn(stepName, node, c)
 	}
-}
 
-func runStepFuncLocal(name string, c TxnCtx) error {
-	c.Logger().WithField("stepfunc", name).Debug("running step function")
-
-	stepFunc, ok := getStepFunc(name)
-	if !ok {
-		return ErrStepFuncNotFound
-	}
-	return stepFunc(c)
-	//TODO: Results need to be aggregated
+	respCh <- stepResp{node, stepName, err}
 }
