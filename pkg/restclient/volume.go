@@ -13,10 +13,10 @@ type metadataFilter uint32
 
 // GetVolumes Filter Types
 const (
-	NoKeyAndValue metadataFilter = iota
-	OnlyKey
-	OnlyValue
-	KeyAndValue
+	noKeyAndValue metadataFilter = iota
+	onlyKey
+	onlyValue
+	keyAndValue
 )
 
 // VolumeCreate creates Gluster Volume
@@ -31,13 +31,13 @@ func getFilterType(filterParams map[string]string) metadataFilter {
 	_, key := filterParams["key"]
 	_, value := filterParams["value"]
 	if key && !value {
-		return OnlyKey
+		return onlyKey
 	} else if value && !key {
-		return OnlyValue
+		return onlyValue
 	} else if value && key {
-		return KeyAndValue
+		return keyAndValue
 	}
-	return NoKeyAndValue
+	return noKeyAndValue
 }
 
 // getQueryString returns the query string for filtering volumes
@@ -45,11 +45,11 @@ func getQueryString(filterParam map[string]string) string {
 	filterType := getFilterType(filterParam)
 	var queryString string
 	switch filterType {
-	case OnlyKey:
+	case onlyKey:
 		queryString = fmt.Sprintf("?key=%s", url.QueryEscape(filterParam["key"]))
-	case OnlyValue:
+	case onlyValue:
 		queryString = fmt.Sprintf("?value=%s", url.QueryEscape(filterParam["value"]))
-	case KeyAndValue:
+	case keyAndValue:
 		queryString = fmt.Sprintf("?key=%s&value=%s", url.QueryEscape(filterParam["key"]), url.QueryEscape(filterParam["value"]))
 	}
 	return queryString

@@ -135,6 +135,12 @@ func (c *Command) Routes() route.Routes {
 			Version:     1,
 			HandlerFunc: volfilesListHandler},
 		route.Route{
+			Name:        "VolfilesGet",
+			Method:      "GET",
+			Pattern:     "/volfiles/{volfileid:.*}",
+			Version:     1,
+			HandlerFunc: volfileGetHandler},
+		route.Route{
 			Name:         "EditVolume",
 			Method:       "POST",
 			Pattern:      "/volumes/{volname}/edit",

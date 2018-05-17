@@ -66,14 +66,14 @@ func init() {
 	volumeCmd.AddCommand(volumeGetCmd)
 	volumeCmd.AddCommand(volumeResetCmd)
 
-	volumeInfoCmd.Flags().StringVar(&flagCmdFilterKey, "key", "", "Filter Key")
-	volumeInfoCmd.Flags().StringVar(&flagCmdFilterValue, "value", "", "Filter Value")
+	volumeInfoCmd.Flags().StringVar(&flagCmdFilterKey, "key", "", "Filter by metadata key")
+	volumeInfoCmd.Flags().StringVar(&flagCmdFilterValue, "value", "", "Filter by metadata value")
 	volumeCmd.AddCommand(volumeInfoCmd)
 
 	volumeCmd.AddCommand(volumeStatusCmd)
 
-	volumeListCmd.Flags().StringVar(&flagCmdFilterKey, "key", "", "Filter Key")
-	volumeListCmd.Flags().StringVar(&flagCmdFilterValue, "value", "", "Filter Value")
+	volumeListCmd.Flags().StringVar(&flagCmdFilterKey, "key", "", "Filter by metadata Key")
+	volumeListCmd.Flags().StringVar(&flagCmdFilterValue, "value", "", "Filter by metadata value")
 	volumeCmd.AddCommand(volumeListCmd)
 
 	// Volume Expand
@@ -262,13 +262,16 @@ func volumeInfoDisplayNumbricks(vol api.VolumeGetResp) {
 }
 
 func volumeInfoDisplay(vol api.VolumeGetResp) {
-
 	fmt.Println()
 	fmt.Println("Volume Name:", vol.Name)
 	fmt.Println("Type:", vol.Type)
 	fmt.Println("Volume ID:", vol.ID)
 	fmt.Println("State:", vol.State)
 	fmt.Println("Transport-type:", vol.Transport)
+	fmt.Println("Options:")
+	for key, value := range vol.Options {
+		fmt.Printf("    %s: %s\n", key, value)
+	}
 	volumeInfoDisplayNumbricks(vol)
 	for sIdx, subvol := range vol.Subvols {
 		for bIdx, brick := range subvol.Bricks {
@@ -476,6 +479,6 @@ var volumeEditCmd = &cobra.Command{
 			}
 			failure("Failed to edit metadata", err, 1)
 		}
-		fmt.Printf("Metadata edit successfull\n")
+		fmt.Printf("Metadata edit successful\n")
 	},
 }

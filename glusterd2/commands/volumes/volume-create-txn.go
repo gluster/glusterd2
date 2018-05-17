@@ -197,9 +197,7 @@ func createVolinfo(c transaction.TxnCtx) error {
 		checks.IsOnRoot = true
 	}
 
-	if err := c.Set("brick-checks", &checks); err != nil {
-		return err
-	}
+	err = c.Set("brick-checks", &checks)
 
-	return nil
+	return err
 }

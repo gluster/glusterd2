@@ -55,11 +55,9 @@ func optionSetValidate(c transaction.TxnCtx) error {
 		volinfo.Options[k] = v
 	}
 
-	if err := c.Set("volinfo", volinfo); err != nil {
-		return err
-	}
+	err = c.Set("volinfo", volinfo)
 
-	return nil
+	return err
 }
 
 type txnOpType uint8

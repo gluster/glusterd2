@@ -21,10 +21,10 @@ type metadataFilter uint32
 
 // GetVolumes Filter Types
 const (
-	NoKeyAndValue metadataFilter = iota
-	OnlyKey
-	OnlyValue
-	KeyAndValue
+	noKeyAndValue metadataFilter = iota
+	onlyKey
+	onlyValue
+	keyAndValue
 )
 
 var (
@@ -107,13 +107,13 @@ func getFilterType(filterParams map[string]string) metadataFilter {
 	_, key := filterParams["key"]
 	_, value := filterParams["value"]
 	if key && !value {
-		return OnlyKey
+		return onlyKey
 	} else if value && !key {
-		return OnlyValue
+		return onlyValue
 	} else if value && key {
-		return KeyAndValue
+		return keyAndValue
 	}
-	return NoKeyAndValue
+	return noKeyAndValue
 }
 
 //GetVolumes retrives the json objects from the store and converts them into
@@ -126,7 +126,7 @@ func GetVolumes(filterParams ...map[string]string) ([]*Volinfo, error) {
 
 	var filterType metadataFilter
 	if len(filterParams) == 0 {
-		filterType = NoKeyAndValue
+		filterType = noKeyAndValue
 	} else {
 		filterType = getFilterType(filterParams[0])
 	}
@@ -145,17 +145,17 @@ func GetVolumes(filterParams ...map[string]string) ([]*Volinfo, error) {
 		}
 		switch filterType {
 
-		case OnlyKey:
+		case onlyKey:
 			if _, keyFound := vol.Metadata[filterParams[0]["key"]]; keyFound {
 				volumes = append(volumes, &vol)
 			}
-		case OnlyValue:
+		case onlyValue:
 			for _, value := range vol.Metadata {
 				if value == filterParams[0]["value"] {
 					volumes = append(volumes, &vol)
 				}
 			}
-		case KeyAndValue:
+		case keyAndValue:
 			if value, keyFound := vol.Metadata[filterParams[0]["key"]]; keyFound {
 				if value == filterParams[0]["value"] {
 					volumes = append(volumes, &vol)
