@@ -180,7 +180,7 @@ func snapshotActivateHandler(w http.ResponseWriter, r *http.Request) {
 		restutils.SendHTTPError(ctx, w, http.StatusInternalServerError, err)
 		return
 	}
-	/*Populating Nodes neeed not be under lock, because snapshot is a read only config*/
+	//Populating Nodes neeed not be under lock, because snapshot is a read only config
 	txn.Nodes = vol.Nodes()
 	txn.Steps = []*transaction.Step{
 		lock,

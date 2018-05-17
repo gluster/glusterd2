@@ -7,15 +7,20 @@ import (
 	"github.com/gluster/glusterd2/glusterd2/snapshot"
 	"github.com/gluster/glusterd2/glusterd2/volume"
 	"github.com/gluster/glusterd2/pkg/api"
-	"github.com/gorilla/mux"
 )
 
 func snapshotListHandler(w http.ResponseWriter, r *http.Request) {
 
-	volumeName := mux.Vars(r)["volumename"]
 	snapName := make(map[string][]string)
 	ctx := r.Context()
+	var req api.SnapListReq
 
+	if err := restutils.UnmarshalRequest(r, &req); err != nil {
+		restutils.SendHTTPError(ctx, w, http.StatusUnprocessableEntity, err)
+		return
+	}
+
+	volumeName := req.Volname
 	if volumeName != "" {
 		vol, e := volume.GetVolume(volumeName)
 		if e != nil {

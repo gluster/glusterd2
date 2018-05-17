@@ -178,7 +178,7 @@ func undoBrickSnapshots(c transaction.TxnCtx) error {
 
 	snapVol := snapInfo.SnapVolinfo
 	for _, b := range snapVol.GetLocalBricks() {
-		if err := lvm.RemoveBrickSnapshot(&b); err != nil {
+		if err := lvm.RemoveBrickSnapshot(b.MountInfo); err != nil {
 			c.Logger().WithError(err).WithField(
 				"brick", b.Path).Debug("Failed to remove snapshotted LVM")
 			return err
@@ -306,15 +306,16 @@ func populateBrickMountData(volinfo *volume.Volinfo, snapName string) (map[strin
 				return nil, err
 			}
 
-			devicePath, err := lvm.GetDevicePath(mntInfo.FsName, snapName, brickCount)
+			vG, err := lvm.GetVgName(mntInfo.FsName)
 			if err != nil {
 
 				log.WithError(err).WithField(
 					"brick", b.Path,
-				).Error("Failed to get device path")
+				).Error("Failed to get vg name")
 
 				return nil, err
 			}
+			devicePath := "/dev/" + vG + "/" + snapName + "_" + strconv.Itoa(brickCount)
 
 			nodeData[b.String()] = snapshot.BrickMountData{
 				MountDir:   mountDir,
@@ -368,7 +369,7 @@ func validateSnapCreate(c transaction.TxnCtx) error {
 
 		return errors.New("One or more brick is offline")
 	}
-	statusComptability := lvm.CheckBricksCompatability(volinfo)
+	statusComptability := snapshot.CheckBricksCompatability(volinfo)
 	if statusComptability != nil {
 		log.WithError(err).WithField(
 			"Bricks", statusStr,
@@ -405,7 +406,9 @@ func takeBrickSnapshots(c transaction.TxnCtx) error {
 			/*
 				TODO : Run as a go routine
 			*/
-			if err := lvm.BrickSnapshot(&snapVol.Subvols[subvolCount].Bricks[count], &b); err != nil {
+			snapBrick := snapVol.Subvols[subvolCount].Bricks[count]
+			mountData := snapBrick.MountInfo
+			if err := lvm.BrickSnapshot(mountData, b.Path); err != nil {
 				c.Logger().WithError(err).WithField(
 					"brick", b.Path).Debug("Snapshot failed")
 				return err
@@ -454,10 +457,12 @@ func createSnapSubvols(snapVolinfo, volinfo *volume.Volinfo, nodeData map[string
 		for count := 0; count < len(s.Bricks); count++ {
 			key := subvol.Bricks[count].String()
 			data := nodeData[key]
-			s.Bricks[count].Mountdir = data.MountDir
-			s.Bricks[count].DevicePath = data.DevicePath
-			s.Bricks[count].FsType = data.FsType
-			s.Bricks[count].MntOpts = data.MntOpts
+			s.Bricks[count].MountInfo = brick.MountInfo{
+				Mountdir:   data.MountDir,
+				DevicePath: data.DevicePath,
+				FsType:     data.FsType,
+				MntOpts:    data.MntOpts,
+			}
 
 		}
 		snapVolinfo.Subvols = append(snapVolinfo.Subvols, s)
@@ -568,17 +573,9 @@ func duplicateVolinfo(vol, v *volume.Volinfo) {
 	return
 }
 func snapshotBrickCreate(snapVolinfo, volinfo *volume.Volinfo, brickinfo *brick.Brickinfo, brickCount int) string {
-	brickPath := snapshot.SnapDirPrefix + volinfo.Name + "/" + snapVolinfo.Name + "/brick" + strconv.Itoa(brickCount) + brickinfo.Mountdir
+	mountData := brickinfo.MountInfo
+	brickPath := snapshot.SnapDirPrefix + volinfo.Name + "/" + snapVolinfo.Name + "/brick" + strconv.Itoa(brickCount) + mountData.Mountdir
 	return brickPath
-}
-
-func storeMountData(bricks, snapBricks []brick.Brickinfo, m map[string]snapshot.BrickMountData) {
-
-	for count, brickinfo := range snapBricks {
-
-		brickinfo.Mountdir = m[bricks[count].String()].MountDir
-		brickinfo.DevicePath = m[bricks[count].String()].DevicePath
-	}
 }
 
 func validateOriginNodeSnapCreate(c transaction.TxnCtx) error {

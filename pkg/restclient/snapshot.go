@@ -10,7 +10,7 @@ import (
 // SnapshotCreate creates Gluster Snapshot
 func (c *Client) SnapshotCreate(req api.SnapCreateReq) (api.SnapCreateResp, error) {
 	var snap api.SnapCreateResp
-	err := c.put("/v1/snapshot/", req, http.StatusCreated, &snap)
+	err := c.post("/v1/snapshot", req, http.StatusCreated, &snap)
 	return snap, err
 }
 
@@ -27,17 +27,10 @@ func (c *Client) SnapshotDeactivate(snapname string) error {
 }
 
 // SnapshotList returns list of all snapshots or all snapshots of a volume
-func (c *Client) SnapshotList(volname string) (api.SnapListResp, error) {
+func (c *Client) SnapshotList(req api.SnapListReq) (api.SnapListResp, error) {
 	var snaps api.SnapListResp
-	var url string
-	if volname == "" {
-		url = fmt.Sprintf("/v1/snapshots")
-	} else {
-		url = fmt.Sprintf("/v1/snapshots/volume/%s", volname)
-
-	}
-
-	err := c.get(url, nil, http.StatusOK, &snaps)
+	url := fmt.Sprintf("/v1/snapshots")
+	err := c.get(url, req, http.StatusOK, &snaps)
 	return snaps, err
 }
 
@@ -45,7 +38,7 @@ func (c *Client) SnapshotList(volname string) (api.SnapListResp, error) {
 func (c *Client) SnapshotInfo(snapname string) (api.SnapGetResp, error) {
 	var snap api.SnapGetResp
 	var url string
-	url = fmt.Sprintf("/v1/snapshots/%s", snapname)
+	url = fmt.Sprintf("/v1/snapshot/%s", snapname)
 	err := c.get(url, nil, http.StatusOK, &snap)
 	return snap, err
 }

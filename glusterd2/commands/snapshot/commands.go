@@ -28,8 +28,8 @@ func (c *Command) Routes() route.Routes {
 	return route.Routes{
 		route.Route{
 			Name:        "SnapshotCreate",
-			Method:      "PUT",
-			Pattern:     "/snapshot/",
+			Method:      "POST",
+			Pattern:     "/snapshot",
 			Version:     1,
 			HandlerFunc: snapshotCreateHandler},
 		route.Route{
@@ -59,15 +59,9 @@ func (c *Command) Routes() route.Routes {
 		route.Route{
 			Name:        "SnapshotInfo",
 			Method:      "GET",
-			Pattern:     "/snapshots/{snapname}",
+			Pattern:     "/snapshot/{snapname}",
 			Version:     1,
 			HandlerFunc: snapshotInfoHandler},
-		route.Route{
-			Name:        "SnapshotList",
-			Method:      "GET",
-			Pattern:     "/snapshots/volume/{volumename}",
-			Version:     1,
-			HandlerFunc: snapshotListHandler},
 		route.Route{
 			Name:        "SnapshotListAll",
 			Method:      "GET",
@@ -85,7 +79,7 @@ func (c *Command) Routes() route.Routes {
 		route.Route{
 			Name:        "SnapshotDelete",
 			Method:      "DELETE",
-			Pattern:     "/snapshot",
+			Pattern:     "/snapshot/{snapname}",
 			Version:     1,
 			HandlerFunc: snapshotDeleteHandler},
 		route.Route{
@@ -96,7 +90,7 @@ func (c *Command) Routes() route.Routes {
 			HandlerFunc: snapshotConfigGetHandler},
 		route.Route{
 			Name:        "SnapshotConfigSet",
-			Method:      "POST",
+			Method:      "PUT",
 			Pattern:     "/snapshot/config",
 			Version:     1,
 			HandlerFunc: snapshotConfigSetHandler},
@@ -111,37 +105,37 @@ func (c *Command) Routes() route.Routes {
 
 func snapshotCloneHandler(w http.ResponseWriter, r *http.Request) {
 	ctx := r.Context()
-	restutils.SendHTTPResponse(ctx, w, http.StatusOK, "Snapshot Clone")
+	restutils.SendHTTPResponse(ctx, w, http.StatusNotImplemented, "Snapshot Clone")
 }
 
 func snapshotRestoreHandler(w http.ResponseWriter, r *http.Request) {
 	ctx := r.Context()
-	restutils.SendHTTPResponse(ctx, w, http.StatusOK, "Snapshot Restore")
+	restutils.SendHTTPResponse(ctx, w, http.StatusNotImplemented, "Snapshot Restore")
 }
 
 func snapshotStatusHandler(w http.ResponseWriter, r *http.Request) {
 	ctx := r.Context()
-	restutils.SendHTTPResponse(ctx, w, http.StatusOK, "Snapshot Status/Info")
+	restutils.SendHTTPResponse(ctx, w, http.StatusNotImplemented, "Snapshot Status")
 }
 
 func snapshotDeleteHandler(w http.ResponseWriter, r *http.Request) {
 	ctx := r.Context()
-	restutils.SendHTTPResponse(ctx, w, http.StatusOK, "Snapshot Delete")
+	restutils.SendHTTPResponse(ctx, w, http.StatusNotImplemented, "Snapshot Delete")
 }
 
 func snapshotConfigGetHandler(w http.ResponseWriter, r *http.Request) {
 	ctx := r.Context()
-	restutils.SendHTTPResponse(ctx, w, http.StatusOK, "Snapshot Config Get")
+	restutils.SendHTTPResponse(ctx, w, http.StatusNotImplemented, "Snapshot Config Get")
 }
 
 func snapshotConfigSetHandler(w http.ResponseWriter, r *http.Request) {
 	ctx := r.Context()
-	restutils.SendHTTPResponse(ctx, w, http.StatusOK, "Snapshot Config Set")
+	restutils.SendHTTPResponse(ctx, w, http.StatusNotImplemented, "Snapshot Config Set")
 }
 
 func snapshotConfigResetHandler(w http.ResponseWriter, r *http.Request) {
 	ctx := r.Context()
-	restutils.SendHTTPResponse(ctx, w, http.StatusOK, "Snapshot Config Reset")
+	restutils.SendHTTPResponse(ctx, w, http.StatusNotImplemented, "Snapshot Config Reset")
 }
 
 // RegisterStepFuncs registers transaction step functions with

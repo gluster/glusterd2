@@ -20,7 +20,7 @@ var (
 	flagSnapshotCreateDescription string
 
 	snapshotCreateCmd = &cobra.Command{
-		Use:   "create <snapname> <volname> --timestamp --description --force",
+		Use:   "create <snapname> <volname>",
 		Short: snapshotCreateHelpShort,
 		Long:  snapshotCreateHelpLong,
 		Args:  cobra.MinimumNArgs(2),

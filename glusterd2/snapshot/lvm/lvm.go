@@ -4,7 +4,6 @@ import (
 	"fmt"
 	"os"
 	"os/exec"
-	"strconv"
 	"strings"
 
 	"github.com/gluster/glusterd2/glusterd2/brick"
@@ -36,9 +35,9 @@ func CommonPrevalidation(lvmCommand string) error {
 	return nil
 }
 
-//IsbrickComptable check for lvm comptability for a path
-func IsbrickComptable(brick *brick.Brickinfo) bool {
-	mountRoot, err := volume.GetBrickMountRoot(brick.Path)
+//IsThinLV check for lvm comptability for a path
+func IsThinLV(brickPath string) bool {
+	mountRoot, err := volume.GetBrickMountRoot(brickPath)
 	if err != nil {
 		return false
 	}
@@ -61,23 +60,9 @@ func IsbrickComptable(brick *brick.Brickinfo) bool {
 	return true
 }
 
-//CheckBricksCompatability will verify the brickes are lvm compatable
-func CheckBricksCompatability(volinfo *volume.Volinfo) []string {
-
-	var paths []string
-	for _, subvol := range volinfo.Subvols {
-		for _, brick := range subvol.Bricks {
-			if IsbrickComptable(&brick) != true {
-				paths = append(paths, brick.String())
-			}
-		}
-	}
-	return paths
-}
-
 //MountSnapshotDirectory will mount the snapshot bricks to the given path
-func MountSnapshotDirectory(mountPath string, b *brick.Brickinfo) error {
-	_, err := exec.Command("mount", "-o", b.MntOpts, b.DevicePath, mountPath).Output()
+func MountSnapshotDirectory(mountPath string, mountData brick.MountInfo) error {
+	_, err := exec.Command("mount", "-o", mountData.MntOpts, mountData.DevicePath, mountPath).Output()
 	/*
 		logrus.WithFields(logrus.Fields{
 			"device path": b.DevicePath,
@@ -96,8 +81,8 @@ func MountSnapshotDirectory(mountPath string, b *brick.Brickinfo) error {
 	return nil
 }
 
-//GetDevicePath creates the device path for lvm snapshot
-func GetDevicePath(mountDevice, snapName string, brickCount int) (string, error) {
+//GetVgName creates the device path for lvm snapshot
+func GetVgName(mountDevice string) (string, error) {
 
 	out, err := exec.Command("/sbin/lvs", "--noheadings", "-o", "vg_name", mountDevice).Output()
 	if err != nil {
@@ -105,26 +90,25 @@ func GetDevicePath(mountDevice, snapName string, brickCount int) (string, error)
 	}
 
 	volGroup := strings.TrimSpace(string(out))
-	devicePath := "/dev/" + volGroup + "/" + snapName + "_" + strconv.Itoa(brickCount)
-	return devicePath, nil
+	return volGroup, nil
 }
 
 //RemoveBrickSnapshot removes an lvm of a brick
-func RemoveBrickSnapshot(snapBrick *brick.Brickinfo) error {
-	_, err := exec.Command(RemoveCommand, "f", snapBrick.DevicePath).Output()
+func RemoveBrickSnapshot(mountData brick.MountInfo) error {
+	_, err := exec.Command(RemoveCommand, "f", mountData.DevicePath).Output()
 	return err
 }
 
 //BrickSnapshot takes lvm snapshot of a brick
-func BrickSnapshot(snapBrick *brick.Brickinfo, b *brick.Brickinfo) error {
-	length := len(b.Path) - len(snapBrick.Mountdir)
-	mountRoot := b.Path[:length]
+func BrickSnapshot(mountData brick.MountInfo, path string) error {
+	length := len(path) - len(mountData.Mountdir)
+	mountRoot := path[:length]
 	mntInfo, err := volume.GetBrickMountInfo(mountRoot)
 	if err != nil {
 		return err
 	}
 
-	cmd := exec.Command(CreateCommand, "-s", mntInfo.FsName, "--setactivationskip", "n", "--name", snapBrick.DevicePath)
+	cmd := exec.Command(CreateCommand, "-s", mntInfo.FsName, "--setactivationskip", "n", "--name", mountData.DevicePath)
 	err = cmd.Start()
 	if err != nil {
 		return err
@@ -136,7 +120,7 @@ func BrickSnapshot(snapBrick *brick.Brickinfo, b *brick.Brickinfo) error {
 		logrus.WithFields(logrus.Fields{
 			"pid":          cmd.Process.Pid,
 			"mount device": mntInfo.FsName,
-			"devicePath":   snapBrick.DevicePath,
+			"devicePath":   mountData.DevicePath,
 			"status":       errStatus,
 		}).Debug("Child exited")
 
@@ -144,19 +128,20 @@ func BrickSnapshot(snapBrick *brick.Brickinfo, b *brick.Brickinfo) error {
 			// Child exited with error
 			return errStatus
 		}
-		err = updateFsLabel(snapBrick, b)
+		err = UpdateFsLabel(mountData.DevicePath, mountData.FsType)
 
 	}
 	return err
 }
 
-func updateFsLabel(snapBrick, b *brick.Brickinfo) error {
+//UpdateFsLabel sets new nabel on the device
+func UpdateFsLabel(DevicePath, FsType string) error {
 	uuid := uuid.NewRandom().String()
 	uuid = strings.Replace(uuid, "-", "", -1)
-	switch snapBrick.FsType {
+	switch FsType {
 	case "xfs":
 		label := uuid[:12]
-		_, err := exec.Command("xfs_admin", "-L", label, snapBrick.DevicePath).Output()
+		_, err := exec.Command("xfs_admin", "-L", label, DevicePath).Output()
 		if err != nil {
 			return err
 		}
@@ -166,12 +151,12 @@ func updateFsLabel(snapBrick, b *brick.Brickinfo) error {
 		fallthrough
 	case "ext2":
 		label := uuid[:16]
-		_, err := exec.Command("tune2fs", "-L", label, b.DevicePath).Output()
+		_, err := exec.Command("tune2fs", "-L", label, DevicePath).Output()
 		if err != nil {
 			return err
 		}
 	default:
-		return fmt.Errorf("Changing file-system label of %s is not supported as of now", b.FsType)
+		return fmt.Errorf("Changing file-system label of %s is not supported as of now", FsType)
 	}
 	return nil
 }

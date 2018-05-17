@@ -49,7 +49,8 @@ func UmountSnapBrickDirectory(path string) error {
 //MountSnapBrickDirectory creates the directory strcture for snap bricks
 func MountSnapBrickDirectory(vol *volume.Volinfo, brickinfo *brick.Brickinfo) error {
 
-	mountRoot := strings.TrimSuffix(brickinfo.Path, brickinfo.Mountdir)
+	mountData := brickinfo.MountInfo
+	mountRoot := strings.TrimSuffix(brickinfo.Path, mountData.Mountdir)
 	if err := os.MkdirAll(mountRoot, os.ModeDir|os.ModePerm); err != nil {
 		log.WithError(err).Error("Failed to create snapshot directory ", brickinfo.String())
 		return err
@@ -60,7 +61,7 @@ func MountSnapBrickDirectory(vol *volume.Volinfo, brickinfo *brick.Brickinfo) er
 	   *Handle already mounted path, eg: using start when a brick is down, mostly path could be mounted.
 	*/
 
-	if err := lvm.MountSnapshotDirectory(mountRoot, brickinfo); err != nil {
+	if err := lvm.MountSnapshotDirectory(mountRoot, brickinfo.MountInfo); err != nil {
 		log.WithError(err).Error("Failed to mount snapshot directory ", brickinfo.String())
 		return err
 	}
@@ -107,7 +108,7 @@ func ActivateDeactivateFunc(snapinfo *Snapinfo, b []brick.Brickinfo, activate bo
 				}
 			}
 
-			length := len(b[i].Path) - len(b[i].Mountdir)
+			length := len(b[i].Path) - len(b[i].MountInfo.Mountdir)
 			for j := 0; j < 3; j++ {
 
 				err = UmountSnapBrickDirectory(b[i].Path[:length])
@@ -124,4 +125,18 @@ func ActivateDeactivateFunc(snapinfo *Snapinfo, b []brick.Brickinfo, activate bo
 	}
 
 	return nil
+}
+
+//CheckBricksCompatability will verify the brickes are lvm compatable
+func CheckBricksCompatability(volinfo *volume.Volinfo) []string {
+
+	var paths []string
+	for _, subvol := range volinfo.Subvols {
+		for _, brick := range subvol.Bricks {
+			if lvm.IsThinLV(brick.Path) != true {
+				paths = append(paths, brick.String())
+			}
+		}
+	}
+	return paths
 }
