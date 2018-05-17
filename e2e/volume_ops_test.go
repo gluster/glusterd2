@@ -100,6 +100,9 @@ func testVolumeCreate(t *testing.T) {
 				},
 			},
 		},
+		Metadata: map[string]string{
+			"owner": "gd2test",
+		},
 		Force: true,
 	}
 	_, err := client.VolumeCreate(createReq)
@@ -148,6 +151,40 @@ func testVolumeStop(t *testing.T) {
 
 func testVolumeList(t *testing.T) {
 	r := require.New(t)
+	var matchingQueries []map[string]string
+	var nonMatchingQueries []map[string]string
+
+	matchingQueries = append(matchingQueries, map[string]string{
+		"key":   "owner",
+		"value": "gd2test",
+	})
+	matchingQueries = append(matchingQueries, map[string]string{
+		"key": "owner",
+	})
+	matchingQueries = append(matchingQueries, map[string]string{
+		"value": "gd2test",
+	})
+	for _, filter := range matchingQueries {
+		volumes, err := client.Volumes("", filter)
+		r.Nil(err)
+		r.Len(volumes, 1)
+	}
+
+	nonMatchingQueries = append(nonMatchingQueries, map[string]string{
+		"key":   "owner",
+		"value": "gd2-test",
+	})
+	nonMatchingQueries = append(nonMatchingQueries, map[string]string{
+		"key": "owners",
+	})
+	nonMatchingQueries = append(nonMatchingQueries, map[string]string{
+		"value": "gd2tests",
+	})
+	for _, filter := range nonMatchingQueries {
+		volumes, err := client.Volumes("", filter)
+		r.Nil(err)
+		r.Len(volumes, 0)
+	}
 
 	volumes, err := client.Volumes("")
 	r.Nil(err)

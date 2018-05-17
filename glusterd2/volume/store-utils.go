@@ -16,6 +16,17 @@ const (
 	volumePrefix string = "volumes/"
 )
 
+// metadataFilter is a filter type
+type metadataFilter uint32
+
+// GetVolumes Filter Types
+const (
+	noKeyAndValue metadataFilter = iota
+	onlyKey
+	onlyValue
+	keyAndValue
+)
+
 var (
 	// AddOrUpdateVolumeFunc marshals to volume object and passes to store to add/update
 	AddOrUpdateVolumeFunc = AddOrUpdateVolume
@@ -91,17 +102,38 @@ func GetVolumesList() (map[string]uuid.UUID, error) {
 	return volumes, nil
 }
 
+// getFilterType return the filter type for volume list/info
+func getFilterType(filterParams map[string]string) metadataFilter {
+	_, key := filterParams["key"]
+	_, value := filterParams["value"]
+	if key && !value {
+		return onlyKey
+	} else if value && !key {
+		return onlyValue
+	} else if value && key {
+		return keyAndValue
+	}
+	return noKeyAndValue
+}
+
 //GetVolumes retrives the json objects from the store and converts them into
 //respective volinfo objects
-func GetVolumes() ([]*Volinfo, error) {
+func GetVolumes(filterParams ...map[string]string) ([]*Volinfo, error) {
 	resp, e := store.Store.Get(context.TODO(), volumePrefix, clientv3.WithPrefix())
 	if e != nil {
 		return nil, e
 	}
 
-	volumes := make([]*Volinfo, len(resp.Kvs))
+	var filterType metadataFilter
+	if len(filterParams) == 0 {
+		filterType = noKeyAndValue
+	} else {
+		filterType = getFilterType(filterParams[0])
+	}
 
-	for i, kv := range resp.Kvs {
+	var volumes []*Volinfo
+
+	for _, kv := range resp.Kvs {
 		var vol Volinfo
 
 		if err := json.Unmarshal(kv.Value, &vol); err != nil {
@@ -111,8 +143,28 @@ func GetVolumes() ([]*Volinfo, error) {
 			}).Error("Failed to unmarshal volume")
 			continue
 		}
+		switch filterType {
 
-		volumes[i] = &vol
+		case onlyKey:
+			if _, keyFound := vol.Metadata[filterParams[0]["key"]]; keyFound {
+				volumes = append(volumes, &vol)
+			}
+		case onlyValue:
+			for _, value := range vol.Metadata {
+				if value == filterParams[0]["value"] {
+					volumes = append(volumes, &vol)
+				}
+			}
+		case keyAndValue:
+			if value, keyFound := vol.Metadata[filterParams[0]["key"]]; keyFound {
+				if value == filterParams[0]["value"] {
+					volumes = append(volumes, &vol)
+				}
+			}
+		default:
+			volumes = append(volumes, &vol)
+
+		}
 	}
 
 	return volumes, nil
