@@ -7,6 +7,7 @@ import (
 	"net"
 	"os"
 	"path"
+	"path/filepath"
 
 	"github.com/gluster/glusterd2/glusterd2/gdctx"
 	"github.com/gluster/glusterd2/glusterd2/store"
@@ -23,27 +24,15 @@ var (
 )
 
 const (
-	defaultLogLevel      = "debug"
-	defaultClientAddress = ":24007"
-	defaultPeerAddress   = ":24008"
-	defaultConfName      = "glusterd2"
-	defaultRunDir        = "/var/run/gluster"
-)
-
-// Slices,Arrays cannot be constants :(
-var (
-	defaultConfPaths = []string{
-		"/etc/glusterd2",
-		"/usr/local/etc/glusterd2",
-		".",
-	}
+	defaultLogLevel = "debug"
+	defaultConfName = "glusterd2"
 )
 
 // parseFlags sets up the flags and parses them, this needs to be called before any other operation
 func parseFlags() {
 	flag.String("workdir", "", "Working directory for GlusterD. (default: current directory)")
 	flag.String("localstatedir", "", "Directory to store local state information. (default: workdir)")
-	flag.String("rundir", defaultRunDir, "Directory to store runtime data.")
+	flag.String("rundir", "", "Directory to store runtime data.")
 	flag.String("config", "", "Configuration file for GlusterD. By default looks for glusterd2.toml in [/usr/local]/etc/glusterd2 and current working directory.")
 
 	flag.String(logging.DirFlag, "", logging.DirHelp+" (default: workdir/log)")
@@ -53,8 +42,8 @@ func parseFlags() {
 	// TODO: Change default to false (disabled) in future.
 	flag.Bool("statedump", true, "Enable /statedump endpoint for metrics.")
 
-	flag.String("clientaddress", defaultClientAddress, "Address to bind the REST service.")
-	flag.String("peeraddress", defaultPeerAddress, "Address to bind the inter glusterd2 RPC service.")
+	flag.String("clientaddress", "", "Address to bind the REST service.")
+	flag.String("peeraddress", "", "Address to bind the inter glusterd2 RPC service.")
 
 	// TODO: SSL/TLS is currently only implemented for REST interface
 	flag.String("cert-file", "", "Certificate used for SSL/TLS connections from clients to glusterd2.")
@@ -96,9 +85,6 @@ func setDefaults() error {
 		config.SetDefault("pidfile", path.Join(config.GetString("rundir"), "glusterd2.pid"))
 	}
 
-	// Set default peer port. This shouldn't be configurable.
-	config.SetDefault("defaultpeerport", defaultPeerAddress[1:])
-
 	// Set peer address.
 	host, port, err := net.SplitHostPort(config.GetString("peeraddress"))
 	if err != nil {
@@ -110,7 +96,7 @@ func setDefaults() error {
 	if port == "" {
 		port = config.GetString("defaultpeerport")
 	}
-	config.SetDefault("peeraddress", host+":"+port)
+	config.Set("peeraddress", host+":"+port)
 
 	return nil
 }
@@ -143,26 +129,38 @@ func initConfig(confFile string) error {
 
 	// Limit config to toml only to avoid confusion with multiple config types
 	config.SetConfigType("toml")
+	config.SetConfigName(defaultConfName)
 
-	if confFile == "" {
-		config.SetConfigName(defaultConfName)
-		for _, p := range defaultConfPaths {
-			config.AddConfigPath(p)
+	// Set default config dir and path if default config file exists
+	// Chances of not having default config file is only during development
+	// Add current directory to this path if default conf file exists
+	confdir := defaultConfDir
+	conffile := defaultConfDir + "/" + defaultConfName + ".toml"
+	if _, err := os.Stat(defaultConfDir + "/" + defaultConfName + ".toml"); os.IsNotExist(err) {
+		cdir, err := filepath.Abs(filepath.Dir(os.Args[0]))
+		if err != nil {
+			return err
 		}
-	} else {
-		config.SetConfigFile(confFile)
+		confdir = cdir
+		conffile = cdir + "/" + defaultConfName + ".toml"
+		log.Info("default config file not found, loading config file from current directory")
 	}
 
-	if err := config.ReadInConfig(); err != nil {
-		if confFile == "" {
-			log.WithFields(log.Fields{
-				"paths":  defaultConfPaths,
-				"config": defaultConfName + ".toml",
-				"error":  err,
-			}).Debug("failed to read any config files, continuing with defaults")
-		} else {
-			log.WithError(err).WithField("file", confFile).Error(
-				"failed to read given config file")
+	config.AddConfigPath(confdir)
+	if err := config.MergeInConfig(); err != nil {
+		log.WithError(err).
+			WithField("file", conffile).
+			Error("failed to read default config file")
+		return err
+	}
+
+	// If custom configuration is passed
+	if confFile != "" {
+		config.SetConfigFile(confFile)
+		if err := config.MergeInConfig(); err != nil {
+			log.WithError(err).
+				WithField("file", confFile).
+				Error("failed to read config file")
 			return err
 		}
 	}

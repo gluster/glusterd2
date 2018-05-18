@@ -1,4 +1,7 @@
 workdir = "w3"
+localstatedir = "w3"
+logdir = "w3/log"
+loglevel = "DEBUG"
 rundir = "w3/run/gluster"
 logfile = "w3.log"
 peeraddress = "127.0.0.1:22008"
