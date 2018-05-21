@@ -49,21 +49,21 @@ func deviceAddHandler(w http.ResponseWriter, r *http.Request) {
 		if err == errors.ErrPeerNotFound {
 			restutils.SendHTTPError(ctx, w, http.StatusNotFound, errors.ErrPeerNotFound)
 		} else {
-			restutils.SendHTTPError(ctx, w, http.StatusInternalServerError, "Failed to get peer from store")
+			restutils.SendHTTPError(ctx, w, http.StatusInternalServerError, "Failed to get peer details from store")
 		}
 		return
 	}
 
 	var devices []deviceapi.Info
-	err = json.Unmarshal([]byte(peerInfo.Metadata["_"]), &devices)
+	err = json.Unmarshal([]byte(peerInfo.Metadata["_devices"]), &devices)
 	if err != nil {
 		logger.WithError(err).WithField("peerid", peerID).Error(err)
 		restutils.SendHTTPError(ctx, w, http.StatusInternalServerError, err)
 		return
 	}
-	if !CheckIfDeviceExist(req.Devices, devices) {
-		logger.WithError(err).WithField("device", req.Devices).Error(" One or more devices already exists")
-		restutils.SendHTTPError(ctx, w, http.StatusInternalServerError, " One or more devices already exists")
+	if checkIfDeviceExist(req.Device, devices) {
+		logger.WithError(err).WithField("device", req.Device).Error("Device already exists")
+		restutils.SendHTTPError(ctx, w, http.StatusBadRequest, "Device already exists")
 		return
 	}
 
@@ -83,12 +83,13 @@ func deviceAddHandler(w http.ResponseWriter, r *http.Request) {
 		restutils.SendHTTPError(ctx, w, http.StatusInternalServerError, err)
 		return
 	}
-	err = txn.Ctx.Set("", &req.Devices)
+	err = txn.Ctx.Set("device", &req.Device)
 	if err != nil {
-		logger.WithError(err).WithField("key", "").Error("Failed to set key in transaction context")
+		logger.WithError(err).WithField("key", "device").Error("Failed to set key in transaction context")
 		restutils.SendHTTPError(ctx, w, http.StatusInternalServerError, err)
 		return
 	}
+
 	err = txn.Do()
 	if err != nil {
 		logger.WithError(err).Error("Transaction to prepare device failed")

@@ -23,21 +23,16 @@ func GetDevices(peerID string) ([]deviceapi.Info, error) {
 	return nil, nil
 }
 
-//CheckIfDeviceExist returns error if all devices already exist or returns list of devices to be added
-func CheckIfDeviceExist(reqDevices []string, devices []deviceapi.Info) bool {
-
-	for _, key := range reqDevices {
-		for _, reqKey := range devices {
-			if key == reqKey.Name {
-				return false
-			}
+func checkIfDeviceExist(reqDevice string, devices []deviceapi.Info) bool {
+	for _, key := range devices {
+		if reqDevice == key.Name {
+			return true
 		}
 	}
-	return true
+	return false
 }
 
-// AddDevices adds device to specific peer
-func AddDevices(devices []deviceapi.Info, peerID string) error {
+func addDevice(device deviceapi.Info, peerID string) error {
 	deviceDetails, err := GetDevices(peerID)
 	if err != nil {
 		return err
@@ -46,8 +41,9 @@ func AddDevices(devices []deviceapi.Info, peerID string) error {
 	if err != nil {
 		return err
 	}
+	var devices []deviceapi.Info
 	if deviceDetails != nil {
-		devices = append(devices, deviceDetails...)
+		devices = append(deviceDetails, device)
 	}
 	deviceJSON, err := json.Marshal(devices)
 	if err != nil {
@@ -60,5 +56,4 @@ func AddDevices(devices []deviceapi.Info, peerID string) error {
 	}
 
 	return nil
-
 }

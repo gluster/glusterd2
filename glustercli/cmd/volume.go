@@ -41,6 +41,10 @@ var (
 	flagExpandCmdReplicaCount int
 	flagExpandCmdForce        bool
 
+	// Filter Volume Info/List command flags
+	flagCmdFilterKey   string
+	flagCmdFilterValue string
+
 	// Edit Command Flags
 	flagCmdMetadataKey    string
 	flagCmdMetadataValue  string
@@ -62,10 +66,14 @@ func init() {
 	volumeCmd.AddCommand(volumeGetCmd)
 	volumeCmd.AddCommand(volumeResetCmd)
 
+	volumeInfoCmd.Flags().StringVar(&flagCmdFilterKey, "key", "", "Filter by metadata key")
+	volumeInfoCmd.Flags().StringVar(&flagCmdFilterValue, "value", "", "Filter by metadata value")
 	volumeCmd.AddCommand(volumeInfoCmd)
 
 	volumeCmd.AddCommand(volumeStatusCmd)
 
+	volumeListCmd.Flags().StringVar(&flagCmdFilterKey, "key", "", "Filter by metadata Key")
+	volumeListCmd.Flags().StringVar(&flagCmdFilterValue, "value", "", "Filter by metadata value")
 	volumeCmd.AddCommand(volumeListCmd)
 
 	// Volume Expand
@@ -254,13 +262,16 @@ func volumeInfoDisplayNumbricks(vol api.VolumeGetResp) {
 }
 
 func volumeInfoDisplay(vol api.VolumeGetResp) {
-
 	fmt.Println()
 	fmt.Println("Volume Name:", vol.Name)
 	fmt.Println("Type:", vol.Type)
 	fmt.Println("Volume ID:", vol.ID)
 	fmt.Println("State:", vol.State)
 	fmt.Println("Transport-type:", vol.Transport)
+	fmt.Println("Options:")
+	for key, value := range vol.Options {
+		fmt.Printf("    %s: %s\n", key, value)
+	}
 	volumeInfoDisplayNumbricks(vol)
 	for sIdx, subvol := range vol.Subvols {
 		for bIdx, brick := range subvol.Bricks {
@@ -281,8 +292,21 @@ func volumeInfoHandler2(cmd *cobra.Command, isInfo bool) error {
 		volname = cmd.Flags().Args()[0]
 	}
 	if volname == "" {
-		vols, err = client.Volumes("")
+		if flagCmdFilterKey == "" && flagCmdFilterValue == "" {
+			vols, err = client.Volumes("")
+		} else if flagCmdFilterKey != "" && flagCmdFilterValue == "" {
+			vols, err = client.Volumes("", map[string]string{"key": flagCmdFilterKey})
+		} else if flagCmdFilterKey == "" && flagCmdFilterValue != "" {
+			vols, err = client.Volumes("", map[string]string{"value": flagCmdFilterValue})
+		} else if flagCmdFilterKey != "" && flagCmdFilterValue != "" {
+			vols, err = client.Volumes("", map[string]string{"key": flagCmdFilterKey,
+				"value": flagCmdFilterValue,
+			})
+		}
 	} else {
+		if flagCmdFilterKey != "" || flagCmdFilterValue != "" {
+			return errors.New("Invalid command. Cannot give filter arguments when providing volname")
+		}
 		vols, err = client.Volumes(volname)
 	}
 
@@ -306,7 +330,7 @@ func volumeInfoHandler2(cmd *cobra.Command, isInfo bool) error {
 }
 
 var volumeInfoCmd = &cobra.Command{
-	Use:   "info",
+	Use:   "info [<volname> |--key <key>|--value <value>|--key <key> --value <value>]",
 	Short: helpVolumeInfoCmd,
 	Args:  cobra.RangeArgs(0, 1),
 	Run: func(cmd *cobra.Command, args []string) {
@@ -323,7 +347,7 @@ var volumeInfoCmd = &cobra.Command{
 }
 
 var volumeListCmd = &cobra.Command{
-	Use:   "list",
+	Use:   "list [--key <key>|--value <value>|--key <key> --value <value>]",
 	Short: helpVolumeListCmd,
 	Args:  cobra.RangeArgs(0, 1),
 	Run: func(cmd *cobra.Command, args []string) {
@@ -455,6 +479,6 @@ var volumeEditCmd = &cobra.Command{
 			}
 			failure("Failed to edit metadata", err, 1)
 		}
-		fmt.Printf("Metadata edit successfull\n")
+		fmt.Printf("Metadata edit successful\n")
 	},
 }

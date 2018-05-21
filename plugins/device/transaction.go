@@ -15,46 +15,39 @@ func txnPrepareDevice(c transaction.TxnCtx) error {
 		return err
 	}
 
-	var devices []string
-	if err := c.Get("devices", &devices); err != nil {
-		c.Logger().WithError(err).WithField("key", "req").Error("Failed to get key from transaction context")
+	var device string
+	if err := c.Get("device", &device); err != nil {
+		c.Logger().WithError(err).WithField("key", "device").Error("Failed to get key from transaction context")
 		return err
 	}
 
-	var deviceList []deviceapi.Info
-	for _, name := range devices {
-		tempDevice := deviceapi.Info{
-			Name: name,
-		}
-		deviceList = append(deviceList, tempDevice)
-	}
+	var deviceInfo deviceapi.Info
 
-	var failedDevice []string
-	var successDevice []deviceapi.Info
-	for index, device := range deviceList {
-		err := deviceutils.CreatePV(device.Name)
-		if err != nil {
-			c.Logger().WithError(err).WithField("device", device.Name).Error("Failed to create physical volume")
-			continue
-		}
-		vgName := strings.Replace("vg"+device.Name, "/", "-", -1)
-		err = deviceutils.CreateVG(device.Name, vgName)
-		if err != nil {
-			c.Logger().WithError(err).WithField("device", device.Name).Error("Failed to create volume group")
-			err = deviceutils.RemovePV(device.Name)
-			if err != nil {
-				c.Logger().WithError(err).WithField("device", device.Name).Error("Failed to remove physical volume")
-				failedDevice = append(failedDevice, device.Name)
-			}
-		}
-		c.Logger().WithError(err).WithField("device", device.Name).Error("Setup device successful, setting device status to 'DeviceEnabled'")
-		deviceList[index].State = deviceapi.DeviceEnabled
-		successDevice = append(successDevice, deviceList[index])
-	}
-
-	err := AddDevices(successDevice, peerID)
+	err := deviceutils.CreatePV(device)
 	if err != nil {
-		c.Logger().WithError(err).Error("Couldn't add deviceinfo to store")
+		c.Logger().WithError(err).WithField("device", device).Error("Failed to create physical volume")
+		return err
+	}
+	vgName := strings.Replace("vg"+device, "/", "-", -1)
+	err = deviceutils.CreateVG(device, vgName)
+	if err != nil {
+		c.Logger().WithError(err).WithField("device", device).Error("Failed to create volume group")
+		errPV := deviceutils.RemovePV(device)
+		if errPV != nil {
+			c.Logger().WithError(err).WithField("device", device).Error("Failed to remove physical volume")
+		}
+		return err
+	}
+	c.Logger().WithField("device", device).Info("Device setup successful, setting device status to 'Enabled'")
+
+	deviceInfo = deviceapi.Info{
+		Name:  device,
+		State: deviceapi.DeviceEnabled,
+	}
+
+	err = addDevice(deviceInfo, peerID)
+	if err != nil {
+		c.Logger().WithError(err).WithField("peerid", peerID).Error("Couldn't add deviceinfo to store")
 		return err
 	}
 	return nil

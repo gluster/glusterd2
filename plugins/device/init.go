@@ -26,8 +26,7 @@ func (p *Plugin) RestRoutes() route.Routes {
 			Version:      1,
 			RequestType:  utils.GetTypeString((*deviceapi.AddDeviceReq)(nil)),
 			ResponseType: utils.GetTypeString((*deviceapi.AddDeviceResp)(nil)),
-			HandlerFunc:  deviceAddHandler,
-		},
+			HandlerFunc:  deviceAddHandler},
 	}
 }
 

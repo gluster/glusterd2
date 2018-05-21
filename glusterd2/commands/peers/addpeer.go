@@ -28,7 +28,7 @@ func addPeerHandler(w http.ResponseWriter, r *http.Request) {
 
 	for key := range req.Metadata {
 		if strings.HasPrefix(key, "_") {
-			restutils.SendHTTPError(ctx, w, http.StatusInternalServerError, errors.ErrRestrictedKeyFound)
+			restutils.SendHTTPError(ctx, w, http.StatusBadRequest, errors.ErrRestrictedKeyFound)
 			return
 		}
 	}

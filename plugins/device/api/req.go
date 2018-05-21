@@ -6,12 +6,9 @@ const (
 
 	// DeviceDisabled represents disabled
 	DeviceDisabled = "Disabled"
-
-	// DeviceFailed represents failed
-	DeviceFailed = "Failed"
 )
 
 // AddDeviceReq structure
 type AddDeviceReq struct {
-	Devices []string `json:"devices"`
+	Device string `json:"device"`
 }

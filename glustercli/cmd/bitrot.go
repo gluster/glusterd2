@@ -100,6 +100,8 @@ var bitrotScrubThrottleCmd = &cobra.Command{
 		option = append(option, "bit-rot.scrub-throttle")
 		option = append(option, args[1])
 
+		// Set Option set flag to advanced
+		flagSetAdv = true
 		err := volumeOptionJSONHandler(cmd, volname, option)
 		if err != nil {
 			if verbose {
@@ -125,6 +127,8 @@ var bitrotScrubFrequencyCmd = &cobra.Command{
 		option = append(option, "bit-rot.scrub-freq")
 		option = append(option, args[1])
 
+		// Set Option set flag to advanced
+		flagSetAdv = true
 		err := volumeOptionJSONHandler(cmd, volname, option)
 		if err != nil {
 			if verbose {
@@ -152,6 +156,9 @@ var bitrotScrubCmd = &cobra.Command{
 		case scrubPause, scrubResume:
 			option = append(option, "bit-rot.scrub-state")
 			option = append(option, args[1])
+
+			// Set Option set flag to advanced
+			flagSetAdv = true
 			err := volumeOptionJSONHandler(cmd, volname, option)
 			if err != nil {
 				if verbose {
