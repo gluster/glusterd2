@@ -4,6 +4,7 @@ import (
 	"errors"
 	"net/http"
 	"path/filepath"
+	"regexp"
 
 	"github.com/gluster/glusterd2/glusterd2/events"
 	"github.com/gluster/glusterd2/glusterd2/gdctx"
@@ -16,7 +17,17 @@ import (
 	"github.com/pborman/uuid"
 )
 
+var (
+	reg = regexp.MustCompile("^[a-zA-Z0-9_-]+$")
+)
+
 func validateVolCreateReq(req *api.VolCreateReq) error {
+
+	valid := reg.MatchString(req.Name)
+
+	if !valid {
+		return gderrors.ErrInvalidVolName
+	}
 
 	if req.Name == "" {
 		return gderrors.ErrEmptyVolName
