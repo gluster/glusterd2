@@ -28,8 +28,7 @@ func addPeerHandler(w http.ResponseWriter, r *http.Request) {
 
 	for key := range req.Metadata {
 		if strings.HasPrefix(key, "_") {
-			logger.WithField("metadata-key", key).Error("Key names starting with '_' are restricted in metadata field")
-			restutils.SendHTTPError(ctx, w, http.StatusInternalServerError, "Key names starting with '_' are restricted in metadata field")
+			restutils.SendHTTPError(ctx, w, http.StatusInternalServerError, errors.ErrRestrictedKeyFound)
 			return
 		}
 	}

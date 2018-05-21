@@ -1,9 +1,11 @@
 package device
 
 import (
+	"strings"
+
 	"github.com/gluster/glusterd2/glusterd2/transaction"
 	deviceapi "github.com/gluster/glusterd2/plugins/device/api"
-	"github.com/gluster/glusterd2/plugins/device/cmdexec"
+	"github.com/gluster/glusterd2/plugins/device/deviceutils"
 )
 
 func txnPrepareDevice(c transaction.TxnCtx) error {
@@ -27,18 +29,30 @@ func txnPrepareDevice(c transaction.TxnCtx) error {
 		deviceList = append(deviceList, tempDevice)
 	}
 
+	var failedDevice []string
+	var successDevice []deviceapi.Info
 	for index, device := range deviceList {
-		err := cmdexec.DeviceSetup(c, device.Name)
+		err := deviceutils.CreatePV(device.Name)
 		if err != nil {
-			c.Logger().WithError(err).WithField("device", device.Name).Error("Failed to setup device, setting device status to 'DeviceFailed'")
-			deviceList[index].State = deviceapi.DeviceFailed
+			c.Logger().WithError(err).WithField("device", device.Name).Error("Failed to create physical volume")
 			continue
+		}
+		vgName := strings.Replace("vg"+device.Name, "/", "-", -1)
+		err = deviceutils.CreateVG(device.Name, vgName)
+		if err != nil {
+			c.Logger().WithError(err).WithField("device", device.Name).Error("Failed to create volume group")
+			err = deviceutils.RemovePV(device.Name)
+			if err != nil {
+				c.Logger().WithError(err).WithField("device", device.Name).Error("Failed to remove physical volume")
+				failedDevice = append(failedDevice, device.Name)
+			}
 		}
 		c.Logger().WithError(err).WithField("device", device.Name).Error("Setup device successful, setting device status to 'DeviceEnabled'")
 		deviceList[index].State = deviceapi.DeviceEnabled
+		successDevice = append(successDevice, deviceList[index])
 	}
 
-	err := AddDevices(deviceList, peerID)
+	err := AddDevices(successDevice, peerID)
 	if err != nil {
 		c.Logger().WithError(err).Error("Couldn't add deviceinfo to store")
 		return err
