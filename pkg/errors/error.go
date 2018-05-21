@@ -11,7 +11,6 @@ var (
 	ErrVolNotStarted           = errors.New("volume not started")
 	ErrPeerNotFound            = errors.New("peer not found")
 	ErrJSONParsingFailed       = errors.New("unable to parse the request")
-	ErrEmptyVolName            = errors.New("volume name is empty")
 	ErrInvalidVolName          = errors.New("invalid volume name")
 	ErrEmptyBrickList          = errors.New("brick list is empty")
 	ErrInvalidBrickPath        = errors.New("invalid brick path, brick path should be in host:<brick> format")
