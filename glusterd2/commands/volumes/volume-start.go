@@ -30,6 +30,9 @@ func startAllBricks(c transaction.TxnCtx) error {
 		}).Info("Starting brick")
 
 		if err := b.StartBrick(); err != nil {
+			if err == errors.ErrProcessAlreadyRunning {
+				continue
+			}
 			return err
 		}
 	}
@@ -68,6 +71,12 @@ func volumeStartHandler(w http.ResponseWriter, r *http.Request) {
 	ctx := r.Context()
 	logger := gdctx.GetReqLogger(ctx)
 	volname := mux.Vars(r)["volname"]
+	var req api.VolumeStartReq
+
+	if err := restutils.UnmarshalRequest(r, &req); err != nil {
+		restutils.SendHTTPError(ctx, w, http.StatusBadRequest, err)
+		return
+	}
 
 	lock, unlock := transaction.CreateLockFuncs(volname)
 	// Taking a lock outside the txn as volinfo.Nodes() must also
@@ -92,7 +101,7 @@ func volumeStartHandler(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	if volinfo.State == volume.VolStarted {
+	if volinfo.State == volume.VolStarted && !req.ForceStartBricks {
 		restutils.SendHTTPError(ctx, w, http.StatusBadRequest, errors.ErrVolAlreadyStarted)
 		return
 	}
