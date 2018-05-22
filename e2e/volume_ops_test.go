@@ -107,6 +107,11 @@ func testVolumeCreate(t *testing.T) {
 	}
 	_, err := client.VolumeCreate(createReq)
 	r.Nil(err)
+
+	//invalid volume name
+	createReq.Name = "##@@#@!#@!!@#"
+	_, err = client.VolumeCreate(createReq)
+	r.NotNil(err)
 }
 
 func testVolumeExpand(t *testing.T) {
