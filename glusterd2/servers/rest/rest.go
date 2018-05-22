@@ -145,3 +145,11 @@ func (r *GDRest) listEndpointsHandler() http.HandlerFunc {
 		restutils.SendHTTPResponse(ctx, w, http.StatusOK, resp)
 	})
 }
+
+//Ping URL for glusterd2
+func (r *GDRest) Ping() http.HandlerFunc {
+	return http.HandlerFunc(func(w http.ResponseWriter, req *http.Request) {
+		ctx := req.Context()
+		restutils.SendHTTPResponse(ctx, w, http.StatusOK, nil)
+	})
+}
