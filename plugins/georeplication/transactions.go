@@ -6,7 +6,6 @@ import (
 	"fmt"
 	"io/ioutil"
 	"os"
-	"os/exec"
 	"path"
 	"strings"
 	"syscall"
@@ -15,6 +14,7 @@ import (
 	"github.com/gluster/glusterd2/glusterd2/gdctx"
 	"github.com/gluster/glusterd2/glusterd2/transaction"
 	"github.com/gluster/glusterd2/glusterd2/volume"
+	"github.com/gluster/glusterd2/pkg/utils"
 
 	georepapi "github.com/gluster/glusterd2/plugins/georeplication/api"
 
@@ -166,7 +166,7 @@ func txnGeorepStatus(c transaction.TxnCtx) error {
 		}
 		args := gsyncd.statusArgs(w.Path)
 
-		out, err := exec.Command(gsyncdCommand, args...).Output()
+		out, err := utils.ExecuteCommandOutput(gsyncdCommand, args...)
 		if err != nil {
 			return err
 		}
@@ -372,7 +372,7 @@ func txnSSHKeysGenerate(c transaction.TxnCtx) error {
 	// Generate secret.pem file if not available
 	if _, err := os.Stat(secretPemFile); os.IsNotExist(err) {
 		args = []string{"-N", "", "-f", secretPemFile}
-		_, err = exec.Command("ssh-keygen", args...).Output()
+		_, err = utils.ExecuteCommandOutput("ssh-keygen", args...)
 		if err != nil {
 			return err
 		}
@@ -387,7 +387,7 @@ func txnSSHKeysGenerate(c transaction.TxnCtx) error {
 	// Generate tar_ssh.pem file if not available
 	if _, err := os.Stat(tarSSHPemFile); os.IsNotExist(err) {
 		args = []string{"-N", "", "-f", tarSSHPemFile}
-		_, err = exec.Command("ssh-keygen", args...).Output()
+		_, err = utils.ExecuteCommandOutput("ssh-keygen", args...)
 		if err != nil {
 			return err
 		}
