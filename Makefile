@@ -96,7 +96,7 @@ release: build
 	@./scripts/release.sh
 
 dist:
-	@./scripts/dist.sh
+	@DISTDIR=$(DISTDIR) SIGN=$(SIGN) ./scripts/dist.sh
 
 dist-vendor: vendor-install
-	@VENDOR=yes ./scripts/dist.sh
+	@VENDOR=yes DISTDIR=$(DISTDIR) SIGN=$(SIGN) ./scripts/dist.sh
