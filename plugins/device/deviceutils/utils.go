@@ -6,6 +6,8 @@ import (
 	"os/exec"
 	"strconv"
 	"strings"
+
+	"github.com/gluster/glusterd2/pkg/utils"
 )
 
 const (
@@ -15,26 +17,22 @@ const (
 
 //CreatePV is used to create physical volume.
 func CreatePV(device string) error {
-	pvcreateCmd := exec.Command("pvcreate", "--metadatasize=128M", "--dataalignment=256K", device)
-	return pvcreateCmd.Run()
+	return utils.ExecuteCommandRun("pvcreate", "--metadatasize=128M", "--dataalignment=256K", device)
 }
 
 //CreateVG is used to create volume group
 func CreateVG(device string, vgName string) error {
-	vgcreateCmd := exec.Command("vgcreate", vgName, device)
-	return vgcreateCmd.Run()
+	return utils.ExecuteCommandRun("vgcreate", vgName, device)
 }
 
 //RemoveVG is used to remove volume group.
 func RemoveVG(vgName string) error {
-	vgremoveCmd := exec.Command("vgremove", vgName)
-	return vgremoveCmd.Run()
+	return utils.ExecuteCommandRun("vgremove", vgName)
 }
 
 //RemovePV is used to remove physical volume
 func RemovePV(device string) error {
-	pvremoveCmd := exec.Command("pvremove", device)
-	return pvremoveCmd.Run()
+	return utils.ExecuteCommandRun("pvremove", device)
 }
 
 // MbToKb converts Value from Mb to Kb
@@ -89,50 +87,50 @@ func GetPoolMetadataSize(poolsize uint64) uint64 {
 // CreateTP creates LVM Thin Pool
 func CreateTP(vgname, tpname string, tpsize, metasize uint64) error {
 	// TODO: Chunksize adjust based on RAID/JBOD
-	return exec.Command("lvcreate",
+	return utils.ExecuteCommandRun("lvcreate",
 		"--thin", vgname+"/"+tpname,
 		"--size", fmt.Sprintf("%dK", tpsize),
 		"--poolmetadatasize", fmt.Sprintf("%dK", metasize),
 		"-c", chunkSize,
 		"--zero", "n",
-	).Run()
+	)
 }
 
 // CreateLV creates LVM Logical Volume
 func CreateLV(vgname, tpname, lvname string, lvsize uint64) error {
-	return exec.Command("lvcreate",
+	return utils.ExecuteCommandRun("lvcreate",
 		"--virtualsize", fmt.Sprintf("%dK", lvsize),
 		"--thin",
 		"--name", lvname,
 		vgname+"/"+tpname,
-	).Run()
+	)
 }
 
 // MakeXfs creates XFS filesystem
 func MakeXfs(dev string) error {
 	// TODO: Adjust -d su=<>,sw=<> based on RAID/JBOD
-	return exec.Command("mkfs.xfs",
+	return utils.ExecuteCommandRun("mkfs.xfs",
 		"-i", "size=512",
 		"-n", "size=8192",
 		dev,
-	).Run()
+	)
 }
 
 // BrickMount mounts the brick LV
 func BrickMount(dev, mountdir string) error {
-	return exec.Command("mount",
+	return utils.ExecuteCommandRun("mount",
 		"-o", "rw,inode64,noatime,nouuid",
 		dev,
 		mountdir,
-	).Run()
+	)
 }
 
 // BrickUnmount unmounts the Brick
 func BrickUnmount(mountdir string) error {
-	return exec.Command("umount", mountdir).Run()
+	return utils.ExecuteCommandRun("umount", mountdir)
 }
 
 // RemoveLV removes Logical Volume
 func RemoveLV(vgName, lvName string) error {
-	return exec.Command("lvremove", "-f", vgName+"/"+lvName).Run()
+	return utils.ExecuteCommandRun("lvremove", "-f", vgName+"/"+lvName)
 }

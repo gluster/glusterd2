@@ -3,9 +3,9 @@ package events
 import (
 	"fmt"
 	"os"
-	"os/exec"
 
 	"github.com/gluster/glusterd2/pkg/api"
+	"github.com/gluster/glusterd2/pkg/utils"
 
 	log "github.com/sirupsen/logrus"
 )
@@ -32,8 +32,7 @@ func (g *ganesha) Handle(e *api.Event) {
 	}
 	// TODO: Check if ganesha is running
 	dbuscmdStr := fmt.Sprintf("%s /etc/ganesha/ %s %s", dbusScript, option, e.Data["volume.name"])
-	ganeshaCmd := exec.Command("/bin/sh", "-c", dbuscmdStr)
-	if err := ganeshaCmd.Run(); err != nil {
+	if err := utils.ExecuteCommandRun("/bin/sh", "-c", dbuscmdStr); err != nil {
 		log.WithError(err).WithField("command", dbuscmdStr).Warn("Failed to execute command")
 	} else {
 		log.WithField("command", dbuscmdStr).Debug("Command succeeded")

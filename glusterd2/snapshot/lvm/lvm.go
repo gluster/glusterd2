@@ -8,6 +8,8 @@ import (
 
 	"github.com/gluster/glusterd2/glusterd2/brick"
 	"github.com/gluster/glusterd2/glusterd2/volume"
+	"github.com/gluster/glusterd2/pkg/utils"
+
 	"github.com/pborman/uuid"
 	"github.com/sirupsen/logrus"
 )
@@ -47,7 +49,7 @@ func IsThinLV(brickPath string) bool {
 		return false
 	}
 
-	out, err := exec.Command("/sbin/lvs", "--noheadings", "-o", "pool_lv", mntInfo.FsName).Output()
+	out, err := utils.ExecuteCommandOutput("/sbin/lvs", "--noheadings", "-o", "pool_lv", mntInfo.FsName)
 	if err != nil {
 		return false
 	}
@@ -62,7 +64,7 @@ func IsThinLV(brickPath string) bool {
 
 //MountSnapshotDirectory will mount the snapshot bricks to the given path
 func MountSnapshotDirectory(mountPath string, mountData brick.MountInfo) error {
-	_, err := exec.Command("mount", "-o", mountData.MntOpts, mountData.DevicePath, mountPath).Output()
+	err := utils.ExecuteCommandRun("mount", "-o", mountData.MntOpts, mountData.DevicePath, mountPath)
 	/*
 		logrus.WithFields(logrus.Fields{
 			"device path": b.DevicePath,
@@ -84,7 +86,7 @@ func MountSnapshotDirectory(mountPath string, mountData brick.MountInfo) error {
 //GetVgName creates the device path for lvm snapshot
 func GetVgName(mountDevice string) (string, error) {
 
-	out, err := exec.Command("/sbin/lvs", "--noheadings", "-o", "vg_name", mountDevice).Output()
+	out, err := utils.ExecuteCommandOutput("/sbin/lvs", "--noheadings", "-o", "vg_name", mountDevice)
 	if err != nil {
 		return "", err
 	}
@@ -95,8 +97,7 @@ func GetVgName(mountDevice string) (string, error) {
 
 //RemoveBrickSnapshot removes an lvm of a brick
 func RemoveBrickSnapshot(mountData brick.MountInfo) error {
-	_, err := exec.Command(RemoveCommand, "f", mountData.DevicePath).Output()
-	return err
+	return utils.ExecuteCommandRun(RemoveCommand, "f", mountData.DevicePath)
 }
 
 //BrickSnapshot takes lvm snapshot of a brick
@@ -141,7 +142,7 @@ func UpdateFsLabel(DevicePath, FsType string) error {
 	switch FsType {
 	case "xfs":
 		label := uuid[:12]
-		_, err := exec.Command("xfs_admin", "-L", label, DevicePath).Output()
+		err := utils.ExecuteCommandRun("xfs_admin", "-L", label, DevicePath)
 		if err != nil {
 			return err
 		}
@@ -151,7 +152,7 @@ func UpdateFsLabel(DevicePath, FsType string) error {
 		fallthrough
 	case "ext2":
 		label := uuid[:16]
-		_, err := exec.Command("tune2fs", "-L", label, DevicePath).Output()
+		err := utils.ExecuteCommandRun("tune2fs", "-L", label, DevicePath)
 		if err != nil {
 			return err
 		}

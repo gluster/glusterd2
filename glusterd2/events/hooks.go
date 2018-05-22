@@ -3,11 +3,11 @@ package events
 import (
 	"fmt"
 	"io/ioutil"
-	"os/exec"
 	"sort"
 	"strings"
 
 	"github.com/gluster/glusterd2/pkg/api"
+	"github.com/gluster/glusterd2/pkg/utils"
 
 	log "github.com/sirupsen/logrus"
 	config "github.com/spf13/viper"
@@ -70,8 +70,7 @@ func (h *hooks) Handle(e *api.Event) {
 
 	// Execute one by one and record the failures or success
 	for _, hook := range hooks {
-		hookCmd := exec.Command(hook, e.Data["volume.name"])
-		if err := hookCmd.Run(); err != nil {
+		if err := utils.ExecuteCommandRun(hook, e.Data["volume.name"]); err != nil {
 			log.WithError(err).WithField("command", hook).Warn("Failed to execute hook script")
 		} else {
 			log.WithField("command", hook).Debug("Hook script succeeded")
