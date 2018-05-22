@@ -80,5 +80,10 @@ func (r *GDRest) registerRoutes() {
 		ResponseType: utils.GetTypeString((*api.ListEndpointsResp)(nil)),
 		HandlerFunc:  r.listEndpointsHandler()})
 
+	moreRoutes = append(moreRoutes, route.Route{
+		Name:        "Glusterd2 service status",
+		Method:      "GET",
+		Pattern:     "/ping",
+		HandlerFunc: r.Ping()})
 	r.setRoutes(moreRoutes)
 }
