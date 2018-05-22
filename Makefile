@@ -49,8 +49,12 @@ check-reqs:
 	@./scripts/check-reqs.sh
 	@echo
 
-$(GD2_BIN): $(GD2_BUILD)
+$(GD2_BIN): $(GD2_BUILD) gd2conf
 $(GD2_BUILD):
+	@PREFIX=$(PREFIX) BASE_PREFIX=$(BASE_PREFIX) EXEC_PREFIX=$(EXEC_PREFIX) \
+		BINDIR=$(BINDIR) SBINDIR=$(SBINDIR) DATADIR=$(DATADIR) \
+		LOCALSTATEDIR=$(LOCALSTATEDIR) LOGDIR=$(LOGDIR) \
+		SYSCONFDIR=$(SYSCONFDIR) ./scripts/prepare_path_config.sh glusterd2
 	@PLUGINS=$(PLUGINS) FASTBUILD=$(FASTBUILD) ./scripts/build.sh glusterd2
 	@echo
 
