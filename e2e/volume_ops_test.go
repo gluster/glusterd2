@@ -144,8 +144,7 @@ func testVolumeDelete(t *testing.T) {
 
 func testVolumeStart(t *testing.T) {
 	r := require.New(t)
-
-	r.Nil(client.VolumeStart(volname), "volume start failed")
+	r.Nil(client.VolumeStart(volname, false), "volume start failed")
 }
 
 func testVolumeStop(t *testing.T) {
@@ -433,7 +432,7 @@ func testDisperse(t *testing.T) {
 	_, err := client.VolumeCreate(createReq)
 	r.Nil(err)
 
-	r.Nil(client.VolumeStart(disperseVolName), "disperse volume start failed")
+	r.Nil(client.VolumeStart(disperseVolName, true), "disperse volume start failed")
 
 	mntPath, err := ioutil.TempDir(tmpDir, "mnt")
 	r.Nil(err)
