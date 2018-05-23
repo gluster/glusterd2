@@ -1,4 +1,7 @@
 workdir = "w2"
+localstatedir = "w2"
+logdir = "w2/log"
+loglevel = "DEBUG"
 rundir = "w2/run/gluster"
 logfile = "w2.log"
 peeraddress = "127.0.0.1:23008"

@@ -165,7 +165,7 @@ var volumeStartCmd = &cobra.Command{
 	Args:  cobra.ExactArgs(1),
 	Run: func(cmd *cobra.Command, args []string) {
 		volname := cmd.Flags().Args()[0]
-		err := client.VolumeStart(volname)
+		err := client.VolumeStart(volname, flagStartCmdForce)
 		if err != nil {
 			if verbose {
 				log.WithFields(log.Fields{

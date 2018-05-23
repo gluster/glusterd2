@@ -50,7 +50,7 @@ func testQuotaEnable(t *testing.T) {
 	vol1, err := client.VolumeCreate(reqVol)
 	r.Nil(err)
 
-	r.Nil(client.VolumeStart(vol1.Name), "volume start failed")
+	r.Nil(client.VolumeStart(vol1.Name, false), "volume start failed")
 
 	err = client.QuotaEnable(volname)
 	r.Nil(err)

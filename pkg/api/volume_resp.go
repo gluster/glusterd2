@@ -85,7 +85,7 @@ Example of API request-
 					b- GET 'http://localhost:24007/v1/volumes?key={keyname}'
 					c- GET 'http://localhost:24007/v1/volumes?value={value}'
 Note - Cannot use query parameters or cli flags if volname is also supplied.
-*/ 	
+*/
 type VolumeGetResp VolumeInfo
 
 // VolumeExpandResp is the response sent for a volume expand request.
@@ -110,7 +110,7 @@ Example of API request-
 					b- GET 'http://localhost:24007/v1/volumes?key={keyname}'
 					c- GET 'http://localhost:24007/v1/volumes?value={value}'
 Note - Cannot use query parameters or cli flags if volname is also supplied.
-*/ 	
+*/
 type VolumeListResp []VolumeGetResp
 
 // OptionGroupListResp is the response sent for a group list request.
