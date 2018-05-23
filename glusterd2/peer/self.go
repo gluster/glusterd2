@@ -6,6 +6,7 @@ import (
 
 	"github.com/gluster/glusterd2/glusterd2/gdctx"
 	"github.com/gluster/glusterd2/pkg/errors"
+	"github.com/gluster/glusterd2/pkg/utils"
 
 	config "github.com/spf13/viper"
 )
@@ -47,6 +48,7 @@ func AddSelfDetails() error {
 		Name:          gdctx.HostName,
 		PeerAddresses: []string{config.GetString("peeraddress")},
 	}
+
 	p.ClientAddresses, err = normalizeAddrs()
 	if err != nil {
 		return err
@@ -56,8 +58,17 @@ func AddSelfDetails() error {
 	if err == errors.ErrPeerNotFound {
 		p.Metadata = make(map[string]string)
 		p.Metadata["_zone"] = p.ID.String()
+
 	} else if err == nil && peerInfo != nil {
 		p.Metadata = peerInfo.Metadata
+
+		found := utils.StringInSlice(p.PeerAddresses[0], peerInfo.PeerAddresses)
+		if !found {
+			p.PeerAddresses = append(peerInfo.PeerAddresses, p.PeerAddresses...)
+		} else {
+			p.PeerAddresses = peerInfo.PeerAddresses
+		}
+
 	} else {
 		return err
 	}
