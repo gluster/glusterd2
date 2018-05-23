@@ -224,12 +224,13 @@ func rebalanceStopHandler(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	txn.Ctx.Logger().WithField("volname", rebalinfo.Volname).Info("rebalance stopped")
+	logger.WithField("volname", rebalinfo.Volname).Info("rebalance stopped")
 	restutils.SendHTTPResponse(r.Context(), w, http.StatusOK, rebalinfo)
 }
 
 func rebalanceStatusHandler(w http.ResponseWriter, r *http.Request) {
 	ctx := r.Context()
+	logger := gdctx.GetReqLogger(ctx)
 
 	// collect inputs from url
 	volname := mux.Vars(r)["volname"]
@@ -263,7 +264,7 @@ func rebalanceStatusHandler(w http.ResponseWriter, r *http.Request) {
 
 	err = txn.Ctx.Set("volname", volname)
 	if err != nil {
-		txn.Ctx.Logger().WithError(err).Error("failed to set volname in transaction context")
+		logger.WithError(err).Error("failed to set volname in transaction context")
 		restutils.SendHTTPError(ctx, w, http.StatusInternalServerError, err.Error())
 		return
 	}
@@ -282,14 +283,14 @@ func rebalanceStatusHandler(w http.ResponseWriter, r *http.Request) {
 
 	err = txn.Ctx.Set("rinfo", rebalinfo)
 	if err != nil {
-		txn.Ctx.Logger().WithError(err).Error("failed to set rebalance info in transaction context")
+		logger.WithError(err).Error("failed to set rebalance info in transaction context")
 		restutils.SendHTTPError(ctx, w, http.StatusInternalServerError, err.Error())
 		return
 	}
 
 	err = txn.Do()
 	if err != nil {
-		txn.Ctx.Logger().WithFields(log.Fields{
+		logger.WithFields(log.Fields{
 			"error":   err.Error(),
 			"volname": volname,
 		}).Error("failed to query rebalance status for volume")
@@ -298,7 +299,7 @@ func rebalanceStatusHandler(w http.ResponseWriter, r *http.Request) {
 	response, err := createRebalanceStatusResp(txn.Ctx, vol)
 	if err != nil {
 		errMsg := "Failed to create rebalance status reponse"
-		txn.Ctx.Logger().WithField("error", err.Error()).Error("rebalanceStatusHandler:" + errMsg)
+		logger.WithField("error", err.Error()).Error("rebalanceStatusHandler:" + errMsg)
 		restutils.SendHTTPError(ctx, w, http.StatusInternalServerError,
 			errMsg)
 		return

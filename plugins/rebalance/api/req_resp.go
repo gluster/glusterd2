@@ -24,21 +24,21 @@ const (
 type Command uint64
 
 const (
-	// CmdNone should be set only when given cmd is none
+	// CmdNone indicates an invalid command
 	CmdNone Command = iota
-	// CmdStart should be set only when given cmd is rebalance start
+	// CmdStart starts the rebalance
 	CmdStart
-	// CmdStop should be set only when given cmd is rebalance stop
+	// CmdStop stops the rebalance
 	CmdStop
-	// CmdStatus should be set only when given cmd is rebalance status
+	// CmdStatus gets the rebalance status
 	CmdStatus
-	// CmdFixlayoutStart should be set only when given cmd is rebalance fix-layout start
+	// CmdFixLayoutStart starts a rebalance fix-layout operation
 	CmdFixLayoutStart
-	// CmdStartForce should be set only when given cmd is rebalance start force
+	// CmdStartForce starts rebalance with the force option
 	CmdStartForce
 )
 
-// NodeInfo represents Node information needed to store
+// RebalNodeStatus represents the rebalance status on the Node
 type RebalNodeStatus struct {
 	NodeID            uuid.UUID
 	Status            string // This is per Node Rebalance daemon Status
@@ -51,7 +51,7 @@ type RebalNodeStatus struct {
 	TimeLeft          string
 }
 
-// RebalInfo represents Rebalance details for a node
+// RebalInfo represents the rebalance operation information
 type RebalInfo struct {
 	Volname     string
 	Status      Status
@@ -61,14 +61,14 @@ type RebalInfo struct {
 	RebalStats  []RebalNodeStatus
 }
 
-// RebalInfo represents Rebalance details for a node
+// RebalStatus represents the rebalance status response
 type RebalStatus struct {
 	Volname     string
 	RebalanceID uuid.UUID
 	Nodes       []RebalNodeStatus
 }
 
-// StartReq represents Rebalance Start Request
+// StartReq contains the options passed to the Rebalance Start Request
 type StartReq struct {
-	Option string `omitempty`
+	Option string `json:"option,omitempty"`
 }

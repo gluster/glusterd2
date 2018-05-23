@@ -53,9 +53,11 @@ func txnRebalanceStop(c transaction.TxnCtx) error {
 		return err
 	}
 
-	var volname string
-	var xlatorName string
-	var command string
+	var (
+		volname    string
+		xlatorName string
+		command    string
+	)
 
 	if err := c.Get("volname", &volname); err != nil {
 		c.Logger().WithError(err).WithField(
@@ -118,17 +120,21 @@ func txnRebalanceStop(c transaction.TxnCtx) error {
 
 func txnRebalanceStatus(c transaction.TxnCtx) error {
 
-	var rebalinfo rebalanceapi.RebalInfo
-	var rebalNodeStatus rebalanceapi.RebalNodeStatus
+	var (
+		rebalinfo       rebalanceapi.RebalInfo
+		rebalNodeStatus rebalanceapi.RebalNodeStatus
+	)
 
 	err := c.Get("rinfo", &rebalinfo)
 	if err != nil {
 		return err
 	}
 
-	var volname string
-	var xlatorName string
-	var command string
+	var (
+		volname    string
+		xlatorName string
+		command    string
+	)
 
 	if err := c.Get("volname", &volname); err != nil {
 		c.Logger().WithError(err).WithField(
