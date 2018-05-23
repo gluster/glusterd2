@@ -49,6 +49,9 @@ func (b *Glusterfsd) Path() string {
 
 // Args returns arguments to be passed to brick process during spawn.
 func (b *Glusterfsd) Args() string {
+	if b.args != "" {
+		return b.args
+	}
 
 	brickPathWithoutSlashes := strings.Trim(strings.Replace(b.brickinfo.Path, "/", "-", -1), "-")
 
