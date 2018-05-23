@@ -90,9 +90,12 @@ func (c *Client) VolumeStatus(volname string) (api.VolumeStatusResp, error) {
 }
 
 // VolumeStart starts a Gluster Volume
-func (c *Client) VolumeStart(volname string) error {
+func (c *Client) VolumeStart(volname string, force bool) error {
+	req := api.VolumeStartReq{
+		ForceStartBricks: force,
+	}
 	url := fmt.Sprintf("/v1/volumes/%s/start", volname)
-	return c.post(url, nil, http.StatusOK, nil)
+	return c.post(url, req, http.StatusOK, nil)
 }
 
 // VolumeStop stops a Gluster Volume

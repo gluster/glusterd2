@@ -26,7 +26,7 @@ VolumeInfo | GET | /volumes/{volname} | [](https://godoc.org/github.com/gluster/
 VolumeBricksStatus | GET | /volumes/{volname}/bricks | [](https://godoc.org/github.com/gluster/glusterd2/pkg/api#) | [BricksStatusResp](https://godoc.org/github.com/gluster/glusterd2/pkg/api#BricksStatusResp)
 VolumeStatus | GET | /volumes/{volname}/status | [](https://godoc.org/github.com/gluster/glusterd2/pkg/api#) | [VolumeStatusResp](https://godoc.org/github.com/gluster/glusterd2/pkg/api#VolumeStatusResp)
 VolumeList | GET | /volumes | [](https://godoc.org/github.com/gluster/glusterd2/pkg/api#) | [VolumeListResp](https://godoc.org/github.com/gluster/glusterd2/pkg/api#VolumeListResp)
-VolumeStart | POST | /volumes/{volname}/start | [](https://godoc.org/github.com/gluster/glusterd2/pkg/api#) | [VolumeStartResp](https://godoc.org/github.com/gluster/glusterd2/pkg/api#VolumeStartResp)
+VolumeStart | POST | /volumes/{volname}/start | [VolumeStartReq](https://godoc.org/github.com/gluster/glusterd2/pkg/api#VolumeStartReq) | [VolumeStartResp](https://godoc.org/github.com/gluster/glusterd2/pkg/api#VolumeStartResp)
 VolumeStop | POST | /volumes/{volname}/stop | [](https://godoc.org/github.com/gluster/glusterd2/pkg/api#) | [VolumeStopResp](https://godoc.org/github.com/gluster/glusterd2/pkg/api#VolumeStopResp)
 Statedump | POST | /volumes/{volname}/statedump | [VolStatedumpReq](https://godoc.org/github.com/gluster/glusterd2/pkg/api#VolStatedumpReq) | [](https://godoc.org/github.com/gluster/glusterd2/pkg/api#)
 VolfilesGenerate | POST | /volfiles | [](https://godoc.org/github.com/gluster/glusterd2/pkg/api#) | [](https://godoc.org/github.com/gluster/glusterd2/pkg/api#)
@@ -72,3 +72,4 @@ GlustershDisable | POST | /volumes/{name}/heal/disable | [](https://godoc.org/gi
 DeviceAdd | POST | /peers/{peerid}/devices | [AddDeviceReq](https://godoc.org/github.com/gluster/glusterd2/pkg/api#AddDeviceReq) | [AddDeviceResp](https://godoc.org/github.com/gluster/glusterd2/pkg/api#AddDeviceResp)
 Statedump | GET | /statedump | [](https://godoc.org/github.com/gluster/glusterd2/pkg/api#) | [](https://godoc.org/github.com/gluster/glusterd2/pkg/api#)
 List Endpoints | GET | /endpoints | [](https://godoc.org/github.com/gluster/glusterd2/pkg/api#) | [ListEndpointsResp](https://godoc.org/github.com/gluster/glusterd2/pkg/api#ListEndpointsResp)
+Glusterd2 service status | GET | /ping | [](https://godoc.org/github.com/gluster/glusterd2/pkg/api#) | [](https://godoc.org/github.com/gluster/glusterd2/pkg/api#)
