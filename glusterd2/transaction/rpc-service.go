@@ -30,7 +30,7 @@ func (p *txnSvc) RunStep(rpcCtx context.Context, req *TxnStepReq) (*TxnStepResp,
 	logger := ctx.Logger().WithField("stepfunc", req.StepFunc)
 	logger.Debug("RunStep request received")
 
-	f, ok := GetStepFunc(req.StepFunc)
+	f, ok := getStepFunc(req.StepFunc)
 	if !ok {
 		logger.Error("step function not found in registry")
 		return nil, errors.New("step function not found")

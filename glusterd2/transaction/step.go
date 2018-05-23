@@ -83,7 +83,7 @@ func runStepFuncOnNode(name string, c TxnCtx, node uuid.UUID, done chan<- error)
 func runStepFuncLocal(name string, c TxnCtx) error {
 	c.Logger().WithField("stepfunc", name).Debug("running step function")
 
-	stepFunc, ok := GetStepFunc(name)
+	stepFunc, ok := getStepFunc(name)
 	if !ok {
 		return ErrStepFuncNotFound
 	}
@@ -92,7 +92,7 @@ func runStepFuncLocal(name string, c TxnCtx) error {
 }
 
 func runStepFuncRemote(step string, c TxnCtx, node uuid.UUID) error {
-	rsp, err := RunStepOn(step, node, c)
+	rsp, err := runStepOn(step, node, c)
 	//TODO: Results need to be aggregated
 	_ = rsp
 	return err
