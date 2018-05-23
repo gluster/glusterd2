@@ -45,14 +45,6 @@ func (p *txnSvc) RunStep(rpcCtx context.Context, req *TxnStepReq) (*TxnStepResp,
 	if err != nil {
 		logger.WithError(err).Debug("step function failed")
 		resp.Error = err.Error()
-	} else {
-		b, err := json.Marshal(ctx)
-		if err != nil {
-			logger.WithError(err).Debug("failed to JSON marshal transcation context")
-			resp.Error = err.Error()
-		} else {
-			resp.Resp = b
-		}
 	}
 
 	return resp, nil

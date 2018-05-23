@@ -9,7 +9,6 @@ message TxnStepReq {
 
 message TxnStepResp {
   string Error = 1;
-  bytes Resp = 2; // Resp is JSON encoded TxnCtx
 }
 
 service TxnSvc {

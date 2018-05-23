@@ -76,7 +76,7 @@ func runStepFuncOnNode(name string, c TxnCtx, node uuid.UUID, done chan<- error)
 	if uuid.Equal(node, gdctx.MyUUID) {
 		done <- runStepFuncLocal(name, c)
 	} else {
-		done <- runStepFuncRemote(name, c, node)
+		done <- runStepOn(name, node, c)
 	}
 }
 
@@ -89,11 +89,4 @@ func runStepFuncLocal(name string, c TxnCtx) error {
 	}
 	return stepFunc(c)
 	//TODO: Results need to be aggregated
-}
-
-func runStepFuncRemote(step string, c TxnCtx, node uuid.UUID) error {
-	rsp, err := runStepOn(step, node, c)
-	//TODO: Results need to be aggregated
-	_ = rsp
-	return err
 }
