@@ -27,6 +27,13 @@ func (p *Plugin) RestRoutes() route.Routes {
 			RequestType:  utils.GetTypeString((*deviceapi.AddDeviceReq)(nil)),
 			ResponseType: utils.GetTypeString((*deviceapi.AddDeviceResp)(nil)),
 			HandlerFunc:  deviceAddHandler},
+		route.Route{
+			Name:         "DeviceList",
+			Method:       "GET",
+			Pattern:      "/peers/{peerid}/devices",
+			Version:      1,
+			ResponseType: utils.GetTypeString((*deviceapi.ListDeviceResp)(nil)),
+			HandlerFunc:  deviceListHandler},
 	}
 }
 

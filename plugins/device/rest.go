@@ -104,3 +104,28 @@ func deviceAddHandler(w http.ResponseWriter, r *http.Request) {
 	}
 	restutils.SendHTTPResponse(ctx, w, http.StatusOK, peerInfo)
 }
+
+func deviceListHandler(w http.ResponseWriter, r *http.Request) {
+
+	ctx := r.Context()
+	logger := gdctx.GetReqLogger(ctx)
+	peerID := mux.Vars(r)["peerid"]
+	if uuid.Parse(peerID) == nil {
+		restutils.SendHTTPError(ctx, w, http.StatusBadRequest, "Invalid peer-id passed in url")
+		return
+	}
+
+	devices, err := GetDevices(peerID)
+	if err != nil {
+		logger.WithError(err).WithField("peerid", peerID).Error(err)
+		if err == errors.ErrPeerNotFound {
+			restutils.SendHTTPError(ctx, w, http.StatusNotFound, err)
+		} else {
+			restutils.SendHTTPError(ctx, w, http.StatusInternalServerError, err)
+		}
+		return
+	}
+
+	restutils.SendHTTPResponse(ctx, w, http.StatusOK, devices)
+
+}

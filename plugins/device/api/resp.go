@@ -12,3 +12,6 @@ type Info struct {
 
 // AddDeviceResp is the success response sent to a AddDeviceReq request
 type AddDeviceResp api.Peer
+
+// ListDeviceResp is the success response sent to a ListDevice request
+type ListDeviceResp []Info
