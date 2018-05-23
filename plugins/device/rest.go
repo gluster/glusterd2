@@ -117,7 +117,7 @@ func deviceListHandler(w http.ResponseWriter, r *http.Request) {
 
 	devices, err := GetDevices(peerID)
 	if err != nil {
-		logger.WithError(err).WithField("peerid", peerID).Error(err)
+		logger.WithError(err).WithField("peerid", peerID).Error("Failed to get devices for peer")
 		if err == errors.ErrPeerNotFound {
 			restutils.SendHTTPError(ctx, w, http.StatusNotFound, err)
 		} else {
