@@ -94,3 +94,8 @@ type VolEditReq struct {
 	Metadata       map[string]string `json:"metadata"`
 	DeleteMetadata bool              `json:"delete-metadata"`
 }
+
+// VolumeStartReq represents a request to start volume
+type VolumeStartReq struct {
+	ForceStartBricks bool `json:"force-start-bricks,omitempty"`
+}

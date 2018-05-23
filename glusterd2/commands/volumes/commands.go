@@ -106,6 +106,7 @@ func (c *Command) Routes() route.Routes {
 			Method:       "POST",
 			Pattern:      "/volumes/{volname}/start",
 			Version:      1,
+			RequestType:  utils.GetTypeString((*api.VolumeStartReq)(nil)),
 			ResponseType: utils.GetTypeString((*api.VolumeStartResp)(nil)),
 			HandlerFunc:  volumeStartHandler},
 		route.Route{

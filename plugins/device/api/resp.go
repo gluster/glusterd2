@@ -4,7 +4,7 @@ import (
 	"github.com/gluster/glusterd2/pkg/api"
 )
 
-// Info represents structure in which devices are to be store in Peer MetaData
+// Info represents structure in which devices are to be store in Peer Metadata
 type Info struct {
 	Name  string `json:"name"`
 	State string `json:"state"`

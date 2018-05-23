@@ -24,8 +24,8 @@
 %global gd2make %{__make} PREFIX=%{_prefix} EXEC_PREFIX=%{_exec_prefix} BINDIR=%{_bindir} SBINDIR=%{_sbindir} DATADIR=%{_datadir} LOCALSTATEDIR=%{_sharedstatedir} LOGDIR=%{_localstatedir}/log SYSCONFDIR=%{_sysconfdir} FASTBUILD=off
 
 Name: %{repo}
-Version: 4.0.0
-Release: 2%{?dist}
+Version: 4.1.0
+Release: dev%{?dist}
 Summary: The GlusterFS management daemon (preview)
 License: GPLv2 or LGPLv3+
 URL: https://%{provider_prefix}

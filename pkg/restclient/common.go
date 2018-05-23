@@ -145,3 +145,8 @@ func (c *Client) do(method string, url string, data interface{}, expectStatusCod
 
 	return nil
 }
+
+//Ping checks glusterd2 service status
+func (c *Client) Ping() error {
+	return c.get("/ping", nil, http.StatusOK, nil)
+}

@@ -1,4 +1,7 @@
 workdir = "w4"
+localstatedir = "w4"
+logdir = "w4/log"
+loglevel = "DEBUG"
 rundir = "w4/run/gluster"
 logfile = "w4.log"
 peeraddress = "127.0.0.1:21008"
