@@ -102,4 +102,5 @@ func getCmd(req *rebalanceapi.StartReq) rebalanceapi.Command {
 	default:
 		return rebalanceapi.CmdNone
 	}
+
 }
