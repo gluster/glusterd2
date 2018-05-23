@@ -40,5 +40,6 @@ var (
 	ErrUnmarshallFailed        = errors.New("failed to unmarshall from json")
 	ErrClusterNotFound         = errors.New("Cluster instance not found in store")
 	ErrDuplicateBrickPath      = errors.New("Duplicate brick entry")
+	ErrRestrictedKeyFound      = errors.New("Key names starting with '_' are restricted in metadata field")
 	ErrVolFileNotFound         = errors.New("volume file not found")
 )
