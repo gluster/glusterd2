@@ -32,7 +32,7 @@ func editPeer(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	for key := range req.MetaData {
+	for key := range req.Metadata {
 		if strings.HasPrefix(key, "_") {
 			logger.WithField("metadata-key", key).Error("Key names starting with '_' are restricted in metadata field")
 			restutils.SendHTTPError(ctx, w, http.StatusInternalServerError, "Key names starting with '_' are restricted in metadata field")
@@ -58,7 +58,7 @@ func editPeer(w http.ResponseWriter, r *http.Request) {
 	}
 	err = txn.Ctx.Set("peerid", peerID)
 	if err != nil {
-		logger.WithError(err).WithField("key", peerID).Error("Failed to set key in transaction context")
+		logger.WithError(err).WithField("key", "peerid").WithField("value", peerID).Error("Failed to set key in transaction context")
 		restutils.SendHTTPError(ctx, w, http.StatusInternalServerError, err)
 		return
 	}
@@ -102,13 +102,13 @@ func txnPeerEdit(c transaction.TxnCtx) error {
 		c.Logger().WithError(err).WithField("peerid", peerID).Error("Peer ID not found in store")
 		return err
 	}
-	for k, v := range req.MetaData {
-		if peerInfo.MetaData != nil {
-			peerInfo.MetaData[k] = v
-		} else {
-			peerInfo.MetaData = make(map[string]string)
-			peerInfo.MetaData[k] = v
-		}
+
+	for k, v := range req.Metadata {
+		peerInfo.Metadata[k] = v
+	}
+
+	if req.Zone != "" {
+		peerInfo.Metadata["_zone"] = req.Zone
 	}
 	err = peer.AddOrUpdatePeer(peerInfo)
 	if err != nil {
@@ -141,6 +141,6 @@ func createPeerEditResp(p *peer.Peer) *api.PeerEditResp {
 		Name:            p.Name,
 		PeerAddresses:   p.PeerAddresses,
 		ClientAddresses: p.ClientAddresses,
-		MetaData:        p.MetaData,
+		Metadata:        p.Metadata,
 	}
 }
