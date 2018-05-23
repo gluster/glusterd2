@@ -4,7 +4,6 @@ import (
 	"errors"
 	"net/http"
 	"path/filepath"
-	"regexp"
 
 	"github.com/gluster/glusterd2/glusterd2/events"
 	"github.com/gluster/glusterd2/glusterd2/gdctx"
@@ -17,19 +16,12 @@ import (
 	"github.com/pborman/uuid"
 )
 
-var (
-	reg = regexp.MustCompile("^[a-zA-Z0-9_-]+$")
-)
-
 const (
 	maxMetadataSizeLimit = 4096
 )
 
 func validateVolCreateReq(req *api.VolCreateReq) error {
-
-	valid := reg.MatchString(req.Name)
-
-	if !valid {
+	if !volume.IsValidName(req.Name) {
 		return gderrors.ErrInvalidVolName
 	}
 
