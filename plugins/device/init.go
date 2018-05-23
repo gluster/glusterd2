@@ -22,7 +22,7 @@ func (p *Plugin) RestRoutes() route.Routes {
 		route.Route{
 			Name:         "DeviceAdd",
 			Method:       "POST",
-			Pattern:      "/peers/{peerid}/devices",
+			Pattern:      "/devices/{peerid}",
 			Version:      1,
 			RequestType:  utils.GetTypeString((*deviceapi.AddDeviceReq)(nil)),
 			ResponseType: utils.GetTypeString((*deviceapi.AddDeviceResp)(nil)),
@@ -30,10 +30,17 @@ func (p *Plugin) RestRoutes() route.Routes {
 		route.Route{
 			Name:         "DeviceList",
 			Method:       "GET",
-			Pattern:      "/peers/{peerid}/devices",
+			Pattern:      "/devices/{peerid}",
 			Version:      1,
 			ResponseType: utils.GetTypeString((*deviceapi.ListDeviceResp)(nil)),
 			HandlerFunc:  deviceListHandler},
+		route.Route{
+			Name:         "ListAllDevices",
+			Method:       "GET",
+			Pattern:      "/devices",
+			Version:      1,
+			ResponseType: utils.GetTypeString((*[]deviceapi.ListDeviceResp)(nil)),
+			HandlerFunc:  listAllDevicesHandler},
 	}
 }
 
