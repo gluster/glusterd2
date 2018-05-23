@@ -30,7 +30,7 @@ DEPENV ?=
 PLUGINS ?= yes
 FASTBUILD ?= yes
 
-.PHONY: all build check check-go check-reqs install vendor-update vendor-install verify release check-protoc $(GD2_BIN) $(GD2_BUILD) $(CLI_BIN) $(CLI_BUILD) cli $(GD2_CONF) gd2conf test dist dist-vendor functest
+.PHONY: all build check check-go check-reqs install vendor-update vendor-install verify release check-protoc $(GD2_BIN) $(GD2_BUILD) $(CLI_BIN) $(CLI_BUILD) cli $(GD2_CONF) gd2conf test dist dist-vendor functest generated
 
 all: build
 
@@ -49,12 +49,16 @@ check-reqs:
 	@./scripts/check-reqs.sh
 	@echo
 
-$(GD2_BIN): $(GD2_BUILD) gd2conf
-$(GD2_BUILD):
+generated:
+	@echo "Generating sources..."
 	@PREFIX=$(PREFIX) BASE_PREFIX=$(BASE_PREFIX) EXEC_PREFIX=$(EXEC_PREFIX) \
 		BINDIR=$(BINDIR) SBINDIR=$(SBINDIR) DATADIR=$(DATADIR) \
 		LOCALSTATEDIR=$(LOCALSTATEDIR) LOGDIR=$(LOGDIR) \
 		SYSCONFDIR=$(SYSCONFDIR) ./scripts/prepare_path_config.sh glusterd2
+
+
+$(GD2_BIN): $(GD2_BUILD) gd2conf generated
+$(GD2_BUILD): generated
 	@PLUGINS=$(PLUGINS) FASTBUILD=$(FASTBUILD) ./scripts/build.sh glusterd2
 	@echo
 
@@ -86,10 +90,10 @@ vendor-install:
 	@$(DEPENV) dep ensure
 	@echo
 
-test: check-reqs
+test: check-reqs generated
 	@./test.sh $(TESTOPTIONS)
 
-functest: check-reqs
+functest: check-reqs generated
 	@go test ./e2e -v -functest
 
 release: build
