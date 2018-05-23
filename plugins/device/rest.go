@@ -54,17 +54,19 @@ func deviceAddHandler(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	var devices []deviceapi.Info
-	err = json.Unmarshal([]byte(peerInfo.Metadata["_devices"]), &devices)
-	if err != nil {
-		logger.WithError(err).WithField("peerid", peerID).Error(err)
-		restutils.SendHTTPError(ctx, w, http.StatusInternalServerError, err)
-		return
-	}
-	if checkIfDeviceExist(req.Device, devices) {
-		logger.WithError(err).WithField("device", req.Device).Error("Device already exists")
-		restutils.SendHTTPError(ctx, w, http.StatusBadRequest, "Device already exists")
-		return
+	if _, exists := peerInfo.Metadata["_devices"]; exists {
+		var devices []deviceapi.Info
+		err = json.Unmarshal([]byte(peerInfo.Metadata["_devices"]), &devices)
+		if err != nil {
+			logger.WithError(err).WithField("peerid", peerID).Error(err)
+			restutils.SendHTTPError(ctx, w, http.StatusInternalServerError, err)
+			return
+		}
+		if checkIfDeviceExist(req.Device, devices) {
+			logger.WithError(err).WithField("device", req.Device).Error("Device already exists")
+			restutils.SendHTTPError(ctx, w, http.StatusBadRequest, "Device already exists")
+			return
+		}
 	}
 
 	txn := transaction.NewTxn(ctx)

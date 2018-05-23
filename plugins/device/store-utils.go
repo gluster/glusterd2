@@ -44,7 +44,10 @@ func addDevice(device deviceapi.Info, peerID string) error {
 	var devices []deviceapi.Info
 	if deviceDetails != nil {
 		devices = append(deviceDetails, device)
+	} else {
+		devices = append(devices, device)
 	}
+
 	deviceJSON, err := json.Marshal(devices)
 	if err != nil {
 		return err
