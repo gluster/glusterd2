@@ -1,7 +1,6 @@
 package georeplication
 
 import (
-	"bytes"
 	"fmt"
 	"path"
 
@@ -19,7 +18,7 @@ const (
 type Gsyncd struct {
 	// Externally consumable using methods of Gsyncd interface
 	binarypath     string
-	args           string
+	args           []string
 	configFilePath string
 	pidfilepath    string
 	// For internal use
@@ -37,16 +36,17 @@ func (g *Gsyncd) Path() string {
 }
 
 // Args returns arguments to be passed to gsyncd process during spawn.
-func (g *Gsyncd) Args() string {
-	var buffer bytes.Buffer
-	buffer.WriteString(" monitor")
-	buffer.WriteString(fmt.Sprintf(" %s", g.sessioninfo.MasterVol))
-	buffer.WriteString(fmt.Sprintf(" %s@%s::%s", g.sessioninfo.RemoteUser, g.sessioninfo.RemoteHosts[0].Hostname, g.sessioninfo.RemoteVol))
-	buffer.WriteString(fmt.Sprintf(" --local-node-id %s", gdctx.MyUUID.String()))
-	buffer.WriteString(fmt.Sprintf(" -c %s", g.ConfigFile()))
-	buffer.WriteString(" --use-gconf-volinfo")
+func (g *Gsyncd) Args() []string {
+	g.args = []string{}
 
-	g.args = buffer.String()
+	g.args = append(g.args, "monitor")
+	g.args = append(g.args, g.sessioninfo.MasterVol)
+	g.args = append(g.args,
+		fmt.Sprintf("%s@%s::%s", g.sessioninfo.RemoteUser, g.sessioninfo.RemoteHosts[0].Hostname, g.sessioninfo.RemoteVol))
+	g.args = append(g.args, "--local-node-id", gdctx.MyUUID.String())
+	g.args = append(g.args, "-c", g.ConfigFile())
+	g.args = append(g.args, "--use-gconf-volinfo")
+
 	return g.args
 }
 
