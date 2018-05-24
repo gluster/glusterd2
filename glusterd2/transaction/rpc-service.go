@@ -1,13 +1,13 @@
 package transaction
 
 import (
-	"context"
 	"encoding/json"
 	"errors"
 
 	"github.com/gluster/glusterd2/glusterd2/servers/peerrpc"
 
 	log "github.com/sirupsen/logrus"
+	"golang.org/x/net/context"
 	"google.golang.org/grpc"
 )
 
