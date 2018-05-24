@@ -131,27 +131,3 @@ func deviceListHandler(w http.ResponseWriter, r *http.Request) {
 	restutils.SendHTTPResponse(ctx, w, http.StatusOK, devices)
 
 }
-
-func listAllHandler(w http.ResponseWriter, r *http.Request) {
-
-	ctx := r.Context()
-	logger := gdctx.GetReqLogger(ctx)
-	peers, err := GetPeers()
-	if err != nil {
-		logger.WithError(err).Error("Failed to get peers from store")
-	}
-
-	devices, err := GetDevices(peerID)
-	if err != nil {
-		logger.WithError(err).WithField("peerid", peerID).Error("Failed to get devices for peer")
-		if err == errors.ErrPeerNotFound {
-			restutils.SendHTTPError(ctx, w, http.StatusNotFound, err)
-		} else {
-			restutils.SendHTTPError(ctx, w, http.StatusInternalServerError, err)
-		}
-		return
-	}
-
-	restutils.SendHTTPResponse(ctx, w, http.StatusOK, devices)
-
-}
