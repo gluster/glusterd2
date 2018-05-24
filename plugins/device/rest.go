@@ -141,8 +141,6 @@ func listAllHandler(w http.ResponseWriter, r *http.Request) {
 		logger.WithError(err).Error("Failed to get peers from store")
 	}
 
-	for key := range peers {
-
 	devices, err := GetDevices(peerID)
 	if err != nil {
 		logger.WithError(err).WithField("peerid", peerID).Error("Failed to get devices for peer")
