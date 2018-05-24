@@ -23,6 +23,7 @@ var (
 	flagCreateForce                                                                 bool
 	flagCreateAdvOpts, flagCreateExpOpts, flagCreateDepOpts                         bool
 	flagCreateThinArbiter                                                           string
+	flagCreateVolumeOptions                                                         []string
 
 	volumeCreateCmd = &cobra.Command{
 		Use:   "create <volname> <brick> [<brick>]...",
@@ -44,15 +45,11 @@ func init() {
 	volumeCreateCmd.Flags().IntVar(&flagCreateRedundancyCount, "redundancy", 0, "Redundancy Count")
 	volumeCreateCmd.Flags().StringVar(&flagCreateTransport, "transport", "tcp", "Transport")
 	volumeCreateCmd.Flags().BoolVar(&flagCreateForce, "force", false, "Force")
-
-	// XXX: These flags are currently hidden as the CLI does not yet support setting options during create.
-	// TODO: Make these visible once CLI gains support for setting options during create.
+	volumeCreateCmd.Flags().StringSliceVar(&flagCreateVolumeOptions, "options", []string{},
+		"Volume options in the format option:value,option:value")
 	volumeCreateCmd.Flags().BoolVar(&flagCreateAdvOpts, "advanced", false, "Allow advanced options")
 	volumeCreateCmd.Flags().BoolVar(&flagCreateExpOpts, "experimental", false, "Allow experimental options")
 	volumeCreateCmd.Flags().BoolVar(&flagCreateDepOpts, "deprecated", false, "Allow deprecated options")
-	volumeCreateCmd.Flags().MarkHidden("advanced")
-	volumeCreateCmd.Flags().MarkHidden("experimental")
-	volumeCreateCmd.Flags().MarkHidden("deprecated")
 	volumeCmd.AddCommand(volumeCreateCmd)
 }
 
@@ -100,10 +97,33 @@ func volumeCreateCmdRun(cmd *cobra.Command, args []string) {
 		}
 	}
 
+	options := make(map[string]string)
+	//set options
+	if len(flagCreateVolumeOptions) != 0 {
+		for _, opt := range flagCreateVolumeOptions {
+
+			if len(strings.Split(opt, ":")) != 2 {
+				fmt.Println("Error setting volume options")
+				return
+			}
+			newopt := strings.Split(opt, ":")
+			//check if empty option or value
+			if len(strings.TrimSpace(newopt[0])) == 0 || len(strings.TrimSpace(newopt[1])) == 0 {
+				fmt.Println("Error setting volume options ,contains empty option or value")
+				return
+			}
+			options[newopt[0]] = newopt[1]
+		}
+	}
+
 	req := api.VolCreateReq{
-		Name:    volname,
-		Subvols: subvols,
-		Force:   flagCreateForce,
+		Name:         volname,
+		Subvols:      subvols,
+		Force:        flagCreateForce,
+		Options:      options,
+		Advanced:     flagCreateAdvOpts,
+		Experimental: flagCreateExpOpts,
+		Deprecated:   flagCreateDepOpts,
 	}
 
 	// handle thin-arbiter
