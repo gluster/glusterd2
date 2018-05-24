@@ -7,20 +7,6 @@ import (
 	"github.com/gluster/glusterd2/pkg/api"
 )
 
-func getRedundancy(disperse uint) uint {
-	var temp, l, mask uint
-	temp = disperse
-	l = 0
-	for temp = temp >> 1; temp != 0; temp = temp >> 1 {
-		l = l + 1
-	}
-	mask = ^(1 << l)
-	if red := disperse & mask; red != 0 {
-		return red
-	}
-	return 1
-}
-
 func checkDisperseParams(req *api.SubvolReq, s *volume.Subvol) error {
 	count := len(req.Bricks)
 
@@ -50,7 +36,7 @@ func checkDisperseParams(req *api.SubvolReq, s *volume.Subvol) error {
 	}
 
 	if req.DisperseRedundancy <= 0 {
-		req.DisperseRedundancy = int(getRedundancy(uint(req.DisperseCount)))
+		req.DisperseRedundancy = volume.GetRedundancy(uint(req.DisperseCount))
 	}
 
 	if req.DisperseCount != count {
