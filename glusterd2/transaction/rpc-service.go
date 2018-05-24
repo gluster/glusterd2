@@ -19,35 +19,44 @@ func init() {
 
 // RunStep handles the incoming request. It executes the requested step and returns the results
 func (p *txnSvc) RunStep(rpcCtx context.Context, req *TxnStepReq) (*TxnStepResp, error) {
-	var ctx Tctx
 
-	err := json.Unmarshal(req.Context, &ctx)
-	if err != nil {
+	var (
+		resp   TxnStepResp
+		f      StepFunc
+		err    error
+		ok     bool
+		logger log.FieldLogger
+	)
+
+	var ctx Tctx
+	if err = json.Unmarshal(req.Context, &ctx); err != nil {
 		log.WithError(err).Error("failed to Unmarshal transaction context")
-		return nil, err
+		goto End
 	}
 
-	logger := ctx.Logger().WithField("stepfunc", req.StepFunc)
+	logger = ctx.Logger().WithField("stepfunc", req.StepFunc)
 	logger.Debug("RunStep request received")
 
-	f, ok := getStepFunc(req.StepFunc)
+	f, ok = getStepFunc(req.StepFunc)
 	if !ok {
-		logger.Error("step function not found in registry")
-		return nil, errors.New("step function not found")
+		err = errors.New("step function not found in registry")
+		goto End
 	}
 
-	logger.Debug("running step")
-
-	resp := new(TxnStepResp)
-
-	// Execute the step function, build and return result
-	err = f(&ctx)
-	if err != nil {
+	logger.Debug("executing step function")
+	if err = f(&ctx); err != nil {
 		logger.WithError(err).Debug("step function failed")
+		goto End
+	}
+
+End:
+	// Ensure RPC will always send a success reply. Error is stored in
+	// body of response.
+	if err != nil {
 		resp.Error = err.Error()
 	}
 
-	return resp, nil
+	return &resp, nil
 }
 
 // RegisterService registers txnSvc with the given grpc.Server
