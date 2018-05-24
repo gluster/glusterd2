@@ -34,6 +34,10 @@ GIT_SHA_FULL=${GIT_SHA_FULL:-$(git rev-parse HEAD || echo "undefined")}
 LDFLAGS="-X ${REPO_PATH}/version.GlusterdVersion=${VERSION} -X ${REPO_PATH}/version.GitSHA=${GIT_SHA}"
 LDFLAGS+=" -B 0x${GIT_SHA_FULL}"
 
+if [ "$BIN" == "glusterd2" ]; then
+    LDFLAGS+=" -X main.defaultPathPrefix=${BASE_PREFIX}"
+fi
+
 GOBUILD_TAGS=""
 if [ "$PLUGINS" == "yes" ]; then
     GOBUILD_TAGS+="plugins "
