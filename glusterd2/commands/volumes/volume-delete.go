@@ -122,7 +122,7 @@ func volumeDeleteHandler(w http.ResponseWriter, r *http.Request) {
 	}
 
 	logger.WithField("volume-name", volinfo.Name).Info("volume deleted")
-	events.Broadcast(newVolumeEvent(eventVolumeDeleted, volinfo))
+	events.Broadcast(volume.NewEvent(volume.EventVolumeDeleted, volinfo))
 
 	restutils.SendHTTPResponse(ctx, w, http.StatusOK, nil)
 }

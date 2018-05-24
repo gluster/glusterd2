@@ -95,7 +95,7 @@ func volumeExpandHandler(w http.ResponseWriter, r *http.Request) {
 	txn := transaction.NewTxn(ctx)
 	defer txn.Cleanup()
 
-	nodes, err := nodesFromVolumeExpandReq(&req)
+	nodes, err := req.Nodes()
 	if err != nil {
 		logger.WithError(err).Error("could not prepare node list")
 		restutils.SendHTTPError(ctx, w, http.StatusInternalServerError, err)
@@ -170,7 +170,7 @@ func volumeExpandHandler(w http.ResponseWriter, r *http.Request) {
 	}
 
 	logger.WithField("volume-name", volinfo.Name).Info("volume expanded")
-	events.Broadcast(newVolumeEvent(eventVolumeExpanded, volinfo))
+	events.Broadcast(volume.NewEvent(volume.EventVolumeExpanded, volinfo))
 
 	resp := createVolumeExpandResp(volinfo)
 	restutils.SendHTTPResponse(ctx, w, http.StatusOK, resp)

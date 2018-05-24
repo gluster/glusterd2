@@ -6,8 +6,12 @@ import (
 
 // Info represents structure in which devices are to be store in Peer Metadata
 type Info struct {
-	Name  string `json:"name"`
-	State string `json:"state"`
+	Name          string `json:"name"`
+	State         string `json:"state"`
+	VgName        string `json:"vg-name"`
+	AvailableSize uint64 `json:"available-size"`
+	ExtentSize    uint64 `json:"extent-size"`
+	Used          bool   `json:"used"`
 }
 
 // AddDeviceResp is the success response sent to a AddDeviceReq request
