@@ -1,6 +1,8 @@
 package peercommands
 
 import (
+	"context"
+
 	"github.com/gluster/glusterd2/glusterd2/events"
 	"github.com/gluster/glusterd2/glusterd2/gdctx"
 	"github.com/gluster/glusterd2/glusterd2/peer"
@@ -11,7 +13,6 @@ import (
 	"github.com/pborman/uuid"
 
 	log "github.com/sirupsen/logrus"
-	"golang.org/x/net/context"
 	"google.golang.org/grpc"
 )
 

@@ -1,13 +1,13 @@
 package transaction
 
 import (
+	"context"
 	"encoding/json"
 	"errors"
 
 	"github.com/gluster/glusterd2/glusterd2/servers/peerrpc"
 
 	log "github.com/sirupsen/logrus"
-	"golang.org/x/net/context"
 	"google.golang.org/grpc"
 )
 
@@ -30,7 +30,7 @@ func (p *txnSvc) RunStep(rpcCtx context.Context, req *TxnStepReq) (*TxnStepResp,
 	logger := ctx.Logger().WithField("stepfunc", req.StepFunc)
 	logger.Debug("RunStep request received")
 
-	f, ok := GetStepFunc(req.StepFunc)
+	f, ok := getStepFunc(req.StepFunc)
 	if !ok {
 		logger.Error("step function not found in registry")
 		return nil, errors.New("step function not found")
@@ -45,14 +45,6 @@ func (p *txnSvc) RunStep(rpcCtx context.Context, req *TxnStepReq) (*TxnStepResp,
 	if err != nil {
 		logger.WithError(err).Debug("step function failed")
 		resp.Error = err.Error()
-	} else {
-		b, err := json.Marshal(ctx)
-		if err != nil {
-			logger.WithError(err).Debug("failed to JSON marshal transcation context")
-			resp.Error = err.Error()
-		} else {
-			resp.Resp = b
-		}
 	}
 
 	return resp, nil

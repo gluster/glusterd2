@@ -33,8 +33,8 @@ func RegisterStepFunc(s StepFunc, name string) {
 	registerStepFunc(s, name)
 }
 
-//GetStepFunc returns named step if found.
-func GetStepFunc(name string) (StepFunc, bool) {
+//getStepFunc returns named step if found.
+func getStepFunc(name string) (StepFunc, bool) {
 	sfRegistry.RLock()
 	defer sfRegistry.RUnlock()
 

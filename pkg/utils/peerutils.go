@@ -9,7 +9,7 @@ import (
 )
 
 // FormRemotePeerAddress will check and validate peeraddress provided. It will
-// return an address of the form <ip:port>
+// return an address of the form <host:port>
 func FormRemotePeerAddress(peeraddress string) (string, error) {
 
 	host, port, err := net.SplitHostPort(peeraddress)

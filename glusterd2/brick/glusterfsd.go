@@ -1,7 +1,6 @@
 package brick
 
 import (
-	"bytes"
 	"fmt"
 	"net"
 	"os/exec"
@@ -29,7 +28,7 @@ const (
 type Glusterfsd struct {
 	// Externally consumable using methods of Glusterfsd interface
 	binarypath     string
-	args           string
+	args           []string
 	socketfilepath string
 	pidfilepath    string
 
@@ -48,7 +47,7 @@ func (b *Glusterfsd) Path() string {
 }
 
 // Args returns arguments to be passed to brick process during spawn.
-func (b *Glusterfsd) Args() string {
+func (b *Glusterfsd) Args() []string {
 
 	brickPathWithoutSlashes := strings.Trim(strings.Replace(b.brickinfo.Path, "/", "-", -1), "-")
 
@@ -63,19 +62,22 @@ func (b *Glusterfsd) Args() string {
 		shost = "127.0.0.1"
 	}
 
-	var buffer bytes.Buffer
-	buffer.WriteString(fmt.Sprintf(" --volfile-server %s", shost))
-	buffer.WriteString(fmt.Sprintf(" --volfile-server-port %s", sport))
-	buffer.WriteString(fmt.Sprintf(" --volfile-id %s", volFileID))
-	buffer.WriteString(fmt.Sprintf(" -p %s", b.PidFile()))
-	buffer.WriteString(fmt.Sprintf(" -S %s", b.SocketFile()))
-	buffer.WriteString(fmt.Sprintf(" --brick-name %s", b.brickinfo.Path))
-	buffer.WriteString(fmt.Sprintf(" --brick-port %s", brickPort))
-	buffer.WriteString(fmt.Sprintf(" -l %s", logFile))
-	buffer.WriteString(fmt.Sprintf(" --xlator-option *-posix.glusterd-uuid=%s", gdctx.MyUUID))
-	buffer.WriteString(fmt.Sprintf(" --xlator-option %s-server.transport.socket.listen-port=%s", b.brickinfo.VolumeName, brickPort))
+	b.args = []string{}
+	b.args = append(b.args, "--volfile-server", shost)
+	b.args = append(b.args, "--volfile-server-port", sport)
+	b.args = append(b.args, "--volfile-id", volFileID)
+	b.args = append(b.args, "-p", b.PidFile())
+	b.args = append(b.args, "-S", b.SocketFile())
+	b.args = append(b.args, "--brick-name", b.brickinfo.Path)
+	b.args = append(b.args, "--brick-port", brickPort)
+	b.args = append(b.args, "-l", logFile)
+	b.args = append(b.args,
+		"--xlator-option",
+		fmt.Sprintf("*-posix.glusterd-uuid=%s", gdctx.MyUUID))
+	b.args = append(b.args,
+		"--xlator-option",
+		fmt.Sprintf("%s-server.transport.socket.listen-port=%s", b.brickinfo.VolumeName, brickPort))
 
-	b.args = buffer.String()
 	return b.args
 }
 

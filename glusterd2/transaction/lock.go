@@ -27,8 +27,8 @@ func createLockStepFunc(key string) (string, string, error) {
 	lockFuncID := key + ".Lock"
 	unlockFuncID := key + ".Unlock"
 
-	_, lockFuncFound := GetStepFunc(lockFuncID)
-	_, unlockFuncFound := GetStepFunc(unlockFuncID)
+	_, lockFuncFound := getStepFunc(lockFuncID)
+	_, unlockFuncFound := getStepFunc(unlockFuncID)
 
 	if lockFuncFound && unlockFuncFound {
 		return lockFuncID, unlockFuncID, nil
