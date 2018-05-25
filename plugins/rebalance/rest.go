@@ -20,7 +20,7 @@ func createRebalanceInfo(volname string, req *rebalanceapi.StartReq) *rebalancea
 	return &rebalanceapi.RebalInfo{
 		Volname:     volname,
 		RebalanceID: uuid.NewRandom(),
-		Status:      rebalanceapi.Started,
+		State:       rebalanceapi.Started,
 		Cmd:         getCmd(req),
 		CommitHash:  setCommitHash(),
 		RebalStats:  []rebalanceapi.RebalNodeStatus{},
@@ -38,8 +38,11 @@ func rebalanceStartHandler(w http.ResponseWriter, r *http.Request) {
 	var req rebalanceapi.StartReq
 
 	//  Unmarshal Request to check for fix-layout and start force
-
 	err := restutils.UnmarshalRequest(r, &req)
+	if err != nil {
+		restutils.SendHTTPError(ctx, w, http.StatusBadRequest, err)
+		return
+	}
 
 	rebalinfo := createRebalanceInfo(volname, &req)
 	if rebalinfo == nil {
@@ -80,15 +83,13 @@ func rebalanceStartHandler(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	// TODO: Check for remove- brick pending
-
-	// A simple transaction to start rebalance on all nodes
+	// TODO: Check for remove-brick
 
 	txn := transaction.NewTxn(ctx)
 	defer txn.Cleanup()
 
 	// Start the rebalance process on all nodes
-	// this node will save the rebalinfo in the store
+	// Only this node will save the rebalinfo in the store
 
 	txn.Nodes = vol.Nodes()
 	txn.Steps = []*transaction.Step{
@@ -119,7 +120,7 @@ func rebalanceStartHandler(w http.ResponseWriter, r *http.Request) {
 	err = txn.Do()
 	if err != nil {
 		/* TODO: Need to handle failure case. Unlike other process,
-		 * rebalance process is one per node and depends on volfile change.
+		 * rebalance process is one per node per volume.
 		 * Need to handle scenarios where process is started in
 		 * few nodes and failed in few others */
 		logger.WithFields(log.Fields{
@@ -135,7 +136,7 @@ func rebalanceStartHandler(w http.ResponseWriter, r *http.Request) {
 		logger.WithFields(log.Fields{
 			"error":   err.Error(),
 			"volname": volname,
-		}).Error("failed to save rebalance info for volume")
+		}).Error("failed to get the rebalance info for volume")
 	}
 
 	logger.WithField("volname", rebalinfo.Volname).Info("rebalance started")
@@ -174,8 +175,8 @@ func rebalanceStopHandler(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	// Check rebalance process is started or not
-	if rebalinfo.Status != rebalanceapi.Started {
+	// Check whether the rebalance state is started
+	if rebalinfo.State != rebalanceapi.Started {
 		restutils.SendHTTPError(r.Context(), w, http.StatusBadRequest, ErrRebalanceNotStarted)
 		return
 	}
@@ -204,7 +205,7 @@ func rebalanceStopHandler(w http.ResponseWriter, r *http.Request) {
 	}
 
 	rebalinfo.Volname = volname
-	rebalinfo.Status = rebalanceapi.Stopped
+	rebalinfo.State = rebalanceapi.Stopped
 	rebalinfo.Cmd = rebalanceapi.CmdStop
 
 	err = txn.Ctx.Set("rinfo", rebalinfo)
@@ -309,13 +310,15 @@ func rebalanceStatusHandler(w http.ResponseWriter, r *http.Request) {
 }
 
 func createRebalanceStatusResp(ctx transaction.TxnCtx, volinfo *volume.Volinfo) (*rebalanceapi.RebalStatus, error) {
-	var resp rebalanceapi.RebalStatus
-	var tmp rebalanceapi.RebalNodeStatus
-	var rebalinfo rebalanceapi.RebalInfo
+	var (
+		resp      rebalanceapi.RebalStatus
+		tmp       rebalanceapi.RebalNodeStatus
+		rebalinfo rebalanceapi.RebalInfo
+	)
 
 	err := ctx.Get("rinfo", &rebalinfo)
 	if err != nil {
-		log.Error("Failed to get rebalinfo")
+		log.WithField("volume", volinfo.Name).Error("Failed to get rebalinfo")
 		return nil, err
 	}
 
@@ -332,7 +335,7 @@ func createRebalanceStatusResp(ctx transaction.TxnCtx, volinfo *volume.Volinfo) 
 	for _, node := range volinfo.Nodes() {
 		err := ctx.GetNodeResult(node, rebalStatusTxnKey, &tmp)
 		if err != nil {
-			// skip. We might have it in the rebinfo
+			// skip. We might have it in the rebalinfo
 			continue
 		}
 

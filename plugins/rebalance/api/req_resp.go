@@ -40,21 +40,21 @@ const (
 
 // RebalNodeStatus represents the rebalance status on the Node
 type RebalNodeStatus struct {
-	NodeID            uuid.UUID
-	Status            string // This is per Node Rebalance daemon Status
-	RebalancedFiles   string
-	RebalancedSize    string
-	LookedupFiles     string
-	SkippedFiles      string
-	RebalanceFailures string
-	ElapsedTime       string
-	TimeLeft          string
+	NodeID            uuid.UUID `json:"nodeid"`
+	Status            string    `json:"status"`
+	RebalancedFiles   string    `json:"rebalanced-files"`
+	RebalancedSize    string    `json:"size"`
+	LookedupFiles     string    `json:"lookedup"`
+	SkippedFiles      string    `json:"skipped"`
+	RebalanceFailures string    `json:"failed"`
+	ElapsedTime       string    `json:"run-time"`
+	TimeLeft          string    `json:"time-left"`
 }
 
 // RebalInfo represents the rebalance operation information
 type RebalInfo struct {
 	Volname     string
-	Status      Status
+	State       Status
 	Cmd         Command
 	RebalanceID uuid.UUID
 	CommitHash  uint64
@@ -63,9 +63,9 @@ type RebalInfo struct {
 
 // RebalStatus represents the rebalance status response
 type RebalStatus struct {
-	Volname     string
-	RebalanceID uuid.UUID
-	Nodes       []RebalNodeStatus
+	Volname     string            `json:"volume"`
+	RebalanceID uuid.UUID         `json:"rebalance-id"`
+	Nodes       []RebalNodeStatus `json:"nodes-status"`
 }
 
 // StartReq contains the options passed to the Rebalance Start Request

@@ -1,7 +1,7 @@
 package rebalance
 
 import (
-	"bytes"
+	//        "bytes"
 	"fmt"
 	"net"
 	"os/exec"
@@ -21,7 +21,7 @@ const (
 // Process type represents information about rebalance process
 type Process struct {
 	binarypath     string
-	args           string
+	args           []string
 	socketfilepath string
 	pidfilepath    string
 	rInfo          rebalanceapi.RebalInfo
@@ -38,10 +38,11 @@ func (r *Process) Path() string {
 }
 
 // Args returns arguments to be passed to rebalance process
-func (r *Process) Args() string {
+func (r *Process) Args() []string {
 
 	volfileserver, port, _ := net.SplitHostPort(config.GetString("clientaddress"))
 	if volfileserver == "" {
+		//	volfileserver = "127.0.0.1"
 		volfileserver = "localhost"
 	}
 
@@ -51,24 +52,27 @@ func (r *Process) Args() string {
 	cmd := r.rInfo.Cmd
 	commithash := r.rInfo.CommitHash
 
-	var buffer bytes.Buffer
-	buffer.WriteString(fmt.Sprintf(" -s %s --volfile-server-port %s", volfileserver, port))
-	buffer.WriteString(fmt.Sprintf(" --volfile-id %s", volFileID))
-	buffer.WriteString(fmt.Sprintf(" --xlator-option *distribute.use-readdirp=yes"))
-	buffer.WriteString(fmt.Sprintf(" --xlator-option *distribute.lookup-unhashed=yes"))
-	buffer.WriteString(fmt.Sprintf(" --xlator-option *distribute.assert-no-child-down=yes"))
-	buffer.WriteString(fmt.Sprintf(" --xlator-option replicate.data-self-heal=off"))
-	buffer.WriteString(fmt.Sprintf(" --xlator-option replicate.metadata-self-heal=off"))
-	buffer.WriteString(fmt.Sprintf(" --xlator-option replicate.entry-self-heal=off"))
-	buffer.WriteString(fmt.Sprintf(" --xlator-option *distribute.readdir-optimize=on"))
-	buffer.WriteString(fmt.Sprintf(" --process-name rebalance"))
-	buffer.WriteString(fmt.Sprintf(" --xlator-option *distribute.rebalance-cmd=%d", cmd))
-	buffer.WriteString(fmt.Sprintf(" --xlator-option *distribute.node-uuid=%s", gdctx.MyUUID))
-	buffer.WriteString(fmt.Sprintf(" --xlator-option *distribute.commit-hash=%d", commithash))
-	buffer.WriteString(fmt.Sprintf(" -p %s", r.PidFile()))
-	buffer.WriteString(fmt.Sprintf(" --socket-file %s", r.SocketFile()))
-	buffer.WriteString(fmt.Sprintf(" -l %s", logFile))
-	r.args = buffer.String()
+	r.args = []string{}
+
+	r.args = append(r.args, "-s", volfileserver)
+	r.args = append(r.args, "--volfile-server-port", port)
+	r.args = append(r.args, "--volfile-id", volFileID)
+	r.args = append(r.args, "--process-name")
+	r.args = append(r.args, "rebalance")
+	r.args = append(r.args, "--xlator-option", fmt.Sprintf("*distribute.use-readdirp=yes"))
+	r.args = append(r.args, "--xlator-option", fmt.Sprintf("*distribute.lookup-unhashed=yes"))
+	r.args = append(r.args, "--xlator-option", fmt.Sprintf("*distribute.assert-no-child-down=yes"))
+	r.args = append(r.args, "--xlator-option", fmt.Sprintf("replicate.data-self-heal=off"))
+	r.args = append(r.args, "--xlator-option", fmt.Sprintf("replicate.metadata-self-heal=off"))
+	r.args = append(r.args, "--xlator-option", fmt.Sprintf("replicate.entry-self-heal=off"))
+	r.args = append(r.args, "--xlator-option", fmt.Sprintf("*distribute.readdir-optimize=on"))
+	r.args = append(r.args, "--xlator-option", fmt.Sprintf("*distribute.rebalance-cmd=%d", cmd))
+	r.args = append(r.args, "--xlator-option", fmt.Sprintf("*distribute.node-uuid=%s", gdctx.MyUUID))
+	r.args = append(r.args, "--xlator-option", fmt.Sprintf("*distribute.commit-hash=%d", commithash))
+	r.args = append(r.args, "-p", r.PidFile())
+	r.args = append(r.args, "--socket-file", r.SocketFile())
+	r.args = append(r.args, "-l", logFile)
+
 	return r.args
 }
 
@@ -79,8 +83,8 @@ func (r *Process) SocketFile() string {
 		return r.socketfilepath
 	}
 
-	glusterdSockDir := path.Join(config.GetString("rundir"), "", r.rInfo.Volname)
-	r.socketfilepath = fmt.Sprintf("%s-rebalance-%x.socket", glusterdSockDir, xxhash.Sum64String(gdctx.MyUUID.String()))
+	r.socketfilepath = path.Join(config.GetString("rundir"),
+		fmt.Sprintf("%s-rebalance-%x.socket", r.rInfo.Volname, xxhash.Sum64String(gdctx.MyUUID.String())))
 	return r.socketfilepath
 }
 

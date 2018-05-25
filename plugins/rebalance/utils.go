@@ -8,6 +8,7 @@ import (
 
 	"github.com/gluster/glusterd2/glusterd2/store"
 	rebalanceapi "github.com/gluster/glusterd2/plugins/rebalance/api"
+
 	log "github.com/sirupsen/logrus"
 )
 
@@ -52,18 +53,18 @@ func setCommitHash() uint64 {
 }
 
 // GetRebalanceInfo gets the stored rebalance details
-func GetRebalanceInfo(Volname string) (*rebalanceapi.RebalInfo, error) {
+func GetRebalanceInfo(volname string) (*rebalanceapi.RebalInfo, error) {
 
 	var rebalinfo rebalanceapi.RebalInfo
 
-	resp, err := store.Store.Get(context.TODO(), rebalancePrefix+Volname)
+	resp, err := store.Store.Get(context.TODO(), rebalancePrefix+volname)
 	if err != nil {
 		log.WithError(err).Error("Couldn't retrieve rebalance info from store")
 		return nil, err
 	}
 
 	if resp.Count != 1 {
-		log.WithField("volume", Volname).Error("Rebalance info not found for the volume or rebalance process is not started for this volume")
+		log.WithField("volume", volname).Error("Rebalance info not found for the volume or rebalance process is not started for this volume")
 		return nil, errors.New("Rebalance info not found for the volume or rebalance process is not started for this volume")
 	}
 

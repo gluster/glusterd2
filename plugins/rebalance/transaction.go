@@ -26,6 +26,7 @@ const (
 
 func txnRebalanceStart(c transaction.TxnCtx) error {
 	var rinfo rebalanceapi.RebalInfo
+
 	err := c.Get("rinfo", &rinfo)
 	if err != nil {
 		return err
@@ -69,6 +70,7 @@ func txnRebalanceStop(c transaction.TxnCtx) error {
 
 	rebalanceProcess, err := NewRebalanceProcess(rebalinfo)
 	if err != nil {
+		log.Error(err.Error())
 		return err
 	}
 
@@ -85,8 +87,6 @@ func txnRebalanceStop(c transaction.TxnCtx) error {
 
 	command = fmt.Sprintf("%d", uint64(rebalanceapi.CmdStop))
 	reqDict["rebalance-command"] = command
-
-	log.Info("Stopping rebalance : command = ", command)
 
 	req := &brick.GfBrickOpReq{
 		Name: xlatorName,
@@ -121,8 +121,7 @@ func txnRebalanceStop(c transaction.TxnCtx) error {
 func txnRebalanceStatus(c transaction.TxnCtx) error {
 
 	var (
-		rebalinfo       rebalanceapi.RebalInfo
-		rebalNodeStatus rebalanceapi.RebalNodeStatus
+		rebalinfo rebalanceapi.RebalInfo
 	)
 
 	err := c.Get("rinfo", &rebalinfo)
@@ -131,9 +130,10 @@ func txnRebalanceStatus(c transaction.TxnCtx) error {
 	}
 
 	var (
-		volname    string
-		xlatorName string
-		command    string
+		volname         string
+		xlatorName      string
+		command         string
+		rebalNodeStatus rebalanceapi.RebalNodeStatus
 	)
 
 	if err := c.Get("volname", &volname); err != nil {
@@ -147,8 +147,7 @@ func txnRebalanceStatus(c transaction.TxnCtx) error {
 
 	rebalanceProcess, err := NewRebalanceProcess(rebalinfo)
 	if err != nil {
-
-		// TODO: Send the stored Info?
+		log.Error(err.Error())
 		return nil
 	}
 
@@ -156,16 +155,10 @@ func txnRebalanceStatus(c transaction.TxnCtx) error {
 	if err != nil {
 		c.Logger().WithError(err).WithField(
 			"volume", volname).Error("failed to connect to the rebalance process")
-
-		/* Get status from store
-		rebal, err := GetRebalanceInfo(volname)
-		if err != nil {
-			return err
-		}
-
-		rebalNodeStatus = rebal.RebalStats
-		*/
-		return err
+		/* If the process has completed, we should be able to get the
+		 * status from the store
+		 */
+		return nil
 	}
 
 	//Send the status request to the rebalance process
@@ -212,6 +205,7 @@ func txnRebalanceStatus(c transaction.TxnCtx) error {
 	rebalNodeStatus.SkippedFiles = rspDict["skipped"]
 	rebalNodeStatus.RebalanceFailures = rspDict["failures"]
 	rebalNodeStatus.ElapsedTime = rspDict["run-time"]
+	rebalNodeStatus.TimeLeft = rspDict["time-left"]
 
 	c.SetNodeResult(gdctx.MyUUID, rebalStatusTxnKey, rebalNodeStatus)
 	return nil
