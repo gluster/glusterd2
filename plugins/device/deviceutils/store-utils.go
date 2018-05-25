@@ -13,14 +13,13 @@ func GetDevices(peerID string) ([]deviceapi.Info, error) {
 	if err != nil {
 		return nil, err
 	}
+	var deviceInfo []deviceapi.Info
 	if len(peerInfo.Metadata["_devices"]) > 0 {
-		var deviceInfo []deviceapi.Info
 		if err := json.Unmarshal([]byte(peerInfo.Metadata["_devices"]), &deviceInfo); err != nil {
 			return nil, err
 		}
-		return deviceInfo, nil
 	}
-	return nil, nil
+	return deviceInfo, nil
 }
 
 // DeviceExist checks the given device existence
