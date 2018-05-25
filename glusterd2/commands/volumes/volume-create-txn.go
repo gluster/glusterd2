@@ -51,6 +51,11 @@ func voltypeFromSubvols(req *api.VolCreateReq) volume.VolType {
 			return volume.DistReplicate
 		}
 		return volume.Replicate
+	case "disperse":
+		if numSubvols > 1 {
+			return volume.DistDisperse
+		}
+		return volume.Disperse
 	case "distribute":
 		return volume.Distribute
 	default:
