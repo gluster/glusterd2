@@ -35,4 +35,12 @@ type PeerEditResp Peer
 type PeerGetResp Peer
 
 // PeerListResp is the response sent for a peer list request
+/*
+The client can request to filter peer listing based on metadata key/value using query parameters.
+Example:
+	- GET http://localhost:24007/v1/peers?key={keyname}&value={value}
+	- GET http://localhost:24007/v1/peers?key={keyname}
+	- GET http://localhost:24007/v1/peers?value={value}
+Note - Cannot use query parameters if peerid is also supplied.
+*/
 type PeerListResp []PeerGetResp

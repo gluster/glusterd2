@@ -8,12 +8,7 @@ import (
 )
 
 // PeerAdd adds a peer to the Cluster
-func (c *Client) PeerAdd(host string) (api.PeerAddResp, error) {
-
-	peerAddReq := api.PeerAddReq{
-		Addresses: []string{host},
-	}
-
+func (c *Client) PeerAdd(peerAddReq api.PeerAddReq) (api.PeerAddResp, error) {
 	var resp api.PeerAddResp
 	err := c.post("/v1/peers", peerAddReq, http.StatusCreated, &resp)
 	return resp, err
@@ -26,8 +21,12 @@ func (c *Client) PeerRemove(peerid string) error {
 }
 
 // Peers gets list of Gluster Peers
-func (c *Client) Peers() (api.PeerListResp, error) {
+func (c *Client) Peers(filterParams ...map[string]string) (api.PeerListResp, error) {
 	var peers api.PeerListResp
-	err := c.get("/v1/peers", nil, http.StatusOK, &peers)
+        var queryString string
+        if len(filterParams) != 0 {
+                queryString = getQueryString(filterParams[0])
+        }
+        err := c.get("/v1/peers" + queryString, nil, http.StatusOK, &peers)
 	return peers, err
 }
