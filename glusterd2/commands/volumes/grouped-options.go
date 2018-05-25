@@ -128,7 +128,7 @@ var defaultGroupOptions = map[string]*api.OptionGroup{
 			{Name: "cluster.shd-wait-qlength", OnValue: "10000"},
 			{Name: "features.shard", OnValue: "on"},
 			{Name: "user.cifs", OnValue: "off"}},
-		"Enable this profile, if the Gluster Volume is used to store virtaul machines"},
+		"Enable this profile, if the Gluster Volume is used to store virtual machines"},
 	"profile.test": {"profile.test",
 		[]api.VolumeOption{{Name: "afr.eager-lock", OnValue: "on"},
 			{Name: "gfproxy.afr.eager-lock", OnValue: "on"}},
