@@ -1,7 +1,6 @@
 package bitrot
 
 import (
-	"bytes"
 	"fmt"
 	"net"
 	"os"
@@ -19,7 +18,7 @@ const (
 
 // Scrubd type represents information about scrubd process
 type Scrubd struct {
-	args           string
+	args           []string
 	pidfilepath    string
 	binarypath     string
 	volfileID      string
@@ -38,7 +37,7 @@ func (s *Scrubd) Path() string {
 }
 
 // Args returns arguments to be passed to scrubd process during spawn.
-func (s *Scrubd) Args() string {
+func (s *Scrubd) Args() []string {
 	return s.args
 }
 
@@ -84,14 +83,13 @@ func newScrubd() (*Scrubd, error) {
 		shost = "localhost"
 	}
 
-	var buffer bytes.Buffer
-	buffer.WriteString(fmt.Sprintf(" -s %s", shost))
-	buffer.WriteString(fmt.Sprintf(" --volfile-id %s", s.volfileID))
-	buffer.WriteString(fmt.Sprintf(" -p %s", s.pidfilepath))
-	buffer.WriteString(fmt.Sprintf(" -l %s", s.logfile))
-	buffer.WriteString(fmt.Sprintf(" -S %s", s.socketfilepath))
-	buffer.WriteString(fmt.Sprintf(" --global-timer-wheel"))
-	s.args = buffer.String()
+	s.args = []string{}
+	s.args = append(s.args, "-s", shost)
+	s.args = append(s.args, "--volfile-id", s.volfileID)
+	s.args = append(s.args, "-p", s.pidfilepath)
+	s.args = append(s.args, "-l", s.logfile)
+	s.args = append(s.args, "-S", s.socketfilepath)
+	s.args = append(s.args, "--global-timer-wheel")
 
 	return s, nil
 }

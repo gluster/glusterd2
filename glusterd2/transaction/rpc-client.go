@@ -13,8 +13,8 @@ import (
 	"google.golang.org/grpc"
 )
 
-// RunStepOn will run the step on the specified node
-func RunStepOn(step string, node uuid.UUID, c TxnCtx) (TxnCtx, error) {
+// runStepOn will run the step on the specified node
+func runStepOn(step string, node uuid.UUID, c TxnCtx) error {
 	// TODO: I'm creating connections on demand. This should be changed so that
 	// we have long term connections.
 	p, err := peer.GetPeerF(node.String())
@@ -23,7 +23,7 @@ func RunStepOn(step string, node uuid.UUID, c TxnCtx) (TxnCtx, error) {
 			"peerid": node.String(),
 			"error":  err,
 		}).Error("peer not found")
-		return nil, err
+		return err
 	}
 
 	logger := c.Logger().WithField("remotepeer", p.ID.String()+"("+p.Name+")")
@@ -32,7 +32,7 @@ func RunStepOn(step string, node uuid.UUID, c TxnCtx) (TxnCtx, error) {
 
 	remote, err := utils.FormRemotePeerAddress(p.PeerAddresses[0])
 	if err != nil {
-		return nil, err
+		return err
 	}
 
 	conn, err = grpc.Dial(remote, grpc.WithInsecure())
@@ -47,7 +47,7 @@ func RunStepOn(step string, node uuid.UUID, c TxnCtx) (TxnCtx, error) {
 			"error":  err,
 			"remote": p.PeerAddresses[0],
 		}).Error("failed to grpc.Dial remote")
-		return nil, err
+		return err
 	}
 	defer conn.Close()
 
@@ -59,7 +59,7 @@ func RunStepOn(step string, node uuid.UUID, c TxnCtx) (TxnCtx, error) {
 	data, err := json.Marshal(c)
 	if err != nil {
 		logger.WithError(err).Error("failed to JSON marshal transaction context")
-		return nil, err
+		return err
 	}
 	req.Context = data
 
@@ -71,19 +71,13 @@ func RunStepOn(step string, node uuid.UUID, c TxnCtx) (TxnCtx, error) {
 			"error": err,
 			"rpc":   "TxnSvc.RunStep",
 		}).Error("failed RPC call")
-		return nil, err
+		return err
 	}
 
 	if rsp.Error != "" {
 		logger.WithError(errors.New(rsp.Error)).Error("TxnSvc.Runstep failed on peer")
-		return nil, errors.New(rsp.Error)
+		return errors.New(rsp.Error)
 	}
 
-	rspCtx := new(Tctx)
-	err = json.Unmarshal(rsp.Resp, rspCtx)
-	if err != nil {
-		logger.WithError(err).Error("failed to JSON unmarhsal transaction context")
-	}
-
-	return rspCtx, err
+	return nil
 }

@@ -10,6 +10,7 @@ import (
 	"github.com/gluster/glusterd2/glusterd2/transaction"
 	"github.com/gluster/glusterd2/pkg/errors"
 	deviceapi "github.com/gluster/glusterd2/plugins/device/api"
+	"github.com/gluster/glusterd2/plugins/device/deviceutils"
 
 	"github.com/gorilla/mux"
 	"github.com/pborman/uuid"
@@ -62,7 +63,7 @@ func deviceAddHandler(w http.ResponseWriter, r *http.Request) {
 			restutils.SendHTTPError(ctx, w, http.StatusInternalServerError, err)
 			return
 		}
-		if checkIfDeviceExist(req.Device, devices) {
+		if deviceutils.DeviceExist(req.Device, devices) {
 			logger.WithError(err).WithField("device", req.Device).Error("Device already exists")
 			restutils.SendHTTPError(ctx, w, http.StatusBadRequest, "Device already exists")
 			return
@@ -105,4 +106,29 @@ func deviceAddHandler(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 	restutils.SendHTTPResponse(ctx, w, http.StatusOK, peerInfo)
+}
+
+func deviceListHandler(w http.ResponseWriter, r *http.Request) {
+
+	ctx := r.Context()
+	logger := gdctx.GetReqLogger(ctx)
+	peerID := mux.Vars(r)["peerid"]
+	if uuid.Parse(peerID) == nil {
+		restutils.SendHTTPError(ctx, w, http.StatusBadRequest, "Invalid peer-id passed in url")
+		return
+	}
+
+	devices, err := deviceutils.GetDevices(peerID)
+	if err != nil {
+		logger.WithError(err).WithField("peerid", peerID).Error("Failed to get devices for peer")
+		if err == errors.ErrPeerNotFound {
+			restutils.SendHTTPError(ctx, w, http.StatusNotFound, err)
+		} else {
+			restutils.SendHTTPError(ctx, w, http.StatusInternalServerError, err)
+		}
+		return
+	}
+
+	restutils.SendHTTPResponse(ctx, w, http.StatusOK, devices)
+
 }

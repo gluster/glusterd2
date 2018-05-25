@@ -70,6 +70,11 @@ func volumeCreateCmdRun(cmd *cobra.Command, args []string) {
 	subvols := []api.SubvolReq{}
 	if flagCreateReplicaCount > 0 {
 		// Replicate Volume Support
+
+		if numBricks%flagCreateReplicaCount != 0 {
+			failure("Invalid number of bricks specified", nil, 1)
+		}
+
 		numSubvols := numBricks / flagCreateReplicaCount
 
 		for i := 0; i < numSubvols; i++ {
@@ -87,13 +92,45 @@ func volumeCreateCmdRun(cmd *cobra.Command, args []string) {
 				ArbiterCount: flagCreateArbiterCount,
 			})
 		}
+	} else if flagCreateDisperseCount > 0 || flagCreateDisperseDataCount > 0 || flagCreateRedundancyCount > 0 {
+		subvolSize := 0
+		if flagCreateDisperseCount > 0 {
+			subvolSize = flagCreateDisperseCount
+		} else if flagCreateDisperseDataCount > 0 && flagCreateRedundancyCount > 0 {
+			subvolSize = flagCreateDisperseDataCount + flagCreateRedundancyCount
+		}
+
+		if subvolSize == 0 {
+			failure("Invalid disperse-count/disperse-data/disperse-redundancy count", nil, 1)
+		}
+
+		if numBricks%subvolSize != 0 {
+			failure("Invalid number of bricks specified", nil, 1)
+		}
+
+		numSubvols := numBricks / subvolSize
+
+		for i := 0; i < numSubvols; i++ {
+			idx := i * subvolSize
+
+			subvols = append(subvols, api.SubvolReq{
+				Type:               "disperse",
+				Bricks:             bricks[idx : idx+subvolSize],
+				DisperseCount:      flagCreateDisperseCount,
+				DisperseData:       flagCreateDisperseDataCount,
+				DisperseRedundancy: flagCreateRedundancyCount,
+			})
+		}
 	} else {
 		// Default Distribute Volume
-		subvols = []api.SubvolReq{
-			{
-				Type:   "distribute",
-				Bricks: bricks,
-			},
+		for _, b := range bricks {
+			subvols = append(
+				subvols,
+				api.SubvolReq{
+					Type:   "distribute",
+					Bricks: []api.BrickReq{b},
+				},
+			)
 		}
 	}
 

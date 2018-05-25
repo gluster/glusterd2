@@ -1,7 +1,6 @@
 package quota
 
 import (
-	"bytes"
 	"fmt"
 	"net"
 	"os/exec"
@@ -20,7 +19,7 @@ const (
 type Quotad struct {
 	// Externally consumable using methods of Quotad interface
 	binarypath     string
-	args           string
+	args           []string
 	socketfilepath string
 	pidfilepath    string
 	logfilepath    string
@@ -41,7 +40,7 @@ func (q *Quotad) Path() string {
 }
 
 // Args returns arguments to be passed to quota process during spawn.
-func (q *Quotad) Args() string {
+func (q *Quotad) Args() []string {
 
 	shost, _, _ := net.SplitHostPort(config.GetString("clientaddress"))
 	if shost == "" {
@@ -49,18 +48,17 @@ func (q *Quotad) Args() string {
 	}
 	q.volFileID = "gluster/quotad"
 
-	var buffer bytes.Buffer
-	buffer.WriteString(fmt.Sprintf(" -s %s", shost))
-	buffer.WriteString(fmt.Sprintf(" --volfile-id %s", q.volFileID))
-	buffer.WriteString(fmt.Sprintf(" -p %s", q.PidFile()))
-	buffer.WriteString(fmt.Sprintf(" -S %s", q.SocketFile()))
-	buffer.WriteString(fmt.Sprintf(" -l %s", q.logfilepath))
-	buffer.WriteString(fmt.Sprintf(" --process-name quotad"))
-	buffer.WriteString(fmt.Sprintf(" --xlator-option *replicate*.entry-self-heal=off"))
-	buffer.WriteString(fmt.Sprintf(" --xlator-option *replicate*.metadata-self-heal=off"))
-	buffer.WriteString(fmt.Sprintf(" --xlator-option *replicate*.data-self-heal=off"))
+	q.args = []string{}
+	q.args = append(q.args, "-s", shost)
+	q.args = append(q.args, "--volfile-id", q.volFileID)
+	q.args = append(q.args, "-p", q.PidFile())
+	q.args = append(q.args, "-S", q.SocketFile())
+	q.args = append(q.args, "-l", q.logfilepath)
+	q.args = append(q.args, "--process-name", "quotad")
+	q.args = append(q.args, "--xlator-option", "*replicate*.entry-self-heal=off")
+	q.args = append(q.args, "--xlator-option", "*replicate*.metadata-self-heal=off")
+	q.args = append(q.args, "--xlator-option", "replicate*.data-self-heal=off")
 
-	q.args = buffer.String()
 	return q.args
 }
 
