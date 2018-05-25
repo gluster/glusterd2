@@ -23,10 +23,10 @@ func (c *Client) PeerRemove(peerid string) error {
 // Peers gets list of Gluster Peers
 func (c *Client) Peers(filterParams ...map[string]string) (api.PeerListResp, error) {
 	var peers api.PeerListResp
-        var queryString string
-        if len(filterParams) != 0 {
-                queryString = getQueryString(filterParams[0])
-        }
-        err := c.get("/v1/peers" + queryString, nil, http.StatusOK, &peers)
+	var queryString string
+	if len(filterParams) != 0 {
+		queryString = getQueryString(filterParams[0])
+	}
+	err := c.get("/v1/peers"+queryString, nil, http.StatusOK, &peers)
 	return peers, err
 }

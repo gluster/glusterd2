@@ -4,7 +4,7 @@ import (
 	"testing"
 	"time"
 
-        "github.com/gluster/glusterd2/pkg/api"
+	"github.com/gluster/glusterd2/pkg/api"
 
 	"github.com/stretchr/testify/require"
 )
@@ -28,21 +28,21 @@ func TestAddRemovePeer(t *testing.T) {
 	r.True(g3.IsRunning())
 
 	client := initRestclient(g1.ClientAddress)
-        peerAddReq := api.PeerAddReq{
-                Addresses: []string{g2.PeerAddress},
-                Metadata: map[string]string {
-                        "owner": "gd2test",
-                },
-        }
+	peerAddReq := api.PeerAddReq{
+		Addresses: []string{g2.PeerAddress},
+		Metadata: map[string]string{
+			"owner": "gd2test",
+		},
+	}
 	_, err2 := client.PeerAdd(peerAddReq)
 	r.Nil(err2)
 
 	time.Sleep(6 * time.Second)
 
 	// add peer: ask g1 to add g3 as peer
-        peerAddReq = api.PeerAddReq{
-                Addresses: []string{g3.PeerAddress},
-        }
+	peerAddReq = api.PeerAddReq{
+		Addresses: []string{g3.PeerAddress},
+	}
 
 	_, err3 := client.PeerAdd(peerAddReq)
 	r.Nil(err3)
