@@ -118,12 +118,12 @@ func GetPeers(filterParams ...map[string]string) ([]*Peer, error) {
 	if err != nil {
 		return nil, err
 	}
-        var filterType metadataFilter
-        if len(filterParams) == 0 {
-                filterType = noKeyAndValue
-        } else {
-                filterType = getFilterType(filterParams[0])
-        }
+	var filterType metadataFilter
+	if len(filterParams) == 0 {
+		filterType = noKeyAndValue
+	} else {
+		filterType = getFilterType(filterParams[0])
+	}
 	// There will be at least one peer (current node)
 	var peers []*Peer
 	for _, kv := range resp.Kvs {
@@ -136,13 +136,13 @@ func GetPeers(filterParams ...map[string]string) ([]*Peer, error) {
 			}).Error("Failed to unmarshal peer")
 			continue
 		}
-                switch filterType {
+		switch filterType {
 
-                case onlyKey:
-                        if _, keyFound := p.Metadata[filterParams[0]["key"]]; keyFound {
-                                peers = append(peers, &p)
-                        }
-                case onlyValue:
+		case onlyKey:
+			if _, keyFound := p.Metadata[filterParams[0]["key"]]; keyFound {
+				peers = append(peers, &p)
+			}
+		case onlyValue:
 			for _, value := range p.Metadata {
 				if value == filterParams[0]["value"] {
 					peers = append(peers, &p)
@@ -156,7 +156,7 @@ func GetPeers(filterParams ...map[string]string) ([]*Peer, error) {
 			}
 		default:
 			peers = append(peers, &p)
-                }
+		}
 	}
 
 	return peers, nil

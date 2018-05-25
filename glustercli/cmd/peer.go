@@ -6,7 +6,7 @@ import (
 	"os"
 	"strings"
 
-        "github.com/gluster/glusterd2/pkg/api"
+	"github.com/gluster/glusterd2/pkg/api"
 
 	"github.com/olekukonko/tablewriter"
 	"github.com/pborman/uuid"
@@ -36,11 +36,11 @@ func init() {
 
 	peerCmd.AddCommand(peerStatusCmd)
 
-        peerListCmd.Flags().StringVar(&flagCmdFilterKey, "key", "", "Filter by metadata key")
-        peerListCmd.Flags().StringVar(&flagCmdFilterValue, "value", "", "Filter by metadata value")
-        peerCmd.AddCommand(peerListCmd)
+	peerListCmd.Flags().StringVar(&flagCmdFilterKey, "key", "", "Filter by metadata key")
+	peerListCmd.Flags().StringVar(&flagCmdFilterValue, "value", "", "Filter by metadata value")
+	peerCmd.AddCommand(peerListCmd)
 
-        RootCmd.AddCommand(peerCmd)
+	RootCmd.AddCommand(peerCmd)
 }
 
 var peerCmd = &cobra.Command{
@@ -54,9 +54,9 @@ var peerAddCmd = &cobra.Command{
 	Args:  cobra.ExactArgs(1),
 	Run: func(cmd *cobra.Command, args []string) {
 		hostname := cmd.Flags().Args()[0]
-                peerAddReq := api.PeerAddReq{
-		        Addresses: []string{hostname},
-	        }
+		peerAddReq := api.PeerAddReq{
+			Addresses: []string{hostname},
+		}
 		peer, err := client.PeerAdd(peerAddReq)
 		if err != nil {
 			if verbose {
@@ -101,15 +101,15 @@ var peerRemoveCmd = &cobra.Command{
 func peerStatusHandler(cmd *cobra.Command) {
 	var peers api.PeerListResp
 	var err error
-        if flagCmdFilterKey == "" && flagCmdFilterValue == "" {
-                peers, err = client.Peers()
+	if flagCmdFilterKey == "" && flagCmdFilterValue == "" {
+		peers, err = client.Peers()
 	} else if flagCmdFilterKey != "" && flagCmdFilterValue == "" {
-                peers, err = client.Peers(map[string]string{"key": flagCmdFilterKey})
+		peers, err = client.Peers(map[string]string{"key": flagCmdFilterKey})
 	} else if flagCmdFilterKey == "" && flagCmdFilterValue != "" {
-                peers, err = client.Peers(map[string]string{"value": flagCmdFilterValue})
+		peers, err = client.Peers(map[string]string{"value": flagCmdFilterValue})
 	} else if flagCmdFilterKey != "" && flagCmdFilterValue != "" {
-                peers, err = client.Peers(map[string]string{"key": flagCmdFilterKey,
-				"value": flagCmdFilterValue,
+		peers, err = client.Peers(map[string]string{"key": flagCmdFilterKey,
+			"value": flagCmdFilterValue,
 		})
 	}
 	if err != nil {
