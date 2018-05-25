@@ -29,13 +29,13 @@ func GetReqID(ctx context.Context) uuid.UUID {
 }
 
 // WithReqLogger returns a new context with provided logger set as a value in the context.
-func WithReqLogger(ctx context.Context, logger *log.Entry) context.Context {
+func WithReqLogger(ctx context.Context, logger log.FieldLogger) context.Context {
 	return context.WithValue(ctx, reqLoggerKey, logger)
 }
 
 // GetReqLogger returns logger stored in the context provided.
-func GetReqLogger(ctx context.Context) *log.Entry {
-	reqLogger, ok := ctx.Value(reqLoggerKey).(*log.Entry)
+func GetReqLogger(ctx context.Context) log.FieldLogger {
+	reqLogger, ok := ctx.Value(reqLoggerKey).(log.FieldLogger)
 	if !ok {
 		return nil
 	}

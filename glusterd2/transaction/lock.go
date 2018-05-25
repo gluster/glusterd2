@@ -10,6 +10,7 @@ import (
 
 	"github.com/coreos/etcd/clientv3/concurrency"
 	"github.com/pborman/uuid"
+	log "github.com/sirupsen/logrus"
 )
 
 const (
@@ -102,6 +103,9 @@ func CreateLockFuncs(key string) (LockUnlockFunc, LockUnlockFunc) {
 
 	lockFunc := func(ctx context.Context) error {
 		logger := gdctx.GetReqLogger(ctx)
+		if logger == nil {
+			logger = log.StandardLogger()
+		}
 
 		ctx, cancel := context.WithTimeout(ctx, lockObtainTimeout)
 		defer cancel()
@@ -122,6 +126,9 @@ func CreateLockFuncs(key string) (LockUnlockFunc, LockUnlockFunc) {
 
 	unlockFunc := func(ctx context.Context) error {
 		logger := gdctx.GetReqLogger(ctx)
+		if logger == nil {
+			logger = log.StandardLogger()
+		}
 
 		logger.WithField("key", key).Debug("attempting to unlock")
 		if err := locker.Unlock(context.Background()); err != nil {
