@@ -45,7 +45,7 @@ func NewTxn(ctx context.Context) *Txn {
 	t.id = uuid.NewRandom()
 	t.reqID = gdctx.GetReqID(ctx)
 	t.locks = make(map[string]*concurrency.Mutex)
-	t.storePrefix = txnPrefix + t.id.String()
+	t.storePrefix = txnPrefix + t.id.String() + "/"
 	config := &txnCtxConfig{
 		LogFields: log.Fields{
 			"txnid": t.id.String(),
@@ -122,6 +122,11 @@ func (t *Txn) Do() error {
 
 	t.Ctx.Logger().Debug("Starting transaction")
 	expTxn.Add("initiated_txn_in_progress", 1)
+
+	// commit txn.Ctx.Set()s done in REST handlers to the store
+	if err := t.Ctx.commit(); err != nil {
+		return err
+	}
 
 	for i, s := range t.Steps {
 		if s.Skip {

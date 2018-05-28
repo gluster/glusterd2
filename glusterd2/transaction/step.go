@@ -82,24 +82,37 @@ func runStepFuncOnNodes(stepName string, c TxnCtx, nodes []uuid.UUID) error {
 	return nil
 }
 
-func runStepFuncOnNode(stepName string, c TxnCtx, node uuid.UUID, respCh chan<- stepResp) {
+func runStepFuncOnNode(stepName string, ctx TxnCtx, node uuid.UUID, respCh chan<- stepResp) {
 
-	c.Logger().WithFields(log.Fields{
+	ctx.Logger().WithFields(log.Fields{
 		"step": stepName, "node": node,
 	}).Debug("Running step on node.")
 
 	var err error
 	if uuid.Equal(node, gdctx.MyUUID) {
-		// this (local) node
-		if stepFunc, ok := getStepFunc(stepName); ok {
-			err = stepFunc(c)
-		} else {
-			err = ErrStepFuncNotFound
-		}
+		err = runStepFuncLocally(stepName, ctx)
 	} else {
 		// remote node
-		err = runStepOn(stepName, node, c)
+		err = runStepOn(stepName, node, ctx)
 	}
 
 	respCh <- stepResp{node, stepName, err}
+}
+
+func runStepFuncLocally(stepName string, ctx TxnCtx) error {
+
+	var err error
+
+	stepFunc, ok := getStepFunc(stepName)
+	if ok {
+		if err = stepFunc(ctx); err == nil {
+			// if step function executes successfully, commit the
+			// results to the store
+			err = ctx.commit()
+		}
+	} else {
+		err = ErrStepFuncNotFound
+	}
+
+	return err
 }

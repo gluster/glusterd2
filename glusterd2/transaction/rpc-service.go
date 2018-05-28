@@ -49,6 +49,10 @@ func (p *txnSvc) RunStep(rpcCtx context.Context, req *TxnStepReq) (*TxnStepResp,
 		goto End
 	}
 
+	if err = ctx.commit(); err != nil {
+		logger.WithError(err).Debug("failed to commit txn context to store")
+	}
+
 End:
 	// Ensure RPC will always send a success reply. Error is stored in
 	// body of response.
