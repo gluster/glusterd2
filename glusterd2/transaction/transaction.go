@@ -59,17 +59,17 @@ func NewTxn(ctx context.Context) *Txn {
 }
 
 // NewTxnWithLocks returns an empty Txn with locks obtained on given lockIDs
-func NewTxnWithLocks(ctx context.Context, lockIDs ...string) *Txn {
+func NewTxnWithLocks(ctx context.Context, lockIDs ...string) (*Txn, error) {
 	t := NewTxn(ctx)
 
 	for _, id := range lockIDs {
 		if err := t.Lock(id); err != nil {
 			t.Done()
-			return nil
+			return nil, err
 		}
 	}
 
-	return t
+	return t, nil
 }
 
 // Done releases any obtained locks and cleans up the transaction namespace
