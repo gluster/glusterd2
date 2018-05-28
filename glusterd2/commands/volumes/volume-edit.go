@@ -51,6 +51,8 @@ func volumeEditHandler(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
+	metadataSize := volume.GetMetadataLen(volinfo.Metadata)
+
 	for key, value := range req.Metadata {
 		if strings.HasPrefix(key, "_") {
 			logger.WithField("key", key).Error(errors.ErrRestrictedKeyFound)
@@ -60,6 +62,14 @@ func volumeEditHandler(w http.ResponseWriter, r *http.Request) {
 		if req.DeleteMetadata {
 			delete(volinfo.Metadata, key)
 		} else {
+			offset := len(key) + len(value)
+			if val, ok := volinfo.Metadata[key]; ok {
+				offset = offset - len(val)
+			}
+			if metadataSize+offset > maxMetadataSizeLimit {
+				restutils.SendHTTPError(ctx, w, http.StatusBadRequest, "Metadata size exceeds max allowed size of 4KB")
+				return
+			}
 			volinfo.Metadata[key] = value
 		}
 	}

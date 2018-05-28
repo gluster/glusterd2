@@ -21,6 +21,10 @@ var (
 	reg = regexp.MustCompile("^[a-zA-Z0-9_-]+$")
 )
 
+const (
+	maxMetadataSizeLimit = 4096
+)
+
 func validateVolCreateReq(req *api.VolCreateReq) error {
 
 	valid := reg.MatchString(req.Name)
@@ -41,6 +45,10 @@ func validateVolCreateReq(req *api.VolCreateReq) error {
 		if len(subvol.Bricks) <= 0 {
 			return gderrors.ErrEmptyBrickList
 		}
+	}
+	metadataSize := volume.GetMetadataLen(req.Metadata)
+	if metadataSize > maxMetadataSizeLimit {
+		return errors.New("Inavlid request. Metadata size exceeds max allowed size of 4KB")
 	}
 
 	return nil

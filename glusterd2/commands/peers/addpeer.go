@@ -16,6 +16,10 @@ import (
 	"github.com/gluster/glusterd2/pkg/utils"
 )
 
+const (
+	maxMetadataSizeLimit = 4096
+)
+
 func addPeerHandler(w http.ResponseWriter, r *http.Request) {
 
 	ctx := r.Context()
@@ -24,6 +28,11 @@ func addPeerHandler(w http.ResponseWriter, r *http.Request) {
 	var req api.PeerAddReq
 	if err := restutils.UnmarshalRequest(r, &req); err != nil {
 		restutils.SendHTTPError(ctx, w, http.StatusBadRequest, errors.ErrJSONParsingFailed)
+		return
+	}
+
+	if peer.GetMetadataLen(req.Metadata) > maxMetadataSizeLimit {
+		restutils.SendHTTPError(ctx, w, http.StatusBadRequest, "metadata size exceeds max allowed size of 4KB")
 		return
 	}
 
@@ -96,6 +105,7 @@ func addPeerHandler(w http.ResponseWriter, r *http.Request) {
 	if req.Zone != "" {
 		newpeer.Metadata["_zone"] = req.Zone
 	}
+
 	for key, value := range req.Metadata {
 		newpeer.Metadata[key] = value
 	}

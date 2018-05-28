@@ -210,3 +210,12 @@ func GetPeerIDByAddr(addr string) (uuid.UUID, error) {
 	}
 	return p.ID, nil
 }
+
+// GetMetadataLen returns the len of the peer metadata
+func GetMetadataLen(metadata map[string]string) int {
+	currentSize := 0
+	for key, value := range metadata {
+		currentSize = currentSize + len(key) + len(value)
+	}
+	return currentSize
+}

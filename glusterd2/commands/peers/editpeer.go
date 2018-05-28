@@ -1,6 +1,7 @@
 package peercommands
 
 import (
+	"errors"
 	"net/http"
 	"strings"
 
@@ -9,7 +10,7 @@ import (
 	restutils "github.com/gluster/glusterd2/glusterd2/servers/rest/utils"
 	"github.com/gluster/glusterd2/glusterd2/transaction"
 	"github.com/gluster/glusterd2/pkg/api"
-	"github.com/gluster/glusterd2/pkg/errors"
+	gderrors "github.com/gluster/glusterd2/pkg/errors"
 
 	"github.com/gorilla/mux"
 	"github.com/pborman/uuid"
@@ -22,7 +23,7 @@ func editPeer(w http.ResponseWriter, r *http.Request) {
 
 	var req api.PeerEditReq
 	if err := restutils.UnmarshalRequest(r, &req); err != nil {
-		restutils.SendHTTPError(ctx, w, http.StatusBadRequest, errors.ErrJSONParsingFailed)
+		restutils.SendHTTPError(ctx, w, http.StatusBadRequest, gderrors.ErrJSONParsingFailed)
 		return
 	}
 
@@ -34,8 +35,8 @@ func editPeer(w http.ResponseWriter, r *http.Request) {
 
 	for key := range req.Metadata {
 		if strings.HasPrefix(key, "_") {
-			logger.WithField("metadata-key", key).Error(errors.ErrRestrictedKeyFound)
-			restutils.SendHTTPError(ctx, w, http.StatusBadRequest, errors.ErrRestrictedKeyFound)
+			logger.WithField("metadata-key", key).Error(gderrors.ErrRestrictedKeyFound)
+			restutils.SendHTTPError(ctx, w, http.StatusBadRequest, gderrors.ErrRestrictedKeyFound)
 			return
 		}
 	}
@@ -103,7 +104,16 @@ func txnPeerEdit(c transaction.TxnCtx) error {
 		return err
 	}
 
+	metadataSize := peer.GetMetadataLen(req.Metadata)
 	for k, v := range req.Metadata {
+		offset := len(k) + len(v)
+		if val, ok := peerInfo.Metadata[k]; ok {
+			offset = offset - len(val)
+		}
+		if metadataSize+offset > maxMetadataSizeLimit {
+			return errors.New("Invalid Request. Metadata exceeds max size limit of 4KB ")
+		}
+
 		peerInfo.Metadata[k] = v
 	}
 
