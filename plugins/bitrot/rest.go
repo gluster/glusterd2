@@ -25,6 +25,17 @@ func bitrotEnableHandler(w http.ResponseWriter, r *http.Request) {
 	ctx := r.Context()
 	logger := gdctx.GetReqLogger(ctx)
 
+	txn, err := transaction.NewTxnWithLocks(ctx, volName)
+	if err != nil {
+		if err == transaction.ErrLockTimeout {
+			restutils.SendHTTPError(ctx, w, http.StatusConflict, err)
+		} else {
+			restutils.SendHTTPError(ctx, w, http.StatusInternalServerError, err)
+		}
+		return
+	}
+	defer txn.Done()
+
 	// Validate volume existence
 	volinfo, err := volume.GetVolume(volName)
 	if err != nil {
@@ -55,26 +66,14 @@ func bitrotEnableHandler(w http.ResponseWriter, r *http.Request) {
 	   scrubber othewise bitd */
 	volinfo.Options[keyFeaturesScrub] = "true"
 
-	// Transaction which starts bitd and scrubber on all nodes.
-	txn := transaction.NewTxn(ctx)
-	defer txn.Cleanup()
-
 	if err := txn.Ctx.Set("volinfo", volinfo); err != nil {
 		logger.WithError(err).Error("failed to set volinfo in transaction context")
 		restutils.SendHTTPError(ctx, w, http.StatusInternalServerError, err)
 		return
 	}
 
-	//Lock on Volume Name
-	lock, unlock, err := transaction.CreateLockSteps(volName)
-	if err != nil {
-		restutils.SendHTTPError(ctx, w, http.StatusInternalServerError, err)
-		return
-	}
-
 	txn.Nodes = volinfo.Nodes()
 	txn.Steps = []*transaction.Step{
-		lock,
 		{
 			DoFunc: "vol-option.UpdateVolinfo",
 			Nodes:  []uuid.UUID{gdctx.MyUUID},
@@ -84,12 +83,10 @@ func bitrotEnableHandler(w http.ResponseWriter, r *http.Request) {
 			DoFunc: "vol-option.NotifyVolfileChange",
 			Nodes:  txn.Nodes,
 		},
-
 		{
 			DoFunc: "bitrot-enable.Commit",
 			Nodes:  txn.Nodes,
 		},
-		unlock,
 	}
 
 	err = txn.Do()
@@ -116,6 +113,17 @@ func bitrotDisableHandler(w http.ResponseWriter, r *http.Request) {
 	ctx := r.Context()
 	logger := gdctx.GetReqLogger(ctx)
 
+	txn, err := transaction.NewTxnWithLocks(ctx, volName)
+	if err != nil {
+		if err == transaction.ErrLockTimeout {
+			restutils.SendHTTPError(ctx, w, http.StatusConflict, err)
+		} else {
+			restutils.SendHTTPError(ctx, w, http.StatusInternalServerError, err)
+		}
+		return
+	}
+	defer txn.Done()
+
 	// Validate volume existence
 	volinfo, err := volume.GetVolume(volName)
 	if err != nil {
@@ -138,26 +146,14 @@ func bitrotDisableHandler(w http.ResponseWriter, r *http.Request) {
 	// Disable scrub by updating volinfo Options
 	volinfo.Options[keyFeaturesScrub] = "false"
 
-	// Transaction which stop bitd and scrubber on all nodes.
-	txn := transaction.NewTxn(ctx)
-	defer txn.Cleanup()
-
 	if err := txn.Ctx.Set("volinfo", volinfo); err != nil {
 		logger.WithError(err).Error("failed to set volinfo in transaction context")
 		restutils.SendHTTPError(ctx, w, http.StatusInternalServerError, err)
 		return
 	}
 
-	//Lock on Volume Name
-	lock, unlock, err := transaction.CreateLockSteps(volName)
-	if err != nil {
-		restutils.SendHTTPError(ctx, w, http.StatusInternalServerError, err)
-		return
-	}
-
 	txn.Nodes = volinfo.Nodes()
 	txn.Steps = []*transaction.Step{
-		lock,
 		{
 			DoFunc: "vol-option.UpdateVolinfo",
 			Nodes:  []uuid.UUID{gdctx.MyUUID},
@@ -171,7 +167,6 @@ func bitrotDisableHandler(w http.ResponseWriter, r *http.Request) {
 			DoFunc: "bitrot-disable.Commit",
 			Nodes:  txn.Nodes,
 		},
-		unlock,
 	}
 
 	err = txn.Do()
@@ -196,6 +191,17 @@ func bitrotScrubOndemandHandler(w http.ResponseWriter, r *http.Request) {
 	ctx := r.Context()
 	logger := gdctx.GetReqLogger(ctx)
 
+	txn, err := transaction.NewTxnWithLocks(ctx, volName)
+	if err != nil {
+		if err == transaction.ErrLockTimeout {
+			restutils.SendHTTPError(ctx, w, http.StatusConflict, err)
+		} else {
+			restutils.SendHTTPError(ctx, w, http.StatusInternalServerError, err)
+		}
+		return
+	}
+	defer txn.Done()
+
 	// Validate volume existence
 	volinfo, err := volume.GetVolume(volName)
 	if err != nil {
@@ -219,25 +225,12 @@ func bitrotScrubOndemandHandler(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	// Transaction which starts scrubber on demand.
-	txn := transaction.NewTxn(ctx)
-	defer txn.Cleanup()
-
-	//Lock on Volume Name
-	lock, unlock, err := transaction.CreateLockSteps(volName)
-	if err != nil {
-		restutils.SendHTTPError(ctx, w, http.StatusInternalServerError, err)
-		return
-	}
-
 	txn.Nodes = volinfo.Nodes()
 	txn.Steps = []*transaction.Step{
-		lock,
 		{
 			DoFunc: "bitrot-scrubondemand.Commit",
 			Nodes:  txn.Nodes,
 		},
-		unlock,
 	}
 	txn.Ctx.Set("volname", volName)
 
@@ -260,6 +253,17 @@ func bitrotScrubStatusHandler(w http.ResponseWriter, r *http.Request) {
 
 	ctx := r.Context()
 	logger := gdctx.GetReqLogger(ctx)
+
+	txn, err := transaction.NewTxnWithLocks(ctx, volName)
+	if err != nil {
+		if err == transaction.ErrLockTimeout {
+			restutils.SendHTTPError(ctx, w, http.StatusConflict, err)
+		} else {
+			restutils.SendHTTPError(ctx, w, http.StatusInternalServerError, err)
+		}
+		return
+	}
+	defer txn.Done()
 
 	// Validate volume existence
 	volinfo, err := volume.GetVolume(volName)
@@ -286,30 +290,16 @@ func bitrotScrubStatusHandler(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	// Transaction which gets scrubber status.
-	txn := transaction.NewTxn(ctx)
-	defer txn.Cleanup()
-
-	//Lock on Volume Name
-	lock, unlock, err := transaction.CreateLockSteps(volName)
-	if err != nil {
-		restutils.SendHTTPError(ctx, w, http.StatusInternalServerError,
-			err)
-		return
-	}
-
 	// Some nodes may not be up, which is okay.
 	txn.DontCheckAlive = true
 	txn.DisableRollback = true
 
 	txn.Nodes = volinfo.Nodes()
 	txn.Steps = []*transaction.Step{
-		lock,
 		{
 			DoFunc: "bitrot-scrubstatus.Commit",
 			Nodes:  txn.Nodes,
 		},
-		unlock,
 	}
 	txn.Ctx.Set("volname", volName)
 

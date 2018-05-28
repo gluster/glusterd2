@@ -10,6 +10,7 @@ import (
 	"github.com/gluster/glusterd2/glusterd2/store"
 
 	"github.com/coreos/etcd/clientv3"
+	"github.com/coreos/etcd/clientv3/concurrency"
 	"github.com/pborman/uuid"
 	log "github.com/sirupsen/logrus"
 )
@@ -24,6 +25,8 @@ var expTxn = expvar.NewMap("txn")
 type Txn struct {
 	id    uuid.UUID
 	reqID uuid.UUID
+	locks map[string]*concurrency.Mutex
+
 	Ctx   TxnCtx
 	Steps []*Step
 
@@ -39,19 +42,43 @@ type Txn struct {
 // NewTxn returns an initialized Txn without any steps
 func NewTxn(ctx context.Context) *Txn {
 	t := new(Txn)
+
 	t.id = uuid.NewRandom()
 	t.reqID = gdctx.GetReqID(ctx)
+	t.locks = make(map[string]*concurrency.Mutex)
+
 	prefix := txnPrefix + t.id.String()
 	t.Ctx = NewCtxWithLogFields(log.Fields{
 		"txnid": t.id.String(),
 		"reqid": t.reqID.String(),
 	}).WithPrefix(prefix)
 
+	t.Ctx.Logger().Debug("new transaction created")
+	expTxn.Add("initiated_txn_in_progress", 1)
 	return t
 }
 
-// Cleanup cleans the leftovers after a transaction ends
-func (t *Txn) Cleanup() {
+// NewTxnWithLocks returns an empty Txn with locks obtained on given lockIDs
+func NewTxnWithLocks(ctx context.Context, lockIDs ...string) (*Txn, error) {
+	t := NewTxn(ctx)
+
+	for _, id := range lockIDs {
+		if err := t.Lock(id); err != nil {
+			t.Done()
+			return nil, err
+		}
+	}
+
+	return t, nil
+}
+
+// Done releases any obtained locks and cleans up the transaction namespace
+// Done must be called after a transaction ends
+func (t *Txn) Done() {
+	// Release obtained locks
+	for _, locker := range t.locks {
+		locker.Unlock(context.Background())
+	}
 	store.Store.Delete(context.TODO(), t.Ctx.Prefix(), clientv3.WithPrefix())
 	expTxn.Add("initiated_txn_in_progress", -1)
 }
@@ -84,7 +111,6 @@ func (t *Txn) Do() error {
 	}
 
 	t.Ctx.Logger().Debug("Starting transaction")
-	expTxn.Add("initiated_txn_in_progress", 1)
 
 	for i, s := range t.Steps {
 		if s.Skip {

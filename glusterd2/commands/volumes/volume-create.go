@@ -116,17 +116,18 @@ func volumeCreateHandler(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	txn := transaction.NewTxn(ctx)
-	defer txn.Cleanup()
-
-	lock, unlock, err := transaction.CreateLockSteps(req.Name)
+	txn, err := transaction.NewTxnWithLocks(ctx, req.Name)
 	if err != nil {
-		restutils.SendHTTPError(ctx, w, http.StatusInternalServerError, err)
+		if err == transaction.ErrLockTimeout {
+			restutils.SendHTTPError(ctx, w, http.StatusConflict, err)
+		} else {
+			restutils.SendHTTPError(ctx, w, http.StatusInternalServerError, err)
+		}
 		return
 	}
+	defer txn.Done()
 
 	txn.Steps = []*transaction.Step{
-		lock,
 		{
 			DoFunc: "vol-create.CreateVolinfo",
 			Nodes:  []uuid.UUID{gdctx.MyUUID},
@@ -145,7 +146,6 @@ func volumeCreateHandler(w http.ResponseWriter, r *http.Request) {
 			UndoFunc: "vol-create.UndoStoreVolume",
 			Nodes:    []uuid.UUID{gdctx.MyUUID},
 		},
-		unlock,
 	}
 
 	if err := txn.Ctx.Set("req", &req); err != nil {

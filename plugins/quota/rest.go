@@ -47,6 +47,17 @@ func quotaEnableHandler(w http.ResponseWriter, r *http.Request) {
 	ctx := r.Context()
 	logger := gdctx.GetReqLogger(ctx)
 
+	txn, err := transaction.NewTxnWithLocks(ctx, volName)
+	if err != nil {
+		if err == transaction.ErrLockTimeout {
+			restutils.SendHTTPError(ctx, w, http.StatusConflict, err)
+		} else {
+			restutils.SendHTTPError(ctx, w, http.StatusInternalServerError, err)
+		}
+		return
+	}
+	defer txn.Done()
+
 	// Validate volume existence
 	vol, err := volume.GetVolume(volName)
 	if err != nil {
@@ -73,23 +84,13 @@ func quotaEnableHandler(w http.ResponseWriter, r *http.Request) {
 	// Enable quota
 	vol.Options[quotaEnabledKey] = "on"
 
-	txn := transaction.NewTxn(ctx)
-	defer txn.Cleanup()
-
 	if err := txn.Ctx.Set("volinfo", vol); err != nil {
 		logger.WithError(err).Error("failed to set volinfo in transaction context")
 		restutils.SendHTTPError(ctx, w, http.StatusInternalServerError, err)
 		return
 	}
 
-	lock, unlock, err := transaction.CreateLockSteps(volName)
-	if err != nil {
-		restutils.SendHTTPError(ctx, w, http.StatusInternalServerError, err)
-		return
-	}
-
 	txn.Steps = []*transaction.Step{
-		lock,
 		{
 			DoFunc: "vol-option.UpdateVolinfo",
 			Nodes:  []uuid.UUID{gdctx.MyUUID},
@@ -98,7 +99,6 @@ func quotaEnableHandler(w http.ResponseWriter, r *http.Request) {
 			DoFunc: "quota-enable.DaemonStart",
 			Nodes:  vol.Nodes(),
 		},
-		unlock,
 	}
 
 	err = txn.Do()
