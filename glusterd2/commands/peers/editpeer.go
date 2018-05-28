@@ -41,7 +41,7 @@ func editPeer(w http.ResponseWriter, r *http.Request) {
 	}
 
 	txn := transaction.NewTxn(ctx)
-	defer txn.Cleanup()
+	defer txn.Done()
 	lock, unlock, err := transaction.CreateLockSteps(peerID)
 	if err != nil {
 		restutils.SendHTTPError(ctx, w, http.StatusInternalServerError, err)

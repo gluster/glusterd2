@@ -74,7 +74,7 @@ func quotaEnableHandler(w http.ResponseWriter, r *http.Request) {
 	vol.Options[quotaEnabledKey] = "on"
 
 	txn := transaction.NewTxn(ctx)
-	defer txn.Cleanup()
+	defer txn.Done()
 
 	if err := txn.Ctx.Set("volinfo", vol); err != nil {
 		logger.WithError(err).Error("failed to set volinfo in transaction context")

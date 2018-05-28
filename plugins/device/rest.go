@@ -71,7 +71,7 @@ func deviceAddHandler(w http.ResponseWriter, r *http.Request) {
 	}
 
 	txn := transaction.NewTxn(ctx)
-	defer txn.Cleanup()
+	defer txn.Done()
 
 	txn.Nodes = []uuid.UUID{peerInfo.ID}
 	txn.Steps = []*transaction.Step{

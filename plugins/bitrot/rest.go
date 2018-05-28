@@ -57,7 +57,7 @@ func bitrotEnableHandler(w http.ResponseWriter, r *http.Request) {
 
 	// Transaction which starts bitd and scrubber on all nodes.
 	txn := transaction.NewTxn(ctx)
-	defer txn.Cleanup()
+	defer txn.Done()
 
 	if err := txn.Ctx.Set("volinfo", volinfo); err != nil {
 		logger.WithError(err).Error("failed to set volinfo in transaction context")
@@ -140,7 +140,7 @@ func bitrotDisableHandler(w http.ResponseWriter, r *http.Request) {
 
 	// Transaction which stop bitd and scrubber on all nodes.
 	txn := transaction.NewTxn(ctx)
-	defer txn.Cleanup()
+	defer txn.Done()
 
 	if err := txn.Ctx.Set("volinfo", volinfo); err != nil {
 		logger.WithError(err).Error("failed to set volinfo in transaction context")
@@ -221,7 +221,7 @@ func bitrotScrubOndemandHandler(w http.ResponseWriter, r *http.Request) {
 
 	// Transaction which starts scrubber on demand.
 	txn := transaction.NewTxn(ctx)
-	defer txn.Cleanup()
+	defer txn.Done()
 
 	//Lock on Volume Name
 	lock, unlock, err := transaction.CreateLockSteps(volName)
@@ -288,7 +288,7 @@ func bitrotScrubStatusHandler(w http.ResponseWriter, r *http.Request) {
 
 	// Transaction which gets scrubber status.
 	txn := transaction.NewTxn(ctx)
-	defer txn.Cleanup()
+	defer txn.Done()
 
 	//Lock on Volume Name
 	lock, unlock, err := transaction.CreateLockSteps(volName)

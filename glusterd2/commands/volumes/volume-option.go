@@ -182,7 +182,7 @@ func volumeOptionsHandler(w http.ResponseWriter, r *http.Request) {
 	}
 
 	txn := transaction.NewTxn(ctx)
-	defer txn.Cleanup()
+	defer txn.Done()
 
 	allNodes, err := peer.GetPeerIDs()
 	if err != nil {

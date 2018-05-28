@@ -160,7 +160,7 @@ func georepCreateHandler(w http.ResponseWriter, r *http.Request) {
 
 	// Transaction which updates the Geo-rep session
 	txn := transaction.NewTxn(ctx)
-	defer txn.Cleanup()
+	defer txn.Done()
 
 	// Lock on Master Volume name
 	lock, unlock, err := transaction.CreateLockSteps(geoSession.MasterVol)
@@ -292,7 +292,7 @@ func georepActionHandler(w http.ResponseWriter, r *http.Request, action actionTy
 	}
 
 	txn := transaction.NewTxn(ctx)
-	defer txn.Cleanup()
+	defer txn.Done()
 
 	lock, unlock, err := transaction.CreateLockSteps(geoSession.MasterVol)
 	if err != nil {
@@ -424,7 +424,7 @@ func georepDeleteHandler(w http.ResponseWriter, r *http.Request) {
 	}
 
 	txn := transaction.NewTxn(ctx)
-	defer txn.Cleanup()
+	defer txn.Done()
 
 	lock, unlock, err := transaction.CreateLockSteps(geoSession.MasterVol)
 	if err != nil {
@@ -514,7 +514,7 @@ func georepStatusHandler(w http.ResponseWriter, r *http.Request) {
 
 	// Status Transaction
 	txn := transaction.NewTxn(ctx)
-	defer txn.Cleanup()
+	defer txn.Done()
 
 	txn.Nodes = vol.Nodes()
 	txn.Steps = []*transaction.Step{
@@ -785,7 +785,7 @@ func georepConfigSetHandler(w http.ResponseWriter, r *http.Request) {
 	}
 
 	txn := transaction.NewTxn(ctx)
-	defer txn.Cleanup()
+	defer txn.Done()
 	// TODO: change the lock key
 	lock, unlock, err := transaction.CreateLockSteps(geoSession.MasterVol)
 	if err != nil {
@@ -927,7 +927,7 @@ func georepConfigResetHandler(w http.ResponseWriter, r *http.Request) {
 	}
 
 	txn := transaction.NewTxn(ctx)
-	defer txn.Cleanup()
+	defer txn.Done()
 	// TODO: change the lock key
 	lock, unlock, err := transaction.CreateLockSteps(geoSession.MasterVol)
 	if err != nil {
@@ -1024,7 +1024,7 @@ func georepSSHKeyGenerateHandler(w http.ResponseWriter, r *http.Request) {
 
 	// Transaction which updates the Geo-rep session
 	txn := transaction.NewTxn(ctx)
-	defer txn.Cleanup()
+	defer txn.Done()
 
 	// Lock on Master Volume name
 	lock, unlock, err := transaction.CreateLockSteps(volname)
@@ -1120,7 +1120,7 @@ func georepSSHKeyPushHandler(w http.ResponseWriter, r *http.Request) {
 
 	// Transaction which updates the Geo-rep session
 	txn := transaction.NewTxn(ctx)
-	defer txn.Cleanup()
+	defer txn.Done()
 
 	// Lock on Master Volume name
 	lock, unlock, err := transaction.CreateLockSteps(volname)

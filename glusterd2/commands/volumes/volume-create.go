@@ -117,7 +117,7 @@ func volumeCreateHandler(w http.ResponseWriter, r *http.Request) {
 	}
 
 	txn := transaction.NewTxn(ctx)
-	defer txn.Cleanup()
+	defer txn.Done()
 
 	lock, unlock, err := transaction.CreateLockSteps(req.Name)
 	if err != nil {

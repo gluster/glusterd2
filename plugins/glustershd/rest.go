@@ -58,7 +58,7 @@ func glustershEnableHandler(w http.ResponseWriter, r *http.Request) {
 
 	// Transaction which starts self heal daemon on all nodes with atleast one brick.
 	txn := transaction.NewTxn(ctx)
-	defer txn.Cleanup()
+	defer txn.Done()
 
 	//Lock on Volume Name
 	lock, unlock, err := transaction.CreateLockSteps(volname)
@@ -140,7 +140,7 @@ func glustershDisableHandler(w http.ResponseWriter, r *http.Request) {
 	// Transaction which checks if all replicate volumes are stopped before
 	// stopping the self-heal daemon.
 	txn := transaction.NewTxn(ctx)
-	defer txn.Cleanup()
+	defer txn.Done()
 
 	// Lock on volume name.
 	lock, unlock, err := transaction.CreateLockSteps(volname)
