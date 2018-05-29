@@ -110,5 +110,5 @@ func NewRebalanceProcess(rinfo rebalanceapi.RebalInfo) (*Process, error) {
 
 // ID returns the unique identifier on a node
 func (r *Process) ID() string {
-	return "rebalance-" + r.rInfo.Volname
+	return r.rInfo.Volname + "-rebalance"
 }

@@ -22,7 +22,6 @@ func HandleEventNotify(status map[string]string) error {
 		err     error
 	)
 
-	log.Info("[nithya]: In RebalanceHandleEventNotify ")
 	volname, ok = status["volname"]
 	if !ok {
 		err = errors.New("volname key not found")
@@ -30,7 +29,7 @@ func HandleEventNotify(status map[string]string) error {
 	}
 
 	volname = strings.TrimLeft(volname, "rebalance/")
-	log.Info("[nithya]: In RebalanceHandleEventNotify " + volname)
+	log.Debug("In RebalanceHandleEventNotify " + volname)
 
 	var rebalinfo *rebalanceapi.RebalInfo
 	var rebalNodeStatus rebalanceapi.RebalNodeStatus
