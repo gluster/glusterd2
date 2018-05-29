@@ -70,7 +70,7 @@ var peerAddCmd = &cobra.Command{
 		fmt.Println("Peer add successful")
 		table := tablewriter.NewWriter(os.Stdout)
 		table.SetHeader([]string{"ID", "Name", "Peer Addresses"})
-		table.Append([]string{peer.ID.String(), peer.Name, strings.Join(peer.PeerAddresses, ",")})
+		table.Append([]string{peer.ID.String(), peer.Name, strings.Join(peer.PeerAddresses, "\n")})
 		table.Render()
 	},
 }
@@ -123,7 +123,7 @@ func peerStatusHandler(cmd *cobra.Command) {
 	table := tablewriter.NewWriter(os.Stdout)
 	table.SetHeader([]string{"ID", "Name", "Peer Addresses", "Online"})
 	for _, peer := range peers {
-		table.Append([]string{peer.ID.String(), peer.Name, strings.Join(peer.PeerAddresses, ","), formatBoolYesNo(peer.Online)})
+		table.Append([]string{peer.ID.String(), peer.Name, strings.Join(peer.PeerAddresses, "\n"), formatBoolYesNo(peer.Online)})
 	}
 	table.Render()
 }
