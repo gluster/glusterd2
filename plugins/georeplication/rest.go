@@ -110,6 +110,17 @@ func georepCreateHandler(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
+	txn, err := transaction.NewTxnWithLocks(ctx, req.MasterVol)
+	if err != nil {
+		if err == transaction.ErrLockTimeout {
+			restutils.SendHTTPError(ctx, w, http.StatusConflict, err)
+		} else {
+			restutils.SendHTTPError(ctx, w, http.StatusInternalServerError, err)
+		}
+		return
+	}
+	defer txn.Done()
+
 	// Check if Master volume exists and Matches with passed Volume ID
 	vol, e := volume.GetVolume(req.MasterVol)
 	if e != nil {
@@ -158,17 +169,6 @@ func georepCreateHandler(w http.ResponseWriter, r *http.Request) {
 		geoSession.Options["gluster-logdir"] = path.Join(config.GetString("logdir"), "glusterfs")
 	}
 
-	// Transaction which updates the Geo-rep session
-	txn := transaction.NewTxn(ctx)
-	defer txn.Cleanup()
-
-	// Lock on Master Volume name
-	lock, unlock, err := transaction.CreateLockSteps(geoSession.MasterVol)
-	if err != nil {
-		restutils.SendHTTPError(ctx, w, http.StatusInternalServerError, err)
-		return
-	}
-
 	// Required Volume Options
 	vol.Options["marker.xtime"] = "on"
 	vol.Options["marker.gsync-force-xtime"] = "on"
@@ -179,7 +179,6 @@ func georepCreateHandler(w http.ResponseWriter, r *http.Request) {
 
 	txn.Nodes = vol.Nodes()
 	txn.Steps = []*transaction.Step{
-		lock,
 		{
 			DoFunc: "vol-option.UpdateVolinfo",
 			Nodes:  []uuid.UUID{gdctx.MyUUID},
@@ -192,7 +191,6 @@ func georepCreateHandler(w http.ResponseWriter, r *http.Request) {
 			DoFunc: "georeplication-create.Commit",
 			Nodes:  []uuid.UUID{gdctx.MyUUID},
 		},
-		unlock,
 	}
 
 	if err = txn.Ctx.Set("geosession", geoSession); err != nil {
@@ -275,6 +273,17 @@ func georepActionHandler(w http.ResponseWriter, r *http.Request, action actionTy
 		return
 	}
 
+	txn, err := transaction.NewTxnWithLocks(ctx, geoSession.MasterVol)
+	if err != nil {
+		if err == transaction.ErrLockTimeout {
+			restutils.SendHTTPError(ctx, w, http.StatusConflict, err)
+		} else {
+			restutils.SendHTTPError(ctx, w, http.StatusInternalServerError, err)
+		}
+		return
+	}
+	defer txn.Done()
+
 	// Fetch Volume details and check if Volume is in started state
 	vol, e := volume.GetVolume(geoSession.MasterVol)
 	if e != nil {
@@ -288,15 +297,6 @@ func georepActionHandler(w http.ResponseWriter, r *http.Request, action actionTy
 
 	if action == actionStart && vol.State != volume.VolStarted {
 		restutils.SendHTTPError(ctx, w, http.StatusInternalServerError, "master volume not started")
-		return
-	}
-
-	txn := transaction.NewTxn(ctx)
-	defer txn.Cleanup()
-
-	lock, unlock, err := transaction.CreateLockSteps(geoSession.MasterVol)
-	if err != nil {
-		restutils.SendHTTPError(ctx, w, http.StatusInternalServerError, err)
 		return
 	}
 
@@ -326,12 +326,10 @@ func georepActionHandler(w http.ResponseWriter, r *http.Request, action actionTy
 	}
 
 	txn.Steps = []*transaction.Step{
-		lock,
 		{
 			DoFunc: doFunc,
 			Nodes:  vol.Nodes(),
 		},
-		unlock,
 	}
 
 	if err = txn.Ctx.Set("mastervolid", masterid.String()); err != nil {
@@ -412,6 +410,17 @@ func georepDeleteHandler(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
+	txn, err := transaction.NewTxnWithLocks(ctx, geoSession.MasterVol)
+	if err != nil {
+		if err == transaction.ErrLockTimeout {
+			restutils.SendHTTPError(ctx, w, http.StatusConflict, err)
+		} else {
+			restutils.SendHTTPError(ctx, w, http.StatusInternalServerError, err)
+		}
+		return
+	}
+	defer txn.Done()
+
 	// Fetch Volume details and check if Volume exists
 	_, e := volume.GetVolume(geoSession.MasterVol)
 	if e != nil {
@@ -423,23 +432,12 @@ func georepDeleteHandler(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	txn := transaction.NewTxn(ctx)
-	defer txn.Cleanup()
-
-	lock, unlock, err := transaction.CreateLockSteps(geoSession.MasterVol)
-	if err != nil {
-		restutils.SendHTTPError(ctx, w, http.StatusInternalServerError, err)
-		return
-	}
-
 	// TODO: Add transaction step to clean xattrs specific to georep session
 	txn.Steps = []*transaction.Step{
-		lock,
 		{
 			DoFunc: "georeplication-delete.Commit",
 			Nodes:  []uuid.UUID{gdctx.MyUUID},
 		},
-		unlock,
 	}
 
 	if err = txn.Ctx.Set("mastervolid", masterid.String()); err != nil {
@@ -514,7 +512,7 @@ func georepStatusHandler(w http.ResponseWriter, r *http.Request) {
 
 	// Status Transaction
 	txn := transaction.NewTxn(ctx)
-	defer txn.Cleanup()
+	defer txn.Done()
 
 	txn.Nodes = vol.Nodes()
 	txn.Steps = []*transaction.Step{
@@ -759,6 +757,17 @@ func georepConfigSetHandler(w http.ResponseWriter, r *http.Request) {
 		}
 	}
 
+	txn, err := transaction.NewTxnWithLocks(ctx, geoSession.MasterVol)
+	if err != nil {
+		if err == transaction.ErrLockTimeout {
+			restutils.SendHTTPError(ctx, w, http.StatusConflict, err)
+		} else {
+			restutils.SendHTTPError(ctx, w, http.StatusInternalServerError, err)
+		}
+		return
+	}
+	defer txn.Done()
+
 	vol, e := volume.GetVolume(geoSession.MasterVol)
 	if e != nil {
 		if err == errors.ErrVolNotFound {
@@ -784,18 +793,8 @@ func georepConfigSetHandler(w http.ResponseWriter, r *http.Request) {
 		geoSession.Options[k] = v
 	}
 
-	txn := transaction.NewTxn(ctx)
-	defer txn.Cleanup()
-	// TODO: change the lock key
-	lock, unlock, err := transaction.CreateLockSteps(geoSession.MasterVol)
-	if err != nil {
-		restutils.SendHTTPError(ctx, w, http.StatusInternalServerError, err)
-		return
-	}
-
 	txn.Nodes = vol.Nodes()
 	txn.Steps = []*transaction.Step{
-		lock,
 		{
 			DoFunc: "georeplication-configset.Commit",
 			Nodes:  []uuid.UUID{gdctx.MyUUID},
@@ -804,7 +803,6 @@ func georepConfigSetHandler(w http.ResponseWriter, r *http.Request) {
 			DoFunc: "georeplication-configfilegen.Commit",
 			Nodes:  txn.Nodes,
 		},
-		unlock,
 	}
 
 	if err = txn.Ctx.Set("mastervolid", masterid.String()); err != nil {
@@ -912,6 +910,17 @@ func georepConfigResetHandler(w http.ResponseWriter, r *http.Request) {
 		restartRequired = false
 	}
 
+	txn, err := transaction.NewTxnWithLocks(ctx, geoSession.MasterVol)
+	if err != nil {
+		if err == transaction.ErrLockTimeout {
+			restutils.SendHTTPError(ctx, w, http.StatusConflict, err)
+		} else {
+			restutils.SendHTTPError(ctx, w, http.StatusInternalServerError, err)
+		}
+		return
+	}
+	defer txn.Done()
+
 	vol, e := volume.GetVolume(geoSession.MasterVol)
 	if e != nil {
 		if err == errors.ErrVolNotFound {
@@ -926,18 +935,8 @@ func georepConfigResetHandler(w http.ResponseWriter, r *http.Request) {
 		delete(geoSession.Options, k)
 	}
 
-	txn := transaction.NewTxn(ctx)
-	defer txn.Cleanup()
-	// TODO: change the lock key
-	lock, unlock, err := transaction.CreateLockSteps(geoSession.MasterVol)
-	if err != nil {
-		restutils.SendHTTPError(ctx, w, http.StatusInternalServerError, err)
-		return
-	}
-
 	txn.Nodes = vol.Nodes()
 	txn.Steps = []*transaction.Step{
-		lock,
 		{
 			DoFunc: "georeplication-configset.Commit",
 			Nodes:  []uuid.UUID{gdctx.MyUUID},
@@ -946,7 +945,6 @@ func georepConfigResetHandler(w http.ResponseWriter, r *http.Request) {
 			DoFunc: "georeplication-configfilegen.Commit",
 			Nodes:  txn.Nodes,
 		},
-		unlock,
 	}
 
 	if err = txn.Ctx.Set("mastervolid", masterid.String()); err != nil {
@@ -1011,6 +1009,17 @@ func georepSSHKeyGenerateHandler(w http.ResponseWriter, r *http.Request) {
 	ctx := r.Context()
 	logger := gdctx.GetReqLogger(ctx)
 
+	txn, err := transaction.NewTxnWithLocks(ctx, volname)
+	if err != nil {
+		if err == transaction.ErrLockTimeout {
+			restutils.SendHTTPError(ctx, w, http.StatusConflict, err)
+		} else {
+			restutils.SendHTTPError(ctx, w, http.StatusInternalServerError, err)
+		}
+		return
+	}
+	defer txn.Done()
+
 	// Check if Volume exists
 	vol, e := volume.GetVolume(volname)
 	if e != nil {
@@ -1022,25 +1031,12 @@ func georepSSHKeyGenerateHandler(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	// Transaction which updates the Geo-rep session
-	txn := transaction.NewTxn(ctx)
-	defer txn.Cleanup()
-
-	// Lock on Master Volume name
-	lock, unlock, err := transaction.CreateLockSteps(volname)
-	if err != nil {
-		restutils.SendHTTPError(ctx, w, http.StatusInternalServerError, err)
-		return
-	}
-
 	txn.Nodes = vol.Nodes()
 	txn.Steps = []*transaction.Step{
-		lock,
 		{
 			DoFunc: "georeplication-ssh-keygen.Commit",
 			Nodes:  txn.Nodes,
 		},
-		unlock,
 	}
 
 	if err = txn.Ctx.Set("volname", volname); err != nil {
@@ -1100,6 +1096,17 @@ func georepSSHKeyPushHandler(w http.ResponseWriter, r *http.Request) {
 	ctx := r.Context()
 	logger := gdctx.GetReqLogger(ctx)
 
+	txn, err := transaction.NewTxnWithLocks(ctx, volname)
+	if err != nil {
+		if err == transaction.ErrLockTimeout {
+			restutils.SendHTTPError(ctx, w, http.StatusConflict, err)
+		} else {
+			restutils.SendHTTPError(ctx, w, http.StatusInternalServerError, err)
+		}
+		return
+	}
+	defer txn.Done()
+
 	// Check if Volume exists
 	vol, e := volume.GetVolume(volname)
 	if e != nil {
@@ -1118,25 +1125,12 @@ func georepSSHKeyPushHandler(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	// Transaction which updates the Geo-rep session
-	txn := transaction.NewTxn(ctx)
-	defer txn.Cleanup()
-
-	// Lock on Master Volume name
-	lock, unlock, err := transaction.CreateLockSteps(volname)
-	if err != nil {
-		restutils.SendHTTPError(ctx, w, http.StatusInternalServerError, err)
-		return
-	}
-
 	txn.Nodes = vol.Nodes()
 	txn.Steps = []*transaction.Step{
-		lock,
 		{
 			DoFunc: "georeplication-ssh-keypush.Commit",
 			Nodes:  txn.Nodes,
 		},
-		unlock,
 	}
 
 	if err = txn.Ctx.Set("sshkeys", sshkeys); err != nil {

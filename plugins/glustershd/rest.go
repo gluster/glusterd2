@@ -30,6 +30,17 @@ func glustershEnableHandler(w http.ResponseWriter, r *http.Request) {
 	ctx := r.Context()
 	logger := gdctx.GetReqLogger(ctx)
 
+	txn, err := transaction.NewTxnWithLocks(ctx, volname)
+	if err != nil {
+		if err == transaction.ErrLockTimeout {
+			restutils.SendHTTPError(ctx, w, http.StatusConflict, err)
+		} else {
+			restutils.SendHTTPError(ctx, w, http.StatusInternalServerError, err)
+		}
+		return
+	}
+	defer txn.Done()
+
 	//validate volume name
 	v, err := volume.GetVolume(volname)
 	if err != nil {
@@ -56,22 +67,10 @@ func glustershEnableHandler(w http.ResponseWriter, r *http.Request) {
 
 	}
 
-	// Transaction which starts self heal daemon on all nodes with atleast one brick.
-	txn := transaction.NewTxn(ctx)
-	defer txn.Cleanup()
-
-	//Lock on Volume Name
-	lock, unlock, err := transaction.CreateLockSteps(volname)
-	if err != nil {
-		restutils.SendHTTPError(ctx, w, http.StatusInternalServerError, err)
-		return
-	}
-
 	v.HealEnabled = true
 
 	txn.Nodes = v.Nodes()
 	txn.Steps = []*transaction.Step{
-		lock,
 		{
 			DoFunc:   "vol-option.UpdateVolinfo",
 			Nodes:    []uuid.UUID{gdctx.MyUUID},
@@ -85,7 +84,6 @@ func glustershEnableHandler(w http.ResponseWriter, r *http.Request) {
 			DoFunc: "vol-option.NotifyVolfileChange",
 			Nodes:  txn.Nodes,
 		},
-		unlock,
 	}
 
 	if err := txn.Ctx.Set("volinfo", v); err != nil {
@@ -117,6 +115,17 @@ func glustershDisableHandler(w http.ResponseWriter, r *http.Request) {
 	ctx := r.Context()
 	logger := gdctx.GetReqLogger(ctx)
 
+	txn, err := transaction.NewTxnWithLocks(ctx, volname)
+	if err != nil {
+		if err == transaction.ErrLockTimeout {
+			restutils.SendHTTPError(ctx, w, http.StatusConflict, err)
+		} else {
+			restutils.SendHTTPError(ctx, w, http.StatusInternalServerError, err)
+		}
+		return
+	}
+	defer txn.Done()
+
 	//validate volume name
 	v, err := volume.GetVolume(volname)
 	if err != nil {
@@ -137,23 +146,10 @@ func glustershDisableHandler(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	// Transaction which checks if all replicate volumes are stopped before
-	// stopping the self-heal daemon.
-	txn := transaction.NewTxn(ctx)
-	defer txn.Cleanup()
-
-	// Lock on volume name.
-	lock, unlock, err := transaction.CreateLockSteps(volname)
-	if err != nil {
-		restutils.SendHTTPError(ctx, w, http.StatusInternalServerError, err)
-		return
-	}
-
 	v.HealEnabled = false
 
 	txn.Nodes = v.Nodes()
 	txn.Steps = []*transaction.Step{
-		lock,
 		{
 			DoFunc:   "vol-option.UpdateVolinfo",
 			Nodes:    []uuid.UUID{gdctx.MyUUID},
@@ -168,7 +164,6 @@ func glustershDisableHandler(w http.ResponseWriter, r *http.Request) {
 			DoFunc: "vol-option.NotifyVolfileChange",
 			Nodes:  txn.Nodes,
 		},
-		unlock,
 	}
 
 	if err := txn.Ctx.Set("volinfo", v); err != nil {

@@ -18,6 +18,7 @@ import (
 	"github.com/gluster/glusterd2/glusterd2/xlator"
 	"github.com/gluster/glusterd2/glusterd2/xlator/options"
 	"github.com/gluster/glusterd2/pkg/api"
+	gderrors "github.com/gluster/glusterd2/pkg/errors"
 
 	"github.com/pborman/uuid"
 	log "github.com/sirupsen/logrus"
@@ -262,6 +263,22 @@ func LoadDefaultGroupOptions() error {
 	}
 	if _, err := store.Store.Put(context.TODO(), "groupoptions", string(groupOptions)); err != nil {
 		return err
+	}
+	return nil
+}
+
+//validateVolumeFlags checks for Flags in volume create and expand
+func validateVolumeFlags(flag map[string]bool) error {
+	if len(flag) > 4 {
+		return gderrors.ErrInvalidVolFlags
+	}
+	for key := range flag {
+		switch key {
+		case "reuse-bricks", "allow-root-dir", "allow-mount-as-brick", "create-brick-dir":
+			continue
+		default:
+			return fmt.Errorf("volume flag not supported %s", key)
+		}
 	}
 	return nil
 }

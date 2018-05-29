@@ -30,6 +30,9 @@ func startAllBricks(c transaction.TxnCtx) error {
 		}).Info("Starting brick")
 
 		if err := b.StartBrick(); err != nil {
+			if err == errors.ErrProcessAlreadyRunning {
+				continue
+			}
 			return err
 		}
 	}
@@ -68,11 +71,15 @@ func volumeStartHandler(w http.ResponseWriter, r *http.Request) {
 	ctx := r.Context()
 	logger := gdctx.GetReqLogger(ctx)
 	volname := mux.Vars(r)["volname"]
+	var req api.VolumeStartReq
 
-	lock, unlock := transaction.CreateLockFuncs(volname)
-	// Taking a lock outside the txn as volinfo.Nodes() must also
-	// be populated holding the lock. See issue #510
-	if err := lock(ctx); err != nil {
+	if err := restutils.UnmarshalRequest(r, &req); err != nil {
+		restutils.SendHTTPError(ctx, w, http.StatusBadRequest, err)
+		return
+	}
+
+	txn, err := transaction.NewTxnWithLocks(ctx, volname)
+	if err != nil {
 		if err == transaction.ErrLockTimeout {
 			restutils.SendHTTPError(ctx, w, http.StatusConflict, err)
 		} else {
@@ -80,7 +87,7 @@ func volumeStartHandler(w http.ResponseWriter, r *http.Request) {
 		}
 		return
 	}
-	defer unlock(ctx)
+	defer txn.Done()
 
 	volinfo, err := volume.GetVolume(volname)
 	if err != nil {
@@ -92,13 +99,10 @@ func volumeStartHandler(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	if volinfo.State == volume.VolStarted {
+	if volinfo.State == volume.VolStarted && !req.ForceStartBricks {
 		restutils.SendHTTPError(ctx, w, http.StatusBadRequest, errors.ErrVolAlreadyStarted)
 		return
 	}
-
-	txn := transaction.NewTxn(ctx)
-	defer txn.Cleanup()
 
 	txn.Steps = []*transaction.Step{
 		{
@@ -127,7 +131,7 @@ func volumeStartHandler(w http.ResponseWriter, r *http.Request) {
 	}
 
 	logger.WithField("volume-name", volinfo.Name).Info("volume started")
-	events.Broadcast(newVolumeEvent(eventVolumeStarted, volinfo))
+	events.Broadcast(volume.NewEvent(volume.EventVolumeStarted, volinfo))
 
 	resp := createVolumeStartResp(volinfo)
 	restutils.SendHTTPResponse(ctx, w, http.StatusOK, resp)

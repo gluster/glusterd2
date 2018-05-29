@@ -22,6 +22,18 @@ func volumeResetHandler(w http.ResponseWriter, r *http.Request) {
 	logger := gdctx.GetReqLogger(ctx)
 
 	volname := mux.Vars(r)["volname"]
+
+	txn, err := transaction.NewTxnWithLocks(ctx, volname)
+	if err != nil {
+		if err == transaction.ErrLockTimeout {
+			restutils.SendHTTPError(ctx, w, http.StatusConflict, err)
+		} else {
+			restutils.SendHTTPError(ctx, w, http.StatusInternalServerError, err)
+		}
+		return
+	}
+	defer txn.Done()
+
 	volinfo, err := volume.GetVolume(volname)
 	if err != nil {
 		restutils.SendHTTPError(ctx, w, http.StatusBadRequest, errors.ErrVolNotFound)
@@ -34,7 +46,6 @@ func volumeResetHandler(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	txn := transaction.NewTxn(ctx)
 	// Delete the option after checking for volopt flags
 	opReset := false
 	for _, k := range req.Options {
@@ -75,12 +86,6 @@ func volumeResetHandler(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	lock, unlock, err := transaction.CreateLockSteps(volinfo.Name)
-	if err != nil {
-		restutils.SendHTTPError(ctx, w, http.StatusInternalServerError, err)
-		return
-	}
-
 	allNodes, err := peer.GetPeerIDs()
 	if err != nil {
 		restutils.SendHTTPError(ctx, w, http.StatusInternalServerError, err)
@@ -88,7 +93,6 @@ func volumeResetHandler(w http.ResponseWriter, r *http.Request) {
 	}
 
 	txn.Steps = []*transaction.Step{
-		lock,
 		{
 			DoFunc: "vol-option.UpdateVolinfo",
 			Nodes:  []uuid.UUID{gdctx.MyUUID},
@@ -97,7 +101,6 @@ func volumeResetHandler(w http.ResponseWriter, r *http.Request) {
 			DoFunc: "vol-option.NotifyVolfileChange",
 			Nodes:  allNodes,
 		},
-		unlock,
 	}
 
 	if err := txn.Ctx.Set("volinfo", volinfo); err != nil {

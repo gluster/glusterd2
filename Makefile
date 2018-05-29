@@ -24,6 +24,7 @@ GD2CONF_INSTALL = $(DESTDIR)$(SYSCONFDIR)/$(GD2)/$(GD2_CONF)
 
 GD2STATEDIR = $(LOCALSTATEDIR)/$(GD2)
 GD2LOGDIR = $(LOGDIR)/$(GD2)
+GD2RUNDIR = $(RUNDIR)/$(GD2)
 
 DEPENV ?=
 
@@ -49,9 +50,9 @@ check-reqs:
 	@./scripts/check-reqs.sh
 	@echo
 
-$(GD2_BIN): $(GD2_BUILD)
+$(GD2_BIN): $(GD2_BUILD) gd2conf
 $(GD2_BUILD):
-	@PLUGINS=$(PLUGINS) FASTBUILD=$(FASTBUILD) ./scripts/build.sh glusterd2
+	@PLUGINS=$(PLUGINS) FASTBUILD=$(FASTBUILD) BASE_PREFIX=$(BASE_PREFIX) ./scripts/build.sh glusterd2
 	@echo
 
 $(CLI_BIN) cli: $(CLI_BUILD)
@@ -61,9 +62,9 @@ $(CLI_BUILD):
 	@./$(CLI_BASH_COMPLETION_GEN_BIN) $(CLI_BASH_COMPLETION_BUILD)
 	@echo
 
-$(GD2_CONF) gd2conf: $(GD2CONF_BUILD)
-$(GD2CONF_BUILD):
-	@GD2STATEDIR=$(GD2STATEDIR) GD2LOGDIR=$(GD2LOGDIR) $(GD2CONF_BUILDSCRIPT)
+$(GD2_CONF) gd2conf:
+	@GD2=$(GD2) GD2STATEDIR=$(GD2STATEDIR) GD2LOGDIR=$(GD2LOGDIR) \
+		GD2RUNDIR=$(GD2RUNDIR) $(GD2CONF_BUILDSCRIPT)
 
 install:
 	install -D $(GD2_BUILD) $(GD2_INSTALL)
@@ -92,7 +93,7 @@ release: build
 	@./scripts/release.sh
 
 dist:
-	@./scripts/dist.sh
+	@DISTDIR=$(DISTDIR) SIGN=$(SIGN) ./scripts/dist.sh
 
 dist-vendor: vendor-install
-	@VENDOR=yes ./scripts/dist.sh
+	@VENDOR=yes DISTDIR=$(DISTDIR) SIGN=$(SIGN) ./scripts/dist.sh

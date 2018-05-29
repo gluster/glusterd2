@@ -12,8 +12,16 @@ import (
 func getPeersHandler(w http.ResponseWriter, r *http.Request) {
 
 	ctx := r.Context()
-
-	peers, err := peer.GetPeersF()
+	keys, keyFound := r.URL.Query()["key"]
+	values, valueFound := r.URL.Query()["value"]
+	filterParams := make(map[string]string)
+	if keyFound {
+		filterParams["key"] = keys[0]
+	}
+	if valueFound {
+		filterParams["value"] = values[0]
+	}
+	peers, err := peer.GetPeersF(filterParams)
 	if err != nil {
 		restutils.SendHTTPError(ctx, w, http.StatusNotFound, err)
 	}
@@ -32,7 +40,7 @@ func createPeerListResp(peers []*peer.Peer) *api.PeerListResp {
 			PeerAddresses:   p.PeerAddresses,
 			ClientAddresses: p.ClientAddresses,
 			Online:          store.Store.IsNodeAlive(p.ID),
-			MetaData:        p.MetaData,
+			Metadata:        p.Metadata,
 		})
 	}
 

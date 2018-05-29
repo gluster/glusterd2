@@ -103,8 +103,8 @@ func volumeStatedumpHandler(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	lock, unlock := transaction.CreateLockFuncs(volname)
-	if err := lock(ctx); err != nil {
+	txn, err := transaction.NewTxnWithLocks(ctx, volname)
+	if err != nil {
 		if err == transaction.ErrLockTimeout {
 			restutils.SendHTTPError(ctx, w, http.StatusConflict, err)
 		} else {
@@ -112,7 +112,7 @@ func volumeStatedumpHandler(w http.ResponseWriter, r *http.Request) {
 		}
 		return
 	}
-	defer unlock(ctx)
+	defer txn.Done()
 
 	volinfo, err := volume.GetVolume(volname)
 	if err != nil {
@@ -128,9 +128,6 @@ func volumeStatedumpHandler(w http.ResponseWriter, r *http.Request) {
 		restutils.SendHTTPError(ctx, w, http.StatusBadRequest, gderrors.ErrVolNotStarted)
 		return
 	}
-
-	txn := transaction.NewTxn(ctx)
-	defer txn.Cleanup()
 
 	txn.Steps = []*transaction.Step{
 		{

@@ -3,8 +3,20 @@ package restclient
 import (
 	"fmt"
 	"net/http"
+	"net/url"
 
 	"github.com/gluster/glusterd2/pkg/api"
+)
+
+// metadataFilter is a filter type
+type metadataFilter uint32
+
+// GetVolumes Filter Types
+const (
+	noKeyAndValue metadataFilter = iota
+	onlyKey
+	onlyValue
+	keyAndValue
 )
 
 // VolumeCreate creates Gluster Volume
@@ -14,11 +26,44 @@ func (c *Client) VolumeCreate(req api.VolCreateReq) (api.VolumeCreateResp, error
 	return vol, err
 }
 
+// getFilterType return the filter type for volume list/info
+func getFilterType(filterParams map[string]string) metadataFilter {
+	_, key := filterParams["key"]
+	_, value := filterParams["value"]
+	if key && !value {
+		return onlyKey
+	} else if value && !key {
+		return onlyValue
+	} else if value && key {
+		return keyAndValue
+	}
+	return noKeyAndValue
+}
+
+// getQueryString returns the query string for filtering volumes
+func getQueryString(filterParam map[string]string) string {
+	filterType := getFilterType(filterParam)
+	var queryString string
+	switch filterType {
+	case onlyKey:
+		queryString = fmt.Sprintf("?key=%s", url.QueryEscape(filterParam["key"]))
+	case onlyValue:
+		queryString = fmt.Sprintf("?value=%s", url.QueryEscape(filterParam["value"]))
+	case keyAndValue:
+		queryString = fmt.Sprintf("?key=%s&value=%s", url.QueryEscape(filterParam["key"]), url.QueryEscape(filterParam["value"]))
+	}
+	return queryString
+}
+
 // Volumes returns list of all volumes
-func (c *Client) Volumes(volname string) (api.VolumeListResp, error) {
+func (c *Client) Volumes(volname string, filterParams ...map[string]string) (api.VolumeListResp, error) {
 	if volname == "" {
 		var vols api.VolumeListResp
-		url := fmt.Sprintf("/v1/volumes")
+		var queryString string
+		if len(filterParams) > 0 {
+			queryString = getQueryString(filterParams[0])
+		}
+		url := fmt.Sprintf("/v1/volumes%s", queryString)
 		err := c.get(url, nil, http.StatusOK, &vols)
 		return vols, err
 	}
@@ -45,9 +90,12 @@ func (c *Client) VolumeStatus(volname string) (api.VolumeStatusResp, error) {
 }
 
 // VolumeStart starts a Gluster Volume
-func (c *Client) VolumeStart(volname string) error {
+func (c *Client) VolumeStart(volname string, force bool) error {
+	req := api.VolumeStartReq{
+		ForceStartBricks: force,
+	}
 	url := fmt.Sprintf("/v1/volumes/%s/start", volname)
-	return c.post(url, nil, http.StatusOK, nil)
+	return c.post(url, req, http.StatusOK, nil)
 }
 
 // VolumeStop stops a Gluster Volume

@@ -41,10 +41,16 @@ var (
 	flagExpandCmdReplicaCount int
 	flagExpandCmdForce        bool
 
+	// Filter Volume Info/List command flags
+	flagCmdFilterKey   string
+	flagCmdFilterValue string
+
 	// Edit Command Flags
 	flagCmdMetadataKey    string
 	flagCmdMetadataValue  string
 	flagCmdDeleteMetadata bool
+	//volume expand flags
+	flagReuseBricks, flagAllowRootDir, flagAllowMountAsBrick, flagCreateBrickDir bool
 )
 
 func init() {
@@ -62,15 +68,23 @@ func init() {
 	volumeCmd.AddCommand(volumeGetCmd)
 	volumeCmd.AddCommand(volumeResetCmd)
 
+	volumeInfoCmd.Flags().StringVar(&flagCmdFilterKey, "key", "", "Filter by metadata key")
+	volumeInfoCmd.Flags().StringVar(&flagCmdFilterValue, "value", "", "Filter by metadata value")
 	volumeCmd.AddCommand(volumeInfoCmd)
 
 	volumeCmd.AddCommand(volumeStatusCmd)
 
+	volumeListCmd.Flags().StringVar(&flagCmdFilterKey, "key", "", "Filter by metadata Key")
+	volumeListCmd.Flags().StringVar(&flagCmdFilterValue, "value", "", "Filter by metadata value")
 	volumeCmd.AddCommand(volumeListCmd)
 
 	// Volume Expand
 	volumeExpandCmd.Flags().IntVarP(&flagExpandCmdReplicaCount, "replica", "", 0, "Replica Count")
 	volumeExpandCmd.Flags().BoolVarP(&flagExpandCmdForce, "force", "f", false, "Force")
+	volumeExpandCmd.Flags().BoolVar(&flagReuseBricks, "reuse-bricks", false, "Reuse Bricks")
+	volumeExpandCmd.Flags().BoolVar(&flagAllowRootDir, "allow-root-dir", false, "Allow Root Directory")
+	volumeExpandCmd.Flags().BoolVar(&flagAllowMountAsBrick, "allow-mount-as-brick", false, "Allow Mount as Bricks")
+	volumeExpandCmd.Flags().BoolVar(&flagCreateBrickDir, "create-brick-dir", false, "Create brick directory")
 	volumeCmd.AddCommand(volumeExpandCmd)
 
 	// Volume Edit
@@ -157,7 +171,7 @@ var volumeStartCmd = &cobra.Command{
 	Args:  cobra.ExactArgs(1),
 	Run: func(cmd *cobra.Command, args []string) {
 		volname := cmd.Flags().Args()[0]
-		err := client.VolumeStart(volname)
+		err := client.VolumeStart(volname, flagStartCmdForce)
 		if err != nil {
 			if verbose {
 				log.WithFields(log.Fields{
@@ -284,8 +298,21 @@ func volumeInfoHandler2(cmd *cobra.Command, isInfo bool) error {
 		volname = cmd.Flags().Args()[0]
 	}
 	if volname == "" {
-		vols, err = client.Volumes("")
+		if flagCmdFilterKey == "" && flagCmdFilterValue == "" {
+			vols, err = client.Volumes("")
+		} else if flagCmdFilterKey != "" && flagCmdFilterValue == "" {
+			vols, err = client.Volumes("", map[string]string{"key": flagCmdFilterKey})
+		} else if flagCmdFilterKey == "" && flagCmdFilterValue != "" {
+			vols, err = client.Volumes("", map[string]string{"value": flagCmdFilterValue})
+		} else if flagCmdFilterKey != "" && flagCmdFilterValue != "" {
+			vols, err = client.Volumes("", map[string]string{"key": flagCmdFilterKey,
+				"value": flagCmdFilterValue,
+			})
+		}
 	} else {
+		if flagCmdFilterKey != "" || flagCmdFilterValue != "" {
+			return errors.New("Invalid command. Cannot give filter arguments when providing volname")
+		}
 		vols, err = client.Volumes(volname)
 	}
 
@@ -309,7 +336,7 @@ func volumeInfoHandler2(cmd *cobra.Command, isInfo bool) error {
 }
 
 var volumeInfoCmd = &cobra.Command{
-	Use:   "info",
+	Use:   "info [<volname> |--key <key>|--value <value>|--key <key> --value <value>]",
 	Short: helpVolumeInfoCmd,
 	Args:  cobra.RangeArgs(0, 1),
 	Run: func(cmd *cobra.Command, args []string) {
@@ -326,7 +353,7 @@ var volumeInfoCmd = &cobra.Command{
 }
 
 var volumeListCmd = &cobra.Command{
-	Use:   "list",
+	Use:   "list [--key <key>|--value <value>|--key <key> --value <value>]",
 	Short: helpVolumeListCmd,
 	Args:  cobra.RangeArgs(0, 1),
 	Run: func(cmd *cobra.Command, args []string) {
@@ -419,10 +446,18 @@ var volumeExpandCmd = &cobra.Command{
 			}
 			failure("Error getting brick UUIDs", err, 1)
 		}
+		//set flags
+		flags := make(map[string]bool)
+		flags["reuse-bricks"] = flagReuseBricks
+		flags["allow-root-dir"] = flagAllowRootDir
+		flags["allow-mount-as-brick"] = flagAllowMountAsBrick
+		flags["create-brick-dir"] = flagCreateBrickDir
+
 		vol, err := client.VolumeExpand(volname, api.VolExpandReq{
 			ReplicaCount: flagExpandCmdReplicaCount,
 			Bricks:       bricks, // string of format <UUID>:<path>
 			Force:        flagExpandCmdForce,
+			Flags:        flags,
 		})
 		if err != nil {
 			if verbose {

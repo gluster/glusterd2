@@ -6,6 +6,8 @@ import (
 	"os"
 	"strings"
 
+	"github.com/gluster/glusterd2/pkg/api"
+
 	"github.com/olekukonko/tablewriter"
 	"github.com/pborman/uuid"
 	log "github.com/sirupsen/logrus"
@@ -34,6 +36,8 @@ func init() {
 
 	peerCmd.AddCommand(peerStatusCmd)
 
+	peerListCmd.Flags().StringVar(&flagCmdFilterKey, "key", "", "Filter by metadata key")
+	peerListCmd.Flags().StringVar(&flagCmdFilterValue, "value", "", "Filter by metadata value")
 	peerCmd.AddCommand(peerListCmd)
 
 	RootCmd.AddCommand(peerCmd)
@@ -50,7 +54,10 @@ var peerAddCmd = &cobra.Command{
 	Args:  cobra.ExactArgs(1),
 	Run: func(cmd *cobra.Command, args []string) {
 		hostname := cmd.Flags().Args()[0]
-		peer, err := client.PeerAdd(hostname)
+		peerAddReq := api.PeerAddReq{
+			Addresses: []string{hostname},
+		}
+		peer, err := client.PeerAdd(peerAddReq)
 		if err != nil {
 			if verbose {
 				log.WithFields(log.Fields{
@@ -63,7 +70,7 @@ var peerAddCmd = &cobra.Command{
 		fmt.Println("Peer add successful")
 		table := tablewriter.NewWriter(os.Stdout)
 		table.SetHeader([]string{"ID", "Name", "Peer Addresses"})
-		table.Append([]string{peer.ID.String(), peer.Name, strings.Join(peer.PeerAddresses, ",")})
+		table.Append([]string{peer.ID.String(), peer.Name, strings.Join(peer.PeerAddresses, "\n")})
 		table.Render()
 	},
 }
@@ -92,7 +99,19 @@ var peerRemoveCmd = &cobra.Command{
 }
 
 func peerStatusHandler(cmd *cobra.Command) {
-	peers, err := client.Peers()
+	var peers api.PeerListResp
+	var err error
+	if flagCmdFilterKey == "" && flagCmdFilterValue == "" {
+		peers, err = client.Peers()
+	} else if flagCmdFilterKey != "" && flagCmdFilterValue == "" {
+		peers, err = client.Peers(map[string]string{"key": flagCmdFilterKey})
+	} else if flagCmdFilterKey == "" && flagCmdFilterValue != "" {
+		peers, err = client.Peers(map[string]string{"value": flagCmdFilterValue})
+	} else if flagCmdFilterKey != "" && flagCmdFilterValue != "" {
+		peers, err = client.Peers(map[string]string{"key": flagCmdFilterKey,
+			"value": flagCmdFilterValue,
+		})
+	}
 	if err != nil {
 		if verbose {
 			log.WithFields(log.Fields{
@@ -104,7 +123,7 @@ func peerStatusHandler(cmd *cobra.Command) {
 	table := tablewriter.NewWriter(os.Stdout)
 	table.SetHeader([]string{"ID", "Name", "Peer Addresses", "Online"})
 	for _, peer := range peers {
-		table.Append([]string{peer.ID.String(), peer.Name, strings.Join(peer.PeerAddresses, ","), formatBoolYesNo(peer.Online)})
+		table.Append([]string{peer.ID.String(), peer.Name, strings.Join(peer.PeerAddresses, "\n"), formatBoolYesNo(peer.Online)})
 	}
 	table.Render()
 }

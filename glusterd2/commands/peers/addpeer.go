@@ -3,6 +3,8 @@ package peercommands
 import (
 	"fmt"
 	"net/http"
+	"sort"
+	"strings"
 
 	"github.com/gluster/glusterd2/glusterd2/events"
 	"github.com/gluster/glusterd2/glusterd2/gdctx"
@@ -23,6 +25,13 @@ func addPeerHandler(w http.ResponseWriter, r *http.Request) {
 	if err := restutils.UnmarshalRequest(r, &req); err != nil {
 		restutils.SendHTTPError(ctx, w, http.StatusBadRequest, errors.ErrJSONParsingFailed)
 		return
+	}
+
+	for key := range req.Metadata {
+		if strings.HasPrefix(key, "_") {
+			restutils.SendHTTPError(ctx, w, http.StatusBadRequest, errors.ErrRestrictedKeyFound)
+			return
+		}
 	}
 
 	if len(req.Addresses) < 1 {
@@ -84,11 +93,29 @@ func addPeerHandler(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	newpeer.MetaData = req.MetaData
+	if req.Zone != "" {
+		newpeer.Metadata["_zone"] = req.Zone
+	}
+	for key, value := range req.Metadata {
+		newpeer.Metadata[key] = value
+	}
+
+	//check if remotePeerAddress already present
+	found := utils.StringInSlice(remotePeerAddress, newpeer.PeerAddresses)
+	//if not found prepend the remotePeerAddress to peer details
+	if !found {
+		newpeer.PeerAddresses = append([]string{remotePeerAddress}, newpeer.PeerAddresses...)
+	} else {
+		index := sort.StringSlice(newpeer.PeerAddresses).Search(remotePeerAddress)
+		//swap peer  address to index 0
+		sort.StringSlice(newpeer.PeerAddresses).Swap(0, index)
+	}
+
 	err = peer.AddOrUpdatePeer(newpeer)
 	if err != nil {
 		restutils.SendHTTPError(ctx, w, http.StatusInternalServerError, "Fail to add metadata to peer")
 	}
+
 	resp := createPeerAddResp(newpeer)
 	restutils.SendHTTPResponse(ctx, w, http.StatusCreated, resp)
 
@@ -104,6 +131,6 @@ func createPeerAddResp(p *peer.Peer) *api.PeerAddResp {
 		Name:            p.Name,
 		PeerAddresses:   p.PeerAddresses,
 		ClientAddresses: p.ClientAddresses,
-		MetaData:        p.MetaData,
+		Metadata:        p.Metadata,
 	}
 }

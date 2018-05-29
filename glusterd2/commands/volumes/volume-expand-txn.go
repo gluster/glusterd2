@@ -59,13 +59,9 @@ func expandValidatePrepare(c transaction.TxnCtx) error {
 		return err
 	}
 
-	var checks brick.InitChecks
-	if !req.Force {
-		checks.IsInUse = true
-		checks.IsMount = true
-		checks.IsOnRoot = true
-	}
-	if err := c.Set("brick-checks", &checks); err != nil {
+	checks := brick.PrepareChecks(req.Force, req.Flags)
+
+	if err := c.Set("brick-checks", checks); err != nil {
 		return err
 	}
 

@@ -80,7 +80,7 @@ func volumeBricksStatusHandler(w http.ResponseWriter, r *http.Request) {
 	}
 
 	txn := transaction.NewTxn(ctx)
-	defer txn.Cleanup()
+	defer txn.Done()
 	txn.Steps = []*transaction.Step{
 		{
 			DoFunc: "bricks-status.Check",

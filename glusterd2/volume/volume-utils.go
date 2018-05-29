@@ -17,6 +17,20 @@ import (
 	log "github.com/sirupsen/logrus"
 )
 
+// GetRedundancy calculates redundancy count based on disperse count
+func GetRedundancy(disperse uint) int {
+	var temp, l, mask uint
+	temp = disperse
+	for temp = temp >> 1; temp != 0; temp = temp >> 1 {
+		l = l + 1
+	}
+	mask = ^(1 << l)
+	if red := disperse & mask; red != 0 {
+		return int(red)
+	}
+	return 1
+}
+
 // isBrickPathAvailable validates whether the brick is consumed by other
 // volume
 func isBrickPathAvailable(peerID uuid.UUID, brickPath string) error {

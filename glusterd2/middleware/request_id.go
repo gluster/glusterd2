@@ -21,8 +21,8 @@ func ReqIDGenerator(next http.Handler) http.Handler {
 		w.Header().Set("X-Request-ID", reqID.String())
 
 		// Create request-scoped logger and set in request context
-		reqLogger := log.WithField("reqid", reqID.String())
-		ctx = gdctx.WithReqLogger(ctx, reqLogger)
+		reqLoggerEntry := log.WithField("reqid", reqID.String())
+		ctx = gdctx.WithReqLogger(ctx, reqLoggerEntry)
 
 		next.ServeHTTP(w, r.WithContext(ctx))
 	})

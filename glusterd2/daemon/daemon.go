@@ -26,7 +26,7 @@ type Daemon interface {
 
 	// Args should return the arguments to be passed to the binary
 	// during spawn.
-	Args() string
+	Args() []string
 
 	// SocketFile should return the absolute path to the socket file which
 	// will be used for inter process communication using Unix domain
@@ -56,7 +56,7 @@ func Start(d Daemon, wait bool) error {
 	log.WithFields(log.Fields{
 		"name": d.Name(),
 		"path": d.Path(),
-		"args": d.Args(),
+		"args": strings.Join(d.Args(), " "),
 	}).Debug("Starting daemon.")
 	events.Broadcast(newEvent(d, daemonStarting, 0))
 
@@ -71,8 +71,7 @@ func Start(d Daemon, wait bool) error {
 		}
 	}
 
-	args := strings.Fields(d.Args())
-	cmd := exec.Command(d.Path(), args...)
+	cmd := exec.Command(d.Path(), d.Args()...)
 	err = cmd.Start()
 	if err != nil {
 		events.Broadcast(newEvent(d, daemonStartFailed, 0))

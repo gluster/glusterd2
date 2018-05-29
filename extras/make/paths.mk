@@ -5,14 +5,20 @@
 # https://fedoraproject.org/wiki/Packaging:RPMMacros?rd=Packaging/RPMMacros
 
 PREFIX ?= /usr/local
+
+BASE_PREFIX = $(PREFIX)
+ifeq ($(PREFIX), /usr)
+BASE_PREFIX = ""
+endif
+
 EXEC_PREFIX ?= $(PREFIX)
 
 BINDIR ?= $(EXEC_PREFIX)/bin
 SBINDIR ?= $(EXEC_PREFIX)/sbin
 
 DATADIR ?= $(PREFIX)/share
-LOCALSTATEDIR ?= $(PREFIX)/var/lib
-LOGDIR ?= $(PREFIX)/var/log
+LOCALSTATEDIR ?= $(BASE_PREFIX)/var/lib
+LOGDIR ?= $(BASE_PREFIX)/var/log
 
-SYSCONFDIR ?= $(PREFIX)/etc
-
+SYSCONFDIR ?= $(BASE_PREFIX)/etc
+RUNDIR ?= $(BASE_PREFIX)/var/run

@@ -5,6 +5,8 @@ import (
 	"net"
 
 	"github.com/gluster/glusterd2/glusterd2/gdctx"
+	"github.com/gluster/glusterd2/pkg/errors"
+	"github.com/gluster/glusterd2/pkg/utils"
 
 	config "github.com/spf13/viper"
 )
@@ -39,8 +41,8 @@ func normalizeAddrs() ([]string, error) {
 
 // AddSelfDetails results in the peer adding its own details into etcd
 func AddSelfDetails() error {
-	var err error
 
+	var err error
 	p := &Peer{
 		ID:            gdctx.MyUUID,
 		Name:          gdctx.HostName,
@@ -49,6 +51,25 @@ func AddSelfDetails() error {
 
 	p.ClientAddresses, err = normalizeAddrs()
 	if err != nil {
+		return err
+	}
+
+	peerInfo, err := GetPeer(gdctx.MyUUID.String())
+	if err == errors.ErrPeerNotFound {
+		p.Metadata = make(map[string]string)
+		p.Metadata["_zone"] = p.ID.String()
+
+	} else if err == nil && peerInfo != nil {
+		p.Metadata = peerInfo.Metadata
+
+		found := utils.StringInSlice(p.PeerAddresses[0], peerInfo.PeerAddresses)
+		if !found {
+			p.PeerAddresses = append(peerInfo.PeerAddresses, p.PeerAddresses...)
+		} else {
+			p.PeerAddresses = peerInfo.PeerAddresses
+		}
+
+	} else {
 		return err
 	}
 

@@ -16,8 +16,9 @@ import (
 	"github.com/dgrijalva/jwt-go"
 )
 
-var (
+const (
 	expireSeconds = 120
+	clientTimeout = 30
 )
 
 // Client represents Glusterd2 REST Client
@@ -47,7 +48,7 @@ func parseHTTPError(jsonData []byte) string {
 func getAuthToken(username string, password string) string {
 	// Create the Claims
 	claims := &jwt.StandardClaims{
-		ExpiresAt: time.Now().Add(time.Second * time.Duration(expireSeconds)).Unix(),
+		ExpiresAt: time.Now().Add(time.Second * expireSeconds).Unix(),
 		Issuer:    username,
 	}
 	token := jwt.NewWithClaims(jwt.SigningMethodHS256, claims)
@@ -93,6 +94,7 @@ func (c *Client) do(method string, url string, data interface{}, expectStatusCod
 	}
 	req.Header.Set("Accept", "application/json")
 	req.Header.Set("Content-Type", "application/json")
+	req.Close = true
 
 	// Set Authorization if username and password is not empty string
 	if c.username != "" && c.password != "" {
@@ -100,9 +102,8 @@ func (c *Client) do(method string, url string, data interface{}, expectStatusCod
 	}
 
 	tr := &http.Transport{
-		DisableCompression:    true,
-		DisableKeepAlives:     true,
-		ResponseHeaderTimeout: 3 * time.Second,
+		DisableCompression: true,
+		DisableKeepAlives:  true,
 	}
 
 	if c.cacert != "" || c.insecure {
@@ -120,7 +121,9 @@ func (c *Client) do(method string, url string, data interface{}, expectStatusCod
 		}
 	}
 
-	client := &http.Client{Transport: tr}
+	client := &http.Client{
+		Transport: tr,
+		Timeout:   clientTimeout * time.Second}
 
 	resp, err := client.Do(req)
 	if err != nil {
@@ -141,4 +144,9 @@ func (c *Client) do(method string, url string, data interface{}, expectStatusCod
 	}
 
 	return nil
+}
+
+//Ping checks glusterd2 service status
+func (c *Client) Ping() error {
+	return c.get("/ping", nil, http.StatusOK, nil)
 }

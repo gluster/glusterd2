@@ -1,52 +1,59 @@
 package device
 
 import (
-	"os/exec"
 	"strings"
 
 	"github.com/gluster/glusterd2/glusterd2/transaction"
 	deviceapi "github.com/gluster/glusterd2/plugins/device/api"
-
-	"github.com/pborman/uuid"
-	log "github.com/sirupsen/logrus"
+	"github.com/gluster/glusterd2/plugins/device/deviceutils"
 )
 
 func txnPrepareDevice(c transaction.TxnCtx) error {
-	var peerID uuid.UUID
-	var req deviceapi.AddDeviceReq
-	var deviceList []deviceapi.Info
-	if err := c.Get("peerid", peerID); err != nil {
-		c.Logger().WithError(err).Error("Failed transaction, cannot find peer-id")
+	var peerID string
+	if err := c.Get("peerid", &peerID); err != nil {
+		c.Logger().WithError(err).WithField("key", "peerid").Error("Failed to get key from transaction context")
 		return err
 	}
-	if err := c.Get("req", req); err != nil {
-		c.Logger().WithError(err).Error("Failed transaction, cannot find device-details")
+
+	var device string
+	if err := c.Get("device", &device); err != nil {
+		c.Logger().WithError(err).WithField("key", "device").Error("Failed to get key from transaction context")
 		return err
 	}
-	for _, name := range req.Devices {
-		tempDevice := deviceapi.Info{
-			Name: name,
-		}
-		deviceList = append(deviceList, tempDevice)
-	}
-	for index, element := range deviceList {
-		pvcreateCmd := exec.Command("pvcreate", "--metadatasize=128M", "--dataalignment=256K", element.Name)
-		if err := pvcreateCmd.Run(); err != nil {
-			c.Logger().WithError(err).WithField("device", element.Name).Error("pvcreate failed for device")
-			deviceList[index].State = deviceapi.DeviceFailed
-			continue
-		}
-		vgcreateCmd := exec.Command("vgcreate", strings.Replace("vg"+element.Name, "/", "-", -1), element.Name)
-		if err := vgcreateCmd.Run(); err != nil {
-			c.Logger().WithError(err).WithField("device", element.Name).Error("vgcreate failed for device")
-			deviceList[index].State = deviceapi.DeviceFailed
-			continue
-		}
-		deviceList[index].State = deviceapi.DeviceEnabled
-	}
-	err := AddDevices(deviceList, peerID.String())
+
+	var deviceInfo deviceapi.Info
+
+	err := deviceutils.CreatePV(device)
 	if err != nil {
-		log.WithError(err).Error("Couldn't add deviceinfo to store")
+		c.Logger().WithError(err).WithField("device", device).Error("Failed to create physical volume")
+		return err
+	}
+	vgName := strings.Replace("vg"+device, "/", "-", -1)
+	err = deviceutils.CreateVG(device, vgName)
+	if err != nil {
+		c.Logger().WithError(err).WithField("device", device).Error("Failed to create volume group")
+		errPV := deviceutils.RemovePV(device)
+		if errPV != nil {
+			c.Logger().WithError(err).WithField("device", device).Error("Failed to remove physical volume")
+		}
+		return err
+	}
+	c.Logger().WithField("device", device).Info("Device setup successful, setting device status to 'Enabled'")
+
+	availableSize, extentSize, err := deviceutils.GetVgAvailableSize(vgName)
+	if err != nil {
+		return err
+	}
+	deviceInfo = deviceapi.Info{
+		Name:          device,
+		State:         deviceapi.DeviceEnabled,
+		AvailableSize: availableSize,
+		ExtentSize:    extentSize,
+	}
+
+	err = deviceutils.AddDevice(deviceInfo, peerID)
+	if err != nil {
+		c.Logger().WithError(err).WithField("peerid", peerID).Error("Couldn't add deviceinfo to store")
 		return err
 	}
 	return nil

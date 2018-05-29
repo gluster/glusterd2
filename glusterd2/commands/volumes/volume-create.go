@@ -4,6 +4,7 @@ import (
 	"errors"
 	"net/http"
 	"path/filepath"
+	"regexp"
 
 	"github.com/gluster/glusterd2/glusterd2/events"
 	"github.com/gluster/glusterd2/glusterd2/gdctx"
@@ -16,10 +17,16 @@ import (
 	"github.com/pborman/uuid"
 )
 
+var (
+	reg = regexp.MustCompile("^[a-zA-Z0-9_-]+$")
+)
+
 func validateVolCreateReq(req *api.VolCreateReq) error {
 
-	if req.Name == "" {
-		return gderrors.ErrEmptyVolName
+	valid := reg.MatchString(req.Name)
+
+	if !valid {
+		return gderrors.ErrInvalidVolName
 	}
 
 	if req.Transport != "" && req.Transport != "tcp" && req.Transport != "rdma" {
@@ -36,7 +43,7 @@ func validateVolCreateReq(req *api.VolCreateReq) error {
 		}
 	}
 
-	return nil
+	return validateVolumeFlags(req.Flags)
 }
 
 func checkDupBrickEntryVolCreate(req api.VolCreateReq) error {
@@ -103,23 +110,24 @@ func volumeCreateHandler(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	nodes, err := nodesFromVolumeCreateReq(&req)
+	nodes, err := req.Nodes()
 	if err != nil {
 		restutils.SendHTTPError(ctx, w, http.StatusBadRequest, err)
 		return
 	}
 
-	txn := transaction.NewTxn(ctx)
-	defer txn.Cleanup()
-
-	lock, unlock, err := transaction.CreateLockSteps(req.Name)
+	txn, err := transaction.NewTxnWithLocks(ctx, req.Name)
 	if err != nil {
-		restutils.SendHTTPError(ctx, w, http.StatusInternalServerError, err)
+		if err == transaction.ErrLockTimeout {
+			restutils.SendHTTPError(ctx, w, http.StatusConflict, err)
+		} else {
+			restutils.SendHTTPError(ctx, w, http.StatusInternalServerError, err)
+		}
 		return
 	}
+	defer txn.Done()
 
 	txn.Steps = []*transaction.Step{
-		lock,
 		{
 			DoFunc: "vol-create.CreateVolinfo",
 			Nodes:  []uuid.UUID{gdctx.MyUUID},
@@ -138,7 +146,6 @@ func volumeCreateHandler(w http.ResponseWriter, r *http.Request) {
 			UndoFunc: "vol-create.UndoStoreVolume",
 			Nodes:    []uuid.UUID{gdctx.MyUUID},
 		},
-		unlock,
 	}
 
 	if err := txn.Ctx.Set("req", &req); err != nil {
@@ -165,7 +172,7 @@ func volumeCreateHandler(w http.ResponseWriter, r *http.Request) {
 	}
 
 	logger.WithField("volume-name", volinfo.Name).Info("new volume created")
-	events.Broadcast(newVolumeEvent(eventVolumeCreated, volinfo))
+	events.Broadcast(volume.NewEvent(volume.EventVolumeCreated, volinfo))
 
 	resp := createVolumeCreateResp(volinfo)
 	restutils.SendHTTPResponse(ctx, w, http.StatusCreated, resp)
