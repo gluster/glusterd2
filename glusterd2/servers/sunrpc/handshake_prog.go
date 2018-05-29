@@ -110,8 +110,8 @@ func (p *GfHandshake) ServerGetspec(args *GfGetspecReq, reply *GfGetspecRsp) err
 	}
 
 	// Get Volfile from store
-	volname := strings.TrimPrefix(args.Key, "/")
-	resp, err := store.Store.Get(context.TODO(), volfilePrefix+volname)
+	volfileID := strings.TrimPrefix(args.Key, "/")
+	resp, err := store.Store.Get(context.TODO(), volfilePrefix+volfileID)
 	if err != nil {
 		log.WithField("volfile", args.Key).WithError(err).Error("ServerGetspec(): failed to retrive volfile from store")
 		goto Out
@@ -129,9 +129,13 @@ func (p *GfHandshake) ServerGetspec(args *GfGetspecReq, reply *GfGetspecRsp) err
 
 	if (args.Flags & gfGetspecFlagServersList) != 0 {
 
-		volinfo, err := volume.GetVolume(volname)
+		volinfo, err := volume.GetVolume(volfileID)
 		if err != nil {
-			log.WithError(err).WithField("volume", volname).Error("failed to get volinfo from store")
+			log.WithError(err).WithField("volume", volfileID).Warn("failed to get volinfo from store")
+			// Currently there's no easy way to distinguish between
+			// a GETSPEC request from client vs request from daemon
+			// such as self-heal as self-heal is also a client.
+			err = nil
 			goto Out
 		}
 
