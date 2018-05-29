@@ -35,6 +35,10 @@ func isNoRouteToHostErr(err error) bool {
 }
 
 func handleGlusterdConnectFailure(msg string, err error, https bool, host string, port int, errcode int) {
+	if err == nil {
+		return
+	}
+
 	if isConnectionRefusedErr(err) || isNoSuchHostErr(err) || isNoRouteToHostErr(err) {
 		scheme := "http"
 		if https {

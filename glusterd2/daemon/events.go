@@ -2,6 +2,7 @@ package daemon
 
 import (
 	"strconv"
+	"strings"
 
 	"github.com/gluster/glusterd2/glusterd2/events"
 	"github.com/gluster/glusterd2/pkg/api"
@@ -27,7 +28,7 @@ func newEvent(d Daemon, e daemonEvent, pid int) *api.Event {
 		"name":   d.Name(),
 		"id":     d.ID(),
 		"binary": d.Path(),
-		"args":   d.Args(),
+		"args":   strings.Join(d.Args(), " "),
 		"pid":    strconv.Itoa(pid),
 	}
 

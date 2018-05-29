@@ -51,6 +51,11 @@ func voltypeFromSubvols(req *api.VolCreateReq) volume.VolType {
 			return volume.DistReplicate
 		}
 		return volume.Replicate
+	case "disperse":
+		if numSubvols > 1 {
+			return volume.DistDisperse
+		}
+		return volume.Disperse
 	case "distribute":
 		return volume.Distribute
 	default:
@@ -189,15 +194,9 @@ func createVolinfo(c transaction.TxnCtx) error {
 		return err
 	}
 
-	// TODO: Expose this granularity in the volume create API.
-	var checks brick.InitChecks
-	if !req.Force {
-		checks.IsInUse = true
-		checks.IsMount = true
-		checks.IsOnRoot = true
-	}
+	checks := brick.PrepareChecks(req.Force, req.Flags)
 
-	err = c.Set("brick-checks", &checks)
+	err = c.Set("brick-checks", checks)
 
 	return err
 }

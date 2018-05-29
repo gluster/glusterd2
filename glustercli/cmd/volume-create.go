@@ -48,9 +48,11 @@ func init() {
 	volumeCreateCmd.Flags().StringSliceVar(&flagCreateVolumeOptions, "options", []string{},
 		"Volume options in the format option:value,option:value")
 	volumeCreateCmd.Flags().BoolVar(&flagCreateAdvOpts, "advanced", false, "Allow advanced options")
-	volumeCreateCmd.Flags().BoolVar(&flagCreateExpOpts, "experimental", false, "Allow experimental options")
-	volumeCreateCmd.Flags().BoolVar(&flagCreateDepOpts, "deprecated", false, "Allow deprecated options")
-	volumeCmd.AddCommand(volumeCreateCmd)
+	volumeCreateCmd.Flags().BoolVar(&flagReuseBricks, "reuse-bricks", false, "Reuse bricks")
+	volumeCreateCmd.Flags().BoolVar(&flagAllowRootDir, "allow-root-dir", false, "Allow root directory")
+	volumeCreateCmd.Flags().BoolVar(&flagAllowMountAsBrick, "allow-mount-as-brick", false, "Allow mount as bricks")
+	volumeCreateCmd.Flags().BoolVar(&flagCreateBrickDir, "create-brick-dir", false, "Create brick directory")
+
 }
 
 func volumeCreateCmdRun(cmd *cobra.Command, args []string) {
@@ -70,6 +72,11 @@ func volumeCreateCmdRun(cmd *cobra.Command, args []string) {
 	subvols := []api.SubvolReq{}
 	if flagCreateReplicaCount > 0 {
 		// Replicate Volume Support
+
+		if numBricks%flagCreateReplicaCount != 0 {
+			failure("Invalid number of bricks specified", nil, 1)
+		}
+
 		numSubvols := numBricks / flagCreateReplicaCount
 
 		for i := 0; i < numSubvols; i++ {
@@ -87,15 +94,53 @@ func volumeCreateCmdRun(cmd *cobra.Command, args []string) {
 				ArbiterCount: flagCreateArbiterCount,
 			})
 		}
+	} else if flagCreateDisperseCount > 0 || flagCreateDisperseDataCount > 0 || flagCreateRedundancyCount > 0 {
+		subvolSize := 0
+		if flagCreateDisperseCount > 0 {
+			subvolSize = flagCreateDisperseCount
+		} else if flagCreateDisperseDataCount > 0 && flagCreateRedundancyCount > 0 {
+			subvolSize = flagCreateDisperseDataCount + flagCreateRedundancyCount
+		}
+
+		if subvolSize == 0 {
+			failure("Invalid disperse-count/disperse-data/disperse-redundancy count", nil, 1)
+		}
+
+		if numBricks%subvolSize != 0 {
+			failure("Invalid number of bricks specified", nil, 1)
+		}
+
+		numSubvols := numBricks / subvolSize
+
+		for i := 0; i < numSubvols; i++ {
+			idx := i * subvolSize
+
+			subvols = append(subvols, api.SubvolReq{
+				Type:               "disperse",
+				Bricks:             bricks[idx : idx+subvolSize],
+				DisperseCount:      flagCreateDisperseCount,
+				DisperseData:       flagCreateDisperseDataCount,
+				DisperseRedundancy: flagCreateRedundancyCount,
+			})
+		}
 	} else {
 		// Default Distribute Volume
-		subvols = []api.SubvolReq{
-			{
-				Type:   "distribute",
-				Bricks: bricks,
-			},
+		for _, b := range bricks {
+			subvols = append(
+				subvols,
+				api.SubvolReq{
+					Type:   "distribute",
+					Bricks: []api.BrickReq{b},
+				},
+			)
 		}
 	}
+	//set flags
+	flags := make(map[string]bool)
+	flags["reuse-bricks"] = flagReuseBricks
+	flags["allow-root-dir"] = flagAllowRootDir
+	flags["allow-mount-as-brick"] = flagAllowMountAsBrick
+	flags["create-brick-dir"] = flagCreateBrickDir
 
 	options := make(map[string]string)
 	//set options
@@ -124,6 +169,7 @@ func volumeCreateCmdRun(cmd *cobra.Command, args []string) {
 		Advanced:     flagCreateAdvOpts,
 		Experimental: flagCreateExpOpts,
 		Deprecated:   flagCreateDepOpts,
+		Flags:        flags,
 	}
 
 	// handle thin-arbiter

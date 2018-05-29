@@ -40,12 +40,18 @@ func txnPrepareDevice(c transaction.TxnCtx) error {
 	}
 	c.Logger().WithField("device", device).Info("Device setup successful, setting device status to 'Enabled'")
 
+	availableSize, extentSize, err := deviceutils.GetVgAvailableSize(vgName)
+	if err != nil {
+		return err
+	}
 	deviceInfo = deviceapi.Info{
-		Name:  device,
-		State: deviceapi.DeviceEnabled,
+		Name:          device,
+		State:         deviceapi.DeviceEnabled,
+		AvailableSize: availableSize,
+		ExtentSize:    extentSize,
 	}
 
-	err = addDevice(deviceInfo, peerID)
+	err = deviceutils.AddDevice(deviceInfo, peerID)
 	if err != nil {
 		c.Logger().WithError(err).WithField("peerid", peerID).Error("Couldn't add deviceinfo to store")
 		return err

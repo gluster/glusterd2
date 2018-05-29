@@ -196,12 +196,3 @@ func Exists(name string) bool {
 
 	return resp.Count == 1
 }
-
-// GetMetadataLen return the length of volume metadata
-func GetMetadataLen(metadata map[string]string) int {
-	currentSize := 0
-	for key, value := range metadata {
-		currentSize = currentSize + len(key) + len(value)
-	}
-	return currentSize
-}

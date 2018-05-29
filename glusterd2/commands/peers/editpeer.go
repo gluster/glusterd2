@@ -1,7 +1,6 @@
 package peercommands
 
 import (
-	"errors"
 	"net/http"
 	"strings"
 
@@ -41,21 +40,22 @@ func editPeer(w http.ResponseWriter, r *http.Request) {
 		}
 	}
 
-	txn := transaction.NewTxn(ctx)
-	defer txn.Cleanup()
-	lock, unlock, err := transaction.CreateLockSteps(peerID)
+	txn, err := transaction.NewTxnWithLocks(ctx, peerID)
 	if err != nil {
-		restutils.SendHTTPError(ctx, w, http.StatusInternalServerError, err)
+		if err == transaction.ErrLockTimeout {
+			restutils.SendHTTPError(ctx, w, http.StatusConflict, err)
+		} else {
+			restutils.SendHTTPError(ctx, w, http.StatusInternalServerError, err)
+		}
 		return
 	}
+	defer txn.Done()
 
 	txn.Steps = []*transaction.Step{
-		lock,
 		{
 			DoFunc: "peer-edit",
 			Nodes:  []uuid.UUID{gdctx.MyUUID},
 		},
-		unlock,
 	}
 	err = txn.Ctx.Set("peerid", peerID)
 	if err != nil {
@@ -104,17 +104,16 @@ func txnPeerEdit(c transaction.TxnCtx) error {
 		return err
 	}
 
-	metadataSize := peer.GetMetadataLen(req.Metadata)
-	for k, v := range req.Metadata {
-		offset := len(k) + len(v)
-		if val, ok := peerInfo.Metadata[k]; ok {
-			offset = offset - len(val)
-		}
-		if metadataSize+offset > maxMetadataSizeLimit {
-			return errors.New("Invalid Request. Metadata exceeds max size limit of 4KB ")
-		}
+	if req.MetadataSize() > maxMetadataSizeLimit {
+		return gderrors.ErrMetadataSizeOutOfBounds
+	}
 
+	for k, v := range req.Metadata {
 		peerInfo.Metadata[k] = v
+	}
+
+	if peerInfo.MetadataSize() > maxMetadataSizeLimit {
+		return gderrors.ErrMetadataSizeOutOfBounds
 	}
 
 	if req.Zone != "" {

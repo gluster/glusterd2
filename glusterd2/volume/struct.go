@@ -8,6 +8,7 @@ import (
 	"net"
 	"path/filepath"
 	"strconv"
+	"strings"
 
 	"github.com/gluster/glusterd2/glusterd2/brick"
 	"github.com/gluster/glusterd2/glusterd2/gdctx"
@@ -258,4 +259,15 @@ func SubvolTypeToString(subvolType SubvolType) string {
 	default:
 		return "distribute"
 	}
+}
+
+// MetadataSize returns the size of the volume metadata in Volume info
+func (v *Volinfo) MetadataSize() int {
+	size := 0
+	for key, value := range v.Metadata {
+		if !strings.HasPrefix(key, "_") {
+			size = size + len(key) + len(value)
+		}
+	}
+	return size
 }

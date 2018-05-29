@@ -21,3 +21,4 @@ LOCALSTATEDIR ?= $(BASE_PREFIX)/var/lib
 LOGDIR ?= $(BASE_PREFIX)/var/log
 
 SYSCONFDIR ?= $(BASE_PREFIX)/etc
+RUNDIR ?= $(BASE_PREFIX)/var/run

@@ -1,7 +1,6 @@
 package bitrot
 
 import (
-	"bytes"
 	"fmt"
 	"net"
 	"os"
@@ -19,7 +18,7 @@ const (
 
 // Bitd type represents information about bitd process
 type Bitd struct {
-	args           string
+	args           []string
 	pidfilepath    string
 	binarypath     string
 	volfileID      string
@@ -38,7 +37,7 @@ func (b *Bitd) Path() string {
 }
 
 // Args returns arguments to be passed to bitd process during spawn.
-func (b *Bitd) Args() string {
+func (b *Bitd) Args() []string {
 	return b.args
 }
 
@@ -84,14 +83,13 @@ func newBitd() (*Bitd, error) {
 		shost = "localhost"
 	}
 
-	var buffer bytes.Buffer
-	buffer.WriteString(fmt.Sprintf(" -s %s", shost))
-	buffer.WriteString(fmt.Sprintf(" --volfile-id %s", b.volfileID))
-	buffer.WriteString(fmt.Sprintf(" -p %s", b.pidfilepath))
-	buffer.WriteString(fmt.Sprintf(" -l %s", b.logfile))
-	buffer.WriteString(fmt.Sprintf(" -S %s", b.socketfilepath))
-	buffer.WriteString(fmt.Sprintf(" --global-timer-wheel"))
-	b.args = buffer.String()
+	b.args = []string{}
+	b.args = append(b.args, "-s", shost)
+	b.args = append(b.args, "--volfile-id", b.volfileID)
+	b.args = append(b.args, "-p", b.pidfilepath)
+	b.args = append(b.args, "-l", b.logfile)
+	b.args = append(b.args, "-S", b.socketfilepath)
+	b.args = append(b.args, "--global-timer-wheel")
 
 	return b, nil
 }

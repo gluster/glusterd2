@@ -10,6 +10,7 @@ import (
 	"github.com/gluster/glusterd2/glusterd2/transaction"
 	"github.com/gluster/glusterd2/pkg/errors"
 	deviceapi "github.com/gluster/glusterd2/plugins/device/api"
+	"github.com/gluster/glusterd2/plugins/device/deviceutils"
 
 	"github.com/gorilla/mux"
 	"github.com/pborman/uuid"
@@ -32,8 +33,8 @@ func deviceAddHandler(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	lock, unlock := transaction.CreateLockFuncs(peerID)
-	if err := lock(ctx); err != nil {
+	txn, err := transaction.NewTxnWithLocks(ctx, peerID)
+	if err != nil {
 		if err == transaction.ErrLockTimeout {
 			restutils.SendHTTPError(ctx, w, http.StatusConflict, err)
 		} else {
@@ -41,7 +42,7 @@ func deviceAddHandler(w http.ResponseWriter, r *http.Request) {
 		}
 		return
 	}
-	defer unlock(ctx)
+	defer txn.Done()
 
 	peerInfo, err := peer.GetPeer(peerID)
 	if err != nil {
@@ -62,15 +63,12 @@ func deviceAddHandler(w http.ResponseWriter, r *http.Request) {
 			restutils.SendHTTPError(ctx, w, http.StatusInternalServerError, err)
 			return
 		}
-		if checkIfDeviceExist(req.Device, devices) {
+		if deviceutils.DeviceExist(req.Device, devices) {
 			logger.WithError(err).WithField("device", req.Device).Error("Device already exists")
 			restutils.SendHTTPError(ctx, w, http.StatusBadRequest, "Device already exists")
 			return
 		}
 	}
-
-	txn := transaction.NewTxn(ctx)
-	defer txn.Cleanup()
 
 	txn.Nodes = []uuid.UUID{peerInfo.ID}
 	txn.Steps = []*transaction.Step{
@@ -105,4 +103,29 @@ func deviceAddHandler(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 	restutils.SendHTTPResponse(ctx, w, http.StatusOK, peerInfo)
+}
+
+func deviceListHandler(w http.ResponseWriter, r *http.Request) {
+
+	ctx := r.Context()
+	logger := gdctx.GetReqLogger(ctx)
+	peerID := mux.Vars(r)["peerid"]
+	if uuid.Parse(peerID) == nil {
+		restutils.SendHTTPError(ctx, w, http.StatusBadRequest, "Invalid peer-id passed in url")
+		return
+	}
+
+	devices, err := deviceutils.GetDevices(peerID)
+	if err != nil {
+		logger.WithError(err).WithField("peerid", peerID).Error("Failed to get devices for peer")
+		if err == errors.ErrPeerNotFound {
+			restutils.SendHTTPError(ctx, w, http.StatusNotFound, err)
+		} else {
+			restutils.SendHTTPError(ctx, w, http.StatusInternalServerError, err)
+		}
+		return
+	}
+
+	restutils.SendHTTPResponse(ctx, w, http.StatusOK, devices)
+
 }

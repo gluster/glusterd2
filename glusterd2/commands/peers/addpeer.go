@@ -31,8 +31,8 @@ func addPeerHandler(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	if peer.GetMetadataLen(req.Metadata) > maxMetadataSizeLimit {
-		restutils.SendHTTPError(ctx, w, http.StatusBadRequest, "metadata size exceeds max allowed size of 4KB")
+	if req.MetadataSize() > maxMetadataSizeLimit {
+		restutils.SendHTTPError(ctx, w, http.StatusBadRequest, errors.ErrMetadataSizeOutOfBounds)
 		return
 	}
 

@@ -1,7 +1,6 @@
 package glustershd
 
 import (
-	"bytes"
 	"fmt"
 	"net"
 	"os/exec"
@@ -20,7 +19,7 @@ const (
 // Glustershd type represents information about Glustershd process
 type Glustershd struct {
 	binarypath     string
-	args           string
+	args           []string
 	socketfilepath string
 	pidfilepath    string
 }
@@ -37,7 +36,7 @@ func (shd *Glustershd) Path() string {
 }
 
 // Args returns arguments to be passed to glustershd process during spawn.
-func (shd *Glustershd) Args() string {
+func (shd *Glustershd) Args() []string {
 	shost, _, _ := net.SplitHostPort(config.GetString("clientaddress"))
 	if shost == "" {
 		shost = "localhost"
@@ -48,15 +47,16 @@ func (shd *Glustershd) Args() string {
 	glusterdSockDir := config.GetString("rundir")
 	socketfilepath := fmt.Sprintf("%s/%x.socket", glusterdSockDir, xxhash.Sum64String(gdctx.MyUUID.String()))
 
-	var buffer bytes.Buffer
-	buffer.WriteString(fmt.Sprintf(" -s %s", shost))
-	buffer.WriteString(fmt.Sprintf(" --volfile-id %s", volFileID))
-	buffer.WriteString(fmt.Sprintf(" -p %s", shd.PidFile()))
-	buffer.WriteString(fmt.Sprintf(" -l %s", logFile))
-	buffer.WriteString(fmt.Sprintf(" -S %s", socketfilepath))
-	buffer.WriteString(fmt.Sprintf(" --xlator-option *replicate*.node-uuid=%s", gdctx.MyUUID))
+	shd.args = []string{}
+	shd.args = append(shd.args, "-s", shost)
+	shd.args = append(shd.args, "--volfile-id", volFileID)
+	shd.args = append(shd.args, "-p", shd.PidFile())
+	shd.args = append(shd.args, "-l", logFile)
+	shd.args = append(shd.args, "-S", socketfilepath)
+	shd.args = append(shd.args,
+		"--xlator-option",
+		fmt.Sprintf("*replicate*.node-uuid=%s", gdctx.MyUUID))
 
-	shd.args = buffer.String()
 	return shd.args
 }
 
