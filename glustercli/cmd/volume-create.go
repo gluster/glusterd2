@@ -52,7 +52,7 @@ func init() {
 	volumeCreateCmd.Flags().BoolVar(&flagAllowRootDir, "allow-root-dir", false, "Allow root directory")
 	volumeCreateCmd.Flags().BoolVar(&flagAllowMountAsBrick, "allow-mount-as-brick", false, "Allow mount as bricks")
 	volumeCreateCmd.Flags().BoolVar(&flagCreateBrickDir, "create-brick-dir", false, "Create brick directory")
-
+	volumeCmd.AddCommand(volumeCreateCmd)
 }
 
 func volumeCreateCmdRun(cmd *cobra.Command, args []string) {
