@@ -12,7 +12,7 @@ type Info struct {
 	AvailableSize uint64 `json:"available-size"`
 	ExtentSize    uint64 `json:"extent-size"`
 	Used          bool   `json:"used"`
-	PeerID        string `json:"peerid,omitempty"`
+	PeerID        string `json:"peer-id"`
 }
 
 // AddDeviceResp is the success response sent to a AddDeviceReq request
@@ -20,6 +20,3 @@ type AddDeviceResp api.Peer
 
 // ListDeviceResp is the success response sent to a ListDevice request
 type ListDeviceResp []Info
-
-// ListAllDevicesResp is success response sent to list all devices request
-type ListAllDevicesResp []Info

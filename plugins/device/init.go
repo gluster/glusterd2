@@ -39,7 +39,7 @@ func (p *Plugin) RestRoutes() route.Routes {
 			Method:       "GET",
 			Pattern:      "/devices",
 			Version:      1,
-			ResponseType: utils.GetTypeString((*deviceapi.ListAllDevicesResp)(nil)),
+			ResponseType: utils.GetTypeString((*deviceapi.ListDeviceResp)(nil)),
 			HandlerFunc:  listAllDevicesHandler},
 	}
 }
