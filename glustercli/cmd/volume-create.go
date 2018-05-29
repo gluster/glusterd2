@@ -48,9 +48,11 @@ func init() {
 	volumeCreateCmd.Flags().StringSliceVar(&flagCreateVolumeOptions, "options", []string{},
 		"Volume options in the format option:value,option:value")
 	volumeCreateCmd.Flags().BoolVar(&flagCreateAdvOpts, "advanced", false, "Allow advanced options")
-	volumeCreateCmd.Flags().BoolVar(&flagCreateExpOpts, "experimental", false, "Allow experimental options")
-	volumeCreateCmd.Flags().BoolVar(&flagCreateDepOpts, "deprecated", false, "Allow deprecated options")
-	volumeCmd.AddCommand(volumeCreateCmd)
+	volumeCreateCmd.Flags().BoolVar(&flagReuseBricks, "reuse-bricks", false, "Reuse bricks")
+	volumeCreateCmd.Flags().BoolVar(&flagAllowRootDir, "allow-root-dir", false, "Allow root directory")
+	volumeCreateCmd.Flags().BoolVar(&flagAllowMountAsBrick, "allow-mount-as-brick", false, "Allow mount as bricks")
+	volumeCreateCmd.Flags().BoolVar(&flagCreateBrickDir, "create-brick-dir", false, "Create brick directory")
+
 }
 
 func volumeCreateCmdRun(cmd *cobra.Command, args []string) {
@@ -133,6 +135,12 @@ func volumeCreateCmdRun(cmd *cobra.Command, args []string) {
 			)
 		}
 	}
+	//set flags
+	flags := make(map[string]bool)
+	flags["reuse-bricks"] = flagReuseBricks
+	flags["allow-root-dir"] = flagAllowRootDir
+	flags["allow-mount-as-brick"] = flagAllowMountAsBrick
+	flags["create-brick-dir"] = flagCreateBrickDir
 
 	options := make(map[string]string)
 	//set options
@@ -161,6 +169,7 @@ func volumeCreateCmdRun(cmd *cobra.Command, args []string) {
 		Advanced:     flagCreateAdvOpts,
 		Experimental: flagCreateExpOpts,
 		Deprecated:   flagCreateDepOpts,
+		Flags:        flags,
 	}
 
 	// handle thin-arbiter

@@ -73,7 +73,7 @@ SRPM=$(rpmbuild --define "_topdir $PWD/rpmbuild" -bs rpmbuild/SPECS/$SPEC | cut 
 
 # Build RPM from SRPM using mock
 mkdir -p "$RESULTDIR"
-mock -r epel-7-x86_64 --resultdir="$RESULTDIR" --rebuild "$SRPM"
+/usr/bin/mock -r epel-7-x86_64 --resultdir="$RESULTDIR" --rebuild "$SRPM"
 
 popd #BUILDDIR
 

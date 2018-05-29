@@ -29,8 +29,8 @@ func volumeEditHandler(w http.ResponseWriter, r *http.Request) {
 	}
 
 	//Lock on Volume Name
-	lock, unlock := transaction.CreateLockFuncs(volname)
-	if err := lock(ctx); err != nil {
+	txn, err := transaction.NewTxnWithLocks(ctx, volname)
+	if err != nil {
 		if err == transaction.ErrLockTimeout {
 			restutils.SendHTTPError(ctx, w, http.StatusConflict, err)
 		} else {
@@ -38,7 +38,7 @@ func volumeEditHandler(w http.ResponseWriter, r *http.Request) {
 		}
 		return
 	}
-	defer unlock(ctx)
+	defer txn.Done()
 
 	//validate volume name
 	volinfo, err := volume.GetVolume(volname)
