@@ -4,7 +4,7 @@ import (
 	"fmt"
 	"os"
 
-	"github.com/gluster/glusterd2/pkg/glustershd/api"
+	glustershdapi "github.com/gluster/glusterd2/plugins/glustershd/api"
 
 	"github.com/olekukonko/tablewriter"
 	log "github.com/sirupsen/logrus"
@@ -38,7 +38,7 @@ var selfHealInfoCmd = &cobra.Command{
 	Args:  cobra.MinimumNArgs(1),
 	Run: func(cmd *cobra.Command, args []string) {
 		var err error
-		var selfHealInfo []api.BrickHealInfo
+		var selfHealInfo []glustershdapi.BrickHealInfo
 		volname := args[0]
 		if flagSummaryInfo {
 			selfHealInfo, err = client.SelfHealInfo(volname, "info-summary")
