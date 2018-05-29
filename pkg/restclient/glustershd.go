@@ -5,11 +5,11 @@ import (
 	"fmt"
 	"net/http"
 
-	"github.com/gluster/glusterd2/pkg/glustershd/api"
+	glustershdapi "github.com/gluster/glusterd2/plugins/glustershd/api"
 )
 
 // SelfHealInfo sends request to heal-info API
-func (c *Client) SelfHealInfo(params ...string) ([]api.BrickHealInfo, error) {
+func (c *Client) SelfHealInfo(params ...string) ([]glustershdapi.BrickHealInfo, error) {
 	var url string
 	if len(params) == 1 {
 		url = fmt.Sprintf("/v1/volumes/%s/heal-info", params[0])
@@ -18,7 +18,7 @@ func (c *Client) SelfHealInfo(params ...string) ([]api.BrickHealInfo, error) {
 	} else {
 		return nil, errors.New("invalid parameters")
 	}
-	var output []api.BrickHealInfo
+	var output []glustershdapi.BrickHealInfo
 	err := c.get(url, nil, http.StatusOK, &output)
 	return output, err
 }

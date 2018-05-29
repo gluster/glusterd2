@@ -23,14 +23,14 @@ func (p *Plugin) RestRoutes() route.Routes {
 			Method:       "GET",
 			Pattern:      "/volumes/{name}/{opts}/heal-info",
 			Version:      1,
-			ResponseType: utils.GetTypeString((*glustershdapi.Brick)(nil)),
+			ResponseType: utils.GetTypeString(([]glustershdapi.BrickHealInfo)(nil)),
 			HandlerFunc:  selfhealInfoHandler},
 		route.Route{
 			Name:         "SelfHealInfo2",
 			Method:       "GET",
 			Pattern:      "/volumes/{name}/heal-info",
 			Version:      1,
-			ResponseType: utils.GetTypeString((*glustershdapi.Brick)(nil)),
+			ResponseType: utils.GetTypeString(([]glustershdapi.BrickHealInfo)(nil)),
 			HandlerFunc:  selfhealInfoHandler},
 	}
 }

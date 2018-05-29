@@ -194,7 +194,7 @@ func volumeOptionsHandler(w http.ResponseWriter, r *http.Request) {
 			DoFunc:   "vol-option.XlatorActionDoSet",
 			UndoFunc: "vol-option.XlatorActionUndoSet",
 			Nodes:    volinfo.Nodes(),
-			Skip:     isActionStepRequired(&req),
+			Skip:     !isActionStepRequired(&req),
 		},
 		{
 			DoFunc: "vol-option.UpdateVolinfo",
