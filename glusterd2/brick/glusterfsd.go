@@ -1,7 +1,6 @@
 package brick
 
 import (
-	"bytes"
 	"errors"
 	"fmt"
 	"net"

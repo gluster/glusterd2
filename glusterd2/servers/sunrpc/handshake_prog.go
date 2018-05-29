@@ -11,6 +11,7 @@ import (
 	"github.com/gluster/glusterd2/glusterd2/store"
 	"github.com/gluster/glusterd2/glusterd2/volume"
 	"github.com/gluster/glusterd2/pkg/sunrpc"
+	"github.com/gluster/glusterd2/plugins/rebalance"
 
 	log "github.com/sirupsen/logrus"
 )
@@ -22,8 +23,12 @@ const (
 
 const (
 	gfHndskGetSpec       = 2 // GF_HNDSK_GETSPEC
+	gfHndskEventNotify   = 5 // GF_HNDSK_EVENT_NOTIFY,
 	gfHndskGetVolumeInfo = 6 // GF_HNDSK_GET_VOLUME_INFO
 
+)
+const (
+	gfEventNotifyDefragStatus = 0
 )
 
 var volfilePrefix = "volfiles/"
@@ -42,6 +47,8 @@ func newGfHandshake() *GfHandshake {
 				ProcedureNumber: gfHndskGetSpec}, Name: "ServerGetspec"},
 			{ID: sunrpc.ProcedureID{ProgramNumber: hndskProgNum, ProgramVersion: hndskProgVersion,
 				ProcedureNumber: gfHndskGetVolumeInfo}, Name: "ServerGetVolumeInfo"},
+			{ID: sunrpc.ProcedureID{ProgramNumber: hndskProgNum, ProgramVersion: hndskProgVersion,
+				ProcedureNumber: gfHndskEventNotify}, Name: "ServerEventNotify"},
 		},
 	}
 }
@@ -243,4 +250,58 @@ Out:
 	}
 
 	return nil
+}
+
+// GfServerEventNotifyReq is sent by the rebalance process before it terminates
+// and contains the status information in a dict
+type GfServerEventNotifyReq struct {
+	Op   int
+	Dict []byte
+}
+
+//GfServerEventNotifyResp contains the response to the GfServerEventNotifyReq
+type GfServerEventNotifyResp struct {
+	OpRet   int
+	OpErrno int
+	Dict    []byte
+}
+
+//ServerEventNotify processes the status information sent by the rebalance process
+func (p *GfHandshake) ServerEventNotify(args *GfServerEventNotifyReq, reply *GfServerEventNotifyResp) error {
+
+	var (
+		// pre-declared variables are required for goto statements
+		err error
+	)
+
+	switch args.Op {
+	case gfEventNotifyDefragStatus:
+		reqDict, err := dict.Unserialize(args.Dict)
+		if err != nil {
+			log.WithError(err).Error("dict unserialize failed")
+			reply.OpRet = -1
+			reply.OpErrno = int(syscall.EINVAL)
+			goto Out
+		}
+		err = rebalance.HandleEventNotify(reqDict)
+		if err != nil {
+			reply.OpRet = -1
+			reply.OpErrno = int(syscall.EINVAL)
+			goto Out
+		}
+
+	default:
+		log.WithError(err).Error("Unknown op received in event notify")
+		reply.OpRet = -1
+		reply.OpErrno = int(syscall.EINVAL)
+		goto Out
+	}
+
+Out:
+	if err != nil {
+		reply.OpRet = -1
+	}
+
+	return nil
+
 }
