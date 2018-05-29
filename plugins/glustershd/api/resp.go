@@ -4,8 +4,8 @@ import (
 	"encoding/xml"
 )
 
-// Brick represents brick details for Heal Info command
-type Brick struct {
+// BrickHealInfo represents brick details for Heal Info command
+type BrickHealInfo struct {
 	HostID                 *string `xml:"hostUuid,attr" json:"host-id"`
 	Name                   *string `xml:"name" json:"name"`
 	Status                 *string `xml:"status" json:"status"`
@@ -18,6 +18,6 @@ type Brick struct {
 
 // HealInfo represents structure of stdout while running glfsheal binary
 type HealInfo struct {
-	XMLNAME xml.Name `xml:"cliOutput"`
-	Bricks  []Brick  `xml:"healInfo>bricks>brick"`
+	XMLNAME xml.Name        `xml:"cliOutput"`
+	Bricks  []BrickHealInfo `xml:"healInfo>bricks>brick"`
 }
