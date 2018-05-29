@@ -9,11 +9,10 @@ import (
 	"github.com/stretchr/testify/require"
 )
 
-func TestGlusterShd(t *testing.T) {
-
+func TestSelfHealInfo(t *testing.T) {
 	r := require.New(t)
 
-	gds, err := setupCluster("./config/1.toml", "./config/2.toml")
+	gds, err := setupCluster("./config/1.toml")
 	r.Nil(err)
 	defer teardownCluster(gds)
 
@@ -38,7 +37,7 @@ func TestGlusterShd(t *testing.T) {
 				Type:         "replicate",
 				Bricks: []api.BrickReq{
 					{PeerID: gds[0].PeerID(), Path: brickPaths[0]},
-					{PeerID: gds[1].PeerID(), Path: brickPaths[1]},
+					{PeerID: gds[0].PeerID(), Path: brickPaths[1]},
 				},
 			},
 		},
@@ -49,15 +48,16 @@ func TestGlusterShd(t *testing.T) {
 
 	r.Nil(client.VolumeStart(vol1.Name, false), "volume start failed")
 
-	err = client.GlusterShdEnable(vol1.Name)
+	_, err = client.SelfHealInfo(vol1.Name)
+	r.Nil(err)
+	_, err = client.SelfHealInfo(vol1.Name, "info-summary")
+	r.Nil(err)
+	_, err = client.SelfHealInfo(vol1.Name, "split-brain-info")
 	r.Nil(err)
 
-	err = client.GlusterShdDisable(vol1.Name)
-	r.Nil(err)
 	// Stop Volume
 	r.Nil(client.VolumeStop(vol1.Name), "Volume stop failed")
 	// delete volume
 	err = client.VolumeDelete(vol1.Name)
 	r.Nil(err)
-
 }

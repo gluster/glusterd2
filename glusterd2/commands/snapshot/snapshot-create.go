@@ -522,7 +522,7 @@ func createSnapinfo(c transaction.TxnCtx) error {
 		TODO
 		For now disabling heal
 	*/
-	snapVolinfo.HealEnabled = false
+	snapVolinfo.Options["replicate.self-heal-daemon"] = "off"
 
 	err = createSnapSubvols(snapVolinfo, volinfo, nodeData)
 	if err != nil {

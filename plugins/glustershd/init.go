@@ -2,7 +2,8 @@ package glustershd
 
 import (
 	"github.com/gluster/glusterd2/glusterd2/servers/rest/route"
-	"github.com/gluster/glusterd2/glusterd2/transaction"
+	"github.com/gluster/glusterd2/pkg/utils"
+	glustershdapi "github.com/gluster/glusterd2/plugins/glustershd/api"
 )
 
 // Plugin is a structure which implements GlusterdPlugin interface
@@ -18,24 +19,23 @@ func (p *Plugin) Name() string {
 func (p *Plugin) RestRoutes() route.Routes {
 	return route.Routes{
 		route.Route{
-			Name:        "GlustershEnable",
-			Method:      "POST",
-			Pattern:     "/volumes/{name}/heal/enable",
-			Version:     1,
-			HandlerFunc: glustershEnableHandler},
+			Name:         "SelfHealInfo",
+			Method:       "GET",
+			Pattern:      "/volumes/{name}/{opts}/heal-info",
+			Version:      1,
+			ResponseType: utils.GetTypeString((*glustershdapi.Brick)(nil)),
+			HandlerFunc:  selfhealInfoHandler},
 		route.Route{
-			Name:        "GlustershDisable",
-			Method:      "POST",
-			Pattern:     "/volumes/{name}/heal/disable",
-			Version:     1,
-			HandlerFunc: glustershDisableHandler},
+			Name:         "SelfHealInfo2",
+			Method:       "GET",
+			Pattern:      "/volumes/{name}/heal-info",
+			Version:      1,
+			ResponseType: utils.GetTypeString((*glustershdapi.Brick)(nil)),
+			HandlerFunc:  selfhealInfoHandler},
 	}
 }
 
 // RegisterStepFuncs registers transaction step functions with
 // Glusterd Transaction framework
 func (p *Plugin) RegisterStepFuncs() {
-	transaction.RegisterStepFunc(txnSelfHealStart, "selfheal-start")
-	transaction.RegisterStepFunc(txnSelfHealdUndo, "selfheald-undo")
-	transaction.RegisterStepFunc(txnSelfHealStop, "selfheal-stop")
 }
