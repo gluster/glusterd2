@@ -14,6 +14,7 @@ func generateBitdVolfile(volfile *Volfile, clusterinfo []*volume.Volinfo, nodeid
 	bitd := volfile.RootEntry.Add("debug/io-stats", nil, nil).SetName("bitd")
 
 	for volIdx, vol := range clusterinfo {
+
 		//If bitrot not enabled for volume, then skip those bricks
 		val, exists := vol.Options["bitrot-stub.bitrot"]
 		if exists && val == "on" {
