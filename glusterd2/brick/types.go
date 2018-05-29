@@ -2,6 +2,7 @@ package brick
 
 import (
 	"fmt"
+	"os"
 
 	"github.com/pborman/uuid"
 	"golang.org/x/sys/unix"
@@ -78,6 +79,16 @@ func (b *Brickinfo) Validate(check InitChecks) error {
 
 	if err = validatePathLength(b.Path); err != nil {
 		return err
+	}
+
+	if _, err = os.Stat(b.Path); os.IsNotExist(err) {
+		if check.CreateBrickDir {
+			if err = os.MkdirAll(b.Path, 0775); err != nil {
+				return err
+			}
+		} else {
+			return err
+		}
 	}
 
 	if err = unix.Lstat(b.Path, &brickStat); err != nil {

@@ -42,4 +42,5 @@ var (
 	ErrDuplicateBrickPath      = errors.New("Duplicate brick entry")
 	ErrRestrictedKeyFound      = errors.New("Key names starting with '_' are restricted in metadata field")
 	ErrVolFileNotFound         = errors.New("volume file not found")
+	ErrInvalidVolFlags         = errors.New("invalid volume flags")
 )
