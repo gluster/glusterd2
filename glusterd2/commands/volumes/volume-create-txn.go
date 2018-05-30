@@ -126,6 +126,7 @@ func newVolinfo(req *api.VolCreateReq) (*volume.Volinfo, error) {
 	volinfo := &volume.Volinfo{
 		ID:        uuid.NewRandom(),
 		Name:      req.Name,
+		VolfileID: req.Name,
 		State:     volume.VolCreated,
 		Type:      voltypeFromSubvols(req),
 		DistCount: len(req.Subvols),
@@ -194,15 +195,9 @@ func createVolinfo(c transaction.TxnCtx) error {
 		return err
 	}
 
-	// TODO: Expose this granularity in the volume create API.
-	var checks brick.InitChecks
-	if !req.Force {
-		checks.IsInUse = true
-		checks.IsMount = true
-		checks.IsOnRoot = true
-	}
+	checks := brick.PrepareChecks(req.Force, req.Flags)
 
-	err = c.Set("brick-checks", &checks)
+	err = c.Set("brick-checks", checks)
 
 	return err
 }

@@ -7,6 +7,7 @@ import (
 )
 
 func generateRebalanceVolfile(volfile *Volfile, vol *volume.Volinfo, nodeid uuid.UUID) {
+
 	volfile.FileName = "rebalance/" + vol.Name
 
 	dht := volfile.RootEntry.Add("debug/io-stats", vol, nil).SetName(vol.Name).

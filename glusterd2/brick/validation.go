@@ -20,11 +20,46 @@ const (
 
 // InitChecks is a set of checks to be run on a brick
 type InitChecks struct {
-	IsInUse  bool
-	IsMount  bool
-	IsOnRoot bool
+	IsInUse        bool
+	IsMount        bool
+	IsOnRoot       bool
+	CreateBrickDir bool
 }
 
+// PrepareChecks initializes InitChecks based on req
+func PrepareChecks(force bool, req map[string]bool) *InitChecks {
+	c := &InitChecks{}
+
+	if force {
+		// skip all checks if force is set to true
+
+		c.CreateBrickDir = true
+		return c
+	}
+
+	// do all the checks except the ones explicitly excluded
+	c.IsInUse = true
+	c.IsOnRoot = true
+	c.IsMount = true
+	c.CreateBrickDir = false
+
+	if value, ok := req["reuse-bricks"]; ok && value {
+		c.IsInUse = false
+	}
+
+	if value, ok := req["allow-root-dir"]; ok && value {
+		c.IsOnRoot = false
+	}
+
+	if value, ok := req["allow-mount-as-brick"]; ok && value {
+		c.IsMount = false
+	}
+	if value, ok := req["create-brick-dir"]; ok && value {
+		c.CreateBrickDir = true
+	}
+
+	return c
+}
 func validatePathLength(path string) error {
 
 	if len(filepath.Clean(path)) >= syscall.PathMax {

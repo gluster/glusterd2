@@ -32,8 +32,8 @@ func deviceAddHandler(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	lock, unlock := transaction.CreateLockFuncs(peerID)
-	if err := lock(ctx); err != nil {
+	txn, err := transaction.NewTxnWithLocks(ctx, peerID)
+	if err != nil {
 		if err == transaction.ErrLockTimeout {
 			restutils.SendHTTPError(ctx, w, http.StatusConflict, err)
 		} else {
@@ -41,7 +41,7 @@ func deviceAddHandler(w http.ResponseWriter, r *http.Request) {
 		}
 		return
 	}
-	defer unlock(ctx)
+	defer txn.Done()
 
 	peerInfo, err := peer.GetPeer(peerID)
 	if err != nil {
@@ -66,9 +66,6 @@ func deviceAddHandler(w http.ResponseWriter, r *http.Request) {
 		restutils.SendHTTPError(ctx, w, http.StatusBadRequest, "Device already exists")
 		return
 	}
-
-	txn := transaction.NewTxn(ctx)
-	defer txn.Cleanup()
 
 	txn.Nodes = []uuid.UUID{peerInfo.ID}
 	txn.Steps = []*transaction.Step{
@@ -123,6 +120,21 @@ func deviceListHandler(w http.ResponseWriter, r *http.Request) {
 		} else {
 			restutils.SendHTTPError(ctx, w, http.StatusInternalServerError, err)
 		}
+		return
+	}
+
+	restutils.SendHTTPResponse(ctx, w, http.StatusOK, devices)
+
+}
+
+func listAllDevicesHandler(w http.ResponseWriter, r *http.Request) {
+
+	ctx := r.Context()
+	logger := gdctx.GetReqLogger(ctx)
+	devices, err := deviceutils.GetDevices()
+	if err != nil {
+		logger.WithError(err).Error(err)
+		restutils.SendHTTPError(ctx, w, http.StatusInternalServerError, err)
 		return
 	}
 

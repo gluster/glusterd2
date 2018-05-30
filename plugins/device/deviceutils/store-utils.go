@@ -8,18 +8,38 @@ import (
 	deviceapi "github.com/gluster/glusterd2/plugins/device/api"
 )
 
-// GetDevices returns devices of specified peer from the store
-func GetDevices(peerID string) ([]deviceapi.Info, error) {
-	peerInfo, err := peer.GetPeer(peerID)
-	if err != nil {
-		return nil, err
-	}
-	if CheckIfDeviceExist(peerInfo) {
-		deviceInfo, err := FetchDevices(peerInfo)
-		return deviceInfo, err
+// GetDevices returns devices of specified peer/peers from the store
+// if no peers are specified, it returns devices of all peers
+func GetDevices(peerIds ...string) ([]deviceapi.Info, error) {
+
+	var peers []*peer.Peer
+	var err error
+	if len(peerIds) > 0 {
+		for _, peerID := range peerIds {
+			var peerInfo *peer.Peer
+			peerInfo, err = peer.GetPeer(peerID)
+			if err != nil {
+				return nil, err
+			}
+			peers = append(peers, peerInfo)
+		}
 	} else {
-		return nil, errors.New("No device registered with this peer")
+		peers, err = peer.GetPeers()
+		if err != nil {
+			return nil, err
+		}
 	}
+	var devices []deviceapi.Info
+	for _, peerInfo := range peers {
+		if CheckIfDeviceExist(peerInfo) {
+			deviceInfo, err := FetchDevices(peerInfo)
+			if err != nil {
+				return nil, err
+			}
+			devices = append(devices, deviceInfo...)
+		}
+	}
+	return devices, nil
 }
 
 // FetchDevices returns devices from peer object.
@@ -54,12 +74,12 @@ func DeviceInDeviceList(reqDevice string, devices []deviceapi.Info) bool {
 }
 
 // AddDevice adds device to peerinfo
-func AddDevice(device deviceapi.Info, peerID string) error {
-	deviceDetails, err := GetDevices(peerID)
+func AddDevice(device deviceapi.Info) error {
+	deviceDetails, err := GetDevices(device.PeerID)
 	if err != nil {
 		return err
 	}
-	peerInfo, err := peer.GetPeer(peerID)
+	peerInfo, err := peer.GetPeer(device.PeerID)
 	if err != nil {
 		return err
 	}

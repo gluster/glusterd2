@@ -71,6 +71,7 @@ GlustershEnable | POST | /volumes/{name}/heal/enable | [](https://godoc.org/gith
 GlustershDisable | POST | /volumes/{name}/heal/disable | [](https://godoc.org/github.com/gluster/glusterd2/pkg/api#) | [](https://godoc.org/github.com/gluster/glusterd2/pkg/api#)
 DeviceAdd | POST | /devices/{peerid} | [AddDeviceReq](https://godoc.org/github.com/gluster/glusterd2/pkg/api#AddDeviceReq) | [AddDeviceResp](https://godoc.org/github.com/gluster/glusterd2/pkg/api#AddDeviceResp)
 DeviceList | GET | /devices/{peerid} | [](https://godoc.org/github.com/gluster/glusterd2/pkg/api#) | [ListDeviceResp](https://godoc.org/github.com/gluster/glusterd2/pkg/api#ListDeviceResp)
+DeviceEditState | POST | /devices/{peerid} | [EditDeviceStateReq](https://godoc.org/github.com/gluster/glusterd2/pkg/api#EditDeviceStateReq) | [](https://godoc.org/github.com/gluster/glusterd2/pkg/api#)
 Statedump | GET | /statedump | [](https://godoc.org/github.com/gluster/glusterd2/pkg/api#) | [](https://godoc.org/github.com/gluster/glusterd2/pkg/api#)
 List Endpoints | GET | /endpoints | [](https://godoc.org/github.com/gluster/glusterd2/pkg/api#) | [ListEndpointsResp](https://godoc.org/github.com/gluster/glusterd2/pkg/api#ListEndpointsResp)
 Glusterd2 service status | GET | /ping | [](https://godoc.org/github.com/gluster/glusterd2/pkg/api#) | [](https://godoc.org/github.com/gluster/glusterd2/pkg/api#)

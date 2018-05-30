@@ -49,9 +49,10 @@ func txnPrepareDevice(c transaction.TxnCtx) error {
 		State:         deviceapi.DeviceEnabled,
 		AvailableSize: availableSize,
 		ExtentSize:    extentSize,
+		PeerID:        peerID,
 	}
 
-	err = deviceutils.AddDevice(deviceInfo, peerID)
+	err = deviceutils.AddDevice(deviceInfo)
 	if err != nil {
 		c.Logger().WithError(err).WithField("peerid", peerID).Error("Couldn't add deviceinfo to store")
 		return err

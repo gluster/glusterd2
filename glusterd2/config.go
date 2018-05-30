@@ -95,7 +95,9 @@ func setDefaults() error {
 	if port == "" {
 		port = defaultpeerport
 	}
+
 	config.Set("peeraddress", host+":"+port)
+	config.Set("defaultpeerport", defaultpeerport)
 
 	return nil
 }

@@ -35,7 +35,8 @@ func registerVolExpandStepFuncs() {
 		transaction.RegisterStepFunc(sf.sf, sf.name)
 	}
 }
-func checkDupBrickEntryVolExpand(req api.VolExpandReq) error {
+
+func validateVolumeExpandReq(req api.VolExpandReq) error {
 	dupEntry := map[string]bool{}
 
 	for _, brick := range req.Bricks {
@@ -46,7 +47,8 @@ func checkDupBrickEntryVolExpand(req api.VolExpandReq) error {
 
 	}
 
-	return nil
+	return validateVolumeFlags(req.Flags)
+
 }
 
 func volumeExpandHandler(w http.ResponseWriter, r *http.Request) {
@@ -61,10 +63,21 @@ func volumeExpandHandler(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	if err := checkDupBrickEntryVolExpand(req); err != nil {
+	if err := validateVolumeExpandReq(req); err != nil {
 		restutils.SendHTTPError(ctx, w, http.StatusBadRequest, err)
 		return
 	}
+
+	txn, err := transaction.NewTxnWithLocks(ctx, volname)
+	if err != nil {
+		if err == transaction.ErrLockTimeout {
+			restutils.SendHTTPError(ctx, w, http.StatusConflict, err)
+		} else {
+			restutils.SendHTTPError(ctx, w, http.StatusInternalServerError, err)
+		}
+		return
+	}
+	defer txn.Done()
 
 	volinfo, err := volume.GetVolume(volname)
 	if err != nil {
@@ -86,15 +99,6 @@ func volumeExpandHandler(w http.ResponseWriter, r *http.Request) {
 		}
 	}
 
-	lock, unlock, err := transaction.CreateLockSteps(volname)
-	if err != nil {
-		restutils.SendHTTPError(ctx, w, http.StatusInternalServerError, err)
-		return
-	}
-
-	txn := transaction.NewTxn(ctx)
-	defer txn.Cleanup()
-
 	nodes, err := req.Nodes()
 	if err != nil {
 		logger.WithError(err).Error("could not prepare node list")
@@ -113,7 +117,6 @@ func volumeExpandHandler(w http.ResponseWriter, r *http.Request) {
 		// TODO: This is a lot of steps. We can combine a few if we
 		// do not re-use the same step functions across multiple
 		// volume operations.
-		lock,
 		{
 			DoFunc: "vol-expand.ValidateAndPrepare",
 			Nodes:  []uuid.UUID{gdctx.MyUUID},
@@ -140,7 +143,6 @@ func volumeExpandHandler(w http.ResponseWriter, r *http.Request) {
 			DoFunc: "vol-expand.NotifyClients",
 			Nodes:  allNodes,
 		},
-		unlock,
 	}
 
 	if err := txn.Ctx.Set("req", &req); err != nil {

@@ -49,6 +49,8 @@ var (
 	flagCmdMetadataKey    string
 	flagCmdMetadataValue  string
 	flagCmdDeleteMetadata bool
+	//volume expand flags
+	flagReuseBricks, flagAllowRootDir, flagAllowMountAsBrick, flagCreateBrickDir bool
 )
 
 func init() {
@@ -79,6 +81,10 @@ func init() {
 	// Volume Expand
 	volumeExpandCmd.Flags().IntVarP(&flagExpandCmdReplicaCount, "replica", "", 0, "Replica Count")
 	volumeExpandCmd.Flags().BoolVarP(&flagExpandCmdForce, "force", "f", false, "Force")
+	volumeExpandCmd.Flags().BoolVar(&flagReuseBricks, "reuse-bricks", false, "Reuse Bricks")
+	volumeExpandCmd.Flags().BoolVar(&flagAllowRootDir, "allow-root-dir", false, "Allow Root Directory")
+	volumeExpandCmd.Flags().BoolVar(&flagAllowMountAsBrick, "allow-mount-as-brick", false, "Allow Mount as Bricks")
+	volumeExpandCmd.Flags().BoolVar(&flagCreateBrickDir, "create-brick-dir", false, "Create brick directory")
 	volumeCmd.AddCommand(volumeExpandCmd)
 
 	// Volume Edit
@@ -273,13 +279,15 @@ func volumeInfoDisplay(vol api.VolumeGetResp) {
 		fmt.Printf("    %s: %s\n", key, value)
 	}
 	volumeInfoDisplayNumbricks(vol)
-	for sIdx, subvol := range vol.Subvols {
-		for bIdx, brick := range subvol.Bricks {
+	count := 1
+	for _, subvol := range vol.Subvols {
+		for _, brick := range subvol.Bricks {
 			if brick.Type == api.Arbiter {
-				fmt.Printf("Brick%d: %s:%s (arbiter)\n", sIdx+bIdx+1, brick.Hostname, brick.Path)
+				fmt.Printf("Brick%d: %s:%s (arbiter)\n", count, brick.Hostname, brick.Path)
 			} else {
-				fmt.Printf("Brick%d: %s:%s\n", sIdx+bIdx+1, brick.Hostname, brick.Path)
+				fmt.Printf("Brick%d: %s:%s\n", count, brick.Hostname, brick.Path)
 			}
+			count++
 		}
 	}
 	return
@@ -440,10 +448,18 @@ var volumeExpandCmd = &cobra.Command{
 			}
 			failure("Error getting brick UUIDs", err, 1)
 		}
+		//set flags
+		flags := make(map[string]bool)
+		flags["reuse-bricks"] = flagReuseBricks
+		flags["allow-root-dir"] = flagAllowRootDir
+		flags["allow-mount-as-brick"] = flagAllowMountAsBrick
+		flags["create-brick-dir"] = flagCreateBrickDir
+
 		vol, err := client.VolumeExpand(volname, api.VolExpandReq{
 			ReplicaCount: flagExpandCmdReplicaCount,
 			Bricks:       bricks, // string of format <UUID>:<path>
 			Force:        flagExpandCmdForce,
+			Flags:        flags,
 		})
 		if err != nil {
 			if verbose {

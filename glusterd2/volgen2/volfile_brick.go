@@ -6,7 +6,6 @@ import (
 
 	"github.com/gluster/glusterd2/glusterd2/brick"
 	"github.com/gluster/glusterd2/glusterd2/volume"
-
 	"github.com/pborman/uuid"
 )
 
@@ -16,7 +15,6 @@ func generateBrickVolfile(volfile *Volfile, b *brick.Brickinfo, vol *volume.Voli
 		b.PeerID,
 		strings.Trim(strings.Replace(b.Path, "/", "-", -1), "-"),
 	)
-
 	last := volfile.RootEntry.
 		Add("protocol/server", vol, b).
 		Add("performance/decompounder", vol, b).SetName(b.Path).
