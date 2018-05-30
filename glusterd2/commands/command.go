@@ -4,6 +4,7 @@ package commands
 import (
 	"github.com/gluster/glusterd2/glusterd2/commands/global"
 	"github.com/gluster/glusterd2/glusterd2/commands/peers"
+	"github.com/gluster/glusterd2/glusterd2/commands/snapshot"
 	"github.com/gluster/glusterd2/glusterd2/commands/version"
 	"github.com/gluster/glusterd2/glusterd2/commands/volumes"
 	"github.com/gluster/glusterd2/glusterd2/servers/rest/route"
@@ -21,6 +22,7 @@ type Command interface {
 var Commands = []Command{
 	&versioncommands.Command{},
 	&volumecommands.Command{},
+	&snapshotcommands.Command{},
 	&peercommands.Command{},
 	&globalcommands.Command{},
 }

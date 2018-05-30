@@ -89,10 +89,10 @@ func CheckBricksStatus(volinfo *Volinfo) ([]brick.Brickstatus, error) {
 		}
 
 		for _, m := range mtabEntries {
-			if strings.HasPrefix(binfo.Path, m.mntDir) {
-				s.MountOpts = m.mntOpts
-				s.Device = m.fsName
-				s.FS = m.mntType
+			if strings.HasPrefix(binfo.Path, m.MntDir) {
+				s.MountOpts = m.MntOpts
+				s.Device = m.FsName
+				s.FS = m.MntType
 			}
 		}
 
@@ -131,19 +131,19 @@ func GetBrickMountRoot(brickPath string) (string, error) {
 	return "", errors.New("Failed To Get Mount Root")
 }
 
-//GetBrickMountDevice return device name of the mount point
-func GetBrickMountDevice(brickPath, mountRoot string) (string, error) {
+//GetBrickMountInfo return mount related information
+func GetBrickMountInfo(mountRoot string) (*Mntent, error) {
 	mtabEntries, err := getMounts()
 	if err != nil {
-		return "", err
+		return nil, err
 	}
 
 	for _, entry := range mtabEntries {
-		if entry.mntDir == mountRoot {
-			return entry.fsName, nil
+		if entry.MntDir == mountRoot {
+			return entry, nil
 		}
 	}
-	return "", errors.New("Mount Point Not Found")
+	return nil, errors.New("Mount Point Not Found")
 
 }
 
@@ -181,5 +181,6 @@ func CreateVolumeInfoResp(v *Volinfo) *api.VolumeInfo {
 		Options:   v.Options,
 		Subvols:   CreateSubvolInfo(&v.Subvols),
 		Metadata:  v.Metadata,
+		SnapList:  v.SnapList,
 	}
 }

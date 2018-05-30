@@ -19,6 +19,14 @@ const (
 	Arbiter
 )
 
+//MountInfo is used to store mount related information of a volume
+type MountInfo struct {
+	Mountdir   string
+	DevicePath string
+	FsType     string
+	MntOpts    string
+}
+
 // Brickinfo is the static information about the brick
 type Brickinfo struct {
 	ID             uuid.UUID
@@ -29,6 +37,7 @@ type Brickinfo struct {
 	VolumeID       uuid.UUID
 	Type           Type
 	Decommissioned bool
+	MountInfo
 }
 
 // SizeInfo represents sizing information.

@@ -126,6 +126,7 @@ func newVolinfo(req *api.VolCreateReq) (*volume.Volinfo, error) {
 	volinfo := &volume.Volinfo{
 		ID:        uuid.NewRandom(),
 		Name:      req.Name,
+		VolfileID: req.Name,
 		State:     volume.VolCreated,
 		Type:      voltypeFromSubvols(req),
 		DistCount: len(req.Subvols),
