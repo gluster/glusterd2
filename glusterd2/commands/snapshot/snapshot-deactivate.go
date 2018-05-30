@@ -141,6 +141,18 @@ func snapshotDeactivateHandler(w http.ResponseWriter, r *http.Request) {
 	var vol *volume.Volinfo
 
 	snapname := mux.Vars(r)["snapname"]
+
+	txn, err := transaction.NewTxnWithLocks(ctx, snapname)
+	if err != nil {
+		if err == transaction.ErrLockTimeout {
+			restutils.SendHTTPError(ctx, w, http.StatusConflict, err)
+		} else {
+			restutils.SendHTTPError(ctx, w, http.StatusInternalServerError, err)
+		}
+		return
+	}
+	defer txn.Done()
+
 	snapinfo, err := snapshot.GetSnapshot(snapname)
 	if err != nil {
 		restutils.SendHTTPError(ctx, w, http.StatusNotFound, err)
@@ -148,16 +160,9 @@ func snapshotDeactivateHandler(w http.ResponseWriter, r *http.Request) {
 	}
 
 	vol = &snapinfo.SnapVolinfo
-	txn := transaction.NewTxn(ctx)
-	defer txn.Cleanup()
-	lock, unlock, err := transaction.CreateLockSteps(snapname)
-	if err != nil {
-		restutils.SendHTTPError(ctx, w, http.StatusInternalServerError, err)
-		return
-	}
+
 	txn.Nodes = vol.Nodes()
 	txn.Steps = []*transaction.Step{
-		lock,
 		{
 			DoFunc: "snap-deactivate.Validate",
 			Nodes:  txn.Nodes,
@@ -172,8 +177,6 @@ func snapshotDeactivateHandler(w http.ResponseWriter, r *http.Request) {
 			DoFunc: "snap-deactivate.StoreVolume",
 			Nodes:  []uuid.UUID{gdctx.MyUUID},
 		},
-
-		unlock,
 	}
 	err = txn.Ctx.Set("snapname", &snapname)
 	if err != nil {

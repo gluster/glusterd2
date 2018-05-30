@@ -153,6 +153,18 @@ func snapshotActivateHandler(w http.ResponseWriter, r *http.Request) {
 	var vol *volume.Volinfo
 
 	snapname := mux.Vars(r)["snapname"]
+
+	txn, err := transaction.NewTxnWithLocks(ctx, snapname)
+	if err != nil {
+		if err == transaction.ErrLockTimeout {
+			restutils.SendHTTPError(ctx, w, http.StatusConflict, err)
+		} else {
+			restutils.SendHTTPError(ctx, w, http.StatusInternalServerError, err)
+		}
+		return
+	}
+	defer txn.Done()
+
 	snapinfo, err := snapshot.GetSnapshot(snapname)
 	if err != nil {
 		restutils.SendHTTPError(ctx, w, http.StatusNotFound, err)
@@ -166,8 +178,6 @@ func snapshotActivateHandler(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	txn := transaction.NewTxn(ctx)
-	defer txn.Cleanup()
 	err = txn.Ctx.Set("snapname", &snapname)
 	if err != nil {
 		log.WithError(err).Error("failed to set snap name in transaction context")
@@ -175,15 +185,9 @@ func snapshotActivateHandler(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	lock, unlock, err := transaction.CreateLockSteps(snapname)
-	if err != nil {
-		restutils.SendHTTPError(ctx, w, http.StatusInternalServerError, err)
-		return
-	}
 	//Populating Nodes neeed not be under lock, because snapshot is a read only config
 	txn.Nodes = vol.Nodes()
 	txn.Steps = []*transaction.Step{
-		lock,
 		{
 			DoFunc: "snap-activate.Validate",
 			Nodes:  txn.Nodes,
@@ -198,8 +202,6 @@ func snapshotActivateHandler(w http.ResponseWriter, r *http.Request) {
 			DoFunc: "snap-activate.StoreSnapshot",
 			Nodes:  []uuid.UUID{gdctx.MyUUID},
 		},
-
-		unlock,
 	}
 	err = txn.Ctx.Set("req", &req)
 	if err != nil {

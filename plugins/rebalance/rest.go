@@ -56,8 +56,8 @@ func rebalanceStartHandler(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	lock, unlock := transaction.CreateLockFuncs(volname)
-	if err := lock(ctx); err != nil {
+	txn, err := transaction.NewTxnWithLocks(ctx, volname)
+	if err != nil {
 		if err == transaction.ErrLockTimeout {
 			restutils.SendHTTPError(ctx, w, http.StatusConflict, err)
 		} else {
@@ -65,7 +65,7 @@ func rebalanceStartHandler(w http.ResponseWriter, r *http.Request) {
 		}
 		return
 	}
-	defer unlock(ctx)
+	defer txn.Done()
 
 	vol, err := volume.GetVolume(volname)
 	if err != nil {
@@ -84,9 +84,6 @@ func rebalanceStartHandler(w http.ResponseWriter, r *http.Request) {
 	}
 
 	// TODO: Check for remove-brick
-
-	txn := transaction.NewTxn(ctx)
-	defer txn.Cleanup()
 
 	// Start the rebalance process on all nodes
 	// Only this node will save the rebalinfo in the store
@@ -151,8 +148,8 @@ func rebalanceStopHandler(w http.ResponseWriter, r *http.Request) {
 	// collect inputs from url
 	volname := mux.Vars(r)["volname"]
 
-	lock, unlock := transaction.CreateLockFuncs(volname)
-	if err := lock(ctx); err != nil {
+	txn, err := transaction.NewTxnWithLocks(ctx, volname)
+	if err != nil {
 		if err == transaction.ErrLockTimeout {
 			restutils.SendHTTPError(ctx, w, http.StatusConflict, err)
 		} else {
@@ -160,7 +157,7 @@ func rebalanceStopHandler(w http.ResponseWriter, r *http.Request) {
 		}
 		return
 	}
-	defer unlock(ctx)
+	defer txn.Done()
 
 	// Validate rebalance command
 	vol, err := volume.GetVolume(volname)
@@ -180,10 +177,6 @@ func rebalanceStopHandler(w http.ResponseWriter, r *http.Request) {
 		restutils.SendHTTPError(r.Context(), w, http.StatusBadRequest, ErrRebalanceNotStarted)
 		return
 	}
-
-	//A simple transaction to stop rebalance
-	txn := transaction.NewTxn(ctx)
-	defer txn.Cleanup()
 
 	txn.Nodes = vol.Nodes()
 	txn.Steps = []*transaction.Step{
@@ -236,11 +229,8 @@ func rebalanceStatusHandler(w http.ResponseWriter, r *http.Request) {
 	// collect inputs from url
 	volname := mux.Vars(r)["volname"]
 
-	txn := transaction.NewTxn(ctx)
-	defer txn.Cleanup()
-
-	lock, unlock := transaction.CreateLockFuncs(volname)
-	if err := lock(ctx); err != nil {
+	txn, err := transaction.NewTxnWithLocks(ctx, volname)
+	if err != nil {
 		if err == transaction.ErrLockTimeout {
 			restutils.SendHTTPError(ctx, w, http.StatusConflict, err)
 		} else {
@@ -248,7 +238,7 @@ func rebalanceStatusHandler(w http.ResponseWriter, r *http.Request) {
 		}
 		return
 	}
-	defer unlock(ctx)
+	defer txn.Done()
 
 	// Validate rebalance command
 	vol, err := volume.GetVolume(volname)
