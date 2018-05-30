@@ -652,10 +652,9 @@ func snapshotCreateHandler(w http.ResponseWriter, r *http.Request) {
 		t := time.Now().UTC()
 		req.SnapName = req.SnapName + t.Format("_GMT_2006_01_02_15_04_05")
 	}
-	volLock, volUnlock := transaction.CreateLockFuncs(req.VolName)
-	// Taking a lock outside the txn as volinfo.Nodes() must also
-	// be populated holding the lock. See issue #510
-	if err := volLock(ctx); err != nil {
+
+	txn, err := transaction.NewTxnWithLocks(ctx, req.VolName, req.SnapName)
+	if err != nil {
 		if err == transaction.ErrLockTimeout {
 			restutils.SendHTTPError(ctx, w, http.StatusConflict, err)
 		} else {
@@ -663,7 +662,7 @@ func snapshotCreateHandler(w http.ResponseWriter, r *http.Request) {
 		}
 		return
 	}
-	defer volUnlock(ctx)
+	defer txn.Done()
 
 	vol, e := volume.GetVolume(req.VolName)
 	if e != nil {
@@ -671,19 +670,8 @@ func snapshotCreateHandler(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	txn := transaction.NewTxn(ctx)
-	defer txn.Cleanup()
-
-	snapLock, snapUnlock, err := transaction.CreateLockSteps(req.SnapName)
-	if err != nil {
-		restutils.SendHTTPError(ctx, w, http.StatusInternalServerError, err)
-		return
-	}
-
 	txn.Nodes = vol.Nodes()
-
 	txn.Steps = []*transaction.Step{
-		snapLock,
 		{
 			DoFunc: "snap-create.OriginNodeValidate",
 			Nodes:  []uuid.UUID{gdctx.MyUUID},
@@ -717,7 +705,6 @@ func snapshotCreateHandler(w http.ResponseWriter, r *http.Request) {
 			UndoFunc: "snap-create.UndoStoreSnapshotOnCreate",
 			Nodes:    []uuid.UUID{gdctx.MyUUID},
 		},
-		snapUnlock,
 	}
 	err = txn.Ctx.Set("req", req)
 	if err != nil {

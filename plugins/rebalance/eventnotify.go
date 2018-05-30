@@ -33,15 +33,13 @@ func HandleEventNotify(status map[string]string) error {
 
 	var rebalinfo *rebalanceapi.RebalInfo
 	var rebalNodeStatus rebalanceapi.RebalNodeStatus
-	ctx := context.TODO()
 
-	lock, unlock := transaction.CreateLockFuncs(volname)
-	if err := lock(ctx); err != nil {
-
+	txn, err := transaction.NewTxnWithLocks(context.TODO(), volname)
+	if err != nil {
 		log.WithError(err).Error("Locking failed. Unable to update store")
 		return err
 	}
-	defer unlock(ctx)
+	defer txn.Done()
 
 	vol, err := volume.GetVolume(volname)
 	if err != nil {
