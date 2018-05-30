@@ -232,9 +232,13 @@ func undoInitBricks(c transaction.TxnCtx) error {
 
 // StoreVolume uses to store the volinfo and to generate client volfile
 func storeVolume(c transaction.TxnCtx) error {
+	return storeVolInfo(c, "volinfo")
+}
 
+// storeVolInfo uses to store the volinfo based on key and to generate client volfile
+func storeVolInfo(c transaction.TxnCtx, key string) error {
 	var volinfo volume.Volinfo
-	if err := c.Get("volinfo", &volinfo); err != nil {
+	if err := c.Get(key, &volinfo); err != nil {
 		c.Logger().WithError(err).WithField(
 			"key", "volinfo").Debug("Failed to get key from store")
 		return err
@@ -253,6 +257,11 @@ func storeVolume(c transaction.TxnCtx) error {
 	}
 
 	return nil
+}
+
+// undoStoreVolume revert back volinfo and to generate client volfile
+func undoStoreVolume(c transaction.TxnCtx) error {
+	return storeVolInfo(c, "oldvolinfo")
 }
 
 // LoadDefaultGroupOptions loads the default group option map into the store
