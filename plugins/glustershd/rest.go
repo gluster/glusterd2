@@ -87,7 +87,7 @@ func selfhealInfoHandler(w http.ResponseWriter, r *http.Request) {
 			restutils.SendHTTPError(ctx, w, http.StatusNotFound, err)
 		} else {
 			logger.WithError(err).WithField(
-				"volname", volname).Debug("error occured while looking for volume")
+				"volname", volname).Debug("error occurred while looking for volume")
 			restutils.SendHTTPError(ctx, w, http.StatusInternalServerError, err)
 		}
 		return
