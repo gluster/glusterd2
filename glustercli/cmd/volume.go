@@ -279,13 +279,15 @@ func volumeInfoDisplay(vol api.VolumeGetResp) {
 		fmt.Printf("    %s: %s\n", key, value)
 	}
 	volumeInfoDisplayNumbricks(vol)
-	for sIdx, subvol := range vol.Subvols {
-		for bIdx, brick := range subvol.Bricks {
+	count := 1
+	for _, subvol := range vol.Subvols {
+		for _, brick := range subvol.Bricks {
 			if brick.Type == api.Arbiter {
-				fmt.Printf("Brick%d: %s:%s (arbiter)\n", sIdx+bIdx+1, brick.Hostname, brick.Path)
+				fmt.Printf("Brick%d: %s:%s (arbiter)\n", count, brick.Hostname, brick.Path)
 			} else {
-				fmt.Printf("Brick%d: %s:%s\n", sIdx+bIdx+1, brick.Hostname, brick.Path)
+				fmt.Printf("Brick%d: %s:%s\n", count, brick.Hostname, brick.Path)
 			}
+			count++
 		}
 	}
 	return
