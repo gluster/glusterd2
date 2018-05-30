@@ -35,7 +35,7 @@ func CommonPrevalidation(lvmCommand string) error {
 	return nil
 }
 
-//IsThinLV check for lvm comptability for a path
+//IsThinLV check for lvm compatibility for a path
 func IsThinLV(brickPath string) bool {
 	mountRoot, err := volume.GetBrickMountRoot(brickPath)
 	if err != nil {

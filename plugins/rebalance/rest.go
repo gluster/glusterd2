@@ -299,7 +299,7 @@ func rebalanceStatusHandler(w http.ResponseWriter, r *http.Request) {
 
 	response, err := createRebalanceStatusResp(txn.Ctx, vol)
 	if err != nil {
-		errMsg := "Failed to create rebalance status reponse"
+		errMsg := "Failed to create rebalance status response"
 		logger.WithField("error", err.Error()).Error("rebalanceStatusHandler:" + errMsg)
 		restutils.SendHTTPError(ctx, w, http.StatusInternalServerError,
 			errMsg)
