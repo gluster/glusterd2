@@ -1,7 +1,6 @@
 package device
 
 import (
-	"encoding/json"
 	"net/http"
 
 	"github.com/gluster/glusterd2/glusterd2/gdctx"
@@ -55,19 +54,17 @@ func deviceAddHandler(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	if _, exists := peerInfo.Metadata["_devices"]; exists {
-		var devices []deviceapi.Info
-		err = json.Unmarshal([]byte(peerInfo.Metadata["_devices"]), &devices)
-		if err != nil {
-			logger.WithError(err).WithField("peerid", peerID).Error(err)
-			restutils.SendHTTPError(ctx, w, http.StatusInternalServerError, err)
-			return
-		}
-		if deviceutils.DeviceExist(req.Device, devices) {
-			logger.WithError(err).WithField("device", req.Device).Error("Device already exists")
-			restutils.SendHTTPError(ctx, w, http.StatusBadRequest, "Device already exists")
-			return
-		}
+	devices, err := deviceutils.FetchDevices(peerInfo)
+	if devices == nil && deviceutils.CheckIfDeviceExist(peerInfo) && err != nil {
+		logger.WithError(err).WithField("peerid", peerID).Error(err)
+		restutils.SendHTTPError(ctx, w, http.StatusInternalServerError, err)
+		return
+	}
+
+	if deviceutils.DeviceInDeviceList(req.Device, devices) {
+		logger.WithError(err).WithField("device", req.Device).Error("Device already exists")
+		restutils.SendHTTPError(ctx, w, http.StatusBadRequest, "Device already exists")
+		return
 	}
 
 	txn := transaction.NewTxn(ctx)

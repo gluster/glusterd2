@@ -2,6 +2,7 @@ package deviceutils
 
 import (
 	"encoding/json"
+	"errors"
 
 	peer "github.com/gluster/glusterd2/glusterd2/peer"
 	deviceapi "github.com/gluster/glusterd2/plugins/device/api"
@@ -13,6 +14,17 @@ func GetDevices(peerID string) ([]deviceapi.Info, error) {
 	if err != nil {
 		return nil, err
 	}
+	if CheckIfDeviceExist(peerInfo) {
+		deviceInfo, err := FetchDevices(peerInfo)
+		return deviceInfo, err
+	} else {
+		return nil, errors.New("No device registered with this peer")
+	}
+}
+
+// FetchDevices returns devices from peer object.
+func FetchDevices(peerInfo *peer.Peer) ([]deviceapi.Info, error) {
+
 	var deviceInfo []deviceapi.Info
 	if len(peerInfo.Metadata["_devices"]) > 0 {
 		if err := json.Unmarshal([]byte(peerInfo.Metadata["_devices"]), &deviceInfo); err != nil {
@@ -22,8 +34,17 @@ func GetDevices(peerID string) ([]deviceapi.Info, error) {
 	return deviceInfo, nil
 }
 
-// DeviceExist checks the given device existence
-func DeviceExist(reqDevice string, devices []deviceapi.Info) bool {
+// CheckIfDeviceExist checks whether any device is registered with the peer or not.
+func CheckIfDeviceExist(peerInfo *peer.Peer) bool {
+	_, exists := peerInfo.Metadata["_devices"]
+	if !exists {
+		return false
+	}
+	return true
+}
+
+// DeviceInDeviceList checks whether the given device is in list of devices or not.
+func DeviceInDeviceList(reqDevice string, devices []deviceapi.Info) bool {
 	for _, key := range devices {
 		if reqDevice == key.Name {
 			return true
