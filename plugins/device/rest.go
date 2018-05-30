@@ -129,3 +129,18 @@ func deviceListHandler(w http.ResponseWriter, r *http.Request) {
 	restutils.SendHTTPResponse(ctx, w, http.StatusOK, devices)
 
 }
+
+func listAllDevicesHandler(w http.ResponseWriter, r *http.Request) {
+
+	ctx := r.Context()
+	logger := gdctx.GetReqLogger(ctx)
+	devices, err := deviceutils.GetDevices()
+	if err != nil {
+		logger.WithError(err).Error(err)
+		restutils.SendHTTPError(ctx, w, http.StatusInternalServerError, err)
+		return
+	}
+
+	restutils.SendHTTPResponse(ctx, w, http.StatusOK, devices)
+
+}
