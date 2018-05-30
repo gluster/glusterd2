@@ -67,8 +67,8 @@ func selfhealInfoHandler(w http.ResponseWriter, r *http.Request) {
 	ctx := r.Context()
 	logger := gdctx.GetReqLogger(ctx)
 
-	lock, unlock := transaction.CreateLockFuncs(volname)
-	if err := lock(ctx); err != nil {
+	txn, err := transaction.NewTxnWithLocks(ctx, volname)
+	if err != nil {
 		if err == transaction.ErrLockTimeout {
 			restutils.SendHTTPError(ctx, w, http.StatusConflict, err)
 		} else {
@@ -76,7 +76,7 @@ func selfhealInfoHandler(w http.ResponseWriter, r *http.Request) {
 		}
 		return
 	}
-	defer unlock(ctx)
+	defer txn.Done()
 
 	// Validate volume existence
 	volinfo, err := volume.GetVolume(volname)
