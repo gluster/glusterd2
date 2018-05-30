@@ -226,7 +226,7 @@ func bitrotScrubOndemandHandler(w http.ResponseWriter, r *http.Request) {
 	}
 
 	// Check if bitrot is disabled
-	if isBitrotEnabled(volinfo) {
+	if !isBitrotEnabled(volinfo) {
 		restutils.SendHTTPError(ctx, w, http.StatusBadRequest, errors.ErrBitrotNotEnabled)
 		return
 	}
@@ -290,7 +290,7 @@ func bitrotScrubStatusHandler(w http.ResponseWriter, r *http.Request) {
 	}
 
 	// Check if bitrot is disabled
-	if isBitrotEnabled(volinfo) {
+	if !isBitrotEnabled(volinfo) {
 		restutils.SendHTTPError(ctx, w, http.StatusBadRequest,
 			errors.ErrBitrotNotEnabled)
 		return
