@@ -139,6 +139,7 @@ func registerVolOptionStepFuncs() {
 		{"vol-option.XlatorActionDoSet", xlatorActionDoSet},
 		{"vol-option.XlatorActionUndoSet", xlatorActionUndoSet},
 		{"vol-option.UpdateVolinfo", storeVolume},
+		{"vol-option.UpdateVolinfo.Undo", undoStoreVolume},
 		{"vol-option.NotifyVolfileChange", notifyVolfileChange},
 	}
 	for _, sf := range sfs {
