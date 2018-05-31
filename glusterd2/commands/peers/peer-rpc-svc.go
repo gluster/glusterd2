@@ -157,8 +157,8 @@ func ReconfigureStore(c *StoreConfig) error {
 	// Destroy the current store first
 	log.Debug("destroying current store")
 
-	// Stop global events listener
-	events.StopGlobal()
+	// Stop events framework
+	events.Stop()
 
 	store.Destroy()
 	// TODO: Also need to destroy any old files in localstatedir (eg. volfiles)
@@ -193,8 +193,8 @@ func ReconfigureStore(c *StoreConfig) error {
 	}
 	log.Debug("added details of self to store")
 
-	// Now that new store is up, start global events listener
-	events.StartGlobal()
+	// Now that new store is up, start events framework
+	events.Start()
 
 	return nil
 }

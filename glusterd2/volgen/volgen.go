@@ -9,6 +9,7 @@ import (
 	"strings"
 
 	"github.com/gluster/glusterd2/glusterd2/brick"
+	"github.com/gluster/glusterd2/glusterd2/snapshot"
 	"github.com/gluster/glusterd2/glusterd2/store"
 	"github.com/gluster/glusterd2/glusterd2/volume"
 	"github.com/gluster/glusterd2/pkg/utils"
@@ -80,6 +81,20 @@ func DeleteClientVolfile(vol *volume.Volinfo) error {
 	return nil
 }
 
+// DeleteClientSnapVolfile deletes the client volfile (duh!)
+func DeleteClientSnapVolfile(snapInfo *snapshot.Snapinfo) error {
+
+	if _, err := store.Store.Delete(context.TODO(), snapshot.GetStorePath(snapInfo)); err != nil {
+		return err
+	}
+
+	vol := &snapInfo.SnapVolinfo
+	// XXX: Also delete the file on disk
+	os.Remove(getClientVolFilePath(vol.Name))
+
+	return nil
+}
+
 // GenerateBrickVolfile generates the brick volfile for a single brick
 func GenerateBrickVolfile(vol *volume.Volinfo, b *brick.Brickinfo) error {
 	bt, err := GetTemplate(brickTmpl, vol.GraphMap)
@@ -101,16 +116,18 @@ func DeleteBrickVolfile(b *brick.Brickinfo) error {
 	path := getBrickVolFilePath(b.VolumeName, b.PeerID.String(), b.Path)
 	return os.Remove(path)
 }
-
 func getClientVolFilePath(volname string) string {
 	dir := utils.GetVolumeDir(volname)
+
 	file := fmt.Sprintf("%s.tcp-fuse.vol", volname)
 	return path.Join(dir, file)
 }
 
-func getBrickVolFilePath(volname string, brickPeerID string, brickPath string) string {
+func getBrickVolFilePath(volname string, brickNodeID string, brickPath string) string {
 	dir := utils.GetVolumeDir(volname)
+
 	brickPathWithoutSlashes := strings.Trim(strings.Replace(brickPath, "/", "-", -1), "-")
-	file := fmt.Sprintf("%s.%s.%s.vol", volname, brickPeerID, brickPathWithoutSlashes)
+	file := fmt.Sprintf("%s.%s.%s.vol", volname, brickNodeID, brickPathWithoutSlashes)
+
 	return path.Join(dir, file)
 }

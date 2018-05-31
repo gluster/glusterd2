@@ -58,7 +58,12 @@ func bitrotEnableHandler(w http.ResponseWriter, r *http.Request) {
 		restutils.SendHTTPError(ctx, w, http.StatusBadRequest, errors.ErrBitrotAlreadyEnabled)
 		return
 	}
-
+	//save volume information for transaction failure scenario
+	if err := txn.Ctx.Set("oldvolinfo", volinfo); err != nil {
+		logger.WithError(err).Error("failed to set oldvolinfo in transaction context")
+		restutils.SendHTTPError(ctx, w, http.StatusInternalServerError, err)
+		return
+	}
 	// Enable bitrot-stub
 	volinfo.Options[keyFeaturesBitrot] = "on"
 
@@ -75,8 +80,9 @@ func bitrotEnableHandler(w http.ResponseWriter, r *http.Request) {
 	txn.Nodes = volinfo.Nodes()
 	txn.Steps = []*transaction.Step{
 		{
-			DoFunc: "vol-option.UpdateVolinfo",
-			Nodes:  []uuid.UUID{gdctx.MyUUID},
+			DoFunc:   "vol-option.UpdateVolinfo",
+			UndoFunc: "vol-option.UpdateVolinfo.Undo",
+			Nodes:    []uuid.UUID{gdctx.MyUUID},
 		},
 		{
 			// Required because bitrot-stub should be enabled on brick side
@@ -220,7 +226,7 @@ func bitrotScrubOndemandHandler(w http.ResponseWriter, r *http.Request) {
 	}
 
 	// Check if bitrot is disabled
-	if isBitrotEnabled(volinfo) {
+	if !isBitrotEnabled(volinfo) {
 		restutils.SendHTTPError(ctx, w, http.StatusBadRequest, errors.ErrBitrotNotEnabled)
 		return
 	}
@@ -284,7 +290,7 @@ func bitrotScrubStatusHandler(w http.ResponseWriter, r *http.Request) {
 	}
 
 	// Check if bitrot is disabled
-	if isBitrotEnabled(volinfo) {
+	if !isBitrotEnabled(volinfo) {
 		restutils.SendHTTPError(ctx, w, http.StatusBadRequest,
 			errors.ErrBitrotNotEnabled)
 		return

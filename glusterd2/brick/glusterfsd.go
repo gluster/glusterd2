@@ -1,6 +1,7 @@
 package brick
 
 import (
+	"errors"
 	"fmt"
 	"net"
 	"os/exec"
@@ -16,6 +17,7 @@ import (
 	"github.com/gluster/glusterd2/glusterd2/pmap"
 	"github.com/gluster/glusterd2/pkg/api"
 	"github.com/gluster/glusterd2/pkg/utils"
+	log "github.com/sirupsen/logrus"
 
 	config "github.com/spf13/viper"
 )
@@ -190,6 +192,51 @@ func (b Brickinfo) StartBrick() error {
 	return nil
 }
 
+//TerminateBrick will stop glusterfsd process
+func (b Brickinfo) TerminateBrick() error {
+
+	brickDaemon, err := NewGlusterfsd(b)
+	if err != nil {
+		return err
+	}
+
+	log.WithFields(log.Fields{
+		"volume": b.VolumeName, "brick": b.String()}).Info("Stopping brick")
+
+	client, err := daemon.GetRPCClient(brickDaemon)
+	if err != nil {
+		log.WithError(err).WithField(
+			"brick", b.String()).Error("failed to connect to brick")
+		return err
+	}
+
+	req := &GfBrickOpReq{
+		Name: b.Path,
+		Op:   int(OpBrickTerminate),
+	}
+	var rsp GfBrickOpRsp
+	err = client.Call("Brick.OpBrickTerminate", req, &rsp)
+	if err != nil {
+		log.WithError(err).WithField(
+			"brick", b.String()).Error("failed to send terminate RPC")
+		return err
+	}
+
+	if rsp.OpRet != 0 {
+		log.WithError(err).WithField(
+			"brick", b.String()).Error("failed to send terminate RPC")
+		return errors.New("RPC request failed")
+	}
+
+	if err := daemon.DelDaemon(brickDaemon); err != nil {
+		log.WithFields(log.Fields{
+			"name": brickDaemon.Name(),
+			"id":   brickDaemon.ID(),
+		}).WithError(err).Warn("failed to delete brick entry from store, it may be restarted on GlusterD restart")
+	}
+	return nil
+}
+
 //StopBrick will stop glusterfsd process
 func (b Brickinfo) StopBrick() error {
 
@@ -197,7 +244,6 @@ func (b Brickinfo) StopBrick() error {
 	if err != nil {
 		return err
 	}
-
 	return daemon.Stop(brickDaemon, true)
 }
 

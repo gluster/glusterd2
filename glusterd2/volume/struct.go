@@ -81,20 +81,21 @@ type Subvol struct {
 
 // Volinfo repesents a volume
 type Volinfo struct {
-	ID          uuid.UUID
-	Name        string
-	Type        VolType
-	Transport   string
-	DistCount   int
-	Options     map[string]string
-	State       VolState
-	Checksum    uint64
-	Version     uint64
-	Subvols     []Subvol
-	Auth        VolAuth // TODO: should not be returned to client
-	GraphMap    map[string]string
-	HealEnabled bool
-	Metadata    map[string]string
+	ID        uuid.UUID
+	Name      string
+	VolfileID string
+	Type      VolType
+	Transport string
+	DistCount int
+	Options   map[string]string
+	State     VolState
+	Checksum  uint64
+	Version   uint64
+	Subvols   []Subvol
+	Auth      VolAuth
+	GraphMap  map[string]string
+	Metadata  map[string]string
+	SnapList  []string
 }
 
 // VolAuth represents username and password used by trusted/internal clients
@@ -118,6 +119,7 @@ func (v *Volinfo) StringMap() map[string]string {
 	m["volume.transport"] = v.Transport
 	m["volume.auth.username"] = v.Auth.Username
 	m["volume.auth.password"] = v.Auth.Password
+	m["volume.snapList"] = strings.Join(v.SnapList, ",")
 
 	return m
 }

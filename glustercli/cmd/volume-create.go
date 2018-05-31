@@ -48,11 +48,13 @@ func init() {
 	volumeCreateCmd.Flags().StringSliceVar(&flagCreateVolumeOptions, "options", []string{},
 		"Volume options in the format option:value,option:value")
 	volumeCreateCmd.Flags().BoolVar(&flagCreateAdvOpts, "advanced", false, "Allow advanced options")
+	volumeCreateCmd.Flags().BoolVar(&flagCreateExpOpts, "experimental", false, "Allow experimental options")
+	volumeCreateCmd.Flags().BoolVar(&flagCreateDepOpts, "deprecated", false, "Allow deprecated options")
 	volumeCreateCmd.Flags().BoolVar(&flagReuseBricks, "reuse-bricks", false, "Reuse bricks")
 	volumeCreateCmd.Flags().BoolVar(&flagAllowRootDir, "allow-root-dir", false, "Allow root directory")
 	volumeCreateCmd.Flags().BoolVar(&flagAllowMountAsBrick, "allow-mount-as-brick", false, "Allow mount as bricks")
 	volumeCreateCmd.Flags().BoolVar(&flagCreateBrickDir, "create-brick-dir", false, "Create brick directory")
-
+	volumeCmd.AddCommand(volumeCreateCmd)
 }
 
 func volumeCreateCmdRun(cmd *cobra.Command, args []string) {

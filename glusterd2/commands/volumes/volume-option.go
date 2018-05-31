@@ -139,6 +139,7 @@ func registerVolOptionStepFuncs() {
 		{"vol-option.XlatorActionDoSet", xlatorActionDoSet},
 		{"vol-option.XlatorActionUndoSet", xlatorActionUndoSet},
 		{"vol-option.UpdateVolinfo", storeVolume},
+		{"vol-option.UpdateVolinfo.Undo", undoStoreVolume},
 		{"vol-option.NotifyVolfileChange", notifyVolfileChange},
 	}
 	for _, sf := range sfs {
@@ -194,7 +195,7 @@ func volumeOptionsHandler(w http.ResponseWriter, r *http.Request) {
 			DoFunc:   "vol-option.XlatorActionDoSet",
 			UndoFunc: "vol-option.XlatorActionUndoSet",
 			Nodes:    volinfo.Nodes(),
-			Skip:     isActionStepRequired(&req),
+			Skip:     !isActionStepRequired(&req),
 		},
 		{
 			DoFunc: "vol-option.UpdateVolinfo",
