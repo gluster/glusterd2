@@ -1,6 +1,8 @@
 package api
 
-import "github.com/pborman/uuid"
+import (
+	"github.com/pborman/uuid"
+)
 
 // Peer represents a peer in the glusterd2 cluster
 type Peer struct {
@@ -44,3 +46,13 @@ Example:
 Note - Cannot use query parameters if peerid is also supplied.
 */
 type PeerListResp []PeerGetResp
+
+// MetadataSize returns the size of the peer metadata in PeerAddReq
+func (p *PeerAddReq) MetadataSize() int {
+	return mapSize(p.Metadata)
+}
+
+// MetadataSize returns the size of the peer metadata in PeerEditReq
+func (p *PeerEditReq) MetadataSize() int {
+	return mapSize(p.Metadata)
+}

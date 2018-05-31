@@ -113,3 +113,13 @@ type VolEditReq struct {
 type VolumeStartReq struct {
 	ForceStartBricks bool `json:"force-start-bricks,omitempty"`
 }
+
+// MetadataSize returns the size of the volume metadata in VolCreateReq
+func (v *VolCreateReq) MetadataSize() int {
+	return mapSize(v.Metadata)
+}
+
+// MetadataSize returns the size of the volume metadata in VolEditReq
+func (v *VolEditReq) MetadataSize() int {
+	return mapSize(v.Metadata)
+}

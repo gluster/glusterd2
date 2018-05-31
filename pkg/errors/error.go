@@ -47,4 +47,5 @@ var (
 	ErrSnapExists              = errors.New("snapshot already exists")
 	ErrSnapNotFound            = errors.New("Snapshot not found")
 	ErrInvalidVolFlags         = errors.New("invalid volume flags")
+	ErrMetadataSizeOutOfBounds = errors.New("metadata size exceeds max allowed size of 4KB")
 )
