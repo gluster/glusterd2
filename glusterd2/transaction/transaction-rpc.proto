@@ -8,8 +8,6 @@ message TxnStepReq {
 }
 
 message TxnStepResp {
-  reserved 2;
-  reserved "Resp";
   string Error = 1;
 }
 
