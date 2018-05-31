@@ -12,6 +12,7 @@ import (
 	"path/filepath"
 	"strings"
 	"syscall"
+	"testing"
 	"time"
 
 	"github.com/gluster/glusterd2/pkg/api"
@@ -221,4 +222,115 @@ func teardownCluster(gds []*gdProcess) error {
 
 func initRestclient(clientAddress string) *restclient.Client {
 	return restclient.New("http://"+clientAddress, "", "", "", false)
+}
+
+func prepareLoopDevice(devname, loopnum, size string) error {
+	err := exec.Command("fallocate", "-l", size, devname).Run()
+	if err != nil {
+		return err
+	}
+
+	err = exec.Command("mknod", "/dev/gluster_loop"+loopnum, "b", "7", loopnum).Run()
+	if err != nil {
+		return err
+	}
+	err = exec.Command("losetup", "/dev/gluster_loop"+loopnum, devname).Run()
+	if err != nil {
+		return err
+	}
+	return nil
+}
+
+func testlog(t *testing.T, msg string) {
+	if t == nil {
+		fmt.Println(msg)
+		return
+	}
+
+	t.Log(msg)
+}
+
+func cleanupAllBrickMounts(t *testing.T) {
+	// Unmount all Bricks in Working directory
+	out, err := exec.Command("mount").Output()
+	if err != nil {
+		testlog(t, fmt.Sprintf("failed to list brick mounts: %s", err))
+	}
+	lines := strings.Split(string(out), "\n")
+	for _, line := range lines {
+		// Identify Brick Mount
+		if strings.Contains(line, baseWorkdir) {
+			// Example: "/dev/mapper/gluster--vg--dev--gluster_loop2-brick_testvol--0--1 on \
+			// /tmp/gd2_func_test/w1/mounts/testvol-0-1 type xfs (rw,noatime,seclabel, \
+			// nouuid,attr2,inode64,logbsize=64k,sunit=128,swidth=2560,noquota
+			parts := strings.Split(line, " ")
+			if len(parts) < 3 {
+				testlog(t, fmt.Sprintf("Unable to parse mount path: %s", line))
+				continue
+			}
+
+			err = exec.Command("umount", parts[2]).Run()
+			if err != nil {
+				testlog(t, fmt.Sprintf("`umount %s` failed: %s", parts[2], err))
+			}
+		}
+	}
+}
+
+func cleanupAllGlusterVgs(t *testing.T) {
+	// List all Vgs and remove if it belongs to Gluster Testing
+	out, err := exec.Command("vgs", "-o", "vg_name", "--no-headings").Output()
+	if err == nil {
+		vgs := strings.Split(string(out), "\n")
+		for _, vg := range vgs {
+			vg = strings.Trim(vg, " ")
+			if strings.HasPrefix(vg, "vg-dev-gluster") {
+				err = exec.Command("vgremove", "-f", vg).Run()
+				if err != nil {
+					testlog(t, fmt.Sprintf("`vgremove -f %s` failed: %s", vg, err))
+				}
+			}
+		}
+	}
+}
+
+func cleanupAllGlusterPvs(t *testing.T) {
+	// Remove PV, detach and delete the loop device
+	loopDevs, err := filepath.Glob("/dev/gluster_*")
+	if err == nil {
+		for _, loopDev := range loopDevs {
+			err = exec.Command("pvremove", "-f", loopDev).Run()
+			if err != nil {
+				testlog(t, fmt.Sprintf("`pvremove -f %s` failed: %s", loopDev, err))
+			}
+			err = exec.Command("losetup", "-d", loopDev).Run()
+			if err != nil {
+				testlog(t, fmt.Sprintf("`losetup -d %s` failed: %s", loopDev, err))
+			}
+			err = os.Remove(loopDev)
+			if err != nil {
+				testlog(t, fmt.Sprintf("`rm %s` failed: %s", loopDev, err))
+			}
+		}
+	}
+
+}
+
+func loopDevicesCleanup(t *testing.T) error {
+	cleanupAllBrickMounts(t)
+	cleanupAllGlusterVgs(t)
+	cleanupAllGlusterPvs(t)
+	cleanupAllGlusterPvs(t)
+
+	// Cleanup device files
+	devicefiles, err := filepath.Glob(baseWorkdir + "/*.img")
+	if err == nil {
+		for _, devicefile := range devicefiles {
+			err := os.Remove(devicefile)
+			if err != nil {
+				testlog(t, fmt.Sprintf("`rm %s` failed: %s", devicefile, err))
+			}
+		}
+	}
+	return nil
 }

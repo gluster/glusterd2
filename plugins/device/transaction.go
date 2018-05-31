@@ -50,6 +50,7 @@ func txnPrepareDevice(c transaction.TxnCtx) error {
 		AvailableSize: availableSize,
 		ExtentSize:    extentSize,
 		PeerID:        peerID,
+		VgName:        vgName,
 	}
 
 	err = deviceutils.AddDevice(deviceInfo)

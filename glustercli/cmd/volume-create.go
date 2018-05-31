@@ -5,6 +5,7 @@ import (
 	"strings"
 
 	"github.com/gluster/glusterd2/pkg/api"
+	smartvolapi "github.com/gluster/glusterd2/plugins/smartvol/api"
 
 	log "github.com/sirupsen/logrus"
 	"github.com/spf13/cobra"
@@ -16,20 +17,35 @@ const (
 )
 
 var (
-	flagCreateStripeCount                                                           int
-	flagCreateReplicaCount, flagCreateArbiterCount                                  int
-	flagCreateDisperseCount, flagCreateDisperseDataCount, flagCreateRedundancyCount int
-	flagCreateTransport                                                             string
-	flagCreateForce                                                                 bool
-	flagCreateAdvOpts, flagCreateExpOpts, flagCreateDepOpts                         bool
-	flagCreateThinArbiter                                                           string
-	flagCreateVolumeOptions                                                         []string
+	flagCreateStripeCount             int
+	flagCreateReplicaCount            int
+	flagCreateArbiterCount            int
+	flagCreateDisperseCount           int
+	flagCreateDisperseDataCount       int
+	flagCreateDisperseRedundancyCount int
+	flagCreateTransport               string
+	flagCreateForce                   bool
+	flagCreateAdvOpts                 bool
+	flagCreateExpOpts                 bool
+	flagCreateDepOpts                 bool
+	flagCreateThinArbiter             string
+	flagCreateVolumeOptions           []string
+
+	flagCreateVolumeSize            string
+	flagCreateDistributeCount       int
+	flagCreateLimitPeers            []string
+	flagCreateLimitZones            []string
+	flagCreateExcludePeers          []string
+	flagCreateExcludeZones          []string
+	flagCreateSnapshotEnabled       bool
+	flagCreateSnapshotReserveFactor float64 = 1
+	flagCreateSubvolZoneOverlap     bool
 
 	volumeCreateCmd = &cobra.Command{
-		Use:   "create <volname> <brick> [<brick>]...",
+		Use:   "create <volname> [<brick> [<brick>]...|--size <size>]",
 		Short: volumeCreateHelpShort,
 		Long:  volumeCreateHelpLong,
-		Args:  cobra.MinimumNArgs(2),
+		Args:  cobra.MinimumNArgs(1),
 		Run:   volumeCreateCmdRun,
 	}
 )
@@ -42,10 +58,10 @@ func init() {
 		"Thin arbiter brick in the format <host>:<brick>[:<port>]. Port is optional and defaults to 24007")
 	volumeCreateCmd.Flags().IntVar(&flagCreateDisperseCount, "disperse", 0, "Disperse Count")
 	volumeCreateCmd.Flags().IntVar(&flagCreateDisperseDataCount, "disperse-data", 0, "Disperse Data Count")
-	volumeCreateCmd.Flags().IntVar(&flagCreateRedundancyCount, "redundancy", 0, "Redundancy Count")
+	volumeCreateCmd.Flags().IntVar(&flagCreateDisperseRedundancyCount, "redundancy", 0, "Redundancy Count")
 	volumeCreateCmd.Flags().StringVar(&flagCreateTransport, "transport", "tcp", "Transport")
 	volumeCreateCmd.Flags().BoolVar(&flagCreateForce, "force", false, "Force")
-	volumeCreateCmd.Flags().StringSliceVar(&flagCreateVolumeOptions, "options", []string{},
+	volumeCreateCmd.Flags().StringSliceVar(&flagCreateVolumeOptions, "options", nil,
 		"Volume options in the format option:value,option:value")
 	volumeCreateCmd.Flags().BoolVar(&flagCreateAdvOpts, "advanced", false, "Allow advanced options")
 	volumeCreateCmd.Flags().BoolVar(&flagCreateExpOpts, "experimental", false, "Allow experimental options")
@@ -54,10 +70,73 @@ func init() {
 	volumeCreateCmd.Flags().BoolVar(&flagAllowRootDir, "allow-root-dir", false, "Allow root directory")
 	volumeCreateCmd.Flags().BoolVar(&flagAllowMountAsBrick, "allow-mount-as-brick", false, "Allow mount as bricks")
 	volumeCreateCmd.Flags().BoolVar(&flagCreateBrickDir, "create-brick-dir", false, "Create brick directory")
+
+	// Smart Volume Flags
+	volumeCreateCmd.Flags().StringVar(&flagCreateVolumeSize, "size", "", "Size of the Volume")
+	volumeCreateCmd.Flags().IntVar(&flagCreateDistributeCount, "distribute", 1, "Distribute Count")
+	volumeCreateCmd.Flags().StringSliceVar(&flagCreateLimitPeers, "limit-peers", nil, "Use bricks only from these Peers")
+	volumeCreateCmd.Flags().StringSliceVar(&flagCreateLimitZones, "limit-zones", nil, "Use bricks only from these Zones")
+	volumeCreateCmd.Flags().StringSliceVar(&flagCreateExcludePeers, "exclude-peers", nil, "Do not use bricks from these Peers")
+	volumeCreateCmd.Flags().StringSliceVar(&flagCreateExcludeZones, "exclude-zones", nil, "Do not use bricks from these Zones")
+	volumeCreateCmd.Flags().BoolVar(&flagCreateSnapshotEnabled, "enable-snapshot", false, "Enable Volume for Gluster Snapshot")
+	volumeCreateCmd.Flags().Float64Var(&flagCreateSnapshotReserveFactor, "snapshot-reserve-factor", 1, "Snapshot Reserve Factor")
+	volumeCreateCmd.Flags().BoolVar(&flagCreateSubvolZoneOverlap, "subvols-zones-overlap", false, "Brick belonging to other Sub volume can be created in the same zone")
+
 	volumeCmd.AddCommand(volumeCreateCmd)
 }
 
+func smartVolumeCreate(cmd *cobra.Command, args []string) {
+	size, err := sizeToMb(flagCreateVolumeSize)
+	if err != nil {
+		failure("Invalid Volume Size specified", nil, 1)
+	}
+
+	volname := args[0]
+
+	req := smartvolapi.VolCreateReq{
+		Name:                    volname,
+		Transport:               flagCreateTransport,
+		Size:                    size,
+		ReplicaCount:            flagCreateReplicaCount,
+		ArbiterCount:            flagCreateArbiterCount,
+		DistributeCount:         flagCreateDistributeCount,
+		DisperseCount:           flagCreateDisperseCount,
+		DisperseDataCount:       flagCreateDisperseDataCount,
+		DisperseRedundancyCount: flagCreateDisperseRedundancyCount,
+		SnapshotEnabled:         flagCreateSnapshotEnabled,
+		SnapshotReserveFactor:   flagCreateSnapshotReserveFactor,
+		LimitPeers:              flagCreateLimitPeers,
+		LimitZones:              flagCreateLimitZones,
+		ExcludePeers:            flagCreateExcludePeers,
+		ExcludeZones:            flagCreateExcludeZones,
+		SubvolZonesOverlap:      flagCreateSubvolZoneOverlap,
+		Force:                   flagCreateForce,
+	}
+
+	vol, err := client.SmartVolumeCreate(req)
+	if err != nil {
+		if verbose {
+			log.WithFields(log.Fields{
+				"volume": volname,
+				"error":  err.Error(),
+			}).Error("volume creation failed")
+		}
+		failure("Volume creation failed", err, 1)
+	}
+	fmt.Printf("%s Volume created successfully\n", vol.Name)
+	fmt.Println("Volume ID: ", vol.ID)
+}
+
 func volumeCreateCmdRun(cmd *cobra.Command, args []string) {
+	if flagCreateVolumeSize != "" {
+		smartVolumeCreate(cmd, args)
+		return
+	}
+
+	if len(args) < 2 {
+		failure("Bricks not specified", nil, 1)
+	}
+
 	volname := args[0]
 	bricks, err := bricksAsUUID(args[1:])
 	if err != nil {
@@ -96,12 +175,12 @@ func volumeCreateCmdRun(cmd *cobra.Command, args []string) {
 				ArbiterCount: flagCreateArbiterCount,
 			})
 		}
-	} else if flagCreateDisperseCount > 0 || flagCreateDisperseDataCount > 0 || flagCreateRedundancyCount > 0 {
+	} else if flagCreateDisperseCount > 0 || flagCreateDisperseDataCount > 0 || flagCreateDisperseRedundancyCount > 0 {
 		subvolSize := 0
 		if flagCreateDisperseCount > 0 {
 			subvolSize = flagCreateDisperseCount
-		} else if flagCreateDisperseDataCount > 0 && flagCreateRedundancyCount > 0 {
-			subvolSize = flagCreateDisperseDataCount + flagCreateRedundancyCount
+		} else if flagCreateDisperseDataCount > 0 && flagCreateDisperseRedundancyCount > 0 {
+			subvolSize = flagCreateDisperseDataCount + flagCreateDisperseRedundancyCount
 		}
 
 		if subvolSize == 0 {
@@ -122,7 +201,7 @@ func volumeCreateCmdRun(cmd *cobra.Command, args []string) {
 				Bricks:             bricks[idx : idx+subvolSize],
 				DisperseCount:      flagCreateDisperseCount,
 				DisperseData:       flagCreateDisperseDataCount,
-				DisperseRedundancy: flagCreateRedundancyCount,
+				DisperseRedundancy: flagCreateDisperseRedundancyCount,
 			})
 		}
 	} else {
