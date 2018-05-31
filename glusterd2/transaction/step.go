@@ -63,6 +63,7 @@ func runStepFuncOnNodes(stepName string, c TxnCtx, nodes []uuid.UUID) error {
 	// to do. Serializing sequentially is the easiest fix but we lose
 	// concurrency. Instead, we let the do() function run on all nodes.
 
+	var lastErrResp stepResp
 	errCount := 0
 	var resp stepResp
 	for range nodes {
@@ -72,11 +73,14 @@ func runStepFuncOnNodes(stepName string, c TxnCtx, nodes []uuid.UUID) error {
 			c.Logger().WithFields(log.Fields{
 				"step": resp.step, "node": resp.node,
 			}).WithError(resp.err).Error("Step failed on node.")
+			lastErrResp = resp
 		}
 	}
 
 	if errCount != 0 {
-		return fmt.Errorf("Step %s failed on %d nodes", stepName, errCount)
+		return fmt.Errorf("Step %s failed on %d nodes. "+
+			"Last error: Step func %s failed on %s with error: %s",
+			stepName, errCount, lastErrResp.step, lastErrResp.node, lastErrResp.err)
 	}
 
 	return nil
