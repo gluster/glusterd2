@@ -29,10 +29,10 @@ func volumeListHandler(w http.ResponseWriter, r *http.Request) {
 }
 
 func createVolumeListResp(volumes []*volume.Volinfo) *api.VolumeListResp {
-	var resp api.VolumeListResp
+	var resp = make(api.VolumeListResp, len(volumes))
 
-	for _, v := range volumes {
-		resp = append(resp, *(createVolumeGetResp(v)))
+	for index, v := range volumes {
+		resp[index] = *(createVolumeGetResp(v))
 	}
 
 	return &resp
