@@ -24,6 +24,8 @@ import (
 	flag "github.com/spf13/pflag"
 	config "github.com/spf13/viper"
 	"github.com/thejerf/suture"
+	"go.opencensus.io/exporter/jaeger"
+	"go.opencensus.io/trace"
 	"golang.org/x/sys/unix"
 
 	"go.opencensus.io/exporter/jaeger"
