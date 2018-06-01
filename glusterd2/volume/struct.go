@@ -273,3 +273,16 @@ func (v *Volinfo) MetadataSize() int {
 	}
 	return size
 }
+
+// GetLocalBricks returns a list of local Bricks
+func (sv *Subvol) GetLocalBricks() []brick.Brickinfo {
+	var bricks []brick.Brickinfo
+
+	for _, b := range sv.Bricks {
+		if !uuid.Equal(b.PeerID, gdctx.MyUUID) {
+			continue
+		}
+		bricks = append(bricks, b)
+	}
+	return bricks
+}
