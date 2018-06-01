@@ -18,6 +18,7 @@ import (
 	"github.com/gluster/glusterd2/glusterd2/xlator"
 	"github.com/gluster/glusterd2/pkg/errors"
 	"github.com/gluster/glusterd2/pkg/logging"
+	"github.com/gluster/glusterd2/pkg/tracing"
 	"github.com/gluster/glusterd2/pkg/utils"
 	"github.com/gluster/glusterd2/version"
 
@@ -118,6 +119,11 @@ func main() {
 	// If REST API Auth is enabled, Generate Auth file with random secret in localstatedir
 	if err := gdctx.GenerateLocalAuthToken(); err != nil {
 		log.WithError(err).Fatal("Failed to generate local auth token")
+	}
+
+	// Create the Opencensus Jaeger exporter
+	if exporter := tracing.InitJaegerExporter(); exporter != nil {
+		defer exporter.Flush()
 	}
 
 	// Start all servers (rest, peerrpc, sunrpc) managed by suture supervisor

@@ -10,6 +10,7 @@ import (
 	"github.com/gluster/glusterd2/glusterd2/gdctx"
 	"github.com/gluster/glusterd2/glusterd2/store"
 	"github.com/gluster/glusterd2/pkg/logging"
+	"github.com/gluster/glusterd2/pkg/tracing"
 
 	log "github.com/sirupsen/logrus"
 	flag "github.com/spf13/pflag"
@@ -60,6 +61,7 @@ func parseFlags() {
 	flag.String("pidfile", "", "PID file path. (default \"rundir/glusterd2.pid)\"")
 
 	store.InitFlags()
+	tracing.InitFlags()
 
 	flag.Parse()
 }
