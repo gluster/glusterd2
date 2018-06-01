@@ -160,8 +160,20 @@ func ReconfigureStore(c *StoreConfig) error {
 	// Stop events framework
 	events.Stop()
 
-	store.Destroy()
-	// TODO: Also need to destroy any old files in localstatedir (eg. volfiles)
+	// do not delete cluster namespace if this is not a loner node
+	var deleteNamespace bool
+	peers, err := peer.GetPeers()
+	if err != nil {
+		log.WithError(err).Error("failed to list peers during store reconfigure")
+		return err
+	}
+	if len(peers) == 0 {
+		// the peer entry for this node was removed from the store
+		// by the node which received the peer removal request
+		deleteNamespace = true
+	}
+
+	store.Destroy(deleteNamespace)
 
 	// Restart the store with received configuration
 	cfg := store.GetConfig()
@@ -170,7 +182,7 @@ func ReconfigureStore(c *StoreConfig) error {
 	if err := store.Init(cfg); err != nil {
 		log.WithError(err).WithField("endpoints", cfg.Endpoints).Error("failed to restart store with new endpoints")
 		// Restart store with default config
-		defer restartDefaultStore(false)
+		defer restartDefaultStore(false, deleteNamespace)
 		return err
 	}
 	log.WithField("endpoints", cfg.Endpoints).Debug("store restarted with new endpoints")
@@ -179,7 +191,7 @@ func ReconfigureStore(c *StoreConfig) error {
 	if err := cfg.Save(); err != nil {
 		log.WithError(err).Error("failed to save new store configs")
 		// Destroy newly started store and restart with default config
-		defer restartDefaultStore(true)
+		defer restartDefaultStore(true, deleteNamespace)
 		return err
 	}
 	log.Debug("saved new store config")
@@ -188,7 +200,7 @@ func ReconfigureStore(c *StoreConfig) error {
 	if err := peer.AddSelfDetails(); err != nil {
 		log.WithError(err).Error("failed to add self to peer list")
 		// Destroy newly started store and restart with default config
-		defer restartDefaultStore(true)
+		defer restartDefaultStore(true, deleteNamespace)
 		return err
 	}
 	log.Debug("added details of self to store")
@@ -199,9 +211,9 @@ func ReconfigureStore(c *StoreConfig) error {
 	return nil
 }
 
-func restartDefaultStore(destroy bool) {
+func restartDefaultStore(destroy bool, deleteNamespace bool) {
 	if destroy {
-		store.Destroy()
+		store.Destroy(deleteNamespace)
 	}
 	store.Init(nil)
 	peer.AddSelfDetails()
