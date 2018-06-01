@@ -23,16 +23,19 @@
 
 %global gd2make %{__make} PREFIX=%{_prefix} EXEC_PREFIX=%{_exec_prefix} BINDIR=%{_bindir} SBINDIR=%{_sbindir} DATADIR=%{_datadir} LOCALSTATEDIR=%{_sharedstatedir} LOGDIR=%{_localstatedir}/log SYSCONFDIR=%{_sysconfdir} FASTBUILD=off
 
+%global gd2version 4.1.0
+%global gd2release rc0
+
 Name: %{repo}
 Version: 4.1.0
-Release: dev%{?dist}
+Release: 0.%{gd2release}%{?dist}
 Summary: The GlusterFS management daemon (preview)
 License: GPLv2 or LGPLv3+
 URL: https://%{provider_prefix}
 %if 0%{?with_bundled}
-Source0: https://%{provider_prefix}/releases/download/v%{version}/%{name}-v%{version}-0-vendor.tar.xz
+Source0: https://%{provider_prefix}/releases/download/v%{version}/%{name}-v%{gd2version}-%{gd2release}-vendor.tar.xz
 %else
-Source0: https://%{provider_prefix}/releases/download/v%{version}/%{name}-v%{version}-0.tar.xz
+Source0: https://%{provider_prefix}/releases/download/v%{version}/%{name}-v%{gd2version}-%{gd2release}.tar.xz
 %endif
 Source1: glusterd2-logrotate
 
@@ -72,7 +75,7 @@ BuildRequires: golang(golang.org/x/sys/unix)
 BuildRequires: golang(google.golang.org/grpc)
 %endif
 
-Requires: glusterfs-server >= 4.0.0, glusterfs-server < 4.1.0
+Requires: glusterfs-server >= 4.1.0-0.1.rc0
 Requires: /usr/bin/strings
 %{?systemd_requires}
 

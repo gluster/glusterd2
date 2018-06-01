@@ -59,5 +59,5 @@ echo "Signed archive, signature in $SIGNFILE"
 rm -rf "$TMPDIR"
 
 # Also create source tarballs
-"$(dirname "$0")/dist.sh" "$RELEASEDIR"
-VENDOR=y "$(dirname "$0")/dist.sh" "$RELEASEDIR"
+DISTDIR="$RELEASEDIR" "$(dirname "$0")/dist.sh"
+VENDOR=y DISTDIR="$RELEASEDIR" "$(dirname "$0")/dist.sh"
