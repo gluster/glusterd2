@@ -32,8 +32,10 @@ import (
 	"github.com/gluster/glusterd2/glusterd2/volume"
 	"github.com/gluster/glusterd2/pkg/api"
 	gderrors "github.com/gluster/glusterd2/pkg/errors"
+
 	"github.com/pborman/uuid"
 	log "github.com/sirupsen/logrus"
+	config "github.com/spf13/viper"
 )
 
 func barrierActivateDeactivateFunc(volinfo *volume.Volinfo, option string, originUUID uuid.UUID) error {
@@ -178,7 +180,7 @@ func undoBrickSnapshots(c transaction.TxnCtx) error {
 
 	snapVol := snapInfo.SnapVolinfo
 	for _, b := range snapVol.GetLocalBricks() {
-		if err := lvm.RemoveBrickSnapshot(b.MountInfo); err != nil {
+		if err := lvm.RemoveBrickSnapshot(b.MountInfo.DevicePath); err != nil {
 			c.Logger().WithError(err).WithField(
 				"brick", b.Path).Debug("Failed to remove snapshotted LVM")
 			return err
@@ -291,43 +293,38 @@ func populateBrickMountData(volinfo *volume.Volinfo, snapName string) (map[strin
 	nodeData := make(map[string]snapshot.BrickMountData)
 
 	brickCount := 0
-	for _, subvol := range volinfo.Subvols {
-		for _, b := range subvol.Bricks {
-			if !uuid.Equal(b.PeerID, gdctx.MyUUID) {
-				continue
-			}
-			brickCount++
-			mountRoot, err := volume.GetBrickMountRoot(b.Path)
-			if err != nil {
-				return nil, err
-			}
-			mountDir := b.Path[len(mountRoot):]
-			mntInfo, err := volume.GetBrickMountInfo(mountRoot)
-			if err != nil {
-				return nil, err
-			}
-
-			vG, err := lvm.GetVgName(mntInfo.FsName)
-			if err != nil {
-
-				log.WithError(err).WithField(
-					"brick", b.Path,
-				).Error("Failed to get vg name")
-
-				return nil, err
-			}
-			devicePath := "/dev/" + vG + "/" + snapName + "_" + strconv.Itoa(brickCount)
-
-			nodeData[b.String()] = snapshot.BrickMountData{
-				MountDir:   mountDir,
-				DevicePath: devicePath,
-				FsType:     mntInfo.MntType,
-				MntOpts:    updateMntOps(mntInfo.MntType, mntInfo.MntOpts),
-			}
-			// Store the results in transaction context. This will be consumed by
-			// the node that initiated the transaction.
-
+	for _, b := range volinfo.GetLocalBricks() {
+		brickCount++
+		mountRoot, err := volume.GetBrickMountRoot(b.Path)
+		if err != nil {
+			return nil, err
 		}
+		mountDir := b.Path[len(mountRoot):]
+		mntInfo, err := volume.GetBrickMountInfo(mountRoot)
+		if err != nil {
+			return nil, err
+		}
+
+		vG, err := lvm.GetVgName(mntInfo.FsName)
+		if err != nil {
+
+			log.WithError(err).WithField(
+				"brick", b.Path,
+			).Error("Failed to get vg name")
+
+			return nil, err
+		}
+		devicePath := "/dev/" + vG + "/" + snapName + "_" + strconv.Itoa(brickCount)
+
+		nodeData[b.String()] = snapshot.BrickMountData{
+			MountDir:   mountDir,
+			DevicePath: devicePath,
+			FsType:     mntInfo.MntType,
+			MntOpts:    updateMntOps(mntInfo.MntType, mntInfo.MntOpts),
+		}
+		// Store the results in transaction context. This will be consumed by
+		// the node that initiated the transaction.
+
 	}
 	return nodeData, nil
 }
@@ -409,11 +406,26 @@ func takeBrickSnapshots(c transaction.TxnCtx) error {
 			*/
 			snapBrick := snapVol.Subvols[subvolCount].Bricks[count]
 			mountData := snapBrick.MountInfo
-			if err := lvm.BrickSnapshot(mountData, b.Path); err != nil {
+			length := len(b.Path) - len(mountData.Mountdir)
+			mountRoot := b.Path[:length]
+			mntInfo, err := volume.GetBrickMountInfo(mountRoot)
+			if err != nil {
+				return err
+			}
+
+			log.WithFields(log.Fields{
+				"mount device": mntInfo.FsName,
+				"devicePath":   mountData.DevicePath,
+				"Path":         b.Path,
+			}).Debug("Running snapshot create command")
+
+			if err := lvm.LVSnapshot(mntInfo.FsName, mountData.DevicePath); err != nil {
 				c.Logger().WithError(err).WithField(
 					"brick", b.Path).Debug("Snapshot failed")
 				return err
 			}
+
+			err = lvm.UpdateFsLabel(mountData.DevicePath, mountData.FsType)
 		}
 
 	}
@@ -575,7 +587,9 @@ func duplicateVolinfo(vol, v *volume.Volinfo) {
 }
 func snapshotBrickCreate(snapVolinfo, volinfo *volume.Volinfo, brickinfo *brick.Brickinfo, brickCount int) string {
 	mountData := brickinfo.MountInfo
-	brickPath := snapshot.SnapDirPrefix + volinfo.Name + "/" + snapVolinfo.Name + "/brick" + strconv.Itoa(brickCount) + mountData.Mountdir
+	nodeID := strings.Replace(brickinfo.ID.String(), "-", "", -1)
+	SnapDirPrefix := config.GetString("rundir") + "/snaps"
+	brickPath := SnapDirPrefix + volinfo.Name + "/" + nodeID + "/" + snapVolinfo.Name + "/brick" + strconv.Itoa(brickCount) + mountData.Mountdir
 	return brickPath
 }
 

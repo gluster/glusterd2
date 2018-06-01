@@ -11,18 +11,6 @@ import (
 type Command struct {
 }
 
-/*
-// Name returns name of plugin
-func (p *Command) Name() string {
-	return "snapshot"
-}
-
-// SunRPCProgram returns sunrpc program to register with Glusterd
-func (p *Command) SunRPCProgram() sunrpc.Program {
-	return nil
-}
-*/
-
 // Routes returns list of REST API routes to register with Glusterd
 func (c *Command) Routes() route.Routes {
 	return route.Routes{
@@ -90,7 +78,7 @@ func (c *Command) Routes() route.Routes {
 			HandlerFunc: snapshotConfigGetHandler},
 		route.Route{
 			Name:        "SnapshotConfigSet",
-			Method:      "PUT",
+			Method:      "POST",
 			Pattern:     "/snapshot/config",
 			Version:     1,
 			HandlerFunc: snapshotConfigSetHandler},

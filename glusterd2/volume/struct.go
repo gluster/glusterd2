@@ -119,7 +119,6 @@ func (v *Volinfo) StringMap() map[string]string {
 	m["volume.transport"] = v.Transport
 	m["volume.auth.username"] = v.Auth.Username
 	m["volume.auth.password"] = v.Auth.Password
-	m["volume.snapList"] = strings.Join(v.SnapList, ",")
 
 	return m
 }

@@ -17,8 +17,8 @@ func snapshotListHandler(w http.ResponseWriter, r *http.Request) {
 	var req api.SnapListReq
 
 	if err := restutils.UnmarshalRequest(r, &req); err != nil {
-		restutils.SendHTTPError(ctx, w, http.StatusUnprocessableEntity, err)
-		return
+		//If req is not given, list all snapshots
+		req.Volname = ""
 	}
 
 	volumeName := req.Volname
