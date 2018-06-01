@@ -11,6 +11,7 @@ import (
 	"github.com/gluster/glusterd2/glusterd2/snapshot/lvm"
 	"github.com/gluster/glusterd2/glusterd2/volume"
 	"github.com/pborman/uuid"
+
 	log "github.com/sirupsen/logrus"
 	"golang.org/x/sys/unix"
 )
@@ -32,11 +33,9 @@ type BrickMountData struct {
 	MntOpts string
 }
 
-const (
+var (
 	//NodeDataTxnKey is used for storing the status
-	NodeDataTxnKey string = "brickmountstatus"
-	//SnapDirPrefix contains the prefix of snapshot brick
-	SnapDirPrefix string = "/var/run/gluster/snaps/"
+	NodeDataTxnKey = "brickmountstatus"
 )
 
 //UmountSnapBrickDirectory does an umount of the path

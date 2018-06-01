@@ -11,7 +11,6 @@ import (
 	"github.com/gluster/glusterd2/pkg/utils"
 
 	"github.com/pborman/uuid"
-	"github.com/sirupsen/logrus"
 )
 
 var (
@@ -65,17 +64,7 @@ func IsThinLV(brickPath string) bool {
 //MountSnapshotDirectory will mount the snapshot bricks to the given path
 func MountSnapshotDirectory(mountPath string, mountData brick.MountInfo) error {
 	err := utils.ExecuteCommandRun("mount", "-o", mountData.MntOpts, mountData.DevicePath, mountPath)
-	/*
-		logrus.WithFields(logrus.Fields{
-			"device path": b.DevicePath,
-			"mount path":  mountPath,
-			"fs type":     b.FsType,
-			"options":     b.MntOpts,
-		}).Debug("Mounting the device")
-
-		TODO use system mount command to mount the brick
-		err := syscall.Mount(b.DevicePath, mountPath, b.FsType,, syscall.MS_MGC_VAL, b.MntOpts)
-	*/
+	// Use syscall.Mount command to mount the bricks
 	if err != nil {
 		return err
 	}
@@ -95,22 +84,16 @@ func GetVgName(mountDevice string) (string, error) {
 	return volGroup, nil
 }
 
-//RemoveBrickSnapshot removes an lvm of a brick
-func RemoveBrickSnapshot(mountData brick.MountInfo) error {
-	return utils.ExecuteCommandRun(RemoveCommand, "f", mountData.DevicePath)
+//RemoveBrickSnapshot removes an lvm of a bricki
+func RemoveBrickSnapshot(devicePath string) error {
+	return utils.ExecuteCommandRun(RemoveCommand, "f", devicePath)
 }
 
-//BrickSnapshot takes lvm snapshot of a brick
-func BrickSnapshot(mountData brick.MountInfo, path string) error {
-	length := len(path) - len(mountData.Mountdir)
-	mountRoot := path[:length]
-	mntInfo, err := volume.GetBrickMountInfo(mountRoot)
-	if err != nil {
-		return err
-	}
+//LVSnapshot takes lvm snapshot of a b
+func LVSnapshot(originDevice, DevicePath string) error {
 
-	cmd := exec.Command(CreateCommand, "-s", mntInfo.FsName, "--setactivationskip", "n", "--name", mountData.DevicePath)
-	err = cmd.Start()
+	cmd := exec.Command(CreateCommand, "-s", originDevice, "--setactivationskip", "n", "--name", DevicePath)
+	err := cmd.Start()
 	if err != nil {
 		return err
 	}
@@ -118,21 +101,12 @@ func BrickSnapshot(mountData brick.MountInfo, path string) error {
 	if true {
 		// Wait for the child to exit
 		errStatus := cmd.Wait()
-		logrus.WithFields(logrus.Fields{
-			"pid":          cmd.Process.Pid,
-			"mount device": mntInfo.FsName,
-			"devicePath":   mountData.DevicePath,
-			"status":       errStatus,
-		}).Debug("Child exited")
-
 		if errStatus != nil {
 			// Child exited with error
 			return errStatus
 		}
-		err = UpdateFsLabel(mountData.DevicePath, mountData.FsType)
-
 	}
-	return err
+	return nil
 }
 
 //UpdateFsLabel sets new nabel on the device
