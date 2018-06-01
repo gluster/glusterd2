@@ -10,3 +10,14 @@ const (
 	// Arbiter represents Arbiter brick type
 	Arbiter
 )
+
+func (t BrickType) String() string {
+	switch t {
+	case Brick:
+		return "Brick"
+	case Arbiter:
+		return "Arbiter"
+	default:
+		return "invalid BrickType"
+	}
+}

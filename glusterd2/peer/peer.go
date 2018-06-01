@@ -2,6 +2,8 @@
 package peer
 
 import (
+	"strings"
+
 	"github.com/pborman/uuid"
 )
 
@@ -23,4 +25,15 @@ type ETCDConfig struct {
 	InitialCluster string
 	ClusterState   string
 	DeletePeer     bool
+}
+
+// MetadataSize returns the size of metadata from peer info
+func (p *Peer) MetadataSize() int {
+	size := 0
+	for key, value := range p.Metadata {
+		if !strings.HasPrefix(key, "_") {
+			size = size + len(key) + len(value)
+		}
+	}
+	return size
 }

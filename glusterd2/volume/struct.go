@@ -262,3 +262,27 @@ func SubvolTypeToString(subvolType SubvolType) string {
 		return "distribute"
 	}
 }
+
+// MetadataSize returns the size of the volume metadata in Volume info
+func (v *Volinfo) MetadataSize() int {
+	size := 0
+	for key, value := range v.Metadata {
+		if !strings.HasPrefix(key, "_") {
+			size = size + len(key) + len(value)
+		}
+	}
+	return size
+}
+
+// GetLocalBricks returns a list of local Bricks
+func (sv *Subvol) GetLocalBricks() []brick.Brickinfo {
+	var bricks []brick.Brickinfo
+
+	for _, b := range sv.Bricks {
+		if !uuid.Equal(b.PeerID, gdctx.MyUUID) {
+			continue
+		}
+		bricks = append(bricks, b)
+	}
+	return bricks
+}

@@ -46,6 +46,13 @@ func clusterGraph(volfile *Volfile, dht *Entry, vol *volume.Volinfo, nodeid uuid
 			}
 		}
 
+		// If Graph is required only for Local Bricks then
+		// do not include sub volume in graph if no local bricks
+		// exists for the sub volume
+		if filters != nil && filters.onlyLocalBricks && len(subvol.GetLocalBricks()) == 0 {
+			continue
+		}
+
 		// If Not set in prev filter checks
 		if parent == nil {
 			switch subvol.Type {

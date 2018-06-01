@@ -2,7 +2,6 @@ package deviceutils
 
 import (
 	"encoding/json"
-	"errors"
 
 	peer "github.com/gluster/glusterd2/glusterd2/peer"
 	deviceapi "github.com/gluster/glusterd2/plugins/device/api"
