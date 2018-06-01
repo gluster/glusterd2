@@ -17,7 +17,7 @@ import (
 const (
 	helpPeerCmd       = "Gluster Peer Management"
 	helpPeerAddCmd    = "add peer specified by <HOSTNAME>"
-	helpPeerRemoveCmd = "remove peer specified by <HOSTNAME or PeerID>"
+	helpPeerRemoveCmd = "remove peer specified by <PeerID>"
 	helpPeerStatusCmd = "list status of peers"
 	helpPeerListCmd   = "list all the nodes in the pool (including localhost)"
 )
@@ -76,20 +76,23 @@ var peerAddCmd = &cobra.Command{
 }
 
 var peerRemoveCmd = &cobra.Command{
-	Use:   "remove <HOSTNAME or PeerID>",
+	Use:   "remove <PeerID>",
 	Short: helpPeerRemoveCmd,
 	Args:  cobra.ExactArgs(1),
 	Run: func(cmd *cobra.Command, args []string) {
-		hostname := cmd.Flags().Args()[0]
-		peerID, err := getPeerID(hostname)
+		peerID := cmd.Flags().Args()[0]
+		var err error
+		if uuid.Parse(peerID) == nil {
+			err = errors.New("Failed to parse peerID")
+		}
 		if err == nil {
 			err = client.PeerRemove(peerID)
 		}
 		if err != nil {
 			if verbose {
 				log.WithFields(log.Fields{
-					"host":  hostname,
-					"error": err.Error(),
+					"peerID": peerID,
+					"error":  err.Error(),
 				}).Error("peer remove failed")
 			}
 			failure("Peer remove failed", err, 1)
@@ -144,43 +147,4 @@ var peerListCmd = &cobra.Command{
 	Run: func(cmd *cobra.Command, args []string) {
 		peerStatusHandler(cmd)
 	},
-}
-
-// getPeerID return peerId of host
-func getPeerID(host string) (string, error) {
-
-	if uuid.Parse(host) != nil {
-		return host, nil
-	}
-	// Get Peers list to find Peer ID
-	peers, err := client.Peers()
-	if err != nil {
-		return "", err
-	}
-
-	peerID := ""
-
-	hostinfo := strings.Split(host, ":")
-	if len(hostinfo) == 1 {
-		host = host + ":24008"
-	}
-	// Find Peer ID using available information
-	for _, p := range peers {
-		for _, h := range p.PeerAddresses {
-			if h == host {
-				peerID = p.ID.String()
-				break
-			}
-		}
-		// If already got Peer ID
-		if peerID != "" {
-			break
-		}
-	}
-
-	if peerID == "" {
-		return "", errors.New("Unable to find Peer ID")
-	}
-
-	return peerID, nil
 }
