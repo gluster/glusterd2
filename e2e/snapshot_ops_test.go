@@ -70,6 +70,7 @@ func TestSnapshot(t *testing.T) {
 	t.Run("Deactivate", testSnapshotDeactivate)
 	t.Run("List", testSnapshotList)
 	t.Run("Info", testSnapshotInfo)
+	t.Run("Delete", testSnapshotDelete)
 
 	/*
 		TODO:
@@ -180,6 +181,7 @@ func testSnapshotInfo(t *testing.T) {
 	_, err := client.SnapshotInfo(snapname)
 	r.Nil(err)
 }
+
 func testSnapshotActivate(t *testing.T) {
 	var snapshotListReq api.SnapListReq
 	var snapshotActivateReq api.SnapActivateReq
@@ -198,6 +200,27 @@ func testSnapshotActivate(t *testing.T) {
 		}
 	}
 
+}
+
+func testSnapshotDelete(t *testing.T) {
+	var snapshotListReq api.SnapListReq
+	r := require.New(t)
+
+	snapshotListReq.Volname = volname
+	vols, err := client.SnapshotList(snapshotListReq)
+	r.Nil(err)
+	r.Len(vols[0].SnapName, 2)
+
+	for _, snaps := range vols {
+		for _, snapName := range snaps.SnapName {
+			err = client.SnapshotDelete(snapName)
+			r.Nil(err)
+		}
+	}
+
+	vols, err = client.SnapshotList(snapshotListReq)
+	r.Nil(err)
+	r.Len(vols[0].SnapName, 0)
 }
 
 func testSnapshotDeactivate(t *testing.T) {

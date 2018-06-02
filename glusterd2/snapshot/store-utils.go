@@ -4,6 +4,7 @@ import (
 	"context"
 	"encoding/json"
 	"errors"
+	"strings"
 
 	"github.com/coreos/etcd/clientv3"
 	gdstore "github.com/gluster/glusterd2/glusterd2/store"
@@ -112,7 +113,27 @@ func GetSnapshot(name string) (*Snapinfo, error) {
 
 //DeleteSnapshot passes the snap path to store to delete the snap object
 func DeleteSnapshot(snapInfo *Snapinfo) error {
+	var vol *volume.Volinfo
 	_, e := gdstore.Store.Delete(context.TODO(), GetStorePath(snapInfo))
+	if e != nil {
+		return e
+	}
+
+	vol, e = volume.GetVolume(snapInfo.ParentVolume)
+	if e != nil {
+		return e
+	}
+
+	//TODO change this when label based snapshots are in.
+	e = errors.New("Snap is not found in the volinfo")
+	for key, entry := range vol.SnapList {
+		if strings.Compare(entry, snapInfo.SnapVolinfo.Name) == 0 {
+			vol.SnapList = append(vol.SnapList[:key], vol.SnapList[key+1:]...)
+			e = volume.AddOrUpdateVolumeFunc(vol)
+			break
+		}
+	}
+
 	return e
 }
 

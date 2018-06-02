@@ -106,11 +106,6 @@ func snapshotStatusHandler(w http.ResponseWriter, r *http.Request) {
 	restutils.SendHTTPResponse(ctx, w, http.StatusNotImplemented, "Snapshot Status")
 }
 
-func snapshotDeleteHandler(w http.ResponseWriter, r *http.Request) {
-	ctx := r.Context()
-	restutils.SendHTTPResponse(ctx, w, http.StatusNotImplemented, "Snapshot Delete")
-}
-
 func snapshotConfigGetHandler(w http.ResponseWriter, r *http.Request) {
 	ctx := r.Context()
 	restutils.SendHTTPResponse(ctx, w, http.StatusNotImplemented, "Snapshot Config Get")
@@ -132,5 +127,6 @@ func (c *Command) RegisterStepFuncs() {
 	registerSnapCreateStepFuncs()
 	registerSnapActivateStepFuncs()
 	registerSnapDeactivateStepFuncs()
+	registerSnapDeleteStepFuncs()
 	return
 }

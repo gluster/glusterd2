@@ -42,3 +42,10 @@ func (c *Client) SnapshotInfo(snapname string) (api.SnapGetResp, error) {
 	err := c.get(url, nil, http.StatusOK, &snap)
 	return snap, err
 }
+
+// SnapshotDelete will delete Gluster Snapshot and respective lv
+func (c *Client) SnapshotDelete(snapname string) error {
+	url := fmt.Sprintf("/v1/snapshot/%s", snapname)
+	err := c.del(url, nil, http.StatusOK, nil)
+	return err
+}
