@@ -100,23 +100,7 @@ func ActivateDeactivateFunc(snapinfo *Snapinfo, b []brick.Brickinfo, activate bo
 			}
 
 		} else {
-			var err error
-			if err = b[i].TerminateBrick(); err != nil {
-				if err = b[i].StopBrick(logger); err != nil {
-					return err
-				}
-			}
-
-			length := len(b[i].Path) - len(b[i].MountInfo.Mountdir)
-			for j := 0; j < 3; j++ {
-
-				err = UmountSnapBrickDirectory(b[i].Path[:length])
-				if err == nil {
-					break
-				}
-				time.Sleep(3 * time.Second)
-			}
-			if err != nil {
+			if err := StopBrick(b[i], logger); err != nil {
 				return err
 			}
 		}
@@ -138,4 +122,28 @@ func CheckBricksCompatability(volinfo *volume.Volinfo) []string {
 		}
 	}
 	return paths
+
+}
+
+//StopBrick terminate the process and umount the brick directory
+func StopBrick(b brick.Brickinfo, logger log.FieldLogger) error {
+	var err error
+
+	if err = b.TerminateBrick(); err != nil {
+		if err = b.StopBrick(logger); err != nil {
+			return err
+		}
+	}
+
+	length := len(b.Path) - len(b.MountInfo.Mountdir)
+	for j := 0; j < 3; j++ {
+
+		err = UmountSnapBrickDirectory(b.Path[:length])
+		if err == nil {
+			break
+		}
+		time.Sleep(3 * time.Second)
+	}
+	return err
+
 }

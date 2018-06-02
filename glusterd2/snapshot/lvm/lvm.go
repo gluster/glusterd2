@@ -86,7 +86,7 @@ func GetVgName(mountDevice string) (string, error) {
 
 //RemoveBrickSnapshot removes an lvm of a bricki
 func RemoveBrickSnapshot(devicePath string) error {
-	return utils.ExecuteCommandRun(RemoveCommand, "f", devicePath)
+	return utils.ExecuteCommandRun(RemoveCommand, "-f", devicePath)
 }
 
 //LVSnapshot takes lvm snapshot of a b
