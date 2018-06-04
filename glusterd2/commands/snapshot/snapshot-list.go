@@ -14,14 +14,9 @@ func snapshotListHandler(w http.ResponseWriter, r *http.Request) {
 
 	snapName := make(map[string][]string)
 	ctx := r.Context()
-	var req api.SnapListReq
 
-	if err := restutils.UnmarshalRequest(r, &req); err != nil {
-		//If req is not given, list all snapshots
-		req.Volname = ""
-	}
+	volumeName := r.URL.Query().Get("volume")
 
-	volumeName := req.Volname
 	if volumeName != "" {
 		vol, e := volume.GetVolume(volumeName)
 		if e != nil {

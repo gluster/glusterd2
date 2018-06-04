@@ -21,13 +21,13 @@ func init() {
 
 func snapshotListHandler(cmd *cobra.Command) error {
 	var snaps api.SnapListResp
-	var req api.SnapListReq
 	var err error
+	volname := ""
 	if len(cmd.Flags().Args()) > 0 {
-		req.Volname = cmd.Flags().Args()[0]
+		volname = cmd.Flags().Args()[0]
 	}
 
-	snaps, err = client.SnapshotList(req)
+	snaps, err = client.SnapshotList(volname)
 	if err != nil {
 		return err
 	}
@@ -35,7 +35,7 @@ func snapshotListHandler(cmd *cobra.Command) error {
 	table := tablewriter.NewWriter(os.Stdout)
 	table.SetAutoMergeCells(true)
 	table.SetRowLine(true)
-	if req.Volname == "" {
+	if volname == "" {
 		table.SetHeader([]string{"Name", "Origin Volume"})
 		for _, snap := range snaps {
 			for _, entry := range snap.SnapName {
