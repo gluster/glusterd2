@@ -27,10 +27,15 @@ func (c *Client) SnapshotDeactivate(snapname string) error {
 }
 
 // SnapshotList returns list of all snapshots or all snapshots of a volume
-func (c *Client) SnapshotList(req api.SnapListReq) (api.SnapListResp, error) {
+func (c *Client) SnapshotList(volname string) (api.SnapListResp, error) {
 	var snaps api.SnapListResp
-	url := fmt.Sprintf("/v1/snapshots")
-	err := c.get(url, req, http.StatusOK, &snaps)
+	var url string
+	if volname == "" {
+		url = fmt.Sprintf("/v1/snapshots")
+	} else {
+		url = fmt.Sprintf("/v1/snapshots?volume=%s", volname)
+	}
+	err := c.get(url, nil, http.StatusOK, &snaps)
 	return snaps, err
 }
 

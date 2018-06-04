@@ -161,14 +161,12 @@ func volumeStop(client *restclient.Client) error {
 }
 
 func testSnapshotList(t *testing.T) {
-	var snapshotListReq api.SnapListReq
 	r := require.New(t)
 
-	snaps, err := client.SnapshotList(snapshotListReq)
+	snaps, err := client.SnapshotList("")
 	r.Nil(err)
 	r.Len(snaps[0].SnapName, 2)
-	snapshotListReq.Volname = volname
-	snaps, err = client.SnapshotList(snapshotListReq)
+	snaps, err = client.SnapshotList(volname)
 	r.Nil(err)
 	r.Len(snaps[0].SnapName, 2)
 
@@ -183,12 +181,10 @@ func testSnapshotInfo(t *testing.T) {
 }
 
 func testSnapshotActivate(t *testing.T) {
-	var snapshotListReq api.SnapListReq
 	var snapshotActivateReq api.SnapActivateReq
 	r := require.New(t)
 
-	snapshotListReq.Volname = volname
-	vols, err := client.SnapshotList(snapshotListReq)
+	vols, err := client.SnapshotList(volname)
 	r.Nil(err)
 
 	for _, snaps := range vols {
@@ -203,11 +199,9 @@ func testSnapshotActivate(t *testing.T) {
 }
 
 func testSnapshotDelete(t *testing.T) {
-	var snapshotListReq api.SnapListReq
 	r := require.New(t)
 
-	snapshotListReq.Volname = volname
-	vols, err := client.SnapshotList(snapshotListReq)
+	vols, err := client.SnapshotList(volname)
 	r.Nil(err)
 	r.Len(vols[0].SnapName, 2)
 
@@ -218,18 +212,15 @@ func testSnapshotDelete(t *testing.T) {
 		}
 	}
 
-	vols, err = client.SnapshotList(snapshotListReq)
+	vols, err = client.SnapshotList(volname)
 	r.Nil(err)
 	r.Len(vols[0].SnapName, 0)
 }
 
 func testSnapshotDeactivate(t *testing.T) {
-	var snapshotListReq api.SnapListReq
 	var snapshotActivateReq api.SnapActivateReq
 	r := require.New(t)
-
-	snapshotListReq.Volname = volname
-	vols, err := client.SnapshotList(snapshotListReq)
+	vols, err := client.SnapshotList(volname)
 	r.Nil(err)
 	for _, snaps := range vols {
 		for _, snapName := range snaps.SnapName {
