@@ -163,8 +163,6 @@ func newVolinfo(req *api.VolCreateReq) (*volume.Volinfo, error) {
 
 func createVolinfo(c transaction.TxnCtx) error {
 
-	// TODO: Reduce the number of txn.Set calls.
-
 	var req api.VolCreateReq
 	if err := c.Get("req", &req); err != nil {
 		return err
@@ -187,10 +185,6 @@ func createVolinfo(c transaction.TxnCtx) error {
 		return err
 	}
 
-	// TODO: Volinfo already has this info. Right now, the key "bricks"
-	// is set separately to reuse the same step function (validateBricks)
-	// later in volume expand. Consider duplicating that code if store
-	// access turns out to be expensive.
 	if err := c.Set("bricks", volinfo.GetBricks()); err != nil {
 		return err
 	}
