@@ -109,6 +109,8 @@ func (c *Tctx) commit() error {
 		return err
 	}
 
+	expTxn.Add("txn_ctx_store_commit", 1)
+
 	c.readCacheDirty = true
 
 	return nil
@@ -133,6 +135,7 @@ func (c *Tctx) Get(key string, value interface{}) error {
 			c.logger.WithError(err).WithField("key", key).Error("failed to get key from transaction context")
 			return err
 		}
+		expTxn.Add("txn_ctx_store_get", 1)
 		for _, kv := range resp.Kvs {
 			c.readSet[string(kv.Key)] = kv.Value
 		}
@@ -174,6 +177,7 @@ func (c *Tctx) Delete(key string) error {
 			"failed to delete key")
 		return err
 	}
+	expTxn.Add("txn_ctx_store_delete", 1)
 	return nil
 }
 
