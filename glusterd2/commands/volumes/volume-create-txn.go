@@ -172,6 +172,13 @@ func createVolinfo(c transaction.TxnCtx) error {
 		return gderrors.ErrVolExists
 	}
 
+	if len(req.Subvols) > 0 && req.Subvols[0].ArbiterCount > 0 {
+		if req.Options == nil {
+			req.Options = make(map[string]string)
+		}
+		req.Options["replicate.arbiter-count"] = fmt.Sprintf("%d", req.Subvols[0].ArbiterCount)
+	}
+
 	volinfo, err := newVolinfo(&req)
 	if err != nil {
 		return err
