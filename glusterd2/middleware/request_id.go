@@ -4,6 +4,7 @@ import (
 	"net/http"
 
 	"github.com/gluster/glusterd2/glusterd2/gdctx"
+
 	"github.com/pborman/uuid"
 	log "github.com/sirupsen/logrus"
 )
@@ -17,8 +18,10 @@ func ReqIDGenerator(next http.Handler) http.Handler {
 		reqID := uuid.NewRandom()
 		ctx := gdctx.WithReqID(r.Context(), reqID)
 
-		// Also set request ID in the response headers
-		w.Header().Set("X-Request-ID", reqID.String())
+		// Set request ID, peer ID and cluster ID in the response headers
+		w.Header().Set("X-Request-Id", reqID.String())
+		w.Header().Set("X-Gluster-Peer-Id", gdctx.MyUUID.String())
+		w.Header().Set("X-Gluster-Cluster-Id", gdctx.MyClusterID.String())
 
 		// Create request-scoped logger and set in request context
 		reqLoggerEntry := log.WithField("reqid", reqID.String())

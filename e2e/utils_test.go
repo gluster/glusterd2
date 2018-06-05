@@ -77,7 +77,7 @@ func (g *gdProcess) PeerID() string {
 	}
 
 	// Endpoint doesn't matter here. All responses include a
-	// X-Gluster-Node-Id response header.
+	// X-Gluster-Peer-Id response header.
 	endpoint := fmt.Sprintf("http://%s/version", g.ClientAddress)
 	resp, err := http.Get(endpoint)
 	if err != nil {
@@ -85,7 +85,7 @@ func (g *gdProcess) PeerID() string {
 	}
 	defer resp.Body.Close()
 
-	g.uuid = resp.Header.Get("X-Gluster-Node-Id")
+	g.uuid = resp.Header.Get("X-Gluster-Peer-Id")
 	return g.uuid
 }
 

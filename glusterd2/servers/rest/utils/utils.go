@@ -26,9 +26,6 @@ func SendHTTPResponse(ctx context.Context, w http.ResponseWriter, statusCode int
 		w.Header().Set("Content-Type", "application/json; charset=UTF-8")
 	}
 
-	w.Header().Set("X-Gluster-Node-Id", gdctx.MyUUID.String())
-	w.Header().Set("X-Gluster-Cluster-Id", gdctx.MyClusterID.String())
-
 	w.WriteHeader(statusCode)
 
 	if resp != nil {
@@ -49,8 +46,6 @@ func SendHTTPError(ctx context.Context, w http.ResponseWriter, statusCode int,
 	err interface{}, errCodes ...api.ErrorCode) {
 
 	w.Header().Set("Content-Type", "application/json; charset=UTF-8")
-	w.Header().Set("X-Gluster-Node-Id", gdctx.MyUUID.String())
-	w.Header().Set("X-Gluster-Cluster-Id", gdctx.MyClusterID.String())
 
 	var resp api.ErrorResp
 	if v, ok := err.(api.ErrorResponse); ok {
