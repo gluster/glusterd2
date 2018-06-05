@@ -163,8 +163,6 @@ func newVolinfo(req *api.VolCreateReq) (*volume.Volinfo, error) {
 
 func createVolinfo(c transaction.TxnCtx) error {
 
-	// TODO: Reduce the number of txn.Set calls.
-
 	var req api.VolCreateReq
 	if err := c.Get("req", &req); err != nil {
 		return err
@@ -172,6 +170,13 @@ func createVolinfo(c transaction.TxnCtx) error {
 
 	if volume.Exists(req.Name) {
 		return gderrors.ErrVolExists
+	}
+
+	if len(req.Subvols) > 0 && req.Subvols[0].ArbiterCount > 0 {
+		if req.Options == nil {
+			req.Options = make(map[string]string)
+		}
+		req.Options["replicate.arbiter-count"] = fmt.Sprintf("%d", req.Subvols[0].ArbiterCount)
 	}
 
 	volinfo, err := newVolinfo(&req)
@@ -187,10 +192,6 @@ func createVolinfo(c transaction.TxnCtx) error {
 		return err
 	}
 
-	// TODO: Volinfo already has this info. Right now, the key "bricks"
-	// is set separately to reuse the same step function (validateBricks)
-	// later in volume expand. Consider duplicating that code if store
-	// access turns out to be expensive.
 	if err := c.Set("bricks", volinfo.GetBricks()); err != nil {
 		return err
 	}

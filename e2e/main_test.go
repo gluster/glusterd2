@@ -33,6 +33,9 @@ func TestMain(m *testing.M) {
 		return
 	}
 
+	// Cleanup leftover devices from previous test runs
+	loopDevicesCleanup(nil)
+
 	// Cleanup leftovers from previous test runs. But don't cleanup after.
 	os.RemoveAll(baseWorkdir)
 

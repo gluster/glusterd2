@@ -20,7 +20,7 @@ const (
 
 // GlusterdVersion and GitSHA
 var (
-	GlusterdVersion = "4.1dev"
+	GlusterdVersion = "4.1.0-rc0"
 	GitSHA          = ""
 )
 

@@ -23,20 +23,19 @@ var expTxn = expvar.NewMap("txn")
 
 // Txn is a set of steps
 type Txn struct {
-	id    uuid.UUID
-	reqID uuid.UUID
-	locks map[string]*concurrency.Mutex
+	id          uuid.UUID
+	locks       map[string]*concurrency.Mutex
+	reqID       uuid.UUID
+	storePrefix string
 
-	Ctx   TxnCtx
-	Steps []*Step
-
+	Ctx             TxnCtx
+	Steps           []*Step
+	DontCheckAlive  bool
+	DisableRollback bool
 	// Nodes is the union of the all the TxnStep.Nodes and is implicitly
 	// set in Txn.Do(). This list is used to determine liveness of the
 	// nodes before running the transaction steps.
-	DontCheckAlive bool
-	Nodes          []uuid.UUID
-
-	DisableRollback bool
+	Nodes []uuid.UUID
 }
 
 // NewTxn returns an initialized Txn without any steps
@@ -46,12 +45,15 @@ func NewTxn(ctx context.Context) *Txn {
 	t.id = uuid.NewRandom()
 	t.reqID = gdctx.GetReqID(ctx)
 	t.locks = make(map[string]*concurrency.Mutex)
-
-	prefix := txnPrefix + t.id.String()
-	t.Ctx = NewCtxWithLogFields(log.Fields{
-		"txnid": t.id.String(),
-		"reqid": t.reqID.String(),
-	}).WithPrefix(prefix)
+	t.storePrefix = txnPrefix + t.id.String() + "/"
+	config := &txnCtxConfig{
+		LogFields: log.Fields{
+			"txnid": t.id.String(),
+			"reqid": t.reqID.String(),
+		},
+		StorePrefix: t.storePrefix,
+	}
+	t.Ctx = newCtx(config)
 
 	t.Ctx.Logger().Debug("new transaction created")
 	return t
@@ -74,7 +76,10 @@ func NewTxnWithLocks(ctx context.Context, lockIDs ...string) (*Txn, error) {
 // Cleanup cleans the leftovers after a transaction ends
 // TODO: Remove this function
 func (t *Txn) Cleanup() {
-	store.Store.Delete(context.TODO(), t.Ctx.Prefix(), clientv3.WithPrefix())
+	if _, err := store.Store.Delete(context.TODO(), t.storePrefix, clientv3.WithPrefix()); err != nil {
+		t.Ctx.Logger().WithError(err).WithField("key",
+			t.storePrefix).Error("Failed to remove transaction namespace from store")
+	}
 	expTxn.Add("initiated_txn_in_progress", -1)
 }
 
@@ -118,12 +123,18 @@ func (t *Txn) Do() error {
 	t.Ctx.Logger().Debug("Starting transaction")
 	expTxn.Add("initiated_txn_in_progress", 1)
 
+	// commit txn.Ctx.Set()s done in REST handlers to the store
+	if err := t.Ctx.commit(); err != nil {
+		return err
+	}
+
 	for i, s := range t.Steps {
 		if s.Skip {
 			continue
 		}
 
 		if err := s.do(t.Ctx); err != nil {
+			expTxn.Add("initiated_txn_failure", 1)
 			if !t.DisableRollback {
 				t.Ctx.Logger().WithError(err).Error("Transaction failed, rolling back changes")
 				t.undo(i)
@@ -132,6 +143,7 @@ func (t *Txn) Do() error {
 		}
 	}
 
+	expTxn.Add("initiated_txn_success", 1)
 	return nil
 }
 

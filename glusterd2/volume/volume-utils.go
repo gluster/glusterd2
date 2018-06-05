@@ -4,6 +4,7 @@ import (
 	"errors"
 	"os"
 	"path"
+	"regexp"
 	"strings"
 	"syscall"
 
@@ -16,6 +17,15 @@ import (
 	"github.com/pborman/uuid"
 	log "github.com/sirupsen/logrus"
 )
+
+var (
+	volumeNameRE = regexp.MustCompile("^[a-zA-Z0-9_-]+$")
+)
+
+// IsValidName validates Volume name
+func IsValidName(name string) bool {
+	return volumeNameRE.MatchString(name)
+}
 
 // GetRedundancy calculates redundancy count based on disperse count
 func GetRedundancy(disperse uint) int {

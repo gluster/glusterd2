@@ -4,9 +4,11 @@ import (
 	"context"
 	"encoding/json"
 	"errors"
+	"reflect"
 
 	"github.com/gluster/glusterd2/glusterd2/store"
 
+	"github.com/coreos/etcd/clientv3"
 	"github.com/pborman/uuid"
 	log "github.com/sirupsen/logrus"
 )
@@ -25,77 +27,93 @@ type TxnCtx interface {
 	Delete(key string) error
 	// Logger returns the Logrus logger associated with the context
 	Logger() log.FieldLogger
-	// Prefix returns the prefix to be used for storing values
-	Prefix() string
+
+	// commit writes all locally cached keys and values into the store using
+	// a single etcd transaction. This is for internal use by the txn framework
+	// and hence isn't exported.
+	commit() error
 }
 
 // Tctx represents structure for transaction context
 type Tctx struct {
-	parent    *Tctx
-	log       log.FieldLogger // Functions which are given this context must use this logger to log their data.
-	logFields log.Fields
-
-	prefix string // The prefix under which the data is to be stored
+	config         *txnCtxConfig // this will be marshalled and sent on wire
+	logger         log.FieldLogger
+	readSet        map[string][]byte // cached responses from store
+	readCacheDirty bool
+	writeSet       map[string]string // to be written to store
 }
 
-// NewCtx returns a new empty TxnCtx with no parent, no associated data and the default logger.
-func NewCtx() *Tctx {
+type txnCtxConfig struct {
+	LogFields   log.Fields
+	StorePrefix string
+}
+
+func newCtx(config *txnCtxConfig) *Tctx {
 	return &Tctx{
-		log: log.StandardLogger(),
+		config:         config,
+		logger:         log.StandardLogger().WithFields(config.LogFields),
+		readSet:        make(map[string][]byte),
+		writeSet:       make(map[string]string),
+		readCacheDirty: true,
 	}
-}
-
-// NewCtxWithLogFields returns a new context with the logger set to log given fields
-func NewCtxWithLogFields(fields log.Fields) *Tctx {
-	c := NewCtx()
-	c.log = c.log.WithFields(fields)
-	c.logFields = fields
-
-	return c
-}
-
-// NewCtx returns a new empty TxnCtx with no parent, no associated data and the default logger.
-func (c *Tctx) NewCtx() *Tctx {
-	return &Tctx{
-		parent:    c,
-		log:       c.log,
-		logFields: c.logFields,
-		prefix:    c.prefix,
-	}
-}
-
-// WithLogFields returns a new context with the logger set to log given fields
-func (c *Tctx) WithLogFields(fields log.Fields) *Tctx {
-	n := c.NewCtx()
-	n.log = n.log.WithFields(fields)
-	n.logFields = fields
-
-	return n
-}
-
-// WithPrefix returns a new context with the store prefix set
-func (c *Tctx) WithPrefix(prefix string) *Tctx {
-	n := c.NewCtx()
-	n.prefix = prefix
-
-	return n
 }
 
 // Set attaches the given key-value pair to the context.
 // If the key exists, the value will be updated.
 func (c *Tctx) Set(key string, value interface{}) error {
-	json, err := json.Marshal(value)
+
+	b, err := json.Marshal(value)
 	if err != nil {
-		c.log.WithError(err).WithField("key", key).Error("failed to marshal value")
+		c.logger.WithError(err).WithField("key", key).Error("failed to marshal value")
 		return err
 	}
 
-	storeKey := c.prefix + "/" + key
-	_, err = store.Store.Put(context.TODO(), storeKey, string(json))
-	if err != nil {
-		c.log.WithError(err).WithField("key", key).Error("failed to set key in transaction context")
+	storeKey := c.config.StorePrefix + key
+
+	// Update the read cache to serve future local Get()s for this key from cache
+	c.readSet[storeKey] = b
+
+	// Update write cache, the contents of which will be committed to store later
+	c.writeSet[storeKey] = string(b)
+
+	return nil
+}
+
+// commit writes all locally cached keys and values into the store using
+// a single etcd transaction.
+func (c *Tctx) commit() error {
+
+	if len(c.writeSet) == 0 {
+		return nil
 	}
-	return err
+
+	var putOps []clientv3.Op
+	for key, value := range c.writeSet {
+		putOps = append(putOps, clientv3.OpPut(key, value))
+	}
+
+	txn, err := store.Store.Txn(context.TODO()).
+		If().
+		Then(putOps...).
+		Else().
+		Commit()
+
+	if err != nil || !txn.Succeeded {
+		msg := "etcd txn to store txn context keys failed"
+		if err == nil {
+			// if txn.Succeeded = false
+			err = errors.New(msg)
+		}
+		c.logger.WithError(err).WithField("keys",
+			reflect.ValueOf(c.writeSet).MapKeys()).Error(msg)
+		return err
+	}
+
+	expTxn.Add("txn_ctx_store_commit", 1)
+
+	c.readCacheDirty = true
+
+	return nil
 }
 
 // SetNodeResult is similar to Set but prefixes the key with the node UUID
@@ -110,23 +128,31 @@ func (c *Tctx) SetNodeResult(nodeID uuid.UUID, key string, value interface{}) er
 // Returns error if not found.
 func (c *Tctx) Get(key string, value interface{}) error {
 
-	storeKey := c.prefix + "/" + key
-	r, err := store.Store.Get(context.TODO(), storeKey)
-	if err != nil {
-		c.log.WithError(err).WithField("key", storeKey).Error("failed to get value from transaction context")
-		return err
+	// cache all keys and values from the store on the first call to Get
+	if c.readCacheDirty {
+		resp, err := store.Store.Get(context.TODO(), c.config.StorePrefix, clientv3.WithPrefix())
+		if err != nil {
+			c.logger.WithError(err).WithField("key", key).Error("failed to get key from transaction context")
+			return err
+		}
+		expTxn.Add("txn_ctx_store_get", 1)
+		for _, kv := range resp.Kvs {
+			c.readSet[string(kv.Key)] = kv.Value
+		}
+		c.readCacheDirty = false
 	}
 
-	if r.Count == 0 {
-		c.log.WithError(err).WithField("key", storeKey).Debug("key not found in store")
+	// return cached key
+	storeKey := c.config.StorePrefix + key
+	if data, ok := c.readSet[storeKey]; ok {
+		if err := json.Unmarshal(data, value); err != nil {
+			c.logger.WithError(err).WithField("key", storeKey).Error("failed to unmarshall value")
+		}
+	} else {
 		return errors.New("key not found")
 	}
 
-	if err = json.Unmarshal(r.Kvs[0].Value, value); err != nil {
-		c.log.WithError(err).WithField("key", storeKey).Error("failed to unmarshall value")
-	}
-
-	return err
+	return nil
 }
 
 // GetNodeResult is similar to Get but prefixes the key with node UUID
@@ -139,69 +165,43 @@ func (c *Tctx) GetNodeResult(nodeID uuid.UUID, key string, value interface{}) er
 
 // Delete deletes the key and attached value
 func (c *Tctx) Delete(key string) error {
-	storeKey := c.prefix + "/" + key
-	_, e := store.Store.Delete(context.TODO(), storeKey)
-	if e != nil {
-		c.log.WithFields(log.Fields{
-			"error": e,
-			"key":   storeKey,
-		}).Error("failed to delete key")
-		return e
+
+	storeKey := c.config.StorePrefix + key
+
+	delete(c.readSet, storeKey)
+	delete(c.writeSet, storeKey)
+
+	// TODO: Optimize this by doing it as part of etcd txn in commit()
+	if _, err := store.Store.Delete(context.TODO(), storeKey); err != nil {
+		c.logger.WithError(err).WithField("key", storeKey).Error(
+			"failed to delete key")
+		return err
 	}
+	expTxn.Add("txn_ctx_store_delete", 1)
 	return nil
 }
 
 // Logger returns the Logrus logger associated with the context
 func (c *Tctx) Logger() log.FieldLogger {
-	return c.log
-}
-
-// Prefix returns the prefix to be used for storing values
-func (c *Tctx) Prefix() string {
-	return c.prefix
-}
-
-// Implementing the JSON Marshaler and Unmarshaler interfaces to allow Contexts
-// to be exported Using an temporary struct to allow Context to be serialized
-// using JSON.  Cannot serialize Context.Log otherwise.
-// TODO: Implement proper tests to ensure proper Context is generated after (un)marshaling.
-// XXX: We shold ideally be using protobuf here instead of JSON, as we use it for RPC,
-// but JSON is simpler
-
-type expContext struct {
-	Parent    *Tctx
-	LogFields log.Fields
-	Prefix    string
+	return c.logger
 }
 
 // MarshalJSON implements the json.Marshaler interface
 func (c *Tctx) MarshalJSON() ([]byte, error) {
-	ac := expContext{
-		Parent:    c.parent,
-		LogFields: c.logFields,
-		Prefix:    c.prefix,
-	}
-
-	return json.Marshal(ac)
+	return json.Marshal(c.config)
 }
 
 // UnmarshalJSON implements the json.Unmarshaler interface
 func (c *Tctx) UnmarshalJSON(d []byte) error {
-	var ac expContext
 
-	e := json.Unmarshal(d, &ac)
-	if e != nil {
-		return e
+	if err := json.Unmarshal(d, &c.config); err != nil {
+		return err
 	}
 
-	c.parent = ac.Parent
-	if c.parent == nil {
-		c.log = log.StandardLogger().WithFields(ac.LogFields)
-	} else {
-		c.log = c.parent.log.WithFields(ac.LogFields)
-	}
-	c.logFields = ac.LogFields
-	c.prefix = ac.Prefix
+	c.logger = log.StandardLogger().WithFields(c.config.LogFields)
+	c.readSet = make(map[string][]byte)
+	c.writeSet = make(map[string]string)
+	c.readCacheDirty = true
 
 	return nil
 }

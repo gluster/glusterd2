@@ -63,6 +63,7 @@ func runStepFuncOnNodes(stepName string, c TxnCtx, nodes []uuid.UUID) error {
 	// to do. Serializing sequentially is the easiest fix but we lose
 	// concurrency. Instead, we let the do() function run on all nodes.
 
+	var lastErrResp stepResp
 	errCount := 0
 	var resp stepResp
 	for range nodes {
@@ -72,34 +73,50 @@ func runStepFuncOnNodes(stepName string, c TxnCtx, nodes []uuid.UUID) error {
 			c.Logger().WithFields(log.Fields{
 				"step": resp.step, "node": resp.node,
 			}).WithError(resp.err).Error("Step failed on node.")
+			lastErrResp = resp
 		}
 	}
 
 	if errCount != 0 {
-		return fmt.Errorf("Step %s failed on %d nodes", stepName, errCount)
+		return fmt.Errorf("Step %s failed on %d nodes. "+
+			"Last error: Step func %s failed on %s with error: %s",
+			stepName, errCount, lastErrResp.step, lastErrResp.node, lastErrResp.err)
 	}
 
 	return nil
 }
 
-func runStepFuncOnNode(stepName string, c TxnCtx, node uuid.UUID, respCh chan<- stepResp) {
+func runStepFuncOnNode(stepName string, ctx TxnCtx, node uuid.UUID, respCh chan<- stepResp) {
 
-	c.Logger().WithFields(log.Fields{
+	ctx.Logger().WithFields(log.Fields{
 		"step": stepName, "node": node,
 	}).Debug("Running step on node.")
 
 	var err error
 	if uuid.Equal(node, gdctx.MyUUID) {
-		// this (local) node
-		if stepFunc, ok := getStepFunc(stepName); ok {
-			err = stepFunc(c)
-		} else {
-			err = ErrStepFuncNotFound
-		}
+		err = runStepFuncLocally(stepName, ctx)
 	} else {
 		// remote node
-		err = runStepOn(stepName, node, c)
+		err = runStepOn(stepName, node, ctx)
 	}
 
 	respCh <- stepResp{node, stepName, err}
+}
+
+func runStepFuncLocally(stepName string, ctx TxnCtx) error {
+
+	var err error
+
+	stepFunc, ok := getStepFunc(stepName)
+	if ok {
+		if err = stepFunc(ctx); err == nil {
+			// if step function executes successfully, commit the
+			// results to the store
+			err = ctx.commit()
+		}
+	} else {
+		err = ErrStepFuncNotFound
+	}
+
+	return err
 }

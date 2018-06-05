@@ -70,11 +70,11 @@ func Close() {
 }
 
 // Destroy closes the GD2 store and deletes the store data dir
-func Destroy() {
+func Destroy(deleteNamespace bool) {
 	lock.Lock()
 	defer lock.Unlock()
 
-	Store.Destroy()
+	Store.Destroy(deleteNamespace)
 	Store = nil
 
 	return
@@ -120,7 +120,7 @@ func (s *GDStore) Close() {
 }
 
 // Destroy closes the store and deletes the store data dir
-func (s *GDStore) Destroy() {
+func (s *GDStore) Destroy(deleteNamespace bool) {
 	if s.ee != nil {
 		s.Close()
 		os.RemoveAll(s.conf.Dir)
@@ -129,9 +129,11 @@ func (s *GDStore) Destroy() {
 
 	// remote store: delete the current namespace using un-namespaced
 	// client and then close the client.
-	_, err := s.Client.Delete(context.Background(), s.namespace, clientv3.WithPrefix())
-	if err != nil {
-		log.WithError(err).Error("failed to delete etcd namespace during remote store destroy")
+	if deleteNamespace {
+		_, err := s.Client.Delete(context.Background(), s.namespace, clientv3.WithPrefix())
+		if err != nil {
+			log.WithError(err).Error("failed to delete etcd namespace during remote store destroy")
+		}
 	}
 	s.Close()
 }
