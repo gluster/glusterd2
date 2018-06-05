@@ -149,7 +149,7 @@ func getBricksLayout(req *smartvolapi.Volume) ([]smartvolapi.Subvol, error) {
 	return subvols, nil
 }
 
-// PlanBricks creates the brick layout with choosen device and size information
+// PlanBricks creates the brick layout with chosen device and size information
 func PlanBricks(req *smartvolapi.Volume) error {
 	availableVgs, err := getAvailableVgs(req)
 	if err != nil {
