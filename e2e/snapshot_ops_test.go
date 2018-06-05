@@ -1,10 +1,13 @@
 package e2e
 
 import (
+	"errors"
 	"fmt"
 	"testing"
+	"time"
 
 	"github.com/gluster/glusterd2/e2e/lvmtest"
+	"github.com/gluster/glusterd2/glusterd2/daemon"
 	"github.com/gluster/glusterd2/pkg/api"
 	"github.com/gluster/glusterd2/pkg/restclient"
 
@@ -25,11 +28,7 @@ func TestSnapshot(t *testing.T) {
 	r := require.New(t)
 
 	gds, err = setupCluster("./config/1.toml", "./config/2.toml")
-	if err != nil {
-		r.Nil(err)
-		teardownCluster(gds)
-		return
-	}
+	r.Nil(err)
 	defer teardownCluster(gds)
 
 	client = initRestclient(gds[0].ClientAddress)
@@ -66,9 +65,10 @@ func TestSnapshot(t *testing.T) {
 
 	t.Run("Create", testSnapshotCreate)
 	t.Run("Activate", testSnapshotActivate)
-	t.Run("Deactivate", testSnapshotDeactivate)
 	t.Run("List", testSnapshotList)
+	t.Run("StatusAndForceActivate", testSnapshotStatusForceActivate)
 	t.Run("Info", testSnapshotInfo)
+	t.Run("Deactivate", testSnapshotDeactivate)
 	t.Run("Delete", testSnapshotDelete)
 
 	/*
@@ -197,4 +197,43 @@ func testSnapshotDeactivate(t *testing.T) {
 		}
 	}
 
+}
+
+func testSnapshotStatusForceActivate(t *testing.T) {
+	var snapshotActivateReq api.SnapActivateReq
+	var result api.SnapStatusResp
+	r := require.New(t)
+
+	vols, err := client.SnapshotList(snapTestName)
+	r.Nil(err)
+
+	snapName := vols[0].SnapName[0]
+	result, err = client.SnapshotStatus(snapName)
+	r.Nil(err)
+	err = daemon.Kill(result.BrickStatus[0].Brick.Pid, true)
+	err = client.SnapshotActivate(snapshotActivateReq, snapName)
+	if err == nil {
+		msg := "Snapshot activate should have failed"
+		r.Nil(errors.New(msg), msg)
+	}
+	snapshotActivateReq.Force = true
+	err = client.SnapshotActivate(snapshotActivateReq, snapName)
+	r.Nil(err)
+
+	retries := 4
+	waitTime := 6000
+	err = errors.New("Snapshot failed to activate forcefully")
+	for i := 0; i < retries; i++ {
+		// opposite of exponential backoff
+		time.Sleep(time.Duration(waitTime) * time.Millisecond)
+		result, err = client.SnapshotStatus(snapName)
+		online := result.BrickStatus[0].Brick.Online
+		if online {
+			err = nil
+			break
+		}
+
+		waitTime = waitTime / 2
+	}
+	r.Nil(err)
 }

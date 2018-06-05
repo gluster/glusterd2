@@ -4,10 +4,12 @@ import (
 	"fmt"
 	"os"
 	"os/exec"
+	"strconv"
 	"strings"
 
 	"github.com/gluster/glusterd2/glusterd2/brick"
 	"github.com/gluster/glusterd2/glusterd2/volume"
+	"github.com/gluster/glusterd2/pkg/api"
 	"github.com/gluster/glusterd2/pkg/utils"
 
 	"github.com/pborman/uuid"
@@ -22,7 +24,17 @@ const (
 	PvCreateCommand string = "/sbin/pvcreate"
 	//VgCreateCommand is path to lvm create
 	VgCreateCommand string = "/sbin/vgcreate"
+	//LVSCommand is path to lvm create
+	LVSCommand string = "/sbin/lvs"
 )
+
+//LvsData provides the information about an thinLV
+type LvsData struct {
+	VgName         string
+	DataPercentage float32
+	LvSize         string
+	PoolLV         string
+}
 
 // CommonPrevalidation checks the lvm related validation for snapshot
 func CommonPrevalidation(lvmCommand string) error {
@@ -52,13 +64,12 @@ func IsThinLV(brickPath string) bool {
 		return false
 	}
 
-	out, err := utils.ExecuteCommandOutput("/sbin/lvs", "--noheadings", "-o", "pool_lv", mntInfo.FsName)
+	data, err := GetLvsData(mntInfo.FsName)
 	if err != nil {
 		return false
 	}
 
-	thinLV := strings.TrimSpace(string(out))
-
+	thinLV := data.PoolLV
 	if thinLV == "" {
 		return false
 	}
@@ -79,12 +90,12 @@ func MountSnapshotDirectory(mountPath string, mountData brick.MountInfo) error {
 //GetVgName creates the device path for lvm snapshot
 func GetVgName(mountDevice string) (string, error) {
 
-	out, err := utils.ExecuteCommandOutput("/sbin/lvs", "--noheadings", "-o", "vg_name", mountDevice)
+	data, err := GetLvsData(mountDevice)
 	if err != nil {
 		return "", err
 	}
 
-	volGroup := strings.TrimSpace(string(out))
+	volGroup := data.VgName
 	return volGroup, nil
 }
 
@@ -136,4 +147,36 @@ func UpdateFsLabel(DevicePath, FsType string) error {
 		return fmt.Errorf("Changing file-system label of %s is not supported as of now", FsType)
 	}
 	return nil
+}
+
+//CreateLvsResp creates corresponding response strcture for LvsData
+func CreateLvsResp(lvs LvsData) api.LvsData {
+	s := api.LvsData{
+		VgName:         lvs.VgName,
+		DataPercentage: lvs.DataPercentage,
+		LvSize:         lvs.LvSize,
+		PoolLV:         lvs.PoolLV,
+	}
+	return s
+}
+
+//GetLvsData creates the device path for lvm snapshot
+func GetLvsData(mountDevice string) (LvsData, error) {
+
+	out, err := exec.Command(LVSCommand, "--noheadings", "-o", "vg_name,data_percent,lv_size,pool_lv", "--separator", ":", mountDevice).Output()
+	if err != nil {
+		return LvsData{}, err
+	}
+	data := strings.Split(string(out), ":")
+	dataPercentage, err := strconv.ParseFloat(data[1], 32)
+	if err != nil {
+		return LvsData{}, err
+	}
+	result := LvsData{
+		VgName:         strings.TrimSpace(data[0]),
+		DataPercentage: float32(dataPercentage),
+		LvSize:         strings.TrimSpace(data[2]),
+		PoolLV:         strings.TrimSpace(data[3]),
+	}
+	return result, nil
 }

@@ -45,11 +45,32 @@ func UmountSnapBrickDirectory(path string) error {
 	return err
 }
 
+func isVolumeBrick(brickPath string, iD uuid.UUID) bool {
+
+	data := make([]byte, 16)
+	sz, err := syscall.Getxattr(brickPath, volumeIDXattrKey, data)
+	if err != nil || sz <= 0 {
+		return false
+	}
+
+	//Check for little or big endian ?
+	if uuid.Equal(iD, data[:sz]) {
+		return true
+	}
+	return false
+}
+
 //MountSnapBrickDirectory creates the directory strcture for snap bricks
 func MountSnapBrickDirectory(vol *volume.Volinfo, brickinfo *brick.Brickinfo) error {
 
 	mountData := brickinfo.MountInfo
 	mountRoot := strings.TrimSuffix(brickinfo.Path, mountData.Mountdir)
+	if _, err := os.Lstat(brickinfo.Path); err == nil {
+		//Because of abnormal shutdown of the brick, mount point might already be existing
+		if isVolumeBrick(brickinfo.Path, vol.ID) {
+			return nil
+		}
+	}
 	if err := os.MkdirAll(mountRoot, os.ModeDir|os.ModePerm); err != nil {
 		log.WithError(err).Error("Failed to create snapshot directory ", brickinfo.String())
 		return err
@@ -57,7 +78,6 @@ func MountSnapBrickDirectory(vol *volume.Volinfo, brickinfo *brick.Brickinfo) er
 	/*
 	   TODO
 	   *Move to snapshot package as it has no lvm related coomands.
-	   *Handle already mounted path, eg: using start when a brick is down, mostly path could be mounted.
 	*/
 
 	if err := lvm.MountSnapshotDirectory(mountRoot, brickinfo.MountInfo); err != nil {
