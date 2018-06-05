@@ -594,7 +594,7 @@ func duplicateVolinfo(vol, v *volume.Volinfo) {
 func snapshotBrickCreate(snapVolinfo, volinfo *volume.Volinfo, brickinfo *brick.Brickinfo, brickCount int) string {
 	mountData := brickinfo.MountInfo
 	nodeID := strings.Replace(brickinfo.ID.String(), "-", "", -1)
-	SnapDirPrefix := config.GetString("rundir") + "/snaps"
+	SnapDirPrefix := config.GetString("rundir") + "/snaps/"
 	brickPath := fmt.Sprintf("%s%s/%s/%s/brick%d%s", SnapDirPrefix, volinfo.Name, nodeID, snapVolinfo.Name, brickCount, mountData.Mountdir)
 	return brickPath
 }

@@ -286,3 +286,22 @@ func CreateSizeInfo(fstat *syscall.Statfs_t) *SizeInfo {
 	}
 	return &s
 }
+
+//CreateBrickStatusRsp creates response related to brick process
+func CreateBrickStatusRsp(brickStatuses []Brickstatus) []*api.BrickStatus {
+	var brickStatusesRsp []*api.BrickStatus
+	for _, status := range brickStatuses {
+		s := &api.BrickStatus{
+			Info:      CreateBrickInfo(&status.Info),
+			Online:    status.Online,
+			Pid:       status.Pid,
+			Port:      status.Port,
+			FS:        status.FS,
+			MountOpts: status.MountOpts,
+			Device:    status.Device,
+			Size:      CreateBrickSizeInfo(&status.Size),
+		}
+		brickStatusesRsp = append(brickStatusesRsp, s)
+	}
+	return brickStatusesRsp
+}

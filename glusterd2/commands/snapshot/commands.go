@@ -56,14 +56,13 @@ func (c *Command) Routes() route.Routes {
 			Pattern:     "/snapshots",
 			Version:     1,
 			HandlerFunc: snapshotListHandler},
-		/*
-			route.Route{
-				Name:        "SnapshotStatus",
-				Method:      "GET",
-				Pattern:     "/snapshot",
-				Version:     1,
-				HandlerFunc: snapshotStatusHandler},
-		*/
+
+		route.Route{
+			Name:        "SnapshotStatus",
+			Method:      "GET",
+			Pattern:     "/snapshot/{snapname}/status",
+			Version:     1,
+			HandlerFunc: snapshotStatusHandler},
 		route.Route{
 			Name:        "SnapshotDelete",
 			Method:      "DELETE",
@@ -101,11 +100,6 @@ func snapshotRestoreHandler(w http.ResponseWriter, r *http.Request) {
 	restutils.SendHTTPResponse(ctx, w, http.StatusNotImplemented, "Snapshot Restore")
 }
 
-func snapshotStatusHandler(w http.ResponseWriter, r *http.Request) {
-	ctx := r.Context()
-	restutils.SendHTTPResponse(ctx, w, http.StatusNotImplemented, "Snapshot Status")
-}
-
 func snapshotConfigGetHandler(w http.ResponseWriter, r *http.Request) {
 	ctx := r.Context()
 	restutils.SendHTTPResponse(ctx, w, http.StatusNotImplemented, "Snapshot Config Get")
@@ -128,5 +122,6 @@ func (c *Command) RegisterStepFuncs() {
 	registerSnapActivateStepFuncs()
 	registerSnapDeactivateStepFuncs()
 	registerSnapDeleteStepFuncs()
+	registerSnapshottatusStepFuncs()
 	return
 }

@@ -54,3 +54,12 @@ func (c *Client) SnapshotDelete(snapname string) error {
 	err := c.del(url, nil, http.StatusOK, nil)
 	return err
 }
+
+// SnapshotStatus will list the detailed status of snapshot bricks
+func (c *Client) SnapshotStatus(snapname string) (api.SnapStatusResp, error) {
+	var resp api.SnapStatusResp
+
+	url := fmt.Sprintf("/v1/snapshot/%s/status", snapname)
+	err := c.get(url, nil, http.StatusOK, &resp)
+	return resp, err
+}
