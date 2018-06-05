@@ -18,9 +18,21 @@ type ErrorCode uint16
 const (
 	// ErrCodeGeneric represents generic error code for API responses
 	ErrCodeGeneric ErrorCode = iota + 1
+	// ErrTxnStepFailed represents failure of a txn step
+	ErrTxnStepFailed
 )
 
 // ErrorCodeMap maps error code to it's textual message
 var ErrorCodeMap = map[ErrorCode]string{
-	ErrCodeGeneric: "generic error",
+	ErrCodeGeneric:   "generic error",
+	ErrTxnStepFailed: "a txn step failed",
+}
+
+// ErrorResponse is an interface that types can implement on custom errors.
+type ErrorResponse interface {
+	error
+	// Response returns the error response to be returned to client.
+	Response() ErrorResp
+	// Status returns the HTTP status code to be returned to client.
+	Status() int
 }
