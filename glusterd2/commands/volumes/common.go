@@ -81,7 +81,7 @@ func validateXlatorOptions(opts map[string]string, volinfo *volume.Volinfo) erro
 }
 
 func expandGroupOptions(opts map[string]string) (map[string]string, error) {
-	resp, err := store.Store.Get(context.TODO(), "groupoptions")
+	resp, err := store.Get(context.TODO(), "groupoptions")
 	if err != nil {
 		return nil, err
 	}
@@ -270,7 +270,7 @@ func LoadDefaultGroupOptions() error {
 	if err != nil {
 		return err
 	}
-	if _, err := store.Store.Put(context.TODO(), "groupoptions", string(groupOptions)); err != nil {
+	if _, err := store.Put(context.TODO(), "groupoptions", string(groupOptions)); err != nil {
 		return err
 	}
 	return nil

@@ -15,7 +15,7 @@ const (
 
 // GetCluster gets cluster object instace from store
 func GetCluster() (*Cluster, error) {
-	resp, err := store.Store.Get(context.TODO(), ClusterPrefix)
+	resp, err := store.Get(context.TODO(), ClusterPrefix)
 	if err != nil {
 		return nil, err
 	}
@@ -35,8 +35,6 @@ func GetCluster() (*Cluster, error) {
 // UpdateCluster updates cluster instance in etcd store
 func UpdateCluster(c *Cluster) error {
 	data, _ := json.Marshal(c)
-	if _, err := store.Store.Put(context.TODO(), ClusterPrefix, string(data)); err != nil {
-		return err
-	}
-	return nil
+	_, err := store.Put(context.TODO(), ClusterPrefix, string(data))
+	return err
 }

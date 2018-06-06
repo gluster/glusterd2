@@ -7,6 +7,7 @@ import (
 	"fmt"
 	"os"
 	"sync"
+	"time"
 
 	"github.com/gluster/glusterd2/glusterd2/gdctx"
 	"github.com/gluster/glusterd2/pkg/elasticetcd"
@@ -18,7 +19,10 @@ import (
 )
 
 const (
-	sessionTTL = 30 // used for etcd mutexes and liveness key
+	sessionTTL    = 30 // used for etcd mutexes and liveness key
+	getTimeout    = 5
+	putTimeout    = 5
+	deleteTimeout = 5
 )
 
 var (
@@ -176,4 +180,38 @@ func newNamespacedStore(oc *clientv3.Client, conf *Config) (*GDStore, error) {
 	}
 
 	return &GDStore{*conf, kv, lease, watcher, session, oc, nil, namespaceKey}, nil
+}
+
+//Get is a wrapper function that calls clientv3.KV.Get with a default timeout if an empty context is passed
+func Get(ctx context.Context, key string, opts ...clientv3.OpOption) (*clientv3.GetResponse, error) {
+	var cancel context.CancelFunc
+
+	if ctx == context.TODO() {
+		ctx, cancel = context.WithTimeout(context.Background(), getTimeout*time.Second)
+		defer cancel()
+	}
+
+	return Store.Get(ctx, key, opts...)
+}
+
+//Put is a wrapper function that calls clientv3.KV.Put with a default timeout if an empty context is passed
+func Put(ctx context.Context, key, val string, opts ...clientv3.OpOption) (*clientv3.PutResponse, error) {
+	var cancel context.CancelFunc
+
+	if ctx == context.TODO() {
+		ctx, cancel = context.WithTimeout(context.Background(), putTimeout*time.Second)
+		defer cancel()
+	}
+	return Store.Put(ctx, key, val, opts...)
+}
+
+//Delete is a wrapper function that calls clientv3.KV.Delete with a default timeout if an empty context is passed
+func Delete(ctx context.Context, key string, opts ...clientv3.OpOption) (*clientv3.DeleteResponse, error) {
+	var cancel context.CancelFunc
+
+	if ctx == context.TODO() {
+		ctx, cancel = context.WithTimeout(context.Background(), deleteTimeout*time.Second)
+		defer cancel()
+	}
+	return Store.Delete(ctx, key, opts...)
 }

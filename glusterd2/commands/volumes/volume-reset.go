@@ -36,7 +36,11 @@ func volumeResetHandler(w http.ResponseWriter, r *http.Request) {
 
 	volinfo, err := volume.GetVolume(volname)
 	if err != nil {
-		restutils.SendHTTPError(ctx, w, http.StatusBadRequest, errors.ErrVolNotFound)
+		if err == errors.ErrVolNotFound {
+			restutils.SendHTTPError(ctx, w, http.StatusBadRequest, errors.ErrVolNotFound)
+		} else {
+			restutils.SendHTTPError(ctx, w, http.StatusInternalServerError, err)
+		}
 		return
 	}
 

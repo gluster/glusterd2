@@ -16,7 +16,7 @@ func optionGroupDeleteHandler(w http.ResponseWriter, r *http.Request) {
 	ctx := r.Context()
 	groupName := mux.Vars(r)["groupname"]
 
-	resp, err := store.Store.Get(context.TODO(), "groupoptions")
+	resp, err := store.Get(context.TODO(), "groupoptions")
 	if err != nil {
 		restutils.SendHTTPError(ctx, w, http.StatusInternalServerError, err)
 		return
@@ -46,7 +46,7 @@ func optionGroupDeleteHandler(w http.ResponseWriter, r *http.Request) {
 		restutils.SendHTTPError(ctx, w, http.StatusInternalServerError, err)
 		return
 	}
-	if _, err := store.Store.Put(context.TODO(), "groupoptions", string(groupOptionsJSON)); err != nil {
+	if _, err := store.Put(context.TODO(), "groupoptions", string(groupOptionsJSON)); err != nil {
 		restutils.SendHTTPError(ctx, w, http.StatusInternalServerError, err)
 		return
 	}

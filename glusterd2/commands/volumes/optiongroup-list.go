@@ -13,7 +13,7 @@ import (
 func optionGroupListHandler(w http.ResponseWriter, r *http.Request) {
 	ctx := r.Context()
 
-	resp, err := store.Store.Get(context.TODO(), "groupoptions")
+	resp, err := store.Get(context.TODO(), "groupoptions")
 	if err != nil {
 		restutils.SendHTTPError(ctx, w, http.StatusInternalServerError, err)
 		return

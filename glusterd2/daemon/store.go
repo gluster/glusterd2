@@ -25,8 +25,7 @@ func saveDaemon(d Daemon) error {
 	if err != nil {
 		return err
 	}
-
-	_, err = store.Store.Put(context.TODO(), p, string(data))
+	_, err = store.Put(context.TODO(), p, string(data))
 	return err
 }
 
@@ -34,8 +33,7 @@ func saveDaemon(d Daemon) error {
 // the daemon isn't restarted during glusterd2's restart.
 func DelDaemon(d Daemon) error {
 	p := path.Join(daemonsPrefix, gdctx.MyUUID.String(), d.ID())
-
-	_, err := store.Store.Delete(context.TODO(), p)
+	_, err := store.Delete(context.TODO(), p)
 
 	return err
 }
@@ -43,7 +41,7 @@ func DelDaemon(d Daemon) error {
 func getDaemon(id string) (Daemon, error) {
 	p := path.Join(daemonsPrefix, gdctx.MyUUID.String(), id)
 
-	resp, err := store.Store.Get(context.TODO(), p)
+	resp, err := store.Get(context.TODO(), p)
 	if err != nil {
 		return nil, err
 	}
@@ -58,7 +56,7 @@ func getDaemon(id string) (Daemon, error) {
 func getDaemons() ([]Daemon, error) {
 	p := path.Join(daemonsPrefix, gdctx.MyUUID.String())
 
-	resp, err := store.Store.Get(context.TODO(), p, clientv3.WithPrefix())
+	resp, err := store.Get(context.TODO(), p, clientv3.WithPrefix())
 	if err != nil {
 		return nil, err
 	}

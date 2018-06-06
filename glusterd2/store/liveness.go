@@ -48,7 +48,10 @@ func (s *GDStore) IsNodeAlive(nodeID interface{}) bool {
 func (s *GDStore) publishLiveness() error {
 	// publish liveness of this instance into the store
 	key := LivenessKeyPrefix + gdctx.MyUUID.String()
-	_, err := s.Put(context.TODO(), key, "", clientv3.WithLease(s.Session.Lease()))
+	ctx, cancel := context.WithTimeout(context.Background(), 5*time.Second)
+	defer cancel()
+
+	_, err := s.Put(ctx, key, "", clientv3.WithLease(s.Session.Lease()))
 
 	return err
 }
@@ -56,7 +59,10 @@ func (s *GDStore) publishLiveness() error {
 func (s *GDStore) revokeLiveness() error {
 	// revoke liveness (to be invoked during graceful shutdowns)
 	key := LivenessKeyPrefix + gdctx.MyUUID.String()
-	_, err := s.Delete(context.TODO(), key)
+	ctx, cancel := context.WithTimeout(context.Background(), 5*time.Second)
+	defer cancel()
+
+	_, err := s.Delete(ctx, key)
 
 	return err
 }

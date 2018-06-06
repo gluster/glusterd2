@@ -233,6 +233,7 @@ func storeSnapshot(c transaction.TxnCtx) error {
 	if err != nil {
 		c.Logger().WithError(err).WithField(
 			"volume", snapInfo.ParentVolume).Debug("storeVolume: failed to fetch Volinfo from store")
+		return err
 	}
 
 	vol.SnapList = append(vol.SnapList, volinfo.Name)
@@ -666,7 +667,11 @@ func snapshotCreateHandler(w http.ResponseWriter, r *http.Request) {
 
 	vol, e := volume.GetVolume(req.VolName)
 	if e != nil {
-		restutils.SendHTTPError(ctx, w, http.StatusNotFound, err)
+		if e == gderrors.ErrVolNotFound {
+			restutils.SendHTTPError(ctx, w, http.StatusNotFound, gderrors.ErrVolNotFound)
+		} else {
+			restutils.SendHTTPError(ctx, w, http.StatusInternalServerError, e)
+		}
 		return
 	}
 

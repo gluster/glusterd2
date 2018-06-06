@@ -98,6 +98,7 @@ func addPeerHandler(w http.ResponseWriter, r *http.Request) {
 	// Get the new peer information to reply back with
 	newpeer, err := peer.GetPeer(rsp.PeerID)
 	if err != nil {
+		logger.WithError(err).Error("failed to get peer information")
 		restutils.SendHTTPError(ctx, w, http.StatusInternalServerError, "new peer was added, but could not find peer in store. Try again later.")
 		return
 	}

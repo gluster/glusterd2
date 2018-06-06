@@ -57,7 +57,7 @@ func GetRebalanceInfo(volname string) (*rebalanceapi.RebalInfo, error) {
 
 	var rebalinfo rebalanceapi.RebalInfo
 
-	resp, err := store.Store.Get(context.TODO(), rebalancePrefix+volname)
+	resp, err := store.Get(context.TODO(), rebalancePrefix+volname)
 	if err != nil {
 		log.WithError(err).Error("Couldn't retrieve rebalance info from store")
 		return nil, err
@@ -83,7 +83,7 @@ func StoreRebalanceInfo(rinfo *rebalanceapi.RebalInfo) error {
 		return err
 	}
 
-	_, err = store.Store.Put(context.TODO(), rebalancePrefix+rinfo.Volname, string(json))
+	_, err = store.Put(context.TODO(), rebalancePrefix+rinfo.Volname, string(json))
 	if err != nil {
 		log.WithError(err).Error("Couldn't add rebalance info to store")
 		return err
