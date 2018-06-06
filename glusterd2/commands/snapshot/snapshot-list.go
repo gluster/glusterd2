@@ -7,6 +7,7 @@ import (
 	"github.com/gluster/glusterd2/glusterd2/snapshot"
 	"github.com/gluster/glusterd2/glusterd2/volume"
 	"github.com/gluster/glusterd2/pkg/api"
+	"github.com/gluster/glusterd2/pkg/errors"
 )
 
 func snapshotListHandler(w http.ResponseWriter, r *http.Request) {
@@ -24,7 +25,11 @@ func snapshotListHandler(w http.ResponseWriter, r *http.Request) {
 	if volumeName != "" {
 		vol, e := volume.GetVolume(volumeName)
 		if e != nil {
-			restutils.SendHTTPError(ctx, w, http.StatusNotFound, e)
+			if e == errors.ErrVolNotFound {
+				restutils.SendHTTPError(ctx, w, http.StatusNotFound, errors.ErrVolNotFound)
+			} else {
+				restutils.SendHTTPError(ctx, w, http.StatusInternalServerError, e)
+			}
 			return
 		}
 		snapName[volumeName] = vol.SnapList
