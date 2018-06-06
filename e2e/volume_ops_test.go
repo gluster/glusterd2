@@ -60,7 +60,7 @@ func TestVolume(t *testing.T) {
 	t.Run("List", testVolumeList)
 	t.Run("Info", testVolumeInfo)
 	t.Run("Edit", testEditVolume)
-
+	t.Run("VolumeFlags", testVolumeCreateWithFlags)
 	// delete volume
 	t.Run("Delete", testVolumeDelete)
 
@@ -116,11 +116,11 @@ func testVolumeCreate(t *testing.T) {
 
 func testVolumeCreateWithFlags(t *testing.T) {
 	r := require.New(t)
-
+	volumeName := strings.Replace(t.Name(), "/", "-", 1)
 	var brickPaths []string
 
 	for i := 1; i <= 4; i++ {
-		brickPaths = append(brickPaths, fmt.Sprintf(baseWorkdir+t.Name()+"/b/%d", i))
+		brickPaths = append(brickPaths, fmt.Sprintf(baseWorkdir+"/"+t.Name()+"/%d", i))
 	}
 
 	flags := make(map[string]bool)
@@ -130,7 +130,7 @@ func testVolumeCreateWithFlags(t *testing.T) {
 	flags["create-brick-dir"] = true
 
 	createReqBrick := api.VolCreateReq{
-		Name: t.Name(),
+		Name: volumeName,
 		Subvols: []api.SubvolReq{
 			{
 				ReplicaCount: 2,
@@ -156,9 +156,9 @@ func testVolumeCreateWithFlags(t *testing.T) {
 	r.Nil(err)
 
 	//delete volume
-	r.Nil(client.VolumeDelete(t.Name()))
+	r.Nil(client.VolumeDelete(volumeName))
 
-	createReqBrick.Name = t.Name()
+	createReqBrick.Name = volumeName
 	//set reuse-brick flag
 	flags["reuse-bricks"] = true
 	createReqBrick.Flags = flags
@@ -166,14 +166,14 @@ func testVolumeCreateWithFlags(t *testing.T) {
 	_, err = client.VolumeCreate(createReqBrick)
 	r.Nil(err)
 
-	r.Nil(client.VolumeDelete(t.Name()))
+	r.Nil(client.VolumeDelete(volumeName))
 
 	//recreate deleted volume
 	_, err = client.VolumeCreate(createReqBrick)
 	r.Nil(err)
 
 	//delete volume
-	r.Nil(client.VolumeDelete(t.Name()))
+	r.Nil(client.VolumeDelete(volumeName))
 
 }
 func testVolumeExpand(t *testing.T) {
@@ -181,7 +181,7 @@ func testVolumeExpand(t *testing.T) {
 
 	var brickPaths []string
 	for i := 1; i <= 4; i++ {
-		brickPaths = append(brickPaths, fmt.Sprintf(fmt.Sprintf(baseWorkdir+t.Name()+"/b/%d/", i)))
+		brickPaths = append(brickPaths, fmt.Sprintf(fmt.Sprintf(baseWorkdir+"/"+t.Name()+"/%d/", i)))
 	}
 
 	flags := make(map[string]bool)
