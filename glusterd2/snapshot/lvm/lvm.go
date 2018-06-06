@@ -13,11 +13,15 @@ import (
 	"github.com/pborman/uuid"
 )
 
-var (
+const (
 	//CreateCommand is path to lvm create
-	CreateCommand = "/sbin/lvcreate"
+	CreateCommand string = "/sbin/lvcreate"
 	//RemoveCommand is path to lvm create
-	RemoveCommand = "/sbin/lvremove"
+	RemoveCommand string = "/sbin/lvremove"
+	//PvCreateCommand is path to lvm create
+	PvCreateCommand string = "/sbin/pvcreate"
+	//VgCreateCommand is path to lvm create
+	VgCreateCommand string = "/sbin/vgcreate"
 )
 
 // CommonPrevalidation checks the lvm related validation for snapshot
@@ -98,13 +102,11 @@ func LVSnapshot(originDevice, DevicePath string) error {
 		return err
 	}
 
-	if true {
-		// Wait for the child to exit
-		errStatus := cmd.Wait()
-		if errStatus != nil {
-			// Child exited with error
-			return errStatus
-		}
+	// Wait for the child to exit
+	errStatus := cmd.Wait()
+	if errStatus != nil {
+		// Child exited with error
+		return errStatus
 	}
 	return nil
 }

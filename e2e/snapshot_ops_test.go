@@ -1,7 +1,7 @@
 package e2e
 
 import (
-	"io/ioutil"
+	"fmt"
 	"testing"
 
 	"github.com/gluster/glusterd2/e2e/lvmtest"
@@ -12,7 +12,8 @@ import (
 )
 
 var (
-	snapname = "snaptest"
+	snapname     = "snaptest"
+	snapTestName string
 )
 
 // TestSnapshot creates a volume and snapshots, runs further tests on it and
@@ -20,6 +21,7 @@ var (
 func TestSnapshot(t *testing.T) {
 	var err error
 	var brickPaths []string
+	snapTestName = t.Name()
 	r := require.New(t)
 
 	gds, err = setupCluster("./config/1.toml", "./config/2.toml")
@@ -31,7 +33,8 @@ func TestSnapshot(t *testing.T) {
 	defer teardownCluster(gds)
 
 	client = initRestclient(gds[0].ClientAddress)
-	brickPaths, err = lvmtest.CreateLvmBricks(4)
+	prefix := fmt.Sprintf("%s/%s/bricks/", baseWorkdir, snapTestName)
+	brickPaths, err = lvmtest.CreateLvmBricks(prefix, 4)
 	if err != nil {
 		r.Nil(err)
 		lvmtest.CleanupLvmBricks(4)
@@ -43,25 +46,21 @@ func TestSnapshot(t *testing.T) {
 	}()
 
 	// Create the volume
-	if err := volumeCreateOnLvm(brickPaths, client); err != nil {
-		t.Logf("Failed to create the volume")
-		r.Nil(err)
-		return
+	if err := volumeCreateOnLvm(snapTestName, brickPaths, client); err != nil {
+		r.Nil(err, "Failed to create the volume")
 	}
 
 	defer func() {
-		err := volumeDelete(client)
+		client.VolumeDelete(snapTestName)
 		r.Nil(err)
 	}()
 
-	if err := volumeStart(client); err != nil {
-		t.Logf("Failed to start the volume")
-		r.Nil(err)
-		return
+	if err := client.VolumeStart(snapTestName, true); err != nil {
+		r.Nil(err, "Failed to start the volume")
 	}
 
 	defer func() {
-		err := volumeStop(client)
+		client.VolumeStop(snapTestName)
 		r.Nil(err)
 	}()
 
@@ -79,28 +78,11 @@ func TestSnapshot(t *testing.T) {
 
 }
 
-func createLvmBricks(number int) ([]string, error) {
-	/*
-		if err := verifyLvm(); err != nil {
-			return err
-		}
-	*/
-	var brickPaths []string
-	for i := 1; i <= number; i++ {
-		brickPath, err := ioutil.TempDir(tmpDir, "brick")
-		if err != nil {
-			return brickPaths, err
-		}
-		brickPaths = append(brickPaths, brickPath)
-	}
-	return brickPaths, nil
-}
-
-func volumeCreateOnLvm(brickPaths []string, client *restclient.Client) error {
+func volumeCreateOnLvm(volName string, brickPaths []string, client *restclient.Client) error {
 
 	// create 2x2 dist-rep volume
 	createReq := api.VolCreateReq{
-		Name: volname,
+		Name: volName,
 		Subvols: []api.SubvolReq{
 			{
 				ReplicaCount: 2,
@@ -125,21 +107,17 @@ func volumeCreateOnLvm(brickPaths []string, client *restclient.Client) error {
 	return err
 }
 
-func volumeDelete(client *restclient.Client) error {
-	return client.VolumeDelete(volname)
-}
-
 func testSnapshotCreate(t *testing.T) {
 	r := require.New(t)
 	snapshotCreateReq := api.SnapCreateReq{
-		VolName:  volname,
+		VolName:  snapTestName,
 		SnapName: snapname,
 	}
 	_, err := client.SnapshotCreate(snapshotCreateReq)
 	r.Nil(err, "snapshot create failed")
 
 	snapshotCreateReq = api.SnapCreateReq{
-		VolName:     volname,
+		VolName:     snapTestName,
 		SnapName:    snapname,
 		TimeStamp:   true,
 		Description: "Snapshot for testing, timestamp and force flags are enabled",
@@ -150,23 +128,14 @@ func testSnapshotCreate(t *testing.T) {
 
 }
 
-func volumeStart(client *restclient.Client) error {
-
-	return client.VolumeStart(volname, true)
-}
-
-func volumeStop(client *restclient.Client) error {
-
-	return client.VolumeStop(volname)
-}
-
 func testSnapshotList(t *testing.T) {
 	r := require.New(t)
 
 	snaps, err := client.SnapshotList("")
 	r.Nil(err)
 	r.Len(snaps[0].SnapName, 2)
-	snaps, err = client.SnapshotList(volname)
+
+	snaps, err = client.SnapshotList(snapTestName)
 	r.Nil(err)
 	r.Len(snaps[0].SnapName, 2)
 
@@ -184,7 +153,7 @@ func testSnapshotActivate(t *testing.T) {
 	var snapshotActivateReq api.SnapActivateReq
 	r := require.New(t)
 
-	vols, err := client.SnapshotList(volname)
+	vols, err := client.SnapshotList(snapTestName)
 	r.Nil(err)
 
 	for _, snaps := range vols {
@@ -201,7 +170,7 @@ func testSnapshotActivate(t *testing.T) {
 func testSnapshotDelete(t *testing.T) {
 	r := require.New(t)
 
-	vols, err := client.SnapshotList(volname)
+	vols, err := client.SnapshotList(snapTestName)
 	r.Nil(err)
 	r.Len(vols[0].SnapName, 2)
 
@@ -212,22 +181,19 @@ func testSnapshotDelete(t *testing.T) {
 		}
 	}
 
-	vols, err = client.SnapshotList(volname)
+	vols, err = client.SnapshotList(snapTestName)
 	r.Nil(err)
 	r.Len(vols[0].SnapName, 0)
 }
 
 func testSnapshotDeactivate(t *testing.T) {
-	var snapshotActivateReq api.SnapActivateReq
 	r := require.New(t)
-	vols, err := client.SnapshotList(volname)
+	vols, err := client.SnapshotList(snapTestName)
 	r.Nil(err)
 	for _, snaps := range vols {
 		for _, snapName := range snaps.SnapName {
 			err = client.SnapshotDeactivate(snapName)
 			r.Nil(err)
-
-			snapshotActivateReq.Force = true
 		}
 	}
 
