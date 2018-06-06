@@ -7,6 +7,7 @@ import (
 	"fmt"
 	"os"
 	"sync"
+	"time"
 
 	"github.com/gluster/glusterd2/glusterd2/gdctx"
 	"github.com/gluster/glusterd2/pkg/elasticetcd"
@@ -18,7 +19,10 @@ import (
 )
 
 const (
-	sessionTTL = 30 // used for etcd mutexes and liveness key
+	sessionTTL    = 30              // used for etcd mutexes and liveness key
+	getTimeout    = 5 * time.Second //timeout for store Get operation
+	putTimeout    = 5 * time.Second //timeout for store Put operation
+	deleteTimeout = 5 * time.Second //timeout for store Delete operation
 )
 
 var (
@@ -176,4 +180,38 @@ func newNamespacedStore(oc *clientv3.Client, conf *Config) (*GDStore, error) {
 	}
 
 	return &GDStore{*conf, kv, lease, watcher, session, oc, nil, namespaceKey}, nil
+}
+
+//Get wrapper function to call store Get operation with timeout if context is context.TODO()
+func Get(ctx context.Context, key string, opts ...clientv3.OpOption) (*clientv3.GetResponse, error) {
+	var cancel context.CancelFunc
+
+	if ctx == context.TODO() {
+		ctx, cancel = context.WithTimeout(context.Background(), getTimeout)
+		defer cancel()
+	}
+
+	return Store.Get(ctx, key, opts...)
+}
+
+//Put wrapper function to call store Put operation with timeout if context is context.TODO()
+func Put(ctx context.Context, key, val string, opts ...clientv3.OpOption) (*clientv3.PutResponse, error) {
+	var cancel context.CancelFunc
+
+	if ctx == context.TODO() {
+		ctx, cancel = context.WithTimeout(context.Background(), putTimeout)
+		defer cancel()
+	}
+	return Store.Put(ctx, key, val, opts...)
+}
+
+//Delete wrapper function to call store Delete operation with timeout if context is context.TODO()
+func Delete(ctx context.Context, key string, opts ...clientv3.OpOption) (*clientv3.DeleteResponse, error) {
+	var cancel context.CancelFunc
+
+	if ctx == context.TODO() {
+		ctx, cancel = context.WithTimeout(context.Background(), deleteTimeout)
+		defer cancel()
+	}
+	return Store.Delete(ctx, key, opts...)
 }
