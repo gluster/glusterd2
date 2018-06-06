@@ -15,15 +15,13 @@ var (
 )
 
 func save(name string, content string) error {
-	if _, err := store.Store.Put(context.TODO(), volfilePrefix+name, content); err != nil {
-		return err
-	}
-	return nil
+	_, err := store.Put(context.TODO(), volfilePrefix+name, content)
+	return err
 }
 
 // GetVolfiles returns list of all Volfiles
 func GetVolfiles() ([]string, error) {
-	resp, e := store.Store.Get(context.TODO(), volfilePrefix, clientv3.WithPrefix())
+	resp, e := store.Get(context.TODO(), volfilePrefix, clientv3.WithPrefix())
 	if e != nil {
 		return nil, e
 	}
@@ -41,7 +39,7 @@ func GetVolfiles() ([]string, error) {
 //GetVolfile return particular volfile info
 func GetVolfile(volfileID string) ([]byte, error) {
 	volfile := volfilePrefix + volfileID
-	resp, e := store.Store.Get(context.TODO(), volfile, clientv3.WithPrefix())
+	resp, e := store.Get(context.TODO(), volfile, clientv3.WithPrefix())
 	if e != nil {
 		return []byte{}, e
 	}

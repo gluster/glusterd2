@@ -14,6 +14,7 @@ func volumeListHandler(w http.ResponseWriter, r *http.Request) {
 	keys, keyFound := r.URL.Query()["key"]
 	values, valueFound := r.URL.Query()["value"]
 	filterParams := make(map[string]string)
+
 	if keyFound {
 		filterParams["key"] = keys[0]
 	}
@@ -22,7 +23,7 @@ func volumeListHandler(w http.ResponseWriter, r *http.Request) {
 	}
 	volumes, err := volume.GetVolumes(filterParams)
 	if err != nil {
-		restutils.SendHTTPError(ctx, w, http.StatusNotFound, err)
+		restutils.SendHTTPError(ctx, w, http.StatusInternalServerError, err)
 	}
 	resp := createVolumeListResp(volumes)
 	restutils.SendHTTPResponse(ctx, w, http.StatusOK, resp)

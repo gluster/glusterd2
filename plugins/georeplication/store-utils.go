@@ -21,7 +21,7 @@ const (
 // Info object
 func getSession(masterid string, remoteid string) (*georepapi.GeorepSession, error) {
 	var v georepapi.GeorepSession
-	resp, e := store.Store.Get(context.TODO(), georepPrefix+masterid+"/"+remoteid)
+	resp, e := store.Get(context.TODO(), georepPrefix+masterid+"/"+remoteid)
 	if e != nil {
 		log.WithError(e).Error("Couldn't retrive geo-replication session from store")
 		return nil, e
@@ -46,7 +46,7 @@ func addOrUpdateSession(v *georepapi.GeorepSession) error {
 		return e
 	}
 
-	_, e = store.Store.Put(context.TODO(), georepPrefix+v.MasterID.String()+"/"+v.RemoteID.String(), string(json))
+	_, e = store.Put(context.TODO(), georepPrefix+v.MasterID.String()+"/"+v.RemoteID.String(), string(json))
 	if e != nil {
 		log.WithError(e).Error("Couldn't add georeplication session to store")
 		return e
@@ -56,7 +56,7 @@ func addOrUpdateSession(v *georepapi.GeorepSession) error {
 
 // deleteSession deletes the georep session object from store
 func deleteSession(mastervolid string, remotevolid string) error {
-	_, e := store.Store.Delete(context.TODO(), georepPrefix+mastervolid+"/"+remotevolid)
+	_, e := store.Delete(context.TODO(), georepPrefix+mastervolid+"/"+remotevolid)
 	if e != nil {
 		log.WithError(e).Error("Couldn't delete georeplication session from store")
 		return e
@@ -66,7 +66,7 @@ func deleteSession(mastervolid string, remotevolid string) error {
 
 // getSessionList gets list of Geo-replication sessions
 func getSessionList() ([]*georepapi.GeorepSession, error) {
-	resp, e := store.Store.Get(context.TODO(), georepPrefix, clientv3.WithPrefix())
+	resp, e := store.Get(context.TODO(), georepPrefix, clientv3.WithPrefix())
 	if e != nil {
 		return nil, e
 	}
@@ -98,7 +98,7 @@ func addOrUpdateSSHKey(volname string, sshkey georepapi.GeorepSSHPublicKey) erro
 		return e
 	}
 
-	_, e = store.Store.Put(context.TODO(), georepSSHKeysPrefix+volname+"/"+sshkey.PeerID.String(), string(json))
+	_, e = store.Put(context.TODO(), georepSSHKeysPrefix+volname+"/"+sshkey.PeerID.String(), string(json))
 	if e != nil {
 		log.WithError(e).Error("Couldn't add SSH public key to Store")
 		return e
@@ -108,7 +108,7 @@ func addOrUpdateSSHKey(volname string, sshkey georepapi.GeorepSSHPublicKey) erro
 
 // getSSHPublicKeys returns list of SSH public keys
 func getSSHPublicKeys(volname string) ([]georepapi.GeorepSSHPublicKey, error) {
-	resp, e := store.Store.Get(context.TODO(), georepSSHKeysPrefix+volname, clientv3.WithPrefix())
+	resp, e := store.Get(context.TODO(), georepSSHKeysPrefix+volname, clientv3.WithPrefix())
 	if e != nil {
 		log.WithFields(log.Fields{
 			"volname": volname,

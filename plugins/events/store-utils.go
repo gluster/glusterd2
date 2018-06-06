@@ -20,7 +20,7 @@ const (
 )
 
 func webhookExists(webhook eventsapi.Webhook) (bool, error) {
-	resp, e := store.Store.Get(context.TODO(), webhookPrefix+strings.Replace(webhook.URL, "/", "|", -1))
+	resp, e := store.Get(context.TODO(), webhookPrefix+strings.Replace(webhook.URL, "/", "|", -1))
 	if e != nil {
 		log.WithError(e).Error("Couldn't retrive webhook from store")
 		return false, e
@@ -33,7 +33,7 @@ func webhookExists(webhook eventsapi.Webhook) (bool, error) {
 
 // GetWebhookList returns list of all webhooks registered to glusterd
 func GetWebhookList() ([]*eventsapi.Webhook, error) {
-	resp, e := store.Store.Get(context.TODO(), webhookPrefix, clientv3.WithPrefix())
+	resp, e := store.Get(context.TODO(), webhookPrefix, clientv3.WithPrefix())
 	if e != nil {
 		return nil, e
 	}
@@ -64,7 +64,7 @@ func addWebhook(webhook eventsapi.Webhook) error {
 		return e
 	}
 
-	_, err := store.Store.Put(context.TODO(), webhookPrefix+strings.Replace(webhook.URL, "/", "|", -1), string(wh))
+	_, err := store.Put(context.TODO(), webhookPrefix+strings.Replace(webhook.URL, "/", "|", -1), string(wh))
 	if err != nil {
 		log.WithError(err).Error("Couldn't add webhook to store")
 		return err
@@ -73,13 +73,13 @@ func addWebhook(webhook eventsapi.Webhook) error {
 }
 
 func deleteWebhook(webhook eventsapi.Webhook) error {
-	_, e := store.Store.Delete(context.TODO(), webhookPrefix+strings.Replace(webhook.URL, "/", "|", -1))
+	_, e := store.Delete(context.TODO(), webhookPrefix+strings.Replace(webhook.URL, "/", "|", -1))
 	return e
 }
 
 // GetEventsList returns list of Events recorded in last few minutes
 func GetEventsList() ([]*api.Event, error) {
-	resp, e := store.Store.Get(context.TODO(), eventsPrefix, clientv3.WithPrefix())
+	resp, e := store.Get(context.TODO(), eventsPrefix, clientv3.WithPrefix())
 	if e != nil {
 		return nil, e
 	}

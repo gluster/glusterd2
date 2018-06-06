@@ -76,7 +76,7 @@ func NewTxnWithLocks(ctx context.Context, lockIDs ...string) (*Txn, error) {
 // Cleanup cleans the leftovers after a transaction ends
 // TODO: Remove this function
 func (t *Txn) Cleanup() {
-	if _, err := store.Store.Delete(context.TODO(), t.storePrefix, clientv3.WithPrefix()); err != nil {
+	if _, err := store.Delete(context.TODO(), t.storePrefix, clientv3.WithPrefix()); err != nil {
 		t.Ctx.Logger().WithError(err).WithField("key",
 			t.storePrefix).Error("Failed to remove transaction namespace from store")
 	}

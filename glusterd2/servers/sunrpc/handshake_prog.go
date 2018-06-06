@@ -111,7 +111,7 @@ func (p *GfHandshake) ServerGetspec(args *GfGetspecReq, reply *GfGetspecRsp) err
 
 	// Get Volfile from store
 	volfileID := strings.TrimPrefix(args.Key, "/")
-	resp, err := store.Store.Get(context.TODO(), volfilePrefix+volfileID)
+	resp, err := store.Get(context.TODO(), volfilePrefix+volfileID)
 	if err != nil {
 		log.WithField("volfile", args.Key).WithError(err).Error("ServerGetspec(): failed to retrive volfile from store")
 		goto Out

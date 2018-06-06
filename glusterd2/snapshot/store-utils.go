@@ -24,7 +24,7 @@ var (
 
 //Exists check whether a given snapshot exist or not
 func Exists(name string) bool {
-	resp, e := gdstore.Store.Get(context.TODO(), snapPrefix+name)
+	resp, e := gdstore.Get(context.TODO(), snapPrefix+name)
 	if e != nil {
 		return false
 	}
@@ -35,7 +35,7 @@ func Exists(name string) bool {
 //GetSnapshots retrives the json objects from the store and converts them into
 //respective volinfo objects
 func GetSnapshots() ([]*Snapinfo, error) {
-	resp, e := gdstore.Store.Get(context.TODO(), snapPrefix, clientv3.WithPrefix())
+	resp, e := gdstore.Get(context.TODO(), snapPrefix, clientv3.WithPrefix())
 	if e != nil {
 		return nil, e
 	}

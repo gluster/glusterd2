@@ -58,7 +58,7 @@ func GenerateClientVolfile(vol *volume.Volinfo) error {
 	if err := cg.Write(buf); err != nil {
 		return err
 	}
-	if _, err := store.Store.Put(context.TODO(), volfilePrefix+vol.Name, buf.String()); err != nil {
+	if _, err := store.Put(context.TODO(), volfilePrefix+vol.Name, buf.String()); err != nil {
 		return err
 	}
 
@@ -71,7 +71,7 @@ func GenerateClientVolfile(vol *volume.Volinfo) error {
 // DeleteClientVolfile deletes the client volfile (duh!)
 func DeleteClientVolfile(vol *volume.Volinfo) error {
 
-	if _, err := store.Store.Delete(context.TODO(), volfilePrefix+vol.Name); err != nil {
+	if _, err := store.Delete(context.TODO(), volfilePrefix+vol.Name); err != nil {
 		return err
 	}
 
@@ -84,7 +84,7 @@ func DeleteClientVolfile(vol *volume.Volinfo) error {
 // DeleteClientSnapVolfile deletes the client volfile (duh!)
 func DeleteClientSnapVolfile(snapInfo *snapshot.Snapinfo) error {
 
-	if _, err := store.Store.Delete(context.TODO(), snapshot.GetStorePath(snapInfo)); err != nil {
+	if _, err := store.Delete(context.TODO(), snapshot.GetStorePath(snapInfo)); err != nil {
 		return err
 	}
 
