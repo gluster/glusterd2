@@ -15,7 +15,6 @@ import (
 	"errors"
 	"fmt"
 	"net/http"
-	"strconv"
 	"strings"
 	"time"
 
@@ -314,7 +313,7 @@ func populateBrickMountData(volinfo *volume.Volinfo, snapName string) (map[strin
 
 			return nil, err
 		}
-		devicePath := "/dev/" + vG + "/" + snapName + "_" + strconv.Itoa(brickCount)
+		devicePath := fmt.Sprintf("/dev/%s/%s_%d", vG, snapName, brickCount)
 
 		nodeData[b.String()] = snapshot.BrickMountData{
 			MountDir:   mountDir,
@@ -421,11 +420,18 @@ func takeBrickSnapshots(c transaction.TxnCtx) error {
 
 			if err := lvm.LVSnapshot(mntInfo.FsName, mountData.DevicePath); err != nil {
 				c.Logger().WithError(err).WithField(
-					"brick", b.Path).Debug("Snapshot failed")
+					"brick", b.Path).Error("Snapshot failed")
 				return err
 			}
 
-			err = lvm.UpdateFsLabel(mountData.DevicePath, mountData.FsType)
+			if err = lvm.UpdateFsLabel(mountData.DevicePath, mountData.FsType); err != nil {
+				log.WithFields(log.Fields{
+					"FsType": mountData.FsType,
+					"Path":   b.Path,
+				}).Error("Failed to update the label")
+				return err
+			}
+
 		}
 
 	}
@@ -589,7 +595,7 @@ func snapshotBrickCreate(snapVolinfo, volinfo *volume.Volinfo, brickinfo *brick.
 	mountData := brickinfo.MountInfo
 	nodeID := strings.Replace(brickinfo.ID.String(), "-", "", -1)
 	SnapDirPrefix := config.GetString("rundir") + "/snaps"
-	brickPath := SnapDirPrefix + volinfo.Name + "/" + nodeID + "/" + snapVolinfo.Name + "/brick" + strconv.Itoa(brickCount) + mountData.Mountdir
+	brickPath := fmt.Sprintf("%s%s/%s/%s/brick%d%s", SnapDirPrefix, volinfo.Name, nodeID, snapVolinfo.Name, brickCount, mountData.Mountdir)
 	return brickPath
 }
 
