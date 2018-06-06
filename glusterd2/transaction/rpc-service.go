@@ -45,12 +45,12 @@ func (p *txnSvc) RunStep(rpcCtx context.Context, req *TxnStepReq) (*TxnStepResp,
 
 	logger.Debug("executing step function")
 	if err = f(&ctx); err != nil {
-		logger.WithError(err).Debug("step function failed")
+		logger.WithError(err).Error("step function failed")
 		goto End
 	}
 
 	if err = ctx.commit(); err != nil {
-		logger.WithError(err).Debug("failed to commit txn context to store")
+		logger.WithError(err).Error("failed to commit txn context to store")
 	}
 
 End:

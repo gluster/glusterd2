@@ -43,6 +43,8 @@ type Tctx struct {
 	writeSet       map[string]string // to be written to store
 }
 
+// txnCtxConfig is marshalled and sent on wire and is used to reconstruct Tctx
+// on receiver's end.
 type txnCtxConfig struct {
 	LogFields   log.Fields
 	StorePrefix string
@@ -198,10 +200,7 @@ func (c *Tctx) UnmarshalJSON(d []byte) error {
 		return err
 	}
 
-	c.logger = log.StandardLogger().WithFields(c.config.LogFields)
-	c.readSet = make(map[string][]byte)
-	c.writeSet = make(map[string]string)
-	c.readCacheDirty = true
+	*c = *(newCtx(c.config))
 
 	return nil
 }
