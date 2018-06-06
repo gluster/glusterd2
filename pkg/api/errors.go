@@ -3,8 +3,9 @@ package api
 // HTTPError contains an error code and corresponding text which briefly
 // describes the error in short.
 type HTTPError struct {
-	Code    int    `json:"code"`
-	Message string `json:"message"`
+	Code    int               `json:"code"`
+	Message string            `json:"message"`
+	Fields  map[string]string `json:"fields,omitempty"`
 }
 
 // ErrorResp is an error response which may contain one or more error responses

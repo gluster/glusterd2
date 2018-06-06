@@ -56,29 +56,29 @@ type stepPeerResp struct {
 type stepResp struct {
 	Step     string
 	Resps    []stepPeerResp
-	ErrCount int
+	errCount int
 }
 
 func (r stepResp) Error() string {
-	return fmt.Sprintf("Step %s failed on %d nodes", r.Step, r.ErrCount)
+	return fmt.Sprintf("Step %s failed on %d nodes", r.Step, r.errCount)
 }
 
 func (r stepResp) Response() api.ErrorResp {
 
-	apiResp := api.ErrorResp{
-		Errors: make([]api.HTTPError, r.ErrCount),
-	}
-
-	i := 0
+	var apiResp api.ErrorResp
 	for _, resp := range r.Resps {
 		if resp.Error == nil {
 			continue
 		}
-		apiResp.Errors[i] = api.HTTPError{
-			Code: int(api.ErrTxnStepFailed),
-			Message: fmt.Sprintf("Step %s failed on peer %s with error: %s",
-				r.Step, resp.PeerID, resp.Error)}
-		i++
+
+		apiResp.Errors = append(apiResp.Errors, api.HTTPError{
+			Code:    int(api.ErrTxnStepFailed),
+			Message: api.ErrorCodeMap[api.ErrTxnStepFailed],
+			Fields: map[string]string{
+				"peer-id": resp.PeerID.String(),
+				"step":    r.Step,
+				"error":   resp.Error.Error()},
+		})
 	}
 
 	return apiResp
@@ -111,7 +111,7 @@ func runStepFuncOnNodes(stepName string, ctx TxnCtx, nodes []uuid.UUID) error {
 	for range nodes {
 		peerResp = <-respCh
 		if peerResp.Error != nil {
-			resp.ErrCount++
+			resp.errCount++
 			ctx.Logger().WithFields(log.Fields{
 				"step": stepName, "node": peerResp.PeerID,
 			}).WithError(peerResp.Error).Error("Step failed on node.")
@@ -119,7 +119,7 @@ func runStepFuncOnNodes(stepName string, ctx TxnCtx, nodes []uuid.UUID) error {
 		resp.Resps = append(resp.Resps, peerResp)
 	}
 
-	if resp.ErrCount != 0 {
+	if resp.errCount != 0 {
 		return resp
 	}
 
