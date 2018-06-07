@@ -26,6 +26,7 @@ const (
 	helpVolumeInfoCmd   = "Get Gluster Volume Info"
 	helpVolumeListCmd   = "List all Gluster Volumes"
 	helpVolumeStatusCmd = "Get Gluster Volume Status"
+	helpVolumeSizeCmd   = "Get Gluster Volume Size Usage"
 	helpVolumeExpandCmd = "Expand a Gluster Volume"
 	helpVolumeEditCmd   = "Edit metadata (key-value pairs) of a volume. Glusterd2 will not interpret these key and value in any way"
 )
@@ -67,6 +68,7 @@ func init() {
 
 	volumeCmd.AddCommand(volumeGetCmd)
 	volumeCmd.AddCommand(volumeResetCmd)
+	volumeCmd.AddCommand(volumeSizeCmd)
 
 	volumeInfoCmd.Flags().StringVar(&flagCmdFilterKey, "key", "", "Filter by metadata key")
 	volumeInfoCmd.Flags().StringVar(&flagCmdFilterValue, "value", "", "Filter by metadata value")
@@ -429,6 +431,28 @@ var volumeStatusCmd = &cobra.Command{
 			}
 			failure("Error getting Volume status", err, 1)
 		}
+	},
+}
+
+var volumeSizeCmd = &cobra.Command{
+	Use:   "size",
+	Short: helpVolumeSizeCmd,
+	Args:  cobra.ExactArgs(1),
+	Run: func(cmd *cobra.Command, args []string) {
+		volname := cmd.Flags().Args()[0]
+		vol, err := client.VolumeStatus(volname)
+		if err != nil {
+			if verbose {
+				log.WithFields(log.Fields{
+					"error": err.Error(),
+				}).Error("error getting volume size")
+			}
+			failure("Error getting Volume size", err, 1)
+		}
+		fmt.Println("Volume:", volname)
+		fmt.Printf("Capacity: %d bytes\n", vol.Size.Capacity)
+		fmt.Printf("Used: %d bytes\n", vol.Size.Used)
+		fmt.Printf("Free: %d bytes\n", vol.Size.Free)
 	},
 }
 
