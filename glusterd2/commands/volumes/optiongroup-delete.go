@@ -51,5 +51,5 @@ func optionGroupDeleteHandler(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	restutils.SendHTTPResponse(ctx, w, http.StatusOK, nil)
+	restutils.SendHTTPResponse(ctx, w, http.StatusNoContent, nil)
 }

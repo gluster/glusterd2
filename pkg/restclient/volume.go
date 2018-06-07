@@ -115,7 +115,7 @@ func (c *Client) VolumeStop(volname string) error {
 // VolumeDelete deletes a Gluster Volume
 func (c *Client) VolumeDelete(volname string) error {
 	url := fmt.Sprintf("/v1/volumes/%s", volname)
-	return c.del(url, nil, http.StatusOK, nil)
+	return c.del(url, nil, http.StatusNoContent, nil)
 }
 
 // VolumeSet sets an option for a Gluster Volume
@@ -161,7 +161,7 @@ func (c *Client) OptionGroupList() (api.OptionGroupListResp, error) {
 // OptionGroupDelete deletes the specified option group
 func (c *Client) OptionGroupDelete(group string) error {
 	url := fmt.Sprintf("/v1/volumes/options-group/%s", group)
-	return c.del(url, nil, http.StatusOK, nil)
+	return c.del(url, nil, http.StatusNoContent, nil)
 }
 
 // EditVolume edits the specified keys in volinfo of a volume
