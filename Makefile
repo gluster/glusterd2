@@ -31,7 +31,21 @@ DEPENV ?=
 PLUGINS ?= yes
 FASTBUILD ?= yes
 
-.PHONY: all build check check-go check-reqs install vendor-update vendor-install verify release check-protoc $(GD2_BIN) $(GD2_BUILD) $(CLI_BIN) $(CLI_BUILD) cli $(GD2_CONF) gd2conf test dist dist-vendor functest
+BRANCH := $(subst /,-,$(shell git rev-parse --abbrev-ref HEAD))
+VER := $(shell git describe --match='v[0-9].[0-9].[0-9]')
+TAG := $(shell git tag --points-at HEAD 'v[0-9].[0-9].[0-9]' | tail -n1)
+
+ifeq (master,$(BRANCH))
+	VERSION = $(VER)
+else
+ifeq ($(VER),$(TAG))
+	VERSION = $(VER)
+else
+	VERSION = $(VER)-$(BRANCH)
+endif
+endif
+
+.PHONY: all build check check-go check-reqs install version vendor-update vendor-install verify release check-protoc $(GD2_BIN) $(GD2_BUILD) $(CLI_BIN) $(CLI_BUILD) cli $(GD2_CONF) gd2conf test dist dist-vendor functest
 
 all: build
 
@@ -49,6 +63,9 @@ check-protoc:
 check-reqs:
 	@./scripts/check-reqs.sh
 	@echo
+# print the version
+version:
+	@echo $(VERSION)
 
 $(GD2_BIN): $(GD2_BUILD) gd2conf
 $(GD2_BUILD):
