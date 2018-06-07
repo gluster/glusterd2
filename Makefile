@@ -31,7 +31,7 @@ DEPENV ?=
 PLUGINS ?= yes
 FASTBUILD ?= yes
 
-.PHONY: all build check check-go check-reqs install vendor-update vendor-install verify release check-protoc $(GD2_BIN) $(GD2_BUILD) $(CLI_BIN) $(CLI_BUILD) cli $(GD2_CONF) gd2conf test dist dist-vendor functest
+.PHONY: all build check check-go check-reqs install vendor-update vendor-install vendor-clean verify release check-protoc $(GD2_BIN) $(GD2_BUILD) $(CLI_BIN) $(CLI_BUILD) cli $(GD2_CONF) gd2conf test dist dist-vendor functest
 
 all: build
 
@@ -82,6 +82,9 @@ vendor-install:
 	@echo Installing vendored packages
 	@$(DEPENV) dep ensure
 	@echo
+
+vendor-clean:
+	rm -rf vendor
 
 test: check-reqs
 	@./test.sh $(TESTOPTIONS)
