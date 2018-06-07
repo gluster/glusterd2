@@ -7,7 +7,6 @@ import (
 	"github.com/gluster/glusterd2/glusterd2/snapshot"
 	"github.com/gluster/glusterd2/glusterd2/volume"
 	"github.com/gluster/glusterd2/pkg/api"
-	"github.com/gluster/glusterd2/pkg/errors"
 )
 
 func snapshotListHandler(w http.ResponseWriter, r *http.Request) {
@@ -18,13 +17,10 @@ func snapshotListHandler(w http.ResponseWriter, r *http.Request) {
 	volumeName := r.URL.Query().Get("volume")
 
 	if volumeName != "" {
-		vol, e := volume.GetVolume(volumeName)
-		if e != nil {
-			if e == errors.ErrVolNotFound {
-				restutils.SendHTTPError(ctx, w, http.StatusNotFound, errors.ErrVolNotFound)
-			} else {
-				restutils.SendHTTPError(ctx, w, http.StatusInternalServerError, e)
-			}
+		vol, err := volume.GetVolume(volumeName)
+		if err != nil {
+			status, err := restutils.ErrToStatusCode(err)
+			restutils.SendHTTPError(ctx, w, status, err)
 			return
 		}
 		snapName[volumeName] = vol.SnapList
@@ -32,7 +28,9 @@ func snapshotListHandler(w http.ResponseWriter, r *http.Request) {
 
 		snaps, err := snapshot.GetSnapshots()
 		if err != nil {
-			restutils.SendHTTPError(ctx, w, http.StatusNotFound, err)
+			status, err := restutils.ErrToStatusCode(err)
+			restutils.SendHTTPError(ctx, w, status, err)
+			return
 		}
 		for _, s := range snaps {
 			snapName[s.ParentVolume] = append(snapName[s.ParentVolume], s.SnapVolinfo.Name)

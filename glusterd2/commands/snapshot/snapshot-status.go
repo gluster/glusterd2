@@ -22,9 +22,9 @@ const (
 
 func createSnapshotStatusResp(brickStatuses []brick.Brickstatus) []*api.SnapBrickStatus {
 	var statusesRsp []*api.SnapBrickStatus
-	var s api.SnapBrickStatus
 	for _, status := range brickStatuses {
 
+		var s api.SnapBrickStatus
 		s.Brick = api.BrickStatus{
 			Info:      brick.CreateBrickInfo(&status.Info),
 			Online:    status.Online,
@@ -36,9 +36,11 @@ func createSnapshotStatusResp(brickStatuses []brick.Brickstatus) []*api.SnapBric
 			Size:      brick.CreateBrickSizeInfo(&status.Size),
 		}
 
-		lvs, err := lvm.GetLvsData(status.Device)
-		if err == nil {
-			s.LvData = lvm.CreateLvsResp(lvs)
+		if status.Online {
+			lvs, err := lvm.GetLvsData(status.Device)
+			if err == nil {
+				s.LvData = lvm.CreateLvsResp(lvs)
+			}
 		}
 		statusesRsp = append(statusesRsp, &s)
 	}
@@ -74,7 +76,7 @@ func snapshotStatus(ctx transaction.TxnCtx) error {
 
 }
 
-func registerSnapshottatusStepFuncs() {
+func registerSnapshotStatusStepFuncs() {
 	transaction.RegisterStepFunc(snapshotStatus, "snap-status.Check")
 }
 
@@ -86,7 +88,8 @@ func snapshotStatusHandler(w http.ResponseWriter, r *http.Request) {
 	snapname := mux.Vars(r)["snapname"]
 	snap, err := snapshot.GetSnapshot(snapname)
 	if err != nil {
-		restutils.SendHTTPError(ctx, w, http.StatusNotFound, err)
+		status, err := restutils.ErrToStatusCode(err)
+		restutils.SendHTTPError(ctx, w, status, err)
 		return
 	}
 
@@ -97,11 +100,8 @@ func snapshotStatusHandler(w http.ResponseWriter, r *http.Request) {
 	}
 	txn, err := transaction.NewTxnWithLocks(ctx, vol.Name)
 	if err != nil {
-		if err == transaction.ErrLockTimeout {
-			restutils.SendHTTPError(ctx, w, http.StatusConflict, err)
-		} else {
-			restutils.SendHTTPError(ctx, w, http.StatusInternalServerError, err)
-		}
+		status, err := restutils.ErrToStatusCode(err)
+		restutils.SendHTTPError(ctx, w, status, err)
 		return
 	}
 
@@ -125,18 +125,11 @@ func snapshotStatusHandler(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	resp, err := createSnapshotStatusesResp(txn.Ctx, snap)
-	if err != nil {
-		errMsg := "Failed to aggregate snapshot status results from multiple nodes."
-		logger.WithField("error", err.Error()).Error("BrickStatusHandler:" + errMsg)
-		restutils.SendHTTPError(ctx, w, http.StatusInternalServerError, errMsg)
-		return
-	}
-
+	resp := createSnapshotStatusesResp(txn.Ctx, snap)
 	restutils.SendHTTPResponse(ctx, w, http.StatusOK, resp)
 }
 
-func createSnapshotStatusesResp(ctx transaction.TxnCtx, snap *snapshot.Snapinfo) (*api.SnapStatusResp, error) {
+func createSnapshotStatusesResp(ctx transaction.TxnCtx, snap *snapshot.Snapinfo) *api.SnapStatusResp {
 
 	// bmap is a map of brick statuses keyed by brick ID
 
@@ -174,5 +167,5 @@ func createSnapshotStatusesResp(ctx transaction.TxnCtx, snap *snapshot.Snapinfo)
 		resp.BrickStatus = append(resp.BrickStatus, v)
 	}
 
-	return &resp, nil
+	return &resp
 }

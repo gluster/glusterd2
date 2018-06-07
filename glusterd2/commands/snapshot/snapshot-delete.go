@@ -11,7 +11,6 @@ import (
 	"github.com/gluster/glusterd2/glusterd2/snapshot/lvm"
 	"github.com/gluster/glusterd2/glusterd2/transaction"
 	"github.com/gluster/glusterd2/glusterd2/volume"
-	"github.com/gluster/glusterd2/pkg/errors"
 
 	"github.com/gorilla/mux"
 	"github.com/pborman/uuid"
@@ -59,6 +58,9 @@ func snapshotDeleteStore(c transaction.TxnCtx) error {
 /*
 TODO
 How do we do rollbacking of lvremove command?
+We can create snapshot of snapshot during validation as a backup
+and remove the same if everything succeeded or rollback to that
+snapshot if something fails.
 */
 func registerSnapDeleteStepFuncs() {
 	var sfs = []struct {
@@ -67,6 +69,11 @@ func registerSnapDeleteStepFuncs() {
 	}{
 		{"snap-delete.Commit", snapshotDelete},
 		{"snap-delete.Store", snapshotDeleteStore},
+		/*
+			TODO
+			{"snap-delete.UndoStore", undoSnapshotDeleteStore},
+			{"snap-delete.UndoCommit", undoSnapshotDelete},
+		*/
 	}
 	for _, sf := range sfs {
 		transaction.RegisterStepFunc(sf.sf, sf.name)
@@ -81,21 +88,15 @@ func snapshotDeleteHandler(w http.ResponseWriter, r *http.Request) {
 	//Fetching snapinfo to get the parent volume name. Parent volume has to be locked
 	snapinfo, err := snapshot.GetSnapshot(snapname)
 	if err != nil {
-		if err == errors.ErrSnapNotFound {
-			restutils.SendHTTPError(ctx, w, http.StatusNotFound, errors.ErrVolNotFound)
-		} else {
-			restutils.SendHTTPError(ctx, w, http.StatusInternalServerError, err)
-		}
+		status, err := restutils.ErrToStatusCode(err)
+		restutils.SendHTTPError(ctx, w, status, err)
 		return
 	}
 
 	txn, err := transaction.NewTxnWithLocks(ctx, snapname, snapinfo.ParentVolume)
 	if err != nil {
-		if err == transaction.ErrLockTimeout {
-			restutils.SendHTTPError(ctx, w, http.StatusConflict, err)
-		} else {
-			restutils.SendHTTPError(ctx, w, http.StatusInternalServerError, err)
-		}
+		status, err := restutils.ErrToStatusCode(err)
+		restutils.SendHTTPError(ctx, w, status, err)
 		return
 	}
 	defer txn.Done()
@@ -103,11 +104,8 @@ func snapshotDeleteHandler(w http.ResponseWriter, r *http.Request) {
 	//Fetching snapinfo again, but this time inside a lock
 	snapinfo, err = snapshot.GetSnapshot(snapname)
 	if err != nil {
-		if err == errors.ErrSnapNotFound {
-			restutils.SendHTTPError(ctx, w, http.StatusNotFound, errors.ErrVolNotFound)
-		} else {
-			restutils.SendHTTPError(ctx, w, http.StatusInternalServerError, err)
-		}
+		status, err := restutils.ErrToStatusCode(err)
+		restutils.SendHTTPError(ctx, w, status, err)
 		return
 	}
 
@@ -137,5 +135,5 @@ func snapshotDeleteHandler(w http.ResponseWriter, r *http.Request) {
 
 	logger.WithField("Snapshot-name", snapname).Info("snapshot deleted")
 
-	restutils.SendHTTPResponse(ctx, w, http.StatusOK, "Snapshot deleted successfully")
+	restutils.SendHTTPResponse(ctx, w, http.StatusNoContent, "Snapshot Deleted")
 }

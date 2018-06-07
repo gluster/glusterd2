@@ -51,7 +51,7 @@ func (c *Client) SnapshotInfo(snapname string) (api.SnapGetResp, error) {
 // SnapshotDelete will delete Gluster Snapshot and respective lv
 func (c *Client) SnapshotDelete(snapname string) error {
 	url := fmt.Sprintf("/v1/snapshot/%s", snapname)
-	err := c.del(url, nil, http.StatusOK, nil)
+	err := c.del(url, nil, http.StatusNoContent, nil)
 	return err
 }
 
@@ -61,5 +61,13 @@ func (c *Client) SnapshotStatus(snapname string) (api.SnapStatusResp, error) {
 
 	url := fmt.Sprintf("/v1/snapshot/%s/status", snapname)
 	err := c.get(url, nil, http.StatusOK, &resp)
+	return resp, err
+}
+
+//SnapshotRestore will restore the volume to given snapshot
+func (c *Client) SnapshotRestore(snapname string) (api.VolumeGetResp, error) {
+	var resp api.VolumeGetResp
+	url := fmt.Sprintf("/v1/snapshot/%s/restore", snapname)
+	err := c.post(url, nil, http.StatusOK, &resp)
 	return resp, err
 }

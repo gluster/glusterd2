@@ -16,15 +16,15 @@ import (
 )
 
 const (
-	//CreateCommand is path to lvm create
+	//CreateCommand is path to lvcreate
 	CreateCommand string = "/sbin/lvcreate"
-	//RemoveCommand is path to lvm create
+	//RemoveCommand is path to lvremove
 	RemoveCommand string = "/sbin/lvremove"
-	//PvCreateCommand is path to lvm create
+	//PvCreateCommand is path to pvcreate
 	PvCreateCommand string = "/sbin/pvcreate"
-	//VgCreateCommand is path to lvm create
+	//VgCreateCommand is path to vgcreate
 	VgCreateCommand string = "/sbin/vgcreate"
-	//LVSCommand is path to lvm create
+	//LVSCommand is path to lvs
 	LVSCommand string = "/sbin/lvs"
 )
 

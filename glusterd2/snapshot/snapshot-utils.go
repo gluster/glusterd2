@@ -10,8 +10,9 @@ import (
 	"github.com/gluster/glusterd2/glusterd2/gdctx"
 	"github.com/gluster/glusterd2/glusterd2/snapshot/lvm"
 	"github.com/gluster/glusterd2/glusterd2/volume"
-	"github.com/pborman/uuid"
+	gderrors "github.com/gluster/glusterd2/pkg/errors"
 
+	"github.com/pborman/uuid"
 	log "github.com/sirupsen/logrus"
 	"golang.org/x/sys/unix"
 )
@@ -31,6 +32,8 @@ type BrickMountData struct {
 	FsType string
 	//MntOpts is mount option
 	MntOpts string
+	//Path need to be calculated from each node as there could be multiple glusterd's running on the same node
+	Path string
 }
 
 var (
@@ -40,12 +43,16 @@ var (
 
 //UmountSnapBrickDirectory does an umount of the path
 func UmountSnapBrickDirectory(path string) error {
-	//	_, err := exec.Command("umount", "-f", path).Output()
 	err := syscall.Unmount(path, syscall.MNT_FORCE)
 	return err
 }
 
-func isVolumeBrick(brickPath string, iD uuid.UUID) bool {
+//IsMountExist return success when mount point already exist
+func IsMountExist(brickPath string, iD uuid.UUID) bool {
+
+	if _, err := os.Lstat(brickPath); err != nil {
+		return false
+	}
 
 	data := make([]byte, 16)
 	sz, err := syscall.Getxattr(brickPath, volumeIDXattrKey, data)
@@ -57,6 +64,7 @@ func isVolumeBrick(brickPath string, iD uuid.UUID) bool {
 	if uuid.Equal(iD, data[:sz]) {
 		return true
 	}
+	//TODO add mor checks to confim the mount point, like device verification
 	return false
 }
 
@@ -65,12 +73,11 @@ func MountSnapBrickDirectory(vol *volume.Volinfo, brickinfo *brick.Brickinfo) er
 
 	mountData := brickinfo.MountInfo
 	mountRoot := strings.TrimSuffix(brickinfo.Path, mountData.Mountdir)
-	if _, err := os.Lstat(brickinfo.Path); err == nil {
-		//Because of abnormal shutdown of the brick, mount point might already be existing
-		if isVolumeBrick(brickinfo.Path, vol.ID) {
-			return nil
-		}
+	//Because of abnormal shutdown of the brick, mount point might already be existing
+	if IsMountExist(brickinfo.Path, vol.ID) {
+		return nil
 	}
+
 	if err := os.MkdirAll(mountRoot, os.ModeDir|os.ModePerm); err != nil {
 		log.WithError(err).Error("Failed to create snapshot directory ", brickinfo.String())
 		return err
@@ -81,7 +88,10 @@ func MountSnapBrickDirectory(vol *volume.Volinfo, brickinfo *brick.Brickinfo) er
 	*/
 
 	if err := lvm.MountSnapshotDirectory(mountRoot, brickinfo.MountInfo); err != nil {
-		log.WithError(err).Error("Failed to mount snapshot directory ", brickinfo.String())
+		log.WithFields(log.Fields{"error": err.Error(),
+			"brickPath": brickinfo.String(),
+			"mountRoot": mountRoot}).Error("Failed to mount snapshot directory")
+
 		return err
 	}
 
@@ -94,6 +104,32 @@ func MountSnapBrickDirectory(vol *volume.Volinfo, brickinfo *brick.Brickinfo) er
 	}
 
 	return nil
+}
+
+func getOnlineOfflineBricks(vol *volume.Volinfo, online bool) ([]brick.Brickinfo, error) {
+	var brickinfos []brick.Brickinfo
+
+	brickStatuses, err := volume.CheckBricksStatus(vol)
+	if err != nil {
+		return brickinfos, err
+	}
+
+	for _, brick := range brickStatuses {
+		if brick.Online == online {
+			brickinfos = append(brickinfos, brick.Info)
+		}
+	}
+	return brickinfos, nil
+}
+
+//GetOfflineBricks will return slice of brickinfos that are offline on the local node
+func GetOfflineBricks(vol *volume.Volinfo) ([]brick.Brickinfo, error) {
+	return getOnlineOfflineBricks(vol, false)
+}
+
+//GetOnlineBricks will return slice of brickinfos that are online on the local node
+func GetOnlineBricks(vol *volume.Volinfo) ([]brick.Brickinfo, error) {
+	return getOnlineOfflineBricks(vol, true)
 }
 
 //ActivateDeactivateFunc uses to activate and deactivate
@@ -116,6 +152,9 @@ func ActivateDeactivateFunc(snapinfo *Snapinfo, b []brick.Brickinfo, activate bo
 				return err
 			}
 			if err := b[i].StartBrick(logger); err != nil {
+				if err == gderrors.ErrProcessAlreadyRunning {
+					continue
+				}
 				return err
 			}
 
@@ -154,6 +193,23 @@ func StopBrick(b brick.Brickinfo, logger log.FieldLogger) error {
 			return err
 		}
 	}
+
+	length := len(b.Path) - len(b.MountInfo.Mountdir)
+	for j := 0; j < 3; j++ {
+
+		err = UmountSnapBrickDirectory(b.Path[:length])
+		if err == nil {
+			break
+		}
+		time.Sleep(3 * time.Second)
+	}
+	return err
+
+}
+
+//UmountBrick will umount the brick directory
+func UmountBrick(b brick.Brickinfo) error {
+	var err error
 
 	length := len(b.Path) - len(b.MountInfo.Mountdir)
 	for j := 0; j < 3; j++ {

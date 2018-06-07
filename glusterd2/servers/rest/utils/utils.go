@@ -87,6 +87,8 @@ func ErrToStatusCode(err error) (int, error) {
 		statuscode = http.StatusNotFound
 	case gderrors.ErrVolNotFound:
 		statuscode = http.StatusNotFound
+	case gderrors.ErrSnapNotFound:
+		statuscode = http.StatusNotFound
 	case transaction.ErrLockTimeout:
 		statuscode = http.StatusConflict
 	default:

@@ -301,6 +301,10 @@ func populateBrickMountData(volinfo *volume.Volinfo, snapName string) (map[strin
 		mountDir := b.Path[len(mountRoot):]
 		mntInfo, err := volume.GetBrickMountInfo(mountRoot)
 		if err != nil {
+			log.WithError(err).WithField(
+				"brick", b.Path,
+			).Error("Failed to mount information")
+
 			return nil, err
 		}
 
@@ -315,11 +319,14 @@ func populateBrickMountData(volinfo *volume.Volinfo, snapName string) (map[strin
 		}
 		devicePath := fmt.Sprintf("/dev/%s/%s_%d", vG, snapName, brickCount)
 
+		nodeID := strings.Replace(b.ID.String(), "-", "", -1)
+
 		nodeData[b.String()] = snapshot.BrickMountData{
 			MountDir:   mountDir,
 			DevicePath: devicePath,
 			FsType:     mntInfo.MntType,
 			MntOpts:    updateMntOps(mntInfo.MntType, mntInfo.MntOpts),
+			Path:       snapshotBrickCreate(snapName, volinfo.Name, nodeID, mountDir, brickCount),
 		}
 		// Store the results in transaction context. This will be consumed by
 		// the node that initiated the transaction.
@@ -458,12 +465,11 @@ func createSnapSubvols(snapVolinfo, volinfo *volume.Volinfo, nodeData map[string
 			var bricks []api.BrickReq
 			for _, brickinfo := range subvol.Bricks {
 				mountData := nodeData[brickinfo.String()]
-				brickMount := snapshotBrickCreate(snapVolinfo, volinfo, &brickinfo, idx+1)
 				peerID := brickinfo.PeerID.String()
 				brick := api.BrickReq{
 					PeerID: peerID,
 					Type:   subvolType,
-					Path:   brickMount + mountData.MountDir,
+					Path:   mountData.Path,
 				}
 
 				bricks = append(bricks, brick)
@@ -591,11 +597,9 @@ func duplicateVolinfo(vol, v *volume.Volinfo) {
 	 */
 	return
 }
-func snapshotBrickCreate(snapVolinfo, volinfo *volume.Volinfo, brickinfo *brick.Brickinfo, brickCount int) string {
-	mountData := brickinfo.MountInfo
-	nodeID := strings.Replace(brickinfo.ID.String(), "-", "", -1)
-	SnapDirPrefix := config.GetString("rundir") + "/snaps/"
-	brickPath := fmt.Sprintf("%s%s/%s/%s/brick%d%s", SnapDirPrefix, volinfo.Name, nodeID, snapVolinfo.Name, brickCount, mountData.Mountdir)
+func snapshotBrickCreate(snapName, volName, nodeID, mountDir string, brickCount int) string {
+	snapDirPrefix := config.GetString("rundir") + "/snaps/"
+	brickPath := fmt.Sprintf("%s%s/%s/%s/brick%d%s", snapDirPrefix, volName, nodeID, snapName, brickCount, mountDir)
 	return brickPath
 }
 

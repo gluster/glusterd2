@@ -7,8 +7,10 @@ import (
 	"os/exec"
 	"strconv"
 	"strings"
+	"time"
 
 	"github.com/gluster/glusterd2/glusterd2/snapshot/lvm"
+	config "github.com/spf13/viper"
 )
 
 const (
@@ -86,19 +88,19 @@ func createLV(num int, thinpoolSize, virtualSize string) error {
 	return nil
 }
 
-func deleteLV(num int) error {
+func deleteLV(num int, force bool) error {
 	for i := 1; i <= num; i++ {
 		prefix := fmt.Sprintf("%s%d/%s", brickPrefix, i, lvmPrefix)
 		brickPath := fmt.Sprintf("%s_mnt", prefix)
 		vg := fmt.Sprintf("%s_vg_%d", lvmPrefix, i)
 
-		if _, err := exec.Command("umount", "-f", brickPath).Output(); err != nil {
+		if _, err := exec.Command("umount", "-f", brickPath).Output(); err != nil && !force {
 			return err
 		}
-		if err := os.RemoveAll(brickPath); err != nil {
+		if err := os.RemoveAll(brickPath); err != nil && !force {
 			return err
 		}
-		if _, err := exec.Command(lvm.RemoveCommand, "-f", vg).Output(); err != nil {
+		if _, err := exec.Command(lvm.RemoveCommand, "-f", vg).Output(); err != nil && !force {
 			return err
 		}
 
@@ -108,20 +110,20 @@ func deleteLV(num int) error {
 }
 
 //create given number of virtual hard disk
-func deleteVHD(num int) error {
+func deleteVHD(num int, force bool) error {
 
 	for i := 1; i <= num; i++ {
 		prefix := fmt.Sprintf("%s%d/%s", brickPrefix, i, lvmPrefix)
 		vhdPath := fmt.Sprintf("%s_vhd", prefix)
 		devicePath := fmt.Sprintf("%s_loop", prefix)
 		_, err := exec.Command("losetup", "-d", devicePath).Output()
-		if err != nil {
+		if err != nil && !force {
 			return err
 		}
-		if err := os.RemoveAll(vhdPath); err != nil {
+		if err := os.RemoveAll(vhdPath); err != nil && !force {
 			return err
 		}
-		if err := os.RemoveAll(devicePath); err != nil {
+		if err := os.RemoveAll(devicePath); err != nil && !force {
 			return err
 		}
 
@@ -179,18 +181,35 @@ func CreateLvmBricks(prefix string, num int) ([]string, error) {
 
 }
 
+//Cleanup will kill all process, and remove mount points
+func Cleanup(prefix string, brickCount int) {
+
+	brickPrefix = prefix
+	exec.Command("pkill", "gluster").Output()
+	time.Sleep(2 * time.Second)
+
+	snapDirPrefix := config.GetString("rundir") + "/snaps/*"
+	//Remove any dangling snapshot mount pounts
+	exec.Command("umount", snapDirPrefix).Output()
+	deleteVHD(brickCount, true)
+	deleteLV(brickCount, true)
+	os.RemoveAll(brickPrefix)
+
+}
+
 //CleanupLvmBricks provides an lvm mount point created using loop back devices
-func CleanupLvmBricks(num int) error {
+func CleanupLvmBricks(prefix string, num int) error {
 	var err error
+	brickPrefix = prefix
 	if !verifyLVM() {
 		return errors.New("lvm or thinlv is not available on the machine")
 	}
-	err = deleteVHD(num)
+	err = deleteVHD(num, false)
 	if err != nil {
 		return err
 	}
 
-	err = deleteLV(num)
+	err = deleteLV(num, false)
 	if err != nil {
 		return err
 	}

@@ -142,7 +142,7 @@ func Kill(pid int, force bool) error {
 		return err
 	}
 
-	if force == true {
+	if force {
 		err = process.Kill()
 	} else {
 		err = process.Signal(syscall.SIGTERM)
