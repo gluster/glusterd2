@@ -3,12 +3,13 @@ package volumecommands
 import (
 	"net/http"
 
+	restutils "github.com/gluster/glusterd2/glusterd2/servers/rest/utils"
 	"github.com/gluster/glusterd2/glusterd2/volume"
 	"github.com/gluster/glusterd2/glusterd2/xlator"
 	"github.com/gluster/glusterd2/glusterd2/xlator/options"
 	"github.com/gluster/glusterd2/pkg/api"
+	"github.com/gluster/glusterd2/pkg/errors"
 
-	restutils "github.com/gluster/glusterd2/glusterd2/servers/rest/utils"
 	"github.com/gorilla/mux"
 )
 
@@ -20,7 +21,12 @@ func volumeOptionsGetHandler(w http.ResponseWriter, r *http.Request) {
 
 	v, err := volume.GetVolume(volname)
 	if err != nil {
-		restutils.SendHTTPError(ctx, w, http.StatusNotFound, err)
+		if err == errors.ErrVolNotFound {
+			restutils.SendHTTPError(ctx, w, http.StatusNotFound, err)
+		} else {
+			restutils.SendHTTPError(ctx, w, http.StatusInternalServerError, err)
+		}
+
 		return
 	}
 
