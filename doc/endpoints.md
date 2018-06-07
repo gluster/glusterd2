@@ -16,6 +16,8 @@ Name | Methods | Path | Request | Response
 GetVersion | GET | /version | [](https://godoc.org/github.com/gluster/glusterd2/pkg/api#) | [VersionResp](https://godoc.org/github.com/gluster/glusterd2/pkg/api#VersionResp)
 VolumeCreate | POST | /volumes | [VolCreateReq](https://godoc.org/github.com/gluster/glusterd2/pkg/api#VolCreateReq) | [VolumeCreateResp](https://godoc.org/github.com/gluster/glusterd2/pkg/api#VolumeCreateResp)
 VolumeExpand | POST | /volumes/{volname}/expand | [VolExpandReq](https://godoc.org/github.com/gluster/glusterd2/pkg/api#VolExpandReq) | [VolumeExpandResp](https://godoc.org/github.com/gluster/glusterd2/pkg/api#VolumeExpandResp)
+VolumeOptionGet | GET | /volumes/{volname}/options/{optname} | [](https://godoc.org/github.com/gluster/glusterd2/pkg/api#) | [VolumeOptionGetResp](https://godoc.org/github.com/gluster/glusterd2/pkg/api#VolumeOptionGetResp)
+VolumeOptionsGet | GET | /volumes/{volname}/options | [](https://godoc.org/github.com/gluster/glusterd2/pkg/api#) | [VolumeOptionsGetResp](https://godoc.org/github.com/gluster/glusterd2/pkg/api#VolumeOptionsGetResp)
 VolumeOptions | POST | /volumes/{volname}/options | [VolOptionReq](https://godoc.org/github.com/gluster/glusterd2/pkg/api#VolOptionReq) | [VolumeOptionResp](https://godoc.org/github.com/gluster/glusterd2/pkg/api#VolumeOptionResp)
 VolumeReset | DELETE | /volumes/{volname}/options | [VolOptionResetReq](https://godoc.org/github.com/gluster/glusterd2/pkg/api#VolOptionResetReq) | [](https://godoc.org/github.com/gluster/glusterd2/pkg/api#)
 OptionGroupList | GET | /volumes/options-group | [](https://godoc.org/github.com/gluster/glusterd2/pkg/api#) | [OptionGroupListResp](https://godoc.org/github.com/gluster/glusterd2/pkg/api#OptionGroupListResp)
