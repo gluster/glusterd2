@@ -480,7 +480,6 @@ func TestVolumeOptions(t *testing.T) {
 
 		_, err = client.VolumeCreate(createReq)
 		r.NotNil(err)
-
 	}
 
 	// test options that are settable and not settable

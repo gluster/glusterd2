@@ -71,6 +71,21 @@ const (
 	OptionStatusDeprecated
 )
 
+func (l OptionLevel) String() string {
+	switch l {
+	case OptionStatusBasic:
+		return "Basic"
+	case OptionStatusAdvanced:
+		return "Advanced"
+	case OptionStatusExperimental:
+		return "Experimental"
+	case OptionStatusDeprecated:
+		return "Deprecated"
+	default:
+		return "Undefined"
+	}
+}
+
 // ErrInvalidArg validates if argument is Invalid
 var ErrInvalidArg = errors.New("invalid Value")
 
