@@ -22,7 +22,7 @@ func (c *Client) WebhookDelete(url string) error {
 		URL: url,
 	}
 
-	return c.del("/v1/events/webhook", req, http.StatusOK, nil)
+	return c.del("/v1/events/webhook", req, http.StatusNoContent, nil)
 }
 
 // Webhooks returns the list of Webhooks listening to Gluster Events
