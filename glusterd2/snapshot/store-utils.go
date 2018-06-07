@@ -6,9 +6,10 @@ import (
 	"errors"
 	"strings"
 
-	"github.com/coreos/etcd/clientv3"
 	gdstore "github.com/gluster/glusterd2/glusterd2/store"
 	"github.com/gluster/glusterd2/glusterd2/volume"
+
+	"github.com/coreos/etcd/clientv3"
 	log "github.com/sirupsen/logrus"
 )
 
@@ -81,7 +82,7 @@ func AddOrUpdateSnap(snapInfo *Snapinfo) error {
 		return e
 	}
 
-	_, e = gdstore.Store.Put(context.TODO(), GetStorePath(snapInfo), string(json))
+	_, e = gdstore.Put(context.TODO(), GetStorePath(snapInfo), string(json))
 	if e != nil {
 		log.WithError(e).Error("Couldn't add volume to store")
 		return e
@@ -93,7 +94,7 @@ func AddOrUpdateSnap(snapInfo *Snapinfo) error {
 // Snapinfo object
 func GetSnapshot(name string) (*Snapinfo, error) {
 	var snap Snapinfo
-	resp, e := gdstore.Store.Get(context.TODO(), snapPrefix+name)
+	resp, e := gdstore.Get(context.TODO(), snapPrefix+name)
 	if e != nil {
 		log.WithError(e).Error("Couldn't retrive volume from store")
 		return nil, e
@@ -114,7 +115,7 @@ func GetSnapshot(name string) (*Snapinfo, error) {
 //DeleteSnapshot passes the snap path to store to delete the snap object
 func DeleteSnapshot(snapInfo *Snapinfo) error {
 	var vol *volume.Volinfo
-	_, e := gdstore.Store.Delete(context.TODO(), GetStorePath(snapInfo))
+	_, e := gdstore.Delete(context.TODO(), GetStorePath(snapInfo))
 	if e != nil {
 		return e
 	}
