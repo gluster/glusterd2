@@ -35,11 +35,8 @@ func deviceAddHandler(w http.ResponseWriter, r *http.Request) {
 
 	txn, err := transaction.NewTxnWithLocks(ctx, peerID)
 	if err != nil {
-		if err == transaction.ErrLockTimeout {
-			restutils.SendHTTPError(ctx, w, http.StatusConflict, err)
-		} else {
-			restutils.SendHTTPError(ctx, w, http.StatusInternalServerError, err)
-		}
+		status, err := restutils.ErrToStatusCode(err)
+		restutils.SendHTTPError(ctx, w, status, err)
 		return
 	}
 	defer txn.Done()
@@ -118,11 +115,8 @@ func deviceListHandler(w http.ResponseWriter, r *http.Request) {
 	devices, err := deviceutils.GetDevices(peerID)
 	if err != nil {
 		logger.WithError(err).WithField("peerid", peerID).Error("Failed to get devices for peer")
-		if err == errors.ErrPeerNotFound {
-			restutils.SendHTTPError(ctx, w, http.StatusNotFound, err)
-		} else {
-			restutils.SendHTTPError(ctx, w, http.StatusInternalServerError, err)
-		}
+		status, err := restutils.ErrToStatusCode(err)
+		restutils.SendHTTPError(ctx, w, status, err)
 		return
 	}
 
