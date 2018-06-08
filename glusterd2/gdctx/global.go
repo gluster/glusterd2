@@ -64,6 +64,7 @@ func GenerateLocalAuthToken() error {
 	RESTAPIAuthEnabled = true
 	workdir := config.GetString("workdir")
 	authFile := path.Join(workdir, "auth")
+
 	_, err := os.Stat(authFile)
 	if os.IsNotExist(err) {
 		data := make([]byte, 32)
@@ -75,9 +76,14 @@ func GenerateLocalAuthToken() error {
 			}
 		}
 		return err
-	} else if err != nil {
+	} else if err == nil {
+		secret, err := ioutil.ReadFile(authFile)
+		if err != nil {
+			return err
+		}
+		LocalAuthToken = string(secret)
+	} else {
 		return err
 	}
-
 	return nil
 }
