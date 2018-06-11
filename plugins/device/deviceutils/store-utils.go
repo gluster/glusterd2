@@ -51,7 +51,7 @@ func GetDevicesFromPeer(peerInfo *peer.Peer) ([]deviceapi.Info, error) {
 	return deviceInfo, nil
 }
 
-// DeviceInDeviceList checks whether the given device is in list of devices or not.
+// DeviceInList checks whether the given device is in list of devices or not.
 func DeviceInList(reqDevice string, devices []deviceapi.Info) bool {
 	for _, key := range devices {
 		if reqDevice == key.Name {

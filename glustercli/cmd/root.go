@@ -54,8 +54,8 @@ func init() {
 	RootCmd.PersistentFlags().BoolVarP(&verbose, "verbose", "v", false, "verbose output")
 
 	//user and secret for token authentication
-	RootCmd.PersistentFlags().StringVar(&flagUser, "user", "glustercli", "Username for authenticaion")
-	RootCmd.PersistentFlags().StringVar(&flagSecret, "secret", "", "Password for authenticaion")
+	RootCmd.PersistentFlags().StringVar(&flagUser, "user", "glustercli", "Username for authentication")
+	RootCmd.PersistentFlags().StringVar(&flagSecret, "secret", "", "Password for authentication")
 
 	// Log options
 	RootCmd.PersistentFlags().StringVarP(&flagLogLevel, logging.LevelFlag, "", defaultLogLevel, logging.LevelHelp)

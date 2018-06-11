@@ -55,8 +55,7 @@ func deviceAddHandler(w http.ResponseWriter, r *http.Request) {
 	}
 
 	devices, err := deviceutils.GetDevicesFromPeer(peerInfo)
-
-	if devices == nil && err != nil {
+	if err != nil {
 		logger.WithError(err).WithField("peerid", peerID).Error("Failed to get device from Peer")
 		restutils.SendHTTPError(ctx, w, http.StatusInternalServerError, err)
 		return
