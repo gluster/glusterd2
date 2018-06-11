@@ -26,9 +26,6 @@ func SendHTTPResponse(ctx context.Context, w http.ResponseWriter, statusCode int
 		w.Header().Set("Content-Type", "application/json; charset=UTF-8")
 	}
 
-	w.Header().Set("X-Gluster-Node-Id", gdctx.MyUUID.String())
-	w.Header().Set("X-Gluster-Cluster-Id", gdctx.MyClusterID.String())
-
 	w.WriteHeader(statusCode)
 
 	if resp != nil {
@@ -49,24 +46,29 @@ func SendHTTPError(ctx context.Context, w http.ResponseWriter, statusCode int,
 	err interface{}, errCodes ...api.ErrorCode) {
 
 	w.Header().Set("Content-Type", "application/json; charset=UTF-8")
-	w.Header().Set("X-Gluster-Node-Id", gdctx.MyUUID.String())
-	w.Header().Set("X-Gluster-Cluster-Id", gdctx.MyClusterID.String())
-
-	w.WriteHeader(statusCode)
 
 	var resp api.ErrorResp
-	errMsg := fmt.Sprint(err)
-	if errMsg != "" && errMsg != "<nil>" || len(errCodes) == 0 {
-		resp.Errors = append(resp.Errors, api.HTTPError{
-			Code:    int(api.ErrCodeGeneric),
-			Message: errMsg})
+	if v, ok := err.(api.ErrorResponse); ok {
+		// if the passed error type implements the api.ErrorResponse
+		// interface, we don't have aything else to do
+		resp = v.Response()
+		statusCode = v.Status()
 	} else {
-		for _, code := range errCodes {
+		errMsg := fmt.Sprint(err)
+		if errMsg != "" && errMsg != "<nil>" || len(errCodes) == 0 {
 			resp.Errors = append(resp.Errors, api.HTTPError{
-				Code:    int(code),
-				Message: api.ErrorCodeMap[code]})
+				Code:    int(api.ErrCodeGeneric),
+				Message: errMsg})
+		} else {
+			for _, code := range errCodes {
+				resp.Errors = append(resp.Errors, api.HTTPError{
+					Code:    int(code),
+					Message: api.ErrorCodeMap[code]})
+			}
 		}
 	}
+
+	w.WriteHeader(statusCode)
 
 	if err := json.NewEncoder(w).Encode(resp); err != nil {
 		logger := gdctx.GetReqLogger(ctx)

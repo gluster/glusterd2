@@ -1,6 +1,7 @@
 package restclient
 
 import (
+	"bytes"
 	"crypto/tls"
 	"crypto/x509"
 	"encoding/json"
@@ -36,13 +37,25 @@ func New(baseURL string, username string, password string, cacert string, insecu
 }
 
 func parseHTTPError(jsonData []byte) string {
-	var errstr api.ErrorResp
-	err := json.Unmarshal(jsonData, &errstr)
+	var errResp api.ErrorResp
+	err := json.Unmarshal(jsonData, &errResp)
 	if err != nil {
-		return ""
+		return err.Error()
 	}
-	// There's only a single error most of the times
-	return errstr.Errors[0].Message
+
+	var buffer bytes.Buffer
+	for _, apiErr := range errResp.Errors {
+		switch api.ErrorCode(apiErr.Code) {
+		case api.ErrTxnStepFailed:
+			buffer.WriteString(fmt.Sprintf(
+				"Transaction step %s failed on peer %s with error: %s\n",
+				apiErr.Fields["step"], apiErr.Fields["peer-id"], apiErr.Fields["error"]))
+		default:
+			buffer.WriteString(apiErr.Message)
+		}
+	}
+
+	return buffer.String()
 }
 
 func getAuthToken(username string, password string) string {

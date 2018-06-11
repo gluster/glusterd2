@@ -58,7 +58,7 @@ func globalHandler(ev *api.Event) {
 		}).WithError(err).Error("failed global broadcast, failed to get lease")
 	}
 
-	if _, err := store.Store.Put(store.Store.Ctx(), k, string(v), clientv3.WithLease(l.ID)); err != nil {
+	if _, err := store.Put(store.Store.Ctx(), k, string(v), clientv3.WithLease(l.ID)); err != nil {
 		log.WithFields(log.Fields{
 			"event.id":   ev.ID.String(),
 			"event.name": ev.Name,

@@ -124,10 +124,10 @@ func georepCreateHandler(w http.ResponseWriter, r *http.Request) {
 	// Check if Master volume exists and Matches with passed Volume ID
 	vol, e := volume.GetVolume(req.MasterVol)
 	if e != nil {
-		if err == errors.ErrVolNotFound {
+		if e == errors.ErrVolNotFound {
 			restutils.SendHTTPError(ctx, w, http.StatusNotFound, errors.ErrVolNotFound)
 		} else {
-			restutils.SendHTTPError(ctx, w, http.StatusInternalServerError, err)
+			restutils.SendHTTPError(ctx, w, http.StatusInternalServerError, e)
 		}
 		return
 	}
@@ -287,10 +287,10 @@ func georepActionHandler(w http.ResponseWriter, r *http.Request, action actionTy
 	// Fetch Volume details and check if Volume is in started state
 	vol, e := volume.GetVolume(geoSession.MasterVol)
 	if e != nil {
-		if err == errors.ErrVolNotFound {
+		if e == errors.ErrVolNotFound {
 			restutils.SendHTTPError(ctx, w, http.StatusNotFound, errors.ErrVolNotFound)
 		} else {
-			restutils.SendHTTPError(ctx, w, http.StatusInternalServerError, err)
+			restutils.SendHTTPError(ctx, w, http.StatusInternalServerError, e)
 		}
 		return
 	}
@@ -424,10 +424,10 @@ func georepDeleteHandler(w http.ResponseWriter, r *http.Request) {
 	// Fetch Volume details and check if Volume exists
 	_, e := volume.GetVolume(geoSession.MasterVol)
 	if e != nil {
-		if err == errors.ErrVolNotFound {
+		if e == errors.ErrVolNotFound {
 			restutils.SendHTTPError(ctx, w, http.StatusNotFound, errors.ErrVolNotFound)
 		} else {
-			restutils.SendHTTPError(ctx, w, http.StatusInternalServerError, err)
+			restutils.SendHTTPError(ctx, w, http.StatusInternalServerError, e)
 		}
 		return
 	}
@@ -464,7 +464,7 @@ func georepDeleteHandler(w http.ResponseWriter, r *http.Request) {
 	}
 	events.Broadcast(newGeorepEvent(eventGeorepDeleted, geoSession, nil))
 
-	restutils.SendHTTPResponse(ctx, w, http.StatusOK, nil)
+	restutils.SendHTTPResponse(ctx, w, http.StatusNoContent, nil)
 }
 
 func georepStatusHandler(w http.ResponseWriter, r *http.Request) {
@@ -502,10 +502,10 @@ func georepStatusHandler(w http.ResponseWriter, r *http.Request) {
 	// Get Volume info, which is required to get the Bricks list
 	vol, e := volume.GetVolume(geoSession.MasterVol)
 	if e != nil {
-		if err == errors.ErrVolNotFound {
+		if e == errors.ErrVolNotFound {
 			restutils.SendHTTPError(ctx, w, http.StatusNotFound, errors.ErrVolNotFound)
 		} else {
-			restutils.SendHTTPError(ctx, w, http.StatusInternalServerError, err)
+			restutils.SendHTTPError(ctx, w, http.StatusInternalServerError, e)
 		}
 		return
 	}
@@ -770,10 +770,10 @@ func georepConfigSetHandler(w http.ResponseWriter, r *http.Request) {
 
 	vol, e := volume.GetVolume(geoSession.MasterVol)
 	if e != nil {
-		if err == errors.ErrVolNotFound {
+		if e == errors.ErrVolNotFound {
 			restutils.SendHTTPError(ctx, w, http.StatusNotFound, errors.ErrVolNotFound)
 		} else {
-			restutils.SendHTTPError(ctx, w, http.StatusInternalServerError, err)
+			restutils.SendHTTPError(ctx, w, http.StatusInternalServerError, e)
 		}
 		return
 	}
@@ -923,10 +923,10 @@ func georepConfigResetHandler(w http.ResponseWriter, r *http.Request) {
 
 	vol, e := volume.GetVolume(geoSession.MasterVol)
 	if e != nil {
-		if err == errors.ErrVolNotFound {
+		if e == errors.ErrVolNotFound {
 			restutils.SendHTTPError(ctx, w, http.StatusNotFound, errors.ErrVolNotFound)
 		} else {
-			restutils.SendHTTPError(ctx, w, http.StatusInternalServerError, err)
+			restutils.SendHTTPError(ctx, w, http.StatusInternalServerError, e)
 		}
 		return
 	}

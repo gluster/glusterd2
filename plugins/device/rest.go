@@ -54,14 +54,15 @@ func deviceAddHandler(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	devices, err := deviceutils.FetchDevices(peerInfo)
-	if devices == nil && deviceutils.CheckIfDeviceExist(peerInfo) && err != nil {
-		logger.WithError(err).WithField("peerid", peerID).Error(err)
+	devices, err := deviceutils.GetDevicesFromPeer(peerInfo)
+
+	if devices == nil && err != nil {
+		logger.WithError(err).WithField("peerid", peerID).Error("Failed to get device from Peer")
 		restutils.SendHTTPError(ctx, w, http.StatusInternalServerError, err)
 		return
 	}
 
-	if deviceutils.DeviceInDeviceList(req.Device, devices) {
+	if deviceutils.DeviceInList(req.Device, devices) {
 		logger.WithError(err).WithField("device", req.Device).Error("Device already exists")
 		restutils.SendHTTPError(ctx, w, http.StatusBadRequest, "Device already exists")
 		return

@@ -40,7 +40,7 @@ func AddOrUpdateVolume(v *Volinfo) error {
 		return e
 	}
 
-	_, e = store.Store.Put(context.TODO(), volumePrefix+v.Name, string(json))
+	_, e = store.Put(context.TODO(), volumePrefix+v.Name, string(json))
 	if e != nil {
 		log.WithError(e).Error("Couldn't add volume to store")
 		return e
@@ -52,7 +52,7 @@ func AddOrUpdateVolume(v *Volinfo) error {
 // volinfo object
 func GetVolume(name string) (*Volinfo, error) {
 	var v Volinfo
-	resp, e := store.Store.Get(context.TODO(), volumePrefix+name)
+	resp, e := store.Get(context.TODO(), volumePrefix+name)
 	if e != nil {
 		log.WithError(e).Error("Couldn't retrive volume from store")
 		return nil, e
@@ -72,13 +72,13 @@ func GetVolume(name string) (*Volinfo, error) {
 
 //DeleteVolume passes the volname to store to delete the volume object
 func DeleteVolume(name string) error {
-	_, e := store.Store.Delete(context.TODO(), volumePrefix+name)
+	_, e := store.Delete(context.TODO(), volumePrefix+name)
 	return e
 }
 
 // GetVolumesList returns a map of volume names to their UUIDs
 func GetVolumesList() (map[string]uuid.UUID, error) {
-	resp, e := store.Store.Get(context.TODO(), volumePrefix, clientv3.WithPrefix())
+	resp, e := store.Get(context.TODO(), volumePrefix, clientv3.WithPrefix())
 	if e != nil {
 		return nil, e
 	}
@@ -119,7 +119,7 @@ func getFilterType(filterParams map[string]string) metadataFilter {
 //GetVolumes retrives the json objects from the store and converts them into
 //respective volinfo objects
 func GetVolumes(filterParams ...map[string]string) ([]*Volinfo, error) {
-	resp, e := store.Store.Get(context.TODO(), volumePrefix, clientv3.WithPrefix())
+	resp, e := store.Get(context.TODO(), volumePrefix, clientv3.WithPrefix())
 	if e != nil {
 		return nil, e
 	}
@@ -189,7 +189,7 @@ func AreReplicateVolumesRunning() (bool, error) {
 
 //Exists check whether a given volume exist or not
 func Exists(name string) bool {
-	resp, e := store.Store.Get(context.TODO(), volumePrefix+name)
+	resp, e := store.Get(context.TODO(), volumePrefix+name)
 	if e != nil {
 		return false
 	}

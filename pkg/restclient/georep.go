@@ -55,7 +55,7 @@ func (c *Client) GeorepStop(mastervolid string, slavevolid string, force bool) (
 func (c *Client) GeorepDelete(mastervolid string, slavevolid string, force bool) error {
 	opts := georepapi.GeorepCommandsReq{Force: force}
 	url := fmt.Sprintf("/v1/geo-replication/%s/%s", mastervolid, slavevolid)
-	err := c.del(url, &opts, http.StatusOK, nil)
+	err := c.del(url, &opts, http.StatusNoContent, nil)
 	return err
 }
 

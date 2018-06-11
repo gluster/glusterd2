@@ -69,7 +69,11 @@ func rebalanceStartHandler(w http.ResponseWriter, r *http.Request) {
 
 	vol, err := volume.GetVolume(volname)
 	if err != nil {
-		restutils.SendHTTPError(ctx, w, http.StatusNotFound, errors.ErrVolNotFound)
+		if err == errors.ErrVolNotFound {
+			restutils.SendHTTPError(ctx, w, http.StatusNotFound, errors.ErrVolNotFound)
+		} else {
+			restutils.SendHTTPError(ctx, w, http.StatusInternalServerError, err)
+		}
 		return
 	}
 
@@ -162,7 +166,11 @@ func rebalanceStopHandler(w http.ResponseWriter, r *http.Request) {
 	// Validate rebalance command
 	vol, err := volume.GetVolume(volname)
 	if err != nil {
-		restutils.SendHTTPError(ctx, w, http.StatusNotFound, errors.ErrVolNotFound)
+		if err == errors.ErrVolNotFound {
+			restutils.SendHTTPError(ctx, w, http.StatusNotFound, errors.ErrVolNotFound)
+		} else {
+			restutils.SendHTTPError(ctx, w, http.StatusInternalServerError, err)
+		}
 		return
 	}
 
@@ -243,7 +251,11 @@ func rebalanceStatusHandler(w http.ResponseWriter, r *http.Request) {
 	// Validate rebalance command
 	vol, err := volume.GetVolume(volname)
 	if err != nil {
-		restutils.SendHTTPError(ctx, w, http.StatusNotFound, errors.ErrVolNotFound)
+		if err == errors.ErrVolNotFound {
+			restutils.SendHTTPError(ctx, w, http.StatusNotFound, errors.ErrVolNotFound)
+		} else {
+			restutils.SendHTTPError(ctx, w, http.StatusInternalServerError, err)
+		}
 		return
 	}
 

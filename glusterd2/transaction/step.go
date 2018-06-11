@@ -3,8 +3,10 @@ package transaction
 import (
 	"errors"
 	"fmt"
+	"net/http"
 
 	"github.com/gluster/glusterd2/glusterd2/gdctx"
+	"github.com/gluster/glusterd2/pkg/api"
 
 	"github.com/pborman/uuid"
 	log "github.com/sirupsen/logrus"
@@ -31,31 +33,68 @@ var (
 )
 
 // do runs the DoFunc on the nodes
-func (s *Step) do(c TxnCtx) error {
-	return runStepFuncOnNodes(s.DoFunc, c, s.Nodes)
+func (s *Step) do(ctx TxnCtx) error {
+	return runStepFuncOnNodes(s.DoFunc, ctx, s.Nodes)
 }
 
 // undo runs the UndoFunc on the nodes
-func (s *Step) undo(c TxnCtx) error {
+func (s *Step) undo(ctx TxnCtx) error {
 	if s.UndoFunc != "" {
-		return runStepFuncOnNodes(s.UndoFunc, c, s.Nodes)
+		return runStepFuncOnNodes(s.UndoFunc, ctx, s.Nodes)
 	}
 	return nil
 }
 
-type stepResp struct {
-	node uuid.UUID
-	step string
-	err  error
+// stepPeerResp is response from a single peer that runs a step
+type stepPeerResp struct {
+	PeerID uuid.UUID
+	Error  error
 }
 
-func runStepFuncOnNodes(stepName string, c TxnCtx, nodes []uuid.UUID) error {
+// stepResp contains response from multiple peers that run a step and the type
+// implements the `api.ErrorResponse` interface
+type stepResp struct {
+	Step     string
+	Resps    []stepPeerResp
+	errCount int
+}
 
-	respCh := make(chan stepResp, len(nodes))
+func (r stepResp) Error() string {
+	return fmt.Sprintf("Step %s failed on %d nodes", r.Step, r.errCount)
+}
+
+func (r stepResp) Response() api.ErrorResp {
+
+	var apiResp api.ErrorResp
+	for _, resp := range r.Resps {
+		if resp.Error == nil {
+			continue
+		}
+
+		apiResp.Errors = append(apiResp.Errors, api.HTTPError{
+			Code:    int(api.ErrTxnStepFailed),
+			Message: api.ErrorCodeMap[api.ErrTxnStepFailed],
+			Fields: map[string]string{
+				"peer-id": resp.PeerID.String(),
+				"step":    r.Step,
+				"error":   resp.Error.Error()},
+		})
+	}
+
+	return apiResp
+}
+
+func (r stepResp) Status() int {
+	return http.StatusInternalServerError
+}
+
+func runStepFuncOnNodes(stepName string, ctx TxnCtx, nodes []uuid.UUID) error {
+
+	respCh := make(chan stepPeerResp, len(nodes))
 	defer close(respCh)
 
 	for _, node := range nodes {
-		go runStepFuncOnNode(stepName, c, node, respCh)
+		go runStepFuncOnNode(stepName, ctx, node, respCh)
 	}
 
 	// Ideally, we have to cancel the pending go-routines on first error
@@ -63,30 +102,31 @@ func runStepFuncOnNodes(stepName string, c TxnCtx, nodes []uuid.UUID) error {
 	// to do. Serializing sequentially is the easiest fix but we lose
 	// concurrency. Instead, we let the do() function run on all nodes.
 
-	var lastErrResp stepResp
-	errCount := 0
-	var resp stepResp
-	for range nodes {
-		resp = <-respCh
-		if resp.err != nil {
-			errCount++
-			c.Logger().WithFields(log.Fields{
-				"step": resp.step, "node": resp.node,
-			}).WithError(resp.err).Error("Step failed on node.")
-			lastErrResp = resp
-		}
+	resp := stepResp{
+		Step:  stepName,
+		Resps: make([]stepPeerResp, len(nodes)),
 	}
 
-	if errCount != 0 {
-		return fmt.Errorf("Step %s failed on %d nodes. "+
-			"Last error: Step func %s failed on %s with error: %s",
-			stepName, errCount, lastErrResp.step, lastErrResp.node, lastErrResp.err)
+	var peerResp stepPeerResp
+	for range nodes {
+		peerResp = <-respCh
+		if peerResp.Error != nil {
+			resp.errCount++
+			ctx.Logger().WithFields(log.Fields{
+				"step": stepName, "node": peerResp.PeerID,
+			}).WithError(peerResp.Error).Error("Step failed on node.")
+		}
+		resp.Resps = append(resp.Resps, peerResp)
+	}
+
+	if resp.errCount != 0 {
+		return resp
 	}
 
 	return nil
 }
 
-func runStepFuncOnNode(stepName string, ctx TxnCtx, node uuid.UUID, respCh chan<- stepResp) {
+func runStepFuncOnNode(stepName string, ctx TxnCtx, node uuid.UUID, respCh chan<- stepPeerResp) {
 
 	ctx.Logger().WithFields(log.Fields{
 		"step": stepName, "node": node,
@@ -100,7 +140,7 @@ func runStepFuncOnNode(stepName string, ctx TxnCtx, node uuid.UUID, respCh chan<
 		err = runStepOn(stepName, node, ctx)
 	}
 
-	respCh <- stepResp{node, stepName, err}
+	respCh <- stepPeerResp{node, err}
 }
 
 func runStepFuncLocally(stepName string, ctx TxnCtx) error {

@@ -53,7 +53,7 @@ func AddOrUpdatePeer(p *Peer) error {
 
 	idStr := p.ID.String()
 
-	if _, err := store.Store.Put(context.TODO(), peerPrefix+idStr, string(json)); err != nil {
+	if _, err := store.Put(context.TODO(), peerPrefix+idStr, string(json)); err != nil {
 		return err
 	}
 
@@ -62,7 +62,7 @@ func AddOrUpdatePeer(p *Peer) error {
 
 // GetPeer returns specified peer from the store
 func GetPeer(id string) (*Peer, error) {
-	resp, err := store.Store.Get(context.TODO(), peerPrefix+id)
+	resp, err := store.Get(context.TODO(), peerPrefix+id)
 	if err != nil {
 		return nil, err
 	}
@@ -114,7 +114,7 @@ func getFilterType(filterParams map[string]string) metadataFilter {
 
 // GetPeers returns all available peers in the store
 func GetPeers(filterParams ...map[string]string) ([]*Peer, error) {
-	resp, err := store.Store.Get(context.TODO(), peerPrefix, clientv3.WithPrefix())
+	resp, err := store.Get(context.TODO(), peerPrefix, clientv3.WithPrefix())
 	if err != nil {
 		return nil, err
 	}
@@ -164,7 +164,7 @@ func GetPeers(filterParams ...map[string]string) ([]*Peer, error) {
 
 // GetPeerIDs returns peer id (uuid) of all peers in the store
 func GetPeerIDs() ([]uuid.UUID, error) {
-	resp, err := store.Store.Get(context.TODO(), peerPrefix, clientv3.WithPrefix())
+	resp, err := store.Get(context.TODO(), peerPrefix, clientv3.WithPrefix())
 	if err != nil {
 		return nil, err
 	}
@@ -203,13 +203,13 @@ func GetPeerByName(name string) (*Peer, error) {
 
 // DeletePeer deletes given peer from the store
 func DeletePeer(id string) error {
-	_, e := store.Store.Delete(context.TODO(), peerPrefix+id)
+	_, e := store.Delete(context.TODO(), peerPrefix+id)
 	return e
 }
 
 // Exists checks if given peer is present in the store
 func Exists(id string) bool {
-	resp, e := store.Store.Get(context.TODO(), peerPrefix+id)
+	resp, e := store.Get(context.TODO(), peerPrefix+id)
 	if e != nil {
 		return false
 	}
@@ -257,7 +257,7 @@ func GetPeerByAddrs(addrs []string) (*Peer, error) {
 func GetPeerIDByAddr(addr string) (uuid.UUID, error) {
 	p, e := GetPeerByAddrF(addr)
 	if e != nil {
-		return nil, errors.ErrPeerNotFound
+		return nil, e
 	}
 	return p.ID, nil
 }

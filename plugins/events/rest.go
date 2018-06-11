@@ -86,7 +86,7 @@ func webhookDeleteHandler(w http.ResponseWriter, r *http.Request) {
 			"Could not delete webhook")
 		return
 	}
-	restutils.SendHTTPResponse(ctx, w, http.StatusOK, "Webhook Deleted")
+	restutils.SendHTTPResponse(ctx, w, http.StatusNoContent, nil)
 }
 
 func webhookListHandler(w http.ResponseWriter, r *http.Request) {

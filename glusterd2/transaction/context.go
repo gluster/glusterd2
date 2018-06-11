@@ -43,6 +43,8 @@ type Tctx struct {
 	writeSet       map[string]string // to be written to store
 }
 
+// txnCtxConfig is marshalled and sent on wire and is used to reconstruct Tctx
+// on receiver's end.
 type txnCtxConfig struct {
 	LogFields   log.Fields
 	StorePrefix string
@@ -130,7 +132,7 @@ func (c *Tctx) Get(key string, value interface{}) error {
 
 	// cache all keys and values from the store on the first call to Get
 	if c.readCacheDirty {
-		resp, err := store.Store.Get(context.TODO(), c.config.StorePrefix, clientv3.WithPrefix())
+		resp, err := store.Get(context.TODO(), c.config.StorePrefix, clientv3.WithPrefix())
 		if err != nil {
 			c.logger.WithError(err).WithField("key", key).Error("failed to get key from transaction context")
 			return err
@@ -172,7 +174,7 @@ func (c *Tctx) Delete(key string) error {
 	delete(c.writeSet, storeKey)
 
 	// TODO: Optimize this by doing it as part of etcd txn in commit()
-	if _, err := store.Store.Delete(context.TODO(), storeKey); err != nil {
+	if _, err := store.Delete(context.TODO(), storeKey); err != nil {
 		c.logger.WithError(err).WithField("key", storeKey).Error(
 			"failed to delete key")
 		return err
@@ -198,10 +200,7 @@ func (c *Tctx) UnmarshalJSON(d []byte) error {
 		return err
 	}
 
-	c.logger = log.StandardLogger().WithFields(c.config.LogFields)
-	c.readSet = make(map[string][]byte)
-	c.writeSet = make(map[string]string)
-	c.readCacheDirty = true
+	*c = *(newCtx(c.config))
 
 	return nil
 }

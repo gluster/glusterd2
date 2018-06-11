@@ -73,16 +73,6 @@ func NewTxnWithLocks(ctx context.Context, lockIDs ...string) (*Txn, error) {
 	return t, nil
 }
 
-// Cleanup cleans the leftovers after a transaction ends
-// TODO: Remove this function
-func (t *Txn) Cleanup() {
-	if _, err := store.Store.Delete(context.TODO(), t.storePrefix, clientv3.WithPrefix()); err != nil {
-		t.Ctx.Logger().WithError(err).WithField("key",
-			t.storePrefix).Error("Failed to remove transaction namespace from store")
-	}
-	expTxn.Add("initiated_txn_in_progress", -1)
-}
-
 // Done releases any obtained locks and cleans up the transaction namespace
 // Done must be called after a transaction ends
 func (t *Txn) Done() {
@@ -90,7 +80,14 @@ func (t *Txn) Done() {
 	for _, locker := range t.locks {
 		locker.Unlock(context.Background())
 	}
-	t.Cleanup()
+
+	// Wipe txn namespace
+	if _, err := store.Delete(context.TODO(), t.storePrefix, clientv3.WithPrefix()); err != nil {
+		t.Ctx.Logger().WithError(err).WithField("key",
+			t.storePrefix).Error("Failed to remove transaction namespace from store")
+	}
+
+	expTxn.Add("initiated_txn_in_progress", -1)
 }
 
 func (t *Txn) checkAlive() error {
