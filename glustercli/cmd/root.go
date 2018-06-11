@@ -22,7 +22,7 @@ var RootCmd = &cobra.Command{
 			scheme = "https"
 		}
 		hostname := fmt.Sprintf("%s://%s:%d", scheme, flagHostname, flagPort)
-		initRESTClient(hostname, flagCacert, flagInsecure)
+		initRESTClient(hostname, flagUser, flagSecret, flagCacert, flagInsecure)
 	},
 }
 
@@ -36,6 +36,8 @@ var (
 	flagInsecure   bool
 	flagLogLevel   string
 	verbose        bool
+	flagUser       string
+	flagSecret     string
 )
 
 const (
@@ -50,6 +52,10 @@ func init() {
 	RootCmd.PersistentFlags().BoolVarP(&flagHTTPS, "glusterd-https", "", false, "Use HTTPS while connecting to Glusterd")
 	RootCmd.PersistentFlags().IntVarP(&flagPort, "glusterd-port", "", 24007, "Glusterd Port")
 	RootCmd.PersistentFlags().BoolVarP(&verbose, "verbose", "v", false, "verbose output")
+
+	//user and secret for token authentication
+	RootCmd.PersistentFlags().StringVar(&flagUser, "user", "glustercli", "Username for authentication")
+	RootCmd.PersistentFlags().StringVar(&flagSecret, "secret", "", "Password for authentication")
 
 	// Log options
 	RootCmd.PersistentFlags().StringVarP(&flagLogLevel, logging.LevelFlag, "", defaultLogLevel, logging.LevelHelp)

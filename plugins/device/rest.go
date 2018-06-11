@@ -99,7 +99,7 @@ func deviceAddHandler(w http.ResponseWriter, r *http.Request) {
 		restutils.SendHTTPError(ctx, w, http.StatusInternalServerError, "Failed to get peer from store")
 		return
 	}
-	restutils.SendHTTPResponse(ctx, w, http.StatusOK, peerInfo)
+	restutils.SendHTTPResponse(ctx, w, http.StatusCreated, peerInfo)
 }
 
 func deviceListHandler(w http.ResponseWriter, r *http.Request) {

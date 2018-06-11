@@ -18,8 +18,8 @@ var (
 `
 )
 
-func initRESTClient(hostname string, cacert string, insecure bool) {
-	client = restclient.New(hostname, "", "", cacert, insecure)
+func initRESTClient(hostname, user, secret, cacert string, insecure bool) {
+	client = restclient.New(hostname, user, secret, cacert, insecure)
 }
 
 func isConnectionRefusedErr(err error) bool {

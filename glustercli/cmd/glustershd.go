@@ -2,11 +2,9 @@ package cmd
 
 import (
 	"fmt"
-	"os"
 
 	glustershdapi "github.com/gluster/glusterd2/plugins/glustershd/api"
 
-	"github.com/olekukonko/tablewriter"
 	log "github.com/sirupsen/logrus"
 	"github.com/spf13/cobra"
 )
@@ -56,39 +54,31 @@ var selfHealInfoCmd = &cobra.Command{
 			}
 			failure(fmt.Sprintf("Failed to get heal info for volume %s\n", volname), err, 1)
 		}
-		table := tablewriter.NewWriter(os.Stdout)
-		var tableHeader []string
 		for index := range selfHealInfo {
-			var tableValues []string
-			tableHeader = append(tableHeader, "Brick")
-			tableValues = append(tableValues, *selfHealInfo[index].Name)
-			tableHeader = append(tableHeader, "Status")
-			tableValues = append(tableValues, *selfHealInfo[index].Status)
+			fmt.Printf("Brick: %s\n", selfHealInfo[index].Name)
+			fmt.Printf("Status: %s\n", selfHealInfo[index].Status)
+
 			if selfHealInfo[index].TotalEntries != nil {
-				tableHeader = append(tableHeader, "total-entries")
-				tableValues = append(tableValues, fmt.Sprintf("%v", *selfHealInfo[index].TotalEntries))
+				fmt.Printf("total-entries: %v\n", *selfHealInfo[index].TotalEntries)
 			}
 			if selfHealInfo[index].EntriesInHealPending != nil {
-				tableHeader = append(tableHeader, "entries-in-heal-pending")
-				tableValues = append(tableValues, fmt.Sprintf("%v", *selfHealInfo[index].EntriesInHealPending))
+				fmt.Printf("entries-in-heal-pending: %v\n", *selfHealInfo[index].EntriesInHealPending)
 			}
 			if selfHealInfo[index].EntriesInSplitBrain != nil {
-				tableHeader = append(tableHeader, "entries-in-split-brain")
-				tableValues = append(tableValues, fmt.Sprintf("%v", *selfHealInfo[index].EntriesInSplitBrain))
+				fmt.Printf("entries-in-split-brain: %v\n", *selfHealInfo[index].EntriesInSplitBrain)
 			}
 			if selfHealInfo[index].EntriesPossiblyHealing != nil {
-				tableHeader = append(tableHeader, "entries-possibly-healing")
-				tableValues = append(tableValues, fmt.Sprintf("%v", *selfHealInfo[index].EntriesPossiblyHealing))
+				fmt.Printf("entries-possibly-healing: %v\n", *selfHealInfo[index].EntriesPossiblyHealing)
 			}
 			if selfHealInfo[index].Entries != nil {
-				tableHeader = append(tableHeader, "entries")
-				tableValues = append(tableValues, fmt.Sprintf("%v", *selfHealInfo[index].Entries))
+				fmt.Printf("entries: %v\n", *selfHealInfo[index].Entries)
 			}
-			if index == 0 {
-				table.SetHeader(tableHeader)
+			if selfHealInfo[index].Files != nil {
+				for value := range selfHealInfo[index].Files {
+					fmt.Printf("%s:%s\n", selfHealInfo[index].Files[value].GfID, selfHealInfo[index].Files[value].Filename)
+				}
 			}
-			table.Append(tableValues)
+			fmt.Printf("\n")
 		}
-		table.Render()
 	},
 }
