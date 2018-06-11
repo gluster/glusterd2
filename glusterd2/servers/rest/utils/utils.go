@@ -8,7 +8,9 @@ import (
 	"net/http"
 
 	"github.com/gluster/glusterd2/glusterd2/gdctx"
+	"github.com/gluster/glusterd2/glusterd2/transaction"
 	"github.com/gluster/glusterd2/pkg/api"
+	gderrors "github.com/gluster/glusterd2/pkg/errors"
 )
 
 // UnmarshalRequest unmarshals JSON in `r` into `v`
@@ -74,4 +76,21 @@ func SendHTTPError(ctx context.Context, w http.ResponseWriter, statusCode int,
 		logger := gdctx.GetReqLogger(ctx)
 		logger.WithError(err).Error("Failed to send the response -", resp)
 	}
+}
+
+// ErrToStatusCode returns error and http Status code based on  err
+func ErrToStatusCode(err error) (int, error) {
+	var statuscode int
+
+	switch err {
+	case gderrors.ErrPeerNotFound:
+		statuscode = http.StatusNotFound
+	case gderrors.ErrVolNotFound:
+		statuscode = http.StatusNotFound
+	case transaction.ErrLockTimeout:
+		statuscode = http.StatusConflict
+	default:
+		statuscode = http.StatusInternalServerError
+	}
+	return statuscode, err
 }
