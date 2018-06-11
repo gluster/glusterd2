@@ -25,7 +25,7 @@ func (c *Client) BitrotScrubOndemand(volname string) error {
 	return c.post(url, nil, http.StatusOK, nil)
 }
 
-// BitrotScrubStatus starts bitrot scrubber on demand for a volume
+// BitrotScrubStatus returns bitrot scrub status of a volume
 func (c *Client) BitrotScrubStatus(volname string) (bitrotapi.ScrubStatus, error) {
 	var scrubStatus bitrotapi.ScrubStatus
 	url := fmt.Sprintf("/v1/volumes/%s/bitrot/scrubstatus", volname)
