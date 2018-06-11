@@ -46,6 +46,8 @@ func TestVolume(t *testing.T) {
 	t.Logf("Using temp dir: %s", tmpDir)
 	//defer os.RemoveAll(tmpDir)
 
+	t.Run("CreateWithoutName", testVolumeCreateWithoutName)
+
 	// Create the volume
 	t.Run("Create", testVolumeCreate)
 	// Expand the volume
@@ -66,6 +68,34 @@ func TestVolume(t *testing.T) {
 
 	// Disperse volume test
 	t.Run("Disperse", testDisperse)
+}
+
+func testVolumeCreateWithoutName(t *testing.T) {
+	r := require.New(t)
+
+	var brickPaths []string
+	for i := 1; i <= 2; i++ {
+		brickPath, err := ioutil.TempDir(tmpDir, "brick")
+		r.Nil(err)
+		brickPaths = append(brickPaths, brickPath)
+	}
+
+	// create 2x2 dist-rep volume
+	createReq := api.VolCreateReq{
+		Subvols: []api.SubvolReq{
+			{
+				Bricks: []api.BrickReq{
+					{PeerID: gds[0].PeerID(), Path: brickPaths[0]},
+					{PeerID: gds[1].PeerID(), Path: brickPaths[1]},
+				},
+			},
+		},
+		Force: true,
+	}
+	volinfo, err := client.VolumeCreate(createReq)
+	r.Nil(err)
+
+	r.Nil(client.VolumeDelete(volinfo.Name))
 }
 
 func testVolumeCreate(t *testing.T) {
