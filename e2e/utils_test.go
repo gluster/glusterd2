@@ -26,6 +26,7 @@ type gdProcess struct {
 	ClientAddress string `toml:"clientaddress"`
 	PeerAddress   string `toml:"peeraddress"`
 	Workdir       string `toml:"workdir"`
+	LocalStateDir string `toml:"localstatedir"`
 	Rundir        string `toml:"rundir"`
 	uuid          string
 }
@@ -41,7 +42,7 @@ func (g *gdProcess) Stop() error {
 	return g.Cmd.Process.Kill()
 }
 
-func (g *gdProcess) UpdateDirs() {
+func (g *gdProcess) updateDirs() {
 	g.Workdir = path.Clean(g.Workdir)
 	if !path.IsAbs(g.Workdir) {
 		g.Workdir = path.Join(baseWorkdir, g.Workdir)
@@ -49,6 +50,10 @@ func (g *gdProcess) UpdateDirs() {
 	g.Rundir = path.Clean(g.Rundir)
 	if !path.IsAbs(g.Rundir) {
 		g.Rundir = path.Join(baseWorkdir, g.Rundir)
+	}
+	g.LocalStateDir = path.Clean(g.LocalStateDir)
+	if !path.IsAbs(g.LocalStateDir) {
+		g.LocalStateDir = path.Join(baseWorkdir, g.LocalStateDir)
 	}
 }
 
@@ -117,7 +122,10 @@ func spawnGlusterd(configFilePath string, cleanStart bool) (*gdProcess, error) {
 		return nil, err
 	}
 
-	g.UpdateDirs()
+	// The config files in e2e/config contain relative paths, convert them
+	// to absolute paths.
+	g.updateDirs()
+
 	if cleanStart {
 		g.EraseWorkdir() // cleanup leftovers from previous test
 	}
@@ -133,6 +141,7 @@ func spawnGlusterd(configFilePath string, cleanStart bool) (*gdProcess, error) {
 	g.Cmd = exec.Command(path.Join(binDir, "glusterd2"),
 		"--config", absConfigFilePath,
 		"--workdir", g.Workdir,
+		"--localstatedir", g.LocalStateDir,
 		"--rundir", g.Rundir,
 		"--logdir", path.Join(g.Workdir, "log"),
 		"--logfile", "glusterd2.log")
