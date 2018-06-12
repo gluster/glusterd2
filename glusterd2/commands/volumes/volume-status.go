@@ -20,11 +20,8 @@ func volumeStatusHandler(w http.ResponseWriter, r *http.Request) {
 
 	volinfo, err := volume.GetVolume(volname)
 	if err != nil {
-		if err == errors.ErrVolNotFound {
-			restutils.SendHTTPError(ctx, w, http.StatusNotFound, errors.ErrVolNotFound)
-		} else {
-			restutils.SendHTTPError(ctx, w, http.StatusInternalServerError, err)
-		}
+		status, err := restutils.ErrToStatusCode(err)
+		restutils.SendHTTPError(ctx, w, status, err)
 		return
 	}
 

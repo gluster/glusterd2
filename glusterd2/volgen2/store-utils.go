@@ -41,7 +41,7 @@ func GetVolfile(volfileID string) ([]byte, error) {
 	volfile := volfilePrefix + volfileID
 	resp, e := store.Get(context.TODO(), volfile, clientv3.WithPrefix())
 	if e != nil {
-		return []byte{}, e
+		return []byte{}, errors.ErrFetchingVolfileContent
 	}
 	if len(resp.Kvs) == 0 {
 		return []byte{}, errors.ErrVolFileNotFound

@@ -656,22 +656,16 @@ func snapshotCreateHandler(w http.ResponseWriter, r *http.Request) {
 
 	txn, err := transaction.NewTxnWithLocks(ctx, req.VolName, req.SnapName)
 	if err != nil {
-		if err == transaction.ErrLockTimeout {
-			restutils.SendHTTPError(ctx, w, http.StatusConflict, err)
-		} else {
-			restutils.SendHTTPError(ctx, w, http.StatusInternalServerError, err)
-		}
+		status, err := restutils.ErrToStatusCode(err)
+		restutils.SendHTTPError(ctx, w, status, err)
 		return
 	}
 	defer txn.Done()
 
 	vol, e := volume.GetVolume(req.VolName)
 	if e != nil {
-		if e == gderrors.ErrVolNotFound {
-			restutils.SendHTTPError(ctx, w, http.StatusNotFound, gderrors.ErrVolNotFound)
-		} else {
-			restutils.SendHTTPError(ctx, w, http.StatusInternalServerError, e)
-		}
+		status, err := restutils.ErrToStatusCode(e)
+		restutils.SendHTTPError(ctx, w, status, err)
 		return
 	}
 
@@ -720,11 +714,8 @@ func snapshotCreateHandler(w http.ResponseWriter, r *http.Request) {
 	err = txn.Do()
 	if err != nil {
 		logger.WithError(err).Error("snapshot create transaction failed")
-		if err == transaction.ErrLockTimeout {
-			restutils.SendHTTPError(ctx, w, http.StatusConflict, err)
-		} else {
-			restutils.SendHTTPError(ctx, w, http.StatusInternalServerError, err)
-		}
+		status, err := restutils.ErrToStatusCode(err)
+		restutils.SendHTTPError(ctx, w, status, err)
 		return
 	}
 

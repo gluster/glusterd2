@@ -48,4 +48,5 @@ var (
 	ErrSnapNotFound            = errors.New("Snapshot not found")
 	ErrInvalidVolFlags         = errors.New("invalid volume flags")
 	ErrMetadataSizeOutOfBounds = errors.New("metadata size exceeds max allowed size of 4KB")
+	ErrFetchingVolfileContent  = errors.New("unable to fetch volfile content")
 )

@@ -31,23 +31,18 @@ func volumeEditHandler(w http.ResponseWriter, r *http.Request) {
 	//Lock on Volume Name
 	txn, err := transaction.NewTxnWithLocks(ctx, volname)
 	if err != nil {
-		if err == transaction.ErrLockTimeout {
-			restutils.SendHTTPError(ctx, w, http.StatusConflict, err)
-		} else {
-			restutils.SendHTTPError(ctx, w, http.StatusInternalServerError, err)
-		}
+		status, err := restutils.ErrToStatusCode(err)
+		restutils.SendHTTPError(ctx, w, status, err)
 		return
 	}
+
 	defer txn.Done()
 
 	//validate volume name
 	volinfo, err := volume.GetVolume(volname)
 	if err != nil {
-		if err == errors.ErrVolNotFound {
-			restutils.SendHTTPError(ctx, w, http.StatusNotFound, errors.ErrVolNotFound)
-		} else {
-			restutils.SendHTTPError(ctx, w, http.StatusInternalServerError, err)
-		}
+		status, err := restutils.ErrToStatusCode(err)
+		restutils.SendHTTPError(ctx, w, status, err)
 		return
 	}
 

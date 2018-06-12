@@ -156,11 +156,8 @@ func snapshotActivateHandler(w http.ResponseWriter, r *http.Request) {
 
 	txn, err := transaction.NewTxnWithLocks(ctx, snapname)
 	if err != nil {
-		if err == transaction.ErrLockTimeout {
-			restutils.SendHTTPError(ctx, w, http.StatusConflict, err)
-		} else {
-			restutils.SendHTTPError(ctx, w, http.StatusInternalServerError, err)
-		}
+		status, err := restutils.ErrToStatusCode(err)
+		restutils.SendHTTPError(ctx, w, status, err)
 		return
 	}
 	defer txn.Done()

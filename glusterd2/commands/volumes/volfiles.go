@@ -1,12 +1,10 @@
 package volumecommands
 
 import (
-	"fmt"
 	"net/http"
 
 	restutils "github.com/gluster/glusterd2/glusterd2/servers/rest/utils"
 	volgen "github.com/gluster/glusterd2/glusterd2/volgen2"
-	"github.com/gluster/glusterd2/pkg/errors"
 
 	"github.com/gorilla/mux"
 )
@@ -45,11 +43,8 @@ func volfileGetHandler(w http.ResponseWriter, r *http.Request) {
 	volfile, err := volgen.GetVolfile(volfileid)
 
 	if err != nil {
-		if err == errors.ErrVolFileNotFound {
-			restutils.SendHTTPError(ctx, w, http.StatusNotFound, errors.ErrVolFileNotFound)
-		} else {
-			restutils.SendHTTPError(ctx, w, http.StatusInternalServerError, fmt.Sprintf("unable to fetch volfile content %s", volfile))
-		}
+		status, err := restutils.ErrToStatusCode(err)
+		restutils.SendHTTPError(ctx, w, status, err)
 		return
 	}
 

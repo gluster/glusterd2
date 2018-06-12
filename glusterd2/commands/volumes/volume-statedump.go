@@ -105,22 +105,16 @@ func volumeStatedumpHandler(w http.ResponseWriter, r *http.Request) {
 
 	txn, err := transaction.NewTxnWithLocks(ctx, volname)
 	if err != nil {
-		if err == transaction.ErrLockTimeout {
-			restutils.SendHTTPError(ctx, w, http.StatusConflict, err)
-		} else {
-			restutils.SendHTTPError(ctx, w, http.StatusInternalServerError, err)
-		}
+		status, err := restutils.ErrToStatusCode(err)
+		restutils.SendHTTPError(ctx, w, status, err)
 		return
 	}
 	defer txn.Done()
 
 	volinfo, err := volume.GetVolume(volname)
 	if err != nil {
-		if err == gderrors.ErrVolNotFound {
-			restutils.SendHTTPError(ctx, w, http.StatusNotFound, gderrors.ErrVolNotFound)
-		} else {
-			restutils.SendHTTPError(ctx, w, http.StatusInternalServerError, err)
-		}
+		status, err := restutils.ErrToStatusCode(err)
+		restutils.SendHTTPError(ctx, w, status, err)
 		return
 	}
 

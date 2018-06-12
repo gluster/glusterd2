@@ -112,23 +112,17 @@ func georepCreateHandler(w http.ResponseWriter, r *http.Request) {
 
 	txn, err := transaction.NewTxnWithLocks(ctx, req.MasterVol)
 	if err != nil {
-		if err == transaction.ErrLockTimeout {
-			restutils.SendHTTPError(ctx, w, http.StatusConflict, err)
-		} else {
-			restutils.SendHTTPError(ctx, w, http.StatusInternalServerError, err)
-		}
+		status, err := restutils.ErrToStatusCode(err)
+		restutils.SendHTTPError(ctx, w, status, err)
 		return
 	}
 	defer txn.Done()
 
 	// Check if Master volume exists and Matches with passed Volume ID
-	vol, e := volume.GetVolume(req.MasterVol)
-	if e != nil {
-		if e == errors.ErrVolNotFound {
-			restutils.SendHTTPError(ctx, w, http.StatusNotFound, errors.ErrVolNotFound)
-		} else {
-			restutils.SendHTTPError(ctx, w, http.StatusInternalServerError, e)
-		}
+	vol, err := volume.GetVolume(req.MasterVol)
+	if err != nil {
+		status, err := restutils.ErrToStatusCode(err)
+		restutils.SendHTTPError(ctx, w, status, err)
 		return
 	}
 
@@ -275,23 +269,17 @@ func georepActionHandler(w http.ResponseWriter, r *http.Request, action actionTy
 
 	txn, err := transaction.NewTxnWithLocks(ctx, geoSession.MasterVol)
 	if err != nil {
-		if err == transaction.ErrLockTimeout {
-			restutils.SendHTTPError(ctx, w, http.StatusConflict, err)
-		} else {
-			restutils.SendHTTPError(ctx, w, http.StatusInternalServerError, err)
-		}
+		status, err := restutils.ErrToStatusCode(err)
+		restutils.SendHTTPError(ctx, w, status, err)
 		return
 	}
 	defer txn.Done()
 
 	// Fetch Volume details and check if Volume is in started state
-	vol, e := volume.GetVolume(geoSession.MasterVol)
-	if e != nil {
-		if e == errors.ErrVolNotFound {
-			restutils.SendHTTPError(ctx, w, http.StatusNotFound, errors.ErrVolNotFound)
-		} else {
-			restutils.SendHTTPError(ctx, w, http.StatusInternalServerError, e)
-		}
+	vol, err := volume.GetVolume(geoSession.MasterVol)
+	if err != nil {
+		status, err := restutils.ErrToStatusCode(err)
+		restutils.SendHTTPError(ctx, w, status, err)
 		return
 	}
 
@@ -357,9 +345,9 @@ func georepActionHandler(w http.ResponseWriter, r *http.Request, action actionTy
 
 	geoSession.Status = stateToSet
 
-	e = addOrUpdateSession(geoSession)
-	if e != nil {
-		restutils.SendHTTPError(ctx, w, http.StatusInternalServerError, e)
+	err = addOrUpdateSession(geoSession)
+	if err != nil {
+		restutils.SendHTTPError(ctx, w, http.StatusInternalServerError, err)
 		return
 	}
 
@@ -412,23 +400,17 @@ func georepDeleteHandler(w http.ResponseWriter, r *http.Request) {
 
 	txn, err := transaction.NewTxnWithLocks(ctx, geoSession.MasterVol)
 	if err != nil {
-		if err == transaction.ErrLockTimeout {
-			restutils.SendHTTPError(ctx, w, http.StatusConflict, err)
-		} else {
-			restutils.SendHTTPError(ctx, w, http.StatusInternalServerError, err)
-		}
+		status, err := restutils.ErrToStatusCode(err)
+		restutils.SendHTTPError(ctx, w, status, err)
 		return
 	}
 	defer txn.Done()
 
 	// Fetch Volume details and check if Volume exists
-	_, e := volume.GetVolume(geoSession.MasterVol)
-	if e != nil {
-		if e == errors.ErrVolNotFound {
-			restutils.SendHTTPError(ctx, w, http.StatusNotFound, errors.ErrVolNotFound)
-		} else {
-			restutils.SendHTTPError(ctx, w, http.StatusInternalServerError, e)
-		}
+	_, err = volume.GetVolume(geoSession.MasterVol)
+	if err != nil {
+		status, err := restutils.ErrToStatusCode(err)
+		restutils.SendHTTPError(ctx, w, status, err)
 		return
 	}
 
@@ -455,11 +437,11 @@ func georepDeleteHandler(w http.ResponseWriter, r *http.Request) {
 	err = txn.Do()
 	if err != nil {
 		logger.WithFields(log.Fields{
-			"error":       e.Error(),
+			"error":       err.Error(),
 			"mastervolid": masterid,
 			"remotevolid": remoteid,
 		}).Error("failed to delete geo-replication session")
-		restutils.SendHTTPError(ctx, w, http.StatusInternalServerError, e)
+		restutils.SendHTTPError(ctx, w, http.StatusInternalServerError, err)
 		return
 	}
 	events.Broadcast(newGeorepEvent(eventGeorepDeleted, geoSession, nil))
@@ -500,13 +482,10 @@ func georepStatusHandler(w http.ResponseWriter, r *http.Request) {
 	}
 
 	// Get Volume info, which is required to get the Bricks list
-	vol, e := volume.GetVolume(geoSession.MasterVol)
-	if e != nil {
-		if e == errors.ErrVolNotFound {
-			restutils.SendHTTPError(ctx, w, http.StatusNotFound, errors.ErrVolNotFound)
-		} else {
-			restutils.SendHTTPError(ctx, w, http.StatusInternalServerError, e)
-		}
+	vol, err := volume.GetVolume(geoSession.MasterVol)
+	if err != nil {
+		status, err := restutils.ErrToStatusCode(err)
+		restutils.SendHTTPError(ctx, w, status, err)
 		return
 	}
 
@@ -534,16 +513,16 @@ func georepStatusHandler(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	e = txn.Do()
-	if e != nil {
+	err = txn.Do()
+	if err != nil {
 		// TODO: Handle partial failure if a few glusterd's down
 
 		logger.WithFields(log.Fields{
-			"error":       e.Error(),
+			"error":       err.Error(),
 			"mastervolid": masterid,
 			"remotevolid": remoteid,
 		}).Error("failed to get status of geo-replication session")
-		restutils.SendHTTPError(ctx, w, http.StatusInternalServerError, e)
+		restutils.SendHTTPError(ctx, w, http.StatusInternalServerError, err)
 		return
 	}
 
@@ -759,22 +738,16 @@ func georepConfigSetHandler(w http.ResponseWriter, r *http.Request) {
 
 	txn, err := transaction.NewTxnWithLocks(ctx, geoSession.MasterVol)
 	if err != nil {
-		if err == transaction.ErrLockTimeout {
-			restutils.SendHTTPError(ctx, w, http.StatusConflict, err)
-		} else {
-			restutils.SendHTTPError(ctx, w, http.StatusInternalServerError, err)
-		}
+		status, err := restutils.ErrToStatusCode(err)
+		restutils.SendHTTPError(ctx, w, status, err)
 		return
 	}
 	defer txn.Done()
 
-	vol, e := volume.GetVolume(geoSession.MasterVol)
-	if e != nil {
-		if e == errors.ErrVolNotFound {
-			restutils.SendHTTPError(ctx, w, http.StatusNotFound, errors.ErrVolNotFound)
-		} else {
-			restutils.SendHTTPError(ctx, w, http.StatusInternalServerError, e)
-		}
+	vol, err := volume.GetVolume(geoSession.MasterVol)
+	if err != nil {
+		status, err := restutils.ErrToStatusCode(err)
+		restutils.SendHTTPError(ctx, w, status, err)
 		return
 	}
 
@@ -829,14 +802,14 @@ func georepConfigSetHandler(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	e = txn.Do()
-	if e != nil {
+	err = txn.Do()
+	if err != nil {
 		logger.WithFields(log.Fields{
-			"error":       e.Error(),
+			"error":       err.Error(),
 			"mastervolid": masterid,
 			"remotevolid": remoteid,
 		}).Error("failed to update geo-replication session config")
-		restutils.SendHTTPError(ctx, w, http.StatusInternalServerError, e)
+		restutils.SendHTTPError(ctx, w, http.StatusInternalServerError, err)
 		return
 	}
 
@@ -912,22 +885,16 @@ func georepConfigResetHandler(w http.ResponseWriter, r *http.Request) {
 
 	txn, err := transaction.NewTxnWithLocks(ctx, geoSession.MasterVol)
 	if err != nil {
-		if err == transaction.ErrLockTimeout {
-			restutils.SendHTTPError(ctx, w, http.StatusConflict, err)
-		} else {
-			restutils.SendHTTPError(ctx, w, http.StatusInternalServerError, err)
-		}
+		status, err := restutils.ErrToStatusCode(err)
+		restutils.SendHTTPError(ctx, w, status, err)
 		return
 	}
 	defer txn.Done()
 
-	vol, e := volume.GetVolume(geoSession.MasterVol)
-	if e != nil {
-		if e == errors.ErrVolNotFound {
-			restutils.SendHTTPError(ctx, w, http.StatusNotFound, errors.ErrVolNotFound)
-		} else {
-			restutils.SendHTTPError(ctx, w, http.StatusInternalServerError, e)
-		}
+	vol, err := volume.GetVolume(geoSession.MasterVol)
+	if err != nil {
+		status, err := restutils.ErrToStatusCode(err)
+		restutils.SendHTTPError(ctx, w, status, err)
 		return
 	}
 
@@ -971,14 +938,14 @@ func georepConfigResetHandler(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	e = txn.Do()
-	if e != nil {
+	err = txn.Do()
+	if err != nil {
 		logger.WithFields(log.Fields{
-			"error":       e.Error(),
+			"error":       err.Error(),
 			"mastervolid": masterid,
 			"remotevolid": remoteid,
 		}).Error("failed to update geo-replication session config")
-		restutils.SendHTTPError(ctx, w, http.StatusInternalServerError, e)
+		restutils.SendHTTPError(ctx, w, http.StatusInternalServerError, err)
 		return
 	}
 
@@ -1011,23 +978,17 @@ func georepSSHKeyGenerateHandler(w http.ResponseWriter, r *http.Request) {
 
 	txn, err := transaction.NewTxnWithLocks(ctx, volname)
 	if err != nil {
-		if err == transaction.ErrLockTimeout {
-			restutils.SendHTTPError(ctx, w, http.StatusConflict, err)
-		} else {
-			restutils.SendHTTPError(ctx, w, http.StatusInternalServerError, err)
-		}
+		status, err := restutils.ErrToStatusCode(err)
+		restutils.SendHTTPError(ctx, w, status, err)
 		return
 	}
 	defer txn.Done()
 
 	// Check if Volume exists
-	vol, e := volume.GetVolume(volname)
-	if e != nil {
-		if e == errors.ErrVolNotFound {
-			restutils.SendHTTPError(ctx, w, http.StatusNotFound, errors.ErrVolNotFound)
-		} else {
-			restutils.SendHTTPError(ctx, w, http.StatusInternalServerError, e)
-		}
+	vol, err := volume.GetVolume(volname)
+	if err != nil {
+		status, err := restutils.ErrToStatusCode(err)
+		restutils.SendHTTPError(ctx, w, status, err)
 		return
 	}
 
@@ -1098,23 +1059,17 @@ func georepSSHKeyPushHandler(w http.ResponseWriter, r *http.Request) {
 
 	txn, err := transaction.NewTxnWithLocks(ctx, volname)
 	if err != nil {
-		if err == transaction.ErrLockTimeout {
-			restutils.SendHTTPError(ctx, w, http.StatusConflict, err)
-		} else {
-			restutils.SendHTTPError(ctx, w, http.StatusInternalServerError, err)
-		}
+		status, err := restutils.ErrToStatusCode(err)
+		restutils.SendHTTPError(ctx, w, status, err)
 		return
 	}
 	defer txn.Done()
 
 	// Check if Volume exists
-	vol, e := volume.GetVolume(volname)
-	if e != nil {
-		if e == errors.ErrVolNotFound {
-			restutils.SendHTTPError(ctx, w, http.StatusNotFound, errors.ErrVolNotFound)
-		} else {
-			restutils.SendHTTPError(ctx, w, http.StatusInternalServerError, e)
-		}
+	vol, err := volume.GetVolume(volname)
+	if err != nil {
+		status, err := restutils.ErrToStatusCode(err)
+		restutils.SendHTTPError(ctx, w, status, err)
 		return
 	}
 
@@ -1148,10 +1103,10 @@ func georepSSHKeyPushHandler(w http.ResponseWriter, r *http.Request) {
 	err = txn.Do()
 	if err != nil {
 		logger.WithFields(log.Fields{
-			"error":   e.Error(),
+			"error":   err.Error(),
 			"volname": volname,
 		}).Error("failed to push SSH Keys")
-		restutils.SendHTTPError(ctx, w, http.StatusInternalServerError, e)
+		restutils.SendHTTPError(ctx, w, http.StatusInternalServerError, err)
 		return
 	}
 
