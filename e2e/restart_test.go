@@ -17,7 +17,7 @@ func TestRestart(t *testing.T) {
 	r.Nil(err)
 	r.True(gd.IsRunning())
 
-	dir, err := ioutil.TempDir("", "")
+	dir, err := ioutil.TempDir(baseWorkdir, t.Name())
 	r.Nil(err)
 	defer os.RemoveAll(dir)
 

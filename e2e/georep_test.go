@@ -17,7 +17,7 @@ func TestGeorepCreateDelete(t *testing.T) {
 	r.Nil(err)
 	defer teardownCluster(gds)
 
-	brickDir, err := ioutil.TempDir("", "TestGeorepCreate")
+	brickDir, err := ioutil.TempDir(baseWorkdir, t.Name())
 	r.Nil(err)
 	defer os.RemoveAll(brickDir)
 
