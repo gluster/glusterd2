@@ -329,7 +329,6 @@ func loopDevicesCleanup(t *testing.T) error {
 	cleanupAllBrickMounts(t)
 	cleanupAllGlusterVgs(t)
 	cleanupAllGlusterPvs(t)
-	cleanupAllGlusterPvs(t)
 
 	// Cleanup device files
 	devicefiles, err := filepath.Glob(baseWorkdir + "/*.img")
