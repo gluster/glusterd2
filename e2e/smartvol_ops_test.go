@@ -226,15 +226,15 @@ func TestSmartVolume(t *testing.T) {
 
 	client = initRestclient(gds[0].ClientAddress)
 
-	tmpDir, err = ioutil.TempDir("", t.Name())
+	devicesDir, err := ioutil.TempDir(baseWorkdir, t.Name())
 	r.Nil(err)
-	t.Logf("Using temp dir: %s", tmpDir)
+	t.Logf("Using temp dir: %s", devicesDir)
 
 	// Device Setup
 	// Around 150MB will be reserved during pv/vg creation, create device with more size
-	r.Nil(prepareLoopDevice(baseWorkdir+"/gluster_dev1.img", "1", "400M"))
-	r.Nil(prepareLoopDevice(baseWorkdir+"/gluster_dev2.img", "2", "400M"))
-	r.Nil(prepareLoopDevice(baseWorkdir+"/gluster_dev3.img", "3", "400M"))
+	r.Nil(prepareLoopDevice(devicesDir+"/gluster_dev1.img", "1", "400M"))
+	r.Nil(prepareLoopDevice(devicesDir+"/gluster_dev2.img", "2", "400M"))
+	r.Nil(prepareLoopDevice(devicesDir+"/gluster_dev3.img", "3", "400M"))
 
 	_, err = client.DeviceAdd(gds[0].PeerID(), "/dev/gluster_loop1")
 	r.Nil(err)
