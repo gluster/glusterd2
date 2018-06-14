@@ -59,7 +59,7 @@ func takeStatedump(c transaction.TxnCtx) error {
 			if err != nil {
 				return err
 			}
-			if err := daemon.Signal(d, unix.SIGUSR1); err != nil {
+			if err := daemon.Signal(d, unix.SIGUSR1, c.Logger()); err != nil {
 				// only log, don't error out
 				c.Logger().WithError(err).WithField(
 					"daemon", d.ID()).Error("Failed to take statedump for daemon")
@@ -72,7 +72,7 @@ func takeStatedump(c transaction.TxnCtx) error {
 		if err != nil {
 			return err
 		}
-		if err := daemon.Signal(d, unix.SIGUSR1); err != nil {
+		if err := daemon.Signal(d, unix.SIGUSR1, c.Logger()); err != nil {
 			// only log, don't error out
 			c.Logger().WithError(err).WithField(
 				"daemon", d.ID()).Error("Failed to take statedump for daemon")

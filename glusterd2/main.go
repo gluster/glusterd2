@@ -28,7 +28,6 @@ import (
 )
 
 func main() {
-
 	if err := gdctx.SetHostnameAndIP(); err != nil {
 		log.WithError(err).Fatal("Failed to get and set hostname or IP")
 	}
