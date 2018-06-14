@@ -22,7 +22,6 @@ const (
 	helpVolumeStopCmd   = "Stop a Gluster Volume"
 	helpVolumeDeleteCmd = "Delete a Gluster Volume"
 	helpVolumeGetCmd    = "Get Gluster Volume Options"
-	helpVolumeResetCmd  = "Reset a Gluster Volume Option"
 	helpVolumeInfoCmd   = "Get Gluster Volume Info"
 	helpVolumeListCmd   = "List all Gluster Volumes"
 	helpVolumeStatusCmd = "Get Gluster Volume Status"
@@ -75,7 +74,7 @@ func init() {
 	volumeGetCmd.Flags().BoolVar(&flagGetBsc, "basic", true, "Get basic options")
 	volumeGetCmd.Flags().BoolVar(&flagGetMdf, "modified", false, "Get modified options")
 	volumeCmd.AddCommand(volumeGetCmd)
-	volumeCmd.AddCommand(volumeResetCmd)
+
 	volumeCmd.AddCommand(volumeSizeCmd)
 
 	volumeInfoCmd.Flags().StringVar(&flagCmdFilterKey, "key", "", "Filter by metadata key")
@@ -269,16 +268,6 @@ var volumeGetCmd = &cobra.Command{
 		}
 		table.Render()
 
-	},
-}
-
-var volumeResetCmd = &cobra.Command{
-	Use:   "reset",
-	Short: helpVolumeResetCmd,
-	Args:  cobra.RangeArgs(1, 2),
-	Run: func(cmd *cobra.Command, args []string) {
-		volname := cmd.Flags().Args()[0]
-		fmt.Println("RESET:", volname)
 	},
 }
 

@@ -451,6 +451,11 @@ func TestVolumeOptions(t *testing.T) {
 		_, err = client.VolumeGet(volname, validKey)
 		r.Nil(err)
 
+		var resetOptionReq api.VolOptionResetReq
+		resetOptionReq.Options = append(resetOptionReq.Options, validKey)
+		resetOptionReq.Force = true
+		r.Nil(client.VolumeReset(volname, resetOptionReq))
+
 		err = client.VolumeDelete(volname)
 		r.Nil(err)
 	}
@@ -485,9 +490,26 @@ func TestVolumeOptions(t *testing.T) {
 	settableKey := "afr.use-compound-fops"
 	optionReq.Options = map[string]string{settableKey: "on"}
 	r.Nil(client.VolumeSet(volname, optionReq))
+
+	var resetOptionReq api.VolOptionResetReq
+	resetOptionReq.Options = []string{"afr.use-compound-fops"}
+	resetOptionReq.Force = true
+	r.Nil(client.VolumeReset(volname, resetOptionReq))
+
+	validOpKeys = []string{"io-stats.count-fop-hits", "io-stats.latency-measurement"}
+	for _, validKey := range validOpKeys {
+		optionReq.Options = map[string]string{validKey: "on"}
+		r.Nil(client.VolumeSet(volname, optionReq))
+	}
+
+	resetOptionReq.Force = true
+	resetOptionReq.All = true
+	r.Nil(client.VolumeReset(volname, resetOptionReq))
+
 	notSettableKey := "afr.consistent-io"
 	optionReq.Options = map[string]string{notSettableKey: "on"}
 	r.NotNil(client.VolumeSet(volname, optionReq))
+
 	r.Nil(client.VolumeDelete(volname))
 
 	// group option test cases
@@ -501,7 +523,6 @@ func TestVolumeOptions(t *testing.T) {
 		err = client.VolumeDelete(volname)
 		r.Nil(err)
 	}
-
 	for _, validKey := range groupOpKeys {
 		createReq.Options = map[string]string{validKey: "off"}
 
