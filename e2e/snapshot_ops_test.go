@@ -20,6 +20,7 @@ import (
 
 var (
 	snapname     = "snaptest"
+	clonename    = "clonevolume"
 	snapTestName string
 )
 
@@ -34,8 +35,9 @@ func TestSnapshot(t *testing.T) {
 
 	prefix := fmt.Sprintf("%s/%s/bricks/", baseWorkdir, snapTestName)
 	lvmtest.Cleanup(prefix, brickCount)
-	defer lvmtest.Cleanup(prefix, brickCount)
-
+	defer func() {
+		lvmtest.Cleanup(prefix, brickCount)
+	}()
 	gds, err = setupCluster("./config/1.toml", "./config/2.toml")
 	r.Nil(err)
 	defer teardownCluster(gds)
@@ -71,6 +73,7 @@ func TestSnapshot(t *testing.T) {
 	t.Run("List", testSnapshotList)
 	t.Run("StatusAndForceActivate", testSnapshotStatusForceActivate)
 	t.Run("Info", testSnapshotInfo)
+	t.Run("Clone", testSnapshotClone)
 	t.Run("Restore", testSnapshotRestore)
 	t.Run("MountRestoredVolume", testRestoredVolumeMount)
 	t.Run("Deactivate", testSnapshotDeactivate)
@@ -131,6 +134,30 @@ func testSnapshotCreate(t *testing.T) {
 	_, err = client.SnapshotCreate(snapshotCreateReq)
 	r.Nil(err, "snapshot create failed")
 
+}
+
+func testSnapshotClone(t *testing.T) {
+	r := require.New(t)
+	snapshotCloneReq := api.SnapCloneReq{
+		CloneName: clonename,
+	}
+	_, err := client.SnapshotClone(snapname, snapshotCloneReq)
+	r.Nil(err, "snapshot clone failed")
+
+	err = client.VolumeStart(clonename, true)
+	r.Nil(err, "Failed to start cloned volume")
+
+	volumes, err := client.Volumes("")
+	r.Nil(err)
+	r.Len(volumes, 2)
+
+	r.Nil(client.VolumeStop(clonename), "volume stop failed")
+
+	r.Nil(client.VolumeDelete(clonename))
+
+	volumes, err = client.Volumes("")
+	r.Nil(err)
+	r.Len(volumes, 1)
 }
 
 func testSnapshotList(t *testing.T) {

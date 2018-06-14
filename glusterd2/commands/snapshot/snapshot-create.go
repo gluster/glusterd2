@@ -288,7 +288,7 @@ func updateMntOps(FsType, MntOpts string) string {
 	}
 	return MntOpts
 }
-func populateBrickMountData(volinfo *volume.Volinfo, snapName string) (map[string]snapshot.BrickMountData, error) {
+func populateSnapBrickMountData(volinfo *volume.Volinfo, snapName string) (map[string]snapshot.BrickMountData, error) {
 	nodeData := make(map[string]snapshot.BrickMountData)
 
 	brickCount := 0
@@ -317,7 +317,7 @@ func populateBrickMountData(volinfo *volume.Volinfo, snapName string) (map[strin
 
 			return nil, err
 		}
-		devicePath := fmt.Sprintf("/dev/%s/%s_%d", vG, snapName, brickCount)
+		devicePath := fmt.Sprintf("/dev/%s/%s_%s_%d", vG, "snap", snapName, brickCount)
 
 		nodeID := strings.Replace(b.ID.String(), "-", "", -1)
 
@@ -381,28 +381,16 @@ func validateSnapCreate(c transaction.TxnCtx) error {
 
 		return errors.New("one or more brick is not compatable")
 	}
-	if nodeData, err = populateBrickMountData(volinfo, req.SnapName); err != nil {
+	if nodeData, err = populateSnapBrickMountData(volinfo, req.SnapName); err != nil {
+
 		return err
 	}
 	c.SetNodeResult(gdctx.MyUUID, snapshot.NodeDataTxnKey, &nodeData)
 	//Quorum check ?
 	return nil
 }
-
-func takeBrickSnapshots(c transaction.TxnCtx) error {
-	var snapInfo snapshot.Snapinfo
-
-	if err := c.Get("snapinfo", &snapInfo); err != nil {
-		return err
-	}
-
-	snapVol := snapInfo.SnapVolinfo
-	volinfo, err := volume.GetVolume(snapInfo.ParentVolume)
-	if err != nil {
-		return err
-	}
-
-	for subvolCount, subvol := range volinfo.Subvols {
+func takeVolumeSnapshots(newVol, oldVol *volume.Volinfo) error {
+	for subvolCount, subvol := range oldVol.Subvols {
 		for count, b := range subvol.Bricks {
 			if !uuid.Equal(b.PeerID, gdctx.MyUUID) {
 				continue
@@ -410,7 +398,7 @@ func takeBrickSnapshots(c transaction.TxnCtx) error {
 			/*
 				TODO : Run as a go routine
 			*/
-			snapBrick := snapVol.Subvols[subvolCount].Bricks[count]
+			snapBrick := newVol.Subvols[subvolCount].Bricks[count]
 			mountData := snapBrick.MountInfo
 			length := len(b.Path) - len(mountData.Mountdir)
 			mountRoot := b.Path[:length]
@@ -426,8 +414,12 @@ func takeBrickSnapshots(c transaction.TxnCtx) error {
 			}).Debug("Running snapshot create command")
 
 			if err := lvm.LVSnapshot(mntInfo.FsName, mountData.DevicePath); err != nil {
-				c.Logger().WithError(err).WithField(
-					"brick", b.Path).Error("Snapshot failed")
+				log.WithFields(log.Fields{
+					"mount device": mntInfo.FsName,
+					"devicePath":   mountData.DevicePath,
+					"Path":         b.Path,
+				}).Error("Running snapshot create command failed")
+
 				return err
 			}
 
@@ -440,16 +432,32 @@ func takeBrickSnapshots(c transaction.TxnCtx) error {
 			}
 
 		}
-
 	}
 	return nil
 }
 
-func createSnapSubvols(snapVolinfo, volinfo *volume.Volinfo, nodeData map[string]snapshot.BrickMountData) error {
+func takeSnapshots(c transaction.TxnCtx) error {
+	var snapInfo snapshot.Snapinfo
+
+	if err := c.Get("snapinfo", &snapInfo); err != nil {
+		return err
+	}
+
+	snapVol := &snapInfo.SnapVolinfo
+	volinfo, err := volume.GetVolume(snapInfo.ParentVolume)
+	if err != nil {
+		return err
+	}
+	err = takeVolumeSnapshots(snapVol, volinfo)
+	return err
+
+}
+
+func createSnapSubvols(newVolinfo, origVolinfo *volume.Volinfo, nodeData map[string]snapshot.BrickMountData) error {
 	var err error
-	for idx, subvol := range volinfo.Subvols {
+	for idx, subvol := range origVolinfo.Subvols {
 		subvolType := volume.SubvolTypeToString(subvol.Type)
-		name := fmt.Sprintf("%s-%s-%d", snapVolinfo.Name, strings.ToLower(subvolType), idx)
+		name := fmt.Sprintf("%s-%s-%d", newVolinfo.Name, strings.ToLower(subvolType), idx)
 		s := volume.Subvol{
 			Name: name,
 			ID:   uuid.NewRandom(),
@@ -474,7 +482,7 @@ func createSnapSubvols(snapVolinfo, volinfo *volume.Volinfo, nodeData map[string
 
 				bricks = append(bricks, brick)
 			}
-			s.Bricks, err = volume.NewBrickEntriesFunc(bricks, snapVolinfo.Name, snapVolinfo.ID)
+			s.Bricks, err = volume.NewBrickEntriesFunc(bricks, newVolinfo.Name, newVolinfo.ID)
 			if err != nil {
 				return err
 			}
@@ -490,7 +498,7 @@ func createSnapSubvols(snapVolinfo, volinfo *volume.Volinfo, nodeData map[string
 			}
 
 		}
-		snapVolinfo.Subvols = append(snapVolinfo.Subvols, s)
+		newVolinfo.Subvols = append(newVolinfo.Subvols, s)
 
 	}
 	return nil
@@ -504,6 +512,7 @@ func createSnapinfo(c transaction.TxnCtx) error {
 		"feature.deem-statfs",
 		"features.quota-deem-statfs",
 		"bitrot-stub.bitrot",
+		"replicate.self-heal-daemon",
 	}
 
 	nodeData := make(map[string]snapshot.BrickMountData)
@@ -535,7 +544,7 @@ func createSnapinfo(c transaction.TxnCtx) error {
 
 	for _, key := range ignoreOps {
 		snapInfo.OptionChange[key] = snapVolinfo.Options[key]
-		delete(snapVolinfo.Options, key)
+		snapVolinfo.Options[key] = "disable"
 	}
 
 	snapVolinfo.State = volume.VolCreated
@@ -547,7 +556,6 @@ func createSnapinfo(c transaction.TxnCtx) error {
 		TODO
 		For now disabling heal
 	*/
-	snapVolinfo.Options["replicate.self-heal-daemon"] = "off"
 
 	err = createSnapSubvols(snapVolinfo, volinfo, nodeData)
 	if err != nil {
@@ -650,7 +658,7 @@ func registerSnapCreateStepFuncs() {
 		{"snap-create.Validate", validateSnapCreate},
 		{"snap-create.CreateSnapinfo", createSnapinfo},
 		{"snap-create.ActivateBarrier", activateBarrier},
-		{"snap-create.TakeBrickSnapshots", takeBrickSnapshots},
+		{"snap-create.TakeBrickSnapshots", takeSnapshots},
 		{"snap-create.UndoBrickSnapshots", undoBrickSnapshots},
 		{"snap-create.DeactivateBarrier", deactivateBarrier},
 		{"snap-create.StoreSnapshot", storeSnapshot},

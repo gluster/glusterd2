@@ -26,7 +26,7 @@ func snapshotDelete(c transaction.TxnCtx) error {
 	snapVol := snapinfo.SnapVolinfo
 	for _, b := range snapVol.GetLocalBricks() {
 		if snapVol.State == volume.VolStarted {
-			if err := snapshot.StopBrick(b); err != nil {
+			if err := snapshot.StopBrick(b, c.Logger()); err != nil {
 				c.Logger().WithError(err).WithField(
 					"brick", b.Path).Warning("Failed to cleanup the brick.Earlier it might have stopped abnormaly")
 

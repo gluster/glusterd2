@@ -90,11 +90,6 @@ func (c *Command) Routes() route.Routes {
 	}
 }
 
-func snapshotCloneHandler(w http.ResponseWriter, r *http.Request) {
-	ctx := r.Context()
-	restutils.SendHTTPResponse(ctx, w, http.StatusNotImplemented, "Snapshot Clone")
-}
-
 func snapshotConfigGetHandler(w http.ResponseWriter, r *http.Request) {
 	ctx := r.Context()
 	restutils.SendHTTPResponse(ctx, w, http.StatusNotImplemented, "Snapshot Config Get")
@@ -119,5 +114,6 @@ func (c *Command) RegisterStepFuncs() {
 	registerSnapDeleteStepFuncs()
 	registerSnapshotStatusStepFuncs()
 	registerSnapRestoreStepFuncs()
+	registerSnapCloneStepFuncs()
 	return
 }
