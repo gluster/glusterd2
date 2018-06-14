@@ -31,7 +31,7 @@ func QuotadStart(c transaction.TxnCtx) error {
 	if err != nil {
 		return err
 	}
-	err = daemon.Start(quotadDaemon, true)
+	err = daemon.Start(quotadDaemon, true, c.Logger())
 	if err == errors.ErrProcessAlreadyRunning {
 		c.Logger().WithError(err).Warn("Quota Daemon is already running.")
 		return nil

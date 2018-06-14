@@ -2,6 +2,8 @@ package xlator
 
 import (
 	"github.com/gluster/glusterd2/glusterd2/volume"
+
+	log "github.com/sirupsen/logrus"
 )
 
 var optionActors = make(map[string]OptionActor)
@@ -12,11 +14,11 @@ var optionActors = make(map[string]OptionActor)
 // have the xlator/feature specific logic executed during volume set. An example
 // of such logic is the task of starting and stopping daemon.
 type OptionActor interface {
-	// Do function takes volinfo, option key, option value.
-	Do(*volume.Volinfo, string, string) error
-	// Undo function takes volinfo, option key, option value. The returned
+	// Do function takes volinfo, option key, option value, logger.
+	Do(*volume.Volinfo, string, string, log.FieldLogger) error
+	// Undo function takes volinfo, option key, option value and logger. The returned
 	// error is currently ignored.
-	Undo(*volume.Volinfo, string, string) error
+	Undo(*volume.Volinfo, string, string, log.FieldLogger) error
 }
 
 // RegisterOptionActor registers a xlator's type implementing OptionActor

@@ -102,7 +102,7 @@ func startBricksOnExpand(c transaction.TxnCtx) error {
 			"brick":  b.String(),
 		}).Info("Starting brick")
 
-		if err := b.StartBrick(); err != nil {
+		if err := b.StartBrick(c.Logger()); err != nil {
 			return err
 		}
 	}
@@ -129,7 +129,7 @@ func undoStartBricksOnExpand(c transaction.TxnCtx) error {
 			"brick":  b.String(),
 		}).Info("volume expand failed, stopping brick")
 
-		if err := b.StopBrick(); err != nil {
+		if err := b.StopBrick(c.Logger()); err != nil {
 			c.Logger().WithFields(log.Fields{
 				"error":  err,
 				"volume": b.VolumeName,
