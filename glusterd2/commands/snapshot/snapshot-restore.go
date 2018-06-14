@@ -53,7 +53,7 @@ func snapRestore(c transaction.TxnCtx) error {
 	//Do a proper snapshot stop, once there is a generic way of stopping all the proceess of a volume.
 	for _, b := range onlineBricks {
 		if err = b.TerminateBrick(); err != nil {
-			if err = b.StopBrick(); err != nil {
+			if err = b.StopBrick(c.Logger()); err != nil {
 				return err
 			}
 		}
@@ -136,7 +136,7 @@ func undoSnapRestore(c transaction.TxnCtx) error {
 			return err
 		}
 		if snapVol.State == volume.VolStarted {
-			if err := b.StartBrick(); err != nil {
+			if err := b.StartBrick(c.Logger()); err != nil {
 				if err == errors.ErrProcessAlreadyRunning {
 					continue
 				}
@@ -144,7 +144,7 @@ func undoSnapRestore(c transaction.TxnCtx) error {
 			}
 		} else {
 			if err = b.TerminateBrick(); err != nil {
-				if err = b.StopBrick(); err != nil {
+				if err = b.StopBrick(c.Logger()); err != nil {
 					//Process might not be running,
 					//TODO once we have errors.ErrProcessAlreadyStopped
 					//check for other errors

@@ -124,7 +124,8 @@ func readMountEntry(entry string) *Mntent {
 	}
 }
 
-func getMounts() ([]*Mntent, error) {
+//GetMounts returns all the mount point entries from /proc/mounts
+func GetMounts() ([]*Mntent, error) {
 
 	content, err := ioutil.ReadFile("/proc/mounts")
 	if err != nil {

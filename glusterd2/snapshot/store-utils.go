@@ -49,9 +49,9 @@ func GetSnapshots() ([]*Snapinfo, error) {
 
 		if err := json.Unmarshal(kv.Value, &snap); err != nil {
 			log.WithFields(log.Fields{
-				"volume": string(kv.Key),
-				"error":  err,
-			}).Error("Failed to unmarshal volume")
+				"snapshot": string(kv.Key),
+				"error":    err,
+			}).Error("Failed to unmarshal snapshot")
 			continue
 		}
 
@@ -78,13 +78,13 @@ func GetSnapshotVolumes() ([]*volume.Volinfo, error) {
 func AddOrUpdateSnap(snapInfo *Snapinfo) error {
 	json, e := json.Marshal(snapInfo)
 	if e != nil {
-		log.WithField("error", e).Error("Failed to marshal the volinfo object")
+		log.WithField("error", e).Error("Failed to marshal the snapinfo object")
 		return e
 	}
 
 	_, e = gdstore.Put(context.TODO(), GetStorePath(snapInfo), string(json))
 	if e != nil {
-		log.WithError(e).Error("Couldn't add volume to store")
+		log.WithError(e).Error("Couldn't add snapshot to store")
 		return e
 	}
 	return nil
@@ -101,12 +101,12 @@ func GetSnapshot(name string) (*Snapinfo, error) {
 	}
 
 	if resp.Count != 1 {
-		log.WithField("volume", name).Error("volume not found")
-		return nil, errors.New("volume not found")
+		log.WithField("snapshot", name).Error("snapshot not found")
+		return nil, errors.New("Snapshot not found")
 	}
 
 	if e = json.Unmarshal(resp.Kvs[0].Value, &snap); e != nil {
-		log.WithError(e).Error("Failed to unmarshal the data into volinfo object")
+		log.WithError(e).Error("Failed to unmarshal the data into snapinfo object")
 		return nil, e
 	}
 	return &snap, nil
