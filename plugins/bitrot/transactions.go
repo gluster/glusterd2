@@ -42,7 +42,7 @@ func IsBitrotAffectedNode() bool {
 }
 
 // ManageBitd manages the bitrot daemon bitd. It stops or stops/starts the daemon based on disable or enable respectively.
-func ManageBitd(bitrotDaemon *Bitd) error {
+func ManageBitd(bitrotDaemon *Bitd, logger log.FieldLogger) error {
 	var err error
 	AffectedNode := IsBitrotAffectedNode()
 
@@ -50,11 +50,11 @@ func ManageBitd(bitrotDaemon *Bitd) error {
 	if !AffectedNode {
 		// This condition is for disable
 		// TODO: Need to ignore errors where process is already running.
-		daemon.Stop(bitrotDaemon, true)
+		daemon.Stop(bitrotDaemon, true, logger)
 	} else {
 		//TODO: Handle ENOENT of pidFile
-		err = daemon.Stop(bitrotDaemon, true)
-		err = daemon.Start(bitrotDaemon, true)
+		err = daemon.Stop(bitrotDaemon, true, logger)
+		err = daemon.Start(bitrotDaemon, true, logger)
 		if err != nil {
 			return err
 		}
@@ -63,7 +63,7 @@ func ManageBitd(bitrotDaemon *Bitd) error {
 }
 
 // ManageScrubd manages the scrubber daemon. It stops or stops/starts the daemon based on disable or enable respectively.
-func ManageScrubd() error {
+func ManageScrubd(logger log.FieldLogger) error {
 	AffectedNode := IsBitrotAffectedNode()
 	scrubDaemon, err := newScrubd()
 	if err != nil {
@@ -73,11 +73,11 @@ func ManageScrubd() error {
 	if !AffectedNode {
 		// This condition is for disable
 		// TODO: Need to ignore errors where process is already running.
-		daemon.Stop(scrubDaemon, true)
+		daemon.Stop(scrubDaemon, true, logger)
 	} else {
 		//TODO: Handle ENOENT of pidFile
-		daemon.Stop(scrubDaemon, true)
-		err = daemon.Start(scrubDaemon, true)
+		daemon.Stop(scrubDaemon, true, logger)
+		err = daemon.Start(scrubDaemon, true, logger)
 		if err != nil {
 			return err
 		}
@@ -92,12 +92,12 @@ func txnBitrotEnableDisable(c transaction.TxnCtx) error {
 	}
 
 	// Manange bitd and scrub daemons
-	err = ManageBitd(bitrotDaemon)
+	err = ManageBitd(bitrotDaemon, c.Logger())
 	if err != nil {
 		goto error
 	}
 
-	err = ManageScrubd()
+	err = ManageScrubd(c.Logger())
 	if err != nil {
 		goto error
 	}
