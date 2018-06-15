@@ -12,7 +12,8 @@ import (
 	"github.com/gluster/glusterd2/glusterd2/transaction"
 	"github.com/gluster/glusterd2/glusterd2/volume"
 	"github.com/gluster/glusterd2/pkg/api"
-	"github.com/gluster/glusterd2/plugins/rebalance"
+	customerror "github.com/gluster/glusterd2/pkg/errors"
+	rebalance "github.com/gluster/glusterd2/plugins/rebalance"
 	rebalanceapi "github.com/gluster/glusterd2/plugins/rebalance/api"
 
 	"github.com/gorilla/mux"
@@ -26,7 +27,7 @@ func registerVolShrinkStepFuncs() {
 }
 
 func startRebalance(c transaction.TxnCtx) error {
-	var rinfo rebalanceapi.RebalanceInfo
+	var rinfo rebalanceapi.RebalInfo
 	err := c.Get("rinfo", &rinfo)
 	if err != nil {
 		return err
@@ -47,7 +48,7 @@ func validateVolumeShrinkReq(req api.VolShrinkReq) error {
 
 	for _, brick := range req.Bricks {
 		if dupEntry[brick.PeerID+filepath.Clean(brick.Path)] == true {
-			return errors.ErrDuplicateBrickPath
+			return customerror.ErrDuplicateBrickPath
 		}
 		dupEntry[brick.PeerID+filepath.Clean(brick.Path)] = true
 
@@ -66,7 +67,7 @@ func volumeShrinkHandler(w http.ResponseWriter, r *http.Request) {
 
 	var req api.VolShrinkReq
 	if err := restutils.UnmarshalRequest(r, &req); err != nil {
-		restutils.SendHTTPError(ctx, w, http.StatusUnprocessableEntity, err.Error(), api.ErrCodeDefault)
+		restutils.SendHTTPError(ctx, w, http.StatusUnprocessableEntity, err)
 		return
 	}
 
@@ -74,54 +75,6 @@ func volumeShrinkHandler(w http.ResponseWriter, r *http.Request) {
 		restutils.SendHTTPError(ctx, w, http.StatusBadRequest, err)
 		return
 	}
-
-	volinfo, err := volume.GetVolume(volname)
-	if err != nil {
-		restutils.SendHTTPError(ctx, w, http.StatusNotFound, err.Error(), api.ErrCodeDefault)
-		return
-	}
-
-	for index := range req.Bricks {
-		for _, b := range req.Bricks {
-			isPresent = false
-			for _, brick := range volinfo.Subvols[index].Bricks {
-				if brick.PeerID.String() == b.PeerID && brick.Path == filepath.Clean(b.Path) {
-					flag = true
-					break
-				}
-			}
-			if !isPresent {
-				restutils.SendHTTPError(ctx, w, http.StatusBadRequest, "One or more brick is not part of given volume")
-				return
-			}
-		}
-	}
-
-	switch volinfo.Type {
-	case volume.Distribute:
-	case volume.Replicate:
-	case volume.DistReplicate:
-		if len(req.Bricks)%volinfo.Subvols[0].ReplicaCount != 0 {
-			err := errors.New("wrong number of bricks to remove")
-			restutils.SendHTTPError(ctx, w, http.StatusInternalServerError, err.Error(), api.ErrCodeDefault)
-			return
-		}
-	default:
-		err := errors.New("not implemented: " + volinfo.Type.String())
-		restutils.SendHTTPError(ctx, w, http.StatusInternalServerError, err.Error(), api.ErrCodeDefault)
-		return
-
-	}
-
-	nodes, err := req.Nodes()
-	if err != nil {
-		logger.WithError(err).Error("could not prepare node list")
-		restutils.SendHTTPError(ctx, w, http.StatusInternalServerError, err)
-		return
-	}
-
-	txn := transaction.NewTxn(ctx)
-	defer txn.Cleanup()
 
 	txn, err := transaction.NewTxnWithLocks(ctx, volname)
 	if err != nil {
@@ -133,16 +86,16 @@ func volumeShrinkHandler(w http.ResponseWriter, r *http.Request) {
 
 	volinfo, err := volume.GetVolume(volname)
 	if err != nil {
-		restutils.SendHTTPError(ctx, w, http.StatusNotFound, err.Error(), api.ErrCodeDefault)
+		restutils.SendHTTPError(ctx, w, http.StatusNotFound, err)
 		return
 	}
 
 	for index := range req.Bricks {
 		for _, b := range req.Bricks {
-			isPresent = false
+			isPresent := false
 			for _, brick := range volinfo.Subvols[index].Bricks {
 				if brick.PeerID.String() == b.PeerID && brick.Path == filepath.Clean(b.Path) {
-					flag = true
+					isPresent = true
 					break
 				}
 			}
@@ -177,7 +130,6 @@ func volumeShrinkHandler(w http.ResponseWriter, r *http.Request) {
 	}
 
 	txn.Steps = []*transaction.Step{
-		lock,
 		{
 			DoFunc: "vol-shrink.UpdateVolinfo",
 			Nodes:  []uuid.UUID{gdctx.MyUUID},
@@ -190,8 +142,6 @@ func volumeShrinkHandler(w http.ResponseWriter, r *http.Request) {
 			DoFunc: "vol-shrink.StartRebalance",
 			Nodes:  nodes,
 		},
-
-		unlock,
 	}
 
 	decommissionedSubvols, err := findDecommissioned(req.Bricks, volinfo)
@@ -205,29 +155,28 @@ func volumeShrinkHandler(w http.ResponseWriter, r *http.Request) {
 	// It seems that there is no other way to include this information in the rebalance volfile right now.
 	volinfo.Options["distribute.decommissioned-bricks"] = strings.TrimSpace(decommissionedSubvols)
 
-	var rinfo rebalanceapi.RebalanceInfo
-	var commit uint64
+	var rinfo rebalanceapi.RebalInfo
 	rinfo.Volname = volname
 	rinfo.RebalanceID = uuid.NewRandom()
-	rinfo.Cmd = rebalanceapi.GfDefragCmdStartForce
-	rinfo.Status = rebalanceapi.GfDefragStatusNotStarted
-	rinfo.CommitHash = rebalance.SetCommitHash(commit)
+	rinfo.Cmd = rebalanceapi.CmdStartForce
+	rinfo.State = rebalanceapi.NotStarted
+	rinfo.CommitHash = rebalance.SetCommitHash()
 	if err := txn.Ctx.Set("rinfo", rinfo); err != nil {
-		restutils.SendHTTPError(ctx, w, http.StatusInternalServerError, err.Error(), api.ErrCodeDefault)
+		restutils.SendHTTPError(ctx, w, http.StatusInternalServerError, err)
 		return
 	}
 
 	if err := txn.Ctx.Set("volinfo", volinfo); err != nil {
-		restutils.SendHTTPError(ctx, w, http.StatusInternalServerError, err.Error(), api.ErrCodeDefault)
+		restutils.SendHTTPError(ctx, w, http.StatusInternalServerError, err)
 		return
 	}
 
 	if err = txn.Do(); err != nil {
 		logger.WithError(err).Error("remove bricks start transaction failed")
 		if err == transaction.ErrLockTimeout {
-			restutils.SendHTTPError(ctx, w, http.StatusConflict, err.Error(), api.ErrCodeDefault)
+			restutils.SendHTTPError(ctx, w, http.StatusConflict, err)
 		} else {
-			restutils.SendHTTPError(ctx, w, http.StatusInternalServerError, err.Error(), api.ErrCodeDefault)
+			restutils.SendHTTPError(ctx, w, http.StatusInternalServerError, err)
 		}
 		return
 	}
@@ -239,7 +188,7 @@ func volumeShrinkHandler(w http.ResponseWriter, r *http.Request) {
 func findDecommissioned(bricks []api.BrickReq, volinfo *volume.Volinfo) (string, error) {
 	brickSet := make(map[string]bool)
 	for _, brick := range bricks {
-		u := uuid.Parse(brick.NodeID)
+		u := uuid.Parse(brick.PeerID)
 		if u == nil {
 			return "", errors.New("Invalid nodeid")
 		}
@@ -247,13 +196,13 @@ func findDecommissioned(bricks []api.BrickReq, volinfo *volume.Volinfo) (string,
 		if err != nil {
 			return "", err
 		}
-		brickSet[brick.NodeID+":"+path] = true
+		brickSet[brick.PeerID+":"+path] = true
 	}
 
 	var subvolMap = make(map[string]int)
 	for _, subvol := range volinfo.Subvols {
 		for _, b := range subvol.Bricks {
-			if brickSet[b.NodeID.String()+":"+b.Path] {
+			if brickSet[b.PeerID.String()+":"+b.Path] {
 				if count, ok := subvolMap[subvol.Name]; !ok {
 					subvolMap[subvol.Name] = 1
 				} else {

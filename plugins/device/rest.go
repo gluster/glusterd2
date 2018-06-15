@@ -1,7 +1,6 @@
 package device
 
 import (
-	"encoding/json"
 	"net/http"
 
 	"github.com/gluster/glusterd2/glusterd2/gdctx"
@@ -52,19 +51,17 @@ func deviceAddHandler(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	if _, exists := peerInfo.Metadata["_devices"]; exists {
-		var devices []deviceapi.Info
-		err = json.Unmarshal([]byte(peerInfo.Metadata["_devices"]), &devices)
-		if err != nil {
-			logger.WithError(err).WithField("peerid", peerID).Error(err)
-			restutils.SendHTTPError(ctx, w, http.StatusInternalServerError, err)
-			return
-		}
-		if deviceutils.DeviceExist(req.Device, devices) {
-			logger.WithError(err).WithField("device", req.Device).Error("Device already exists")
-			restutils.SendHTTPError(ctx, w, http.StatusBadRequest, "Device already exists")
-			return
-		}
+	devices, err := deviceutils.GetDevicesFromPeer(peerInfo)
+	if err != nil {
+		logger.WithError(err).WithField("peerid", peerID).Error("Failed to get device from Peer")
+		restutils.SendHTTPError(ctx, w, http.StatusInternalServerError, err)
+		return
+	}
+
+	if deviceutils.DeviceInList(req.Device, devices) {
+		logger.WithError(err).WithField("device", req.Device).Error("Device already exists")
+		restutils.SendHTTPError(ctx, w, http.StatusBadRequest, "Device already exists")
+		return
 	}
 
 	txn.Nodes = []uuid.UUID{peerInfo.ID}

@@ -28,22 +28,31 @@ func GetDevices(peerIds ...string) ([]deviceapi.Info, error) {
 			return nil, err
 		}
 	}
-
 	var devices []deviceapi.Info
 	for _, peerInfo := range peers {
-		var deviceInfo []deviceapi.Info
-		if len(peerInfo.Metadata["_devices"]) > 0 {
-			if err := json.Unmarshal([]byte(peerInfo.Metadata["_devices"]), &deviceInfo); err != nil {
-				return nil, err
-			}
-			devices = append(devices, deviceInfo...)
+		deviceInfo, err := GetDevicesFromPeer(peerInfo)
+		if err != nil {
+			return nil, err
 		}
+		devices = append(devices, deviceInfo...)
 	}
 	return devices, nil
 }
 
-// DeviceExist checks the given device existence
-func DeviceExist(reqDevice string, devices []deviceapi.Info) bool {
+// GetDevicesFromPeer returns devices from peer object.
+func GetDevicesFromPeer(peerInfo *peer.Peer) ([]deviceapi.Info, error) {
+
+	var deviceInfo []deviceapi.Info
+	if _, exists := peerInfo.Metadata["_devices"]; exists {
+		if err := json.Unmarshal([]byte(peerInfo.Metadata["_devices"]), &deviceInfo); err != nil {
+			return nil, err
+		}
+	}
+	return deviceInfo, nil
+}
+
+// DeviceInList checks whether the given device is in list of devices or not.
+func DeviceInList(reqDevice string, devices []deviceapi.Info) bool {
 	for _, key := range devices {
 		if reqDevice == key.Name {
 			return true
