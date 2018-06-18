@@ -6,8 +6,8 @@ import (
 	"os/exec"
 	"strings"
 
-	"github.com/gluster/glusterd2/glusterd2/brick"
 	"github.com/gluster/glusterd2/glusterd2/volume"
+	"github.com/gluster/glusterd2/pkg/api"
 	"github.com/pborman/uuid"
 	"github.com/sirupsen/logrus"
 )
@@ -61,7 +61,7 @@ func IsThinLV(brickPath string) bool {
 }
 
 //MountSnapshotDirectory will mount the snapshot bricks to the given path
-func MountSnapshotDirectory(mountPath string, mountData brick.MountInfo) error {
+func MountSnapshotDirectory(mountPath string, mountData api.MountInfo) error {
 	_, err := exec.Command("mount", "-o", mountData.MntOpts, mountData.DevicePath, mountPath).Output()
 	/*
 		logrus.WithFields(logrus.Fields{
@@ -94,13 +94,13 @@ func GetVgName(mountDevice string) (string, error) {
 }
 
 //RemoveBrickSnapshot removes an lvm of a brick
-func RemoveBrickSnapshot(mountData brick.MountInfo) error {
+func RemoveBrickSnapshot(mountData api.MountInfo) error {
 	_, err := exec.Command(RemoveCommand, "f", mountData.DevicePath).Output()
 	return err
 }
 
 //BrickSnapshot takes lvm snapshot of a brick
-func BrickSnapshot(mountData brick.MountInfo, path string) error {
+func BrickSnapshot(mountData api.MountInfo, path string) error {
 	length := len(path) - len(mountData.Mountdir)
 	mountRoot := path[:length]
 	mntInfo, err := volume.GetBrickMountInfo(mountRoot)

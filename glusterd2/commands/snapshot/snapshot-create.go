@@ -458,7 +458,7 @@ func createSnapSubvols(snapVolinfo, volinfo *volume.Volinfo, nodeData map[string
 		for count := 0; count < len(s.Bricks); count++ {
 			key := subvol.Bricks[count].String()
 			data := nodeData[key]
-			s.Bricks[count].MountInfo = brick.MountInfo{
+			s.Bricks[count].MountInfo = api.MountInfo{
 				Mountdir:   data.MountDir,
 				DevicePath: data.DevicePath,
 				FsType:     data.FsType,

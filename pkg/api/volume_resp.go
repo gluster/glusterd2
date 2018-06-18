@@ -2,16 +2,48 @@ package api
 
 import "github.com/pborman/uuid"
 
+// Type is the type of Brick
+//go:generate stringer -type=Type
+type BrickType uint16
+
+const (
+	// Brick represents default type of brick
+	Brick BrickType = iota
+	// Arbiter represents Arbiter brick type
+	Arbiter
+)
+
+func (t BrickType) String() string {
+	switch t {
+	case Brick:
+		return "Brick"
+	case Arbiter:
+		return "Arbiter"
+	default:
+		return "invalid BrickType"
+	}
+}
+
 // BrickInfo contains the static information about the brick.
 // Clients should NOT use this struct directly.
 type BrickInfo struct {
-	ID         uuid.UUID `json:"id"`
-	Path       string    `json:"path"`
-	VolumeID   uuid.UUID `json:"volume-id"`
-	VolumeName string    `json:"volume-name"`
-	PeerID     uuid.UUID `json:"peer-id"`
-	Hostname   string    `json:"host"`
-	Type       BrickType `json:"type"`
+	ID             uuid.UUID `json:"id"`
+	Path           string    `json:"path"`
+	VolumeID       uuid.UUID `json:"volume-id"`
+	VolumeName     string    `json:"volume-name"`
+	PeerID         uuid.UUID `json:"peer-id"`
+	Hostname       string    `json:"host"`
+	Type           BrickType `json:"type"`
+	Decommissioned bool      `json:"decommissioned"`
+	MountInfo
+}
+
+//MountInfo is used to store mount related information of a volume
+type MountInfo struct {
+	Mountdir   string
+	DevicePath string
+	FsType     string
+	MntOpts    string
 }
 
 // Subvol contains static information about sub volume
