@@ -79,13 +79,13 @@ func gsyncdAction(c transaction.TxnCtx, action actionType) error {
 		if err != nil {
 			return err
 		}
-		err = daemon.Start(gsyncdDaemon, true)
+		err = daemon.Start(gsyncdDaemon, true, c.Logger())
 	case actionStop:
-		err = daemon.Stop(gsyncdDaemon, true)
+		err = daemon.Stop(gsyncdDaemon, true, c.Logger())
 	case actionPause:
-		err = daemon.Signal(gsyncdDaemon, syscall.SIGSTOP)
+		err = daemon.Signal(gsyncdDaemon, syscall.SIGSTOP, c.Logger())
 	case actionResume:
-		err = daemon.Signal(gsyncdDaemon, syscall.SIGCONT)
+		err = daemon.Signal(gsyncdDaemon, syscall.SIGCONT, c.Logger())
 	}
 
 	return err

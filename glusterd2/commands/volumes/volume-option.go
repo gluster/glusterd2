@@ -16,6 +16,7 @@ import (
 
 	"github.com/gorilla/mux"
 	"github.com/pborman/uuid"
+	log "github.com/sirupsen/logrus"
 )
 
 func optionSetValidate(c transaction.TxnCtx) error {
@@ -90,7 +91,7 @@ func xlatorAction(c transaction.TxnCtx, txnOp txnOpType) error {
 		return err
 	}
 
-	var fn func(*volume.Volinfo, string, string) error
+	var fn func(*volume.Volinfo, string, string, log.FieldLogger) error
 	for k, v := range req.Options {
 		_, xl, key, err := options.SplitKey(k)
 		if err != nil {
@@ -106,7 +107,7 @@ func xlatorAction(c transaction.TxnCtx, txnOp txnOpType) error {
 			} else {
 				fn = xltr.Actor.Undo
 			}
-			if err := fn(&volinfo, key, v); err != nil {
+			if err := fn(&volinfo, key, v, c.Logger()); err != nil {
 				return err
 			}
 		}

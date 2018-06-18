@@ -71,7 +71,7 @@ func deactivateSnapshot(c transaction.TxnCtx) error {
 		return err
 	}
 
-	err = snapshot.ActivateDeactivateFunc(snapinfo, brickinfos, activate)
+	err = snapshot.ActivateDeactivateFunc(snapinfo, brickinfos, activate, c.Logger())
 	if err != nil {
 		return err
 	}
@@ -121,7 +121,7 @@ func rollbackDeactivateSnapshot(c transaction.TxnCtx) error {
 		return err
 	}
 
-	err = snapshot.ActivateDeactivateFunc(snapinfo, brickinfos, activate)
+	err = snapshot.ActivateDeactivateFunc(snapinfo, brickinfos, activate, c.Logger())
 
 	return err
 

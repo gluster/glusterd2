@@ -7,6 +7,8 @@ import (
 	"github.com/gluster/glusterd2/glusterd2/volume"
 	"github.com/gluster/glusterd2/glusterd2/xlator"
 	gderrors "github.com/gluster/glusterd2/pkg/errors"
+
+	log "github.com/sirupsen/logrus"
 )
 
 var names = [...]string{"replicate", "afr"}
@@ -17,7 +19,7 @@ const (
 
 type shdActor struct{}
 
-func (actor *shdActor) Do(v *volume.Volinfo, key string, value string) error {
+func (actor *shdActor) Do(v *volume.Volinfo, key string, value string, logger log.FieldLogger) error {
 	if key != selfHealKey {
 		return nil
 	}
@@ -29,7 +31,7 @@ func (actor *shdActor) Do(v *volume.Volinfo, key string, value string) error {
 	switch value {
 	case "on":
 		if isHealEnabled(v) {
-			err = daemon.Start(glustershDaemon, true)
+			err = daemon.Start(glustershDaemon, true, logger)
 			if err != gderrors.ErrProcessAlreadyRunning || err != nil {
 				return err
 			}
@@ -41,14 +43,14 @@ func (actor *shdActor) Do(v *volume.Volinfo, key string, value string) error {
 				return err
 			}
 			if !isVolRunning {
-				return daemon.Stop(glustershDaemon, true)
+				return daemon.Stop(glustershDaemon, true, logger)
 			}
 		}
 	}
 	return nil
 }
 
-func (actor *shdActor) Undo(v *volume.Volinfo, key string, value string) error {
+func (actor *shdActor) Undo(v *volume.Volinfo, key string, value string, logger log.FieldLogger) error {
 	if key != selfHealKey {
 		return nil
 	}
@@ -64,7 +66,7 @@ func (actor *shdActor) Undo(v *volume.Volinfo, key string, value string) error {
 			if v.State != volume.VolStarted {
 				return errors.New("volume should be in started state")
 			}
-			err = daemon.Start(glustershDaemon, true)
+			err = daemon.Start(glustershDaemon, true, logger)
 			if err != gderrors.ErrProcessAlreadyRunning || err != nil {
 				return err
 			}
@@ -76,7 +78,7 @@ func (actor *shdActor) Undo(v *volume.Volinfo, key string, value string) error {
 				return err
 			}
 			if !isVolRunning {
-				return daemon.Stop(glustershDaemon, true)
+				return daemon.Stop(glustershDaemon, true, logger)
 			}
 		}
 	}
