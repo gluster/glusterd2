@@ -152,13 +152,12 @@ func registryAlloc(recheckForeign bool) int {
 	return port
 }
 
-// AssignPort allocates and returns an available port. Optionally, if an
-// oldport specified for the brickpath, stale ports for the brickpath will
-// be cleaned up
+// AssignPort allocates and returns an available port. It also cleans up old
+// stale ports.
 func AssignPort(oldport int, brickpath string) int {
-	if oldport != 0 {
-		registryRemove(0, brickpath, GfPmapPortBrickserver, nil)
-	}
+	// cleanup stale assigned and leased ports
+	registryRemove(oldport, brickpath, GfPmapPortBrickserver, nil)
+	registryRemove(oldport, brickpath, GfPmapPortLeased, nil)
 	return registryAlloc(true)
 }
 
