@@ -114,5 +114,5 @@ func volumeResetHandler(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	restutils.SendHTTPResponse(ctx, w, http.StatusOK, volinfo.Options)
+	restutils.SendHTTPResponse(ctx, w, http.StatusNoContent, nil)
 }
