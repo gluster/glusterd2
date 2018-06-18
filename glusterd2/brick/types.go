@@ -4,41 +4,11 @@ import (
 	"fmt"
 	"os"
 
-	"github.com/pborman/uuid"
+	"github.com/gluster/glusterd2/pkg/api"
 	"golang.org/x/sys/unix"
 )
 
-// Type is the type of Brick
-//go:generate stringer -type=Type
-type Type uint16
-
-const (
-	// Brick represents default type of brick
-	Brick Type = iota
-	// Arbiter represents Arbiter brick type
-	Arbiter
-)
-
-//MountInfo is used to store mount related information of a volume
-type MountInfo struct {
-	Mountdir   string
-	DevicePath string
-	FsType     string
-	MntOpts    string
-}
-
-// Brickinfo is the static information about the brick
-type Brickinfo struct {
-	ID             uuid.UUID
-	Hostname       string
-	PeerID         uuid.UUID
-	Path           string
-	VolumeName     string
-	VolumeID       uuid.UUID
-	Type           Type
-	Decommissioned bool
-	MountInfo
-}
+type Brickinfo api.BrickInfo
 
 // SizeInfo represents sizing information.
 type SizeInfo struct {

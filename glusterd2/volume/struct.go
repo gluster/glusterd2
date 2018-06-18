@@ -152,9 +152,9 @@ func NewBrickEntries(bricks []api.BrickReq, volName string, volID uuid.UUID) ([]
 
 		switch b.Type {
 		case "arbiter":
-			binfo.Type = brick.Arbiter
+			binfo.Type = api.Arbiter
 		default:
-			binfo.Type = brick.Brick
+			binfo.Type = api.Brick
 		}
 
 		binfo.VolumeName = volName

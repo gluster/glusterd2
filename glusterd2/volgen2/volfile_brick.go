@@ -6,6 +6,7 @@ import (
 
 	"github.com/gluster/glusterd2/glusterd2/brick"
 	"github.com/gluster/glusterd2/glusterd2/volume"
+	"github.com/gluster/glusterd2/pkg/api"
 	"github.com/pborman/uuid"
 )
 
@@ -37,7 +38,7 @@ func generateBrickVolfile(volfile *Volfile, b *brick.Brickinfo, vol *volume.Voli
 		Add("features/changetimerecorder", vol, b).
 		Add("features/trash", vol, b)
 
-	if b.Type == brick.Arbiter {
+	if b.Type == api.Arbiter {
 		last = last.Add("features/arbiter", vol, b)
 	}
 	last.Add("storage/posix", vol, b)
