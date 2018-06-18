@@ -6,7 +6,7 @@ import (
 	"path/filepath"
 	"strings"
 
-	"github.com/gluster/glusterd2/glusterd2/daemon"
+	"github.com/gluster/glusterd2/glusterd2/events"
 	"github.com/gluster/glusterd2/glusterd2/gdctx"
 	restutils "github.com/gluster/glusterd2/glusterd2/servers/rest/utils"
 	"github.com/gluster/glusterd2/glusterd2/transaction"
@@ -24,23 +24,6 @@ func registerVolShrinkStepFuncs() {
 	transaction.RegisterStepFunc(storeVolume, "vol-shrink.UpdateVolinfo")
 	transaction.RegisterStepFunc(notifyVolfileChange, "vol-shrink.NotifyClients")
 	transaction.RegisterStepFunc(startRebalance, "vol-shrink.StartRebalance")
-}
-
-func startRebalance(c transaction.TxnCtx) error {
-	var rinfo rebalanceapi.RebalInfo
-	err := c.Get("rinfo", &rinfo)
-	if err != nil {
-		return err
-	}
-
-	rebalanceProcess, err := rebalance.NewRebalanceProcess(rinfo)
-	if err != nil {
-		return err
-	}
-
-	err = daemon.Start(rebalanceProcess, true)
-
-	return err
 }
 
 func validateVolumeShrinkReq(req api.VolShrinkReq) error {
@@ -100,7 +83,7 @@ func volumeShrinkHandler(w http.ResponseWriter, r *http.Request) {
 				}
 			}
 			if !isPresent {
-				restutils.SendHTTPError(ctx, w, http.StatusBadRequest, "One or more brick is not part of given volume")
+				restutils.SendHTTPError(ctx, w, http.StatusBadRequest, "One or more bricks is not part of given volume")
 				return
 			}
 		}
@@ -148,19 +131,20 @@ func volumeShrinkHandler(w http.ResponseWriter, r *http.Request) {
 	if err != nil {
 		restutils.SendHTTPError(ctx, w, http.StatusInternalServerError, err)
 		return
-
 	}
 
-	// The following line is for testing purposes.
-	// It seems that there is no other way to include this information in the rebalance volfile right now.
-	volinfo.Options["distribute.decommissioned-bricks"] = strings.TrimSpace(decommissionedSubvols)
+	// TODO: Find a better way to store  information in the rebalance volfile.
+	volinfo.Metadata["distribute.decommissioned-bricks"] = strings.TrimSpace(decommissionedSubvols)
 
-	var rinfo rebalanceapi.RebalInfo
-	rinfo.Volname = volname
-	rinfo.RebalanceID = uuid.NewRandom()
-	rinfo.Cmd = rebalanceapi.CmdStartForce
-	rinfo.State = rebalanceapi.NotStarted
-	rinfo.CommitHash = rebalance.SetCommitHash()
+	rinfo := rebalanceapi.RebalInfo{
+		Volname:     volname,
+		RebalanceID: uuid.NewRandom(),
+		Cmd:         rebalanceapi.CmdStartForce,
+		State:       rebalanceapi.NotStarted,
+		CommitHash:  rebalance.SetCommitHash(),
+		RebalStats:  []rebalanceapi.RebalNodeStatus{},
+	}
+
 	if err := txn.Ctx.Set("rinfo", rinfo); err != nil {
 		restutils.SendHTTPError(ctx, w, http.StatusInternalServerError, err)
 		return
@@ -173,19 +157,18 @@ func volumeShrinkHandler(w http.ResponseWriter, r *http.Request) {
 
 	if err = txn.Do(); err != nil {
 		logger.WithError(err).Error("remove bricks start transaction failed")
-		if err == transaction.ErrLockTimeout {
-			restutils.SendHTTPError(ctx, w, http.StatusConflict, err)
-		} else {
-			restutils.SendHTTPError(ctx, w, http.StatusInternalServerError, err)
-		}
+		status, err := restutils.ErrToStatusCode(err)
+		restutils.SendHTTPError(ctx, w, status, err)
 		return
 	}
-
+	logger.WithField("volume-name", volinfo.Name).Info("volume shrink successful")
+	events.Broadcast(volume.NewEvent(volume.EventVolumeShrink, volinfo))
 	restutils.SendHTTPResponse(ctx, w, http.StatusOK, decommissionedSubvols)
 
 }
 
 func findDecommissioned(bricks []api.BrickReq, volinfo *volume.Volinfo) (string, error) {
+
 	brickSet := make(map[string]bool)
 	for _, brick := range bricks {
 		u := uuid.Parse(brick.PeerID)
@@ -209,7 +192,6 @@ func findDecommissioned(bricks []api.BrickReq, volinfo *volume.Volinfo) (string,
 					subvolMap[subvol.Name] = count + 1
 				}
 			}
-
 		}
 	}
 

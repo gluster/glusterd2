@@ -13,6 +13,8 @@ const (
 	EventVolumeCreated Event = "volume.created"
 	// EventVolumeExpanded represents Volume Expand event
 	EventVolumeExpanded = "volume.expanded"
+	// EventVolumeShrink represents Volume Shrink event
+	EventVolumeShrink = "volume.shrink"
 	// EventVolumeStarted represents Volume Start event
 	EventVolumeStarted = "volume.started"
 	// EventVolumeStopped represents Volume Stop event
