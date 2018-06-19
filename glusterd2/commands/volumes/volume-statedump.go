@@ -24,7 +24,7 @@ func validateVolStatedumpReq(req *api.VolStatedumpReq) error {
 
 	var tmp api.VolStatedumpReq // zero value of struct
 	if *req == tmp {
-		return errors.New("At least one of the statedump req options must be set")
+		return errors.New("at least one of the statedump req options must be set")
 	}
 
 	if req.Client != tmp.Client {

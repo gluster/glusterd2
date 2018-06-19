@@ -38,17 +38,17 @@ func (e ErrProgMismatch) Error() string {
 // Given that the remote server accepted the RPC call, following errors
 // represent error status of an attempt to call remote procedure
 var (
-	ErrProgUnavail = errors.New("Remote server has not exported program")
-	ErrProcUnavail = errors.New("Remote server has no such procedure")
-	ErrGarbageArgs = errors.New("Remote procedure cannot decode params")
-	ErrSystemErr   = errors.New("System error on remote server")
+	ErrProgUnavail = errors.New("remote server has not exported program")
+	ErrProcUnavail = errors.New("remote server has no such procedure")
+	ErrGarbageArgs = errors.New("remote procedure cannot decode params")
+	ErrSystemErr   = errors.New("system error on remote server")
 )
 
 // These errors represent invalid replies from server and auth rejection.
 var (
-	ErrInvalidRPCMessageType = errors.New("Invalid RPC message type received")
-	ErrInvalidRPCRepyType    = errors.New("Invalid RPC reply received. Reply type should be MsgAccepted or MsgDenied")
-	ErrInvalidMsgDeniedType  = errors.New("Invalid MsgDenied reply. Possible values are RPCMismatch and AuthError")
-	ErrInvalidMsgAccepted    = errors.New("Invalid MsgAccepted reply received")
-	ErrAuthError             = errors.New("Remote server rejected identity of the caller")
+	ErrInvalidRPCMessageType = errors.New("invalid RPC message type received")
+	ErrInvalidRPCRepyType    = errors.New("invalid RPC reply received. Reply type should be MsgAccepted or MsgDenied")
+	ErrInvalidMsgDeniedType  = errors.New("invalid MsgDenied reply. Possible values are RPCMismatch and AuthError")
+	ErrInvalidMsgAccepted    = errors.New("invalid MsgAccepted reply received")
+	ErrAuthError             = errors.New("remote server rejected identity of the caller")
 )

@@ -368,7 +368,7 @@ func validateSnapCreate(c transaction.TxnCtx) error {
 			"Bricks", statusStr,
 		).Error("Bricks are offline")
 
-		return errors.New("One or more brick is offline")
+		return errors.New("one or more brick is offline")
 	}
 	statusComptability := snapshot.CheckBricksCompatability(volinfo)
 	if statusComptability != nil {
@@ -376,7 +376,7 @@ func validateSnapCreate(c transaction.TxnCtx) error {
 			"Bricks", statusStr,
 		).Error("Bricks are not compatable")
 
-		return errors.New("One or more brick is not compatable")
+		return errors.New("one or more brick is not compatable")
 	}
 	if nodeData, err = populateBrickMountData(volinfo, req.SnapName); err != nil {
 		return err
@@ -595,7 +595,7 @@ func validateOriginNodeSnapCreate(c transaction.TxnCtx) error {
 
 	if volinfo.State != volume.VolStarted {
 
-		return errors.New("Volume has not started")
+		return errors.New("volume has not started")
 	}
 	barrierOp := volinfo.Options["features.barrier"]
 	if err := c.Set("barrier-enabled", &barrierOp); err != nil {
