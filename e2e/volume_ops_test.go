@@ -315,6 +315,9 @@ func testVolumeStatedump(t *testing.T) {
 
 // testVolumeMount mounts checks if the volume mounts successfully and unmounts it
 func testVolumeMount(t *testing.T) {
+	if _, err := os.Lstat("/dev/fuse");  os.IsNotExist(err) {
+		t.Skip("skipping mount /dev/fuse unavailable")
+	}
 	r := require.New(t)
 
 	mntPath, err := ioutil.TempDir(tmpDir, "mnt")
