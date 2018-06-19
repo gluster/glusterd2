@@ -20,6 +20,8 @@ import (
 
 const (
 	volname = "testvol"
+	// for the disperse volume tests
+	disperseVolName = "dispersetestvol"
 )
 
 var (
@@ -68,6 +70,8 @@ func TestVolume(t *testing.T) {
 
 	// Disperse volume test
 	t.Run("Disperse", testDisperse)
+	t.Run("DisperseMount", testDisperseMount)
+	t.Run("DisperseDelete", testDisperseDelete)
 }
 
 func testVolumeCreateWithoutName(t *testing.T) {
@@ -508,7 +512,6 @@ func TestVolumeOptions(t *testing.T) {
 
 func testDisperse(t *testing.T) {
 	r := require.New(t)
-	disperseVolName := "dispersetestvol"
 
 	var brickPaths []string
 	for i := 1; i <= 3; i++ {
@@ -537,23 +540,14 @@ func testDisperse(t *testing.T) {
 	r.Nil(err)
 
 	r.Nil(client.VolumeStart(disperseVolName, true), "disperse volume start failed")
+}
 
-	mntPath, err := ioutil.TempDir(tmpDir, "mnt")
-	r.Nil(err)
-	defer os.RemoveAll(mntPath)
+func testDisperseMount(t *testing.T) {
+	testMountUnmount(t, disperseVolName)
+}
 
-	time.Sleep(1 * time.Second)
-
-	host, _, _ := net.SplitHostPort(gds[0].ClientAddress)
-
-	mntCmd := exec.Command("mount", "-t", "glusterfs", host+":"+disperseVolName, mntPath)
-	err = mntCmd.Run()
-	r.Nil(err, fmt.Sprintf("disperse volume mount failed: %s", err))
-
-	umntCmd := exec.Command("umount", mntPath)
-	err = umntCmd.Run()
-	r.Nil(err, fmt.Sprintf("disperse volume unmount failed: %s", err))
-
+func testDisperseDelete(t *testing.T) {
+	r := require.New(t)
 	r.Nil(client.VolumeStop(disperseVolName), "disperse volume stop failed")
 	r.Nil(client.VolumeDelete(disperseVolName), "disperse volume delete failed")
 }
