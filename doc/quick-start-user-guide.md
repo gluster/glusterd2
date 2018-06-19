@@ -26,11 +26,13 @@ Install rpcbind:
 
 **Installing glusterfs from nightly RPMs (CentOS 7):**
 
+These packages require dependencies present in [EPEL](https://fedoraproject.org/wiki/EPEL). Enable the EPEL repositories before enabling gluster nightly packages repo below.
+
 Install packages that provide GlusterFS server (brick process) and client (fuse, libgfapi):
 
 ```sh
 # curl -o /etc/yum.repos.d/glusterfs-nighthly-master.repo http://artifacts.ci.centos.org/gluster/nightly/master.repo
-# dnf install glusterfs-server glusterfs-fuse glusterfs-api
+# yum install glusterfs-server glusterfs-fuse glusterfs-api
 ```
 
 ### Download glusterd2
