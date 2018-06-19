@@ -78,7 +78,7 @@ func PmapSet(programNumber, programVersion uint32, protocol Protocol, port uint3
 
 	client := initPmapClient("")
 	if client == nil {
-		return result, errors.New("Could not create pmap client")
+		return result, errors.New("could not create pmap client")
 	}
 	defer client.Close()
 
@@ -101,7 +101,7 @@ func PmapUnset(programNumber, programVersion uint32) (bool, error) {
 
 	client := initPmapClient("")
 	if client == nil {
-		return result, errors.New("Could not create pmap client")
+		return result, errors.New("could not create pmap client")
 	}
 	defer client.Close()
 
@@ -122,7 +122,7 @@ func PmapGetPort(host string, programNumber, programVersion uint32, protocol Pro
 
 	client := initPmapClient(host)
 	if client == nil {
-		return port, errors.New("Could not create pmap client")
+		return port, errors.New("could not create pmap client")
 	}
 	defer client.Close()
 
@@ -154,7 +154,7 @@ func PmapGetMaps(host string) ([]PortMapping, error) {
 
 	client := initPmapClient(host)
 	if client == nil {
-		return nil, errors.New("Could not create pmap client")
+		return nil, errors.New("could not create pmap client")
 	}
 	defer client.Close()
 

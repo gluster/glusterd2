@@ -80,7 +80,7 @@ func (f *Fstab) load() error {
 		}
 
 		if len(parts) != 6 {
-			return errors.New("Invalid mount entry: " + line)
+			return errors.New("invalid mount entry: " + line)
 		}
 		f.Mounts = append(f.Mounts, FstabMount{
 			Device:           parts[0],

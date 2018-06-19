@@ -68,7 +68,7 @@ func (ee *ElasticEtcd) startServer(initialCluster string) error {
 	case <-time.After(42 * time.Second):
 		ee.log.Debug("timedout trying to start embedded server")
 		etcd.Server.Stop() // trigger a shutdown
-		return errors.New("Etcd embedded server took too long to start")
+		return errors.New("etcd embedded server took too long to start")
 	case err := <-etcd.Err():
 		return err
 	}

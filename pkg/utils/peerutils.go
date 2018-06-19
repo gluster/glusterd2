@@ -24,7 +24,7 @@ func FormRemotePeerAddress(peeraddress string) (string, error) {
 	}
 
 	if host == "" {
-		return "", errors.New("Invalid peer address")
+		return "", errors.New("invalid peer address")
 	}
 
 	remotePeerAddress := host + ":" + port
