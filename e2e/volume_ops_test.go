@@ -315,6 +315,10 @@ func testVolumeStatedump(t *testing.T) {
 
 // testVolumeMount mounts checks if the volume mounts successfully and unmounts it
 func testVolumeMount(t *testing.T) {
+	testMountUnmount(t, volname)
+}
+
+func testMountUnmount(t *testing.T, v string) {
 	if _, err := os.Lstat("/dev/fuse");  os.IsNotExist(err) {
 		t.Skip("skipping mount /dev/fuse unavailable")
 	}
@@ -325,7 +329,7 @@ func testVolumeMount(t *testing.T) {
 	defer os.RemoveAll(mntPath)
 
 	host, _, _ := net.SplitHostPort(gds[0].ClientAddress)
-	mntCmd := exec.Command("mount", "-t", "glusterfs", host+":"+volname, mntPath)
+	mntCmd := exec.Command("mount", "-t", "glusterfs", host+":"+v, mntPath)
 	umntCmd := exec.Command("umount", mntPath)
 
 	err = mntCmd.Run()
