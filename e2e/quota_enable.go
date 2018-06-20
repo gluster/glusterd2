@@ -32,9 +32,9 @@ func testQuotaEnable(t *testing.T) {
 	}
 
 	client := initRestclient(gds[0].ClientAddress)
-	volname1 := "testvol1"
+	volname := formatVolName(t.Name())
 	reqVol := api.VolCreateReq{
-		Name: volname1,
+		Name: volname,
 		Subvols: []api.SubvolReq{
 			{
 				ReplicaCount: 2,
@@ -47,18 +47,18 @@ func testQuotaEnable(t *testing.T) {
 		},
 		Force: true,
 	}
-	vol1, err := client.VolumeCreate(reqVol)
+	_, err = client.VolumeCreate(reqVol)
 	r.Nil(err)
 
-	r.Nil(client.VolumeStart(vol1.Name, false), "volume start failed")
+	r.Nil(client.VolumeStart(volname, false), "volume start failed")
 
 	err = client.QuotaEnable(volname)
 	r.Nil(err)
 
 	// Stop Volume
-	r.Nil(client.VolumeStop(vol1.Name), "Volume stop failed")
+	r.Nil(client.VolumeStop(volname), "Volume stop failed")
 	// delete volume
-	err = client.VolumeDelete(vol1.Name)
+	err = client.VolumeDelete(volname)
 	r.Nil(err)
 
 }
