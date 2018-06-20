@@ -115,12 +115,18 @@ func clusterGraph(volfile *Volfile, dht *Entry, vol *volume.Volinfo, peerid uuid
 					})
 			}
 
-			// If self heal daemon volfile
-			if (subvol.Type == volume.SubvolReplicate || subvol.Type == volume.SubvolDisperse) && volfile.Name == "glustershd" {
-				parent.SetExtraOptions(map[string]string{
-					"iam-self-heal-daemon": "yes",
-					"afr-pending-xattr":    strings.Join(afrPendingXattr, ","),
-				})
+			if subvol.Type == volume.SubvolReplicate || subvol.Type == volume.SubvolDisperse {
+				extraopts := make(map[string]string)
+				if volfile.Name == "glustershd" {
+					extraopts["iam-self-heal-daemon"] = "yes"
+				}
+
+				// Below option is required for shd and client volfile
+				if volfile.Name == "glustershd" || volfile.Name == "fuse" {
+					extraopts["afr-pending-xattr"] = strings.Join(afrPendingXattr, ",")
+				}
+
+				parent.SetExtraOptions(extraopts)
 			}
 		}
 	}
