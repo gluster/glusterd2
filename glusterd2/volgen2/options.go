@@ -110,11 +110,6 @@ func (e *Entry) getOptions(graph string, extra *map[string]extrainfo) (map[strin
 			if k == "" {
 				k = o.Key[0]
 			}
-
-			// If neither key nor value is a varstring, skip setting this option
-			if !isVarStr(k) && !isVarStr(v) {
-				continue
-			}
 		}
 
 		// Do varsting replacements if required
