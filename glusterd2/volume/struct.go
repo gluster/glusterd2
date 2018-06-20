@@ -132,7 +132,7 @@ func NewBrickEntries(bricks []api.BrickReq, volName string, volID uuid.UUID) ([]
 	for _, b := range bricks {
 		u := uuid.Parse(b.PeerID)
 		if u == nil {
-			return nil, errors.New("Invalid UUID specified as host for brick")
+			return nil, errors.New("invalid UUID specified as host for brick")
 		}
 
 		p, e := peer.GetPeerF(b.PeerID)

@@ -65,7 +65,7 @@ func GetRebalanceInfo(volname string) (*rebalanceapi.RebalInfo, error) {
 
 	if resp.Count != 1 {
 		log.WithField("volume", volname).Error("Rebalance info not found for the volume or rebalance process is not started for this volume")
-		return nil, errors.New("Rebalance info not found for the volume or rebalance process is not started for this volume")
+		return nil, errors.New("rebalance info not found for the volume or rebalance process is not started for this volume")
 	}
 
 	if err = json.Unmarshal(resp.Kvs[0].Value, &rebalinfo); err != nil {

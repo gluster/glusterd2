@@ -67,7 +67,7 @@ func isValidProcedureName(procedureName string) bool {
 func RegisterProcedure(procedure Procedure, validateProcName bool) error {
 
 	if validateProcName && !isValidProcedureName(procedure.Name) {
-		return errors.New("Invalid procedure name")
+		return errors.New("invalid procedure name")
 	}
 
 	procedureRegistry.Lock()

@@ -22,7 +22,7 @@ func (c *Command) Routes() route.Routes {
 		route.Route{
 			Name:        "GetGlobalOptions",
 			Method:      "GET",
-			Pattern:     "/cluster/options/",
+			Pattern:     "/cluster/options",
 			Version:     1,
 			HandlerFunc: getGlobalOptionsHandler,
 		},
