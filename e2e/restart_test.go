@@ -24,7 +24,7 @@ func TestRestart(t *testing.T) {
 	client := initRestclient(gd.ClientAddress)
 
 	createReq := api.VolCreateReq{
-		Name: "vol1",
+		Name: formatVolName(t.Name()),
 		Subvols: []api.SubvolReq{
 			{
 				Type: "distribute",

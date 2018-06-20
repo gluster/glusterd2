@@ -2,7 +2,6 @@ package e2e
 
 import (
 	"io/ioutil"
-	"strings"
 	"testing"
 
 	"github.com/gluster/glusterd2/pkg/api"
@@ -35,7 +34,7 @@ func TestBitrot(t *testing.T) {
 
 func testBitrotOnReplicaVolume(t *testing.T) {
 	r := require.New(t)
-	volumeName := strings.Replace(t.Name(), "/", "-", 1)
+	volumeName := formatVolName(t.Name())
 	var brickPaths []string
 
 	for i := 1; i <= 4; i++ {
@@ -78,7 +77,7 @@ func testBitrotOnReplicaVolume(t *testing.T) {
 
 func testBitrotOnDistVolume(t *testing.T) {
 	r := require.New(t)
-	volumeName := strings.Replace(t.Name(), "/", "-", 1)
+	volumeName := formatVolName(t.Name())
 	var brickPaths []string
 
 	for i := 1; i <= 4; i++ {
@@ -120,7 +119,7 @@ func testBitrotOnDistVolume(t *testing.T) {
 }
 
 func testbitrot(t *testing.T) {
-	volumeName := strings.Replace(t.Name(), "/", "-", 1)
+	volumeName := formatVolName(t.Name())
 	r := require.New(t)
 
 	//check bitrot status, before starting volume
