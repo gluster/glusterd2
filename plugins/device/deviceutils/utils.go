@@ -56,7 +56,7 @@ func GetVgAvailableSize(vgname string) (uint64, uint64, error) {
 	vgdata := strings.Split(strings.TrimRight(string(out), "\n"), ":")
 
 	if len(vgdata) != 17 {
-		return 0, 0, errors.New("Failed to get free size of VG: " + vgname)
+		return 0, 0, errors.New("failed to get free size of VG: " + vgname)
 	}
 
 	// Physical extent size index is 12
