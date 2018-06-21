@@ -27,7 +27,7 @@ func formatPID(pid int) string {
 func sizeToMb(value string) (uint64, error) {
 	sizeParts := validSizeFormat.FindStringSubmatch(value)
 	if len(sizeParts) == 0 {
-		return 0, errors.New("Invalid size format")
+		return 0, errors.New("invalid size format")
 	}
 
 	// If Size unit is specified as M/K/G/T, Default Size unit is M

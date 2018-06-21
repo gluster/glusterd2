@@ -29,7 +29,7 @@ type Step struct {
 
 var (
 	// ErrStepFuncNotFound is returned if the stepfunc isn't found.
-	ErrStepFuncNotFound = errors.New("StepFunc was not found")
+	ErrStepFuncNotFound = errors.New("stepFunc was not found")
 )
 
 // do runs the DoFunc on the nodes

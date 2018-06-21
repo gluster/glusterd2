@@ -110,7 +110,7 @@ func bricksAsUUID(bricks []string) ([]api.BrickReq, error) {
 	for _, brick := range bricks {
 		hostBrickData := strings.Split(brick, ":")
 		if len(hostBrickData) != 2 {
-			return nil, errors.New("Invalid Brick details, use <host>:<path> or <peerid>:<path>")
+			return nil, errors.New("invalid Brick details, use <host>:<path> or <peerid>:<path>")
 		}
 	}
 
@@ -315,7 +315,7 @@ func volumeInfoHandler2(cmd *cobra.Command, isInfo bool) error {
 		}
 	} else {
 		if flagCmdFilterKey != "" || flagCmdFilterValue != "" {
-			return errors.New("Invalid command. Cannot give filter arguments when providing volname")
+			return errors.New("invalid command. Cannot give filter arguments when providing volname")
 		}
 		vols, err = client.Volumes(volname)
 	}

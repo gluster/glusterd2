@@ -67,11 +67,11 @@ func populateSubvols(volinfo *volume.Volinfo, req *api.VolCreateReq) error {
 	var err error
 	for idx, subvolreq := range req.Subvols {
 		if subvolreq.ReplicaCount == 0 && subvolreq.Type == "replicate" {
-			return errors.New("Replica count not specified")
+			return errors.New("replica count not specified")
 		}
 
 		if subvolreq.ReplicaCount > 0 && subvolreq.ReplicaCount != len(subvolreq.Bricks) {
-			return errors.New("Invalid number of bricks")
+			return errors.New("invalid number of bricks")
 		}
 
 		name := fmt.Sprintf("%s-%s-%d", volinfo.Name, strings.ToLower(subvolreq.Type), idx)
@@ -94,7 +94,7 @@ func populateSubvols(volinfo *volume.Volinfo, req *api.VolCreateReq) error {
 
 		if subvolreq.ArbiterCount != 0 {
 			if subvolreq.ReplicaCount != 3 || subvolreq.ArbiterCount != 1 {
-				return errors.New("For arbiter configuration, replica count must be 3 and arbiter count must be 1. The 3rd brick of the replica will be the arbiter")
+				return errors.New("for arbiter configuration, replica count must be 3 and arbiter count must be 1. The 3rd brick of the replica will be the arbiter")
 			}
 			s.ArbiterCount = 1
 		}
