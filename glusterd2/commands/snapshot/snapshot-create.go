@@ -7,7 +7,6 @@ TODO
 *snap soft limit
 *snap auto-delete
 *activate-on-create
-*read-only graph to client
 */
 
 import (
@@ -16,6 +15,7 @@ import (
 	"fmt"
 	"net/http"
 	"strings"
+	"sync"
 	"time"
 
 	"github.com/gluster/glusterd2/glusterd2/brick"
@@ -390,50 +390,73 @@ func validateSnapCreate(c transaction.TxnCtx) error {
 	return nil
 }
 func takeVolumeSnapshots(newVol, oldVol *volume.Volinfo) error {
+	var wg sync.WaitGroup
+	numBricks := len(oldVol.GetBricks())
+	errCh := make(chan error, numBricks)
 	for subvolCount, subvol := range oldVol.Subvols {
 		for count, b := range subvol.Bricks {
 			if !uuid.Equal(b.PeerID, gdctx.MyUUID) {
 				continue
 			}
-			/*
-				TODO : Run as a go routine
-			*/
+			wg.Add(1)
 			snapBrick := newVol.Subvols[subvolCount].Bricks[count]
-			mountData := snapBrick.MountInfo
-			length := len(b.Path) - len(mountData.Mountdir)
-			mountRoot := b.Path[:length]
-			mntInfo, err := volume.GetBrickMountInfo(mountRoot)
-			if err != nil {
-				return err
-			}
-
-			log.WithFields(log.Fields{
-				"mount device": mntInfo.FsName,
-				"devicePath":   mountData.DevicePath,
-				"Path":         b.Path,
-			}).Debug("Running snapshot create command")
-
-			if err := lvm.LVSnapshot(mntInfo.FsName, mountData.DevicePath); err != nil {
-				log.WithFields(log.Fields{
-					"mount device": mntInfo.FsName,
-					"devicePath":   mountData.DevicePath,
-					"Path":         b.Path,
-				}).Error("Running snapshot create command failed")
-
-				return err
-			}
-
-			if err = lvm.UpdateFsLabel(mountData.DevicePath, mountData.FsType); err != nil {
-				log.WithFields(log.Fields{
-					"FsType": mountData.FsType,
-					"Path":   b.Path,
-				}).Error("Failed to update the label")
-				return err
-			}
+			go brickSnapshot(errCh, &wg, snapBrick, b)
 
 		}
 	}
-	return nil
+	go func() {
+		wg.Wait()
+		close(errCh)
+	}()
+	//var err error
+	err := error(nil)
+	for i := range errCh {
+		if i != nil && err == nil {
+			//Return the first error from goroutines
+			err = i
+		}
+	}
+	return err
+}
+
+func brickSnapshot(errCh chan error, wg *sync.WaitGroup, snapBrick, b brick.Brickinfo) {
+	defer wg.Done()
+
+	mountData := snapBrick.MountInfo
+	length := len(b.Path) - len(mountData.Mountdir)
+	mountRoot := b.Path[:length]
+	mntInfo, err := volume.GetBrickMountInfo(mountRoot)
+	if err != nil {
+		errCh <- err
+		return
+	}
+
+	log.WithFields(log.Fields{
+		"mount device": mntInfo.FsName,
+		"devicePath":   mountData.DevicePath,
+		"Path":         b.Path,
+	}).Debug("Running  snapshot create command")
+
+	if err := lvm.LVSnapshot(mntInfo.FsName, mountData.DevicePath); err != nil {
+		log.WithFields(log.Fields{
+			"mount device": mntInfo.FsName,
+			"devicePath":   mountData.DevicePath,
+			"Path":         b.Path,
+		}).Error("Running snapshot create command failed")
+		errCh <- err
+		return
+	}
+
+	if err = lvm.UpdateFsLabel(mountData.DevicePath, mountData.FsType); err != nil {
+		log.WithFields(log.Fields{
+			"FsType": mountData.FsType,
+			"Path":   b.Path,
+		}).Error("Failed to update the label")
+		errCh <- err
+		return
+	}
+	errCh <- nil
+	return
 }
 
 func takeSnapshots(c transaction.TxnCtx) error {
@@ -506,13 +529,15 @@ func createSnapSubvols(newVolinfo, origVolinfo *volume.Volinfo, nodeData map[str
 
 func createSnapinfo(c transaction.TxnCtx) error {
 	var req api.SnapCreateReq
-	ignoreOps := []string{
-		"features.quota",
-		"features.inode-quota",
-		"feature.deem-statfs",
-		"features.quota-deem-statfs",
-		"bitrot-stub.bitrot",
-		"replicate.self-heal-daemon",
+	ignoreOps := map[string]string{
+		"features.quota":             "off",
+		"features.inode-quota":       "off",
+		"feature.deem-statfs":        "off",
+		"features.quota-deem-statfs": "off",
+		"bitrot-stub.bitrot":         "off",
+		"replicate.self-heal-daemon": "off",
+		"features.read-only":         "on",
+		"features.uss":               "off",
 	}
 
 	nodeData := make(map[string]snapshot.BrickMountData)
@@ -542,9 +567,9 @@ func createSnapinfo(c transaction.TxnCtx) error {
 
 	snapInfo.OptionChange = make(map[string]string)
 
-	for _, key := range ignoreOps {
+	for key, value := range ignoreOps {
 		snapInfo.OptionChange[key] = snapVolinfo.Options[key]
-		snapVolinfo.Options[key] = "disable"
+		snapVolinfo.Options[key] = value
 	}
 
 	snapVolinfo.State = volume.VolCreated

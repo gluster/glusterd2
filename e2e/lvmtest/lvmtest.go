@@ -11,7 +11,6 @@ import (
 
 	"github.com/gluster/glusterd2/glusterd2/snapshot/lvm"
 	"github.com/gluster/glusterd2/glusterd2/volume"
-	config "github.com/spf13/viper"
 )
 
 const (
@@ -183,20 +182,18 @@ func CreateLvmBricks(prefix string, num int) ([]string, error) {
 }
 
 //Cleanup will kill all process, and remove mount points
-func Cleanup(prefix string, brickCount int) {
+func Cleanup(baseWorkdir, prefix string, brickCount int) {
 
 	brickPrefix = prefix
 	exec.Command("pkill", "gluster").Output()
 	time.Sleep(3 * time.Second)
 
-	snapDirPrefix := config.GetString("rundir") + "/snaps/"
-	cloneDirPrefix := config.GetString("rundir") + "/clones/"
 	mtabEntries, err := volume.GetMounts()
 	if err != nil {
 		return
 	}
 	for _, m := range mtabEntries {
-		if strings.HasPrefix(m.MntDir, snapDirPrefix) || strings.HasPrefix(m.MntDir, cloneDirPrefix) {
+		if strings.HasPrefix(m.MntDir, baseWorkdir) {
 
 			//Remove any dangling mount pounts
 			exec.Command("umount", "-f", "-l", m.MntDir).Output()
