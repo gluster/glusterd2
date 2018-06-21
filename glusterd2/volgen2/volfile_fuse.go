@@ -17,9 +17,17 @@ func generateTCPFuseVolfile(volfile *Volfile, vol *volume.Volinfo, peerid uuid.U
 		Add("performance/io-cache", vol, nil).
 		Add("performance/readdir-ahead", vol, nil).
 		Add("performance/read-ahead", vol, nil).
-		Add("performance/write-behind", vol, nil).
-		Add("cluster/distribute", vol, nil)
+		Add("performance/write-behind", vol, nil)
 
+	val, exists := vol.Options["features.read-only"]
+	if exists && val == "on" {
+		dht = dht.Add("features/read-only", vol, nil).SetExtraOptions(map[string]string{
+			"read-only": "on",
+		})
+
+	}
+
+	dht = dht.Add("cluster/distribute", vol, nil)
 	clusterGraph(volfile, dht, vol, peerid, nil)
 }
 

@@ -7,6 +7,7 @@ import (
 	"net"
 	"os"
 	"os/exec"
+	"syscall"
 	"testing"
 	"time"
 
@@ -34,9 +35,9 @@ func TestSnapshot(t *testing.T) {
 	r := require.New(t)
 
 	prefix := fmt.Sprintf("%s/%s/bricks/", baseWorkdir, snapTestName)
-	lvmtest.Cleanup(prefix, brickCount)
+	lvmtest.Cleanup(baseWorkdir, prefix, brickCount)
 	defer func() {
-		lvmtest.Cleanup(prefix, brickCount)
+		lvmtest.Cleanup(baseWorkdir, prefix, brickCount)
 	}()
 	gds, err = setupCluster("./config/1.toml", "./config/2.toml")
 	r.Nil(err)
@@ -71,6 +72,7 @@ func TestSnapshot(t *testing.T) {
 	t.Run("Create", testSnapshotCreate)
 	t.Run("Activate", testSnapshotActivate)
 	t.Run("List", testSnapshotList)
+	t.Run("Mount", testSnapshotMount)
 	t.Run("StatusAndForceActivate", testSnapshotStatusForceActivate)
 	t.Run("Info", testSnapshotInfo)
 	t.Run("Clone", testSnapshotClone)
@@ -314,6 +316,32 @@ func testRestoredVolumeMount(t *testing.T) {
 
 	err = mntCmd.Run()
 	r.Nil(err, fmt.Sprintf("mount failed: %s", err))
+
+	err = umntCmd.Run()
+	r.Nil(err, fmt.Sprintf("unmount failed: %s", err))
+}
+
+func testSnapshotMount(t *testing.T) {
+	r := require.New(t)
+
+	mntPath, err := ioutil.TempDir(tmpDir, "mnt")
+	r.Nil(err)
+	defer os.RemoveAll(mntPath)
+
+	host, _, _ := net.SplitHostPort(gds[0].ClientAddress)
+
+	volID := fmt.Sprintf("%s:/snaps/%s", host, snapname)
+	mntCmd := exec.Command("mount", "-t", "glusterfs", volID, mntPath)
+	umntCmd := exec.Command("umount", mntPath)
+
+	err = mntCmd.Run()
+	r.Nil(err, fmt.Sprintf("mount failed: %s", err))
+
+	newDir := mntPath + "/Dir"
+	err = syscall.Mkdir(newDir, 0755)
+	if err == nil {
+		r.Nil(errors.New("Snapshot volume is Read Only File System"))
+	}
 
 	err = umntCmd.Run()
 	r.Nil(err, fmt.Sprintf("unmount failed: %s", err))
