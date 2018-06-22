@@ -67,6 +67,11 @@ type VolExpandReq struct {
 	Flags        map[string]bool `json:"flags,omitempty"`
 }
 
+// VolShrinkReq represents a request to remove bricks from a volume
+type VolShrinkReq struct {
+	Bricks []BrickReq `json:"bricks"`
+}
+
 // VolumeOption represents an option that is part of a profile
 type VolumeOption struct {
 	Name    string `json:"name"`

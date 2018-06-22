@@ -22,7 +22,7 @@ func createRebalanceInfo(volname string, req *rebalanceapi.StartReq) *rebalancea
 		RebalanceID: uuid.NewRandom(),
 		State:       rebalanceapi.Started,
 		Cmd:         getCmd(req),
-		CommitHash:  setCommitHash(),
+		CommitHash:  SetCommitHash(),
 		RebalStats:  []rebalanceapi.RebalNodeStatus{},
 	}
 }

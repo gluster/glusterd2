@@ -30,6 +30,14 @@ func (c *Command) Routes() route.Routes {
 			RequestType:  utils.GetTypeString((*api.VolExpandReq)(nil)),
 			ResponseType: utils.GetTypeString((*api.VolumeExpandResp)(nil)),
 			HandlerFunc:  volumeExpandHandler},
+		route.Route{
+			Name:         "VolumeShrink",
+			Method:       "POST",
+			Pattern:      "/volumes/{volname}/shrink",
+			Version:      1,
+			RequestType:  utils.GetTypeString((*api.VolShrinkReq)(nil)),
+			ResponseType: utils.GetTypeString((*api.VolumeShrinkResp)(nil)),
+			HandlerFunc:  volumeShrinkHandler},
 		// TODO: Implmement volume reset as
 		// DELETE /volumes/{volname}/options
 		route.Route{
@@ -160,6 +168,7 @@ func (c *Command) RegisterStepFuncs() {
 	registerVolStopStepFuncs()
 	registerBricksStatusStepFuncs()
 	registerVolExpandStepFuncs()
+	registerVolShrinkStepFuncs()
 	registerVolOptionStepFuncs()
 	registerVolStatedumpFuncs()
 }

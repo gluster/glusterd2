@@ -20,7 +20,7 @@ var (
 	hash uint64
 )
 
-func setCommitHash() uint64 {
+func SetCommitHash() uint64 {
 
 	/*
 	   We need a commit hash that won't conflict with others we might have

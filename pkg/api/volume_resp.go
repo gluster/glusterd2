@@ -92,6 +92,9 @@ type VolumeGetResp VolumeInfo
 // VolumeExpandResp is the response sent for a volume expand request.
 type VolumeExpandResp VolumeInfo
 
+// VolumeShrinkResp is the response sent for a volume expand request.
+type VolumeShrinkResp VolumeInfo
+
 // VolumeStartResp is the response sent for a volume start request.
 type VolumeStartResp VolumeInfo
 
