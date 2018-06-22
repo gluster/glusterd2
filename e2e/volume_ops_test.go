@@ -274,6 +274,9 @@ func testVolumeInfo(t *testing.T) {
 }
 
 func testVolumeStatus(t *testing.T) {
+	if _, err := os.Lstat("/dev/fuse");  os.IsNotExist(err) {
+		t.Skip("skipping mount /dev/fuse unavailable")
+	}
 	r := require.New(t)
 
 	_, err := client.VolumeStatus(volname)
