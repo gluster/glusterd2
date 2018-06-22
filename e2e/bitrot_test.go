@@ -133,7 +133,7 @@ func testbitrot(t *testing.T) {
 
 	//check bitrot status on started volume
 	_, err = client.BitrotScrubStatus(volumeName)
-	r.Contains(err.Error(), "Bitrot is not enabled")
+	r.Contains(err.Error(), "bitrot is not enabled")
 
 	//enable bitrot on volume
 	err = client.BitrotEnable(volumeName)
@@ -150,7 +150,7 @@ func testbitrot(t *testing.T) {
 
 	//check bitrot status
 	_, err = client.BitrotScrubStatus(volumeName)
-	r.Contains(err.Error(), "Bitrot is not enabled")
+	r.Contains(err.Error(), "bitrot is not enabled")
 
 	//stop volume
 	err = client.VolumeStop(volumeName)
@@ -170,15 +170,15 @@ func testbitrot(t *testing.T) {
 
 	//check bitrot status
 	scrubStatus, err = client.BitrotScrubStatus(volumeName)
-	r.Contains(err.Error(), "Bitrot is not enabled")
+	r.Contains(err.Error(), "bitrot is not enabled")
 
 	//disable bitrot on volume
 	err = client.BitrotDisable(volumeName)
-	r.Contains(err.Error(), "Bitrot is already disabled")
+	r.Contains(err.Error(), "bitrot is already disabled")
 
 	//check bitrot status
 	_, err = client.BitrotScrubStatus(volumeName)
-	r.Contains(err.Error(), "Bitrot is not enabled")
+	r.Contains(err.Error(), "bitrot is not enabled")
 
 	//stop volume
 	err = client.VolumeStop(volumeName)

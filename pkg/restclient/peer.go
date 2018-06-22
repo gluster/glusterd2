@@ -20,6 +20,13 @@ func (c *Client) PeerRemove(peerid string) error {
 	return c.del(delURL, nil, http.StatusNoContent, nil)
 }
 
+// GetPeer returns information about a peer
+func (c *Client) GetPeer(peerid string) (api.PeerGetResp, error) {
+	var peer api.PeerGetResp
+	err := c.get("/v1/peers/"+peerid, nil, http.StatusOK, &peer)
+	return peer, err
+}
+
 // Peers gets list of Gluster Peers
 func (c *Client) Peers(filterParams ...map[string]string) (api.PeerListResp, error) {
 	var peers api.PeerListResp

@@ -72,13 +72,13 @@ const (
 )
 
 // ErrInvalidArg validates if argument is Invalid
-var ErrInvalidArg = errors.New("Invalid Value")
+var ErrInvalidArg = errors.New("invalid Value")
 
 // ErrEmptyArg validates for empty arguments
-var ErrEmptyArg = errors.New("No value passed")
+var ErrEmptyArg = errors.New("no value passed")
 
 //ErrInvalidRange validates if option is out of range
-var ErrInvalidRange = errors.New("Option is out of valid range")
+var ErrInvalidRange = errors.New("option is out of valid range")
 
 // Option is a struct which represents one single xlator option exported by
 // the translator.

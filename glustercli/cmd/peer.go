@@ -83,7 +83,7 @@ var peerRemoveCmd = &cobra.Command{
 		peerID := cmd.Flags().Args()[0]
 		var err error
 		if uuid.Parse(peerID) == nil {
-			err = errors.New("Failed to parse peerID")
+			err = errors.New("failed to parse peerID")
 		}
 		if err == nil {
 			err = client.PeerRemove(peerID)

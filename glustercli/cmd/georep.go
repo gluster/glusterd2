@@ -158,7 +158,7 @@ func parseRemoteData(data string) (string, string, string, error) {
 	remotehostvol := strings.Split(data, "::")
 
 	if len(remotehostvol) != 2 {
-		return "", "", "", errors.New("Invalid Remote Volume details, use <remoteuser>@<remotehost>::<remotevol> format")
+		return "", "", "", errors.New("invalid Remote Volume details, use <remoteuser>@<remotehost>::<remotevol> format")
 	}
 
 	remoteuserhost := strings.Split(remotehostvol[0], "@")

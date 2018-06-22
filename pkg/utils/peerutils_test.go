@@ -24,6 +24,6 @@ func TestFormRemotePeerAddress(t *testing.T) {
 	assert.Equal(t, peer, "192.168.1.1:80")
 
 	_, err = FormRemotePeerAddress(":8080")
-	assert.Contains(t, err.Error(), "Invalid peer address")
+	assert.Contains(t, err.Error(), "invalid peer address")
 
 }
