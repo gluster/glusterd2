@@ -32,7 +32,7 @@ func (actor *shdActor) Do(v *volume.Volinfo, key string, value string, logger lo
 	case "on":
 		if isHealEnabled(v) {
 			err = daemon.Start(glustershDaemon, true, logger)
-			if err != gderrors.ErrProcessAlreadyRunning || err != nil {
+			if err != nil && err != gderrors.ErrProcessAlreadyRunning {
 				return err
 			}
 		}
@@ -67,7 +67,7 @@ func (actor *shdActor) Undo(v *volume.Volinfo, key string, value string, logger 
 				return errors.New("volume should be in started state")
 			}
 			err = daemon.Start(glustershDaemon, true, logger)
-			if err != gderrors.ErrProcessAlreadyRunning || err != nil {
+			if err != nil && err != gderrors.ErrProcessAlreadyRunning {
 				return err
 			}
 		}

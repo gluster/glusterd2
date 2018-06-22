@@ -35,12 +35,14 @@ func createPeerListResp(peers []*peer.Peer) *api.PeerListResp {
 	var resp api.PeerListResp
 
 	for _, p := range peers {
+		pid, online := store.Store.IsNodeAlive(p.ID)
 		resp = append(resp, api.PeerGetResp{
 			ID:              p.ID,
 			Name:            p.Name,
 			PeerAddresses:   p.PeerAddresses,
 			ClientAddresses: p.ClientAddresses,
-			Online:          store.Store.IsNodeAlive(p.ID),
+			Online:          online,
+			PID:             pid,
 			Metadata:        p.Metadata,
 		})
 	}

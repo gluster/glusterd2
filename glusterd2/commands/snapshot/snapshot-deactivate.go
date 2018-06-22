@@ -41,7 +41,7 @@ func validateSnapDeactivate(c transaction.TxnCtx) error {
 			}
 		}
 	case false:
-		return errors.New("Snapshot is already stopped")
+		return errors.New("snapshot is already stopped")
 
 	}
 	if err := c.SetNodeResult(gdctx.MyUUID, "brickListToOperate", &brickinfos); err != nil {

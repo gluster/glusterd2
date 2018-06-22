@@ -44,10 +44,13 @@ func TestAddRemovePeer(t *testing.T) {
 		Addresses: []string{g3.PeerAddress},
 	}
 
-	_, err3 := client.PeerAdd(peerAddReq)
+	peerinfo, err3 := client.PeerAdd(peerAddReq)
 	r.Nil(err3)
 
 	time.Sleep(6 * time.Second)
+
+	_, err = client.GetPeer(peerinfo.ID.String())
+	r.Nil(err)
 
 	// list and check you have 3 peers in cluster
 	peers, err4 := client.Peers()

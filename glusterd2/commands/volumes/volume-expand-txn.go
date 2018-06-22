@@ -37,15 +37,15 @@ func expandValidatePrepare(c transaction.TxnCtx) error {
 		newReplicaCount = volinfo.Subvols[0].ReplicaCount
 	}
 	if (len(req.Bricks)+len(volinfo.GetBricks()))%newReplicaCount != 0 {
-		return errors.New("Invalid number of bricks")
+		return errors.New("invalid number of bricks")
 	}
 
 	if volinfo.Type == volume.Replicate && req.ReplicaCount != 0 {
 		// TODO: Only considered first sub volume's ReplicaCount
 		if req.ReplicaCount < volinfo.Subvols[0].ReplicaCount {
-			return errors.New("Invalid number of bricks")
+			return errors.New("invalid number of bricks")
 		} else if req.ReplicaCount == volinfo.Subvols[0].ReplicaCount {
-			return errors.New("Replica count is same")
+			return errors.New("replica count is same")
 		}
 	}
 
