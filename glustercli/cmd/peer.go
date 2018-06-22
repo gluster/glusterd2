@@ -83,7 +83,7 @@ var peerRemoveCmd = &cobra.Command{
 		peerID := cmd.Flags().Args()[0]
 		var err error
 		if uuid.Parse(peerID) == nil {
-			err = errors.New("Failed to parse peerID")
+			err = errors.New("failed to parse peerID")
 		}
 		if err == nil {
 			err = client.PeerRemove(peerID)
@@ -124,9 +124,10 @@ func peerStatusHandler(cmd *cobra.Command) {
 		failure("Failed to get Peers list", err, 1)
 	}
 	table := tablewriter.NewWriter(os.Stdout)
-	table.SetHeader([]string{"ID", "Name", "Client Addresses", "Peer Addresses", "Online"})
+	table.SetHeader([]string{"ID", "Name", "Client Addresses", "Peer Addresses", "Online", "PID"})
+
 	for _, peer := range peers {
-		table.Append([]string{peer.ID.String(), peer.Name, strings.Join(peer.ClientAddresses, "\n"), strings.Join(peer.PeerAddresses, "\n"), formatBoolYesNo(peer.Online)})
+		table.Append([]string{peer.ID.String(), peer.Name, strings.Join(peer.ClientAddresses, "\n"), strings.Join(peer.PeerAddresses, "\n"), formatBoolYesNo(peer.Online), formatPID(peer.PID)})
 	}
 	table.Render()
 }

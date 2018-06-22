@@ -23,11 +23,11 @@ func validateOptions(v *volume.Volinfo, key string, value string) error {
 	switch key {
 	case "metadata-self-heal":
 		if v.Subvols[0].ReplicaCount == 1 {
-			return errors.New("Option cannot be set for a non replicate volume")
+			return errors.New("option cannot be set for a non replicate volume")
 		}
 	case "self-heal-daemon":
 		if !isVolReplicate(v.Type) {
-			return errors.New("Option cannot be set for a non replicate volume")
+			return errors.New("option cannot be set for a non replicate volume")
 		}
 	}
 	return nil

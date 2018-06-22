@@ -108,7 +108,7 @@ func expandGroupOptions(opts map[string]string) (map[string]string, error) {
 					}
 					options[option.Name] = op.DefaultValue
 				default:
-					return nil, errors.New("Need either on or off")
+					return nil, errors.New("need either on or off")
 				}
 			}
 		}
