@@ -6,7 +6,7 @@ import (
 	"github.com/pborman/uuid"
 )
 
-func generateTCPFuseVolfile(volfile *Volfile, vol *volume.Volinfo, nodeid uuid.UUID) {
+func generateTCPFuseVolfile(volfile *Volfile, vol *volume.Volinfo, peerid uuid.UUID) {
 	volfile.FileName = vol.VolfileID
 
 	dht := volfile.RootEntry.Add("debug/io-stats", vol, nil).SetName(vol.Name).
@@ -20,7 +20,7 @@ func generateTCPFuseVolfile(volfile *Volfile, vol *volume.Volinfo, nodeid uuid.U
 		Add("performance/write-behind", vol, nil).
 		Add("cluster/distribute", vol, nil)
 
-	clusterGraph(volfile, dht, vol, nodeid, nil)
+	clusterGraph(volfile, dht, vol, peerid, nil)
 }
 
 func init() {

@@ -20,15 +20,15 @@ const (
 )
 
 // IsNodeAlive returns true and pid if the node specified is alive as seen by the store
-func (s *GDStore) IsNodeAlive(nodeID interface{}) (int, bool) {
+func (s *GDStore) IsNodeAlive(peerID interface{}) (int, bool) {
 
 	var keySuffix string
 
-	switch nodeID.(type) {
+	switch peerID.(type) {
 	case uuid.UUID:
-		keySuffix = nodeID.(uuid.UUID).String()
+		keySuffix = peerID.(uuid.UUID).String()
 	case string:
-		keySuffix = nodeID.(string)
+		keySuffix = peerID.(string)
 		if uuid.Parse(keySuffix) == nil {
 			return 0, false
 		}

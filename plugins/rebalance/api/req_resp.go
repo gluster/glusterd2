@@ -40,7 +40,7 @@ const (
 
 // RebalNodeStatus represents the rebalance status on the Node
 type RebalNodeStatus struct {
-	NodeID            uuid.UUID `json:"nodeid"`
+	PeerID            uuid.UUID `json:"peerid"`
 	Status            string    `json:"status"`
 	RebalancedFiles   string    `json:"rebalanced-files"`
 	RebalancedSize    string    `json:"size"`

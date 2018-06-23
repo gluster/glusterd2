@@ -117,7 +117,7 @@ func handleMessage(inMessage string, addr *net.UDPAddr) {
 
 	message := make(map[string]interface{})
 	message["ts"] = time.Now().Unix()
-	message["nodeid"] = gdctx.MyUUID.String()
+	message["peerid"] = gdctx.MyUUID.String()
 	message["message"] = msgDict
 
 	marshalledMsg, err := json.Marshal(message)
