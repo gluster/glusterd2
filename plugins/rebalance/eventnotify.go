@@ -52,7 +52,7 @@ func HandleEventNotify(status map[string]string) error {
 		return err
 	}
 
-	rebalNodeStatus.NodeID = gdctx.MyUUID
+	rebalNodeStatus.PeerID = gdctx.MyUUID
 	rebalNodeStatus.Status = status["status"]
 	rebalNodeStatus.RebalancedFiles = status["files"]
 	rebalNodeStatus.RebalancedSize = status["size"]

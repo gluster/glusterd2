@@ -28,11 +28,11 @@ func validateVolCreateReq(req *smartvolapi.VolCreateReq) error {
 	}
 
 	if req.Transport != "" && req.Transport != "tcp" && req.Transport != "rdma" {
-		return errors.New("Invalid transport. Supported values: tcp or rdma")
+		return errors.New("invalid transport. Supported values: tcp or rdma")
 	}
 
 	if req.Size < minVolumeSize {
-		return errors.New("Invalid Volume Size, Minimum size required is " + strconv.Itoa(minVolumeSize))
+		return errors.New("invalid Volume Size, Minimum size required is " + strconv.Itoa(minVolumeSize))
 	}
 
 	return nil
@@ -92,6 +92,11 @@ func smartVolumeCreateHandler(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
+	// Generate Volume name if not provided
+	if req.Name == "" {
+		req.Name = volume.GenerateVolumeName()
+	}
+
 	if err := validateVolCreateReq(&req); err != nil {
 		restutils.SendHTTPError(ctx, w, http.StatusBadRequest, err)
 		return
@@ -109,7 +114,7 @@ func smartVolumeCreateHandler(w http.ResponseWriter, r *http.Request) {
 	applyDefaults(&req)
 
 	if req.SnapshotReserveFactor < 1 {
-		restutils.SendHTTPError(ctx, w, http.StatusBadRequest, errors.New("Invalid Snapshot Reserve Factor"))
+		restutils.SendHTTPError(ctx, w, http.StatusBadRequest, errors.New("invalid Snapshot Reserve Factor"))
 		return
 	}
 

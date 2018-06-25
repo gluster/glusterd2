@@ -26,7 +26,7 @@ func validateVolCreateReq(req *api.VolCreateReq) error {
 	}
 
 	if req.Transport != "" && req.Transport != "tcp" && req.Transport != "rdma" {
-		return errors.New("Invalid transport. Supported values: tcp or rdma")
+		return errors.New("invalid transport. Supported values: tcp or rdma")
 	}
 
 	if len(req.Subvols) <= 0 {
@@ -86,6 +86,11 @@ func volumeCreateHandler(w http.ResponseWriter, r *http.Request) {
 	if err := restutils.UnmarshalRequest(r, &req); err != nil {
 		restutils.SendHTTPError(ctx, w, http.StatusBadRequest, gderrors.ErrJSONParsingFailed)
 		return
+	}
+
+	// Generate Volume name if not provided
+	if req.Name == "" {
+		req.Name = volume.GenerateVolumeName()
 	}
 
 	if err := validateVolCreateReq(&req); err != nil {

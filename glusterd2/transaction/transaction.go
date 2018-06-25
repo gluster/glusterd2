@@ -101,7 +101,7 @@ func (t *Txn) checkAlive() error {
 
 	for _, node := range t.Nodes {
 		// TODO: Using prefixed query, get all alive nodes in a single etcd query
-		if !store.Store.IsNodeAlive(node) {
+		if _, online := store.Store.IsNodeAlive(node); !online {
 			return fmt.Errorf("node %s is probably down", node.String())
 		}
 	}
