@@ -130,6 +130,7 @@ func newVolinfo(req *api.VolCreateReq) (*volume.Volinfo, error) {
 		State:     volume.VolCreated,
 		Type:      voltypeFromSubvols(req),
 		DistCount: len(req.Subvols),
+		SnapList:  []string{},
 		Auth: volume.VolAuth{
 			Username: uuid.NewRandom().String(),
 			Password: uuid.NewRandom().String(),
