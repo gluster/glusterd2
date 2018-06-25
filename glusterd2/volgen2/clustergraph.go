@@ -29,7 +29,7 @@ func typeInSubvolType(ele volume.SubvolType, list []volume.SubvolType) bool {
 	return false
 }
 
-func clusterGraph(volfile *Volfile, dht *Entry, vol *volume.Volinfo, nodeid uuid.UUID, filters *clusterGraphFilters) {
+func clusterGraph(volfile *Volfile, dht *Entry, vol *volume.Volinfo, peerid uuid.UUID, filters *clusterGraphFilters) {
 	numSubvols := len(vol.Subvols)
 	decommissionedBricks := []string{}
 	clientIdx := 0
@@ -79,7 +79,7 @@ func clusterGraph(volfile *Volfile, dht *Entry, vol *volume.Volinfo, nodeid uuid
 				clientIdx++
 
 				// If local bricks only
-				if filters != nil && filters.onlyLocalBricks && !uuid.Equal(b.PeerID, nodeid) {
+				if filters != nil && filters.onlyLocalBricks && !uuid.Equal(b.PeerID, peerid) {
 					continue
 				}
 

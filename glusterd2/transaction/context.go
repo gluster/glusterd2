@@ -18,11 +18,11 @@ type TxnCtx interface {
 	// Set attaches the given key with value to the context. It updates value if key exists already.
 	Set(key string, value interface{}) error
 	// SetNodeResult is similar to Set but prefixes the key with node UUID specified.
-	SetNodeResult(nodeID uuid.UUID, key string, value interface{}) error
+	SetNodeResult(peerID uuid.UUID, key string, value interface{}) error
 	// Get gets the value for the given key. Returns an error if the key is not present
 	Get(key string, value interface{}) error
 	// GetNodeResult is similar to Get but prefixes the key with node UUID specified.
-	GetNodeResult(nodeID uuid.UUID, key string, value interface{}) error
+	GetNodeResult(peerID uuid.UUID, key string, value interface{}) error
 	// Delete deletes the key and value
 	Delete(key string) error
 	// Logger returns the Logrus logger associated with the context
@@ -121,8 +121,8 @@ func (c *Tctx) commit() error {
 // SetNodeResult is similar to Set but prefixes the key with the node UUID
 // specified. This function can be used by nodes to store results of
 // transaction steps.
-func (c *Tctx) SetNodeResult(nodeID uuid.UUID, key string, value interface{}) error {
-	storeKey := nodeID.String() + "/" + key
+func (c *Tctx) SetNodeResult(peerID uuid.UUID, key string, value interface{}) error {
+	storeKey := peerID.String() + "/" + key
 	return c.Set(storeKey, value)
 }
 
@@ -160,8 +160,8 @@ func (c *Tctx) Get(key string, value interface{}) error {
 // GetNodeResult is similar to Get but prefixes the key with node UUID
 // specified. This function can be used by the transaction initiator node to
 // fetch results of transaction step run on remote nodes.
-func (c *Tctx) GetNodeResult(nodeID uuid.UUID, key string, value interface{}) error {
-	storeKey := nodeID.String() + "/" + key
+func (c *Tctx) GetNodeResult(peerID uuid.UUID, key string, value interface{}) error {
+	storeKey := peerID.String() + "/" + key
 	return c.Get(storeKey, value)
 }
 
