@@ -13,8 +13,8 @@ var (
 	client                       *restclient.Client
 	logWriter                    io.WriteCloser
 	errFailedToConnectToGlusterd = `Failed to connect to glusterd. Please check if
-- Glusterd is running(%s://%s:%d) and reachable from this node.
-- Make sure hostname/IP and Port specified in the command are valid
+- Glusterd is running(%s) and reachable from this node.
+- Make sure Endpoints specified in the command is valid
 `
 )
 
@@ -34,24 +34,20 @@ func isNoRouteToHostErr(err error) bool {
 	return strings.Contains(err.Error(), "no route to host")
 }
 
-func handleGlusterdConnectFailure(msg string, err error, https bool, host string, port int, errcode int) {
+func handleGlusterdConnectFailure(msg, endpoints string, err error, errcode int) {
 	if err == nil {
 		return
 	}
 
 	if isConnectionRefusedErr(err) || isNoSuchHostErr(err) || isNoRouteToHostErr(err) {
-		scheme := "http"
-		if https {
-			scheme = "https"
-		}
 		os.Stderr.WriteString(msg + "\n\n")
-		os.Stderr.WriteString(fmt.Sprintf(errFailedToConnectToGlusterd, scheme, flagHostname, flagPort))
+		os.Stderr.WriteString(fmt.Sprintf(errFailedToConnectToGlusterd, endpoints))
 		os.Exit(errcode)
 	}
 }
 
 func failure(msg string, err error, errcode int) {
-	handleGlusterdConnectFailure(msg, err, flagHTTPS, flagHostname, flagPort, errcode)
+	handleGlusterdConnectFailure(msg, flagEndpoints[0], err, errcode)
 
 	// If different error
 	os.Stderr.WriteString(msg + "\n")

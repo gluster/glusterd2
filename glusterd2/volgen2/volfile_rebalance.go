@@ -6,14 +6,14 @@ import (
 	"github.com/pborman/uuid"
 )
 
-func generateRebalanceVolfile(volfile *Volfile, vol *volume.Volinfo, nodeid uuid.UUID) {
+func generateRebalanceVolfile(volfile *Volfile, vol *volume.Volinfo, peerid uuid.UUID) {
 
 	volfile.FileName = "rebalance/" + vol.Name
 
 	dht := volfile.RootEntry.Add("debug/io-stats", vol, nil).SetName(vol.Name).
 		Add("cluster/distribute", vol, nil)
 
-	clusterGraph(volfile, dht, vol, nodeid, nil)
+	clusterGraph(volfile, dht, vol, peerid, nil)
 }
 
 func init() {

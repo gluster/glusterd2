@@ -30,9 +30,9 @@ func TestGeorepCreateDelete(t *testing.T) {
 
 	client := initRestclient(gds[0].ClientAddress)
 
-	volname1 := "testvol1"
+	volname := formatVolName(t.Name())
 	reqVol := api.VolCreateReq{
-		Name: volname1,
+		Name: volname,
 		Subvols: []api.SubvolReq{
 			{
 				Type: "distribute",
@@ -65,7 +65,7 @@ func TestGeorepCreateDelete(t *testing.T) {
 	r.Nil(err)
 
 	reqGeorep := georepapi.GeorepCreateReq{
-		MasterVol: volname1,
+		MasterVol: volname,
 		RemoteVol: volname2,
 		RemoteHosts: []georepapi.GeorepRemoteHostReq{
 			{PeerID: gds[1].PeerID(), Hostname: gds[1].PeerAddress},
@@ -80,7 +80,7 @@ func TestGeorepCreateDelete(t *testing.T) {
 	r.Nil(err)
 
 	// delete volume
-	err = client.VolumeDelete(volname1)
+	err = client.VolumeDelete(volname)
 	r.Nil(err)
 
 	// delete volume
