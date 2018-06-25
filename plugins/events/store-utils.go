@@ -19,8 +19,8 @@ const (
 	eventsPrefix         = "events/"
 )
 
-func webhookExists(webhook eventsapi.Webhook) (bool, error) {
-	resp, e := store.Get(context.TODO(), webhookPrefix+strings.Replace(webhook.URL, "/", "|", -1))
+func webhookExists(webhookURL string) (bool, error) {
+	resp, e := store.Get(context.TODO(), webhookPrefix+strings.Replace(webhookURL, "/", "|", -1))
 	if e != nil {
 		log.WithError(e).Error("Couldn't retrive webhook from store")
 		return false, e
@@ -72,8 +72,8 @@ func addWebhook(webhook eventsapi.Webhook) error {
 	return nil
 }
 
-func deleteWebhook(webhook eventsapi.Webhook) error {
-	_, e := store.Delete(context.TODO(), webhookPrefix+strings.Replace(webhook.URL, "/", "|", -1))
+func deleteWebhook(webhookURL string) error {
+	_, e := store.Delete(context.TODO(), webhookPrefix+strings.Replace(webhookURL, "/", "|", -1))
 	return e
 }
 

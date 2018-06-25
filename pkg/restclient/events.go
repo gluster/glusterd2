@@ -19,7 +19,7 @@ func (c *Client) WebhookAdd(url string, token string, secret string) error {
 
 // WebhookDelete deletes the webhook
 func (c *Client) WebhookDelete(url string) error {
-	req := &eventsapi.Webhook{
+	req := &eventsapi.WebhookDel{
 		URL: url,
 	}
 
