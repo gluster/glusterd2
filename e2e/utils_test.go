@@ -342,3 +342,7 @@ func loopDevicesCleanup(t *testing.T) error {
 	}
 	return nil
 }
+
+func formatVolName(volName string) string {
+	return strings.Replace(volName, "/", "-", 1)
+}

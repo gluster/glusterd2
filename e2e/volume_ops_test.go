@@ -116,7 +116,7 @@ func testVolumeCreate(t *testing.T) {
 
 func testVolumeCreateWithFlags(t *testing.T) {
 	r := require.New(t)
-	volumeName := strings.Replace(t.Name(), "/", "-", 1)
+	volumeName := formatVolName(t.Name())
 	var brickPaths []string
 
 	for i := 1; i <= 4; i++ {

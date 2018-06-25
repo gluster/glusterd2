@@ -17,6 +17,13 @@ func formatBoolYesNo(value bool) string {
 	return "no"
 }
 
+func formatPID(pid int) string {
+	if pid == 0 {
+		return ""
+	}
+	return strconv.Itoa(pid)
+}
+
 func sizeToMb(value string) (uint64, error) {
 	sizeParts := validSizeFormat.FindStringSubmatch(value)
 	if len(sizeParts) == 0 {

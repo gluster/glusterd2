@@ -6,7 +6,7 @@ import (
 	"github.com/pborman/uuid"
 )
 
-func generateTCPGfProxyFuseVolfile(volfile *Volfile, vol *volume.Volinfo, nodeid uuid.UUID) {
+func generateTCPGfProxyFuseVolfile(volfile *Volfile, vol *volume.Volinfo, peerid uuid.UUID) {
 
 	/*
 		Name should be different for snapshot
@@ -18,7 +18,7 @@ func generateTCPGfProxyFuseVolfile(volfile *Volfile, vol *volume.Volinfo, nodeid
 		Add("protocol/client", vol, nil).SetExtraData(map[string]string{"brick.path": "gfproxyd-" + vol.Name, "brick.hostname": ""})
 }
 
-func generateGfproxydVolfile(volfile *Volfile, vol *volume.Volinfo, nodeid uuid.UUID) {
+func generateGfproxydVolfile(volfile *Volfile, vol *volume.Volinfo, peerid uuid.UUID) {
 
 	volfile.FileName = "gfproxyd/" + vol.Name
 
@@ -33,7 +33,7 @@ func generateGfproxydVolfile(volfile *Volfile, vol *volume.Volinfo, nodeid uuid.
 		Add("performance/read-ahead", vol, nil).
 		Add("cluster/distribute", vol, nil)
 
-	clusterGraph(volfile, dht, vol, nodeid, nil)
+	clusterGraph(volfile, dht, vol, peerid, nil)
 }
 
 func init() {
