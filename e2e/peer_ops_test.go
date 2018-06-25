@@ -34,8 +34,8 @@ func TestAddRemovePeer(t *testing.T) {
 			"owner": "gd2test",
 		},
 	}
-	_, err2 := client.PeerAdd(peerAddReq)
-	r.Nil(err2)
+	_, err = client.PeerAdd(peerAddReq)
+	r.Nil(err)
 
 	time.Sleep(6 * time.Second)
 
@@ -44,8 +44,8 @@ func TestAddRemovePeer(t *testing.T) {
 		Addresses: []string{g3.PeerAddress},
 	}
 
-	peerinfo, err3 := client.PeerAdd(peerAddReq)
-	r.Nil(err3)
+	peerinfo, err := client.PeerAdd(peerAddReq)
+	r.Nil(err)
 
 	time.Sleep(6 * time.Second)
 
@@ -53,8 +53,8 @@ func TestAddRemovePeer(t *testing.T) {
 	r.Nil(err)
 
 	// list and check you have 3 peers in cluster
-	peers, err4 := client.Peers()
-	r.Nil(err4)
+	peers, err := client.Peers()
+	r.Nil(err)
 	r.Len(peers, 3)
 
 	var matchingQueries []map[string]string
@@ -93,6 +93,6 @@ func TestAddRemovePeer(t *testing.T) {
 	}
 
 	// remove peer: ask g1 to remove g2 as peer
-	err5 := client.PeerRemove(g2.PeerID())
-	r.Nil(err5)
+	err = client.PeerRemove(g2.PeerID())
+	r.Nil(err)
 }

@@ -28,9 +28,9 @@ func TestSelfHealInfo(t *testing.T) {
 	}
 
 	client := initRestclient(gds[0].ClientAddress)
-	volname1 := "testvol1"
+	volname := formatVolName(t.Name())
 	reqVol := api.VolCreateReq{
-		Name: volname1,
+		Name: volname,
 		Subvols: []api.SubvolReq{
 			{
 				ReplicaCount: 2,
