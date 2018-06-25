@@ -6,7 +6,7 @@ import (
 	"github.com/pborman/uuid"
 )
 
-func generateShdVolfile(volfile *Volfile, clusterinfo []*volume.Volinfo, nodeid uuid.UUID) {
+func generateShdVolfile(volfile *Volfile, clusterinfo []*volume.Volinfo, peerid uuid.UUID) {
 	volfile.FileName = "gluster/glustershd"
 	shd := volfile.RootEntry.Add("debug/io-stats", nil, nil).SetName("glustershd")
 
@@ -16,7 +16,7 @@ func generateShdVolfile(volfile *Volfile, clusterinfo []*volume.Volinfo, nodeid 
 			volume.SubvolReplicate,
 			volume.SubvolDisperse,
 		}}
-		clusterGraph(volfile, shd, vol, nodeid, &filters)
+		clusterGraph(volfile, shd, vol, peerid, &filters)
 	}
 }
 

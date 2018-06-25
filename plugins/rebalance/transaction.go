@@ -197,7 +197,7 @@ func txnRebalanceStatus(c transaction.TxnCtx) error {
 		return err
 	}
 
-	rebalNodeStatus.NodeID = gdctx.MyUUID
+	rebalNodeStatus.PeerID = gdctx.MyUUID
 	rebalNodeStatus.Status = rspDict["status"]
 	rebalNodeStatus.RebalancedFiles = rspDict["files"]
 	rebalNodeStatus.RebalancedSize = rspDict["size"]
