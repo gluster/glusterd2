@@ -2,6 +2,9 @@ package events
 
 import (
 	"github.com/gluster/glusterd2/glusterd2/servers/rest/route"
+	"github.com/gluster/glusterd2/pkg/api"
+	"github.com/gluster/glusterd2/pkg/utils"
+	"github.com/gluster/glusterd2/plugins/events/api"
 )
 
 // Plugin is a structure which implements GlusterdPlugin interface
@@ -21,25 +24,29 @@ func (p *Plugin) RestRoutes() route.Routes {
 			Method:      "POST",
 			Pattern:     "/events/webhook",
 			Version:     1,
+			RequestType: utils.GetTypeString((*events.Webhook)(nil)),
 			HandlerFunc: webhookAddHandler},
 		route.Route{
 			Name:        "WebhookDelete",
 			Method:      "DELETE",
 			Pattern:     "/events/webhook",
 			Version:     1,
+			RequestType: utils.GetTypeString((*events.WebhookDel)(nil)),
 			HandlerFunc: webhookDeleteHandler},
 		route.Route{
-			Name:        "WebhookList",
-			Method:      "GET",
-			Pattern:     "/events/webhook",
-			Version:     1,
-			HandlerFunc: webhookListHandler},
+			Name:         "WebhookList",
+			Method:       "GET",
+			Pattern:      "/events/webhook",
+			Version:      1,
+			ResponseType: utils.GetTypeString((*events.WebhookList)(nil)),
+			HandlerFunc:  webhookListHandler},
 		route.Route{
-			Name:        "EventsList",
-			Method:      "GET",
-			Pattern:     "/events",
-			Version:     1,
-			HandlerFunc: eventsListHandler},
+			Name:         "EventsList",
+			Method:       "GET",
+			Pattern:      "/events",
+			Version:      1,
+			ResponseType: utils.GetTypeString((*api.Event)(nil)),
+			HandlerFunc:  eventsListHandler},
 	}
 }
 
