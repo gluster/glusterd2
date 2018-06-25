@@ -17,21 +17,14 @@ var RootCmd = &cobra.Command{
 		if err != nil {
 			fmt.Println("Error initializing log file ", err)
 		}
-		scheme := "http"
-		if flagHTTPS {
-			scheme = "https"
-		}
-		hostname := fmt.Sprintf("%s://%s:%d", scheme, flagHostname, flagPort)
-		initRESTClient(hostname, flagUser, flagSecret, flagCacert, flagInsecure)
+		initRESTClient(flagEndpoints[0], flagUser, flagSecret, flagCacert, flagInsecure)
 	},
 }
 
 var (
 	flagXMLOutput  bool
 	flagJSONOutput bool
-	flagHostname   string
-	flagHTTPS      bool
-	flagPort       int
+	flagEndpoints  []string
 	flagCacert     string
 	flagInsecure   bool
 	flagLogLevel   string
@@ -48,9 +41,7 @@ func init() {
 	// Global flags, applicable for all sub commands
 	RootCmd.PersistentFlags().BoolVarP(&flagXMLOutput, "xml", "", false, "XML Output")
 	RootCmd.PersistentFlags().BoolVarP(&flagJSONOutput, "json", "", false, "JSON Output")
-	RootCmd.PersistentFlags().StringVarP(&flagHostname, "glusterd-host", "", "localhost", "Glusterd Host")
-	RootCmd.PersistentFlags().BoolVarP(&flagHTTPS, "glusterd-https", "", false, "Use HTTPS while connecting to Glusterd")
-	RootCmd.PersistentFlags().IntVarP(&flagPort, "glusterd-port", "", 24007, "Glusterd Port")
+	RootCmd.PersistentFlags().StringSliceVar(&flagEndpoints, "endpoints", []string{"http://127.0.0.1:24007"}, "glusterd2 endpoints")
 	RootCmd.PersistentFlags().BoolVarP(&verbose, "verbose", "v", false, "verbose output")
 
 	//user and secret for token authentication
