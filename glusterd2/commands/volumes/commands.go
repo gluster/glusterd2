@@ -162,6 +162,12 @@ func (c *Command) Routes() route.Routes {
 			RequestType:  utils.GetTypeString((*api.VolEditReq)(nil)),
 			ResponseType: utils.GetTypeString((*api.VolumeEditResp)(nil)),
 			HandlerFunc:  volumeEditHandler},
+		route.Route{
+			Name:        "ProfileVolume",
+			Method:      "GET",
+			Pattern:     "/volumes/{volname}/profile/{option}",
+			Version:     1,
+			HandlerFunc: volumeProfileHandler},
 	}
 }
 
@@ -176,4 +182,5 @@ func (c *Command) RegisterStepFuncs() {
 	registerVolOptionStepFuncs()
 	registerVolOptionResetStepFuncs()
 	registerVolStatedumpFuncs()
+	registerVolProfileStepFuncs()
 }
