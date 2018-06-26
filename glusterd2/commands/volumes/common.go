@@ -291,3 +291,18 @@ func validateVolumeFlags(flag map[string]bool) error {
 	}
 	return nil
 }
+
+func isActionStepRequired(opt map[string]string) bool {
+
+	for k := range opt {
+		_, xl, _, err := options.SplitKey(k)
+		if err != nil {
+			continue
+		}
+		if xltr, err := xlator.Find(xl); err == nil && xltr.Actor != nil {
+			return true
+		}
+	}
+
+	return false
+}

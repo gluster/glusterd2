@@ -161,5 +161,6 @@ func (c *Command) RegisterStepFuncs() {
 	registerBricksStatusStepFuncs()
 	registerVolExpandStepFuncs()
 	registerVolOptionStepFuncs()
+	registerVolOptionResetStepFuncs()
 	registerVolStatedumpFuncs()
 }
