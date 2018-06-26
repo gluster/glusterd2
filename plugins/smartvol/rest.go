@@ -92,6 +92,11 @@ func smartVolumeCreateHandler(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
+	// Generate Volume name if not provided
+	if req.Name == "" {
+		req.Name = volume.GenerateVolumeName()
+	}
+
 	if err := validateVolCreateReq(&req); err != nil {
 		restutils.SendHTTPError(ctx, w, http.StatusBadRequest, err)
 		return

@@ -123,11 +123,11 @@ func getClientVolFilePath(volname string) string {
 	return path.Join(dir, file)
 }
 
-func getBrickVolFilePath(volname string, brickNodeID string, brickPath string) string {
+func getBrickVolFilePath(volname string, brickPeerID string, brickPath string) string {
 	dir := utils.GetVolumeDir(volname)
 
 	brickPathWithoutSlashes := strings.Trim(strings.Replace(brickPath, "/", "-", -1), "-")
-	file := fmt.Sprintf("%s.%s.%s.vol", volname, brickNodeID, brickPathWithoutSlashes)
+	file := fmt.Sprintf("%s.%s.%s.vol", volname, brickPeerID, brickPathWithoutSlashes)
 
 	return path.Join(dir, file)
 }

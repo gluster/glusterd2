@@ -42,7 +42,7 @@ func getAvailableVgs(req *smartvolapi.Volume) ([]Vg, error) {
 
 	for _, p := range peers {
 		// If Peer is not online, do not consider this device/peer
-		if !store.Store.IsNodeAlive(p.ID) {
+		if _, online := store.Store.IsNodeAlive(p.ID); !online {
 			continue
 		}
 

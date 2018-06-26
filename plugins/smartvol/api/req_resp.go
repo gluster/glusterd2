@@ -2,23 +2,23 @@ package api
 
 // VolCreateReq represents a Volume Create Request
 type VolCreateReq struct {
-	Name                    string   `json:"name"`
+	Name                    string   `json:"name,omitempty"`
 	Transport               string   `json:"transport,omitempty"`
 	Force                   bool     `json:"force,omitempty"`
 	Size                    uint64   `json:"size"`
-	DistributeCount         int      `json:"distribute"`
-	ReplicaCount            int      `json:"replica"`
-	ArbiterCount            int      `json:"arbiter"`
-	DisperseCount           int      `json:"disperse"`
-	DisperseRedundancyCount int      `json:"disperse-redundancy"`
-	DisperseDataCount       int      `json:"disperse-data"`
-	SnapshotEnabled         bool     `json:"snapshot"`
-	SnapshotReserveFactor   float64  `json:"snapshot-reserve-factor"`
-	LimitPeers              []string `json:"limit-peers"`
-	LimitZones              []string `json:"limit-zones"`
-	ExcludePeers            []string `json:"exclude-peers"`
-	ExcludeZones            []string `json:"exclude-zones"`
-	SubvolZonesOverlap      bool     `json:"subvolume-zones-overlap"`
+	DistributeCount         int      `json:"distribute,omitempty"`
+	ReplicaCount            int      `json:"replica,omitempty"`
+	ArbiterCount            int      `json:"arbiter,omitempty"`
+	DisperseCount           int      `json:"disperse,omitempty"`
+	DisperseRedundancyCount int      `json:"disperse-redundancy,omitempty"`
+	DisperseDataCount       int      `json:"disperse-data,omitempty"`
+	SnapshotEnabled         bool     `json:"snapshot,omitempty"`
+	SnapshotReserveFactor   float64  `json:"snapshot-reserve-factor,omitempty"`
+	LimitPeers              []string `json:"limit-peers,omitempty"`
+	LimitZones              []string `json:"limit-zones,omitempty"`
+	ExcludePeers            []string `json:"exclude-peers,omitempty"`
+	ExcludeZones            []string `json:"exclude-zones,omitempty"`
+	SubvolZonesOverlap      bool     `json:"subvolume-zones-overlap,omitempty"`
 }
 
 // Brick represents Brick Request
