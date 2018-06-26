@@ -37,7 +37,7 @@ func validateSnapActivate(c transaction.TxnCtx) error {
 	switch vol.State == volume.VolStarted {
 	case true:
 		if req.Force == false {
-			return errors.New("Snapshot already started. Use force to override the behaviour")
+			return errors.New("snapshot already started. Use force to override the behaviour")
 		}
 		fallthrough
 	case false:

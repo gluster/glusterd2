@@ -18,11 +18,11 @@ func handleReplicaSubvolReq(req *smartvolapi.Volume) error {
 	}
 
 	if req.ReplicaCount > 3 {
-		return errors.New("Invalid Replica Count")
+		return errors.New("invalid Replica Count")
 	}
 	req.SubvolType = "replicate"
 	if req.ArbiterCount > 1 {
-		return errors.New("Invalid Arbiter Count")
+		return errors.New("invalid Arbiter Count")
 	}
 
 	return nil
@@ -36,7 +36,7 @@ func handleDisperseSubvolReq(req *smartvolapi.Volume) error {
 	req.SubvolType = "disperse"
 
 	if req.DisperseDataCount > 0 && req.DisperseRedundancyCount <= 0 {
-		return errors.New("Disperse redundancy count is required")
+		return errors.New("disperse redundancy count is required")
 	}
 
 	if req.DisperseDataCount > 0 {
@@ -53,7 +53,7 @@ func handleDisperseSubvolReq(req *smartvolapi.Volume) error {
 	}
 
 	if 2*req.DisperseRedundancyCount >= req.DisperseCount {
-		return errors.New("Invalid redundancy count")
+		return errors.New("invalid redundancy count")
 	}
 
 	return nil
@@ -88,7 +88,7 @@ func getBricksLayout(req *smartvolapi.Volume) ([]smartvolapi.Subvol, error) {
 	}
 
 	if req.SnapshotReserveFactor < 1 {
-		return nil, errors.New("Invalid Snapshot Reserve Factor")
+		return nil, errors.New("invalid Snapshot Reserve Factor")
 	}
 
 	// Default Subvol Type
@@ -108,7 +108,7 @@ func getBricksLayout(req *smartvolapi.Volume) ([]smartvolapi.Subvol, error) {
 
 	subvolplanner, exists := subvolPlanners[req.SubvolType]
 	if !exists {
-		return nil, errors.New("Sub volume type not supported")
+		return nil, errors.New("subvolume type not supported")
 	}
 
 	// Initialize the planner
@@ -157,7 +157,7 @@ func PlanBricks(req *smartvolapi.Volume) error {
 	}
 
 	if len(availableVgs) == 0 {
-		return errors.New("No devices registered or available for allocating bricks")
+		return errors.New("no devices registered or available for allocating bricks")
 	}
 
 	subvols, err := getBricksLayout(req)
@@ -226,7 +226,7 @@ func PlanBricks(req *smartvolapi.Volume) error {
 
 		// If the devices are not available as it is required for Volume.
 		if len(sv.Bricks) != numBricksAllocated {
-			return errors.New("No space available or all the devices are not registered")
+			return errors.New("no space available or all the devices are not registered")
 		}
 	}
 

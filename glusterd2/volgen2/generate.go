@@ -30,14 +30,14 @@ type extrainfo struct {
 func generateClusterLevelVolfiles(clusterinfo []*volume.Volinfo, xopts *map[string]extrainfo) error {
 	for _, cvf := range clusterVolfiles {
 		if cvf.nodeLevel {
-			for _, nodeid := range nodesFromClusterInfo(clusterinfo) {
+			for _, peerid := range nodesFromClusterInfo(clusterinfo) {
 				volfile := New(cvf.name)
-				cvf.fn.(clusterVolfileFunc)(volfile, clusterinfo, nodeid)
+				cvf.fn.(clusterVolfileFunc)(volfile, clusterinfo, peerid)
 				volfiledata, err := volfile.Generate("", xopts)
 				if err != nil {
 					return err
 				}
-				err = save(nodeid.String()+"-"+volfile.FileName, volfiledata)
+				err = save(peerid.String()+"-"+volfile.FileName, volfiledata)
 				if err != nil {
 					return err
 				}
@@ -63,14 +63,14 @@ func generateVolumeLevelVolfiles(clusterinfo []*volume.Volinfo, xopts *map[strin
 	for _, volinfo := range clusterinfo {
 		for _, vvf := range volumeVolfiles {
 			if vvf.nodeLevel {
-				for _, nodeid := range volinfo.Nodes() {
+				for _, peerid := range volinfo.Nodes() {
 					volfile := New(vvf.name)
-					vvf.fn.(volumeVolfileFunc)(volfile, volinfo, nodeid)
+					vvf.fn.(volumeVolfileFunc)(volfile, volinfo, peerid)
 					volfiledata, err := volfile.Generate("", xopts)
 					if err != nil {
 						return err
 					}
-					err = save(nodeid.String()+"-"+volfile.FileName, volfiledata)
+					err = save(peerid.String()+"-"+volfile.FileName, volfiledata)
 					if err != nil {
 						return err
 					}
@@ -98,14 +98,14 @@ func generateBrickLevelVolfiles(clusterinfo []*volume.Volinfo, xopts *map[string
 		for _, brick := range volinfo.GetBricks() {
 			for _, bvf := range brickVolfiles {
 				if bvf.nodeLevel {
-					for _, nodeid := range nodes {
+					for _, peerid := range nodes {
 						volfile := New(bvf.name)
-						bvf.fn.(brickVolfileFunc)(volfile, &brick, volinfo, nodeid)
+						bvf.fn.(brickVolfileFunc)(volfile, &brick, volinfo, peerid)
 						volfiledata, err := volfile.Generate("", xopts)
 						if err != nil {
 							return err
 						}
-						err = save(nodeid.String()+"-"+volfile.FileName, volfiledata)
+						err = save(peerid.String()+"-"+volfile.FileName, volfiledata)
 						if err != nil {
 							return err
 						}

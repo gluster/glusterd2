@@ -27,7 +27,7 @@ type SubvolReq struct {
 "create-brick-dir" : if brick dir is not present, create it
 */
 type VolCreateReq struct {
-	Name         string            `json:"name"`
+	Name         string            `json:"name,omitempty"`
 	Transport    string            `json:"transport,omitempty"`
 	Subvols      []SubvolReq       `json:"subvols"`
 	Options      map[string]string `json:"options,omitempty"`

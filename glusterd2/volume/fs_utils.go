@@ -88,7 +88,7 @@ func UsageInfo(volname string) (*SizeInfo, error) {
 
 	if fstat.Type != fuseSuperMagic {
 		// Do a crude check if mountpoint is a glusterfs mount
-		return nil, errors.New("Not FUSE mount")
+		return nil, errors.New("not FUSE mount")
 	}
 
 	return createSizeInfo(&fstat), nil

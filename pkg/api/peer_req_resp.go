@@ -11,6 +11,7 @@ type Peer struct {
 	PeerAddresses   []string          `json:"peer-addresses"`
 	ClientAddresses []string          `json:"client-addresses"`
 	Online          bool              `json:"online"`
+	PID             int               `json:"pid,omitempty"`
 	Metadata        map[string]string `json:"metadata"`
 }
 

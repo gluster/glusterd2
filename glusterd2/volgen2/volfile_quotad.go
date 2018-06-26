@@ -6,7 +6,7 @@ import (
 	"github.com/pborman/uuid"
 )
 
-func generateQuotadVolfile(volfile *Volfile, clusterinfo []*volume.Volinfo, nodeid uuid.UUID) {
+func generateQuotadVolfile(volfile *Volfile, clusterinfo []*volume.Volinfo, peerid uuid.UUID) {
 	volfile.FileName = "gluster/quotad"
 
 	quotaOpts := make(map[string]string)
@@ -22,7 +22,7 @@ func generateQuotadVolfile(volfile *Volfile, clusterinfo []*volume.Volinfo, node
 		val, exists := v.Options["features.quota"]
 		if exists && val == "on" {
 			dht := quota.Add("cluster/distribute", v, nil).SetName(v.Name)
-			clusterGraph(volfile, dht, v, nodeid, nil)
+			clusterGraph(volfile, dht, v, peerid, nil)
 		}
 	}
 }

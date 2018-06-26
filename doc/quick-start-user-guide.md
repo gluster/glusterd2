@@ -174,7 +174,7 @@ $ curl -X POST http://192.168.56.101:24007/v1/volumes --data @volcreate.json -H 
 
 Send the volume create request using glustercli:
 
-    $ glustercli volume create testvol <uuid1>:/export/brick1/data <uuid2>:/export/brick2/data <uuid1>:/export/brick3/data <uuid2>:/export/brick4/data --replica 2
+    $ glustercli volume create --name testvol <uuid1>:/export/brick1/data <uuid2>:/export/brick2/data <uuid1>:/export/brick3/data <uuid2>:/export/brick4/data --replica 2
 
 ## Start the volume
 

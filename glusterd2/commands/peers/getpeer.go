@@ -32,12 +32,14 @@ func getPeerHandler(w http.ResponseWriter, r *http.Request) {
 }
 
 func createPeerGetResp(p *peer.Peer) *api.PeerGetResp {
+	pid, online := store.Store.IsNodeAlive(p.ID)
 	return &api.PeerGetResp{
 		ID:              p.ID,
 		Name:            p.Name,
 		PeerAddresses:   p.PeerAddresses,
 		ClientAddresses: p.ClientAddresses,
-		Online:          store.Store.IsNodeAlive(p.ID),
+		Online:          online,
+		PID:             pid,
 		Metadata:        p.Metadata,
 	}
 }

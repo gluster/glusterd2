@@ -22,6 +22,11 @@ var (
 	volumeNameRE = regexp.MustCompile("^[a-zA-Z0-9_-]+$")
 )
 
+// GenerateVolumeName generates volume name as vol_<random-id>
+func GenerateVolumeName() string {
+	return "vol_" + uuid.NewRandom().String()
+}
+
 // IsValidName validates Volume name
 func IsValidName(name string) bool {
 	return volumeNameRE.MatchString(name)
@@ -138,7 +143,7 @@ func GetBrickMountRoot(brickPath string) (string, error) {
 	if mntSt := mntStat.Sys().(*syscall.Stat_t); brickSt.Dev == mntSt.Dev {
 		return "/", nil
 	}
-	return "", errors.New("Failed To Get Mount Root")
+	return "", errors.New("failed to get mount root")
 }
 
 //GetBrickMountInfo return mount related information
@@ -153,7 +158,7 @@ func GetBrickMountInfo(mountRoot string) (*Mntent, error) {
 			return entry, nil
 		}
 	}
-	return nil, errors.New("Mount Point Not Found")
+	return nil, errors.New("mount point not found")
 
 }
 
