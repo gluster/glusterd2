@@ -8,7 +8,7 @@ import (
 	"github.com/pborman/uuid"
 )
 
-func generateScrubVolfile(volfile *Volfile, clusterinfo []*volume.Volinfo, nodeid uuid.UUID) {
+func generateScrubVolfile(volfile *Volfile, clusterinfo []*volume.Volinfo, peerid uuid.UUID) {
 	volfile.FileName = "gluster/scrub"
 
 	scrub := volfile.RootEntry.Add("debug/io-stats", nil, nil).SetName("scrub")
@@ -19,7 +19,7 @@ func generateScrubVolfile(volfile *Volfile, clusterinfo []*volume.Volinfo, nodei
 		if exists && val == "on" {
 			name := fmt.Sprintf("%s-bit-rot-%d", vol.Name, volIdx)
 			scrubvol := scrub.Add("features/bit-rot", vol, nil).SetName(name)
-			clusterGraph(volfile, scrubvol, vol, nodeid, &clusterGraphFilters{onlyLocalBricks: true})
+			clusterGraph(volfile, scrubvol, vol, peerid, &clusterGraphFilters{onlyLocalBricks: true})
 		}
 	}
 }

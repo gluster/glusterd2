@@ -25,8 +25,8 @@ func (m *MockTctx) Set(key string, value interface{}) error {
 }
 
 // SetNodeResult is similar to Set but prefixes the key with the node UUID specified.
-func (m *MockTctx) SetNodeResult(nodeID uuid.UUID, key string, value interface{}) error {
-	storeKey := nodeID.String() + "/" + key
+func (m *MockTctx) SetNodeResult(peerID uuid.UUID, key string, value interface{}) error {
+	storeKey := peerID.String() + "/" + key
 	return m.Set(storeKey, value)
 }
 
@@ -40,8 +40,8 @@ func (m *MockTctx) Get(key string, value interface{}) error {
 }
 
 // GetNodeResult is similar to Get but prefixes the key with node UUID specified.
-func (m *MockTctx) GetNodeResult(nodeID uuid.UUID, key string, value interface{}) error {
-	storeKey := nodeID.String() + "/" + key
+func (m *MockTctx) GetNodeResult(peerID uuid.UUID, key string, value interface{}) error {
+	storeKey := peerID.String() + "/" + key
 	return m.Get(storeKey, value)
 }
 

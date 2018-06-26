@@ -35,7 +35,7 @@ const (
 
 // GeorepRemoteHost represents Remote host UUID and Hostname
 type GeorepRemoteHost struct {
-	PeerID   uuid.UUID `json:"nodeid"`
+	PeerID   uuid.UUID `json:"peerid"`
 	Hostname string    `json:"host"`
 }
 
@@ -64,7 +64,7 @@ type GeorepWorker struct {
 
 // GeorepSSHPublicKey represents one nodes SSH Public key
 type GeorepSSHPublicKey struct {
-	PeerID    uuid.UUID `json:"nodeid"`
+	PeerID    uuid.UUID `json:"peerid"`
 	GsyncdKey string    `json:"gsyncd"`
 	TarKey    string    `json:"tar"`
 }

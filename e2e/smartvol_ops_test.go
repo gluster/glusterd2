@@ -30,7 +30,7 @@ func brickSizeTest(brickpath string, min uint64, max uint64) error {
 
 func testSmartVolumeDistribute(t *testing.T) {
 	r := require.New(t)
-	smartvolname := "sv1"
+	smartvolname := formatVolName(t.Name())
 	// create Distribute 3 Volume
 	createReq := smartvolapi.VolCreateReq{
 		Name:            smartvolname,
@@ -55,7 +55,7 @@ func testSmartVolumeDistribute(t *testing.T) {
 
 func testSmartVolumeReplicate2(t *testing.T) {
 	r := require.New(t)
-	smartvolname := "sv2"
+	smartvolname := formatVolName(t.Name())
 	// create Replica 2 Volume
 	createReq := smartvolapi.VolCreateReq{
 		Name:         smartvolname,
@@ -78,7 +78,7 @@ func testSmartVolumeReplicate2(t *testing.T) {
 func testSmartVolumeReplicate3(t *testing.T) {
 	r := require.New(t)
 
-	smartvolname := "sv3"
+	smartvolname := formatVolName(t.Name())
 	// create Replica 3 Volume
 	createReq := smartvolapi.VolCreateReq{
 		Name:         smartvolname,
@@ -101,7 +101,7 @@ func testSmartVolumeReplicate3(t *testing.T) {
 func testSmartVolumeArbiter(t *testing.T) {
 	r := require.New(t)
 
-	smartvolname := "sv4"
+	smartvolname := formatVolName(t.Name())
 	// create Replica 3 Arbiter Volume
 	createReq := smartvolapi.VolCreateReq{
 		Name:         smartvolname,
@@ -129,7 +129,7 @@ func testSmartVolumeArbiter(t *testing.T) {
 func testSmartVolumeDisperse(t *testing.T) {
 	r := require.New(t)
 
-	smartvolname := "sv5"
+	smartvolname := formatVolName(t.Name())
 
 	// create Disperse Volume
 	createReq := smartvolapi.VolCreateReq{
@@ -154,7 +154,7 @@ func testSmartVolumeDisperse(t *testing.T) {
 func testSmartVolumeDistributeReplicate(t *testing.T) {
 	r := require.New(t)
 
-	smartvolname := "sv6"
+	smartvolname := formatVolName(t.Name())
 
 	// create Distribute Replicate(2x3) Volume
 	createReq := smartvolapi.VolCreateReq{
@@ -185,7 +185,7 @@ func testSmartVolumeDistributeReplicate(t *testing.T) {
 func testSmartVolumeDistributeDisperse(t *testing.T) {
 	r := require.New(t)
 
-	smartvolname := "sv7"
+	smartvolname := formatVolName(t.Name())
 
 	// create Distribute Disperse(2x3) Volume
 	createReq := smartvolapi.VolCreateReq{
@@ -211,6 +211,18 @@ func testSmartVolumeDistributeDisperse(t *testing.T) {
 	r.Nil(brickSizeTest(volinfo.Subvols[1].Bricks[2].Path, 16, 21))
 
 	r.Nil(client.VolumeDelete(smartvolname))
+}
+
+func testSmartVolumeWithoutName(t *testing.T) {
+	r := require.New(t)
+
+	createReq := smartvolapi.VolCreateReq{
+		Size: 20,
+	}
+	volinfo, err := client.SmartVolumeCreate(createReq)
+	r.Nil(err)
+
+	r.Nil(client.VolumeDelete(volinfo.Name))
 }
 
 // TestSmartVolume creates a volume and starts it, runs further tests on it and
@@ -252,6 +264,7 @@ func TestSmartVolume(t *testing.T) {
 	t.Run("Smartvol Disperse Volume", testSmartVolumeDisperse)
 	t.Run("Smartvol Distributed-Replicate Volume", testSmartVolumeDistributeReplicate)
 	t.Run("Smartvol Distributed-Disperse Volume", testSmartVolumeDistributeDisperse)
+	t.Run("Smartvol Without Name", testSmartVolumeWithoutName)
 
 	// // Device Cleanup
 	r.Nil(loopDevicesCleanup(t))
