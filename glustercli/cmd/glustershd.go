@@ -26,6 +26,8 @@ func init() {
 	selfHealInfoCmd.Flags().BoolVar(&flagSummaryInfo, "info-summary", false, "Heal Info Summary")
 	selfHealInfoCmd.Flags().BoolVar(&flagSplitBrainInfo, "split-brain-info", false, "Heal Split Brain Info")
 	selfHealCmd.AddCommand(selfHealInfoCmd)
+	selfHealCmd.AddCommand(selfHealIndexCmd)
+	selfHealCmd.AddCommand(selfHealFullCmd)
 
 	volumeCmd.AddCommand(selfHealCmd)
 }
@@ -80,5 +82,37 @@ var selfHealInfoCmd = &cobra.Command{
 			}
 			fmt.Printf("\n")
 		}
+	},
+}
+
+var selfHealIndexCmd = &cobra.Command{
+	Use:   "index <volname>",
+	Short: "Index Heal",
+	Long:  "CLI command to trigger index heal on a volume",
+	Args:  cobra.ExactArgs(1),
+	Run: func(cmd *cobra.Command, args []string) {
+		var err error
+		volname := args[0]
+		err = client.SelfHeal(volname, "index")
+		if err != nil {
+			failure(fmt.Sprintf("Failed to run heal for volume %s\n", volname), err, 1)
+		}
+		fmt.Println("Heal on volume has been successfully launched. Use heal info to check status")
+	},
+}
+
+var selfHealFullCmd = &cobra.Command{
+	Use:   "full <volname>",
+	Short: "Full Heal",
+	Long:  "CLI command to trigger full heal on a volume",
+	Args:  cobra.ExactArgs(1),
+	Run: func(cmd *cobra.Command, args []string) {
+		var err error
+		volname := args[0]
+		err = client.SelfHeal(volname, "full")
+		if err != nil {
+			failure(fmt.Sprintf("Failed to run heal for volume %s\n", volname), err, 1)
+		}
+		fmt.Println("Heal on volume has been successfully launched. Use heal info to check status")
 	},
 }
