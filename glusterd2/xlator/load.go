@@ -12,12 +12,12 @@ import "C"
 import (
 	"fmt"
 	"os"
-	"os/exec"
 	"path/filepath"
 	"strings"
 	"unsafe"
 
 	"github.com/gluster/glusterd2/glusterd2/xlator/options"
+	"github.com/gluster/glusterd2/pkg/utils"
 
 	log "github.com/sirupsen/logrus"
 )
@@ -141,11 +141,12 @@ func loadXlator(xlPath string) (*Xlator, error) {
 
 func getXlatorsDir() string {
 
-	out, err := exec.Command("glusterfsd", "--print-xlatordir").Output()
+	out, err := utils.ExecuteCommandOutput("glusterfsd", "--print-xlatordir")
+
 	if err != nil {
 		// fallback to the old hack if https://review.gluster.org/19905 isn't present
 		cmd := "strings -d `command -v glusterfsd` | awk '/glusterfs\\/.*\\/xlator$/'"
-		out, err = exec.Command("sh", "-c", cmd).Output()
+		out, err = utils.ExecuteCommandOutput("sh", "-c", cmd)
 		if err != nil {
 			return ""
 		}

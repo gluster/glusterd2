@@ -29,12 +29,14 @@ func typeInSubvolType(ele volume.SubvolType, list []volume.SubvolType) bool {
 	return false
 }
 
-func clusterGraph(volfile *Volfile, dht *Entry, vol *volume.Volinfo, nodeid uuid.UUID, filters *clusterGraphFilters) {
+func clusterGraph(volfile *Volfile, dht *Entry, vol *volume.Volinfo, peerid uuid.UUID, filters *clusterGraphFilters) {
 	numSubvols := len(vol.Subvols)
 	decommissionedBricks := []string{}
+	clientIdx := 0
 
 	for _, subvol := range vol.Subvols {
 		var parent *Entry
+		var afrPendingXattr []string
 
 		if filters != nil {
 			if filters.noSubvolParent {
@@ -73,8 +75,11 @@ func clusterGraph(volfile *Volfile, dht *Entry, vol *volume.Volinfo, nodeid uuid
 
 		if parent != nil {
 			for brickIdx, b := range subvol.Bricks {
+				afrPendingXattr = append(afrPendingXattr, fmt.Sprintf("%s-client-%d", vol.Name, clientIdx))
+				clientIdx++
+
 				// If local bricks only
-				if filters != nil && filters.onlyLocalBricks && !uuid.Equal(b.PeerID, nodeid) {
+				if filters != nil && filters.onlyLocalBricks && !uuid.Equal(b.PeerID, peerid) {
 					continue
 				}
 
@@ -108,6 +113,20 @@ func clusterGraph(volfile *Volfile, dht *Entry, vol *volume.Volinfo, nodeid uuid
 					SetExtraOptions(map[string]string{
 						"remote-port": remotePort,
 					})
+			}
+
+			if subvol.Type == volume.SubvolReplicate || subvol.Type == volume.SubvolDisperse {
+				extraopts := make(map[string]string)
+				if volfile.Name == "glustershd" {
+					extraopts["iam-self-heal-daemon"] = "yes"
+				}
+
+				// Below option is required for shd and client volfile
+				if volfile.Name == "glustershd" || volfile.Name == "fuse" {
+					extraopts["afr-pending-xattr"] = strings.Join(afrPendingXattr, ",")
+				}
+
+				parent.SetExtraOptions(extraopts)
 			}
 		}
 	}

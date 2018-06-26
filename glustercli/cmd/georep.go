@@ -3,6 +3,7 @@ package cmd
 import (
 	"errors"
 	"fmt"
+	"net/url"
 	"os"
 	"strings"
 
@@ -44,19 +45,20 @@ Rerun the Session Create command with --force once the issues related to Remote 
 	errGeorepStatusCommandFailed = "Geo-replication Status command failed.\n"
 )
 
+const (
+	geoRepHTTPScheme   = "http"
+	geoRepGlusterdPort = 24007
+)
+
 var (
-	flagGeorepCmdForce            bool
-	flagGeorepShowAllConfig       bool
-	flagGeorepRemoteGlusterdHTTPS bool
-	flagGeorepRemoteGlusterdHost  string
-	flagGeorepRemoteGlusterdPort  int
+	flagGeorepCmdForce        bool
+	flagGeorepShowAllConfig   bool
+	flagGeorepRemoteEndpoints string
 )
 
 func init() {
 	// Geo-rep Create
-	georepCreateCmd.Flags().BoolVarP(&flagGeorepRemoteGlusterdHTTPS, "remote-glusterd-https", "", false, "Remote Glusterd HTTPS")
-	georepCreateCmd.Flags().StringVarP(&flagGeorepRemoteGlusterdHost, "remote-glusterd-host", "", "", "Remote Glusterd Host")
-	georepCreateCmd.Flags().IntVarP(&flagGeorepRemoteGlusterdPort, "remote-glusterd-port", "", 24007, "Remote Glusterd Port")
+	georepCreateCmd.Flags().StringVar(&flagGeorepRemoteEndpoints, "remote-endpoints", "", "remote glusterd2 endpoints")
 	georepCreateCmd.Flags().BoolVarP(&flagGeorepCmdForce, "force", "f", false, "Force")
 	georepCmd.AddCommand(georepCreateCmd)
 
@@ -158,7 +160,7 @@ func parseRemoteData(data string) (string, string, string, error) {
 	remotehostvol := strings.Split(data, "::")
 
 	if len(remotehostvol) != 2 {
-		return "", "", "", errors.New("Invalid Remote Volume details, use <remoteuser>@<remotehost>::<remotevol> format")
+		return "", "", "", errors.New("invalid Remote Volume details, use <remoteuser>@<remotehost>::<remotevol> format")
 	}
 
 	remoteuserhost := strings.Split(remotehostvol[0], "@")
@@ -188,11 +190,13 @@ var georepCreateCmd = &cobra.Command{
 			failure(errGeorepSessionCreationFailed, err, 1)
 		}
 
-		rclient := getRemoteClient(remotehost)
-
+		remoteEndpoint, rclient, err := getRemoteClient(remotehost)
+		if err != nil {
+			failure(errGeorepSessionCreationFailed, err, 1)
+		}
 		remotevoldata, err := getVolumeDetails(remotevol, rclient)
 		if err != nil {
-			handleGlusterdConnectFailure(errGeorepSessionCreationFailed, err, flagGeorepRemoteGlusterdHTTPS, flagGeorepRemoteGlusterdHost, flagGeorepRemoteGlusterdPort, 1)
+			handleGlusterdConnectFailure(errGeorepSessionCreationFailed, remoteEndpoint, err, 1)
 
 			// If not Glusterd connect Failure
 			failure(errGeorepSessionCreationFailed, err, 1)
@@ -233,7 +237,7 @@ var georepCreateCmd = &cobra.Command{
 					"error":  err.Error(),
 				}).Error("failed to push SSH Keys to Remote Cluster")
 			}
-			handleGlusterdConnectFailure(errGeorepSessionCreationFailed, err, flagGeorepRemoteGlusterdHTTPS, flagGeorepRemoteGlusterdHost, flagGeorepRemoteGlusterdPort, 1)
+			handleGlusterdConnectFailure(errGeorepSessionCreationFailed, remoteEndpoint, err, 1)
 
 			// If not Glusterd connect issue
 			failure(errGeorepSSHKeysPush, err, 1)
@@ -344,21 +348,19 @@ var georepDeleteCmd = &cobra.Command{
 	},
 }
 
-func getRemoteClient(host string) *restclient.Client {
+func getRemoteClient(host string) (string, *restclient.Client, error) {
 	// TODO: Handle Remote Cluster Authentication and certificates and URL scheme
-	scheme := "http"
-	if flagGeorepRemoteGlusterdHTTPS {
-		scheme = "https"
-	}
-	if flagGeorepRemoteGlusterdHost != "" {
-		host = flagGeorepRemoteGlusterdHost
-	}
+	clienturl := flagGeorepRemoteEndpoints
 
-	// Set Global based on final decision
-	flagGeorepRemoteGlusterdHost = host
-
-	return restclient.New(fmt.Sprintf("%s://%s:%d", scheme, host, flagGeorepRemoteGlusterdPort),
-		"", "", "", true)
+	if flagGeorepRemoteEndpoints != "" {
+		_, err := url.Parse(flagGeorepRemoteEndpoints)
+		if err != nil {
+			return "", nil, errors.New("failed to parse geo-replication remote endpoints")
+		}
+	} else {
+		clienturl = fmt.Sprintf("%s://%s:%d", geoRepHTTPScheme, host, geoRepGlusterdPort)
+	}
+	return clienturl, restclient.New(clienturl, "", "", "", true), nil
 }
 
 func getVolIDs(pargs []string) (*volumeDetails, *volumeDetails, error) {
@@ -378,7 +380,10 @@ func getVolIDs(pargs []string) (*volumeDetails, *volumeDetails, error) {
 		if err != nil {
 			return nil, nil, err
 		}
-		rclient := getRemoteClient(remotehost)
+		_, rclient, err := getRemoteClient(remotehost)
+		if err != nil {
+			return nil, nil, err
+		}
 		remotedata, err = getVolumeDetails(remotevol, rclient)
 		if err != nil {
 			return nil, nil, err

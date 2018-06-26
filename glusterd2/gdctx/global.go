@@ -6,10 +6,10 @@
 package gdctx
 
 import (
+	"crypto/rand"
 	"expvar"
 	"fmt"
 	"io/ioutil"
-	"math/rand"
 	"os"
 	"path"
 

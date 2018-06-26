@@ -22,7 +22,7 @@ volume.auth.password
 ```
 brick.id
 brick.hostname
-brick.nodeid
+brick.peerid
 brick.path
 brick.volumename
 brick.volumeid

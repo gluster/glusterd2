@@ -64,6 +64,18 @@ Once you are ready to push, you will type the following:
 **Creating A Pull Request:**   
 When you are satisfied with your changes, you will then need to go to your repo in GitHub.com and create a pull request for your branch. Automated tests will be run against the pull request. Your pull request will be reviewed and merged.
 
+If you are planning on making a large set of changes or a major architectural change it is often desirable to first build a consensus in an issue discussion and/or create an initial design doc PR. Once the design has been agreed upon one or more PRs implementing the plan can be made.
+
+**Review Process:**
+Once your PR has has been submitted for review the following critieria will need to be met before it will be merged:
+* Each PR needs reviews accepting the change from at least two developers for merging
+  * It is common to request reviews from those reviewers automatically suggested by github
+* Each PR needs to have been open for at least 24 working hours to allow for community feedback
+  * The 24 working hours counts hours occuring Mon-Fri in the local timezone of the submitter
+* Each PR must be fully updated to master and tests must have passed
+
+When the criteria are met a project maintainer can merge your changes into the project's master branch.
+
 ## Troubleshooting and Debugging
 
 **Dumping etcd key and values:**

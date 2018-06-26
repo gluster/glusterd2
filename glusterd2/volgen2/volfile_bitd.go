@@ -8,7 +8,7 @@ import (
 	"github.com/pborman/uuid"
 )
 
-func generateBitdVolfile(volfile *Volfile, clusterinfo []*volume.Volinfo, nodeid uuid.UUID) {
+func generateBitdVolfile(volfile *Volfile, clusterinfo []*volume.Volinfo, peerid uuid.UUID) {
 	volfile.FileName = "gluster/bitd"
 
 	bitd := volfile.RootEntry.Add("debug/io-stats", nil, nil).SetName("bitd")
@@ -20,7 +20,7 @@ func generateBitdVolfile(volfile *Volfile, clusterinfo []*volume.Volinfo, nodeid
 		if exists && val == "on" {
 			name := fmt.Sprintf("%s-bit-rot-%d", vol.Name, volIdx)
 			bitdvol := bitd.Add("features/bit-rot", vol, nil).SetName(name).SetIgnoreOptions([]string{"scrubber"})
-			clusterGraph(volfile, bitdvol, vol, nodeid, &clusterGraphFilters{onlyLocalBricks: true})
+			clusterGraph(volfile, bitdvol, vol, peerid, &clusterGraphFilters{onlyLocalBricks: true})
 		}
 	}
 }
