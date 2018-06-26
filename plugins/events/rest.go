@@ -30,7 +30,7 @@ func webhookAddHandler(w http.ResponseWriter, r *http.Request) {
 	}
 
 	// Check if the webhook already exists
-	exists, err := webhookExists(req)
+	exists, err := webhookExists(req.URL)
 	if err != nil {
 		restutils.SendHTTPError(
 			ctx, w, http.StatusInternalServerError,
@@ -55,7 +55,7 @@ func webhookAddHandler(w http.ResponseWriter, r *http.Request) {
 func webhookDeleteHandler(w http.ResponseWriter, r *http.Request) {
 	ctx := r.Context()
 
-	var req eventsapi.Webhook
+	var req eventsapi.WebhookDel
 	if err := restutils.UnmarshalRequest(r, &req); err != nil {
 		restutils.SendHTTPError(ctx, w, http.StatusBadRequest,
 			errors.ErrJSONParsingFailed)
@@ -68,7 +68,7 @@ func webhookDeleteHandler(w http.ResponseWriter, r *http.Request) {
 	}
 
 	// Check if the webhook already exists
-	exists, err := webhookExists(req)
+	exists, err := webhookExists(req.URL)
 	if err != nil {
 		restutils.SendHTTPError(
 			ctx, w, http.StatusInternalServerError,
@@ -80,7 +80,7 @@ func webhookDeleteHandler(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	if err := deleteWebhook(req); err != nil {
+	if err := deleteWebhook(req.URL); err != nil {
 		restutils.SendHTTPError(
 			ctx, w, http.StatusInternalServerError,
 			"Could not delete webhook")
