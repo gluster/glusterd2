@@ -234,8 +234,16 @@ func testVolumeExpand(t *testing.T) {
 	}
 
 	//expand with new brick dir which is not created
-	_, err := client.VolumeExpand(volname, expandReq)
+	volinfo, err := client.VolumeExpand(volname, expandReq)
 	r.Nil(err)
+
+	// Two subvolumes are added to the volume created by testVolumeCreate,
+	// total expected subvols is 4. Each subvol should contain two bricks
+	// since Volume type is Replica
+	r.Len(volinfo.Subvols, 4)
+	for _, subvol := range volinfo.Subvols {
+		r.Len(subvol.Bricks, 2)
+	}
 }
 
 func testVolumeDelete(t *testing.T) {
@@ -304,7 +312,7 @@ func testVolumeInfo(t *testing.T) {
 }
 
 func testVolumeStatus(t *testing.T) {
-	if _, err := os.Lstat("/dev/fuse");  os.IsNotExist(err) {
+	if _, err := os.Lstat("/dev/fuse"); os.IsNotExist(err) {
 		t.Skip("skipping mount /dev/fuse unavailable")
 	}
 	r := require.New(t)
@@ -356,7 +364,7 @@ func testVolumeMount(t *testing.T) {
 }
 
 func testMountUnmount(t *testing.T, v string) {
-	if _, err := os.Lstat("/dev/fuse");  os.IsNotExist(err) {
+	if _, err := os.Lstat("/dev/fuse"); os.IsNotExist(err) {
 		t.Skip("skipping mount /dev/fuse unavailable")
 	}
 	r := require.New(t)
