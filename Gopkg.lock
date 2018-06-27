@@ -403,8 +403,16 @@
     "exporter/jaeger",
     "exporter/jaeger/internal/gen-go/jaeger",
     "internal",
+    "internal/tagencoding",
+    "plugin/ochttp",
+    "plugin/ochttp/propagation/b3",
+    "stats",
+    "stats/internal",
+    "stats/view",
+    "tag",
     "trace",
-    "trace/internal"
+    "trace/internal",
+    "trace/propagation"
   ]
   revision = "c3ed530f775d85e577ca652cb052a52c078aad26"
   version = "v0.11.0"
@@ -493,6 +501,6 @@
 [solve-meta]
   analyzer-name = "dep"
   analyzer-version = 1
-  inputs-digest = "f813be9ec08c313a227bef308c6ff9014b91f61ac36aa3ade6a180a124dacd1c"
+  inputs-digest = "1c93d91c481db0329aa839cd2ac77aa8e7bb51a5c2249ffd519f5bdb70588f8b"
   solver-name = "gps-cdcl"
   solver-version = 1
