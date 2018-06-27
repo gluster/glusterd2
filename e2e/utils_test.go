@@ -365,3 +365,19 @@ func isProcessRunning(pidpath string) bool {
 
 	return true
 }
+
+// testTempDir returns a temporary directory path that will exist
+// on the system. This path is based on the name of the test and
+// a unique final directory, determined by prefix.
+// On encountering an error this function will panic.
+func testTempDir(t *testing.T, prefix string) string {
+	base := path.Join(baseLocalStateDir, t.Name())
+	if err := os.MkdirAll(base, 0755); err != nil {
+		panic(err)
+	}
+	d, err := ioutil.TempDir(base, prefix)
+	if err != nil {
+		panic(err)
+	}
+	return d
+}
