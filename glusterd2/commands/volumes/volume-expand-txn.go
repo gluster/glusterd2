@@ -164,7 +164,7 @@ func updateVolinfoOnExpand(c transaction.TxnCtx) error {
 	// TODO: Assumption, all subvols are same
 	// If New Replica count is different than existing then add one brick to each subvolume
 	// Or if the Volume consists of only one subvolume.
-	var addNewSubvolume bool
+	addNewSubvolume := true
 	switch volinfo.Subvols[0].Type {
 	case volume.SubvolDistribute:
 		addNewSubvolume = false
