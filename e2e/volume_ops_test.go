@@ -27,7 +27,6 @@ const (
 var (
 	gds    []*gdProcess
 	client *restclient.Client
-	tmpDir string
 )
 
 // TestVolume creates a volume and starts it, runs further tests on it and
@@ -42,11 +41,6 @@ func TestVolume(t *testing.T) {
 	defer teardownCluster(gds)
 
 	client = initRestclient(gds[0].ClientAddress)
-
-	tmpDir, err = ioutil.TempDir(baseLocalStateDir, t.Name())
-	r.Nil(err)
-	t.Logf("Using temp dir: %s", tmpDir)
-	//defer os.RemoveAll(tmpDir)
 
 	t.Run("CreateWithoutName", testVolumeCreateWithoutName)
 
@@ -79,8 +73,7 @@ func testVolumeCreateWithoutName(t *testing.T) {
 
 	var brickPaths []string
 	for i := 1; i <= 2; i++ {
-		brickPath, err := ioutil.TempDir(tmpDir, "brick")
-		r.Nil(err)
+		brickPath := testTempDir(t, "brick")
 		brickPaths = append(brickPaths, brickPath)
 	}
 
@@ -107,8 +100,7 @@ func testVolumeCreate(t *testing.T) {
 
 	var brickPaths []string
 	for i := 1; i <= 4; i++ {
-		brickPath, err := ioutil.TempDir(tmpDir, "brick")
-		r.Nil(err)
+		brickPath := testTempDir(t, "brick")
 		brickPaths = append(brickPaths, brickPath)
 	}
 
@@ -391,15 +383,14 @@ func testMountUnmount(t *testing.T, v string) {
 	}
 	r := require.New(t)
 
-	mntPath, err := ioutil.TempDir(tmpDir, "mnt")
-	r.Nil(err)
+	mntPath := testTempDir(t, "mnt")
 	defer os.RemoveAll(mntPath)
 
 	host, _, _ := net.SplitHostPort(gds[0].ClientAddress)
 	mntCmd := exec.Command("mount", "-t", "glusterfs", host+":"+v, mntPath)
 	umntCmd := exec.Command("umount", mntPath)
 
-	err = mntCmd.Run()
+	err := mntCmd.Run()
 	r.Nil(err, fmt.Sprintf("mount failed: %s", err))
 
 	err = umntCmd.Run()
@@ -563,8 +554,7 @@ func testDisperse(t *testing.T) {
 
 	var brickPaths []string
 	for i := 1; i <= 3; i++ {
-		brickPath, err := ioutil.TempDir(tmpDir, "brick")
-		r.Nil(err)
+		brickPath := testTempDir(t, "brick")
 		brickPaths = append(brickPaths, brickPath)
 	}
 
