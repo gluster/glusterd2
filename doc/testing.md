@@ -40,3 +40,11 @@ tests.
 ```sh
 # go test ./e2e -v -functest
 ```
+
+**Running a single functional test:**
+```sh
+# go test ./e2e -v -functest -run "TestVolume"
+```
+
+The argument to the -run command-line flag is an unanchored regular expression
+that matches the test's name.
