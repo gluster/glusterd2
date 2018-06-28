@@ -304,8 +304,11 @@ func validateVolumeFlags(flag map[string]bool) error {
 	return nil
 }
 
-func isActionStepRequired(opt map[string]string) bool {
+func isActionStepRequired(opt map[string]string, volinfo *volume.Volinfo) bool {
 
+	if volinfo.State != volume.VolStarted {
+		return false
+	}
 	for k := range opt {
 		_, xl, _, err := options.SplitKey(k)
 		if err != nil {
