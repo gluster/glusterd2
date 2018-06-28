@@ -4,6 +4,7 @@ import (
 	"context"
 	"encoding/json"
 
+	"github.com/gluster/glusterd2/glusterd2/brick"
 	"github.com/gluster/glusterd2/glusterd2/store"
 	gderror "github.com/gluster/glusterd2/pkg/errors"
 
@@ -168,6 +169,23 @@ func GetVolumes(filterParams ...map[string]string) ([]*Volinfo, error) {
 	}
 
 	return volumes, nil
+}
+
+// GetAllBricksInCluster returns all bricks in the cluster. These bricks
+// belong to different volumes.
+func GetAllBricksInCluster() ([]brick.Brickinfo, error) {
+
+	volumes, err := GetVolumes()
+	if err != nil {
+		return nil, err
+	}
+
+	var bricks []brick.Brickinfo
+	for _, volinfo := range volumes {
+		bricks = append(bricks, volinfo.GetBricks()...)
+	}
+
+	return bricks, nil
 }
 
 // AreReplicateVolumesRunning retrieves the volinfo objects from GetVolumes() function

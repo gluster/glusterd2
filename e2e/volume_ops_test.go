@@ -146,6 +146,27 @@ func testVolumeCreate(t *testing.T) {
 	_, err = client.VolumeCreate(createReq)
 	r.NotNil(err)
 
+	testDisallowBrickReuse(t, brickPaths[0])
+}
+
+func testDisallowBrickReuse(t *testing.T, brickInUse string) {
+	r := require.New(t)
+	volname := formatVolName(t.Name())
+
+	createReq := api.VolCreateReq{
+		Name: volname,
+		Subvols: []api.SubvolReq{
+			{
+				Bricks: []api.BrickReq{
+					{PeerID: gds[0].PeerID(), Path: brickInUse},
+				},
+			},
+		},
+		Force: true,
+	}
+
+	_, err := client.VolumeCreate(createReq)
+	r.NotNil(err)
 }
 
 func testVolumeCreateWithFlags(t *testing.T) {
@@ -210,6 +231,7 @@ func testVolumeCreateWithFlags(t *testing.T) {
 	r.Nil(client.VolumeDelete(volumeName))
 
 }
+
 func testVolumeExpand(t *testing.T) {
 	r := require.New(t)
 

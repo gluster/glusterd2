@@ -197,8 +197,18 @@ func createVolinfo(c transaction.TxnCtx) error {
 		return err
 	}
 
-	checks := brick.PrepareChecks(req.Force, req.Flags)
+	allBricks, err := volume.GetAllBricksInCluster()
+	if err != nil {
+		return err
+	}
 
+	// Used by other peers to check if proposed bricks are already in use.
+	// This check is however still prone to races. See issue #314
+	if err := c.Set("all-bricks-in-cluster", allBricks); err != nil {
+		return err
+	}
+
+	checks := brick.PrepareChecks(req.Force, req.Flags)
 	err = c.Set("brick-checks", checks)
 
 	return err
