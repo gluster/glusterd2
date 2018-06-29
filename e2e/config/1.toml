@@ -1,4 +1,3 @@
-workdir = "w1"
 localstatedir = "w1"
 logdir = "w1/log"
 loglevel = "DEBUG"

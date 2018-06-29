@@ -25,7 +25,6 @@ type gdProcess struct {
 	Cmd           *exec.Cmd
 	ClientAddress string `toml:"clientaddress"`
 	PeerAddress   string `toml:"peeraddress"`
-	Workdir       string `toml:"workdir"`
 	LocalStateDir string `toml:"localstatedir"`
 	Rundir        string `toml:"rundir"`
 	uuid          string
@@ -43,22 +42,18 @@ func (g *gdProcess) Stop() error {
 }
 
 func (g *gdProcess) updateDirs() {
-	g.Workdir = path.Clean(g.Workdir)
-	if !path.IsAbs(g.Workdir) {
-		g.Workdir = path.Join(baseWorkdir, g.Workdir)
-	}
 	g.Rundir = path.Clean(g.Rundir)
 	if !path.IsAbs(g.Rundir) {
-		g.Rundir = path.Join(baseWorkdir, g.Rundir)
+		g.Rundir = path.Join(baseLocalStateDir, g.Rundir)
 	}
 	g.LocalStateDir = path.Clean(g.LocalStateDir)
 	if !path.IsAbs(g.LocalStateDir) {
-		g.LocalStateDir = path.Join(baseWorkdir, g.LocalStateDir)
+		g.LocalStateDir = path.Join(baseLocalStateDir, g.LocalStateDir)
 	}
 }
 
-func (g *gdProcess) EraseWorkdir() error {
-	return os.RemoveAll(g.Workdir)
+func (g *gdProcess) EraseLocalStateDir() error {
+	return os.RemoveAll(g.LocalStateDir)
 }
 
 func (g *gdProcess) IsRunning() bool {
@@ -127,10 +122,10 @@ func spawnGlusterd(configFilePath string, cleanStart bool) (*gdProcess, error) {
 	g.updateDirs()
 
 	if cleanStart {
-		g.EraseWorkdir() // cleanup leftovers from previous test
+		g.EraseLocalStateDir() // cleanup leftovers from previous test
 	}
 
-	if err := os.MkdirAll(path.Join(g.Workdir, "log"), os.ModeDir|os.ModePerm); err != nil {
+	if err := os.MkdirAll(path.Join(g.LocalStateDir, "log"), os.ModeDir|os.ModePerm); err != nil {
 		return nil, err
 	}
 
@@ -140,10 +135,9 @@ func spawnGlusterd(configFilePath string, cleanStart bool) (*gdProcess, error) {
 	}
 	g.Cmd = exec.Command(path.Join(binDir, "glusterd2"),
 		"--config", absConfigFilePath,
-		"--workdir", g.Workdir,
 		"--localstatedir", g.LocalStateDir,
 		"--rundir", g.Rundir,
-		"--logdir", path.Join(g.Workdir, "log"),
+		"--logdir", path.Join(g.LocalStateDir, "log"),
 		"--logfile", "glusterd2.log")
 
 	if err := g.Cmd.Start(); err != nil {
@@ -179,7 +173,7 @@ func setupCluster(configFiles ...string) ([]*gdProcess, error) {
 	cleanup := func() {
 		for _, p := range gds {
 			p.Stop()
-			p.EraseWorkdir()
+			p.EraseLocalStateDir()
 		}
 	}
 
@@ -268,7 +262,7 @@ func cleanupAllBrickMounts(t *testing.T) {
 	lines := strings.Split(string(out), "\n")
 	for _, line := range lines {
 		// Identify Brick Mount
-		if strings.Contains(line, baseWorkdir) {
+		if strings.Contains(line, baseLocalStateDir) {
 			// Example: "/dev/mapper/gluster--vg--dev--gluster_loop2-brick_testvol--0--1 on \
 			// /tmp/gd2_func_test/w1/mounts/testvol-0-1 type xfs (rw,noatime,seclabel, \
 			// nouuid,attr2,inode64,logbsize=64k,sunit=128,swidth=2560,noquota
@@ -331,7 +325,7 @@ func loopDevicesCleanup(t *testing.T) error {
 	cleanupAllGlusterPvs(t)
 
 	// Cleanup device files
-	devicefiles, err := filepath.Glob(baseWorkdir + "/*.img")
+	devicefiles, err := filepath.Glob(baseLocalStateDir + "/*.img")
 	if err == nil {
 		for _, devicefile := range devicefiles {
 			err := os.Remove(devicefile)
