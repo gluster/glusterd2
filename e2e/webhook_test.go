@@ -27,7 +27,7 @@ func TestWebhook(t *testing.T) {
 
 	client = initRestclient(gds[0].ClientAddress)
 
-	tmpDir, err = ioutil.TempDir(baseWorkdir, t.Name())
+	tmpDir, err = ioutil.TempDir(baseLocalStateDir, t.Name())
 	r.Nil(err)
 	t.Logf("Using temp dir: %s", tmpDir)
 

@@ -9,9 +9,9 @@ import (
 )
 
 var (
-	binDir      string
-	baseWorkdir = "/tmp/gd2_func_test"
-	functest    bool
+	binDir            string
+	baseLocalStateDir = "/tmp/gd2_func_test"
+	functest          bool
 )
 
 func TestMain(m *testing.M) {
@@ -19,7 +19,7 @@ func TestMain(m *testing.M) {
 
 	flag.BoolVar(&functest, "functest", false, "Run or skip functional test")
 	flag.StringVar(&binDir, "bindir", defBinDir, "The directory containing glusterd2 binary")
-	flag.StringVar(&baseWorkdir, "workdir", baseWorkdir, "The base directory for test working directories")
+	flag.StringVar(&baseLocalStateDir, "basedir", baseLocalStateDir, "The base directory for test local state directories")
 	flag.Parse()
 
 	if !functest {
@@ -37,7 +37,7 @@ func TestMain(m *testing.M) {
 	loopDevicesCleanup(nil)
 
 	// Cleanup leftovers from previous test runs. But don't cleanup after.
-	os.RemoveAll(baseWorkdir)
+	os.RemoveAll(baseLocalStateDir)
 
 	v := m.Run()
 	os.Exit(v)

@@ -238,7 +238,7 @@ func TestSmartVolume(t *testing.T) {
 
 	client = initRestclient(gds[0].ClientAddress)
 
-	devicesDir, err := ioutil.TempDir(baseWorkdir, t.Name())
+	devicesDir, err := ioutil.TempDir(baseLocalStateDir, t.Name())
 	r.Nil(err)
 	t.Logf("Using temp dir: %s", devicesDir)
 
