@@ -1,0 +1,94 @@
+---
+peersinfo:
+  summary: Get Peers information
+  responses:
+    - 200:
+        description: List of Peers
+        content:
+          application/json:
+            schema:
+              type: array
+              items:
+                type: object
+                $ref: '../schemas/resp_peer.yml#/peer'
+              example:
+                $ref: '../examples/resp_peer.yml#/peers'
+
+peerinfo:
+  summary: Get a Peer information
+  parameters:
+    - in: path
+      name: peerid
+      schema:
+        type: string
+      required: true
+      description: Peer ID
+      example: 4f196836-0d9d-475a-aae2-642bb0eac685
+  responses:
+    - 200:
+        content:
+          application/json:
+            schema:
+              type: object
+              $ref: '../schemas/resp_peer.yml#/peer'
+              example:
+                $ref: '../examples/resp_peer.yml#/peer'
+
+peeradd:
+  summary: Add Peer
+  requestBody:
+    content:
+      application/json:
+        schema:
+          $ref: '../schemas/req_peer.yml#/add'
+          example:
+            $ref: '../examples/req_peer.yml#/add'
+  responses:
+    - 201:
+        content:
+          application/json:
+            schema:
+              type: object
+              $ref: '../schemas/resp_peer.yml#/peer'
+              example:
+                $ref: '../examples/resp_peer.yml#/peer'
+peeredit:
+  summary: Edit Peer
+  parameters:
+    - in: path
+      name: peerid
+      schema:
+        type: string
+      required: true
+      description: Peer ID
+      example: 4f196836-0d9d-475a-aae2-642bb0eac685
+
+  requestBody:
+    content:
+      application/json:
+        schema:
+          $ref: '../schemas/req_peer.yml#/edit'
+          example:
+            $ref: '../examples/req_peer.yml#/edit'
+  responses:
+    - 200:
+        content:
+          application/json:
+            schema:
+              type: object
+              $ref: '../schemas/resp_peer.yml#/peer'
+              example:
+                $ref: '../examples/resp_peer.yml#/peer'
+
+peerdelete:
+  summary: Delete Peer
+  parameters:
+    - in: path
+      name: peerid
+      schema:
+        type: string
+      required: true
+      description: Peer ID
+      example: 4f196836-0d9d-475a-aae2-642bb0eac685
+  responses:
+    - 204: {}

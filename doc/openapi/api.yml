@@ -1,0 +1,46 @@
+---
+openapi: 3.0.0
+info:
+  title: Gluster Management APIs
+  description: Gluster Management APIs
+  version: v1
+
+servers:
+  - url: "http://localhost:24007"
+    description: Gluster node
+
+
+paths:
+  # Peer Management APIs
+  /peers:
+    get:
+      $ref: 'resources/peers.yml#/peersinfo'
+
+    post:
+      $ref: 'resources/peers.yml#/peeradd'
+
+  /peers/{peerid}:
+    get:
+      $ref: 'resources/peers.yml#/peerinfo'
+
+    post:
+      $ref: 'resources/peers.yml#/peeredit'
+
+    del:
+      $ref: 'resources/peers.yml#/peerdelete'
+
+  # Volume Management APIs
+  /volumes:
+    get:
+      $ref: 'resources/volumes.yml#/volinfo'
+
+    post:
+      $ref: 'resources/volumes.yml#/volcreate'
+
+  /volumes/{volname}/start:
+    post:
+      $ref: 'resources/volumes.yml#/volstart'
+
+  /volumes/{volname}/stop:
+    post:
+      $ref: 'resources/volumes.yml#/volstop'

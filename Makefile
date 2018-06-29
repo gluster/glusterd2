@@ -31,7 +31,7 @@ DEPENV ?=
 PLUGINS ?= yes
 FASTBUILD ?= yes
 
-.PHONY: all build binaries check check-go check-reqs install vendor-update vendor-install verify release check-protoc $(GD2_BIN) $(GD2_BUILD) $(CLI_BIN) $(CLI_BUILD) cli $(GD2_CONF) gd2conf test dist dist-vendor functest
+.PHONY: all build binaries check check-go check-reqs install vendor-update vendor-install verify release check-protoc $(GD2_BIN) $(GD2_BUILD) $(CLI_BIN) $(CLI_BUILD) cli $(GD2_CONF) gd2conf test dist dist-vendor functest apidoc
 
 all: build
 
@@ -98,3 +98,6 @@ dist:
 
 dist-vendor: vendor-install
 	@VENDOR=yes DISTDIR=$(DISTDIR) SIGN=$(SIGN) ./scripts/dist.sh
+
+apidoc:
+	@python3 pkg/tools/openapi-docgen.py doc/openapi/api.yml > doc/rest-apis.md

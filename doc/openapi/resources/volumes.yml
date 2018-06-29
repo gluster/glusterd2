@@ -1,0 +1,86 @@
+---
+# Volume Info
+volinfo:
+  summary: Get Volumes information
+  responses:
+    - 200:
+        description: List of Gluster Volumes
+        content:
+          application/json:
+            schema:
+              type: array
+              items:
+                type: object
+                $ref: '../schemas/resp_volume.yml#/volume'
+              example:
+                $ref: "../examples/resp_volume.yml#/started"
+
+# Volume Create
+volcreate:
+  summary: "Volume Create"
+  requestBody:
+    description: ""
+    content:
+      application/json:
+        schema:
+          oneOf:
+            - $ref: '../schemas/req_volume.yml#/auto'
+              example:
+                $ref: '../examples/req_volume.yml#/auto'
+            - $ref: '../schemas/req_volume.yml#/manual'
+              example:
+                $ref: '../examples/req_volume.yml#/manual'
+  responses:
+    - 201:
+        description: Volume info
+        content:
+          application/json:
+            schema:
+              type: object
+              $ref: '../schemas/resp_volume.yml#/volume'
+              example:
+                $ref: "../examples/resp_volume.yml#/created"
+
+# Volume Start
+volstart:
+  summary: Start Volume
+  parameters:
+    - in: path
+      name: volname
+      schema:
+        type: string
+      required: true
+      description: Volume Name
+      example: gv1
+  responses:
+    - 200:
+        description: Volume info
+        content:
+          application/json:
+            schema:
+              type: object
+              $ref: '../schemas/resp_volume.yml#/volume'
+              example:
+                $ref: '../examples/resp_volume.yml#/started'
+
+# Volume Stop
+volstop:
+  summary: Stop Volume
+  parameters:
+    - in: path
+      name: volname
+      schema:
+        type: string
+      required: true
+      description: Volume Name
+      example: gv1
+  responses:
+    - 200:
+        description: Volume info
+        content:
+          application/json:
+            schema:
+              type: object
+              $ref: '../schemas/resp_volume.yml#/volume'
+              example:
+                $ref: '../examples/resp_volume.yml#/stopped'

@@ -1,0 +1,65 @@
+---
+volume:
+  properties:
+    id:
+      type: string
+    name:
+      type: string
+    type:
+      type: string
+    transport:
+      type: string
+    distribute-count:
+      type: int
+    replica-count:
+      type: int
+    arbiter-count:
+      type: int
+    options:
+      type: object
+    state:
+      type: string
+    subvols:
+      type: array
+      items:
+        type: object
+        $ref: '#/subvol'
+    metadata:
+      type: object
+    snap-list:
+      type: array
+      items:
+        type: string
+
+subvol:
+  properties:
+    name:
+      type: string
+    type:
+      type: string
+    replica-count:
+      type: int
+    arbiter-count:
+      type: int
+    bricks:
+      type: array
+      items:
+        type: object
+        $ref: '#/brick'
+
+brick:
+  properties:
+    id:
+      type: string
+    path:
+      type: string
+    volume-id:
+      type: string
+    volume-name:
+      type: string
+    peer-id:
+      type: string
+    host:
+      type: string
+    type:
+      type: string
