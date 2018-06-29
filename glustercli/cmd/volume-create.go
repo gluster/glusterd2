@@ -137,12 +137,26 @@ func volumeCreateCmdRun(cmd *cobra.Command, args []string) {
 		failure("Bricks not specified", nil, 1)
 	}
 
-	bricks, err := bricksAsUUID(args)
+	volname := flagCreateVolumeName
+	brickArgs := args
+	if volname == "" {
+		// check if the first arg is volume name or brick:
+		// bricks have host:path or peer-id:path format
+		// volume names don't allow : character
+		if !strings.Contains(args[0], ":") {
+			// old backward compatible style:
+			// glustercli volume create <volname> <bricks...>
+			volname = args[0]
+			brickArgs = args[1:]
+		}
+	}
+
+	bricks, err := bricksAsUUID(brickArgs)
 	if err != nil {
 		if verbose {
 			log.WithFields(log.Fields{
 				"error":  err.Error(),
-				"volume": flagCreateVolumeName,
+				"volume": volname,
 			}).Error("error getting brick UUIDs")
 		}
 		failure("Error getting brick UUIDs", err, 1)
@@ -242,7 +256,7 @@ func volumeCreateCmdRun(cmd *cobra.Command, args []string) {
 	}
 
 	req := api.VolCreateReq{
-		Name:         flagCreateVolumeName,
+		Name:         volname,
 		Subvols:      subvols,
 		Force:        flagCreateForce,
 		Options:      options,
@@ -268,7 +282,7 @@ func volumeCreateCmdRun(cmd *cobra.Command, args []string) {
 	if err != nil {
 		if verbose {
 			log.WithFields(log.Fields{
-				"volume": flagCreateVolumeName,
+				"volume": volname,
 				"error":  err.Error(),
 			}).Error("volume creation failed")
 		}
