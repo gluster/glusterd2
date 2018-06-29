@@ -330,9 +330,18 @@ func volumeInfoHandler2(cmd *cobra.Command, isInfo bool) error {
 		}
 	} else {
 		table := tablewriter.NewWriter(os.Stdout)
-		table.SetHeader([]string{"ID", "Name"})
+		table.SetAlignment(tablewriter.ALIGN_LEFT)
+		table.SetHeader([]string{"ID", "Name", "Type", "State", "Transport", "Bricks"})
 		for _, vol := range vols {
-			table.Append([]string{vol.ID.String(), vol.Name})
+			brickCount := 0
+			for _, subvol := range vol.Subvols {
+				for range subvol.Bricks {
+					brickCount++
+				}
+			}
+
+			table.Append([]string{vol.ID.String(), vol.Name, vol.Type.String(),
+				vol.State.String(), vol.Transport, strconv.Itoa(brickCount)})
 		}
 		table.Render()
 	}
