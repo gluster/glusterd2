@@ -30,6 +30,7 @@ func TestWebhook(t *testing.T) {
 	t.Run("List-webhook", testGetWebhook)
 	t.Run("Delete-webhook", testDeleteWebhook)
 	t.Run("List-gluster-events", testEvents)
+	t.Run("Webhook-connection", testwebhookconnection)
 
 }
 
@@ -104,4 +105,26 @@ func testEvents(t *testing.T) {
 	events, err := client.ListEvents()
 	r.Nil(err)
 	r.NotEmpty(events)
+}
+
+func testwebhookconnection(t *testing.T) {
+	r := require.New(t)
+	var c int
+
+	ts := httptest.NewServer(http.HandlerFunc(func(hw http.ResponseWriter, hr *http.Request) {
+		c++
+		hw.WriteHeader(http.StatusOK)
+	}))
+	defer ts.Close()
+
+	webhookURL = ts.URL
+	//test webhook connection
+	r.Nil(client.WebhookTest(webhookURL, "", ""))
+
+	peers, err := client.Peers()
+	r.Nil(err)
+
+	if c != len(peers) {
+		r.Fail("failed to test webhook connection")
+	}
 }
