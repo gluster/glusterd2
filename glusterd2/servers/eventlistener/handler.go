@@ -3,11 +3,11 @@ package eventlistener
 import (
 	"encoding/json"
 	"net"
-	"net/http"
 	"strconv"
 	"strings"
 	"time"
 
+	gd2events "github.com/gluster/glusterd2/glusterd2/events"
 	"github.com/gluster/glusterd2/glusterd2/gdctx"
 	"github.com/gluster/glusterd2/plugins/events"
 	eventsapi "github.com/gluster/glusterd2/plugins/events/api"
@@ -24,50 +24,12 @@ func getWebhooks() []*eventsapi.Webhook {
 	return webhooks
 }
 
-func getJWTToken(url string, secret string) string {
-	//TODO generate the gwt token from the sceret
-	return ""
-}
-
 func webhookPublish(webhook *eventsapi.Webhook, message string) {
-	body := strings.NewReader(message)
-
-	req, err := http.NewRequest("POST", webhook.URL, body)
-	if err != nil {
-		log.WithError(err).Error("Error forming the request object")
-		return
-	}
-	req.Header.Set("Content-Type", "application/json")
-
-	if webhook.Token != "" {
-		req.Header.Set("Authorization", "bearer "+webhook.Token)
-	}
-
-	if webhook.Secret != "" {
-		token := getJWTToken(webhook.URL, webhook.Secret)
-		req.Header.Set("Authorization", "bearer "+token)
-	}
-
-	tr := &http.Transport{
-		DisableCompression:    true,
-		DisableKeepAlives:     true,
-		ResponseHeaderTimeout: 3 * time.Second,
-	}
-
-	client := &http.Client{Transport: tr}
-
-	resp, err := client.Do(req)
+	err := gd2events.SendWebhookMsg(webhook, message)
 	if err != nil {
 		log.WithError(err).Error("Error while publishing event to webhook")
-		return
 	}
 
-	defer resp.Body.Close()
-
-	if resp.StatusCode != http.StatusOK {
-		log.Error("Webhook responded with status: ", string(resp.StatusCode))
-		return
-	}
 	return
 }
 
