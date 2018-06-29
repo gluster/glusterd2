@@ -2,6 +2,7 @@ package deviceutils
 
 import (
 	"encoding/json"
+	"errors"
 
 	peer "github.com/gluster/glusterd2/glusterd2/peer"
 	deviceapi "github.com/gluster/glusterd2/plugins/device/api"
@@ -51,14 +52,43 @@ func GetDevicesFromPeer(peerInfo *peer.Peer) ([]deviceapi.Info, error) {
 	return deviceInfo, nil
 }
 
-// DeviceInList checks whether the given device is in list of devices or not.
-func DeviceInList(reqDevice string, devices []deviceapi.Info) bool {
-	for _, key := range devices {
+// SetDeviceState sets device state and updates device state in etcd
+func SetDeviceState(peerID, deviceName, deviceState string) error {
+
+	devices, err := GetDevices(peerID)
+	if err != nil {
+		return err
+	}
+
+	index := DeviceInList(deviceName, devices)
+	if index < 0 {
+		return errors.New("device does not exist in the given peer")
+	}
+	devices[index].State = deviceState
+	return updateDevices(peerID, devices)
+}
+
+func updateDevices(peerID string, devices []deviceapi.Info) error {
+	peerInfo, err := peer.GetPeer(peerID)
+	if err != nil {
+		return err
+	}
+	deviceJSON, err := json.Marshal(devices)
+	if err != nil {
+		return err
+	}
+	peerInfo.Metadata["_devices"] = string(deviceJSON)
+	return peer.AddOrUpdatePeer(peerInfo)
+}
+
+// DeviceInList returns index of device if device is present in list else returns -1.
+func DeviceInList(reqDevice string, devices []deviceapi.Info) int {
+	for index, key := range devices {
 		if reqDevice == key.Name {
-			return true
+			return index
 		}
 	}
-	return false
+	return -1
 }
 
 // AddDevice adds device to peerinfo

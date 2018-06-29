@@ -35,6 +35,13 @@ func (p *Plugin) RestRoutes() route.Routes {
 			ResponseType: utils.GetTypeString((*deviceapi.ListDeviceResp)(nil)),
 			HandlerFunc:  deviceListHandler},
 		route.Route{
+			Name:        "DeviceEdit",
+			Method:      "POST",
+			Pattern:     "/devices/{peerid}",
+			Version:     1,
+			RequestType: utils.GetTypeString((*deviceapi.EditDeviceReq)(nil)),
+			HandlerFunc: deviceEditHandler},
+		route.Route{
 			Name:         "ListAllDevices",
 			Method:       "GET",
 			Pattern:      "/devices",
