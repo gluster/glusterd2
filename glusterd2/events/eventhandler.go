@@ -1,11 +1,17 @@
 package events
 
 import (
+	"fmt"
+	"net/http"
 	"sort"
 	"strings"
 	"sync"
+	"time"
 
 	"github.com/gluster/glusterd2/pkg/api"
+	eventsapi "github.com/gluster/glusterd2/plugins/events/api"
+
+	log "github.com/sirupsen/logrus"
 )
 
 // Handler defines the event handler interface.
@@ -153,4 +159,52 @@ func (h *handler) Handle(e *api.Event) {
 
 func (h *handler) Events() []string {
 	return h.events
+}
+
+func getJWTToken(url string, secret string) string {
+	//TODO generate the gwt token from the sceret
+	return ""
+}
+
+//SendWebhookMsg sends HTTP Post request to webhook URL
+func SendWebhookMsg(webhook *eventsapi.Webhook, message string) error {
+	body := strings.NewReader(message)
+
+	req, err := http.NewRequest("POST", webhook.URL, body)
+	if err != nil {
+		log.WithError(err).Error("error forming the request object")
+		return err
+	}
+	req.Header.Set("Content-Type", "application/json")
+
+	if webhook.Token != "" {
+		req.Header.Set("Authorization", "bearer "+webhook.Token)
+	}
+
+	if webhook.Secret != "" {
+		token := getJWTToken(webhook.URL, webhook.Secret)
+		req.Header.Set("Authorization", "bearer "+token)
+	}
+
+	tr := &http.Transport{
+		DisableCompression:    true,
+		DisableKeepAlives:     true,
+		ResponseHeaderTimeout: 3 * time.Second,
+	}
+
+	client := &http.Client{Transport: tr}
+
+	resp, err := client.Do(req)
+	if err != nil {
+		log.WithError(err).Error("error while connecting to webhook")
+		return err
+	}
+
+	defer resp.Body.Close()
+
+	if resp.StatusCode != http.StatusOK {
+		log.Error("webhook responded with status: ", string(resp.StatusCode))
+		return fmt.Errorf("failed with unexpected status code %d", resp.StatusCode)
+	}
+	return nil
 }
