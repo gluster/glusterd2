@@ -39,3 +39,13 @@ func (c *Client) ListEvents() ([]*api.Event, error) {
 	err := c.get("/v1/events", nil, http.StatusOK, &resp)
 	return resp, err
 }
+
+// WebhookTest tests connection between peers and specified URL
+func (c *Client) WebhookTest(url string, token string, secret string) error {
+	req := &eventsapi.Webhook{
+		URL:    url,
+		Token:  token,
+		Secret: secret,
+	}
+	return c.post("/v1/events/webhook/test", req, http.StatusOK, nil)
+}
