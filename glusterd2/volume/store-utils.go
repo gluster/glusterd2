@@ -37,7 +37,7 @@ var (
 func AddOrUpdateVolume(v *Volinfo) error {
 	json, e := json.Marshal(v)
 	if e != nil {
-		log.WithField("error", e).Error("Failed to marshal the volinfo object")
+		log.WithError(e).Error("Failed to marshal the volinfo object")
 		return e
 	}
 

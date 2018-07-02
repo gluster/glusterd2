@@ -78,7 +78,7 @@ func GetSnapshotVolumes() ([]*volume.Volinfo, error) {
 func AddOrUpdateSnap(snapInfo *Snapinfo) error {
 	json, e := json.Marshal(snapInfo)
 	if e != nil {
-		log.WithField("error", e).Error("Failed to marshal the snapinfo object")
+		log.WithError(e).Error("Failed to marshal the snapinfo object")
 		return e
 	}
 
@@ -126,7 +126,7 @@ func DeleteSnapshot(snapInfo *Snapinfo) error {
 	}
 
 	//TODO change this when label based snapshots are in.
-	e = errors.New("Snap is not found in the volinfo")
+	e = errors.New("snap is not found in the volinfo")
 	for key, entry := range vol.SnapList {
 		if strings.Compare(entry, snapInfo.SnapVolinfo.Name) == 0 {
 			vol.SnapList = append(vol.SnapList[:key], vol.SnapList[key+1:]...)

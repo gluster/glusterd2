@@ -386,7 +386,7 @@ func validateSnapCreate(c transaction.TxnCtx) error {
 		return err
 	}
 	c.SetNodeResult(gdctx.MyUUID, snapshot.NodeDataTxnKey, &nodeData)
-	//Quorum check ?
+	//TODO Quorum check has to be implemented once we implement highly available snapshot
 	return nil
 }
 func takeVolumeSnapshots(newVol, oldVol *volume.Volinfo) error {
@@ -404,18 +404,21 @@ func takeVolumeSnapshots(newVol, oldVol *volume.Volinfo) error {
 
 		}
 	}
-	go func() {
-		wg.Wait()
-		close(errCh)
-	}()
-	//var err error
 	err := error(nil)
-	for i := range errCh {
-		if i != nil && err == nil {
-			//Return the first error from goroutines
-			err = i
+	go func() {
+		for i := range errCh {
+			if i != nil && err == nil {
+				//Return the first error from goroutines
+				err = i
+			}
 		}
-	}
+	}()
+
+	wg.Wait()
+	//Close will happen after executing all the go routines, so err should have populated by then
+	//By the time return executes err will have the right value
+
+	close(errCh)
 	return err
 }
 
@@ -432,16 +435,16 @@ func brickSnapshot(errCh chan error, wg *sync.WaitGroup, snapBrick, b brick.Bric
 	}
 
 	log.WithFields(log.Fields{
-		"mount device": mntInfo.FsName,
-		"devicePath":   mountData.DevicePath,
-		"Path":         b.Path,
-	}).Debug("Running  snapshot create command")
+		"mountDevice": mntInfo.FsName,
+		"devicePath":  mountData.DevicePath,
+		"Path":        b.Path,
+	}).Debug("Running snapshot create command")
 
 	if err := lvm.LVSnapshot(mntInfo.FsName, mountData.DevicePath); err != nil {
 		log.WithFields(log.Fields{
-			"mount device": mntInfo.FsName,
-			"devicePath":   mountData.DevicePath,
-			"Path":         b.Path,
+			"mountDevice": mntInfo.FsName,
+			"devicePath":  mountData.DevicePath,
+			"Path":        b.Path,
 		}).Error("Running snapshot create command failed")
 		errCh <- err
 		return
@@ -585,8 +588,8 @@ func createSnapinfo(c transaction.TxnCtx) error {
 	err = createSnapSubvols(snapVolinfo, volinfo, nodeData)
 	if err != nil {
 		log.WithFields(log.Fields{
-			"snapshot":    snapVolinfo.Name,
-			"volume name": volinfo.Name,
+			"snapshot":   snapVolinfo.Name,
+			"volumeName": volinfo.Name,
 		}).Error("Failed to create snap volinfo")
 
 		return err
@@ -709,6 +712,11 @@ func snapshotCreateHandler(w http.ResponseWriter, r *http.Request) {
 	if req.TimeStamp == true {
 		t := time.Now().UTC()
 		req.SnapName = req.SnapName + t.Format("_GMT_2006_01_02_15_04_05")
+	}
+
+	if !volume.IsValidName(req.SnapName) {
+		restutils.SendHTTPError(ctx, w, http.StatusUnprocessableEntity, gderrors.ErrInvalidSnapName)
+		return
 	}
 
 	txn, err := transaction.NewTxnWithLocks(ctx, req.VolName, req.SnapName)

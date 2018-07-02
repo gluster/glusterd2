@@ -13,15 +13,13 @@ import (
 	"github.com/gluster/glusterd2/glusterd2/volume"
 )
 
-const (
-	lvmPrefix    string = "patchy_snap"
-	xfsFormat    string = "/usr/sbin/mkfs.xfs"
-	fallocateBin string = "/usr/bin/fallocate"
-	mknodBin     string = "/usr/bin/mknod"
-)
+const lvmPrefix string = "patchy_snap"
 
 var (
-	brickPrefix string
+	xfsFormat    = lvm.GetBinPath("mkfs.xfs")
+	fallocateBin = lvm.GetBinPath("fallocate")
+	mknodBin     = lvm.GetBinPath("mknod")
+	brickPrefix  string
 )
 
 func verifyLVM() bool {

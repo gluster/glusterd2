@@ -43,7 +43,7 @@ func validateSnapActivate(c transaction.TxnCtx) error {
 	case false:
 		brickinfos, err = snapshot.GetOfflineBricks(vol)
 		if err != nil {
-			log.WithError(err).Error("failed to get Brick status")
+			log.WithError(err).Error("failed to get offline Bricks")
 			return err
 		}
 	}

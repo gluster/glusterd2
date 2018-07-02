@@ -15,17 +15,25 @@ import (
 	"github.com/pborman/uuid"
 )
 
-const (
+//GetBinPath returns binary path of given name, returns null on error
+func GetBinPath(name string) string {
+	if str, err := exec.LookPath(name); err == nil {
+		return str
+	}
+	return ""
+}
+
+var (
 	//CreateCommand is path to lvcreate
-	CreateCommand string = "/sbin/lvcreate"
+	CreateCommand = GetBinPath("lvcreate")
 	//RemoveCommand is path to lvremove
-	RemoveCommand string = "/sbin/lvremove"
+	RemoveCommand = GetBinPath("lvremove")
 	//PvCreateCommand is path to pvcreate
-	PvCreateCommand string = "/sbin/pvcreate"
+	PvCreateCommand = GetBinPath("pvcreate")
 	//VgCreateCommand is path to vgcreate
-	VgCreateCommand string = "/sbin/vgcreate"
+	VgCreateCommand = GetBinPath("vgcreate")
 	//LVSCommand is path to lvs
-	LVSCommand string = "/sbin/lvs"
+	LVSCommand = GetBinPath("lvs")
 )
 
 //LvsData provides the information about an thinLV
@@ -115,11 +123,7 @@ func LVSnapshot(originDevice, DevicePath string) error {
 
 	// Wait for the child to exit
 	errStatus := cmd.Wait()
-	if errStatus != nil {
-		// Child exited with error
-		return errStatus
-	}
-	return nil
+	return errStatus
 }
 
 //UpdateFsLabel sets new nabel on the device

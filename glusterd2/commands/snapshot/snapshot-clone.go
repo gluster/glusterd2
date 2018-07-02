@@ -14,6 +14,7 @@ import (
 	volgen2 "github.com/gluster/glusterd2/glusterd2/volgen2"
 	"github.com/gluster/glusterd2/glusterd2/volume"
 	"github.com/gluster/glusterd2/pkg/api"
+	gderrors "github.com/gluster/glusterd2/pkg/errors"
 
 	"github.com/gorilla/mux"
 	"github.com/pborman/uuid"
@@ -52,7 +53,6 @@ func undoStoreSnapshotClone(c transaction.TxnCtx) error {
 }
 
 func storeSnapshotClone(c transaction.TxnCtx) error {
-
 	var vol volume.Volinfo
 	if err := c.Get("volinfo", &vol); err != nil {
 		return err
@@ -117,7 +117,7 @@ func populateCloneBrickMountData(volinfo *volume.Volinfo, name string) (map[stri
 		if err != nil {
 			log.WithError(err).WithField(
 				"brick", b.Path,
-			).Error("Failed to mount information")
+			).Error("Failed to get mount information")
 
 			return nil, err
 		}
@@ -142,18 +142,18 @@ func populateCloneBrickMountData(volinfo *volume.Volinfo, name string) (map[stri
 			MntOpts:    updateMntOps(mntInfo.MntType, mntInfo.MntOpts),
 			Path:       snapshotCloneBrickCreate(volinfo.Name, name, nodeID, mountDir, brickCount),
 		}
-		// Store the results in transaction context. This will be consumed by
-		// the node that initiated the transaction.
-
 	}
 	return nodeData, nil
 }
 
 func validateSnapClone(c transaction.TxnCtx) error {
-	var statusStr []string
-	var err error
-	var snapname, clonename string
-	var nodeData map[string]snapshot.BrickMountData
+	var (
+		statusStr           []string
+		err                 error
+		snapname, clonename string
+		nodeData            map[string]snapshot.BrickMountData
+	)
+
 	if err = lvm.CommonPrevalidation(lvm.CreateCommand); err != nil {
 		log.WithError(err).WithField(
 			"command", lvm.CreateCommand,
@@ -190,14 +190,14 @@ func validateSnapClone(c transaction.TxnCtx) error {
 			"Bricks", statusStr,
 		).Error("Bricks are offline")
 
-		return errors.New("One or more brick is offline")
+		return errors.New("one or more brick is offline")
 	}
 
 	if nodeData, err = populateCloneBrickMountData(volinfo, clonename); err != nil {
 		return err
 	}
 	c.SetNodeResult(gdctx.MyUUID, snapshot.NodeDataTxnKey, &nodeData)
-	//Quorum check ?
+	//TODO Quorum check has to be implemented once we implement highly available snapshot
 	return nil
 }
 
@@ -253,10 +253,7 @@ func createCloneVolinfo(c transaction.TxnCtx) error {
 	}
 
 	err = c.Set("volinfo", newVol)
-	if err != nil {
-		return err
-	}
-	return nil
+	return err
 }
 
 func snapshotCloneBrickCreate(snapName, cloneName, nodeID, mountDir string, brickCount int) string {
@@ -294,7 +291,12 @@ func snapshotCloneHandler(w http.ResponseWriter, r *http.Request) {
 	}
 
 	if err := restutils.UnmarshalRequest(r, &req); err != nil {
-		restutils.SendHTTPError(ctx, w, http.StatusUnprocessableEntity, err)
+		restutils.SendHTTPError(ctx, w, http.StatusBadRequest, gderrors.ErrJSONParsingFailed)
+		return
+	}
+
+	if !volume.IsValidName(req.CloneName) {
+		restutils.SendHTTPError(ctx, w, http.StatusUnprocessableEntity, gderrors.ErrInvalidVolName)
 		return
 	}
 
@@ -359,8 +361,7 @@ func snapshotCloneHandler(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	err = txn.Do()
-	if err != nil {
+	if err = txn.Do(); err != nil {
 		logger.WithError(err).Error("snapshot clone transaction failed")
 		status, err := restutils.ErrToStatusCode(err)
 		restutils.SendHTTPError(ctx, w, status, err)

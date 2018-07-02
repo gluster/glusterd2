@@ -17,7 +17,7 @@ var (
 		Use:   "delete <snapname>",
 		Short: snapshotDeleteHelpShort,
 		Long:  snapshotDeleteHelpLong,
-		Args:  cobra.MinimumNArgs(1),
+		Args:  cobra.ExactArgs(1),
 		Run:   snapshotDeleteCmdRun,
 	}
 )

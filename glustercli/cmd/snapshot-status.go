@@ -15,9 +15,7 @@ const (
 )
 
 func init() {
-
 	snapshotCmd.AddCommand(snapshotStatusCmd)
-
 }
 
 func displaySnapshotStatus(snap api.SnapStatusResp) {
@@ -65,7 +63,7 @@ func snapshotStatusHandler(cmd *cobra.Command) error {
 }
 
 var snapshotStatusCmd = &cobra.Command{
-	Use:   "status [volname]",
+	Use:   "status <snapname>",
 	Short: helpSnapshotStatusCmd,
 	Args:  cobra.ExactArgs(1),
 	Run:   snapshotStatusCmdRun,
