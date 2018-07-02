@@ -1,6 +1,7 @@
 package events
 
 import (
+	"encoding/json"
 	"fmt"
 	"net/http"
 	"sort"
@@ -11,6 +12,7 @@ import (
 	"github.com/gluster/glusterd2/pkg/api"
 	eventsapi "github.com/gluster/glusterd2/plugins/events/api"
 
+	jwt "github.com/dgrijalva/jwt-go"
 	log "github.com/sirupsen/logrus"
 )
 
@@ -161,14 +163,34 @@ func (h *handler) Events() []string {
 	return h.events
 }
 
-func getJWTToken(url string, secret string) string {
-	//TODO generate the gwt token from the sceret
-	return ""
+func getJWTToken(eventtype, secret string) string {
+	claims := &jwt.StandardClaims{
+		IssuedAt:  time.Now().Unix(),
+		ExpiresAt: time.Now().Add(time.Second * 10).Unix(),
+		Subject:   eventtype,
+	}
+
+	token := jwt.NewWithClaims(jwt.SigningMethodHS256, claims)
+	ss, err := token.SignedString([]byte(secret))
+	if err != nil {
+		return ""
+	}
+	return ss
 }
 
-//SendWebhookMsg sends HTTP Post request to webhook URL
-func SendWebhookMsg(webhook *eventsapi.Webhook, message string) error {
-	body := strings.NewReader(message)
+//WebhookPublish sends event to registered webhooks
+func WebhookPublish(webhook *eventsapi.Webhook, e *api.Event) error {
+	message, err := json.Marshal(e)
+	if err != nil {
+		log.WithFields(log.Fields{
+			"name":  e.Name,
+			"error": err.Error(),
+		}).Error("failed to marshal event")
+		return err
+	}
+
+	body := strings.NewReader(string(message))
+
 	req, err := http.NewRequest("POST", webhook.URL, body)
 	if err != nil {
 		log.WithError(err).Error("error forming the request object")
@@ -180,7 +202,7 @@ func SendWebhookMsg(webhook *eventsapi.Webhook, message string) error {
 	}
 
 	if webhook.Secret != "" {
-		token := getJWTToken(webhook.URL, webhook.Secret)
+		token := getJWTToken(e.Name, webhook.Secret)
 		req.Header.Set("Authorization", "bearer "+token)
 	}
 

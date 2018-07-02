@@ -21,15 +21,6 @@ func getWebhooks() []*eventsapi.Webhook {
 	return webhooks
 }
 
-func webhookPublish(webhook *eventsapi.Webhook, message string) {
-	err := gd2events.SendWebhookMsg(webhook, message)
-	if err != nil {
-		log.WithError(err).Error("Error while publishing event to webhook")
-	}
-
-	return
-}
-
 func handleMessage(inMessage string, addr *net.UDPAddr) {
 	data := strings.SplitN(inMessage, " ", 3)
 	if len(data) != 3 {
