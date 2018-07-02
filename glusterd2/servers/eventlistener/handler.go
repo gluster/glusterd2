@@ -1,14 +1,11 @@
 package eventlistener
 
 import (
-	"encoding/json"
 	"net"
 	"strconv"
 	"strings"
-	"time"
 
 	gd2events "github.com/gluster/glusterd2/glusterd2/events"
-	"github.com/gluster/glusterd2/glusterd2/gdctx"
 	"github.com/gluster/glusterd2/plugins/events"
 	eventsapi "github.com/gluster/glusterd2/plugins/events/api"
 
@@ -42,7 +39,7 @@ func handleMessage(inMessage string, addr *net.UDPAddr) {
 		return
 	}
 
-	var msgDict = make(map[string]interface{})
+	var msgDict = make(map[string]string)
 	msgParts := strings.Split(data[2], ";")
 	for _, msg := range msgParts {
 		keyValue := strings.Split(msg, "=")
@@ -54,48 +51,10 @@ func handleMessage(inMessage string, addr *net.UDPAddr) {
 		log.WithError(err).Error("Error getting event code")
 		return
 	}
-	if eventtypes[code] == "VOLUME_SET" {
-		optsdata := ""
-		optsdataRaw, ok := msgDict["options"]
-		if ok {
-			optsdata = optsdataRaw.(string)
-		}
-
-		optsdata = strings.Trim(optsdata, ",")
-
-		var opts [][]string
-
-		optpair := []string{}
-		for i, opt := range strings.Split(optsdata, ",") {
-			if i%2 == 0 {
-				optpair = []string{opt}
-			} else {
-				optpair = append(optpair, opt)
-				opts = append(opts, optpair)
-			}
-		}
-		msgDict["options"] = opts
-	}
-
-	message := make(map[string]interface{})
-	message["ts"] = time.Now().Unix()
-	message["peerid"] = gdctx.MyUUID.String()
-	message["message"] = msgDict
-
-	marshalledMsg, err := json.Marshal(message)
-	if err != nil {
-		log.WithError(err).Error("Error while marshalling the message")
+	if code > len(eventtypes)-1 {
+		log.WithError(err).Error("Error in fetching event type")
 		return
 	}
-	log.Info("Posting the event: ", string(marshalledMsg))
-
-	// Broadcast internally
-	// TODO
-
-	// Get the list of registered Webhooks and then Push
-	for _, w := range getWebhooks() {
-		// Below func is called as async, failures are handled by
-		// goroutine itself
-		go webhookPublish(w, string(marshalledMsg))
-	}
+	e := gd2events.New(eventtypes[code], msgDict, true)
+	gd2events.Broadcast(e)
 }
