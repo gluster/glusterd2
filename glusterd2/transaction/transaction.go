@@ -127,12 +127,14 @@ func (t *Txn) Do() error {
 		return err
 	}
 
+	var origCtx []context.Context
+	origCtx = []context.Context{t.OrigCtx}
 	for i, s := range t.Steps {
 		if s.Skip {
 			continue
 		}
 
-		if err := s.do(t.Ctx); err != nil {
+		if err := s.do(t.Ctx, origCtx...); err != nil {
 			expTxn.Add("initiated_txn_failure", 1)
 			if !t.DisableRollback {
 				t.Ctx.Logger().WithError(err).Error("Transaction failed, rolling back changes")
