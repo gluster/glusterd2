@@ -169,14 +169,12 @@ func getJWTToken(url string, secret string) string {
 //SendWebhookMsg sends HTTP Post request to webhook URL
 func SendWebhookMsg(webhook *eventsapi.Webhook, message string) error {
 	body := strings.NewReader(message)
-
 	req, err := http.NewRequest("POST", webhook.URL, body)
 	if err != nil {
 		log.WithError(err).Error("error forming the request object")
 		return err
 	}
 	req.Header.Set("Content-Type", "application/json")
-
 	if webhook.Token != "" {
 		req.Header.Set("Authorization", "bearer "+webhook.Token)
 	}
