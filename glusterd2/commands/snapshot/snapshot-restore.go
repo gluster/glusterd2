@@ -359,7 +359,7 @@ func snapshotRestoreHandler(w http.ResponseWriter, r *http.Request) {
 	}
 
 	msg := fmt.Sprintf("Snapshot %s restored to volume %s", snapvolinfo.Name, vol.Name)
-	txn.Ctx.Logger().WithField("Snap Name", snapname).Info(msg)
+	txn.Ctx.Logger().WithField("snapshot", snapname).Info(msg)
 
 	//Get the updated volinfo
 	vol, err = volume.GetVolume(vol.Name)

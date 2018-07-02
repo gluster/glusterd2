@@ -53,4 +53,5 @@ var (
 	ErrMetadataSizeOutOfBounds = errors.New("metadata size exceeds max allowed size of 4KB")
 	ErrFetchingVolfileContent  = errors.New("unable to fetch volfile content")
 	ErrPidFileNotFound         = errors.New("pid file not found")
+	ErrInvalidSnapName         = errors.New("invalid snapshot name")
 )

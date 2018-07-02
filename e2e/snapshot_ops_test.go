@@ -3,7 +3,6 @@ package e2e
 import (
 	"errors"
 	"fmt"
-	"io/ioutil"
 	"net"
 	"os"
 	"os/exec"
@@ -34,16 +33,16 @@ func TestSnapshot(t *testing.T) {
 	snapTestName = t.Name()
 	r := require.New(t)
 
-	prefix := fmt.Sprintf("%s/%s/bricks/", baseWorkdir, snapTestName)
-	lvmtest.Cleanup(baseWorkdir, prefix, brickCount)
+	prefix := fmt.Sprintf("%s/%s/bricks/", baseLocalStateDir, snapTestName)
+	lvmtest.Cleanup(baseLocalStateDir, prefix, brickCount)
 	defer func() {
-		lvmtest.Cleanup(baseWorkdir, prefix, brickCount)
+		lvmtest.Cleanup(baseLocalStateDir, prefix, brickCount)
 	}()
-	gds, err = setupCluster("./config/1.toml", "./config/2.toml")
+	tc, err := setupCluster("./config/1.toml", "./config/2.toml")
 	r.Nil(err)
-	defer teardownCluster(gds)
+	defer teardownCluster(tc)
 
-	client = initRestclient(gds[0].ClientAddress)
+	client = initRestclient(tc.gds[0])
 	brickPaths, err = lvmtest.CreateLvmBricks(prefix, brickCount)
 	r.Nil(err)
 	defer func() {
@@ -51,7 +50,7 @@ func TestSnapshot(t *testing.T) {
 	}()
 
 	// Create the volume
-	if err := volumeCreateOnLvm(snapTestName, brickPaths, client); err != nil {
+	if err := volumeCreateOnLvm(snapTestName, brickPaths, client, tc); err != nil {
 		r.Nil(err, "Failed to create the volume")
 	}
 
@@ -72,12 +71,12 @@ func TestSnapshot(t *testing.T) {
 	t.Run("Create", testSnapshotCreate)
 	t.Run("Activate", testSnapshotActivate)
 	t.Run("List", testSnapshotList)
-	t.Run("Mount", testSnapshotMount)
+	t.Run("Mount", tc.wrap(testSnapshotMount))
 	t.Run("StatusAndForceActivate", testSnapshotStatusForceActivate)
 	t.Run("Info", testSnapshotInfo)
 	t.Run("Clone", testSnapshotClone)
 	t.Run("Restore", testSnapshotRestore)
-	t.Run("MountRestoredVolume", testRestoredVolumeMount)
+	t.Run("MountRestoredVolume", tc.wrap(testRestoredVolumeMount))
 	t.Run("Deactivate", testSnapshotDeactivate)
 	t.Run("Delete", testSnapshotDelete)
 
@@ -88,7 +87,7 @@ func TestSnapshot(t *testing.T) {
 
 }
 
-func volumeCreateOnLvm(volName string, brickPaths []string, client *restclient.Client) error {
+func volumeCreateOnLvm(volName string, brickPaths []string, client *restclient.Client, tc *testCluster) error {
 
 	// create 2x2 dist-rep volume
 	createReq := api.VolCreateReq{
@@ -98,16 +97,16 @@ func volumeCreateOnLvm(volName string, brickPaths []string, client *restclient.C
 				ReplicaCount: 2,
 				Type:         "replicate",
 				Bricks: []api.BrickReq{
-					{PeerID: gds[0].PeerID(), Path: brickPaths[0]},
-					{PeerID: gds[1].PeerID(), Path: brickPaths[1]},
+					{PeerID: tc.gds[0].PeerID(), Path: brickPaths[0]},
+					{PeerID: tc.gds[1].PeerID(), Path: brickPaths[1]},
 				},
 			},
 			{
 				Type:         "replicate",
 				ReplicaCount: 2,
 				Bricks: []api.BrickReq{
-					{PeerID: gds[0].PeerID(), Path: brickPaths[2]},
-					{PeerID: gds[1].PeerID(), Path: brickPaths[3]},
+					{PeerID: tc.gds[0].PeerID(), Path: brickPaths[2]},
+					{PeerID: tc.gds[1].PeerID(), Path: brickPaths[3]},
 				},
 			},
 		},
@@ -249,7 +248,7 @@ func testSnapshotStatusForceActivate(t *testing.T) {
 	err = daemon.Kill(result.BrickStatus[0].Brick.Pid, true)
 	err = client.SnapshotActivate(snapshotActivateReq, snapName)
 	if err == nil {
-		msg := "Snapshot activate should have failed"
+		msg := "snapshot activate should have failed"
 		r.Nil(errors.New(msg), msg)
 	}
 	snapshotActivateReq.Force = true
@@ -258,7 +257,7 @@ func testSnapshotStatusForceActivate(t *testing.T) {
 
 	retries := 4
 	waitTime := 6000
-	err = errors.New("Snapshot failed to activate forcefully")
+	err = errors.New("snapshot failed to activate forcefully")
 	for i := 0; i < retries; i++ {
 		// opposite of exponential backoff
 		time.Sleep(time.Duration(waitTime) * time.Millisecond)
@@ -303,44 +302,42 @@ func testSnapshotRestore(t *testing.T) {
 
 }
 
-func testRestoredVolumeMount(t *testing.T) {
+func testRestoredVolumeMount(t *testing.T, tc *testCluster) {
 	r := require.New(t)
 
-	mntPath, err := ioutil.TempDir(tmpDir, "mnt")
-	r.Nil(err)
+	mntPath := testTempDir(t, "mnt")
 	defer os.RemoveAll(mntPath)
 
-	host, _, _ := net.SplitHostPort(gds[0].ClientAddress)
+	host, _, _ := net.SplitHostPort(tc.gds[0].ClientAddress)
 	mntCmd := exec.Command("mount", "-t", "glusterfs", host+":"+snapTestName, mntPath)
 	umntCmd := exec.Command("umount", mntPath)
 
-	err = mntCmd.Run()
+	err := mntCmd.Run()
 	r.Nil(err, fmt.Sprintf("mount failed: %s", err))
 
 	err = umntCmd.Run()
 	r.Nil(err, fmt.Sprintf("unmount failed: %s", err))
 }
 
-func testSnapshotMount(t *testing.T) {
+func testSnapshotMount(t *testing.T, tc *testCluster) {
 	r := require.New(t)
 
-	mntPath, err := ioutil.TempDir(tmpDir, "mnt")
-	r.Nil(err)
+	mntPath := testTempDir(t, "mnt")
 	defer os.RemoveAll(mntPath)
 
-	host, _, _ := net.SplitHostPort(gds[0].ClientAddress)
+	host, _, _ := net.SplitHostPort(tc.gds[0].ClientAddress)
 
 	volID := fmt.Sprintf("%s:/snaps/%s", host, snapname)
 	mntCmd := exec.Command("mount", "-t", "glusterfs", volID, mntPath)
 	umntCmd := exec.Command("umount", mntPath)
 
-	err = mntCmd.Run()
+	err := mntCmd.Run()
 	r.Nil(err, fmt.Sprintf("mount failed: %s", err))
 
 	newDir := mntPath + "/Dir"
 	err = syscall.Mkdir(newDir, 0755)
 	if err == nil {
-		r.Nil(errors.New("Snapshot volume is Read Only File System"))
+		r.Nil(errors.New("snapshot volume is Read Only File System"))
 	}
 
 	err = umntCmd.Run()

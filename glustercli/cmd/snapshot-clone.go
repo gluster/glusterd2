@@ -19,7 +19,7 @@ var (
 		Use:   "clone <clonename> <snapname>",
 		Short: snapshotCloneHelpShort,
 		Long:  snapshotCloneHelpLong,
-		Args:  cobra.MinimumNArgs(2),
+		Args:  cobra.ExactArgs(2),
 		Run:   snapshotCloneCmdRun,
 	}
 )

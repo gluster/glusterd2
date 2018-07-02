@@ -56,21 +56,21 @@ func snapshotDelete(c transaction.TxnCtx) error {
 		wg.Add(1)
 		go snapshotBrickDelete(errCh, &wg, snapVol, b, c.Logger())
 	}
-	go func() {
-		wg.Wait()
-		close(errCh)
-	}()
-	//var err error
+
 	err := error(nil)
-	for i := range errCh {
-		if i != nil && err == nil {
-			//Return the first error from goroutines
-			err = i
+	go func() {
+		for i := range errCh {
+			if i != nil && err == nil {
+				//Return the first error from goroutines
+				err = i
+			}
 		}
-	}
+	}()
+	wg.Wait()
+	close(errCh)
 
 	//TODO Delete the volfiles in etcd.
-	return nil
+	return err
 }
 
 func snapshotDeleteStore(c transaction.TxnCtx) error {
