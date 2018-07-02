@@ -128,10 +128,12 @@ func eventsListHandler(w http.ResponseWriter, r *http.Request) {
 
 func checkConnection(c transaction.TxnCtx) error {
 	var req eventsapi.Webhook
+
 	if err := c.Get("req", &req); err != nil {
 		return err
 	}
-	return gd2events.SendWebhookMsg(&req, "")
+	e := gd2events.New("TEST", map[string]string{}, false)
+	return gd2events.WebhookPublish(&req, e)
 }
 
 func registerWebhookTestStepFuncs() {
