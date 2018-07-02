@@ -132,7 +132,7 @@ func (t *Txn) Do() error {
 			continue
 		}
 
-		if err := s.do(t.Ctx); err != nil {
+		if err := s.do(t.OrigCtx, t.Ctx); err != nil {
 			expTxn.Add("initiated_txn_failure", 1)
 			if !t.DisableRollback {
 				t.Ctx.Logger().WithError(err).Error("Transaction failed, rolling back changes")
