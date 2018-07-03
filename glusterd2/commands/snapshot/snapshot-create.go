@@ -27,7 +27,6 @@ import (
 	"github.com/gluster/glusterd2/glusterd2/snapshot/lvm"
 	"github.com/gluster/glusterd2/glusterd2/transaction"
 	"github.com/gluster/glusterd2/glusterd2/volgen"
-	volgen2 "github.com/gluster/glusterd2/glusterd2/volgen2"
 	"github.com/gluster/glusterd2/glusterd2/volume"
 	"github.com/gluster/glusterd2/pkg/api"
 	gderrors "github.com/gluster/glusterd2/pkg/errors"
@@ -49,7 +48,7 @@ func barrierActivateDeactivateFunc(volinfo *volume.Volinfo, option string, origi
 			return err
 		}
 
-		if err = volgen2.Generate(); err != nil {
+		if err = volgen.Generate(); err != nil {
 			log.WithError(err).WithField(
 				"volume", volinfo.Name).Debug("failed to generate volfiles")
 			return err
@@ -195,21 +194,6 @@ func undoStoreSnapshotOnCreate(c transaction.TxnCtx) error {
 		return err
 	}
 
-	/*
-		This has to revisit
-	*/
-	volinfo := &snapInfo.SnapVolinfo
-	if err := volgen.DeleteClientSnapVolfile(&snapInfo); err != nil {
-		c.Logger().WithError(err).WithField(
-			"snapshot", snapshot.GetStorePath(&snapInfo)).Warn("failed to delete client volfile of snapshot")
-	}
-	for _, b := range volinfo.GetLocalBricks() {
-		if err := volgen.DeleteBrickVolfile(&b); err != nil {
-			c.Logger().WithError(err).WithField(
-				"brick", b.Path).Warn("failed to delete brick volfile")
-		}
-	}
-
 	if err := snapshot.DeleteSnapshot(&snapInfo); err != nil {
 
 		c.Logger().WithError(err).WithField(
@@ -249,7 +233,7 @@ func storeSnapshot(c transaction.TxnCtx) error {
 			"volume", volinfo.Name).Debug("storeSnapshot: failed to store snapshot info")
 		return err
 	}
-	if err := volgen2.Generate(); err != nil {
+	if err := volgen.Generate(); err != nil {
 		c.Logger().WithError(err).WithField(
 			"volume", volinfo.Name).Debug("generateVolfiles: failed to generate volfiles")
 		return err
