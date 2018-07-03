@@ -79,7 +79,7 @@ func (b *Brickinfo) StringMap() map[string]string {
 
 // Validate checks if brick path is valid, if brick is a mount point,
 // if brick is on root partition and if it has xattr support.
-func (b *Brickinfo) Validate(check InitChecks) error {
+func (b *Brickinfo) Validate(check InitChecks, allLocalBricks []Brickinfo) error {
 
 	var (
 		brickStat unix.Stat_t
@@ -124,10 +124,15 @@ func (b *Brickinfo) Validate(check InitChecks) error {
 		return err
 	}
 
-	if check.IsInUse {
-		if err = validateBrickInUse(b.Path); err != nil {
+	if check.WasInUse {
+		if err = validateBrickWasUsed(b.Path); err != nil {
 			return err
 		}
+	}
+
+	// mandatory check that cannot be skipped forcefully
+	if err = isBrickInActiveUse(b.Path, allLocalBricks); err != nil {
+		return err
 	}
 
 	return nil

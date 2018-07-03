@@ -17,7 +17,7 @@ func TestRESTAPIAuth(t *testing.T) {
 	defer g1.Stop()
 	r.True(g1.IsRunning())
 
-	secret, err := ioutil.ReadFile(g1.Workdir + "/auth")
+	secret, err := ioutil.ReadFile(g1.LocalStateDir + "/auth")
 	r.Nil(err)
 
 	client := restclient.New("http://"+g1.ClientAddress, "glustercli", string(secret), "", false)

@@ -43,7 +43,7 @@ func TestVolume(t *testing.T) {
 
 	client = initRestclient(gds[0].ClientAddress)
 
-	tmpDir, err = ioutil.TempDir(baseWorkdir, t.Name())
+	tmpDir, err = ioutil.TempDir(baseLocalStateDir, t.Name())
 	r.Nil(err)
 	t.Logf("Using temp dir: %s", tmpDir)
 	//defer os.RemoveAll(tmpDir)
@@ -146,6 +146,27 @@ func testVolumeCreate(t *testing.T) {
 	_, err = client.VolumeCreate(createReq)
 	r.NotNil(err)
 
+	testDisallowBrickReuse(t, brickPaths[0])
+}
+
+func testDisallowBrickReuse(t *testing.T, brickInUse string) {
+	r := require.New(t)
+	volname := formatVolName(t.Name())
+
+	createReq := api.VolCreateReq{
+		Name: volname,
+		Subvols: []api.SubvolReq{
+			{
+				Bricks: []api.BrickReq{
+					{PeerID: gds[0].PeerID(), Path: brickInUse},
+				},
+			},
+		},
+		Force: true,
+	}
+
+	_, err := client.VolumeCreate(createReq)
+	r.NotNil(err)
 }
 
 func testVolumeCreateWithFlags(t *testing.T) {
@@ -154,7 +175,7 @@ func testVolumeCreateWithFlags(t *testing.T) {
 	var brickPaths []string
 
 	for i := 1; i <= 4; i++ {
-		brickPaths = append(brickPaths, fmt.Sprintf(baseWorkdir+"/"+t.Name()+"/%d", i))
+		brickPaths = append(brickPaths, fmt.Sprintf(baseLocalStateDir+"/"+t.Name()+"/%d", i))
 	}
 
 	flags := make(map[string]bool)
@@ -210,12 +231,13 @@ func testVolumeCreateWithFlags(t *testing.T) {
 	r.Nil(client.VolumeDelete(volumeName))
 
 }
+
 func testVolumeExpand(t *testing.T) {
 	r := require.New(t)
 
 	var brickPaths []string
 	for i := 1; i <= 4; i++ {
-		brickPaths = append(brickPaths, fmt.Sprintf(fmt.Sprintf(baseWorkdir+"/"+t.Name()+"/%d/", i)))
+		brickPaths = append(brickPaths, fmt.Sprintf(fmt.Sprintf(baseLocalStateDir+"/"+t.Name()+"/%d/", i)))
 	}
 
 	flags := make(map[string]bool)
@@ -399,7 +421,7 @@ func TestVolumeOptions(t *testing.T) {
 	r.Nil(err)
 	defer teardownCluster(gds)
 
-	brickDir, err := ioutil.TempDir(baseWorkdir, t.Name())
+	brickDir, err := ioutil.TempDir(baseLocalStateDir, t.Name())
 	defer os.RemoveAll(brickDir)
 
 	brickPath, err := ioutil.TempDir(brickDir, "brick")

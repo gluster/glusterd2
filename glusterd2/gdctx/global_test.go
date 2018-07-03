@@ -18,11 +18,11 @@ func TestGenerateLocalAuthToken(t *testing.T) {
 	assert.Nil(t, err)
 
 	config.Set("restauth", true)
-	config.Set("workdir", "/tmp/gd2test/")
+	config.Set("localstatedir", "/tmp/gd2test/")
 	err = GenerateLocalAuthToken()
 	assert.NotNil(t, err)
 
-	config.Set("workdir", "")
+	config.Set("localstatedir", "")
 	err = GenerateLocalAuthToken()
 	assert.Nil(t, err)
 	os.Remove("auth")
