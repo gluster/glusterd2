@@ -1,4 +1,4 @@
-package volgen2
+package volgen
 
 import (
 	"fmt"

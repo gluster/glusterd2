@@ -1,4 +1,4 @@
-package volgen2
+package volgen
 
 import (
 	"github.com/gluster/glusterd2/glusterd2/volume"
