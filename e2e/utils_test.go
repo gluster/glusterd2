@@ -2,7 +2,6 @@ package e2e
 
 import (
 	"bytes"
-	"encoding/json"
 	"errors"
 	"fmt"
 	"io/ioutil"
@@ -151,7 +150,7 @@ func spawnGlusterd(configFilePath string, cleanStart bool) (*gdProcess, error) {
 	}()
 
 	retries := 4
-	waitTime := 1500
+	waitTime := 2000
 	for i := 0; i < retries; i++ {
 		// opposite of exponential backoff
 		time.Sleep(time.Duration(waitTime) * time.Millisecond)
@@ -170,46 +169,59 @@ func spawnGlusterd(configFilePath string, cleanStart bool) (*gdProcess, error) {
 
 func setupCluster(configFiles ...string) ([]*gdProcess, error) {
 
-	var gds []*gdProcess
+	gds := make([]*gdProcess, 0, len(configFiles))
 
+	cleanupRequired := true
 	cleanup := func() {
-		for _, p := range gds {
-			p.Stop()
-			p.EraseLocalStateDir()
+		if cleanupRequired {
+			for _, p := range gds {
+				p.Stop()
+				p.EraseLocalStateDir()
+			}
 		}
 	}
+	defer cleanup()
 
 	for _, configFile := range configFiles {
 		g, err := spawnGlusterd(configFile, true)
 		if err != nil {
-			cleanup()
 			return nil, err
 		}
 		gds = append(gds, g)
 	}
 
-	// first gd2 that comes up shall add other nodes as its peers
-	firstNode := gds[0].ClientAddress
+	// restclient instance that will be used for peer operations
+	client := initRestclient(gds[0].ClientAddress)
+
+	// first gd2 instance spawned shall add other glusterd2 instances as its peers
 	for i, gd := range gds {
 		if i == 0 {
+			// do not add self
 			continue
 		}
+
 		peerAddReq := api.PeerAddReq{
 			Addresses: []string{gd.PeerAddress},
 		}
-		reqBody, errJSONMarshal := json.Marshal(peerAddReq)
-		if errJSONMarshal != nil {
-			cleanup()
-			return nil, errJSONMarshal
-		}
 
-		resp, err := http.Post("http://"+firstNode+"/v1/peers", "application/json", strings.NewReader(string(reqBody)))
-		if err != nil || resp.StatusCode != 201 {
-			cleanup()
-			return nil, err
+		if _, err := client.PeerAdd(peerAddReq); err != nil {
+			return nil, fmt.Errorf("setupCluster(): Peer add failed with error response %s",
+				err.Error())
 		}
-		resp.Body.Close()
 	}
+
+	// fail if the cluster hasn't been formed properly
+	peers, err := client.Peers()
+	if err != nil {
+		return nil, err
+	}
+
+	if len(peers) != len(gds) || len(peers) != len(configFiles) {
+		return nil, fmt.Errorf("setupCluster() failed to create a cluster")
+	}
+
+	// do not run logic in cleanup() function that was deferred
+	cleanupRequired = false
 
 	return gds, nil
 }
