@@ -59,7 +59,7 @@ func init() {
 
 // GenerateLocalAuthToken generates random secret if not already generated
 func GenerateLocalAuthToken() error {
-	if !config.GetBool("restauth") {
+	if config.IsSet("restauth") && !config.GetBool("restauth") {
 		return nil
 	}
 

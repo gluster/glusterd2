@@ -18,7 +18,7 @@ func TestBitrot(t *testing.T) {
 	r.Nil(err)
 	defer teardownCluster(gds)
 
-	client = initRestclient(gds[0].ClientAddress)
+	client = initRestclient(gds[0].ClientAddress, gds[0].LocalStateDir)
 
 	// test Bitrot on dist-rep volume
 	t.Run("Replica-volume", testBitrotOnReplicaVolume)

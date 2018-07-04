@@ -40,7 +40,7 @@ func TestVolume(t *testing.T) {
 	r.Nil(err)
 	defer teardownCluster(gds)
 
-	client = initRestclient(gds[0].ClientAddress)
+	client = initRestclient(gds[0].ClientAddress, gds[0].LocalStateDir)
 
 	t.Run("CreateWithoutName", testVolumeCreateWithoutName)
 
@@ -418,7 +418,7 @@ func TestVolumeOptions(t *testing.T) {
 	brickPath, err := ioutil.TempDir(brickDir, "brick")
 	r.Nil(err)
 
-	client := initRestclient(gds[0].ClientAddress)
+	client := initRestclient(gds[0].ClientAddress, gds[0].LocalStateDir)
 
 	volname := "testvol"
 	createReq := api.VolCreateReq{

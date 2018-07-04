@@ -16,4 +16,6 @@ rundir = "$GD2RUNDIR"
 defaultpeerport = "24008"
 peeraddress = ":24008"
 clientaddress = ":24007"
+#restauth should be set to false to disable REST authentication in glusterd2
+#restauth = false
 EOF

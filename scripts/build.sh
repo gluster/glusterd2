@@ -38,6 +38,10 @@ if [ "$BIN" == "glusterd2" ]; then
     LDFLAGS+=" -X main.defaultPathPrefix=${BASE_PREFIX}"
 fi
 
+if [ "$BIN" == "glustercli" ]; then
+    LDFLAGS+=" -X ${GOPKG}/cmd.defaultAuthPath=${GD2_STATE_DIR}/auth"
+fi
+
 GOBUILD_TAGS=""
 if [ "$PLUGINS" == "yes" ]; then
     GOBUILD_TAGS+="plugins "
