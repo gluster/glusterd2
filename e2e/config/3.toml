@@ -1,4 +1,3 @@
-workdir = "w3"
 localstatedir = "w3"
 logdir = "w3/log"
 loglevel = "DEBUG"

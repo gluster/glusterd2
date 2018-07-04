@@ -117,7 +117,7 @@ func volumeResetHandler(w http.ResponseWriter, r *http.Request) {
 			DoFunc:   "vol-option.XlatorActionDoReset",
 			UndoFunc: "vol-option.XlatorActionUndoReset",
 			Nodes:    volinfo.Nodes(),
-			Skip:     !isActionStepRequired(opt),
+			Skip:     !isActionStepRequired(opt, volinfo),
 		},
 		{
 			DoFunc:   "vol-option.UpdateVolinfo",

@@ -20,7 +20,7 @@ func TestGetAuthSecret(t *testing.T) {
 	assert.Empty(t, secret)
 
 	config.Set("restauth", true)
-	config.Set("workdir", "")
+	config.Set("localstatedir", "")
 	err := gdctx.GenerateLocalAuthToken()
 	assert.Nil(t, err)
 	os.Remove("auth")
@@ -47,7 +47,7 @@ func getAuthToken(username string, password string) string {
 func generateLocalauthtoken() {
 
 	config.Set("restauth", true)
-	config.Set("workdir", "")
+	config.Set("localstatedir", "")
 	gdctx.GenerateLocalAuthToken()
 
 }

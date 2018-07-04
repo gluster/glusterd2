@@ -57,7 +57,7 @@ Glusterd2 will also pick up conf file named `glusterd2.toml` if available in `/e
 
 ```toml
 $ cat conf.toml
-workdir = "/var/lib/gd2"
+localstatedir = "/var/lib/gd2"
 peeraddress = "192.168.56.101:24008"
 clientaddress = "192.168.56.101:24007"
 etcdcurls = "http://192.168.56.101:2379"

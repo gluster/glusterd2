@@ -8,7 +8,6 @@ OUTPUT=$OUTDIR/$GD2.toml
 
 cat >"$OUTPUT" <<EOF
 
-workdir = "$GD2STATEDIR"
 localstatedir = "$GD2STATEDIR"
 logdir = "$GD2LOGDIR"
 logfile = "$GD2.log"
