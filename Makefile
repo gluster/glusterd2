@@ -58,7 +58,7 @@ $(GD2_BUILD):
 
 $(CLI_BIN) cli: $(CLI_BUILD)
 $(CLI_BUILD):
-	@FASTBUILD=$(FASTBUILD) ./scripts/build.sh glustercli
+	@FASTBUILD=$(FASTBUILD) GD2_STATE_DIR=$(GD2STATEDIR) ./scripts/build.sh  glustercli
 	@FASTBUILD=$(FASTBUILD) ./scripts/build.sh glustercli/generate_bash_completion
 	@./$(CLI_BASH_COMPLETION_GEN_BIN) $(CLI_BASH_COMPLETION_BUILD)
 	@echo
