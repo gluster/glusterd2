@@ -157,11 +157,12 @@ func (c *Command) Routes() route.Routes {
 			ResponseType: utils.GetTypeString((*api.VolumeEditResp)(nil)),
 			HandlerFunc:  volumeEditHandler},
 		route.Route{
-			Name:        "ProfileVolume",
-			Method:      "GET",
-			Pattern:     "/volumes/{volname}/profile/{option}",
-			Version:     1,
-			HandlerFunc: volumeProfileHandler},
+			Name:         "ProfileVolume",
+			Method:       "GET",
+			Pattern:      "/volumes/{volname}/profile/{option}",
+			Version:      1,
+			ResponseType: utils.GetTypeString((*api.BrickProfileInfo)(nil)),
+			HandlerFunc:  volumeProfileHandler},
 	}
 }
 

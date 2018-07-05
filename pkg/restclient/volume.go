@@ -183,3 +183,11 @@ func (c *Client) VolumeReset(volname string, req api.VolOptionResetReq) error {
 	url := fmt.Sprintf("/v1/volumes/%s/options", volname)
 	return c.del(url, req, http.StatusOK, nil)
 }
+
+//VolumeProfileInfo retrieves the stats about different file operations performed on a volume
+func (c *Client) VolumeProfileInfo(volname string, option string) ([]api.BrickProfileInfo, error) {
+	var volumeProfileInfo []api.BrickProfileInfo
+	url := fmt.Sprintf("/v1/volumes/%s/profile/%s", volname, option)
+	err := c.get(url, nil, http.StatusOK, &volumeProfileInfo)
+	return volumeProfileInfo, err
+}
