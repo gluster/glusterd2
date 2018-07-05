@@ -77,6 +77,9 @@ func TestVolume(t *testing.T) {
 	t.Run("SelfHeal", tc.wrap(testSelfHeal))
 	t.Run("GranularEntryHeal", tc.wrap(testGranularEntryHeal))
 
+	// Volume profile test
+	t.Run("VolumeProfile", tc.wrap(testVolumeProfileInfo))
+
 }
 
 func testVolumeCreate(t *testing.T, tc *testCluster) {
@@ -937,4 +940,88 @@ func testArbiterVolumeCreate(t *testing.T, tc *testCluster) {
 	r.Nil(client.VolumeStop(volumeName))
 
 	r.Nil(client.VolumeDelete(volumeName))
+}
+
+func testVolumeProfileInfo(t *testing.T, tc *testCluster) {
+	r := require.New(t)
+	var brickPaths []string
+	for i := 1; i <= 3; i++ {
+		brickPath := testTempDir(t, "brick")
+		brickPaths = append(brickPaths, brickPath)
+	}
+	volname := formatVolName(t.Name())
+	createReq := api.VolCreateReq{
+		Name: volname,
+		Subvols: []api.SubvolReq{
+			{
+				ReplicaCount: 3,
+				Type:         "replicate",
+				Bricks: []api.BrickReq{
+					{PeerID: tc.gds[0].PeerID(), Path: brickPaths[0]},
+					{PeerID: tc.gds[1].PeerID(), Path: brickPaths[1]},
+					{PeerID: tc.gds[1].PeerID(), Path: brickPaths[2]},
+				},
+			},
+		},
+		Force: true,
+	}
+	_, err := client.VolumeCreate(createReq)
+	r.Nil(err)
+
+	r.Nil(client.VolumeStart(volname, false))
+
+	profileOpKeys := []string{"io-stats.count-fop-hits", "io-stats.latency-measurement"}
+	var optionReq api.VolOptionReq
+	for _, profileOpKey := range profileOpKeys {
+		optionReq.Options = map[string]string{profileOpKey: "on"}
+		optionReq.AllowAdvanced = true
+		r.Nil(client.VolumeSet(volname, optionReq))
+	}
+
+	_, err = client.VolumeProfileInfo(volname, "info")
+	r.Nil(err)
+
+	_, err = client.VolumeProfileInfo(volname, "info-peek")
+	r.Nil(err)
+
+	_, err = client.VolumeProfileInfo(volname, "info-incremental")
+	r.Nil(err)
+
+	_, err = client.VolumeProfileInfo(volname, "info-incremental-peek")
+	r.Nil(err)
+
+	_, err = client.VolumeProfileInfo(volname, "info-cumulative")
+	r.Nil(err)
+
+	_, err = client.VolumeProfileInfo(volname, "info-clear")
+	r.Nil(err)
+
+	for _, profileOpKey := range profileOpKeys {
+		optionReq.Options = map[string]string{profileOpKey: "off"}
+		optionReq.AllowAdvanced = true
+		r.Nil(client.VolumeSet(volname, optionReq))
+	}
+
+	_, err = client.VolumeProfileInfo(volname, "info")
+	r.NotNil(err)
+
+	_, err = client.VolumeProfileInfo(volname, "info-peek")
+	r.NotNil(err)
+
+	_, err = client.VolumeProfileInfo(volname, "info-incremental")
+	r.NotNil(err)
+
+	_, err = client.VolumeProfileInfo(volname, "info-incremental-peek")
+	r.NotNil(err)
+
+	_, err = client.VolumeProfileInfo(volname, "info-cumulative")
+	r.NotNil(err)
+
+	_, err = client.VolumeProfileInfo(volname, "info-clear")
+	r.NotNil(err)
+
+	r.Nil(client.VolumeStop(volname))
+
+	r.Nil(client.VolumeDelete(volname))
+
 }
