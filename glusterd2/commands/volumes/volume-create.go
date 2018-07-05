@@ -14,6 +14,7 @@ import (
 	gderrors "github.com/gluster/glusterd2/pkg/errors"
 
 	"github.com/pborman/uuid"
+	"go.opencensus.io/trace"
 )
 
 const (
@@ -79,6 +80,9 @@ func registerVolCreateStepFuncs() {
 func volumeCreateHandler(w http.ResponseWriter, r *http.Request) {
 
 	ctx := r.Context()
+	ctx, span := trace.StartSpan(ctx, "/volumeCreateHandler")
+	defer span.End()
+
 	logger := gdctx.GetReqLogger(ctx)
 	var err error
 

@@ -1,6 +1,7 @@
 package transaction
 
 import (
+	"context"
 	"errors"
 	"fmt"
 	"net/http"
@@ -10,6 +11,7 @@ import (
 
 	"github.com/pborman/uuid"
 	log "github.com/sirupsen/logrus"
+	"go.opencensus.io/trace"
 )
 
 // StepFunc is the function that is supposed to be run during a transaction step
@@ -33,8 +35,8 @@ var (
 )
 
 // do runs the DoFunc on the nodes
-func (s *Step) do(ctx TxnCtx) error {
-	return runStepFuncOnNodes(s.DoFunc, ctx, s.Nodes)
+func (s *Step) do(ctx TxnCtx, origCtx ...context.Context) error {
+	return runStepFuncOnNodes(s.DoFunc, ctx, s.Nodes, origCtx...)
 }
 
 // undo runs the UndoFunc on the nodes
@@ -88,13 +90,13 @@ func (r stepResp) Status() int {
 	return http.StatusInternalServerError
 }
 
-func runStepFuncOnNodes(stepName string, ctx TxnCtx, nodes []uuid.UUID) error {
+func runStepFuncOnNodes(stepName string, ctx TxnCtx, nodes []uuid.UUID, origCtx ...context.Context) error {
 
 	respCh := make(chan stepPeerResp, len(nodes))
 	defer close(respCh)
 
 	for _, node := range nodes {
-		go runStepFuncOnNode(stepName, ctx, node, respCh)
+		go runStepFuncOnNode(stepName, ctx, node, respCh, origCtx...)
 	}
 
 	// Ideally, we have to cancel the pending go-routines on first error
@@ -126,7 +128,7 @@ func runStepFuncOnNodes(stepName string, ctx TxnCtx, nodes []uuid.UUID) error {
 	return nil
 }
 
-func runStepFuncOnNode(stepName string, ctx TxnCtx, node uuid.UUID, respCh chan<- stepPeerResp) {
+func runStepFuncOnNode(stepName string, ctx TxnCtx, node uuid.UUID, respCh chan<- stepPeerResp, origCtx ...context.Context) {
 
 	ctx.Logger().WithFields(log.Fields{
 		"step": stepName, "node": node,
@@ -134,7 +136,7 @@ func runStepFuncOnNode(stepName string, ctx TxnCtx, node uuid.UUID, respCh chan<
 
 	var err error
 	if uuid.Equal(node, gdctx.MyUUID) {
-		err = runStepFuncLocally(stepName, ctx)
+		err = runStepFuncLocally(stepName, ctx, origCtx...)
 	} else {
 		// remote node
 		err = runStepOn(stepName, node, ctx)
@@ -143,9 +145,17 @@ func runStepFuncOnNode(stepName string, ctx TxnCtx, node uuid.UUID, respCh chan<
 	respCh <- stepPeerResp{node, err}
 }
 
-func runStepFuncLocally(stepName string, ctx TxnCtx) error {
+func runStepFuncLocally(stepName string, ctx TxnCtx, origCtx ...context.Context) error {
 
 	var err error
+
+	if origCtx != nil {
+		txCtx := origCtx[0]
+		reqID := ctx.GetTxnReqID()
+		spanName := stepName + " ReqID:" + reqID
+		txCtx, span := trace.StartSpan(txCtx, spanName)
+		defer span.End()
+	}
 
 	stepFunc, ok := getStepFunc(stepName)
 	if ok {

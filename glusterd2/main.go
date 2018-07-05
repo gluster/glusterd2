@@ -24,7 +24,12 @@ import (
 	flag "github.com/spf13/pflag"
 	config "github.com/spf13/viper"
 	"github.com/thejerf/suture"
+	"go.opencensus.io/exporter/jaeger"
+	"go.opencensus.io/trace"
 	"golang.org/x/sys/unix"
+
+	"go.opencensus.io/exporter/jaeger"
+	"go.opencensus.io/trace"
 )
 
 func main() {
@@ -117,6 +122,29 @@ func main() {
 	// If REST API Auth is enabled, Generate Auth file with random secret in localstatedir
 	if err := gdctx.GenerateLocalAuthToken(); err != nil {
 		log.WithError(err).Fatal("Failed to generate local auth token")
+	}
+
+	// Get the Jaeger endpoints from config file
+	jaegerEndpoint := config.GetString("jaegerendpoint")
+	jaegerAgentEndpoint := config.GetString("jaegeragentendpoint")
+
+	// Create the Opencensus Jaeger exporter endpoints to log traces and spans
+	exporter, err := jaeger.NewExporter(jaeger.Options{
+		Endpoint:      jaegerEndpoint,
+		AgentEndpoint: jaegerAgentEndpoint,
+		ServiceName:   gdctx.HostName,
+	})
+	if err != nil {
+		log.WithFields(log.Fields{
+			"error": err.Error(),
+		}).Warning("Unable to create jaeger exporter")
+	} else {
+		defer exporter.Flush()
+		// Register the Jaeger exporter
+		trace.RegisterExporter(exporter)
+		// TODO: Change to probability sampler. Use always sample for now.
+		trace.ApplyConfig(trace.Config{DefaultSampler: trace.AlwaysSample()})
+		log.Info("Registered opencensus exporter for traces and stats")
 	}
 
 	// Start all servers (rest, peerrpc, sunrpc) managed by suture supervisor
