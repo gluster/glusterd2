@@ -6,13 +6,13 @@ import (
 	"path/filepath"
 
 	"github.com/gluster/glusterd2/glusterd2/volume"
+	"github.com/gluster/glusterd2/pkg/api"
 	"github.com/gluster/glusterd2/plugins/device/deviceutils"
-	smartvolapi "github.com/gluster/glusterd2/plugins/smartvol/api"
 
 	config "github.com/spf13/viper"
 )
 
-func handleReplicaSubvolReq(req *smartvolapi.Volume) error {
+func handleReplicaSubvolReq(req *api.VolCreateReq) error {
 	if req.ReplicaCount < 2 {
 		return nil
 	}
@@ -28,7 +28,7 @@ func handleReplicaSubvolReq(req *smartvolapi.Volume) error {
 	return nil
 }
 
-func handleDisperseSubvolReq(req *smartvolapi.Volume) error {
+func handleDisperseSubvolReq(req *api.VolCreateReq) error {
 	if req.DisperseCount == 0 && req.DisperseDataCount == 0 && req.DisperseRedundancyCount == 0 {
 		return nil
 	}
@@ -62,7 +62,7 @@ func handleDisperseSubvolReq(req *smartvolapi.Volume) error {
 // Based on the provided values like replica count, distribute count etc,
 // brick layout will be created. Peer and device information for bricks are
 // not available with the layout
-func getBricksLayout(req *smartvolapi.Volume) ([]smartvolapi.Subvol, error) {
+func getBricksLayout(req *api.VolCreateReq) ([]api.SubvolReq, error) {
 	var err error
 	bricksMountRoot := config.GetString("bricksmountroot")
 	if bricksMountRoot == "" {
@@ -114,19 +114,19 @@ func getBricksLayout(req *smartvolapi.Volume) ([]smartvolapi.Subvol, error) {
 	// Initialize the planner
 	subvolplanner.Init(req, subvolSize)
 
-	var subvols []smartvolapi.Subvol
+	var subvols []api.SubvolReq
 
 	// Create a Bricks layout based on replica count and
 	// other details. Brick Path, PeerID information will
 	// be added later.
 	for i := 0; i < numSubvols; i++ {
-		var bricks []smartvolapi.Brick
+		var bricks []api.BrickReq
 		for j := 0; j < subvolplanner.BricksCount(); j++ {
 			eachBrickSize := subvolplanner.BrickSize(j)
 			brickType := subvolplanner.BrickType(j)
 			eachBrickTpSize := uint64(float64(eachBrickSize) * req.SnapshotReserveFactor)
 
-			bricks = append(bricks, smartvolapi.Brick{
+			bricks = append(bricks, api.BrickReq{
 				Type:           brickType,
 				Path:           fmt.Sprintf("%s/%s-s%d-b%d/brick", bricksMountRoot, req.Name, i, j),
 				TpName:         fmt.Sprintf("tp-%s-s%d-b%d", req.Name, i, j),
@@ -137,7 +137,7 @@ func getBricksLayout(req *smartvolapi.Volume) ([]smartvolapi.Subvol, error) {
 			})
 		}
 
-		subvols = append(subvols, smartvolapi.Subvol{
+		subvols = append(subvols, api.SubvolReq{
 			Type:          req.SubvolType,
 			Bricks:        bricks,
 			ReplicaCount:  req.ReplicaCount,
@@ -150,7 +150,7 @@ func getBricksLayout(req *smartvolapi.Volume) ([]smartvolapi.Subvol, error) {
 }
 
 // PlanBricks creates the brick layout with chosen device and size information
-func PlanBricks(req *smartvolapi.Volume) error {
+func PlanBricks(req *api.VolCreateReq) error {
 	availableVgs, err := getAvailableVgs(req)
 	if err != nil {
 		return err

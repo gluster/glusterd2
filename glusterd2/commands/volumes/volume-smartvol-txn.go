@@ -1,4 +1,4 @@
-package smartvol
+package volumecommands
 
 import (
 	"os"
@@ -6,17 +6,17 @@ import (
 
 	"github.com/gluster/glusterd2/glusterd2/gdctx"
 	"github.com/gluster/glusterd2/glusterd2/transaction"
+	"github.com/gluster/glusterd2/pkg/api"
 	"github.com/gluster/glusterd2/plugins/device/deviceutils"
-	smartvolapi "github.com/gluster/glusterd2/plugins/smartvol/api"
 
 	config "github.com/spf13/viper"
 )
 
 func txnPrepareBricks(c transaction.TxnCtx) error {
-	var req smartvolapi.Volume
-	if err := c.Get("reqBricksPrepare", &req); err != nil {
+	var req api.VolCreateReq
+	if err := c.Get("req", &req); err != nil {
 		c.Logger().WithError(err).WithField(
-			"key", "reqBricksPrepare").Debug("Failed to get key from store")
+			"key", "req").Debug("Failed to get key from store")
 		return err
 	}
 
@@ -118,10 +118,10 @@ func txnPrepareBricks(c transaction.TxnCtx) error {
 }
 
 func txnUndoPrepareBricks(c transaction.TxnCtx) error {
-	var req smartvolapi.Volume
-	if err := c.Get("reqBricksPrepare", &req); err != nil {
+	var req api.VolCreateReq
+	if err := c.Get("req", &req); err != nil {
 		c.Logger().WithError(err).WithField(
-			"key", "reqBricksPrepare").Debug("Failed to get key from store")
+			"key", "req").Debug("Failed to get key from store")
 		return err
 	}
 

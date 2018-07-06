@@ -4,7 +4,9 @@ import (
 	"errors"
 	"net/http"
 	"path/filepath"
+	"strconv"
 
+	"github.com/gluster/glusterd2/glusterd2/bricksplanner"
 	"github.com/gluster/glusterd2/glusterd2/events"
 	"github.com/gluster/glusterd2/glusterd2/gdctx"
 	restutils "github.com/gluster/glusterd2/glusterd2/servers/rest/utils"
@@ -18,7 +20,19 @@ import (
 
 const (
 	maxMetadataSizeLimit = 4096
+	minVolumeSize        = 10
 )
+
+func applyDefaults(req *api.VolCreateReq) {
+	if req.SnapshotReserveFactor == 0 {
+		req.SnapshotReserveFactor = 1
+	}
+
+	// Snapshot reserve not required if not enabled
+	if !req.SnapshotEnabled {
+		req.SnapshotReserveFactor = 1
+	}
+}
 
 func validateVolCreateReq(req *api.VolCreateReq) error {
 	if !volume.IsValidName(req.Name) {
@@ -29,7 +43,11 @@ func validateVolCreateReq(req *api.VolCreateReq) error {
 		return errors.New("invalid transport. Supported values: tcp or rdma")
 	}
 
-	if len(req.Subvols) <= 0 {
+	if req.Size > 0 && req.Size < minVolumeSize {
+		return errors.New("invalid Volume Size, Minimum size required is " + strconv.Itoa(minVolumeSize))
+	}
+
+	if req.Size == 0 && len(req.Subvols) <= 0 {
 		return gderrors.ErrEmptyBrickList
 	}
 
@@ -70,6 +88,8 @@ func registerVolCreateStepFuncs() {
 		{"vol-create.UndoInitBricks", undoInitBricks},
 		{"vol-create.StoreVolume", storeVolume},
 		{"vol-create.UndoStoreVolume", undoStoreVolumeOnCreate},
+		{"vol-create.PrepareBricks", txnPrepareBricks},
+		{"vol-create.UndoPrepareBricks", txnUndoPrepareBricks},
 	}
 	for _, sf := range sfs {
 		transaction.RegisterStepFunc(sf.sf, sf.name)
@@ -98,9 +118,24 @@ func volumeCreateHandler(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	if err := checkDupBrickEntryVolCreate(req); err != nil {
-		restutils.SendHTTPError(ctx, w, http.StatusBadRequest, err)
-		return
+	if req.Size > 0 {
+		applyDefaults(&req)
+
+		if req.SnapshotReserveFactor < 1 {
+			restutils.SendHTTPError(ctx, w, http.StatusBadRequest,
+				errors.New("invalid Snapshot Reserve Factor"))
+			return
+		}
+
+		if err := bricksplanner.PlanBricks(&req); err != nil {
+			restutils.SendHTTPError(ctx, w, http.StatusInternalServerError, err)
+			return
+		}
+	} else {
+		if err := checkDupBrickEntryVolCreate(req); err != nil {
+			restutils.SendHTTPError(ctx, w, http.StatusBadRequest, err)
+			return
+		}
 	}
 
 	req.Options, err = expandGroupOptions(req.Options)
@@ -129,6 +164,11 @@ func volumeCreateHandler(w http.ResponseWriter, r *http.Request) {
 	defer txn.Done()
 
 	txn.Steps = []*transaction.Step{
+		{
+			DoFunc:   "vol-create.PrepareBricks",
+			UndoFunc: "vol-create.UndoPrepareBricks",
+			Nodes:    nodes,
+		},
 		{
 			DoFunc: "vol-create.CreateVolinfo",
 			Nodes:  []uuid.UUID{gdctx.MyUUID},

@@ -1,7 +1,7 @@
 package bricksplanner
 
 import (
-	smartvolapi "github.com/gluster/glusterd2/plugins/smartvol/api"
+	"github.com/gluster/glusterd2/pkg/api"
 )
 
 type disperseSubvolPlanner struct {
@@ -12,7 +12,7 @@ type disperseSubvolPlanner struct {
 	brickSize               uint64
 }
 
-func (s *disperseSubvolPlanner) Init(req *smartvolapi.Volume, subvolSize uint64) {
+func (s *disperseSubvolPlanner) Init(req *api.VolCreateReq, subvolSize uint64) {
 	s.subvolSize = subvolSize
 	s.disperseCount = req.DisperseCount
 	s.disperseDataCount = req.DisperseDataCount

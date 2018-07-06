@@ -6,7 +6,6 @@ import (
 	"net/url"
 
 	"github.com/gluster/glusterd2/pkg/api"
-	smartvolapi "github.com/gluster/glusterd2/plugins/smartvol/api"
 )
 
 // metadataFilter is a filter type
@@ -19,13 +18,6 @@ const (
 	onlyValue
 	keyAndValue
 )
-
-// SmartVolumeCreate creates Gluster Volume based on given size
-func (c *Client) SmartVolumeCreate(req smartvolapi.VolCreateReq) (api.VolumeCreateResp, error) {
-	var vol api.VolumeCreateResp
-	err := c.post("/v1/smartvol", req, http.StatusCreated, &vol)
-	return vol, err
-}
 
 // VolumeCreate creates Gluster Volume
 func (c *Client) VolumeCreate(req api.VolCreateReq) (api.VolumeCreateResp, error) {
