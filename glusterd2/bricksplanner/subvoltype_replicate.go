@@ -1,7 +1,7 @@
 package bricksplanner
 
 import (
-	smartvolapi "github.com/gluster/glusterd2/plugins/smartvol/api"
+	"github.com/gluster/glusterd2/pkg/api"
 )
 
 type replicaSubvolPlanner struct {
@@ -12,7 +12,7 @@ type replicaSubvolPlanner struct {
 	arbiterBrickSize uint64
 }
 
-func (s *replicaSubvolPlanner) Init(req *smartvolapi.Volume, subvolSize uint64) {
+func (s *replicaSubvolPlanner) Init(req *api.VolCreateReq, subvolSize uint64) {
 	s.subvolSize = subvolSize
 	s.replicaCount = req.ReplicaCount
 	s.arbiterCount = req.ArbiterCount

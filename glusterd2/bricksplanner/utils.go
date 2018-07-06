@@ -7,16 +7,16 @@ import (
 
 	"github.com/gluster/glusterd2/glusterd2/peer"
 	"github.com/gluster/glusterd2/glusterd2/store"
+	"github.com/gluster/glusterd2/pkg/api"
 	"github.com/gluster/glusterd2/pkg/utils"
 	deviceapi "github.com/gluster/glusterd2/plugins/device/api"
-	smartvolapi "github.com/gluster/glusterd2/plugins/smartvol/api"
 )
 
 var subvolPlanners = make(map[string]SubvolPlanner)
 
 // SubvolPlanner represents planner interface for different subvol types
 type SubvolPlanner interface {
-	Init(*smartvolapi.Volume, uint64)
+	Init(*api.VolCreateReq, uint64)
 	BricksCount() int
 	BrickSize(int) uint64
 	BrickType(int) string
@@ -33,7 +33,7 @@ type Vg struct {
 	Used          bool
 }
 
-func getAvailableVgs(req *smartvolapi.Volume) ([]Vg, error) {
+func getAvailableVgs(req *api.VolCreateReq) ([]Vg, error) {
 	var vgs []Vg
 	peers, err := peer.GetPeers()
 	if err != nil {
