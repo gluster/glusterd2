@@ -12,6 +12,11 @@ import (
 func TestAddRemovePeer(t *testing.T) {
 	r := require.New(t)
 
+	// set up a cluster w/o glusterd instances for dependencies
+	tc, err := setupCluster()
+	r.NoError(err)
+	defer teardownCluster(tc)
+
 	g1, err := spawnGlusterd("./config/1.toml", true)
 	r.Nil(err)
 	defer g1.Stop()
