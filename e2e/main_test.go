@@ -12,12 +12,14 @@ var (
 	binDir            string
 	baseLocalStateDir = "/tmp/gd2_func_test"
 	functest          bool
+	externalEtcd      = true
 )
 
 func TestMain(m *testing.M) {
 	defBinDir, _ := filepath.Abs("../build")
 
 	flag.BoolVar(&functest, "functest", false, "Run or skip functional test")
+	flag.BoolVar(&externalEtcd, "external-etcd", true, "Run glusterd2 with an externally managed etcd")
 	flag.StringVar(&binDir, "bindir", defBinDir, "The directory containing glusterd2 binary")
 	flag.StringVar(&baseLocalStateDir, "basedir", baseLocalStateDir, "The base directory for test local state directories")
 	flag.Parse()

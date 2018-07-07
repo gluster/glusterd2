@@ -135,12 +135,23 @@ func spawnGlusterd(configFilePath string, cleanStart bool) (*gdProcess, error) {
 	if err != nil {
 		return nil, err
 	}
-	g.Cmd = exec.Command(path.Join(binDir, "glusterd2"),
+	args := []string{
 		"--config", absConfigFilePath,
 		"--localstatedir", g.LocalStateDir,
 		"--rundir", g.Rundir,
 		"--logdir", path.Join(g.LocalStateDir, "log"),
-		"--logfile", "glusterd2.log")
+		"--logfile", "glusterd2.log",
+	}
+	if externalEtcd {
+		args = append(args,
+			"--noembed",
+			// non-default port to avoid conflict with "real" etcd
+			// on system
+			// TODO: dynamic ports to avoid test conflicts?
+			"--etcdendpoints", "http://localhost:22379",
+		)
+	}
+	g.Cmd = exec.Command(path.Join(binDir, "glusterd2"), args...)
 
 	if err := g.Cmd.Start(); err != nil {
 		return nil, err
@@ -166,4 +177,51 @@ func spawnGlusterd(configFilePath string, cleanStart bool) (*gdProcess, error) {
 	}
 
 	return &g, nil
+}
+
+// etcdProcess is used to manage etcd processes by the test suite
+// when glusterd2 is not running it's own embedded etcd.
+type etcdProcess struct {
+	testProcess
+	DataDir string
+	LogPath string
+}
+
+// Spawn starts a new etcd instance.
+func (ep *etcdProcess) Spawn() error {
+	args := []string{
+		"--name", "e2e-test-etcd",
+		"--data-dir", ep.DataDir,
+		"--listen-client-urls", "http://localhost:22379",
+		"--advertise-client-urls", "http://localhost:22379",
+		"--log-output", "stdout",
+	}
+	ep.Cmd = exec.Command("etcd", args...)
+
+	var (
+		logf *os.File
+		err  error
+	)
+	if ep.LogPath != "" {
+		logf, err = os.OpenFile(ep.LogPath,
+			os.O_APPEND|os.O_CREATE|os.O_WRONLY, 0644)
+		if err != nil {
+			return err
+		}
+		ep.Cmd.Stdout = logf
+		// only the start function needs the open fd. Once the child
+		// process has the fd, we want to close the one we opened
+		// (on all exit paths).
+		defer logf.Close()
+	}
+
+	if err := ep.Cmd.Start(); err != nil {
+		return err
+	}
+
+	go func() {
+		ep.Cmd.Wait()
+	}()
+	// TODO: liveness check?
+	return nil
 }
