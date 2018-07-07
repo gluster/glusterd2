@@ -25,7 +25,6 @@ const (
 )
 
 var (
-	gds    []*gdProcess
 	client *restclient.Client
 )
 
@@ -36,39 +35,39 @@ func TestVolume(t *testing.T) {
 
 	r := require.New(t)
 
-	gds, err = setupCluster("./config/1.toml", "./config/2.toml")
+	gds, err := setupCluster("./config/1.toml", "./config/2.toml")
 	r.Nil(err)
 	defer teardownCluster(gds)
 
 	client = initRestclient(gds[0])
 
-	t.Run("CreateWithoutName", testVolumeCreateWithoutName)
+	t.Run("CreateWithoutName", func(t *testing.T) { testVolumeCreateWithoutName(t, gds) })
 
 	// Create the volume
-	t.Run("Create", testVolumeCreate)
+	t.Run("Create", func(t *testing.T) { testVolumeCreate(t, gds) })
 	// Expand the volume
-	t.Run("Expand", testVolumeExpand)
+	t.Run("Expand", func(t *testing.T) { testVolumeExpand(t, gds) })
 
 	// Run tests that depend on this volume
 	t.Run("Start", testVolumeStart)
-	t.Run("Mount", testVolumeMount)
+	t.Run("Mount", func(t *testing.T) { testVolumeMount(t, gds) })
 	t.Run("Status", testVolumeStatus)
 	t.Run("Statedump", testVolumeStatedump)
 	t.Run("Stop", testVolumeStop)
 	t.Run("List", testVolumeList)
 	t.Run("Info", testVolumeInfo)
 	t.Run("Edit", testEditVolume)
-	t.Run("VolumeFlags", testVolumeCreateWithFlags)
+	t.Run("VolumeFlags", func(t *testing.T) { testVolumeCreateWithFlags(t, gds) })
 	// delete volume
 	t.Run("Delete", testVolumeDelete)
 
 	// Disperse volume test
-	t.Run("Disperse", testDisperse)
-	t.Run("DisperseMount", testDisperseMount)
+	t.Run("Disperse", func(t *testing.T) { testDisperse(t, gds) })
+	t.Run("DisperseMount", func(t *testing.T) { testDisperseMount(t, gds) })
 	t.Run("DisperseDelete", testDisperseDelete)
 }
 
-func testVolumeCreateWithoutName(t *testing.T) {
+func testVolumeCreateWithoutName(t *testing.T, gds []*gdProcess) {
 	r := require.New(t)
 
 	var brickPaths []string
@@ -95,7 +94,7 @@ func testVolumeCreateWithoutName(t *testing.T) {
 	r.Nil(client.VolumeDelete(volinfo.Name))
 }
 
-func testVolumeCreate(t *testing.T) {
+func testVolumeCreate(t *testing.T, gds []*gdProcess) {
 	r := require.New(t)
 
 	var brickPaths []string
@@ -138,10 +137,10 @@ func testVolumeCreate(t *testing.T) {
 	_, err = client.VolumeCreate(createReq)
 	r.NotNil(err)
 
-	testDisallowBrickReuse(t, brickPaths[0])
+	testDisallowBrickReuse(t, brickPaths[0], gds)
 }
 
-func testDisallowBrickReuse(t *testing.T, brickInUse string) {
+func testDisallowBrickReuse(t *testing.T, brickInUse string, gds []*gdProcess) {
 	r := require.New(t)
 	volname := formatVolName(t.Name())
 
@@ -161,7 +160,7 @@ func testDisallowBrickReuse(t *testing.T, brickInUse string) {
 	r.NotNil(err)
 }
 
-func testVolumeCreateWithFlags(t *testing.T) {
+func testVolumeCreateWithFlags(t *testing.T, gds []*gdProcess) {
 	r := require.New(t)
 	volumeName := formatVolName(t.Name())
 	var brickPaths []string
@@ -224,7 +223,7 @@ func testVolumeCreateWithFlags(t *testing.T) {
 
 }
 
-func testVolumeExpand(t *testing.T) {
+func testVolumeExpand(t *testing.T, gds []*gdProcess) {
 	r := require.New(t)
 
 	var brickPaths []string
@@ -373,11 +372,11 @@ func testVolumeStatedump(t *testing.T) {
 }
 
 // testVolumeMount mounts checks if the volume mounts successfully and unmounts it
-func testVolumeMount(t *testing.T) {
-	testMountUnmount(t, volname)
+func testVolumeMount(t *testing.T, gds []*gdProcess) {
+	testMountUnmount(t, volname, gds)
 }
 
-func testMountUnmount(t *testing.T, v string) {
+func testMountUnmount(t *testing.T, v string, gds []*gdProcess) {
 	if _, err := os.Lstat("/dev/fuse"); os.IsNotExist(err) {
 		t.Skip("skipping mount /dev/fuse unavailable")
 	}
@@ -570,7 +569,7 @@ func TestVolumeOptions(t *testing.T) {
 
 }
 
-func testDisperse(t *testing.T) {
+func testDisperse(t *testing.T, gds []*gdProcess) {
 	r := require.New(t)
 
 	var brickPaths []string
@@ -601,8 +600,8 @@ func testDisperse(t *testing.T) {
 	r.Nil(client.VolumeStart(disperseVolName, true), "disperse volume start failed")
 }
 
-func testDisperseMount(t *testing.T) {
-	testMountUnmount(t, disperseVolName)
+func testDisperseMount(t *testing.T, gds []*gdProcess) {
+	testMountUnmount(t, disperseVolName, gds)
 }
 
 func testDisperseDelete(t *testing.T) {

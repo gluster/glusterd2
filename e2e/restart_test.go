@@ -21,7 +21,7 @@ func TestRestart(t *testing.T) {
 	r.Nil(err)
 	defer os.RemoveAll(dir)
 
-	client := initRestclient(gds[0])
+	client := initRestclient(gd)
 
 	createReq := api.VolCreateReq{
 		Name: formatVolName(t.Name()),
@@ -52,7 +52,7 @@ func TestRestart(t *testing.T) {
 }
 
 func getVols(gd *gdProcess, r *require.Assertions) api.VolumeListResp {
-	client := initRestclient(gds[0])
+	client := initRestclient(gd)
 	volname := ""
 	vols, err := client.Volumes(volname)
 	r.Nil(err)

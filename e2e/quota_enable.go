@@ -65,12 +65,12 @@ func TestQuota(t *testing.T) {
 	r.Nil(err)
 
 	// test Quota on dist-rep volume
-	t.Run("Quota-enable", testQuotaEnable)
+	t.Run("Quota-enable", func(t *testing.T) { testQuotaEnable(t, gds) })
 
 	r.Nil(client.VolumeDelete(volumeName))
 }
 
-func testQuotaEnable(t *testing.T) {
+func testQuotaEnable(t *testing.T, gds []*gdProcess) {
 	var err error
 	r := require.New(t)
 
