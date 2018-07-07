@@ -15,25 +15,46 @@ import (
 	toml "github.com/pelletier/go-toml"
 )
 
+type testProcess struct {
+	Cmd *exec.Cmd
+}
+
+// IsRunning will return true if the process is currently
+// running.
+func (tp *testProcess) IsRunning() bool {
+	process, err := os.FindProcess(tp.Cmd.Process.Pid)
+	if err != nil {
+		return false
+	}
+
+	if err := process.Signal(syscall.Signal(0)); err != nil {
+		return false
+	}
+
+	return true
+}
+
+// Stop will terminate the associated process. It will attempt a graceful
+// shutdown before killing the process.
+func (tp *testProcess) Stop() error {
+	tp.Cmd.Process.Signal(os.Interrupt) // try shutting down gracefully
+	time.Sleep(500 * time.Millisecond)
+	if tp.IsRunning() {
+		time.Sleep(1 * time.Second)
+	} else {
+		return nil
+	}
+	return tp.Cmd.Process.Kill()
+}
+
 type gdProcess struct {
-	Cmd           *exec.Cmd
+	testProcess
 	ClientAddress string `toml:"clientaddress"`
 	PeerAddress   string `toml:"peeraddress"`
 	LocalStateDir string `toml:"localstatedir"`
 	RestAuth      bool   `toml:"restauth"`
 	Rundir        string `toml:"rundir"`
 	uuid          string
-}
-
-func (g *gdProcess) Stop() error {
-	g.Cmd.Process.Signal(os.Interrupt) // try shutting down gracefully
-	time.Sleep(500 * time.Millisecond)
-	if g.IsRunning() {
-		time.Sleep(1 * time.Second)
-	} else {
-		return nil
-	}
-	return g.Cmd.Process.Kill()
 }
 
 func (g *gdProcess) updateDirs() {
@@ -49,20 +70,6 @@ func (g *gdProcess) updateDirs() {
 
 func (g *gdProcess) EraseLocalStateDir() error {
 	return os.RemoveAll(g.LocalStateDir)
-}
-
-func (g *gdProcess) IsRunning() bool {
-
-	process, err := os.FindProcess(g.Cmd.Process.Pid)
-	if err != nil {
-		return false
-	}
-
-	if err := process.Signal(syscall.Signal(0)); err != nil {
-		return false
-	}
-
-	return true
 }
 
 func (g *gdProcess) PeerID() string {
