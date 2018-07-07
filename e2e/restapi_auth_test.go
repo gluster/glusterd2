@@ -12,9 +12,11 @@ import (
 func TestRESTAPIAuth(t *testing.T) {
 	r := require.New(t)
 
-	g1, err := spawnGlusterd("./config/4.toml", true)
-	r.Nil(err)
-	defer g1.Stop()
+	tc, err := setupCluster("./config/4.toml")
+	r.NoError(err)
+	defer teardownCluster(tc)
+
+	g1 := tc.gds[0]
 	r.True(g1.IsRunning())
 
 	secret, err := ioutil.ReadFile(g1.LocalStateDir + "/auth")
