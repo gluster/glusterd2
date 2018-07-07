@@ -232,7 +232,7 @@ func TestSmartVolume(t *testing.T) {
 
 	r := require.New(t)
 
-	gds, err = setupCluster("./config/1.toml", "./config/2.toml", "./config/3.toml")
+	gds, err := setupCluster("./config/1.toml", "./config/2.toml", "./config/3.toml")
 	r.Nil(err)
 	defer teardownCluster(gds)
 

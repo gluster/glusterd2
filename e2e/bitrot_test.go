@@ -14,20 +14,20 @@ func TestBitrot(t *testing.T) {
 
 	r := require.New(t)
 
-	gds, err = setupCluster("./config/1.toml", "./config/2.toml")
+	gds, err := setupCluster("./config/1.toml", "./config/2.toml")
 	r.Nil(err)
 	defer teardownCluster(gds)
 
 	client = initRestclient(gds[0])
 
 	// test Bitrot on dist-rep volume
-	t.Run("Replica-volume", testBitrotOnReplicaVolume)
+	t.Run("Replica-volume", func(t *testing.T) { testBitrotOnReplicaVolume(t, gds) })
 	// test Bitrot on pure distribute volume
-	t.Run("Dist-volume", testBitrotOnDistVolume)
+	t.Run("Dist-volume", func(t *testing.T) { testBitrotOnDistVolume(t, gds) })
 
 }
 
-func testBitrotOnReplicaVolume(t *testing.T) {
+func testBitrotOnReplicaVolume(t *testing.T, gds []*gdProcess) {
 	r := require.New(t)
 	volumeName := formatVolName(t.Name())
 	var brickPaths []string
@@ -69,7 +69,7 @@ func testBitrotOnReplicaVolume(t *testing.T) {
 	r.Nil(client.VolumeDelete(volumeName))
 }
 
-func testBitrotOnDistVolume(t *testing.T) {
+func testBitrotOnDistVolume(t *testing.T, gds []*gdProcess) {
 	r := require.New(t)
 	volumeName := formatVolName(t.Name())
 	var brickPaths []string

@@ -20,20 +20,20 @@ func TestWebhook(t *testing.T) {
 
 	r := require.New(t)
 
-	gds, err = setupCluster("./config/1.toml", "./config/2.toml")
+	gds, err := setupCluster("./config/1.toml", "./config/2.toml")
 	r.Nil(err)
 	defer teardownCluster(gds)
 
 	client = initRestclient(gds[0])
 
-	t.Run("Register-webhook", testAddWebhook)
+	t.Run("Register-webhook", func(t *testing.T) { testAddWebhook(t, gds) })
 	t.Run("List-webhook", testGetWebhook)
 	t.Run("Delete-webhook", testDeleteWebhook)
 	t.Run("List-gluster-events", testEvents)
 
 }
 
-func testAddWebhook(t *testing.T) {
+func testAddWebhook(t *testing.T, gds []*gdProcess) {
 	r := require.New(t)
 
 	ts := httptest.NewServer(http.HandlerFunc(func(hw http.ResponseWriter, hr *http.Request) {
