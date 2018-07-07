@@ -17,14 +17,29 @@ import (
 	"github.com/gluster/glusterd2/pkg/restclient"
 )
 
-func setupCluster(configFiles ...string) ([]*gdProcess, error) {
+type testCluster struct {
+	gds []*gdProcess
+}
 
-	gds := make([]*gdProcess, 0, len(configFiles))
+// wrap takes a test function that requires the test type T and
+// a test cluster instance and returns a function that only
+// requires the test type (using the given test cluster).
+func (tc *testCluster) wrap(
+	f func(t *testing.T, c *testCluster)) func(*testing.T) {
+
+	return func(t *testing.T) {
+		f(t, tc)
+	}
+}
+
+func setupCluster(configFiles ...string) (*testCluster, error) {
+
+	tc := &testCluster{}
 
 	cleanupRequired := true
 	cleanup := func() {
 		if cleanupRequired {
-			for _, p := range gds {
+			for _, p := range tc.gds {
 				p.Stop()
 				p.EraseLocalStateDir()
 			}
@@ -37,14 +52,14 @@ func setupCluster(configFiles ...string) ([]*gdProcess, error) {
 		if err != nil {
 			return nil, err
 		}
-		gds = append(gds, g)
+		tc.gds = append(tc.gds, g)
 	}
 
 	// restclient instance that will be used for peer operations
-	client := initRestclient(gds[0])
+	client := initRestclient(tc.gds[0])
 
 	// first gd2 instance spawned shall add other glusterd2 instances as its peers
-	for i, gd := range gds {
+	for i, gd := range tc.gds {
 		if i == 0 {
 			// do not add self
 			continue
@@ -66,18 +81,18 @@ func setupCluster(configFiles ...string) ([]*gdProcess, error) {
 		return nil, err
 	}
 
-	if len(peers) != len(gds) || len(peers) != len(configFiles) {
+	if len(peers) != len(tc.gds) || len(peers) != len(configFiles) {
 		return nil, fmt.Errorf("setupCluster() failed to create a cluster")
 	}
 
 	// do not run logic in cleanup() function that was deferred
 	cleanupRequired = false
 
-	return gds, nil
+	return tc, nil
 }
 
-func teardownCluster(gds []*gdProcess) error {
-	for _, gd := range gds {
+func teardownCluster(tc *testCluster) error {
+	for _, gd := range tc.gds {
 		gd.Stop()
 	}
 	processes := []string{"glusterfs", "glusterfsd", "glustershd"}
