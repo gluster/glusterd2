@@ -18,7 +18,8 @@ import (
 )
 
 type testCluster struct {
-	gds []*gdProcess
+	gds  []*gdProcess
+	etcd *etcdProcess
 }
 
 // wrap takes a test function that requires the test type T and
@@ -46,6 +47,24 @@ func setupCluster(configFiles ...string) (*testCluster, error) {
 		}
 	}
 	defer cleanup()
+
+	if externalEtcd {
+		tc.etcd = &etcdProcess{
+			DataDir: path.Join(baseLocalStateDir, "etcd/data"),
+			LogPath: path.Join(baseLocalStateDir, "etcd/etcd.log"),
+		}
+		if err := os.MkdirAll(tc.etcd.DataDir, 0755); err != nil {
+			return nil, err
+		}
+		err := tc.etcd.Spawn()
+		if err != nil {
+			return nil, err
+		}
+	}
+	// exit the function early if no gd2 instances were requested
+	if len(configFiles) == 0 {
+		return tc, nil
+	}
 
 	for _, configFile := range configFiles {
 		g, err := spawnGlusterd(configFile, true)
@@ -94,6 +113,9 @@ func setupCluster(configFiles ...string) (*testCluster, error) {
 func teardownCluster(tc *testCluster) error {
 	for _, gd := range tc.gds {
 		gd.Stop()
+	}
+	if tc.etcd != nil {
+		tc.etcd.Stop()
 	}
 	processes := []string{"glusterfs", "glusterfsd", "glustershd"}
 	for _, p := range processes {
