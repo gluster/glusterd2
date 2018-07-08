@@ -14,8 +14,16 @@ import (
 // Apache Common Log Format (CLF)
 func LogRequest(next http.Handler) http.Handler {
 	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
-		entry := log.WithField("reqid", gdctx.GetReqID(r.Context()).String())
+		entry := log.WithFields(log.Fields{
+			"subsys": "rest",
+			"reqid":  gdctx.GetReqID(r.Context()).String(),
+		})
+		entry.WithFields(log.Fields{
+			"method": r.Method,
+			"url":    r.URL,
+			"client": r.UserAgent(),
+		}).Info("HTTP Request")
 		delete(entry.Data, logging.SourceField)
-		handlers.LoggingHandler(entry.Writer(), next).ServeHTTP(w, r)
+		handlers.CombinedLoggingHandler(entry.Writer(), next).ServeHTTP(w, r)
 	})
 }
