@@ -24,7 +24,8 @@ yum -y install git mercurial bzr subversion gcc make
 curl -o /etc/yum.repos.d/glusterfs-nighthly-master.repo http://artifacts.ci.centos.org/gluster/nightly/master.repo
 yum -y install epel-release
 yum -y install glusterfs-server
-yum -y install ShellCheck
+yum -y install ShellCheck \
+    etcd
 
 export GD2SRC=$GOPATH/src/github.com/gluster/glusterd2
 cd "$GD2SRC"
