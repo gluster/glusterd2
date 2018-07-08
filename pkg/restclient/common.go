@@ -13,6 +13,7 @@ import (
 	"time"
 
 	"github.com/gluster/glusterd2/pkg/api"
+	"github.com/gluster/glusterd2/version"
 
 	"github.com/dgrijalva/jwt-go"
 )
@@ -29,11 +30,16 @@ type Client struct {
 	password string
 	cacert   string
 	insecure bool
+
+	// Add to the identifier to further specify the client
+	// using the api.
+	agent string
 }
 
 // New creates new instance of Glusterd REST Client
 func New(baseURL string, username string, password string, cacert string, insecure bool) *Client {
-	return &Client{baseURL, username, password, cacert, insecure}
+	return &Client{baseURL, username, password, cacert, insecure,
+		fmt.Sprintf("GlusterD2-rest-client/%v", version.GlusterdVersion)}
 }
 
 func parseHTTPError(jsonData []byte) string {
@@ -105,6 +111,7 @@ func (c *Client) do(method string, url string, data interface{}, expectStatusCod
 	if err != nil {
 		return err
 	}
+	c.setAgent(req)
 	req.Header.Set("Accept", "application/json")
 	req.Header.Set("Content-Type", "application/json")
 	req.Close = true
@@ -162,4 +169,20 @@ func (c *Client) do(method string, url string, data interface{}, expectStatusCod
 //Ping checks glusterd2 service status
 func (c *Client) Ping() error {
 	return c.get("/ping", nil, http.StatusOK, nil)
+}
+
+func (c *Client) setAgent(req *http.Request) {
+	req.Header.Set("User-Agent",
+		fmt.Sprintf("%v (Go-http-client/1.1)", c.agent))
+}
+
+// ExtendAgent adds the given string to the client's user agent
+// by prefixing it to the existing agent information.
+// This allows client programs to identify themselves more than
+// just something using the rest client api.
+func (c *Client) ExtendAgent(a string) {
+	// new additions to the agent identifier go to the
+	// beginning of the string. It is meant to read like:
+	// foo (based on) bar (based on) baz, etc...
+	c.agent = fmt.Sprintf("%v %v", a, c.agent)
 }

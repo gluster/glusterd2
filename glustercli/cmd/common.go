@@ -7,6 +7,7 @@ import (
 	"strings"
 
 	"github.com/gluster/glusterd2/pkg/restclient"
+	"github.com/gluster/glusterd2/version"
 )
 
 var (
@@ -20,6 +21,8 @@ var (
 
 func initRESTClient(hostname, user, secret, cacert string, insecure bool) {
 	client = restclient.New(hostname, user, secret, cacert, insecure)
+	client.ExtendAgent(
+		fmt.Sprintf("glustercli/%v", version.GlusterdVersion))
 }
 
 func isConnectionRefusedErr(err error) bool {
