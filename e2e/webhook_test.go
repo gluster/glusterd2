@@ -1,7 +1,6 @@
 package e2e
 
 import (
-	"io/ioutil"
 	"net/http"
 	"net/http/httptest"
 	"testing"
@@ -27,10 +26,6 @@ func TestWebhook(t *testing.T) {
 
 	client = initRestclient(gds[0].ClientAddress)
 
-	tmpDir, err = ioutil.TempDir(baseLocalStateDir, t.Name())
-	r.Nil(err)
-	t.Logf("Using temp dir: %s", tmpDir)
-
 	t.Run("Register-webhook", testAddWebhook)
 	t.Run("List-webhook", testGetWebhook)
 	t.Run("Delete-webhook", testDeleteWebhook)
@@ -54,8 +49,7 @@ func testAddWebhook(t *testing.T) {
 	var brickPaths []string
 
 	for i := 1; i <= 4; i++ {
-		brickPath, err := ioutil.TempDir(tmpDir, "brick")
-		r.Nil(err)
+		brickPath := testTempDir(t, "brick")
 		brickPaths = append(brickPaths, brickPath)
 	}
 
