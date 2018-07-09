@@ -48,7 +48,7 @@ var (
 	ErrEmptySnapName           = errors.New("snapshot name is empty")
 	ErrSnapExists              = errors.New("snapshot already exists")
 	ErrSnapNotFound            = errors.New("snapshot not found")
-	ErrSnapNotActivated        = errors.New("Snapshot not activated")
+	ErrSnapNotActivated        = errors.New("snapshot not activated")
 	ErrInvalidVolFlags         = errors.New("invalid volume flags")
 	ErrMetadataSizeOutOfBounds = errors.New("metadata size exceeds max allowed size of 4KB")
 	ErrFetchingVolfileContent  = errors.New("unable to fetch volfile content")

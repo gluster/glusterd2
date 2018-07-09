@@ -28,6 +28,7 @@ import (
 	"github.com/gluster/glusterd2/glusterd2/transaction"
 	"github.com/gluster/glusterd2/glusterd2/volgen"
 	"github.com/gluster/glusterd2/glusterd2/volume"
+	"github.com/gluster/glusterd2/glusterd2/xlator"
 	"github.com/gluster/glusterd2/pkg/api"
 	gderrors "github.com/gluster/glusterd2/pkg/errors"
 
@@ -35,6 +36,11 @@ import (
 	log "github.com/sirupsen/logrus"
 	config "github.com/spf13/viper"
 )
+
+type txnData struct {
+	Req      api.SnapCreateReq
+	SnapTime time.Time
+}
 
 func barrierActivateDeactivateFunc(volinfo *volume.Volinfo, option string, originUUID uuid.UUID) error {
 	var req brick.GfBrickOpReq
@@ -103,9 +109,6 @@ func deactivateBarrier(c transaction.TxnCtx) error {
 		*/
 		return nil
 	}
-	/*
-		Do we need to do this ?
-	*/
 	var originatorUUID uuid.UUID
 	if err := c.Get("originator-uuid", &originatorUUID); err != nil {
 		return err
@@ -122,11 +125,8 @@ func deactivateBarrier(c transaction.TxnCtx) error {
 	c.Logger().WithFields(log.Fields{"volume": volinfo.Name}).Info("Sending Barrier request to bricks")
 
 	err = barrierActivateDeactivateFunc(volinfo, "disable", originatorUUID)
-	if err != nil {
-		return err
-	}
 
-	return nil
+	return err
 
 }
 
@@ -162,11 +162,7 @@ func activateBarrier(c transaction.TxnCtx) error {
 	c.Logger().WithFields(log.Fields{"volume": volinfo.Name}).Info("Sending Barrier request to bricks")
 
 	err = barrierActivateDeactivateFunc(volinfo, "enable", originatorUUID)
-	if err != nil {
-		return err
-	}
-
-	return nil
+	return err
 
 }
 func undoBrickSnapshots(c transaction.TxnCtx) error {
@@ -328,14 +324,18 @@ func populateSnapBrickMountData(volinfo *volume.Volinfo, snapName string) (map[s
 }
 
 func validateSnapCreate(c transaction.TxnCtx) error {
-	var req api.SnapCreateReq
-	var statusStr []string
-	var err error
-	var nodeData map[string]snapshot.BrickMountData
-	var volinfo *volume.Volinfo
-	if err = c.Get("req", &req); err != nil {
+	var (
+		statusStr []string
+		err       error
+		nodeData  map[string]snapshot.BrickMountData
+		volinfo   *volume.Volinfo
+		data      txnData
+	)
+
+	if err := c.Get("data", &data); err != nil {
 		return err
 	}
+	req := &data.Req
 
 	volinfo, err = volume.GetVolume(req.VolName)
 	if err != nil {
@@ -374,7 +374,6 @@ func validateSnapCreate(c transaction.TxnCtx) error {
 		return errors.New("one or more brick is not compatable")
 	}
 	if nodeData, err = populateSnapBrickMountData(volinfo, req.SnapName); err != nil {
-
 		return err
 	}
 	c.SetNodeResult(gdctx.MyUUID, snapshot.NodeDataTxnKey, &nodeData)
@@ -523,7 +522,7 @@ func createSnapSubvols(newVolinfo, origVolinfo *volume.Volinfo, nodeData map[str
 }
 
 func createSnapinfo(c transaction.TxnCtx) error {
-	var req api.SnapCreateReq
+	var data txnData
 	ignoreOps := map[string]string{
 		"features.quota":             "off",
 		"features.inode-quota":       "off",
@@ -536,9 +535,10 @@ func createSnapinfo(c transaction.TxnCtx) error {
 	}
 
 	nodeData := make(map[string]snapshot.BrickMountData)
-	if err := c.Get("req", &req); err != nil {
+	if err := c.Get("data", &data); err != nil {
 		return err
 	}
+	req := &data.Req
 
 	volinfo, err := volume.GetVolume(req.VolName)
 	if err != nil {
@@ -547,8 +547,7 @@ func createSnapinfo(c transaction.TxnCtx) error {
 
 	for _, node := range volinfo.Nodes() {
 		tmp := make(map[string]snapshot.BrickMountData)
-		err := c.GetNodeResult(node, snapshot.NodeDataTxnKey, &tmp)
-		if err != nil {
+		if err := c.GetNodeResult(node, snapshot.NodeDataTxnKey, &tmp); err != nil {
 			return err
 		}
 		for k, v := range tmp {
@@ -561,9 +560,21 @@ func createSnapinfo(c transaction.TxnCtx) error {
 	duplicateVolinfo(volinfo, snapVolinfo)
 
 	snapInfo.OptionChange = make(map[string]string)
+	snapInfo.SnapTime = data.SnapTime
 
 	for key, value := range ignoreOps {
-		snapInfo.OptionChange[key] = snapVolinfo.Options[key]
+		currentValue, ok := snapVolinfo.Options[key]
+		if !ok {
+			//Option is not reconfigured, Storing default value
+			option, err := xlator.FindOption(key)
+			if err != nil {
+				//On failure return from here when all the xlator options are ported
+			} else {
+				currentValue = option.DefaultValue
+			}
+		}
+
+		snapInfo.OptionChange[key] = currentValue
 		snapVolinfo.Options[key] = value
 	}
 
@@ -580,8 +591,7 @@ func createSnapinfo(c transaction.TxnCtx) error {
 		For now disabling heal
 	*/
 
-	err = createSnapSubvols(snapVolinfo, volinfo, nodeData)
-	if err != nil {
+	if err = createSnapSubvols(snapVolinfo, volinfo, nodeData); err != nil {
 		log.WithError(err).WithFields(log.Fields{
 			"snapshot":   snapVolinfo.Name,
 			"volumeName": volinfo.Name,
@@ -597,10 +607,7 @@ func createSnapinfo(c transaction.TxnCtx) error {
 	*/
 
 	err = c.Set("snapinfo", snapInfo)
-	if err != nil {
-		return err
-	}
-	return nil
+	return err
 }
 
 func duplicateVolinfo(vol, v *volume.Volinfo) {
@@ -640,10 +647,13 @@ func snapshotBrickCreate(snapName, volName, mountDir string, subvolNumber, brick
 }
 
 func validateOriginNodeSnapCreate(c transaction.TxnCtx) error {
-	var req api.SnapCreateReq
-	if err := c.Get("req", &req); err != nil {
+	var data txnData
+
+	if err := c.Get("data", &data); err != nil {
 		return err
 	}
+	req := &data.Req
+
 	if snapshot.ExistsFunc(req.SnapName) {
 		return gderrors.ErrSnapExists
 	}
@@ -654,7 +664,6 @@ func validateOriginNodeSnapCreate(c transaction.TxnCtx) error {
 	}
 
 	if volinfo.State != volume.VolStarted {
-
 		return errors.New("volume has not started")
 	}
 	barrierOp := volinfo.Options["features.barrier"]
@@ -699,9 +708,10 @@ func registerSnapCreateStepFuncs() {
 
 func snapshotCreateHandler(w http.ResponseWriter, r *http.Request) {
 	ctx := r.Context()
-	req := new(api.SnapCreateReq)
 	logger := gdctx.GetReqLogger(ctx)
 	var snapInfo snapshot.Snapinfo
+	var data txnData
+	req := &data.Req
 
 	err := unmarshalSnapCreateRequest(req, r)
 	if err != nil {
@@ -710,8 +720,8 @@ func snapshotCreateHandler(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 	if req.TimeStamp == true {
-		t := time.Now().UTC()
-		req.SnapName = req.SnapName + t.Format("_GMT_2006_01_02_15_04_05")
+		data.SnapTime = time.Now().UTC()
+		req.SnapName = req.SnapName + data.SnapTime.Format("_GMT_2006_01_02_15_04_05")
 	}
 
 	if !volume.IsValidName(req.SnapName) {
@@ -770,14 +780,13 @@ func snapshotCreateHandler(w http.ResponseWriter, r *http.Request) {
 			Nodes:    []uuid.UUID{gdctx.MyUUID},
 		},
 	}
-	err = txn.Ctx.Set("req", req)
-	if err != nil {
+	if err = txn.Ctx.Set("data", data); err != nil {
 		logger.WithError(err).Error("failed to set request in transaction context")
 		restutils.SendHTTPError(ctx, w, http.StatusInternalServerError, err)
 		return
 	}
-	err = txn.Do()
-	if err != nil {
+
+	if err = txn.Do(); err != nil {
 		logger.WithError(err).Error("snapshot create transaction failed")
 		status, err := restutils.ErrToStatusCode(err)
 		restutils.SendHTTPError(ctx, w, status, err)
@@ -785,8 +794,8 @@ func snapshotCreateHandler(w http.ResponseWriter, r *http.Request) {
 	}
 
 	txn.Ctx.Logger().WithField("SnapName", req.SnapName).Info("new snapshot created")
-	err = txn.Ctx.Get("snapinfo", &snapInfo)
-	if err != nil {
+
+	if err = txn.Ctx.Get("snapinfo", &snapInfo); err != nil {
 		logger.WithError(err).Error("failed to get snap volinfo in transaction context")
 		restutils.SendHTTPError(ctx, w, http.StatusInternalServerError, err)
 		return
@@ -809,5 +818,6 @@ func createSnapInfoResp(snap *snapshot.Snapinfo) *api.SnapInfo {
 		VolInfo:       *vinfo,
 		ParentVolName: snap.ParentVolume,
 		Description:   snap.Description,
+		SnapTime:      (snap.SnapTime).Format("Mon Jan _2 2006 15:04:05 GMT"),
 	}
 }

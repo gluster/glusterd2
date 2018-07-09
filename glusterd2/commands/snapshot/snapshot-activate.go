@@ -75,12 +75,7 @@ func activateSnapshot(c transaction.TxnCtx) error {
 	}
 
 	err = snapshot.ActivateDeactivateFunc(snapinfo, brickinfos, activate, c.Logger())
-	if err != nil {
-		return err
-	}
-
-	return nil
-
+	return err
 }
 func storeSnapshotActivate(c transaction.TxnCtx) error {
 	var snapname string
@@ -172,8 +167,13 @@ func snapshotActivateHandler(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	err = txn.Ctx.Set("snapname", &snapname)
-	if err != nil {
+	if vol.State == volume.VolStarted && req.Force == false {
+		err := errors.New("snapshot already activated. Use force to override the behaviour")
+		restutils.SendHTTPError(ctx, w, http.StatusBadRequest, err)
+		return
+	}
+
+	if err = txn.Ctx.Set("snapname", &snapname); err != nil {
 		log.WithError(err).Error("failed to set snap name in transaction context")
 		restutils.SendHTTPError(ctx, w, http.StatusInternalServerError, err)
 		return
@@ -197,14 +197,12 @@ func snapshotActivateHandler(w http.ResponseWriter, r *http.Request) {
 			Nodes:  []uuid.UUID{gdctx.MyUUID},
 		},
 	}
-	err = txn.Ctx.Set("req", &req)
-	if err != nil {
+	if err = txn.Ctx.Set("req", &req); err != nil {
 		log.WithError(err).Error("failed to set request in transaction context")
 		restutils.SendHTTPError(ctx, w, http.StatusInternalServerError, err)
 		return
 	}
-	err = txn.Do()
-	if err != nil {
+	if err = txn.Do(); err != nil {
 		log.WithError(err).WithField(
 			"snapshot", snapname).Error("failed to start snapshot")
 		restutils.SendHTTPError(ctx, w, http.StatusInternalServerError, err)

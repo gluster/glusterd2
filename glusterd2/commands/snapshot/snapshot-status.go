@@ -118,8 +118,7 @@ func snapshotStatusHandler(w http.ResponseWriter, r *http.Request) {
 	txn.DontCheckAlive = true
 	txn.DisableRollback = true
 
-	err = txn.Do()
-	if err != nil {
+	if err = txn.Do(); err != nil {
 		logger.WithError(err).WithField("snapname", snapname).Error("Failed to get snapshot status")
 		restutils.SendHTTPError(ctx, w, http.StatusInternalServerError, err)
 		return
