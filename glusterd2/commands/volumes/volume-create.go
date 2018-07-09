@@ -20,7 +20,7 @@ import (
 
 const (
 	maxMetadataSizeLimit = 4096
-	minVolumeSize        = 10
+	minVolumeSize        = 20
 )
 
 func applyDefaults(req *api.VolCreateReq) {
@@ -123,7 +123,7 @@ func volumeCreateHandler(w http.ResponseWriter, r *http.Request) {
 
 		if req.SnapshotReserveFactor < 1 {
 			restutils.SendHTTPError(ctx, w, http.StatusBadRequest,
-				errors.New("invalid Snapshot Reserve Factor"))
+				errors.New("invalid snapshot reserve factor"))
 			return
 		}
 
@@ -168,6 +168,7 @@ func volumeCreateHandler(w http.ResponseWriter, r *http.Request) {
 			DoFunc:   "vol-create.PrepareBricks",
 			UndoFunc: "vol-create.UndoPrepareBricks",
 			Nodes:    nodes,
+			Skip:     (req.Size == 0),
 		},
 		{
 			DoFunc: "vol-create.CreateVolinfo",
