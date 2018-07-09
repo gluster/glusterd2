@@ -33,13 +33,15 @@ type Client struct {
 
 	// Add to the identifier to further specify the client
 	// using the api.
-	agent string
+	agent      string
+	originArgs []string
 }
 
 // New creates new instance of Glusterd REST Client
 func New(baseURL string, username string, password string, cacert string, insecure bool) *Client {
 	return &Client{baseURL, username, password, cacert, insecure,
-		fmt.Sprintf("GlusterD2-rest-client/%v", version.GlusterdVersion)}
+		fmt.Sprintf("GlusterD2-rest-client/%v", version.GlusterdVersion),
+		[]string{}}
 }
 
 func parseHTTPError(jsonData []byte) string {
@@ -121,6 +123,8 @@ func (c *Client) do(method string, url string, data interface{}, expectStatusCod
 		req.Header.Set("Authorization", "bearer "+getAuthToken(c.username, c.password))
 	}
 
+	c.sendOriginArgs(req)
+
 	tr := &http.Transport{
 		DisableCompression: true,
 		DisableKeepAlives:  true,
@@ -185,4 +189,19 @@ func (c *Client) ExtendAgent(a string) {
 	// beginning of the string. It is meant to read like:
 	// foo (based on) bar (based on) baz, etc...
 	c.agent = fmt.Sprintf("%v %v", a, c.agent)
+}
+
+func (c *Client) sendOriginArgs(req *http.Request) {
+	if len(c.originArgs) != 0 {
+		req.Header.Set("X-Gluster-Origin-Args",
+			fmt.Sprintf("1:%#v", strings.Join(c.originArgs, " ")))
+	}
+}
+
+// SetOriginArgs provides a way for tools using this library to
+// inform the server what arguments were provided to generate
+// the api call(s). The contents of the array are meant only for
+// human interpretation but will generally be command line args.
+func (c *Client) SetOriginArgs(a []string) {
+	c.originArgs = a
 }
