@@ -38,8 +38,7 @@ func createBrickPath(num int) ([]string, error) {
 	for i := 1; i <= num; i++ {
 		prefix := fmt.Sprintf("%s%d/%s", brickPrefix, i, lvmPrefix)
 		path := fmt.Sprintf("%s_mnt", prefix)
-		err := os.MkdirAll(path, os.ModeDir|os.ModePerm)
-		if err != nil {
+		if err := os.MkdirAll(path, os.ModeDir|os.ModePerm); err != nil {
 			return brickPath, err
 		}
 		brickPath = append(brickPath, path)
@@ -137,18 +136,16 @@ func createVHD(num int, size string) error {
 		vhdPath := fmt.Sprintf("%s_vhd", prefix)
 		devicePath := fmt.Sprintf("%s_loop", prefix)
 		//TODO replace exec command with syscall.Fallocate
-		_, err := exec.Command(fallocateBin, "-l", size, vhdPath).Output()
-		if err != nil {
+		if _, err := exec.Command(fallocateBin, "-l", size, vhdPath).Output(); err != nil {
 			return err
 		}
-		_, err = exec.Command(mknodBin, "-m", "660", devicePath, "b", "7", strconv.Itoa(i+8)).Output()
+		if _, err := exec.Command(mknodBin, "-m", "660", devicePath, "b", "7", strconv.Itoa(i+8)).Output(); err != nil {
+			return err
+		}
 		loosetupCmd := exec.Command("losetup", devicePath, vhdPath)
-		_, err = loosetupCmd.Output()
-		if err != nil {
+		if _, err := loosetupCmd.Output(); err != nil {
 			return err
-
 		}
-
 	}
 	return nil
 }
@@ -166,13 +163,11 @@ func CreateLvmBricks(prefix string, num int) ([]string, error) {
 	if err != nil {
 		return brickPath, err
 	}
-	err = createVHD(num, "300M")
-	if err != nil {
+	if err = createVHD(num, "300M"); err != nil {
 		return brickPath, err
 	}
 
-	err = createLV(num, "200M", "150M")
-	if err != nil {
+	if err = createLV(num, "200M", "150M"); err != nil {
 		return brickPath, err
 	}
 	return brickPath, nil
@@ -219,13 +214,11 @@ func CleanupLvmBricks(prefix string, num int) error {
 	if !verifyLVM() {
 		return errors.New("lvm or thinlv is not available on the machine")
 	}
-	err = deleteVHD(num, false)
-	if err != nil {
+	if err = deleteVHD(num, false); err != nil {
 		return err
 	}
 
-	err = deleteLV(num, false)
-	if err != nil {
+	if err = deleteLV(num, false); err != nil {
 		return err
 	}
 

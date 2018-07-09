@@ -221,8 +221,7 @@ func createCloneVolinfo(c transaction.TxnCtx) error {
 
 	for _, node := range volinfo.Nodes() {
 		tmp := make(map[string]snapshot.BrickMountData)
-		err := c.GetNodeResult(node, snapshot.NodeDataTxnKey, &tmp)
-		if err != nil {
+		if err := c.GetNodeResult(node, snapshot.NodeDataTxnKey, &tmp); err != nil {
 			return err
 		}
 		for k, v := range tmp {
@@ -243,8 +242,7 @@ func createCloneVolinfo(c transaction.TxnCtx) error {
 	newVol.Name = clonename
 	newVol.VolfileID = clonename
 
-	err = createSnapSubvols(newVol, volinfo, nodeData)
-	if err != nil {
+	if err = createSnapSubvols(newVol, volinfo, nodeData); err != nil {
 		log.WithError(err).WithFields(log.Fields{
 			"snapshot":    snapname,
 			"volume name": clonename,
@@ -349,14 +347,12 @@ func snapshotCloneHandler(w http.ResponseWriter, r *http.Request) {
 			Nodes:    []uuid.UUID{gdctx.MyUUID},
 		},
 	}
-	err = txn.Ctx.Set("snapname", &snapname)
-	if err != nil {
+	if err = txn.Ctx.Set("snapname", &snapname); err != nil {
 		logger.WithError(err).Error("failed to set request in transaction context")
 		restutils.SendHTTPError(ctx, w, http.StatusInternalServerError, err)
 		return
 	}
-	err = txn.Ctx.Set("clonename", &req.CloneName)
-	if err != nil {
+	if err = txn.Ctx.Set("clonename", &req.CloneName); err != nil {
 		logger.WithError(err).Error("failed to set request in transaction context")
 		restutils.SendHTTPError(ctx, w, http.StatusInternalServerError, err)
 		return

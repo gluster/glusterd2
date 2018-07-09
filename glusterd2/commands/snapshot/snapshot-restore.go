@@ -331,28 +331,24 @@ func snapshotRestoreHandler(w http.ResponseWriter, r *http.Request) {
 			Nodes:    []uuid.UUID{gdctx.MyUUID},
 		},
 	}
-	err = txn.Ctx.Set("snapname", snapname)
-	if err != nil {
+	if err = txn.Ctx.Set("snapname", snapname); err != nil {
 		logger.WithError(err).Error("failed to set request in transaction context")
 		restutils.SendHTTPError(ctx, w, http.StatusInternalServerError, err)
 		return
 	}
-	err = txn.Ctx.Set("snapinfo", snapinfo)
-	if err != nil {
-		logger.WithError(err).Error("failed to set request in transaction context")
-		restutils.SendHTTPError(ctx, w, http.StatusInternalServerError, err)
-		return
-	}
-
-	err = txn.Ctx.Set("volinfo", vol)
-	if err != nil {
+	if err = txn.Ctx.Set("snapinfo", snapinfo); err != nil {
 		logger.WithError(err).Error("failed to set request in transaction context")
 		restutils.SendHTTPError(ctx, w, http.StatusInternalServerError, err)
 		return
 	}
 
-	err = txn.Do()
-	if err != nil {
+	if err = txn.Ctx.Set("volinfo", vol); err != nil {
+		logger.WithError(err).Error("failed to set request in transaction context")
+		restutils.SendHTTPError(ctx, w, http.StatusInternalServerError, err)
+		return
+	}
+
+	if err = txn.Do(); err != nil {
 		logger.WithError(err).Error("snapshot restore transaction failed")
 		restutils.SendHTTPError(ctx, w, http.StatusInternalServerError, err)
 		return

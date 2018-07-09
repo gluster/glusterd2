@@ -95,8 +95,7 @@ func MountSnapBrickDirectory(vol *volume.Volinfo, brickinfo *brick.Brickinfo) er
 		return err
 	}
 
-	err := unix.Setxattr(brickinfo.Path, volumeIDXattrKey, vol.ID, 0)
-	if err != nil {
+	if err := unix.Setxattr(brickinfo.Path, volumeIDXattrKey, vol.ID, 0); err != nil {
 		log.WithError(err).WithFields(log.Fields{
 			"brickPath": brickinfo.Path,
 			"xattr":     volumeIDXattrKey}).Error("setxattr failed")
@@ -173,11 +172,9 @@ func ActivateDeactivateFunc(snapinfo *Snapinfo, b []brick.Brickinfo, activate bo
 func CheckBricksCompatability(volinfo *volume.Volinfo) []string {
 
 	var paths []string
-	for _, subvol := range volinfo.Subvols {
-		for _, brick := range subvol.Bricks {
-			if lvm.IsThinLV(brick.Path) != true {
-				paths = append(paths, brick.String())
-			}
+	for _, brick := range volinfo.GetLocalBricks() {
+		if lvm.IsThinLV(brick.Path) != true {
+			paths = append(paths, brick.String())
 		}
 	}
 	return paths

@@ -1,7 +1,6 @@
 package snapshotcommands
 
 import (
-	"errors"
 	"net/http"
 
 	"github.com/gluster/glusterd2/glusterd2/brick"
@@ -29,15 +28,12 @@ func validateSnapDeactivate(c transaction.TxnCtx) error {
 	}
 
 	vol := &snapinfo.SnapVolinfo
-	switch vol.State == volume.VolStarted {
-	case true:
+	if vol.State == volume.VolStarted {
 		brickinfos, err = snapshot.GetOnlineBricks(vol)
 		if err != nil {
 			log.WithError(err).Error("failed to get online Bricks")
 			return err
 		}
-	case false:
-		return errors.New("snapshot is already stopped")
 
 	}
 	if err := c.SetNodeResult(gdctx.MyUUID, "brickListToOperate", &brickinfos); err != nil {
@@ -69,8 +65,7 @@ func deactivateSnapshot(c transaction.TxnCtx) error {
 	//TODO Stop other process of snapshot volume
 	//Yet to implement a generic way in glusterd2
 
-	err = snapshot.ActivateDeactivateFunc(snapinfo, brickinfos, activate, c.Logger())
-	if err != nil {
+	if err = snapshot.ActivateDeactivateFunc(snapinfo, brickinfos, activate, c.Logger()); err != nil {
 		return err
 	}
 	vol := &snapinfo.SnapVolinfo
@@ -164,6 +159,11 @@ func snapshotDeactivateHandler(w http.ResponseWriter, r *http.Request) {
 	}
 
 	vol = &snapinfo.SnapVolinfo
+	if vol.State != volume.VolStarted {
+		errMsg := "snapshot is already deactivated"
+		restutils.SendHTTPError(ctx, w, http.StatusBadRequest, errMsg)
+		return
+	}
 
 	txn.Nodes = vol.Nodes()
 	txn.Steps = []*transaction.Step{
@@ -182,15 +182,13 @@ func snapshotDeactivateHandler(w http.ResponseWriter, r *http.Request) {
 			Nodes:  []uuid.UUID{gdctx.MyUUID},
 		},
 	}
-	err = txn.Ctx.Set("snapname", &snapname)
-	if err != nil {
+	if err = txn.Ctx.Set("snapname", &snapname); err != nil {
 		log.WithError(err).Error("failed to set snap name in transaction context")
 		restutils.SendHTTPError(ctx, w, http.StatusInternalServerError, err)
 		return
 	}
 
-	err = txn.Do()
-	if err != nil {
+	if err = txn.Do(); err != nil {
 		log.WithError(err).WithField("snapshot", snapname).Error("failed to de-activate snap")
 		restutils.SendHTTPError(ctx, w, http.StatusInternalServerError, err)
 		return

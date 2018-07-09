@@ -88,11 +88,7 @@ func IsThinLV(brickPath string) bool {
 func MountSnapshotDirectory(mountPath string, mountData brick.MountInfo) error {
 	err := utils.ExecuteCommandRun("mount", "-o", mountData.MntOpts, mountData.DevicePath, mountPath)
 	// Use syscall.Mount command to mount the bricks
-	if err != nil {
-		return err
-	}
-
-	return nil
+	return err
 }
 
 //GetVgName creates the device path for lvm snapshot
@@ -116,8 +112,7 @@ func RemoveBrickSnapshot(devicePath string) error {
 func LVSnapshot(originDevice, DevicePath string) error {
 
 	cmd := exec.Command(CreateCommand, "-s", originDevice, "--setactivationskip", "n", "--name", DevicePath)
-	err := cmd.Start()
-	if err != nil {
+	if err := cmd.Start(); err != nil {
 		return err
 	}
 
@@ -133,8 +128,7 @@ func UpdateFsLabel(DevicePath, FsType string) error {
 	switch FsType {
 	case "xfs":
 		label := uuid[:12]
-		err := utils.ExecuteCommandRun("xfs_admin", "-L", label, DevicePath)
-		if err != nil {
+		if err := utils.ExecuteCommandRun("xfs_admin", "-L", label, DevicePath); err != nil {
 			return err
 		}
 	case "ext4":
@@ -143,8 +137,7 @@ func UpdateFsLabel(DevicePath, FsType string) error {
 		fallthrough
 	case "ext2":
 		label := uuid[:16]
-		err := utils.ExecuteCommandRun("tune2fs", "-L", label, DevicePath)
-		if err != nil {
+		if err := utils.ExecuteCommandRun("tune2fs", "-L", label, DevicePath); err != nil {
 			return err
 		}
 	default:
