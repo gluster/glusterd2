@@ -31,12 +31,13 @@ DEPENV ?=
 PLUGINS ?= yes
 FASTBUILD ?= yes
 
-.PHONY: all build check check-go check-reqs install vendor-update vendor-install verify release check-protoc $(GD2_BIN) $(GD2_BUILD) $(CLI_BIN) $(CLI_BUILD) cli $(GD2_CONF) gd2conf test dist dist-vendor functest
+.PHONY: all build binaries check check-go check-reqs install vendor-update vendor-install verify release check-protoc $(GD2_BIN) $(GD2_BUILD) $(CLI_BIN) $(CLI_BUILD) cli $(GD2_CONF) gd2conf test dist dist-vendor functest
 
 all: build
 
-build: check-go check-reqs vendor-install $(GD2_BIN) $(CLI_BIN) $(GD2_CONF)
+build: check-go check-reqs vendor-install binaries $(GD2_CONF)
 check: check-go check-reqs check-protoc
+binaries: $(GD2_BIN) $(CLI_BIN)
 
 check-go:
 	@./scripts/check-go.sh
