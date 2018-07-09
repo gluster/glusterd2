@@ -129,11 +129,14 @@ func getBricksLayout(req *api.VolCreateReq) ([]api.SubvolReq, error) {
 			bricks = append(bricks, api.BrickReq{
 				Type:           brickType,
 				Path:           fmt.Sprintf("%s/%s-s%d-b%d/brick", bricksMountRoot, req.Name, i, j),
+				Mountdir:       fmt.Sprintf("%s/%s-s%d-b%d", bricksMountRoot, req.Name, i, j),
 				TpName:         fmt.Sprintf("tp-%s-s%d-b%d", req.Name, i, j),
 				LvName:         fmt.Sprintf("brick-%s-s%d-b%d", req.Name, i, j),
 				Size:           eachBrickSize,
 				TpSize:         eachBrickTpSize,
 				TpMetadataSize: deviceutils.GetPoolMetadataSize(eachBrickTpSize),
+				FsType:         "xfs",
+				MntOpts:        "rw,inode64,noatime,nouuid",
 			})
 		}
 
@@ -187,6 +190,7 @@ func PlanBricks(req *api.VolCreateReq) error {
 				if vg.AvailableSize >= totalsize && !zoneUsed && !vg.Used {
 					subvols[idx].Bricks[bidx].PeerID = vg.PeerID
 					subvols[idx].Bricks[bidx].VgName = vg.Name
+					subvols[idx].Bricks[bidx].DevicePath = "/dev/" + vg.Name + "/" + b.LvName
 
 					zones[vg.Zone] = struct{}{}
 					numBricksAllocated++
@@ -214,6 +218,7 @@ func PlanBricks(req *api.VolCreateReq) error {
 				if vg.AvailableSize >= totalsize && !zoneUsed {
 					subvols[idx].Bricks[bidx].PeerID = vg.PeerID
 					subvols[idx].Bricks[bidx].VgName = vg.Name
+					subvols[idx].Bricks[bidx].DevicePath = "/dev/" + vg.Name + "/" + b.LvName
 
 					zones[vg.Zone] = struct{}{}
 					numBricksAllocated++

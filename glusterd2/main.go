@@ -14,6 +14,7 @@ import (
 	"github.com/gluster/glusterd2/glusterd2/peer"
 	"github.com/gluster/glusterd2/glusterd2/servers"
 	"github.com/gluster/glusterd2/glusterd2/store"
+	gdutils "github.com/gluster/glusterd2/glusterd2/utils"
 	"github.com/gluster/glusterd2/glusterd2/xlator"
 	"github.com/gluster/glusterd2/pkg/errors"
 	"github.com/gluster/glusterd2/pkg/logging"
@@ -126,6 +127,9 @@ func main() {
 
 	// Restart previously running daemons
 	daemon.StartAllDaemons()
+
+	// Mount all Local Bricks
+	gdutils.MountLocalBricks()
 
 	// Use the main goroutine as signal handling loop
 	sigCh := make(chan os.Signal)

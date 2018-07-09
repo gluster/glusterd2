@@ -5,13 +5,17 @@ type BrickReq struct {
 	Type           string `json:"type"`
 	PeerID         string `json:"peerid"`
 	Path           string `json:"path"`
-	TpMetadataSize uint64 `json:"metadata-size"`
-	TpSize         uint64 `json:"thinkpool-size"`
-	VgName         string `json:"vg-name"`
-	TpName         string `json:"thinpool-name"`
-	LvName         string `json:"logical-volume"`
-	Size           uint64 `json:"size"`
-	VgID           string `json:"vg-id"`
+	TpMetadataSize uint64 `json:"metadata-size,omitempty"`
+	TpSize         uint64 `json:"thinpool-size,omitempty"`
+	VgName         string `json:"vg-name,omitempty"`
+	TpName         string `json:"thinpool-name,omitempty"`
+	LvName         string `json:"logical-volume,omitempty"`
+	Size           uint64 `json:"size,omitempty"`
+	VgID           string `json:"vg-id,omitempty"`
+	Mountdir       string `json:"mount-dir,omitempty"`
+	DevicePath     string `json:"device-path,omitempty"`
+	MntOpts        string `json:"mnt-opts,omitempty"`
+	FsType         string `json:"fs-type,omitempty"`
 }
 
 // SubvolReq represents Sub volume Request
