@@ -1,6 +1,7 @@
 package lvm
 
 import (
+	"errors"
 	"fmt"
 	"os"
 	"os/exec"
@@ -13,7 +14,13 @@ import (
 	"github.com/gluster/glusterd2/pkg/utils"
 
 	"github.com/pborman/uuid"
+	log "github.com/sirupsen/logrus"
 )
+
+//TODO make it configurable with config value
+
+//MaxSizePercentage , above this value snapshot creation won't be allowed
+const MaxSizePercentage = 90.0
 
 //GetBinPath returns binary path of given name, returns null on error
 func GetBinPath(name string) string {
@@ -60,8 +67,8 @@ func CommonPrevalidation(lvmCommand string) error {
 	return nil
 }
 
-//IsThinLV check for lvm compatibility for a path
-func IsThinLV(brickPath string) bool {
+//FsCompatableCheck check for lvm compatibility for a path
+func FsCompatableCheck(brickPath string) bool {
 	mountRoot, err := volume.GetBrickMountRoot(brickPath)
 	if err != nil {
 		return false
@@ -81,6 +88,35 @@ func IsThinLV(brickPath string) bool {
 	if thinLV == "" {
 		return false
 	}
+	return true
+}
+
+//SizeCompatableCheck check for lvm compatibility for a path
+func SizeCompatableCheck(brickPath string) bool {
+	mountRoot, err := volume.GetBrickMountRoot(brickPath)
+	if err != nil {
+		return false
+	}
+
+	mntInfo, err := volume.GetBrickMountInfo(mountRoot)
+	if err != nil {
+		return false
+	}
+
+	data, err := GetLvsData(mntInfo.FsName)
+	if err != nil {
+		return false
+	}
+
+	thinPool := fmt.Sprintf("/dev/%s/%s", data.VgName, data.PoolLV)
+	thinData, err := GetLvsData(thinPool)
+	if err != nil {
+		return false
+	}
+	if thinData.DataPercentage >= float32(MaxSizePercentage) {
+		return false
+	}
+
 	return true
 }
 
@@ -176,4 +212,22 @@ func GetLvsData(mountDevice string) (LvsData, error) {
 		PoolLV:         strings.TrimSpace(data[3]),
 	}
 	return result, nil
+}
+
+//CreateDevicePath creates device path for new snapshot
+func CreateDevicePath(originDevice, prefix string) (string, error) {
+	vG, err := GetVgName(originDevice)
+	if err != nil {
+		return "", err
+	}
+	devicePath := fmt.Sprintf("/dev/%s/%s", vG, prefix)
+	if _, err = GetLvsData(devicePath); err == nil {
+		//ThinLV already exist
+		errMSG := fmt.Sprintf("Failed to creaite device name %s for device %s. A thinLV with same name exist.", devicePath, originDevice)
+		log.WithError(err).WithField(
+			"deviceName", devicePath,
+		).Error("Failed to create device name. A thinLV with same name exist")
+		return "", errors.New(errMSG)
+	}
+	return devicePath, nil
 }
