@@ -6,7 +6,6 @@ import (
 	"os"
 	"path"
 
-	"github.com/gluster/glusterd2/constants"
 	"github.com/gluster/glusterd2/pkg/elasticetcd"
 
 	"github.com/pelletier/go-toml"
@@ -16,14 +15,28 @@ import (
 )
 
 const (
-	noEmbedOpt       = "noembed"
-	etcdEndpointsOpt = "etcdendpoints"
-	etcdCURLsOpt     = "etcdcurls"
-	etcdPURLsOpt     = "etcdpurls"
-	etcdLogFileOpt   = "etcdlogfile"
+	// etcd client options
+	noEmbedOpt = "noembed"
+	// TODO: Remove noembed as config option, presence of "etcdendpoints" would be sufficient
+	etcdEndpointsOpt      = "etcdendpoints"
+	etcdClientCertFileOpt = "etcd-client-cert-file"
+	etcdClientKeyFileOpt  = "etcd-client-key-file"
+	etcdClientCAFileOpt   = "etcd-client-ca-file"
 
+	// etcd server (elasticetcd) options
+	etcdCURLsOpt       = "etcdcurls"
+	etcdPURLsOpt       = "etcdpurls"
+	etcdLogFileOpt     = "etcdlogfile"
 	defaultEtcdLogFile = "etcd.log"
 
+	// TODO: Fix these too. Make elasticetcd support TLS if it doesn't
+	// already.
+	useTLSOpt   = "usetls"
+	caFileOpt   = "ca-file"
+	certFileOpt = "cert-file"
+	keyFileOpt  = "key-file"
+
+	// common options
 	storeConfFile = "store.toml"
 )
 
@@ -35,6 +48,10 @@ func InitFlags() {
 	flag.StringSlice(etcdEndpointsOpt, nil, fmt.Sprintf("ETCD endpoints of a remote etcd cluster for the store to connect to. (Defaults to: %s)", elasticetcd.DefaultEndpoint))
 	flag.StringSlice(etcdCURLsOpt, nil, fmt.Sprintf("URLs which etcd server will use for peer to peer communication. (Defaults to: %s)", elasticetcd.DefaultCURL))
 	flag.StringSlice(etcdPURLsOpt, nil, fmt.Sprintf("URLs which etcd server will use to receive etcd client requests. (Defaults to: %s)", elasticetcd.DefaultPURL))
+
+	flag.String(etcdClientCertFileOpt, "", "identify secure etcd client using this TLS certificate file")
+	flag.String(etcdClientKeyFileOpt, "", "identify secure etcd client using this TLS key file")
+	flag.String(etcdClientCAFileOpt, "", "verify certificates of TLS-enabled secure etcd servers using this CA bundle")
 }
 
 // Config is the GD2 store configuration
@@ -44,31 +61,39 @@ type Config struct {
 	PURLs     []string
 	NoEmbed   bool
 	UseTLS    bool
+	Dir       string
+	ConfFile  string
 
-	Dir          string
-	ConfFile     string
-	CertFile     string
-	KeyFile      string
-	CAFile       string
+	// etcd server configuration
+	CertFile string
+	KeyFile  string
+	CAFile   string
+
+	// etcd client configuration
 	ClntCertFile string
 	ClntKeyFile  string
+	ClntCAFile   string
 }
+
+// TODO: This is also a mess. We should just create a package level global
+// instance of *Config and pass its fields directly to flag.* functions.
 
 // NewConfig returns a new store Config with defaults
 func NewConfig() *Config {
 	return &Config{
-		[]string{elasticetcd.DefaultEndpoint},
-		[]string{elasticetcd.DefaultCURL},
-		[]string{elasticetcd.DefaultPURL},
-		false,
-		config.GetBool(constants.UseTLS),
-		path.Join(config.GetString("localstatedir"), "store"),
-		path.Join(config.GetString("localstatedir"), storeConfFile),
-		config.GetString(constants.CertFile),
-		config.GetString(constants.KeyFile),
-		config.GetString(constants.CAFile),
-		config.GetString(constants.ClntCertFile),
-		config.GetString(constants.ClntKeyFile),
+		Endpoints:    []string{elasticetcd.DefaultEndpoint},
+		CURLs:        []string{elasticetcd.DefaultCURL},
+		PURLs:        []string{elasticetcd.DefaultPURL},
+		NoEmbed:      false,
+		UseTLS:       false,
+		Dir:          path.Join(config.GetString("localstatedir"), "store"),
+		ConfFile:     path.Join(config.GetString("localstatedir"), storeConfFile),
+		CertFile:     config.GetString(certFileOpt),
+		KeyFile:      config.GetString(keyFileOpt),
+		CAFile:       config.GetString(caFileOpt),
+		ClntCertFile: config.GetString(etcdClientCertFileOpt),
+		ClntKeyFile:  config.GetString(etcdClientKeyFileOpt),
+		ClntCAFile:   config.GetString(etcdClientCAFileOpt),
 	}
 }
 
@@ -104,69 +129,56 @@ func GetConfig() *Config {
 		conf = NewConfig()
 	}
 
-	var saveconf bool
 	endpoints := config.GetStringSlice(etcdEndpointsOpt)
 	if len(endpoints) > 0 {
-		saveconf = true
 		conf.Endpoints = endpoints
 	}
 
 	curls := config.GetStringSlice(etcdCURLsOpt)
 	if len(curls) > 0 {
-		saveconf = true
 		conf.CURLs = curls
 	}
 
 	purls := config.GetStringSlice(etcdPURLsOpt)
 	if len(purls) > 0 {
-		saveconf = true
 		conf.PURLs = purls
 	}
 
-	certfile := config.GetString(constants.CertFile)
+	certfile := config.GetString(certFileOpt)
 	if len(certfile) > 0 {
-		saveconf = true
 		conf.CertFile = certfile
 	}
 
-	keyfile := config.GetString(constants.KeyFile)
+	keyfile := config.GetString(keyFileOpt)
 	if len(keyfile) > 0 {
-		saveconf = true
 		conf.KeyFile = keyfile
 	}
 
-	cafile := config.GetString(constants.CAFile)
+	cafile := config.GetString(etcdClientCAFileOpt)
 	if len(cafile) > 0 {
-		saveconf = true
-		conf.CAFile = cafile
+		conf.ClntCAFile = cafile
 	}
 
-	clntcertfile := config.GetString(constants.ClntCertFile)
+	clntcertfile := config.GetString(etcdClientCertFileOpt)
 	if len(clntcertfile) > 0 {
-		saveconf = true
 		conf.ClntCertFile = clntcertfile
 	}
 
-	clntkeyfile := config.GetString(constants.ClntKeyFile)
+	clntkeyfile := config.GetString(etcdClientKeyFileOpt)
 	if len(clntkeyfile) > 0 {
-		saveconf = true
 		conf.ClntKeyFile = clntkeyfile
 	}
 
 	if config.IsSet(noEmbedOpt) {
-		saveconf = true
 		conf.NoEmbed = config.GetBool(noEmbedOpt)
 	}
-	if config.IsSet(constants.UseTLS) {
-		saveconf = true
-		conf.UseTLS = config.GetBool(constants.UseTLS)
+	if config.IsSet(useTLSOpt) {
+		conf.UseTLS = config.GetBool(useTLSOpt)
 	}
 
-	if saveconf {
-		log.Debug("saving updated store config")
-		if err := conf.Save(); err != nil {
-			log.WithError(err).Warn("failed to save updated store config")
-		}
+	log.Debug("saving updated store config")
+	if err := conf.Save(); err != nil {
+		log.WithError(err).Warn("failed to save updated store config")
 	}
 
 	return conf
