@@ -719,9 +719,9 @@ func snapshotCreateHandler(w http.ResponseWriter, r *http.Request) {
 		restutils.SendHTTPError(ctx, w, http.StatusBadRequest, err)
 		return
 	}
+	data.SnapTime = time.Now().UTC()
 	if req.TimeStamp == true {
-		data.SnapTime = time.Now().UTC()
-		req.SnapName = req.SnapName + data.SnapTime.Format("_GMT_2006_01_02_15_04_05")
+		req.SnapName = req.SnapName + (data.SnapTime).Format("_GMT_2006_01_02_15_04_05")
 	}
 
 	if !volume.IsValidName(req.SnapName) {

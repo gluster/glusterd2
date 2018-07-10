@@ -9,6 +9,7 @@ import (
 	"github.com/gluster/glusterd2/glusterd2/snapshot"
 	"github.com/gluster/glusterd2/glusterd2/transaction"
 	"github.com/gluster/glusterd2/glusterd2/volume"
+	"github.com/gluster/glusterd2/pkg/api"
 	"github.com/gorilla/mux"
 	"github.com/pborman/uuid"
 	log "github.com/sirupsen/logrus"
@@ -194,5 +195,18 @@ func snapshotDeactivateHandler(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	restutils.SendHTTPResponse(ctx, w, http.StatusOK, vol)
+	//Fetching latest isnapinfo
+	snapinfo, err = snapshot.GetSnapshot(snapname)
+	if err != nil {
+		status, err := restutils.ErrToStatusCode(err)
+		restutils.SendHTTPError(ctx, w, status, err)
+		return
+	}
+
+	resp := createSnapshotDeactivateResp(snapinfo)
+	restutils.SendHTTPResponse(ctx, w, http.StatusOK, resp)
+}
+
+func createSnapshotDeactivateResp(snap *snapshot.Snapinfo) *api.SnapshotDeactivateResp {
+	return (*api.SnapshotDeactivateResp)(createSnapInfoResp(snap))
 }
