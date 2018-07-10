@@ -5,6 +5,8 @@ import (
 	"github.com/gluster/glusterd2/glusterd2/transaction"
 	"github.com/gluster/glusterd2/pkg/utils"
 	rebalanceapi "github.com/gluster/glusterd2/plugins/rebalance/api"
+
+	"github.com/pborman/uuid"
 )
 
 // Plugin is a structure which implements GlusterdPlugin interface
@@ -20,27 +22,27 @@ func (p *Plugin) Name() string {
 func (p *Plugin) RestRoutes() route.Routes {
 	return route.Routes{
 		route.Route{
-			Name:        "RebalanceStart",
-			Method:      "POST",
-			Pattern:     "/volumes/{volname}/rebalance/start",
-			Version:     1,
-			RequestType: utils.GetTypeString((*rebalanceapi.StartReq)(nil)),
-			//			ResponseType: utils.GetTypeString((*rebalanceapi.RebalInfo)(nil)),
-			HandlerFunc: rebalanceStartHandler},
+			Name:         "RebalanceStart",
+			Method:       "POST",
+			Pattern:      "/volumes/{volname}/rebalance/start",
+			Version:      1,
+			RequestType:  utils.GetTypeString((*rebalanceapi.StartReq)(nil)),
+			ResponseType: utils.GetTypeString((*uuid.UUID)(nil)),
+			HandlerFunc:  rebalanceStartHandler},
 		route.Route{
-			Name:    "RebalanceStop",
-			Method:  "POST",
-			Pattern: "/volumes/{volname}/rebalance/stop",
-			Version: 1,
-			//			ResponseType: utils.GetTypeString((*rebalanceapi.RebalInfo)(nil)),
-			HandlerFunc: rebalanceStopHandler},
+			Name:         "RebalanceStop",
+			Method:       "POST",
+			Pattern:      "/volumes/{volname}/rebalance/stop",
+			Version:      1,
+			ResponseType: utils.GetTypeString((*rebalanceapi.RebalInfo)(nil)),
+			HandlerFunc:  rebalanceStopHandler},
 		route.Route{
-			Name:    "RebalanceStatus",
-			Method:  "GET",
-			Pattern: "/volumes/{volname}/rebalance",
-			Version: 1,
-			//			ResponseType: utils.GetTypeString((*rebalanceapi.RebalInfo)(nil)),
-			HandlerFunc: rebalanceStatusHandler},
+			Name:         "RebalanceStatus",
+			Method:       "GET",
+			Pattern:      "/volumes/{volname}/rebalance",
+			Version:      1,
+			ResponseType: utils.GetTypeString((*rebalanceapi.RebalStatus)(nil)),
+			HandlerFunc:  rebalanceStatusHandler},
 	}
 }
 
