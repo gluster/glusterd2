@@ -47,3 +47,13 @@ type SnapGetResp SnapInfo
 
 // SnapListResp is the response sent for a snapsht list request.
 type SnapListResp []SnapList
+
+// SnapshotActivateResp is the response sent for a snapshot activate request.
+type SnapshotActivateResp SnapInfo
+
+// SnapshotDeactivateResp is the response sent for a snapshot deactivate request.
+type SnapshotDeactivateResp SnapInfo
+
+// SnapshotCloneResp is the response sent for a snapshot clone request.
+// Snapshot clone will create a regular volume
+type SnapshotCloneResp VolumeInfo

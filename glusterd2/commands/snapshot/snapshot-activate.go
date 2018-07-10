@@ -214,5 +214,10 @@ func snapshotActivateHandler(w http.ResponseWriter, r *http.Request) {
 		restutils.SendHTTPError(ctx, w, http.StatusInternalServerError, err)
 	}
 
-	restutils.SendHTTPResponse(ctx, w, http.StatusOK, snapinfo)
+	resp := createSnapshotActivateResp(snapinfo)
+	restutils.SendHTTPResponse(ctx, w, http.StatusOK, resp)
+}
+
+func createSnapshotActivateResp(snap *snapshot.Snapinfo) *api.SnapshotActivateResp {
+	return (*api.SnapshotActivateResp)(createSnapInfoResp(snap))
 }

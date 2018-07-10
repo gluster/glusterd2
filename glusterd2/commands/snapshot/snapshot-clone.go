@@ -134,7 +134,6 @@ func populateCloneBrickMountData(volinfo *volume.Volinfo, name string) (map[stri
 				return nil, err
 			}
 			devicePath := fmt.Sprintf("/dev/%s/clone_%s_s%d_b%d", vG, name, svIdx+1, bIdx+1)
-
 			nodeData[b.String()] = snapshot.BrickMountData{
 				MountDir:   mountDir,
 				DevicePath: devicePath,
@@ -376,11 +375,12 @@ func snapshotCloneHandler(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	resp := createVolumeCreateResp(vol)
+	resp := createSnapshotCloneResp(vol)
 	restutils.SetLocationHeader(r, w, vol.Name)
 	restutils.SendHTTPResponse(ctx, w, http.StatusCreated, resp)
 
 }
-func createVolumeCreateResp(v *volume.Volinfo) *api.VolumeCreateResp {
-	return (*api.VolumeCreateResp)(volume.CreateVolumeInfoResp(v))
+
+func createSnapshotCloneResp(v *volume.Volinfo) *api.SnapshotCloneResp {
+	return (*api.SnapshotCloneResp)(volume.CreateVolumeInfoResp(v))
 }
