@@ -124,16 +124,12 @@ func populateCloneBrickMountData(volinfo *volume.Volinfo, name string) (map[stri
 				return nil, err
 			}
 
-			vG, err := lvm.GetVgName(mntInfo.FsName)
+			suffix := fmt.Sprintf("clone_%s_%s_s%d_b%d", name, volinfo.Name, svIdx+1, bIdx+1)
+
+			devicePath, err := lvm.CreateDevicePath(mntInfo.FsName, suffix)
 			if err != nil {
-
-				log.WithError(err).WithField(
-					"brick", b.Path,
-				).Error("Failed to get vg name")
-
 				return nil, err
 			}
-			devicePath := fmt.Sprintf("/dev/%s/clone_%s_s%d_b%d", vG, name, svIdx+1, bIdx+1)
 			nodeData[b.String()] = snapshot.BrickMountData{
 				MountDir:   mountDir,
 				DevicePath: devicePath,

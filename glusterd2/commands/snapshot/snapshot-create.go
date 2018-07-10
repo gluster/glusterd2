@@ -297,16 +297,11 @@ func populateSnapBrickMountData(volinfo *volume.Volinfo, snapName string) (map[s
 				return nil, err
 			}
 
-			vG, err := lvm.GetVgName(mntInfo.FsName)
+			suffix := fmt.Sprintf("snap_%s_%s_s%d_b%d", snapName, volinfo.Name, svIdx+1, bIdx+1)
+			devicePath, err := lvm.CreateDevicePath(mntInfo.FsName, suffix)
 			if err != nil {
-
-				log.WithError(err).WithField(
-					"brick", b.Path,
-				).Error("Failed to get vg name")
-
 				return nil, err
 			}
-			devicePath := fmt.Sprintf("/dev/%s/snap_%s_%s_s%d_b%d", vG, snapName, volinfo.Name, svIdx+1, bIdx+1)
 
 			nodeData[b.String()] = snapshot.BrickMountData{
 				MountDir:   mountDir,
@@ -365,17 +360,26 @@ func validateSnapCreate(c transaction.TxnCtx) error {
 
 		return errors.New("one or more brick is offline")
 	}
-	statusComptability := snapshot.CheckBricksCompatability(volinfo)
-	if statusComptability != nil {
+
+	//TODO too many call to lvs,store it temporary
+	if nodeData, err = populateSnapBrickMountData(volinfo, req.SnapName); err != nil {
+		return err
+	}
+	if statusComptability := snapshot.CheckBricksFsCompatability(volinfo); statusComptability != nil {
 		log.WithError(err).WithField(
 			"Bricks", statusStr,
 		).Error("Bricks are not compatable")
 
 		return errors.New("one or more brick is not compatable")
 	}
-	if nodeData, err = populateSnapBrickMountData(volinfo, req.SnapName); err != nil {
-		return err
+	if statusComptability := snapshot.CheckBricksSizeCompatability(volinfo); statusComptability != nil {
+		log.WithError(err).WithField(
+			"Bricks", statusStr,
+		).Error("Bricks device doesn't have enough space to take snashot")
+
+		return errors.New("one or more brick is not compatable in size")
 	}
+
 	c.SetNodeResult(gdctx.MyUUID, snapshot.NodeDataTxnKey, &nodeData)
 	//TODO Quorum check has to be implemented once we implement highly available snapshot
 	return nil

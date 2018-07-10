@@ -80,8 +80,10 @@ func TestSnapshot(t *testing.T) {
 	t.Run("Clone", testSnapshotClone)
 	t.Run("Restore", testSnapshotRestore)
 	t.Run("MountRestoredVolume", tc.wrap(testRestoredVolumeMount))
+	t.Run("Validate", testSnapshotValidation)
 	t.Run("Deactivate", testSnapshotDeactivate)
 	t.Run("Delete", testSnapshotDelete)
+	t.Run("DeleteClone", testCloneDelete)
 
 	/*
 		TODO:
@@ -154,14 +156,6 @@ func testSnapshotClone(t *testing.T) {
 	volumes, err := client.Volumes("")
 	r.Nil(err)
 	r.Len(volumes, 2)
-
-	r.Nil(client.VolumeStop(clonename), "volume stop failed")
-
-	r.Nil(client.VolumeDelete(clonename))
-
-	volumes, err = client.Volumes("")
-	r.Nil(err)
-	r.Len(volumes, 1)
 }
 
 func testSnapshotList(t *testing.T) {
@@ -206,7 +200,7 @@ func testSnapshotActivate(t *testing.T) {
 func testSnapshotDelete(t *testing.T) {
 	r := require.New(t)
 
-	vols, err := client.SnapshotList(snapTestName)
+	vols, err := client.SnapshotList("")
 	r.Nil(err)
 	r.Len(vols[0].SnapName, 1)
 
@@ -345,4 +339,33 @@ func testSnapshotMount(t *testing.T, tc *testCluster) {
 	umntCmd := exec.Command("umount", mntPath)
 	err = umntCmd.Run()
 	r.Nil(err, fmt.Sprintf("unmount failed: %s", err))
+}
+
+func testSnapshotValidation(t *testing.T) {
+	r := require.New(t)
+
+	snapshotCreateReq := api.SnapCreateReq{
+		VolName:   clonename,
+		SnapName:  snapname,
+		TimeStamp: true,
+	}
+	_, err := client.SnapshotCreate(snapshotCreateReq)
+	r.Nil(err, "snapshot create failed")
+
+	r.Nil(client.VolumeStop(clonename), "volume stop failed")
+
+	err = client.VolumeDelete(clonename)
+	r.NotNil(errors.New("Volume delete succeeded when snapshot is existing for the volume"))
+}
+
+func testCloneDelete(t *testing.T) {
+	r := require.New(t)
+
+	r.Nil(client.VolumeDelete(clonename))
+
+	volumes, err := client.Volumes("")
+	r.Nil(err)
+	r.Len(volumes, 1)
+
+	//TODO Test lv device removed or not
 }

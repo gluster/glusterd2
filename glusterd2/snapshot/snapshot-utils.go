@@ -168,12 +168,25 @@ func ActivateDeactivateFunc(snapinfo *Snapinfo, b []brick.Brickinfo, activate bo
 	return nil
 }
 
-//CheckBricksCompatability will verify the brickes are lvm compatable
-func CheckBricksCompatability(volinfo *volume.Volinfo) []string {
+//CheckBricksFsCompatability will verify the brickes are compatable
+func CheckBricksFsCompatability(volinfo *volume.Volinfo) []string {
 
 	var paths []string
 	for _, brick := range volinfo.GetLocalBricks() {
-		if lvm.IsThinLV(brick.Path) != true {
+		if lvm.FsCompatableCheck(brick.Path) != true {
+			paths = append(paths, brick.String())
+		}
+	}
+	return paths
+
+}
+
+//CheckBricksSizeCompatability will verify the device has enough space
+func CheckBricksSizeCompatability(volinfo *volume.Volinfo) []string {
+
+	var paths []string
+	for _, brick := range volinfo.GetLocalBricks() {
+		if lvm.SizeCompatableCheck(brick.Path) != true {
 			paths = append(paths, brick.String())
 		}
 	}
