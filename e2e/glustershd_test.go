@@ -27,7 +27,7 @@ func TestSelfHealInfo(t *testing.T) {
 		brickPaths[i-1] = brickPath
 	}
 
-	client := initRestclient(gds[0].ClientAddress)
+	client := initRestclient(gds[0].ClientAddress, gds[0].LocalStateDir)
 	volname := formatVolName(t.Name())
 	reqVol := api.VolCreateReq{
 		Name: volname,

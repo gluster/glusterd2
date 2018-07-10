@@ -45,6 +45,11 @@ var (
 	flagCmdFilterKey   string
 	flagCmdFilterValue string
 
+	//Filter Volume Get command flags
+	flagGetAdv bool
+	flagGetBsc bool
+	flagGetMdf bool
+
 	// Edit Command Flags
 	flagCmdMetadataKey    string
 	flagCmdMetadataValue  string
@@ -65,6 +70,9 @@ func init() {
 	// Volume Delete
 	volumeCmd.AddCommand(volumeDeleteCmd)
 
+	volumeGetCmd.Flags().BoolVar(&flagGetAdv, "advanced", false, "Get advanced options")
+	volumeGetCmd.Flags().BoolVar(&flagGetBsc, "basic", true, "Get basic options")
+	volumeGetCmd.Flags().BoolVar(&flagGetMdf, "modified", false, "Get modified options")
 	volumeCmd.AddCommand(volumeGetCmd)
 
 	volumeCmd.AddCommand(volumeSizeCmd)
@@ -246,7 +254,17 @@ var volumeGetCmd = &cobra.Command{
 		table.SetAlignment(tablewriter.ALIGN_LEFT)
 
 		for _, opt := range opts {
-			table.Append([]string{opt.OptName, formatBoolYesNo(opt.Modified), opt.Value, opt.DefaultValue, opt.OptionLevel})
+			//if modified flag is set, discard unmodified options
+			if flagGetMdf && !opt.Modified {
+				continue
+			}
+			if flagGetBsc && opt.OptionLevel == "Basic" {
+				table.Append([]string{opt.OptName, formatBoolYesNo(opt.Modified), opt.Value, opt.DefaultValue, opt.OptionLevel})
+			}
+			if flagGetAdv && opt.OptionLevel == "Advanced" {
+				table.Append([]string{opt.OptName, formatBoolYesNo(opt.Modified), opt.Value, opt.DefaultValue, opt.OptionLevel})
+
+			}
 		}
 		table.Render()
 

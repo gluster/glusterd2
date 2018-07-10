@@ -11,7 +11,9 @@ import (
 	"fmt"
 	"io/ioutil"
 	"os"
+	"os/user"
 	"path"
+	"strconv"
 
 	"github.com/gluster/glusterd2/pkg/utils"
 	"github.com/gluster/glusterd2/version"
@@ -57,7 +59,7 @@ func init() {
 
 // GenerateLocalAuthToken generates random secret if not already generated
 func GenerateLocalAuthToken() error {
-	if !config.GetBool("restauth") {
+	if config.IsSet("restauth") && !config.GetBool("restauth") {
 		return nil
 	}
 
@@ -73,6 +75,10 @@ func GenerateLocalAuthToken() error {
 			if errWrite := ioutil.WriteFile(authFile, []byte(LocalAuthToken), 0640); errWrite != nil {
 				return errWrite
 			}
+			err := protectAuthFile(authFile)
+			if err != nil {
+				return err
+			}
 		}
 		return err
 	} else if err == nil {
@@ -85,4 +91,25 @@ func GenerateLocalAuthToken() error {
 		return err
 	}
 	return nil
+}
+
+func protectAuthFile(authfile string) error {
+	usr, err := user.LookupGroup("gluster")
+	if err != nil {
+		return err
+	}
+	gID, err := strconv.Atoi(usr.Gid)
+	if err != nil {
+		return err
+	}
+	cuser, err := user.Current()
+	if err != nil {
+		return err
+	}
+	uID, err := strconv.Atoi(cuser.Uid)
+	if err != nil {
+		return err
+	}
+	err = os.Chown(authfile, uID, gID)
+	return err
 }
