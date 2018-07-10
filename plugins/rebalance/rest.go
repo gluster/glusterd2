@@ -135,17 +135,8 @@ func rebalanceStartHandler(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	rebalInfo, err = GetRebalanceInfo(volname)
-	if err != nil {
-		logger.WithError(err).WithFields(log.Fields{
-			"volname": volname,
-		}).Error("failed to get the rebalance info for volume")
-		restutils.SendHTTPError(ctx, w, http.StatusInternalServerError, err)
-		return
-	}
-
 	logger.WithField("volname", rebalInfo.Volname).Info("rebalance started")
-	restutils.SendHTTPResponse(ctx, w, http.StatusOK, rebalInfo.RebalanceID)
+	restutils.SendHTTPResponse(ctx, w, http.StatusOK, nil)
 }
 
 func rebalanceStopHandler(w http.ResponseWriter, r *http.Request) {
@@ -223,7 +214,7 @@ func rebalanceStopHandler(w http.ResponseWriter, r *http.Request) {
 	}
 
 	logger.WithField("volname", rebalInfo.Volname).Info("rebalance stopped")
-	restutils.SendHTTPResponse(r.Context(), w, http.StatusOK, rebalInfo)
+	restutils.SendHTTPResponse(r.Context(), w, http.StatusOK, nil)
 }
 
 func rebalanceStatusHandler(w http.ResponseWriter, r *http.Request) {
@@ -300,30 +291,31 @@ func rebalanceStatusHandler(w http.ResponseWriter, r *http.Request) {
 	restutils.SendHTTPResponse(r.Context(), w, http.StatusOK, response)
 }
 
-func createRebalanceStatusResp(ctx transaction.TxnCtx, volinfo *volume.Volinfo) (*rebalanceapi.RebalStatus, error) {
+func createRebalanceStatusResp(ctx transaction.TxnCtx, volInfo *volume.Volinfo) (*rebalanceapi.RebalStatus, error) {
 	var (
 		resp      rebalanceapi.RebalStatus
 		tmp       rebalanceapi.RebalNodeStatus
-		rebalinfo rebalanceapi.RebalInfo
+		rebalInfo rebalanceapi.RebalInfo
 	)
 
-	err := ctx.Get("rinfo", &rebalinfo)
+	err := ctx.Get("rinfo", &rebalInfo)
 	if err != nil {
-		log.WithField("volume", volinfo.Name).Error("Failed to get rebalinfo")
+		log.WithError(err).WithField("volume", volInfo.Name).Error("Failed to get rebalinfo")
 		return nil, err
 	}
 
 	// Fill common info
-	resp.Volname = volinfo.Name
-	resp.RebalanceID = rebalinfo.RebalanceID
+	resp.Volname = volInfo.Name
+	resp.RebalanceID = rebalInfo.RebalanceID
+	resp.State = rebalInfo.State
 
 	// Get the status for the completed processes first
-	for _, tmp := range rebalinfo.RebalStats {
+	for _, tmp := range rebalInfo.RebalStats {
 		resp.Nodes = append(resp.Nodes, tmp)
 	}
 
 	// Loop over each node of the volume and aggregate
-	for _, node := range volinfo.Nodes() {
+	for _, node := range volInfo.Nodes() {
 		err := ctx.GetNodeResult(node, rebalStatusTxnKey, &tmp)
 		if err != nil {
 			// skip. We might have it in the rebalinfo

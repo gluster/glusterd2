@@ -94,18 +94,29 @@ func GenerateLocalAuthToken() error {
 }
 
 func protectAuthFile(authfile string) error {
-	usr, err := user.LookupGroup("gluster")
-	if err != nil {
-		return err
-	}
-	gID, err := strconv.Atoi(usr.Gid)
-	if err != nil {
-		return err
-	}
+	var uGID string
+
 	cuser, err := user.Current()
 	if err != nil {
 		return err
 	}
+
+	uGID = cuser.Gid
+
+	usr, err := user.LookupGroup("gluster")
+	if err != nil {
+		if _, ok := err.(user.UnknownGroupError); !ok {
+			return err
+		}
+	} else {
+		uGID = usr.Gid
+	}
+
+	gID, err := strconv.Atoi(uGID)
+	if err != nil {
+		return err
+	}
+
 	uID, err := strconv.Atoi(cuser.Uid)
 	if err != nil {
 		return err

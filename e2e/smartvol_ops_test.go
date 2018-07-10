@@ -236,7 +236,7 @@ func TestSmartVolume(t *testing.T) {
 	r.Nil(err)
 	defer teardownCluster(gds)
 
-	client = initRestclient(gds[0].ClientAddress, gds[0].LocalStateDir)
+	client = initRestclient(gds[0])
 
 	devicesDir, err := ioutil.TempDir(baseLocalStateDir, t.Name())
 	r.Nil(err)

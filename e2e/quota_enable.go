@@ -35,7 +35,7 @@ func TestQuota(t *testing.T) {
 		brickPaths = append(brickPaths, brickPath)
 	}
 
-	client := initRestclient(gds[0].ClientAddress, gds[0].LocalStateDir)
+	client := initRestclient(gds[0])
 
 	// create 2x2 dist-rep volume
 	createReq := api.VolCreateReq{
