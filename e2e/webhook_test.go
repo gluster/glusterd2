@@ -24,7 +24,7 @@ func TestWebhook(t *testing.T) {
 	r.Nil(err)
 	defer teardownCluster(gds)
 
-	client = initRestclient(gds[0].ClientAddress, gds[0].LocalStateDir)
+	client = initRestclient(gds[0])
 
 	t.Run("Register-webhook", testAddWebhook)
 	t.Run("List-webhook", testGetWebhook)
