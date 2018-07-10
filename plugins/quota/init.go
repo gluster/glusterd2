@@ -2,6 +2,7 @@ package quota
 
 import (
 	"github.com/gluster/glusterd2/glusterd2/servers/rest/route"
+	"github.com/gluster/glusterd2/glusterd2/transaction"
 )
 
 const name = "quota"
@@ -42,5 +43,7 @@ func (p *Plugin) RestRoutes() route.Routes {
 // RegisterStepFuncs registers transaction step functions with
 // Glusterd Transaction framework
 func (p *Plugin) RegisterStepFuncs() {
+	transaction.RegisterStepFunc(limitSet, "quota-limit.set")
+	transaction.RegisterStepFunc(quotaAuxMount, "quota-mount.aux")
 	return
 }
