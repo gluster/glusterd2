@@ -37,12 +37,19 @@ Install packages that provide GlusterFS server (brick process) and client (fuse,
 
 ### Download glusterd2
 
-Glusterd2 is a single binary without any external dependencies. Like all Go programs, dependencies are statically linked. You can download the [latest release](https://github.com/gluster/glusterd2/releases) from Github.
+As we do not have releases often, our nightly RPMs are generally more stable
+as they contain the latest fixes. If you are on centos 7, you can download the
+latest glusterd2 nightly RPM using the following method:
 
 ```sh
-$ wget https://github.com/gluster/glusterd2/releases/download/v4.0dev-7/glusterd2-v4.0dev-7-linux-amd64.tar.xz
-$ tar -xf glusterd2-v4.0dev-7-linux-amd64.tar.xz
+# curl -o /etc/yum.repos.d/glusterd2-nightly-master.repo http://artifacts.ci.centos.org/gluster/gd2-nightly/gd2-master.repo
+# yum install glusterd2
 ```
+
+Alternatlively, if you are using a non-RPM based distro, you can download
+binaries of the latest release. Like all Go programs, glusterd2 is a single
+binary (statically linked) without external dependencies. You can download the
+[latest release](https://github.com/gluster/glusterd2/releases) from Github.
 
 ### Running glusterd2
 
