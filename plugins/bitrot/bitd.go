@@ -65,24 +65,27 @@ func newBitd() (*Bitd, error) {
 		return nil, e
 	}
 
-	b := &Bitd{binarypath: binarypath}
-	b.volfileID = gdctx.MyUUID.String() + "-gluster/bitd"
-	b.logfile = path.Join(config.GetString("logdir"), "glusterfs", "bitd.log")
-
 	// Create pidFiledir dir
 	pidFileDir := fmt.Sprintf("%s/bitd", config.GetString("rundir"))
-	e = os.MkdirAll(pidFileDir, os.ModeDir|os.ModePerm)
+	if e = os.MkdirAll(pidFileDir, os.ModeDir|os.ModePerm); e != nil {
+		return nil, e
+	}
+	shost, _, e := net.SplitHostPort(config.GetString("clientaddress"))
 	if e != nil {
 		return nil, e
 	}
-	b.pidfilepath = fmt.Sprintf("%s/bitd.pid", pidFileDir)
-	b.socketfilepath = b.SocketFile()
-
-	shost, _, _ := net.SplitHostPort(config.GetString("clientaddress"))
 	if shost == "" {
 		shost = "localhost"
 	}
 
+	b := &Bitd{
+		binarypath:  binarypath,
+		volfileID:   gdctx.MyUUID.String() + "-gluster/bitd",
+		logfile:     path.Join(config.GetString("logdir"), "glusterfs", "bitd.log"),
+		pidfilepath: fmt.Sprintf("%s/bitd.pid", pidFileDir),
+	}
+
+	b.socketfilepath = b.SocketFile()
 	b.args = []string{}
 	b.args = append(b.args, "-s", shost)
 	b.args = append(b.args, "--volfile-id", b.volfileID)
