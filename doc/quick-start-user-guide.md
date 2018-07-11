@@ -31,7 +31,7 @@ These packages require dependencies present in [EPEL](https://fedoraproject.org/
 Install packages that provide GlusterFS server (brick process) and client (fuse, libgfapi):
 
 ```sh
-# curl -o /etc/yum.repos.d/glusterfs-nighthly-master.repo http://artifacts.ci.centos.org/gluster/nightly/master.repo
+# curl -o /etc/yum.repos.d/glusterfs-nightly-master.repo http://artifacts.ci.centos.org/gluster/nightly/master.repo
 # yum install glusterfs-server glusterfs-fuse glusterfs-api
 ```
 
