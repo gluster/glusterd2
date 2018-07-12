@@ -1,6 +1,9 @@
 package restclient
 
 import (
+	"fmt"
+	"net/http"
+
 	rebalanceapi "github.com/gluster/glusterd2/plugins/rebalance/api"
 )
 

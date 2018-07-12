@@ -1,10 +1,11 @@
 package cmd
 
 import (
+	"errors"
 	"fmt"
 
-	"github.com/gluster/glusterd2/pkg/restclient"
-	rebalance "github.com/gluster/glusterd2/plugins/rebalance/api"
+	log "github.com/sirupsen/logrus"
+	"github.com/spf13/cobra"
 )
 
 const (
@@ -34,27 +35,27 @@ func init() {
 	RootCmd.AddCommand(rebalanceCmd)
 }
 
-var rebalaceStartCmd = &cobra.Command{
+var rebalanceStartCmd = &cobra.Command{
 	Use:   "<VOLNAME> start [flags]",
 	Short: helpRebalanceStartCmd,
 	Args:  cobra.ExactArgs(1),
 	Run: func(cmd *cobra.Command, args []string) {
 		volname := cmd.Flags().Args()[0]
-		var err error
 		if flagRebalanceStartCmdForce && flagRebalanceStartCmdFixLayout {
-			err := errors.New("Conflicting options found")
+			err := errors.New("conflicting options found")
 			failure("Please provide only 1 option", err, 1)
 		}
+		var err error
 		if flagRebalanceStartCmdForce {
-			err = client.VolumeStart(volname, "force")
+			err = client.RebalanceStart(volname, "force")
 		} else if flagRebalanceStartCmdFixLayout {
-			err = client.VolumeStart(volname, "fix-layout")
+			err = client.RebalanceStart(volname, "fix-layout")
 		} else {
-			err = client.VolumeStart(volname, "")
+			err = client.RebalanceStart(volname, "")
 		}
 		if err != nil {
 			if verbose {
-				log.WithError(err.Error()).WithFields(log.Fields{
+				log.WithError(err).WithFields(log.Fields{
 					"volume": volname,
 				}).Error("rebalance start failed")
 			}
