@@ -49,7 +49,7 @@ func webhookAddHandler(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	restutils.SendHTTPResponse(ctx, w, http.StatusOK, "Webhook Added")
+	restutils.SendHTTPResponse(ctx, w, http.StatusOK, nil)
 }
 
 func webhookDeleteHandler(w http.ResponseWriter, r *http.Request) {
