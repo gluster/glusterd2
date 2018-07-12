@@ -1,11 +1,13 @@
 package middleware
 
 import (
+	"errors"
 	"fmt"
 	"net/http"
 	"strings"
 
 	"github.com/gluster/glusterd2/glusterd2/gdctx"
+	restutils "github.com/gluster/glusterd2/glusterd2/servers/rest/utils"
 
 	"github.com/dgrijalva/jwt-go"
 )
@@ -36,18 +38,18 @@ func Auth(next http.Handler) http.Handler {
 			next.ServeHTTP(w, r)
 			return
 		}
-
+		ctx := r.Context()
 		// Verify if Authorization header exists or not
 		authHeader := strings.TrimSpace(r.Header.Get("Authorization"))
 		if authHeader == "" {
-			http.Error(w, "Authorization header is required", http.StatusUnauthorized)
+			restutils.SendHTTPError(ctx, w, http.StatusUnauthorized, errors.New("'Authorization' header is required"))
 			return
 		}
 
 		// Verify the Authorization header format "Bearer <TOKEN>"
 		authHeaderParts := strings.Split(authHeader, " ")
 		if len(authHeaderParts) != 2 || strings.ToLower(authHeaderParts[0]) != "bearer" {
-			http.Error(w, "Authorization header format must be Bearer <TOKEN>", http.StatusUnauthorized)
+			restutils.SendHTTPError(ctx, w, http.StatusUnauthorized, errors.New("'Authorization' header must be of the format - Bearer <TOKEN>"))
 			return
 		}
 
@@ -79,8 +81,12 @@ func Auth(next http.Handler) http.Handler {
 		})
 
 		// Check if token is Valid
-		if err != nil || !token.Valid {
-			http.Error(w, err.Error(), http.StatusUnauthorized)
+		if err != nil {
+			restutils.SendHTTPError(ctx, w, http.StatusUnauthorized, err.Error())
+			return
+		}
+		if !token.Valid {
+			restutils.SendHTTPError(ctx, w, http.StatusUnauthorized, errors.New("invalid token specified in 'Authorization' header"))
 			return
 		}
 
