@@ -90,11 +90,11 @@ UNLINK_TIMEOUT=5
 MDC_TIMEOUT=5
 IO_WAIT_TIMEOUT=5
 
-LOGDIR=$(gluster --print-logdir)
+LOGDIR=$(glusterfsd --print-logdir)
 
 statedumpdir=`gluster --print-statedumpdir`; # Default directory for statedump
 
-CLI="gluster --mode=script --wignore";
+CLI="glustercli";
 CLI_NO_FORCE="gluster --mode=script";
 
 # CLI_IGNORE_PARTITION makes sure that the warning related to bricks being on
@@ -187,7 +187,7 @@ function dbg()
 function G_LOG()
 {
      local g_log_logdir;
-     g_log_logdir=`$CLI --print-logdir`
+     g_log_logdir=`glusterfsd --print-logdir`
      test -d $g_log_logdir
      if [ $? != 0 ]; then
         return
@@ -1062,7 +1062,7 @@ log_newer()
 {
         ts=$1
         msg=$2
-        logdir=`$CLI --print-logdir`
+        logdir=`glusterfsd --print-logdir`
 
         local x_ifs=$IFS
         IFS="["
