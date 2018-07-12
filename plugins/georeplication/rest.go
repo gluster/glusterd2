@@ -1109,5 +1109,5 @@ func georepSSHKeyPushHandler(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	restutils.SendHTTPResponse(ctx, w, http.StatusCreated, "SSH Keys added successfully")
+	restutils.SendHTTPResponse(ctx, w, http.StatusCreated, nil)
 }
