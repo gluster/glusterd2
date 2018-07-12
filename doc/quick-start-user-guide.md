@@ -26,21 +26,30 @@ Install rpcbind:
 
 **Installing glusterfs from nightly RPMs (CentOS 7):**
 
+These packages require dependencies present in [EPEL](https://fedoraproject.org/wiki/EPEL). Enable the EPEL repositories before enabling gluster nightly packages repo below.
+
 Install packages that provide GlusterFS server (brick process) and client (fuse, libgfapi):
 
 ```sh
-# curl -o /etc/yum.repos.d/glusterfs-nighthly-master.repo http://artifacts.ci.centos.org/gluster/nightly/master.repo
-# dnf install glusterfs-server glusterfs-fuse glusterfs-api
+# curl -o /etc/yum.repos.d/glusterfs-nightly-master.repo http://artifacts.ci.centos.org/gluster/nightly/master.repo
+# yum install glusterfs-server glusterfs-fuse glusterfs-api
 ```
 
 ### Download glusterd2
 
-Glusterd2 is a single binary without any external dependencies. Like all Go programs, dependencies are statically linked. You can download the [latest release](https://github.com/gluster/glusterd2/releases) from Github.
+As we do not have releases often, our nightly RPMs are generally more stable
+as they contain the latest fixes. If you are on centos 7, you can download the
+latest glusterd2 nightly RPM using the following method:
 
 ```sh
-$ wget https://github.com/gluster/glusterd2/releases/download/v4.0dev-7/glusterd2-v4.0dev-7-linux-amd64.tar.xz
-$ tar -xf glusterd2-v4.0dev-7-linux-amd64.tar.xz
+# curl -o /etc/yum.repos.d/glusterd2-nightly-master.repo http://artifacts.ci.centos.org/gluster/gd2-nightly/gd2-master.repo
+# yum install glusterd2
 ```
+
+Alternatlively, if you are using a non-RPM based distro, you can download
+binaries of the latest release. Like all Go programs, glusterd2 is a single
+binary (statically linked) without external dependencies. You can download the
+[latest release](https://github.com/gluster/glusterd2/releases) from Github.
 
 ### Running glusterd2
 
@@ -55,7 +64,7 @@ Glusterd2 will also pick up conf file named `glusterd2.toml` if available in `/e
 
 ```toml
 $ cat conf.toml
-workdir = "/var/lib/gd2"
+localstatedir = "/var/lib/gd2"
 peeraddress = "192.168.56.101:24008"
 clientaddress = "192.168.56.101:24007"
 etcdcurls = "http://192.168.56.101:2379"
@@ -172,7 +181,7 @@ $ curl -X POST http://192.168.56.101:24007/v1/volumes --data @volcreate.json -H 
 
 Send the volume create request using glustercli:
 
-    $ glustercli volume create testvol <uuid1>:/export/brick1/data <uuid2>:/export/brick2/data <uuid1>:/export/brick3/data <uuid2>:/export/brick4/data --replica 2
+    $ glustercli volume create --name testvol <uuid1>:/export/brick1/data <uuid2>:/export/brick2/data <uuid1>:/export/brick3/data <uuid2>:/export/brick4/data --replica 2
 
 ## Start the volume
 
@@ -215,7 +224,7 @@ Verify that `glusterfsd` process is running on both nodes.
   The path to default directory used by glusterd2 is "/var/lib/glusterd2/", if using custom config file then please provide working directory path instead of "/var/lib/glusterd2/"
 
   ```sh
-  # rm /var/lib/glusterd/2*
+  # rm /var/lib/glusterd2/*
   ```
 
 * If glusterd service fails with error: "Failed to create pid file"

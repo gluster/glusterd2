@@ -20,12 +20,13 @@ import (
 
 const (
 	volname = "testvol"
+	// for the disperse volume tests
+	disperseVolName = "dispersetestvol"
 )
 
 var (
 	gds    []*gdProcess
 	client *restclient.Client
-	tmpDir string
 )
 
 // TestVolume creates a volume and starts it, runs further tests on it and
@@ -39,12 +40,9 @@ func TestVolume(t *testing.T) {
 	r.Nil(err)
 	defer teardownCluster(gds)
 
-	client = initRestclient(gds[0].ClientAddress)
+	client = initRestclient(gds[0])
 
-	tmpDir, err = ioutil.TempDir(baseWorkdir, t.Name())
-	r.Nil(err)
-	t.Logf("Using temp dir: %s", tmpDir)
-	//defer os.RemoveAll(tmpDir)
+	t.Run("CreateWithoutName", testVolumeCreateWithoutName)
 
 	// Create the volume
 	t.Run("Create", testVolumeCreate)
@@ -66,6 +64,35 @@ func TestVolume(t *testing.T) {
 
 	// Disperse volume test
 	t.Run("Disperse", testDisperse)
+	t.Run("DisperseMount", testDisperseMount)
+	t.Run("DisperseDelete", testDisperseDelete)
+}
+
+func testVolumeCreateWithoutName(t *testing.T) {
+	r := require.New(t)
+
+	var brickPaths []string
+	for i := 1; i <= 2; i++ {
+		brickPath := testTempDir(t, "brick")
+		brickPaths = append(brickPaths, brickPath)
+	}
+
+	// create 2x2 dist-rep volume
+	createReq := api.VolCreateReq{
+		Subvols: []api.SubvolReq{
+			{
+				Bricks: []api.BrickReq{
+					{PeerID: gds[0].PeerID(), Path: brickPaths[0]},
+					{PeerID: gds[1].PeerID(), Path: brickPaths[1]},
+				},
+			},
+		},
+		Force: true,
+	}
+	volinfo, err := client.VolumeCreate(createReq)
+	r.Nil(err)
+
+	r.Nil(client.VolumeDelete(volinfo.Name))
 }
 
 func testVolumeCreate(t *testing.T) {
@@ -73,8 +100,7 @@ func testVolumeCreate(t *testing.T) {
 
 	var brickPaths []string
 	for i := 1; i <= 4; i++ {
-		brickPath, err := ioutil.TempDir(tmpDir, "brick")
-		r.Nil(err)
+		brickPath := testTempDir(t, "brick")
 		brickPaths = append(brickPaths, brickPath)
 	}
 
@@ -112,15 +138,36 @@ func testVolumeCreate(t *testing.T) {
 	_, err = client.VolumeCreate(createReq)
 	r.NotNil(err)
 
+	testDisallowBrickReuse(t, brickPaths[0])
+}
+
+func testDisallowBrickReuse(t *testing.T, brickInUse string) {
+	r := require.New(t)
+	volname := formatVolName(t.Name())
+
+	createReq := api.VolCreateReq{
+		Name: volname,
+		Subvols: []api.SubvolReq{
+			{
+				Bricks: []api.BrickReq{
+					{PeerID: gds[0].PeerID(), Path: brickInUse},
+				},
+			},
+		},
+		Force: true,
+	}
+
+	_, err := client.VolumeCreate(createReq)
+	r.NotNil(err)
 }
 
 func testVolumeCreateWithFlags(t *testing.T) {
 	r := require.New(t)
-	volumeName := strings.Replace(t.Name(), "/", "-", 1)
+	volumeName := formatVolName(t.Name())
 	var brickPaths []string
 
 	for i := 1; i <= 4; i++ {
-		brickPaths = append(brickPaths, fmt.Sprintf(baseWorkdir+"/"+t.Name()+"/%d", i))
+		brickPaths = append(brickPaths, fmt.Sprintf(baseLocalStateDir+"/"+t.Name()+"/%d", i))
 	}
 
 	flags := make(map[string]bool)
@@ -176,12 +223,13 @@ func testVolumeCreateWithFlags(t *testing.T) {
 	r.Nil(client.VolumeDelete(volumeName))
 
 }
+
 func testVolumeExpand(t *testing.T) {
 	r := require.New(t)
 
 	var brickPaths []string
 	for i := 1; i <= 4; i++ {
-		brickPaths = append(brickPaths, fmt.Sprintf(fmt.Sprintf(baseWorkdir+"/"+t.Name()+"/%d/", i)))
+		brickPaths = append(brickPaths, fmt.Sprintf(fmt.Sprintf(baseLocalStateDir+"/"+t.Name()+"/%d/", i)))
 	}
 
 	flags := make(map[string]bool)
@@ -200,8 +248,16 @@ func testVolumeExpand(t *testing.T) {
 	}
 
 	//expand with new brick dir which is not created
-	_, err := client.VolumeExpand(volname, expandReq)
+	volinfo, err := client.VolumeExpand(volname, expandReq)
 	r.Nil(err)
+
+	// Two subvolumes are added to the volume created by testVolumeCreate,
+	// total expected subvols is 4. Each subvol should contain two bricks
+	// since Volume type is Replica
+	r.Len(volinfo.Subvols, 4)
+	for _, subvol := range volinfo.Subvols {
+		r.Len(subvol.Bricks, 2)
+	}
 }
 
 func testVolumeDelete(t *testing.T) {
@@ -270,6 +326,9 @@ func testVolumeInfo(t *testing.T) {
 }
 
 func testVolumeStatus(t *testing.T) {
+	if _, err := os.Lstat("/dev/fuse"); os.IsNotExist(err) {
+		t.Skip("skipping mount /dev/fuse unavailable")
+	}
 	r := require.New(t)
 
 	_, err := client.VolumeStatus(volname)
@@ -315,17 +374,23 @@ func testVolumeStatedump(t *testing.T) {
 
 // testVolumeMount mounts checks if the volume mounts successfully and unmounts it
 func testVolumeMount(t *testing.T) {
+	testMountUnmount(t, volname)
+}
+
+func testMountUnmount(t *testing.T, v string) {
+	if _, err := os.Lstat("/dev/fuse"); os.IsNotExist(err) {
+		t.Skip("skipping mount /dev/fuse unavailable")
+	}
 	r := require.New(t)
 
-	mntPath, err := ioutil.TempDir(tmpDir, "mnt")
-	r.Nil(err)
+	mntPath := testTempDir(t, "mnt")
 	defer os.RemoveAll(mntPath)
 
 	host, _, _ := net.SplitHostPort(gds[0].ClientAddress)
-	mntCmd := exec.Command("mount", "-t", "glusterfs", host+":"+volname, mntPath)
+	mntCmd := exec.Command("mount", "-t", "glusterfs", host+":"+v, mntPath)
 	umntCmd := exec.Command("umount", mntPath)
 
-	err = mntCmd.Run()
+	err := mntCmd.Run()
 	r.Nil(err, fmt.Sprintf("mount failed: %s", err))
 
 	err = umntCmd.Run()
@@ -347,13 +412,13 @@ func TestVolumeOptions(t *testing.T) {
 	r.Nil(err)
 	defer teardownCluster(gds)
 
-	brickDir, err := ioutil.TempDir(baseWorkdir, t.Name())
+	brickDir, err := ioutil.TempDir(baseLocalStateDir, t.Name())
 	defer os.RemoveAll(brickDir)
 
 	brickPath, err := ioutil.TempDir(brickDir, "brick")
 	r.Nil(err)
 
-	client := initRestclient(gds[0].ClientAddress)
+	client := initRestclient(gds[0])
 
 	volname := "testvol"
 	createReq := api.VolCreateReq{
@@ -372,21 +437,41 @@ func TestVolumeOptions(t *testing.T) {
 		Advanced: true,
 	}
 
-	// valid option test cases
 	validOpKeys := []string{"gfproxy.afr.eager-lock", "afr.eager-lock"}
+	invalidOpKeys := []string{"..eager-lock", "a.b.afr.eager-lock", "afr.non-existent", "eager-lock"}
+
+	// valid option test cases
 	for _, validKey := range validOpKeys {
 		createReq.Options = map[string]string{validKey: "on"}
 
 		_, err = client.VolumeCreate(createReq)
 		r.Nil(err)
 
+		// test volume get on valid keys
+		_, err = client.VolumeGet(volname, validKey)
+		r.Nil(err)
+
+		var resetOptionReq api.VolOptionResetReq
+		resetOptionReq.Options = append(resetOptionReq.Options, validKey)
+		resetOptionReq.Force = true
+		r.Nil(client.VolumeReset(volname, resetOptionReq))
+
 		err = client.VolumeDelete(volname)
 		r.Nil(err)
 	}
 
 	// invalid option test cases
-	invalidOpKeys := []string{"..eager-lock", "a.b.afr.eager-lock", "afr.non-existent", "eager-lock"}
 	for _, invalidKey := range invalidOpKeys {
+		createReq.Options = map[string]string{}
+		_, err = client.VolumeCreate(createReq)
+		r.Nil(err)
+
+		_, err = client.VolumeGet(volname, invalidKey)
+		r.NotNil(err)
+
+		err = client.VolumeDelete(volname)
+		r.Nil(err)
+
 		createReq.Options = map[string]string{invalidKey: "on"}
 
 		_, err = client.VolumeCreate(createReq)
@@ -405,9 +490,26 @@ func TestVolumeOptions(t *testing.T) {
 	settableKey := "afr.use-compound-fops"
 	optionReq.Options = map[string]string{settableKey: "on"}
 	r.Nil(client.VolumeSet(volname, optionReq))
+
+	var resetOptionReq api.VolOptionResetReq
+	resetOptionReq.Options = []string{"afr.use-compound-fops"}
+	resetOptionReq.Force = true
+	r.Nil(client.VolumeReset(volname, resetOptionReq))
+
+	validOpKeys = []string{"io-stats.count-fop-hits", "io-stats.latency-measurement"}
+	for _, validKey := range validOpKeys {
+		optionReq.Options = map[string]string{validKey: "on"}
+		r.Nil(client.VolumeSet(volname, optionReq))
+	}
+
+	resetOptionReq.Force = true
+	resetOptionReq.All = true
+	r.Nil(client.VolumeReset(volname, resetOptionReq))
+
 	notSettableKey := "afr.consistent-io"
 	optionReq.Options = map[string]string{notSettableKey: "on"}
 	r.NotNil(client.VolumeSet(volname, optionReq))
+
 	r.Nil(client.VolumeDelete(volname))
 
 	// group option test cases
@@ -421,7 +523,6 @@ func TestVolumeOptions(t *testing.T) {
 		err = client.VolumeDelete(volname)
 		r.Nil(err)
 	}
-
 	for _, validKey := range groupOpKeys {
 		createReq.Options = map[string]string{validKey: "off"}
 
@@ -471,12 +572,10 @@ func TestVolumeOptions(t *testing.T) {
 
 func testDisperse(t *testing.T) {
 	r := require.New(t)
-	disperseVolName := "dispersetestvol"
 
 	var brickPaths []string
 	for i := 1; i <= 3; i++ {
-		brickPath, err := ioutil.TempDir(tmpDir, "brick")
-		r.Nil(err)
+		brickPath := testTempDir(t, "brick")
 		brickPaths = append(brickPaths, brickPath)
 	}
 
@@ -500,23 +599,14 @@ func testDisperse(t *testing.T) {
 	r.Nil(err)
 
 	r.Nil(client.VolumeStart(disperseVolName, true), "disperse volume start failed")
+}
 
-	mntPath, err := ioutil.TempDir(tmpDir, "mnt")
-	r.Nil(err)
-	defer os.RemoveAll(mntPath)
+func testDisperseMount(t *testing.T) {
+	testMountUnmount(t, disperseVolName)
+}
 
-	time.Sleep(1 * time.Second)
-
-	host, _, _ := net.SplitHostPort(gds[0].ClientAddress)
-
-	mntCmd := exec.Command("mount", "-t", "glusterfs", host+":"+disperseVolName, mntPath)
-	err = mntCmd.Run()
-	r.Nil(err, fmt.Sprintf("disperse volume mount failed: %s", err))
-
-	umntCmd := exec.Command("umount", mntPath)
-	err = umntCmd.Run()
-	r.Nil(err, fmt.Sprintf("disperse volume unmount failed: %s", err))
-
+func testDisperseDelete(t *testing.T) {
+	r := require.New(t)
 	r.Nil(client.VolumeStop(disperseVolName), "disperse volume stop failed")
 	r.Nil(client.VolumeDelete(disperseVolName), "disperse volume delete failed")
 }

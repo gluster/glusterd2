@@ -78,7 +78,7 @@ func MountSnapBrickDirectory(vol *volume.Volinfo, brickinfo *brick.Brickinfo) er
 }
 
 //ActivateDeactivateFunc uses to activate and deactivate
-func ActivateDeactivateFunc(snapinfo *Snapinfo, b []brick.Brickinfo, activate bool) error {
+func ActivateDeactivateFunc(snapinfo *Snapinfo, b []brick.Brickinfo, activate bool, logger log.FieldLogger) error {
 	volinfo := &snapinfo.SnapVolinfo
 	switch volinfo.State == volume.VolStarted {
 	case true:
@@ -96,14 +96,14 @@ func ActivateDeactivateFunc(snapinfo *Snapinfo, b []brick.Brickinfo, activate bo
 			if err := MountSnapBrickDirectory(volinfo, &b[i]); err != nil {
 				return err
 			}
-			if err := b[i].StartBrick(); err != nil {
+			if err := b[i].StartBrick(logger); err != nil {
 				return err
 			}
 
 		} else {
 			var err error
 			if err = b[i].TerminateBrick(); err != nil {
-				if err = b[i].StopBrick(); err != nil {
+				if err = b[i].StopBrick(logger); err != nil {
 					return err
 				}
 			}

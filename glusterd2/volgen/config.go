@@ -14,14 +14,14 @@ const (
 
 // InitFlags intializes the commandline options for volgen
 func InitFlags() {
-	flag.String(templateDirOpt, "", "Directory to search for templates. (default: workdir/templates)")
+	flag.String(templateDirOpt, "", "Directory to search for templates. (default: localstatedir/templates)")
 }
 
 // SetDefaults sets the default values for the volgen commandline options
 func SetDefaults() {
 	td := config.GetString(templateDirOpt)
 	if td == "" {
-		wd := config.GetString("workdir")
+		wd := config.GetString("localstatedir")
 		config.SetDefault(templateDirOpt, path.Join(wd, templateDir))
 	}
 }

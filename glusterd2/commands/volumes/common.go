@@ -108,7 +108,7 @@ func expandGroupOptions(opts map[string]string) (map[string]string, error) {
 					}
 					options[option.Name] = op.DefaultValue
 				default:
-					return nil, errors.New("Need either on or off")
+					return nil, errors.New("need either on or off")
 				}
 			}
 		}
@@ -147,12 +147,24 @@ func validateBricks(c transaction.TxnCtx) error {
 		return err
 	}
 
+	var allBricks []brick.Brickinfo
+	if err = c.Get("all-bricks-in-cluster", &allBricks); err != nil {
+		return err
+	}
+
+	var allLocalBricks []brick.Brickinfo
+	for _, b := range allBricks {
+		if uuid.Equal(gdctx.MyUUID, b.PeerID) {
+			allLocalBricks = append(allLocalBricks, b)
+		}
+	}
+
 	for _, b := range bricks {
 		if !uuid.Equal(b.PeerID, gdctx.MyUUID) {
 			continue
 		}
 
-		if err = b.Validate(checks); err != nil {
+		if err = b.Validate(checks, allLocalBricks); err != nil {
 			c.Logger().WithError(err).WithField(
 				"brick", b.Path).Debug("Brick validation failed")
 			return err
@@ -178,7 +190,7 @@ func initBricks(c transaction.TxnCtx) error {
 	}
 
 	flags := 0
-	if checks.IsInUse {
+	if checks.WasInUse {
 		// Perform a pure replace operation, which fails if the named
 		// attribute does not already exist.
 		flags = unix.XATTR_CREATE
@@ -290,4 +302,22 @@ func validateVolumeFlags(flag map[string]bool) error {
 		}
 	}
 	return nil
+}
+
+func isActionStepRequired(opt map[string]string, volinfo *volume.Volinfo) bool {
+
+	if volinfo.State != volume.VolStarted {
+		return false
+	}
+	for k := range opt {
+		_, xl, _, err := options.SplitKey(k)
+		if err != nil {
+			continue
+		}
+		if xltr, err := xlator.Find(xl); err == nil && xltr.Actor != nil {
+			return true
+		}
+	}
+
+	return false
 }

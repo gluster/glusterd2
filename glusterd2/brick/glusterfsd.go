@@ -51,6 +51,10 @@ func (b *Glusterfsd) Path() string {
 // Args returns arguments to be passed to brick process during spawn.
 func (b *Glusterfsd) Args() []string {
 
+	if b.args != nil {
+		return b.args
+	}
+
 	brickPathWithoutSlashes := strings.Trim(strings.Replace(b.brickinfo.Path, "/", "-", -1), "-")
 
 	logFile := path.Join(config.GetString("logdir"), "glusterfs", "bricks", fmt.Sprintf("%s.log", brickPathWithoutSlashes))
@@ -167,15 +171,18 @@ func errorContainsErrno(err error, errno syscall.Errno) bool {
 // These functions are used in vol-create, vol-expand and vol-shrink (TBD)
 
 //StartBrick starts glusterfsd process
-func (b Brickinfo) StartBrick() error {
-
-	brickDaemon, err := NewGlusterfsd(b)
-	if err != nil {
-		return err
-	}
+func (b Brickinfo) StartBrick(logger log.FieldLogger) error {
 
 	for i := 0; i < BrickStartMaxRetries; i++ {
-		err = daemon.Start(brickDaemon, true)
+
+		// creating a new instance everytime ensures that the call to
+		// brickDaemon.Args() will get us a new port each time
+		brickDaemon, err := NewGlusterfsd(b)
+		if err != nil {
+			return err
+		}
+
+		err = daemon.Start(brickDaemon, true, logger)
 		if err != nil {
 			if errorContainsErrno(err, syscall.EADDRINUSE) || errorContainsErrno(err, anotherEADDRINUSE) {
 				// Retry iff brick failed to start because of port being in use.
@@ -238,13 +245,13 @@ func (b Brickinfo) TerminateBrick() error {
 }
 
 //StopBrick will stop glusterfsd process
-func (b Brickinfo) StopBrick() error {
+func (b Brickinfo) StopBrick(logger log.FieldLogger) error {
 
 	brickDaemon, err := NewGlusterfsd(b)
 	if err != nil {
 		return err
 	}
-	return daemon.Stop(brickDaemon, true)
+	return daemon.Stop(brickDaemon, true, logger)
 }
 
 //CreateBrickSizeInfo parses size information for response

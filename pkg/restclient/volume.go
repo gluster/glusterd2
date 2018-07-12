@@ -131,6 +131,20 @@ func (c *Client) GlobalOptionSet(req api.GlobalOptionReq) error {
 	return c.post(url, req, http.StatusOK, nil)
 }
 
+// VolumeGet gets volume options for a Gluster Volume
+func (c *Client) VolumeGet(volname string, optname string) (api.VolumeOptionsGetResp, error) {
+	if optname == "all" {
+		var opts api.VolumeOptionsGetResp
+		url := fmt.Sprintf("/v1/volumes/%s/options", volname)
+		err := c.get(url, nil, http.StatusOK, &opts)
+		return opts, err
+	}
+	var opt api.VolumeOptionGetResp
+	url := fmt.Sprintf("/v1/volumes/%s/options/%s", volname, optname)
+	err := c.get(url, nil, http.StatusOK, &opt)
+	return []api.VolumeOptionGetResp{opt}, err
+}
+
 // VolumeExpand expands a Gluster Volume
 func (c *Client) VolumeExpand(volname string, req api.VolExpandReq) (api.VolumeExpandResp, error) {
 	var vol api.VolumeExpandResp
@@ -170,4 +184,10 @@ func (c *Client) EditVolume(volname string, req api.VolEditReq) (api.VolumeEditR
 	url := fmt.Sprintf("/v1/volumes/%s/edit", volname)
 	err := c.post(url, req, http.StatusOK, &resp)
 	return resp, err
+}
+
+// VolumeReset resets volume options to their default values
+func (c *Client) VolumeReset(volname string, req api.VolOptionResetReq) error {
+	url := fmt.Sprintf("/v1/volumes/%s/options", volname)
+	return c.del(url, req, http.StatusOK, nil)
 }

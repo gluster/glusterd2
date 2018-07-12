@@ -37,7 +37,7 @@ func stopBricks(c transaction.TxnCtx) error {
 		if err != nil {
 			c.Logger().WithError(err).WithField(
 				"brick", b.String()).Error("failed to connect to brick, sending SIGTERM")
-			daemon.Stop(brickDaemon, false)
+			daemon.Stop(brickDaemon, false, c.Logger())
 			continue
 		}
 
@@ -50,7 +50,7 @@ func stopBricks(c transaction.TxnCtx) error {
 		if err != nil || rsp.OpRet != 0 {
 			c.Logger().WithError(err).WithField(
 				"brick", b.String()).Error("failed to send terminate RPC, sending SIGTERM")
-			daemon.Stop(brickDaemon, false)
+			daemon.Stop(brickDaemon, false, c.Logger())
 			continue
 		}
 

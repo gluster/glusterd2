@@ -16,7 +16,7 @@ func TestSelfHealInfo(t *testing.T) {
 	r.Nil(err)
 	defer teardownCluster(gds)
 
-	brickDir, err := ioutil.TempDir(baseWorkdir, t.Name())
+	brickDir, err := ioutil.TempDir(baseLocalStateDir, t.Name())
 	r.Nil(err)
 	defer os.RemoveAll(brickDir)
 
@@ -27,10 +27,10 @@ func TestSelfHealInfo(t *testing.T) {
 		brickPaths[i-1] = brickPath
 	}
 
-	client := initRestclient(gds[0].ClientAddress)
-	volname1 := "testvol1"
+	client := initRestclient(gds[0])
+	volname := formatVolName(t.Name())
 	reqVol := api.VolCreateReq{
-		Name: volname1,
+		Name: volname,
 		Subvols: []api.SubvolReq{
 			{
 				ReplicaCount: 2,

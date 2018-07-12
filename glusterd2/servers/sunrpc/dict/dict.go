@@ -40,7 +40,7 @@ func Unserialize(buf []byte) (map[string]string, error) {
 	count := int(binary.BigEndian.Uint32(tmpHeader))
 
 	if count < 0 {
-		return nil, errors.New("Invalid dict count")
+		return nil, errors.New("invalid dict count")
 	}
 
 	for i := 0; i < count; i++ {
@@ -135,7 +135,7 @@ func Serialize(dict map[string]string) ([]byte, error) {
 	}
 
 	if dictSerializedSize != totalBytesWritten {
-		return nil, errors.New("Dict serialized size mismatch")
+		return nil, errors.New("dict serialized size mismatch")
 	}
 
 	return buffer.Bytes(), nil
@@ -144,7 +144,7 @@ func Serialize(dict map[string]string) ([]byte, error) {
 func getSerializedDictLen(dict map[string]string) (int, error) {
 
 	if dict == nil || len(dict) == 0 {
-		return 0, errors.New("Nil or empty dict")
+		return 0, errors.New("nil or empty dict")
 	}
 
 	totalSize := int(dictHeaderLen) // dict count

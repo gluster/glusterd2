@@ -71,14 +71,29 @@ const (
 	OptionStatusDeprecated
 )
 
+func (l OptionLevel) String() string {
+	switch l {
+	case OptionStatusBasic:
+		return "Basic"
+	case OptionStatusAdvanced:
+		return "Advanced"
+	case OptionStatusExperimental:
+		return "Experimental"
+	case OptionStatusDeprecated:
+		return "Deprecated"
+	default:
+		return "Undefined"
+	}
+}
+
 // ErrInvalidArg validates if argument is Invalid
-var ErrInvalidArg = errors.New("Invalid Value")
+var ErrInvalidArg = errors.New("invalid Value")
 
 // ErrEmptyArg validates for empty arguments
-var ErrEmptyArg = errors.New("No value passed")
+var ErrEmptyArg = errors.New("no value passed")
 
 //ErrInvalidRange validates if option is out of range
-var ErrInvalidRange = errors.New("Option is out of valid range")
+var ErrInvalidRange = errors.New("option is out of valid range")
 
 // Option is a struct which represents one single xlator option exported by
 // the translator.
@@ -232,16 +247,17 @@ func ValidateInternetAddress(o *Option, val string) error {
 	if len(val) == 0 {
 		return ErrInvalidArg
 	}
-	if !(validate.IsHost(val)) {
-		return ErrInvalidArg
-	} else if !(validate.IsIP(val)) {
-		return ErrInvalidArg
-	} else if !(validate.IsCIDR(val)) {
-		return ErrInvalidArg
-	} else if !(strings.ContainsAny(val, "* & # & ? & ^")) {
-		return ErrInvalidArg
+	if validate.IsHost(val) {
+		return nil
+	} else if validate.IsIP(val) {
+		return nil
+	} else if validate.IsCIDR(val) {
+		return nil
+	} else if strings.ContainsAny(val, "* & # & ? & ^") {
+		return nil
 	}
-	return nil
+
+	return ErrInvalidArg
 }
 
 // ValidateInternetAddressList validates the Internet Address List

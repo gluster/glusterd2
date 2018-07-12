@@ -12,12 +12,12 @@ import "C"
 import (
 	"fmt"
 	"os"
-	"os/exec"
 	"path/filepath"
 	"strings"
 	"unsafe"
 
 	"github.com/gluster/glusterd2/glusterd2/xlator/options"
+	"github.com/gluster/glusterd2/pkg/utils"
 
 	log "github.com/sirupsen/logrus"
 )
@@ -65,6 +65,12 @@ func structifyOption(cOpt *C.volume_option_t) *options.Option {
 	opt.Flags = options.OptionFlag(cOpt.flags)
 	opt.SetKey = C.GoString(cOpt.setkey)
 	opt.Level = options.OptionLevel(cOpt.level)
+
+	// For boolean options, default value isn't set in xlator's option
+	// table as glusterfs code treats that case as false by default.
+	if opt.Type == options.OptionTypeBool && opt.DefaultValue == "" {
+		opt.DefaultValue = "off"
+	}
 
 	return &opt
 }
@@ -141,11 +147,12 @@ func loadXlator(xlPath string) (*Xlator, error) {
 
 func getXlatorsDir() string {
 
-	out, err := exec.Command("glusterfsd", "--print-xlatordir").Output()
+	out, err := utils.ExecuteCommandOutput("glusterfsd", "--print-xlatordir")
+
 	if err != nil {
 		// fallback to the old hack if https://review.gluster.org/19905 isn't present
 		cmd := "strings -d `command -v glusterfsd` | awk '/glusterfs\\/.*\\/xlator$/'"
-		out, err = exec.Command("sh", "-c", cmd).Output()
+		out, err = utils.ExecuteCommandOutput("sh", "-c", cmd)
 		if err != nil {
 			return ""
 		}

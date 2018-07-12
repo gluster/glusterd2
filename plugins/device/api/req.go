@@ -2,13 +2,19 @@ package device
 
 const (
 	// DeviceEnabled represents enabled
-	DeviceEnabled = "Enabled"
+	DeviceEnabled = "enabled"
 
 	// DeviceDisabled represents disabled
-	DeviceDisabled = "Disabled"
+	DeviceDisabled = "disabled"
 )
 
 // AddDeviceReq structure
 type AddDeviceReq struct {
 	Device string `json:"device"`
+}
+
+// EditDeviceReq structure
+type EditDeviceReq struct {
+	DeviceName string `json:"device-name"`
+	State      string `json:"state"`
 }

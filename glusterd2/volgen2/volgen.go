@@ -99,7 +99,7 @@ func (e *Entry) SetIgnoreOptions(opts []string) *Entry {
 // Generate generates Volfile content
 func (v *Volfile) Generate(graph string, extra *map[string]extrainfo) (string, error) {
 	if v.Name == "" || v.FileName == "" {
-		return "", errors.New("Incomplete details")
+		return "", errors.New("incomplete details")
 	}
 
 	return v.RootEntry.Generate(graph, extra)

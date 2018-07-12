@@ -1,4 +1,3 @@
-workdir = "w1"
 localstatedir = "w1"
 logdir = "w1/log"
 loglevel = "DEBUG"
@@ -8,3 +7,5 @@ peeraddress = "127.0.0.1:24008"
 clientaddress = "127.0.0.1:24007"
 etcdcurls = "http://127.0.0.1:2479"
 etcdpurls = "http://127.0.0.1:2480"
+#restauth should be set to false to disable REST authentication in glusterd2
+#restauth = false

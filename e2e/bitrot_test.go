@@ -1,8 +1,6 @@
 package e2e
 
 import (
-	"io/ioutil"
-	"strings"
 	"testing"
 
 	"github.com/gluster/glusterd2/pkg/api"
@@ -20,11 +18,7 @@ func TestBitrot(t *testing.T) {
 	r.Nil(err)
 	defer teardownCluster(gds)
 
-	client = initRestclient(gds[0].ClientAddress)
-
-	tmpDir, err = ioutil.TempDir(baseWorkdir, t.Name())
-	r.Nil(err)
-	t.Logf("Using temp dir: %s", tmpDir)
+	client = initRestclient(gds[0])
 
 	// test Bitrot on dist-rep volume
 	t.Run("Replica-volume", testBitrotOnReplicaVolume)
@@ -35,12 +29,11 @@ func TestBitrot(t *testing.T) {
 
 func testBitrotOnReplicaVolume(t *testing.T) {
 	r := require.New(t)
-	volumeName := strings.Replace(t.Name(), "/", "-", 1)
+	volumeName := formatVolName(t.Name())
 	var brickPaths []string
 
 	for i := 1; i <= 4; i++ {
-		brickPath, err := ioutil.TempDir(tmpDir, "brick")
-		r.Nil(err)
+		brickPath := testTempDir(t, "brick")
 		brickPaths = append(brickPaths, brickPath)
 	}
 
@@ -78,12 +71,11 @@ func testBitrotOnReplicaVolume(t *testing.T) {
 
 func testBitrotOnDistVolume(t *testing.T) {
 	r := require.New(t)
-	volumeName := strings.Replace(t.Name(), "/", "-", 1)
+	volumeName := formatVolName(t.Name())
 	var brickPaths []string
 
 	for i := 1; i <= 4; i++ {
-		brickPath, err := ioutil.TempDir(tmpDir, "brick")
-		r.Nil(err)
+		brickPath := testTempDir(t, "brick")
 		brickPaths = append(brickPaths, brickPath)
 	}
 
@@ -120,7 +112,7 @@ func testBitrotOnDistVolume(t *testing.T) {
 }
 
 func testbitrot(t *testing.T) {
-	volumeName := strings.Replace(t.Name(), "/", "-", 1)
+	volumeName := formatVolName(t.Name())
 	r := require.New(t)
 
 	//check bitrot status, before starting volume
@@ -133,7 +125,7 @@ func testbitrot(t *testing.T) {
 
 	//check bitrot status on started volume
 	_, err = client.BitrotScrubStatus(volumeName)
-	r.Contains(err.Error(), "Bitrot is not enabled")
+	r.Contains(err.Error(), "bitrot is not enabled")
 
 	//enable bitrot on volume
 	err = client.BitrotEnable(volumeName)
@@ -150,7 +142,7 @@ func testbitrot(t *testing.T) {
 
 	//check bitrot status
 	_, err = client.BitrotScrubStatus(volumeName)
-	r.Contains(err.Error(), "Bitrot is not enabled")
+	r.Contains(err.Error(), "bitrot is not enabled")
 
 	//stop volume
 	err = client.VolumeStop(volumeName)
@@ -170,15 +162,15 @@ func testbitrot(t *testing.T) {
 
 	//check bitrot status
 	scrubStatus, err = client.BitrotScrubStatus(volumeName)
-	r.Contains(err.Error(), "Bitrot is not enabled")
+	r.Contains(err.Error(), "bitrot is not enabled")
 
 	//disable bitrot on volume
 	err = client.BitrotDisable(volumeName)
-	r.Contains(err.Error(), "Bitrot is already disabled")
+	r.Contains(err.Error(), "bitrot is already disabled")
 
 	//check bitrot status
 	_, err = client.BitrotScrubStatus(volumeName)
-	r.Contains(err.Error(), "Bitrot is not enabled")
+	r.Contains(err.Error(), "bitrot is not enabled")
 
 	//stop volume
 	err = client.VolumeStop(volumeName)

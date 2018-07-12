@@ -9,18 +9,21 @@ import (
 	"syscall"
 
 	"github.com/gluster/glusterd2/pkg/errors"
+
+	"github.com/pborman/uuid"
 	"golang.org/x/sys/unix"
 )
 
 const (
-	testXattrKey     = "trusted.glusterfs.testing-xattr-support"
-	volumeIDXattrKey = "trusted.glusterfs.volume-id"
-	gfidXattrKey     = "trusted.gfid"
+	testXattrKey      = "trusted.glusterfs.testing-xattr-support"
+	gfidXattrKey      = "trusted.gfid"
+	volumeIDXattrKey  = "trusted.glusterfs.volume-id"
+	volumeIDXattrSize = 16
 )
 
 // InitChecks is a set of checks to be run on a brick
 type InitChecks struct {
-	IsInUse        bool
+	WasInUse       bool
 	IsMount        bool
 	IsOnRoot       bool
 	CreateBrickDir bool
@@ -38,13 +41,13 @@ func PrepareChecks(force bool, req map[string]bool) *InitChecks {
 	}
 
 	// do all the checks except the ones explicitly excluded
-	c.IsInUse = true
+	c.WasInUse = true
 	c.IsOnRoot = true
 	c.IsMount = true
 	c.CreateBrickDir = false
 
 	if value, ok := req["reuse-bricks"]; ok && value {
-		c.IsInUse = false
+		c.WasInUse = false
 	}
 
 	if value, ok := req["allow-root-dir"]; ok && value {
@@ -109,7 +112,9 @@ func validateXattrSupport(brickPath string) error {
 	return unix.Setxattr(brickPath, testXattrKey, []byte("payload"), 0)
 }
 
-func validateBrickInUse(brickPath string) error {
+// validateBrickWasUsed checks if the path was ever used a brick for a volume
+// by checking if the path has certain glusterfs specific xattrs
+func validateBrickWasUsed(brickPath string) error {
 	keys := []string{gfidXattrKey, volumeIDXattrKey}
 	for path := brickPath; path != "/"; path = filepath.Dir(path) {
 		for _, key := range keys {
@@ -123,5 +128,33 @@ func validateBrickInUse(brickPath string) error {
 			}
 		}
 	}
+	return nil
+}
+
+// isBrickInActiveUse checks if the path belongs to another active brick
+// belonging to an active volume currently present in this cluster.
+func isBrickInActiveUse(brickPath string, allLocalBricks []Brickinfo) error {
+
+	volumeIDBytes := make([]byte, volumeIDXattrSize)
+	size, err := unix.Getxattr(brickPath, volumeIDXattrKey, volumeIDBytes)
+	if err != nil || size != volumeIDXattrSize {
+		// absence of xattr or error in fetching it isn't an error for
+		// this purpose
+		return nil
+	}
+
+	volumeID := uuid.UUID(volumeIDBytes)
+
+	for _, b := range allLocalBricks {
+		if uuid.Equal(volumeID, b.VolumeID) {
+			return fmt.Errorf("Brick path %s is already in use by a volume (name=%s;id=%s)",
+				brickPath, b.VolumeName, b.VolumeID)
+		}
+		if strings.HasPrefix(brickPath, b.Path) {
+			return fmt.Errorf("Path %s is a subdirectory of another existing brick with path %s belonging to volume (name=%s;id=%s)",
+				brickPath, b.Path, b.VolumeName, b.VolumeID)
+		}
+	}
+
 	return nil
 }

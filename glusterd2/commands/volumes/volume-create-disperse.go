@@ -13,7 +13,7 @@ func checkDisperseParams(req *api.SubvolReq, s *volume.Subvol) error {
 	if req.DisperseData > 0 {
 		if req.DisperseCount > 0 && req.DisperseRedundancy > 0 {
 			if req.DisperseCount != req.DisperseData+req.DisperseRedundancy {
-				return errors.New("Disperse count should be equal to sum of disperse-data and redundancy")
+				return errors.New("disperse count should be equal to sum of disperse-data and redundancy")
 			}
 		} else if req.DisperseRedundancy > 0 {
 			req.DisperseCount = req.DisperseData + req.DisperseRedundancy
@@ -21,7 +21,7 @@ func checkDisperseParams(req *api.SubvolReq, s *volume.Subvol) error {
 			req.DisperseRedundancy = req.DisperseCount - req.DisperseData
 		} else {
 			if count-req.DisperseData >= req.DisperseData {
-				return errors.New("Need redundancy count along with disperse-data")
+				return errors.New("need redundancy count along with disperse-data")
 			}
 			req.DisperseRedundancy = count - req.DisperseData
 			req.DisperseCount = count
@@ -30,7 +30,7 @@ func checkDisperseParams(req *api.SubvolReq, s *volume.Subvol) error {
 
 	if req.DisperseCount <= 0 {
 		if count < 3 {
-			return errors.New("Number of bricks must be greater than 2")
+			return errors.New("number of bricks must be greater than 2")
 		}
 		req.DisperseCount = count
 	}
@@ -40,11 +40,11 @@ func checkDisperseParams(req *api.SubvolReq, s *volume.Subvol) error {
 	}
 
 	if req.DisperseCount != count {
-		return errors.New("Disperse count and the number of bricks must be same for a pure disperse volume")
+		return errors.New("disperse count and the number of bricks must be same for a pure disperse volume")
 	}
 
 	if 2*req.DisperseRedundancy >= req.DisperseCount {
-		return errors.New("Invalid redundancy value")
+		return errors.New("invalid redundancy value")
 	}
 
 	s.DisperseCount = req.DisperseCount

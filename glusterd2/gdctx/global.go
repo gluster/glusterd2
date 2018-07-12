@@ -6,12 +6,14 @@
 package gdctx
 
 import (
+	"crypto/rand"
 	"expvar"
 	"fmt"
 	"io/ioutil"
-	"math/rand"
 	"os"
+	"os/user"
 	"path"
+	"strconv"
 
 	"github.com/gluster/glusterd2/pkg/utils"
 	"github.com/gluster/glusterd2/version"
@@ -57,13 +59,12 @@ func init() {
 
 // GenerateLocalAuthToken generates random secret if not already generated
 func GenerateLocalAuthToken() error {
-	if !config.GetBool("restauth") {
+	if config.IsSet("restauth") && !config.GetBool("restauth") {
 		return nil
 	}
 
 	RESTAPIAuthEnabled = true
-	workdir := config.GetString("workdir")
-	authFile := path.Join(workdir, "auth")
+	authFile := path.Join(config.GetString("localstatedir"), "auth")
 
 	_, err := os.Stat(authFile)
 	if os.IsNotExist(err) {
@@ -73,6 +74,10 @@ func GenerateLocalAuthToken() error {
 			LocalAuthToken = fmt.Sprintf("%x", data)
 			if errWrite := ioutil.WriteFile(authFile, []byte(LocalAuthToken), 0640); errWrite != nil {
 				return errWrite
+			}
+			err := protectAuthFile(authFile)
+			if err != nil {
+				return err
 			}
 		}
 		return err
@@ -86,4 +91,36 @@ func GenerateLocalAuthToken() error {
 		return err
 	}
 	return nil
+}
+
+func protectAuthFile(authfile string) error {
+	var uGID string
+
+	cuser, err := user.Current()
+	if err != nil {
+		return err
+	}
+
+	uGID = cuser.Gid
+
+	usr, err := user.LookupGroup("gluster")
+	if err != nil {
+		if _, ok := err.(user.UnknownGroupError); !ok {
+			return err
+		}
+	} else {
+		uGID = usr.Gid
+	}
+
+	gID, err := strconv.Atoi(uGID)
+	if err != nil {
+		return err
+	}
+
+	uID, err := strconv.Atoi(cuser.Uid)
+	if err != nil {
+		return err
+	}
+	err = os.Chown(authfile, uID, gID)
+	return err
 }

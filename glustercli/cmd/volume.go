@@ -22,7 +22,6 @@ const (
 	helpVolumeStopCmd   = "Stop a Gluster Volume"
 	helpVolumeDeleteCmd = "Delete a Gluster Volume"
 	helpVolumeGetCmd    = "Get Gluster Volume Options"
-	helpVolumeResetCmd  = "Reset a Gluster Volume Option"
 	helpVolumeInfoCmd   = "Get Gluster Volume Info"
 	helpVolumeListCmd   = "List all Gluster Volumes"
 	helpVolumeStatusCmd = "Get Gluster Volume Status"
@@ -46,6 +45,11 @@ var (
 	flagCmdFilterKey   string
 	flagCmdFilterValue string
 
+	//Filter Volume Get command flags
+	flagGetAdv bool
+	flagGetBsc bool
+	flagGetMdf bool
+
 	// Edit Command Flags
 	flagCmdMetadataKey    string
 	flagCmdMetadataValue  string
@@ -66,8 +70,11 @@ func init() {
 	// Volume Delete
 	volumeCmd.AddCommand(volumeDeleteCmd)
 
+	volumeGetCmd.Flags().BoolVar(&flagGetAdv, "advanced", false, "Get advanced options")
+	volumeGetCmd.Flags().BoolVar(&flagGetBsc, "basic", true, "Get basic options")
+	volumeGetCmd.Flags().BoolVar(&flagGetMdf, "modified", false, "Get modified options")
 	volumeCmd.AddCommand(volumeGetCmd)
-	volumeCmd.AddCommand(volumeResetCmd)
+
 	volumeCmd.AddCommand(volumeSizeCmd)
 
 	volumeInfoCmd.Flags().StringVar(&flagCmdFilterKey, "key", "", "Filter by metadata key")
@@ -110,7 +117,7 @@ func bricksAsUUID(bricks []string) ([]api.BrickReq, error) {
 	for _, brick := range bricks {
 		hostBrickData := strings.Split(brick, ":")
 		if len(hostBrickData) != 2 {
-			return nil, errors.New("Invalid Brick details, use <host>:<path> or <peerid>:<path>")
+			return nil, errors.New("invalid Brick details, use <host>:<path> or <peerid>:<path>")
 		}
 	}
 
@@ -230,20 +237,37 @@ var volumeDeleteCmd = &cobra.Command{
 var volumeGetCmd = &cobra.Command{
 	Use:   "get",
 	Short: helpVolumeGetCmd,
-	Args:  cobra.RangeArgs(1, 2),
+	Args:  cobra.ExactArgs(2),
 	Run: func(cmd *cobra.Command, args []string) {
-		volname := cmd.Flags().Args()[0]
-		fmt.Println("GET:", volname)
-	},
-}
 
-var volumeResetCmd = &cobra.Command{
-	Use:   "reset",
-	Short: helpVolumeResetCmd,
-	Args:  cobra.RangeArgs(1, 2),
-	Run: func(cmd *cobra.Command, args []string) {
-		volname := cmd.Flags().Args()[0]
-		fmt.Println("RESET:", volname)
+		volname := args[0]
+		optname := args[1]
+
+		opts, err := client.VolumeGet(volname, optname)
+		if err != nil {
+			log.WithError(err).Error("error getting volume options")
+			failure("Error getting volume options", err, 1)
+		}
+
+		table := tablewriter.NewWriter(os.Stdout)
+		table.SetHeader([]string{"Name", "Modified", "Value", "Default Value", "Option Level"})
+		table.SetAlignment(tablewriter.ALIGN_LEFT)
+
+		for _, opt := range opts {
+			//if modified flag is set, discard unmodified options
+			if flagGetMdf && !opt.Modified {
+				continue
+			}
+			if flagGetBsc && opt.OptionLevel == "Basic" {
+				table.Append([]string{opt.OptName, formatBoolYesNo(opt.Modified), opt.Value, opt.DefaultValue, opt.OptionLevel})
+			}
+			if flagGetAdv && opt.OptionLevel == "Advanced" {
+				table.Append([]string{opt.OptName, formatBoolYesNo(opt.Modified), opt.Value, opt.DefaultValue, opt.OptionLevel})
+
+			}
+		}
+		table.Render()
+
 	},
 }
 
@@ -315,7 +339,7 @@ func volumeInfoHandler2(cmd *cobra.Command, isInfo bool) error {
 		}
 	} else {
 		if flagCmdFilterKey != "" || flagCmdFilterValue != "" {
-			return errors.New("Invalid command. Cannot give filter arguments when providing volname")
+			return errors.New("invalid command. Cannot give filter arguments when providing volname")
 		}
 		vols, err = client.Volumes(volname)
 	}
@@ -330,9 +354,18 @@ func volumeInfoHandler2(cmd *cobra.Command, isInfo bool) error {
 		}
 	} else {
 		table := tablewriter.NewWriter(os.Stdout)
-		table.SetHeader([]string{"ID", "Name"})
+		table.SetAlignment(tablewriter.ALIGN_LEFT)
+		table.SetHeader([]string{"ID", "Name", "Type", "State", "Transport", "Bricks"})
 		for _, vol := range vols {
-			table.Append([]string{vol.ID.String(), vol.Name})
+			brickCount := 0
+			for _, subvol := range vol.Subvols {
+				for range subvol.Bricks {
+					brickCount++
+				}
+			}
+
+			table.Append([]string{vol.ID.String(), vol.Name, vol.Type.String(),
+				vol.State.String(), vol.Transport, strconv.Itoa(brickCount)})
 		}
 		table.Render()
 	}

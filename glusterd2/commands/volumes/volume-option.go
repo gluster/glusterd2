@@ -16,6 +16,7 @@ import (
 
 	"github.com/gorilla/mux"
 	"github.com/pborman/uuid"
+	log "github.com/sirupsen/logrus"
 )
 
 func optionSetValidate(c transaction.TxnCtx) error {
@@ -34,7 +35,7 @@ func optionSetValidate(c transaction.TxnCtx) error {
 	// validateOptions.
 
 	if err := validateOptions(options, req.Advanced, req.Experimental, req.Deprecated); err != nil {
-		return fmt.Errorf("Validation failed for volume option: %s", err.Error())
+		return fmt.Errorf("validation failed for volume option: %s", err.Error())
 	}
 
 	var volinfo volume.Volinfo
@@ -42,8 +43,8 @@ func optionSetValidate(c transaction.TxnCtx) error {
 		return err
 	}
 
-	if err := validateXlatorOptions(req.Options, &volinfo); err != nil {
-		return fmt.Errorf("Validation failed for volume option:: %s", err.Error())
+	if err := validateXlatorOptions(options, &volinfo); err != nil {
+		return fmt.Errorf("validation failed for volume option:: %s", err.Error())
 	}
 
 	for k, v := range options {
@@ -61,37 +62,65 @@ func optionSetValidate(c transaction.TxnCtx) error {
 }
 
 type txnOpType uint8
+type volumeOpType uint8
 
 const (
 	txnDo txnOpType = iota
 	txnUndo
+	volumeSet volumeOpType = iota
+	volumeReset
 )
 
 func xlatorActionDoSet(c transaction.TxnCtx) error {
-	return xlatorAction(c, txnDo)
+	return xlatorAction(c, txnDo, volumeSet)
 }
 
 func xlatorActionUndoSet(c transaction.TxnCtx) error {
-	return xlatorAction(c, txnUndo)
+	return xlatorAction(c, txnUndo, volumeSet)
+}
+
+func xlatorActionDoReset(c transaction.TxnCtx) error {
+	return xlatorAction(c, txnDo, volumeReset)
+}
+
+func xlatorActionUndoReset(c transaction.TxnCtx) error {
+	return xlatorAction(c, txnUndo, volumeReset)
 }
 
 // This function can be reused when volume reset operation is implemented.
 // However, volume reset can be also be treated logically as volume set but
 // with the value set to default value.
-func xlatorAction(c transaction.TxnCtx, txnOp txnOpType) error {
+func xlatorAction(c transaction.TxnCtx, txnOp txnOpType, volOp volumeOpType) error {
+	reqOptions := make(map[string]string)
+	if volOp == volumeSet {
+		var req api.VolOptionReq
+		if err := c.Get("req", &req); err != nil {
+			return err
+		}
+		for key, value := range req.Options {
+			reqOptions[key] = value
+		}
+	} else {
+		var req api.VolOptionResetReq
+		if err := c.Get("req", &req); err != nil {
+			return err
+		}
+		for _, key := range req.Options {
+			op, err := xlator.FindOption(key)
+			if err != nil {
+				return err
+			}
+			reqOptions[key] = op.DefaultValue
+		}
 
-	var req api.VolOptionReq
-	if err := c.Get("req", &req); err != nil {
-		return err
 	}
-
 	var volinfo volume.Volinfo
 	if err := c.Get("volinfo", &volinfo); err != nil {
 		return err
 	}
 
-	var fn func(*volume.Volinfo, string, string) error
-	for k, v := range req.Options {
+	var fn func(*volume.Volinfo, string, string, log.FieldLogger) error
+	for k, v := range reqOptions {
 		_, xl, key, err := options.SplitKey(k)
 		if err != nil {
 			return err
@@ -106,28 +135,13 @@ func xlatorAction(c transaction.TxnCtx, txnOp txnOpType) error {
 			} else {
 				fn = xltr.Actor.Undo
 			}
-			if err := fn(&volinfo, key, v); err != nil {
+			if err := fn(&volinfo, key, v, c.Logger()); err != nil {
 				return err
 			}
 		}
 	}
 
 	return nil
-}
-
-func isActionStepRequired(req *api.VolOptionReq) bool {
-
-	for k := range req.Options {
-		_, xl, _, err := options.SplitKey(k)
-		if err != nil {
-			continue
-		}
-		if xltr, err := xlator.Find(xl); err == nil && xltr.Actor != nil {
-			return true
-		}
-	}
-
-	return false
 }
 
 func registerVolOptionStepFuncs() {
@@ -174,6 +188,11 @@ func volumeOptionsHandler(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
+	//save volume information for transaction failure scenario
+	if err := txn.Ctx.Set("oldvolinfo", volinfo); err != nil {
+		restutils.SendHTTPError(ctx, w, http.StatusInternalServerError, err)
+		return
+	}
 	allNodes, err := peer.GetPeerIDs()
 	if err != nil {
 		restutils.SendHTTPError(ctx, w, http.StatusInternalServerError, err)
@@ -186,14 +205,15 @@ func volumeOptionsHandler(w http.ResponseWriter, r *http.Request) {
 			Nodes:  []uuid.UUID{gdctx.MyUUID},
 		},
 		{
+			DoFunc:   "vol-option.UpdateVolinfo",
+			UndoFunc: "vol-option.UpdateVolinfo.Undo",
+			Nodes:    []uuid.UUID{gdctx.MyUUID},
+		},
+		{
 			DoFunc:   "vol-option.XlatorActionDoSet",
 			UndoFunc: "vol-option.XlatorActionUndoSet",
 			Nodes:    volinfo.Nodes(),
-			Skip:     !isActionStepRequired(&req),
-		},
-		{
-			DoFunc: "vol-option.UpdateVolinfo",
-			Nodes:  []uuid.UUID{gdctx.MyUUID},
+			Skip:     !isActionStepRequired(req.Options, volinfo),
 		},
 		{
 			DoFunc: "vol-option.NotifyVolfileChange",

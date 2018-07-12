@@ -1,7 +1,7 @@
 package e2e
 
 import (
-	"encoding/json"
+	"bytes"
 	"errors"
 	"fmt"
 	"io/ioutil"
@@ -10,6 +10,7 @@ import (
 	"os/exec"
 	"path"
 	"path/filepath"
+	"strconv"
 	"strings"
 	"syscall"
 	"testing"
@@ -25,8 +26,8 @@ type gdProcess struct {
 	Cmd           *exec.Cmd
 	ClientAddress string `toml:"clientaddress"`
 	PeerAddress   string `toml:"peeraddress"`
-	Workdir       string `toml:"workdir"`
 	LocalStateDir string `toml:"localstatedir"`
+	RestAuth      bool   `toml:"restauth"`
 	Rundir        string `toml:"rundir"`
 	uuid          string
 }
@@ -43,22 +44,18 @@ func (g *gdProcess) Stop() error {
 }
 
 func (g *gdProcess) updateDirs() {
-	g.Workdir = path.Clean(g.Workdir)
-	if !path.IsAbs(g.Workdir) {
-		g.Workdir = path.Join(baseWorkdir, g.Workdir)
-	}
 	g.Rundir = path.Clean(g.Rundir)
 	if !path.IsAbs(g.Rundir) {
-		g.Rundir = path.Join(baseWorkdir, g.Rundir)
+		g.Rundir = path.Join(baseLocalStateDir, g.Rundir)
 	}
 	g.LocalStateDir = path.Clean(g.LocalStateDir)
 	if !path.IsAbs(g.LocalStateDir) {
-		g.LocalStateDir = path.Join(baseWorkdir, g.LocalStateDir)
+		g.LocalStateDir = path.Join(baseLocalStateDir, g.LocalStateDir)
 	}
 }
 
-func (g *gdProcess) EraseWorkdir() error {
-	return os.RemoveAll(g.Workdir)
+func (g *gdProcess) EraseLocalStateDir() error {
+	return os.RemoveAll(g.LocalStateDir)
 }
 
 func (g *gdProcess) IsRunning() bool {
@@ -127,10 +124,10 @@ func spawnGlusterd(configFilePath string, cleanStart bool) (*gdProcess, error) {
 	g.updateDirs()
 
 	if cleanStart {
-		g.EraseWorkdir() // cleanup leftovers from previous test
+		g.EraseLocalStateDir() // cleanup leftovers from previous test
 	}
 
-	if err := os.MkdirAll(path.Join(g.Workdir, "log"), os.ModeDir|os.ModePerm); err != nil {
+	if err := os.MkdirAll(path.Join(g.LocalStateDir, "log"), os.ModeDir|os.ModePerm); err != nil {
 		return nil, err
 	}
 
@@ -140,10 +137,9 @@ func spawnGlusterd(configFilePath string, cleanStart bool) (*gdProcess, error) {
 	}
 	g.Cmd = exec.Command(path.Join(binDir, "glusterd2"),
 		"--config", absConfigFilePath,
-		"--workdir", g.Workdir,
 		"--localstatedir", g.LocalStateDir,
 		"--rundir", g.Rundir,
-		"--logdir", path.Join(g.Workdir, "log"),
+		"--logdir", path.Join(g.LocalStateDir, "log"),
 		"--logfile", "glusterd2.log")
 
 	if err := g.Cmd.Start(); err != nil {
@@ -155,7 +151,7 @@ func spawnGlusterd(configFilePath string, cleanStart bool) (*gdProcess, error) {
 	}()
 
 	retries := 4
-	waitTime := 1500
+	waitTime := 2000
 	for i := 0; i < retries; i++ {
 		// opposite of exponential backoff
 		time.Sleep(time.Duration(waitTime) * time.Millisecond)
@@ -174,46 +170,59 @@ func spawnGlusterd(configFilePath string, cleanStart bool) (*gdProcess, error) {
 
 func setupCluster(configFiles ...string) ([]*gdProcess, error) {
 
-	var gds []*gdProcess
+	gds := make([]*gdProcess, 0, len(configFiles))
 
+	cleanupRequired := true
 	cleanup := func() {
-		for _, p := range gds {
-			p.Stop()
-			p.EraseWorkdir()
+		if cleanupRequired {
+			for _, p := range gds {
+				p.Stop()
+				p.EraseLocalStateDir()
+			}
 		}
 	}
+	defer cleanup()
 
 	for _, configFile := range configFiles {
 		g, err := spawnGlusterd(configFile, true)
 		if err != nil {
-			cleanup()
 			return nil, err
 		}
 		gds = append(gds, g)
 	}
 
-	// first gd2 that comes up shall add other nodes as its peers
-	firstNode := gds[0].ClientAddress
+	// restclient instance that will be used for peer operations
+	client := initRestclient(gds[0])
+
+	// first gd2 instance spawned shall add other glusterd2 instances as its peers
 	for i, gd := range gds {
 		if i == 0 {
+			// do not add self
 			continue
 		}
+
 		peerAddReq := api.PeerAddReq{
 			Addresses: []string{gd.PeerAddress},
 		}
-		reqBody, errJSONMarshal := json.Marshal(peerAddReq)
-		if errJSONMarshal != nil {
-			cleanup()
-			return nil, errJSONMarshal
-		}
 
-		resp, err := http.Post("http://"+firstNode+"/v1/peers", "application/json", strings.NewReader(string(reqBody)))
-		if err != nil || resp.StatusCode != 201 {
-			cleanup()
-			return nil, err
+		if _, err := client.PeerAdd(peerAddReq); err != nil {
+			return nil, fmt.Errorf("setupCluster(): Peer add failed with error response %s",
+				err.Error())
 		}
-		resp.Body.Close()
 	}
+
+	// fail if the cluster hasn't been formed properly
+	peers, err := client.Peers()
+	if err != nil {
+		return nil, err
+	}
+
+	if len(peers) != len(gds) || len(peers) != len(configFiles) {
+		return nil, fmt.Errorf("setupCluster() failed to create a cluster")
+	}
+
+	// do not run logic in cleanup() function that was deferred
+	cleanupRequired = false
 
 	return gds, nil
 }
@@ -229,8 +238,9 @@ func teardownCluster(gds []*gdProcess) error {
 	return nil
 }
 
-func initRestclient(clientAddress string) *restclient.Client {
-	return restclient.New("http://"+clientAddress, "", "", "", false)
+func initRestclient(gdp *gdProcess) *restclient.Client {
+	secret := getAuth(gdp.LocalStateDir)
+	return restclient.New("http://"+gdp.ClientAddress, "glustercli", secret, "", false)
 }
 
 func prepareLoopDevice(devname, loopnum, size string) error {
@@ -268,7 +278,7 @@ func cleanupAllBrickMounts(t *testing.T) {
 	lines := strings.Split(string(out), "\n")
 	for _, line := range lines {
 		// Identify Brick Mount
-		if strings.Contains(line, baseWorkdir) {
+		if strings.Contains(line, baseLocalStateDir) {
 			// Example: "/dev/mapper/gluster--vg--dev--gluster_loop2-brick_testvol--0--1 on \
 			// /tmp/gd2_func_test/w1/mounts/testvol-0-1 type xfs (rw,noatime,seclabel, \
 			// nouuid,attr2,inode64,logbsize=64k,sunit=128,swidth=2560,noquota
@@ -331,7 +341,7 @@ func loopDevicesCleanup(t *testing.T) error {
 	cleanupAllGlusterPvs(t)
 
 	// Cleanup device files
-	devicefiles, err := filepath.Glob(baseWorkdir + "/*.img")
+	devicefiles, err := filepath.Glob(baseLocalStateDir + "/*.img")
 	if err == nil {
 		for _, devicefile := range devicefiles {
 			err := os.Remove(devicefile)
@@ -341,4 +351,59 @@ func loopDevicesCleanup(t *testing.T) error {
 		}
 	}
 	return nil
+}
+
+func formatVolName(volName string) string {
+	return strings.Replace(volName, "/", "-", 1)
+}
+
+func isProcessRunning(pidpath string) bool {
+	content, err := ioutil.ReadFile(pidpath)
+	if err != nil {
+		return false
+	}
+
+	pid, err := strconv.Atoi(string(bytes.TrimSpace(content)))
+	if err != nil {
+		return false
+	}
+
+	process, err := os.FindProcess(pid)
+	if err != nil {
+		return false
+	}
+
+	if err = process.Signal(syscall.Signal(0)); err != nil {
+		return false
+	}
+
+	return true
+}
+
+// testTempDir returns a temporary directory path that will exist
+// on the system. This path is based on the name of the test and
+// a unique final directory, determined by prefix.
+// On encountering an error this function will panic.
+func testTempDir(t *testing.T, prefix string) string {
+	base := path.Join(baseLocalStateDir, t.Name())
+	if err := os.MkdirAll(base, 0755); err != nil {
+		panic(err)
+	}
+	d, err := ioutil.TempDir(base, prefix)
+	if err != nil {
+		panic(err)
+	}
+	return d
+}
+
+func getAuth(path string) string {
+	filepath := path + "/auth"
+	if _, err := os.Stat(filepath); !os.IsNotExist(err) {
+		s, err := ioutil.ReadFile(filepath)
+		if err != nil {
+			panic("unable to read auth file")
+		}
+		return string(s)
+	}
+	return ""
 }

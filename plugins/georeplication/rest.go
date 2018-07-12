@@ -6,7 +6,6 @@ import (
 	errs "errors"
 	"fmt"
 	"net/http"
-	"os/exec"
 	"path"
 	"strings"
 
@@ -16,6 +15,7 @@ import (
 	"github.com/gluster/glusterd2/glusterd2/transaction"
 	"github.com/gluster/glusterd2/glusterd2/volume"
 	"github.com/gluster/glusterd2/pkg/errors"
+	"github.com/gluster/glusterd2/pkg/utils"
 	georepapi "github.com/gluster/glusterd2/plugins/georeplication/api"
 
 	"github.com/gorilla/mux"
@@ -601,8 +601,7 @@ func checkConfig(name string, value string) error {
 	if value != "" {
 		args = append(args, "--value", value)
 	}
-	_, err := exec.Command(gsyncdCommand, args...).Output()
-	return err
+	return utils.ExecuteCommandRun(gsyncdCommand, args...)
 }
 
 func georepConfigGetHandler(w http.ResponseWriter, r *http.Request) {
@@ -638,7 +637,7 @@ func georepConfigGetHandler(w http.ResponseWriter, r *http.Request) {
 		"--show-defaults",
 		"--json",
 	}
-	out, err := exec.Command(gsyncdCommand, args...).Output()
+	out, err := utils.ExecuteCommandOutput(gsyncdCommand, args...)
 	if err != nil {
 		logger.WithFields(log.Fields{
 			"error":       err.Error(),
@@ -1110,5 +1109,5 @@ func georepSSHKeyPushHandler(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	restutils.SendHTTPResponse(ctx, w, http.StatusCreated, "SSH Keys added successfully")
+	restutils.SendHTTPResponse(ctx, w, http.StatusCreated, nil)
 }

@@ -12,8 +12,8 @@ import (
 var (
 	// xlMap is a map of all available xlators, indexed by xlator-id
 	xlMap map[string]*Xlator
-	// options is a map of all available options indexed by
-	// <xlator-id>.<option-key> for all keys of an option
+	// optMap is a map of all available volume options indexed by
+	// <xlator-id>.<option-key> for all keys of a volume option
 	optMap map[string]*options.Option
 )
 
@@ -35,6 +35,7 @@ func Load() (err error) {
 	}
 	xlMap = xls
 
+	injectTransportOptions()
 	loadOptions()
 	return
 }
@@ -53,6 +54,40 @@ func loadOptions() {
 			for _, k := range opt.Key {
 				k := xl.ID + "." + k
 				optMap[k] = opt
+			}
+		}
+	}
+}
+
+// injectTransportOptions injects options present in transport layer (socket.so
+// and rdma.so) into list of options loaded from protocol layer (server.so and
+// client.so)
+func injectTransportOptions() {
+
+	var transportNames = [...]string{"socket", "rdma"}
+	transports := make([]*Xlator, 0, 2)
+	for _, name := range transportNames {
+		if xl, ok := xlMap[name]; ok {
+			transports = append(transports, xl)
+		}
+	}
+
+	if len(transports) == 0 {
+		panic("socket.so or rdma.so not found. Please install glusterfs-server package")
+	}
+
+	for _, transport := range transports {
+		for _, option := range transport.Options {
+			// TODO:
+			// remove this once proper settable flags are set for
+			// these transport options in glusterfs source
+			option.Flags = option.Flags | options.OptionFlagSettable
+			if xl, ok := xlMap["server"]; ok {
+				xl.Options = append(xl.Options, option)
+			}
+			if xl, ok := xlMap["client"]; ok {
+				option.Flags = option.Flags | options.OptionFlagClientOpt
+				xl.Options = append(xl.Options, option)
 			}
 		}
 	}

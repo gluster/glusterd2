@@ -24,7 +24,7 @@ func validateVolStatedumpReq(req *api.VolStatedumpReq) error {
 
 	var tmp api.VolStatedumpReq // zero value of struct
 	if *req == tmp {
-		return errors.New("At least one of the statedump req options must be set")
+		return errors.New("at least one of the statedump req options must be set")
 	}
 
 	if req.Client != tmp.Client {
@@ -59,7 +59,7 @@ func takeStatedump(c transaction.TxnCtx) error {
 			if err != nil {
 				return err
 			}
-			if err := daemon.Signal(d, unix.SIGUSR1); err != nil {
+			if err := daemon.Signal(d, unix.SIGUSR1, c.Logger()); err != nil {
 				// only log, don't error out
 				c.Logger().WithError(err).WithField(
 					"daemon", d.ID()).Error("Failed to take statedump for daemon")
@@ -72,7 +72,7 @@ func takeStatedump(c transaction.TxnCtx) error {
 		if err != nil {
 			return err
 		}
-		if err := daemon.Signal(d, unix.SIGUSR1); err != nil {
+		if err := daemon.Signal(d, unix.SIGUSR1, c.Logger()); err != nil {
 			// only log, don't error out
 			c.Logger().WithError(err).WithField(
 				"daemon", d.ID()).Error("Failed to take statedump for daemon")

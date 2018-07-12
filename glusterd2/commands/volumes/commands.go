@@ -33,6 +33,20 @@ func (c *Command) Routes() route.Routes {
 		// TODO: Implmement volume reset as
 		// DELETE /volumes/{volname}/options
 		route.Route{
+			Name:         "VolumeOptionGet",
+			Method:       "GET",
+			Pattern:      "/volumes/{volname}/options/{optname}",
+			Version:      1,
+			ResponseType: utils.GetTypeString((*api.VolumeOptionGetResp)(nil)),
+			HandlerFunc:  volumeOptionsGetHandler},
+		route.Route{
+			Name:         "VolumeOptionsGet",
+			Method:       "GET",
+			Pattern:      "/volumes/{volname}/options",
+			Version:      1,
+			ResponseType: utils.GetTypeString((*api.VolumeOptionsGetResp)(nil)),
+			HandlerFunc:  volumeOptionsGetHandler},
+		route.Route{
 			Name:         "VolumeOptions",
 			Method:       "POST",
 			Pattern:      "/volumes/{volname}/options",
@@ -161,5 +175,6 @@ func (c *Command) RegisterStepFuncs() {
 	registerBricksStatusStepFuncs()
 	registerVolExpandStepFuncs()
 	registerVolOptionStepFuncs()
+	registerVolOptionResetStepFuncs()
 	registerVolStatedumpFuncs()
 }

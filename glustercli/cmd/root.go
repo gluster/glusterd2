@@ -2,9 +2,12 @@ package cmd
 
 import (
 	"fmt"
+	"io/ioutil"
+	"os"
 
 	"github.com/gluster/glusterd2/pkg/logging"
 
+	log "github.com/sirupsen/logrus"
 	"github.com/spf13/cobra"
 )
 
@@ -17,27 +20,50 @@ var RootCmd = &cobra.Command{
 		if err != nil {
 			fmt.Println("Error initializing log file ", err)
 		}
-		scheme := "http"
-		if flagHTTPS {
-			scheme = "https"
+
+		if flagAuthFile == "" && flagSecret == "" {
+			data, err := ioutil.ReadFile(defaultAuthPath)
+			if err != nil && !os.IsNotExist(err) {
+				if verbose {
+					log.WithError(err).Error("failed to read secret")
+				}
+			}
+			secret = string(data)
 		}
-		hostname := fmt.Sprintf("%s://%s:%d", scheme, flagHostname, flagPort)
-		initRESTClient(hostname, flagUser, flagSecret, flagCacert, flagInsecure)
+
+		if flagAuthFile != "" {
+			data, err := ioutil.ReadFile(flagAuthFile)
+			if err != nil {
+				if verbose {
+					log.WithError(err).Error("failed to read secret")
+				}
+				failure("failed to read secret", err, 1)
+			}
+			secret = string(data)
+		}
+
+		if flagSecret != "" {
+			secret = flagSecret
+		}
+
+		initRESTClient(flagEndpoints[0], flagUser, secret, flagCacert, flagInsecure)
 	},
 }
 
 var (
 	flagXMLOutput  bool
 	flagJSONOutput bool
-	flagHostname   string
-	flagHTTPS      bool
-	flagPort       int
+	flagEndpoints  []string
 	flagCacert     string
 	flagInsecure   bool
 	flagLogLevel   string
 	verbose        bool
 	flagUser       string
 	flagSecret     string
+	flagAuthFile   string
+	secret         string
+	//defaultAuthPath is set by LDFLAGS
+	defaultAuthPath = ""
 )
 
 const (
@@ -48,14 +74,13 @@ func init() {
 	// Global flags, applicable for all sub commands
 	RootCmd.PersistentFlags().BoolVarP(&flagXMLOutput, "xml", "", false, "XML Output")
 	RootCmd.PersistentFlags().BoolVarP(&flagJSONOutput, "json", "", false, "JSON Output")
-	RootCmd.PersistentFlags().StringVarP(&flagHostname, "glusterd-host", "", "localhost", "Glusterd Host")
-	RootCmd.PersistentFlags().BoolVarP(&flagHTTPS, "glusterd-https", "", false, "Use HTTPS while connecting to Glusterd")
-	RootCmd.PersistentFlags().IntVarP(&flagPort, "glusterd-port", "", 24007, "Glusterd Port")
+	RootCmd.PersistentFlags().StringSliceVar(&flagEndpoints, "endpoints", []string{"http://127.0.0.1:24007"}, "glusterd2 endpoints")
 	RootCmd.PersistentFlags().BoolVarP(&verbose, "verbose", "v", false, "verbose output")
 
 	//user and secret for token authentication
 	RootCmd.PersistentFlags().StringVar(&flagUser, "user", "glustercli", "Username for authentication")
 	RootCmd.PersistentFlags().StringVar(&flagSecret, "secret", "", "Password for authentication")
+	RootCmd.PersistentFlags().StringVar(&flagAuthFile, "authfile", "", "Auth file path, which contains secret for authentication")
 
 	// Log options
 	RootCmd.PersistentFlags().StringVarP(&flagLogLevel, logging.LevelFlag, "", defaultLogLevel, logging.LevelHelp)

@@ -37,7 +37,7 @@ func txnRebalanceStart(c transaction.TxnCtx) error {
 		return err
 	}
 
-	err = daemon.Start(rebalanceProcess, true)
+	err = daemon.Start(rebalanceProcess, true, c.Logger())
 	if err != nil {
 		c.Logger().WithError(err).WithField(
 			"volume", rinfo.Volname).Error("Starting rebalance process failed")
@@ -197,7 +197,7 @@ func txnRebalanceStatus(c transaction.TxnCtx) error {
 		return err
 	}
 
-	rebalNodeStatus.NodeID = gdctx.MyUUID
+	rebalNodeStatus.PeerID = gdctx.MyUUID
 	rebalNodeStatus.Status = rspDict["status"]
 	rebalNodeStatus.RebalancedFiles = rspDict["files"]
 	rebalNodeStatus.RebalancedSize = rspDict["size"]

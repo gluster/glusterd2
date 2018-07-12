@@ -16,12 +16,31 @@ import (
 	"github.com/pborman/uuid"
 )
 
+func registerVolOptionResetStepFuncs() {
+	var sfs = []struct {
+		name string
+		sf   transaction.StepFunc
+	}{
+		{"vol-option.XlatorActionDoReset", xlatorActionDoReset},
+		{"vol-option.XlatorActionUndoReset", xlatorActionUndoReset},
+	}
+	for _, sf := range sfs {
+		transaction.RegisterStepFunc(sf.sf, sf.name)
+	}
+}
+
 func volumeResetHandler(w http.ResponseWriter, r *http.Request) {
 
 	ctx := r.Context()
 	logger := gdctx.GetReqLogger(ctx)
 
 	volname := mux.Vars(r)["volname"]
+
+	var req api.VolOptionResetReq
+	if err := restutils.UnmarshalRequest(r, &req); err != nil {
+		restutils.SendHTTPError(ctx, w, http.StatusBadRequest, errors.ErrJSONParsingFailed)
+		return
+	}
 
 	txn, err := transaction.NewTxnWithLocks(ctx, volname)
 	if err != nil {
@@ -37,15 +56,25 @@ func volumeResetHandler(w http.ResponseWriter, r *http.Request) {
 		restutils.SendHTTPError(ctx, w, status, err)
 		return
 	}
-
-	var req api.VolOptionResetReq
-	if err := restutils.UnmarshalRequest(r, &req); err != nil {
-		restutils.SendHTTPError(ctx, w, http.StatusUnprocessableEntity, errors.ErrJSONParsingFailed)
-		return
-	}
-
+	//store volinfo to revert back changes in case of transaction failure
+	oldvolinfo := volinfo
 	// Delete the option after checking for volopt flags
 	opReset := false
+
+	if req.All {
+		req.Options = []string{}
+		for key := range volinfo.Options {
+			op, err := xlator.FindOption(key)
+			if err != nil {
+				restutils.SendHTTPError(ctx, w, http.StatusInternalServerError, err)
+				return
+			}
+			if !op.IsNeverReset() {
+				req.Options = append(req.Options, key)
+			}
+		}
+	}
+
 	for _, k := range req.Options {
 		// Check if the key is set or not
 		if _, ok := volinfo.Options[k]; ok {
@@ -89,16 +118,35 @@ func volumeResetHandler(w http.ResponseWriter, r *http.Request) {
 		restutils.SendHTTPError(ctx, w, http.StatusInternalServerError, err)
 		return
 	}
-
+	//save volume information for transaction failure scenario
+	if err := txn.Ctx.Set("oldvolinfo", oldvolinfo); err != nil {
+		restutils.SendHTTPError(ctx, w, http.StatusInternalServerError, err)
+		return
+	}
+	opt := make(map[string]string)
+	for _, key := range req.Options {
+		opt[key] = ""
+	}
 	txn.Steps = []*transaction.Step{
 		{
-			DoFunc: "vol-option.UpdateVolinfo",
-			Nodes:  []uuid.UUID{gdctx.MyUUID},
+			DoFunc:   "vol-option.XlatorActionDoReset",
+			UndoFunc: "vol-option.XlatorActionUndoReset",
+			Nodes:    volinfo.Nodes(),
+			Skip:     !isActionStepRequired(opt, volinfo),
+		},
+		{
+			DoFunc:   "vol-option.UpdateVolinfo",
+			UndoFunc: "vol-option.UpdateVolinfo.Undo",
+			Nodes:    []uuid.UUID{gdctx.MyUUID},
 		},
 		{
 			DoFunc: "vol-option.NotifyVolfileChange",
 			Nodes:  allNodes,
 		},
+	}
+	if err := txn.Ctx.Set("req", &req); err != nil {
+		restutils.SendHTTPError(ctx, w, http.StatusInternalServerError, err)
+		return
 	}
 
 	if err := txn.Ctx.Set("volinfo", volinfo); err != nil {

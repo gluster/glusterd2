@@ -17,14 +17,14 @@ func TestRestart(t *testing.T) {
 	r.Nil(err)
 	r.True(gd.IsRunning())
 
-	dir, err := ioutil.TempDir(baseWorkdir, t.Name())
+	dir, err := ioutil.TempDir(baseLocalStateDir, t.Name())
 	r.Nil(err)
 	defer os.RemoveAll(dir)
 
-	client := initRestclient(gd.ClientAddress)
+	client := initRestclient(gds[0])
 
 	createReq := api.VolCreateReq{
-		Name: "vol1",
+		Name: formatVolName(t.Name()),
 		Subvols: []api.SubvolReq{
 			{
 				Type: "distribute",
@@ -52,7 +52,7 @@ func TestRestart(t *testing.T) {
 }
 
 func getVols(gd *gdProcess, r *require.Assertions) api.VolumeListResp {
-	client := initRestclient(gd.ClientAddress)
+	client := initRestclient(gds[0])
 	volname := ""
 	vols, err := client.Volumes(volname)
 	r.Nil(err)

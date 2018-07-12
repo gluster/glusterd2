@@ -41,7 +41,7 @@ func validateSnapDeactivate(c transaction.TxnCtx) error {
 			}
 		}
 	case false:
-		return errors.New("Snapshot is already stopped")
+		return errors.New("snapshot is already stopped")
 
 	}
 	if err := c.SetNodeResult(gdctx.MyUUID, "brickListToOperate", &brickinfos); err != nil {
@@ -71,7 +71,7 @@ func deactivateSnapshot(c transaction.TxnCtx) error {
 		return err
 	}
 
-	err = snapshot.ActivateDeactivateFunc(snapinfo, brickinfos, activate)
+	err = snapshot.ActivateDeactivateFunc(snapinfo, brickinfos, activate, c.Logger())
 	if err != nil {
 		return err
 	}
@@ -121,7 +121,7 @@ func rollbackDeactivateSnapshot(c transaction.TxnCtx) error {
 		return err
 	}
 
-	err = snapshot.ActivateDeactivateFunc(snapinfo, brickinfos, activate)
+	err = snapshot.ActivateDeactivateFunc(snapinfo, brickinfos, activate, c.Logger())
 
 	return err
 

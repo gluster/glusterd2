@@ -5,7 +5,6 @@ import (
 	"errors"
 	"expvar"
 	"net"
-	"os"
 	"path"
 
 	"github.com/gluster/glusterd2/glusterd2/gdctx"
@@ -39,7 +38,6 @@ var (
 
 // parseFlags sets up the flags and parses them, this needs to be called before any other operation
 func parseFlags() {
-	flag.String("workdir", "", "Working directory for GlusterD. (default: current directory)")
 	flag.String("localstatedir", defaultlocalstatedir, "Directory to store local state information.")
 	flag.String("rundir", defaultrundir, "Directory to store runtime data.")
 	flag.String("config", "", "Configuration file for GlusterD.")
@@ -69,14 +67,6 @@ func parseFlags() {
 // setDefaults sets defaults values for config options not available as a flag,
 // and flags which don't have default values
 func setDefaults() error {
-	cwd, err := os.Getwd()
-	if err != nil {
-		return err
-	}
-
-	if config.GetString("workdir") == "" {
-		config.SetDefault("workdir", cwd)
-	}
 
 	config.SetDefault("hooksdir", config.GetString("localstatedir")+"/hooks")
 

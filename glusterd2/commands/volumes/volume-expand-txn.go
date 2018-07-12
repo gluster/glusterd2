@@ -37,15 +37,15 @@ func expandValidatePrepare(c transaction.TxnCtx) error {
 		newReplicaCount = volinfo.Subvols[0].ReplicaCount
 	}
 	if (len(req.Bricks)+len(volinfo.GetBricks()))%newReplicaCount != 0 {
-		return errors.New("Invalid number of bricks")
+		return errors.New("invalid number of bricks")
 	}
 
 	if volinfo.Type == volume.Replicate && req.ReplicaCount != 0 {
 		// TODO: Only considered first sub volume's ReplicaCount
 		if req.ReplicaCount < volinfo.Subvols[0].ReplicaCount {
-			return errors.New("Invalid number of bricks")
+			return errors.New("invalid number of bricks")
 		} else if req.ReplicaCount == volinfo.Subvols[0].ReplicaCount {
-			return errors.New("Replica count is same")
+			return errors.New("replica count is same")
 		}
 	}
 
@@ -59,8 +59,18 @@ func expandValidatePrepare(c transaction.TxnCtx) error {
 		return err
 	}
 
-	checks := brick.PrepareChecks(req.Force, req.Flags)
+	allBricks, err := volume.GetAllBricksInCluster()
+	if err != nil {
+		return err
+	}
 
+	// Used by other peers to check if proposed bricks are already in use.
+	// This check is however still prone to races. See issue #314
+	if err := c.Set("all-bricks-in-cluster", allBricks); err != nil {
+		return err
+	}
+
+	checks := brick.PrepareChecks(req.Force, req.Flags)
 	if err := c.Set("brick-checks", checks); err != nil {
 		return err
 	}
@@ -102,7 +112,7 @@ func startBricksOnExpand(c transaction.TxnCtx) error {
 			"brick":  b.String(),
 		}).Info("Starting brick")
 
-		if err := b.StartBrick(); err != nil {
+		if err := b.StartBrick(c.Logger()); err != nil {
 			return err
 		}
 	}
@@ -129,7 +139,7 @@ func undoStartBricksOnExpand(c transaction.TxnCtx) error {
 			"brick":  b.String(),
 		}).Info("volume expand failed, stopping brick")
 
-		if err := b.StopBrick(); err != nil {
+		if err := b.StopBrick(c.Logger()); err != nil {
 			c.Logger().WithFields(log.Fields{
 				"error":  err,
 				"volume": b.VolumeName,
@@ -164,7 +174,7 @@ func updateVolinfoOnExpand(c transaction.TxnCtx) error {
 	// TODO: Assumption, all subvols are same
 	// If New Replica count is different than existing then add one brick to each subvolume
 	// Or if the Volume consists of only one subvolume.
-	var addNewSubvolume bool
+	addNewSubvolume := true
 	switch volinfo.Subvols[0].Type {
 	case volume.SubvolDistribute:
 		addNewSubvolume = false

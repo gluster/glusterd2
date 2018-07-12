@@ -28,7 +28,6 @@ import (
 )
 
 func main() {
-
 	if err := gdctx.SetHostnameAndIP(); err != nil {
 		log.WithError(err).Fatal("Failed to get and set hostname or IP")
 	}
@@ -72,12 +71,12 @@ func main() {
 
 	dumpConfigToLog()
 
-	workdir := config.GetString("workdir")
+	workdir := config.GetString("localstatedir")
 	if err := os.Chdir(workdir); err != nil {
 		log.WithError(err).Fatalf("Failed to change working directory to %s", workdir)
 	}
 
-	// Create directories inside workdir - run dir, logdir etc
+	// Create directories inside localstatedir - run dir, logdir etc
 	if err := createDirectories(); err != nil {
 		log.WithError(err).Fatal("Failed to create or access directories")
 	}
@@ -115,7 +114,7 @@ func main() {
 		log.WithError(err).Fatal("Failed to load the default group options")
 	}
 
-	// If REST API Auth is enabled, Generate Auth file with random secret in workdir
+	// If REST API Auth is enabled, Generate Auth file with random secret in localstatedir
 	if err := gdctx.GenerateLocalAuthToken(); err != nil {
 		log.WithError(err).Fatal("Failed to generate local auth token")
 	}
