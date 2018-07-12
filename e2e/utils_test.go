@@ -27,6 +27,7 @@ type gdProcess struct {
 	ClientAddress string `toml:"clientaddress"`
 	PeerAddress   string `toml:"peeraddress"`
 	LocalStateDir string `toml:"localstatedir"`
+	RestAuth      bool   `toml:"restauth"`
 	Rundir        string `toml:"rundir"`
 	uuid          string
 }
@@ -191,7 +192,7 @@ func setupCluster(configFiles ...string) ([]*gdProcess, error) {
 	}
 
 	// restclient instance that will be used for peer operations
-	client := initRestclient(gds[0].ClientAddress)
+	client := initRestclient(gds[0])
 
 	// first gd2 instance spawned shall add other glusterd2 instances as its peers
 	for i, gd := range gds {
@@ -237,8 +238,9 @@ func teardownCluster(gds []*gdProcess) error {
 	return nil
 }
 
-func initRestclient(clientAddress string) *restclient.Client {
-	return restclient.New("http://"+clientAddress, "", "", "", false)
+func initRestclient(gdp *gdProcess) *restclient.Client {
+	secret := getAuth(gdp.LocalStateDir)
+	return restclient.New("http://"+gdp.ClientAddress, "glustercli", secret, "", false)
 }
 
 func prepareLoopDevice(devname, loopnum, size string) error {
@@ -392,4 +394,16 @@ func testTempDir(t *testing.T, prefix string) string {
 		panic(err)
 	}
 	return d
+}
+
+func getAuth(path string) string {
+	filepath := path + "/auth"
+	if _, err := os.Stat(filepath); !os.IsNotExist(err) {
+		s, err := ioutil.ReadFile(filepath)
+		if err != nil {
+			panic("unable to read auth file")
+		}
+		return string(s)
+	}
+	return ""
 }

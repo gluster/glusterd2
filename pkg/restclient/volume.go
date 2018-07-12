@@ -185,3 +185,9 @@ func (c *Client) EditVolume(volname string, req api.VolEditReq) (api.VolumeEditR
 	err := c.post(url, req, http.StatusOK, &resp)
 	return resp, err
 }
+
+// VolumeReset resets volume options to their default values
+func (c *Client) VolumeReset(volname string, req api.VolOptionResetReq) error {
+	url := fmt.Sprintf("/v1/volumes/%s/options", volname)
+	return c.del(url, req, http.StatusOK, nil)
+}
