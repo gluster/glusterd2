@@ -21,16 +21,16 @@ func newRemoteStore(conf *Config) (*GDStore, error) {
 		if conf.ClntCertFile != "" && conf.ClntKeyFile != "" {
 			tlsCert, err := tls.LoadX509KeyPair(conf.ClntCertFile, conf.ClntKeyFile)
 			if err != nil {
-				log.WithError(err).Error("failed to load certificate file")
+				log.WithError(err).Error("failed to load client certificate file")
 				return nil, err
 			}
 			tlsConfig.Certificates = []tls.Certificate{tlsCert}
 			tlsConfig.ClientAuth = tls.RequestClientCert
 		}
-		if conf.CAFile != "" {
-			caCert, err := ioutil.ReadFile(conf.CAFile)
+		if conf.ClntCAFile != "" {
+			caCert, err := ioutil.ReadFile(conf.ClntCAFile)
 			if err != nil {
-				log.WithError(err).Error("failed to load CA file")
+				log.WithError(err).Error("failed to load client CA file")
 				return nil, err
 			}
 			caCertPool := x509.NewCertPool()
