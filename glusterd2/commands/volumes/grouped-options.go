@@ -129,6 +129,12 @@ var defaultGroupOptions = map[string]*api.OptionGroup{
 			{Name: "features.shard", OnValue: "on"},
 			{Name: "user.cifs", OnValue: "off"}},
 		"Enable this profile, if the Gluster Volume is used to store virtual machines"},
+	"tls": {"tls",
+		[]api.VolumeOption{
+			{Name: "server.transport.socket.ssl-enabled", OnValue: "on"},
+			{Name: "client.transport.socket.ssl-enabled", OnValue: "on"},
+		},
+		"Enable TLS for the volume for both bricks and clients"},
 	"profile.test": {"profile.test",
 		[]api.VolumeOption{{Name: "afr.eager-lock", OnValue: "on"},
 			{Name: "gfproxy.afr.eager-lock", OnValue: "on"}},

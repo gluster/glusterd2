@@ -247,16 +247,17 @@ func ValidateInternetAddress(o *Option, val string) error {
 	if len(val) == 0 {
 		return ErrInvalidArg
 	}
-	if !(validate.IsHost(val)) {
-		return ErrInvalidArg
-	} else if !(validate.IsIP(val)) {
-		return ErrInvalidArg
-	} else if !(validate.IsCIDR(val)) {
-		return ErrInvalidArg
-	} else if !(strings.ContainsAny(val, "* & # & ? & ^")) {
-		return ErrInvalidArg
+	if validate.IsHost(val) {
+		return nil
+	} else if validate.IsIP(val) {
+		return nil
+	} else if validate.IsCIDR(val) {
+		return nil
+	} else if strings.ContainsAny(val, "* & # & ? & ^") {
+		return nil
 	}
-	return nil
+
+	return ErrInvalidArg
 }
 
 // ValidateInternetAddressList validates the Internet Address List
