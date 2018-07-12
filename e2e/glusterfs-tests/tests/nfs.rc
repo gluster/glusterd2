@@ -1,0 +1,70 @@
+#!/bin/bash
+
+# Due to portmap registration NFS takes some time to
+# export all volumes. Therefore tests should start only
+# after exports are visible by showmount command. This
+# routine will check if showmount shows the exports or not
+#
+function is_nfs_export_available ()
+{
+        local vol=$1
+
+        if [ "$vol" == "" ]; then
+                vol=$V0
+        fi
+
+        exp=$(showmount -e localhost 2> /dev/null | grep $vol | wc -l)
+        echo "$exp"
+}
+
+function mount_nfs ()
+{
+        local e=$1
+        local m=$2
+        local opt=$3
+        if [ ! -z "$opt" ]; then opt=",$opt"; fi
+        opt="soft,intr,vers=3$opt"
+
+        nopt=""
+        for o in ${opt//,/ }; do
+                case $OSTYPE in
+                NetBSD)
+                        test "x${nopt}" = "x" && nopt="tcp,-R=2,"
+
+                        case $o in
+                        nolock|noac|actimeo=*|mountproto=udp)
+                                continue
+                                ;;
+                        proto=tcp)
+                                o="tcp"
+                                ;;
+                        vers=3)
+                                o="nfsv3"
+                                ;;
+                        retry=*)
+                                o=${o/retry=/-R}
+                                ;;
+                        timeo=*)
+                                o=${o/timeo=/-t}
+                                ;;
+                        retrans=*)
+                                o=${o/retrans=/-x}
+                                ;;
+                        *)
+                                ;;
+                        esac
+                        ;;
+                *)
+                        ;;
+                esac
+                if [ ! -z "$nopt" ]; then nopt="${nopt},"; fi
+                nopt="${nopt}$o"
+        done
+
+        mount -t nfs -o $nopt $e $m
+}
+
+function umount_nfs {
+        ${UMOUNT_F} $1
+        if [ $? -eq 0 ]; then echo "Y"; else echo "N"; fi
+}
