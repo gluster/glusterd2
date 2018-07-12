@@ -27,7 +27,7 @@ func TestAddRemovePeer(t *testing.T) {
 	defer g3.Stop()
 	r.True(g3.IsRunning())
 
-	client := initRestclient(g1.ClientAddress)
+	client := initRestclient(gds[0])
 	peerAddReq := api.PeerAddReq{
 		Addresses: []string{g2.PeerAddress},
 		Metadata: map[string]string{

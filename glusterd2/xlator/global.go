@@ -12,8 +12,8 @@ import (
 var (
 	// xlMap is a map of all available xlators, indexed by xlator-id
 	xlMap map[string]*Xlator
-	// options is a map of all available options indexed by
-	// <xlator-id>.<option-key> for all keys of an option
+	// optMap is a map of all available volume options indexed by
+	// <xlator-id>.<option-key> for all keys of a volume option
 	optMap map[string]*options.Option
 )
 

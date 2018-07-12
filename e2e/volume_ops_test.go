@@ -27,7 +27,6 @@ const (
 var (
 	gds    []*gdProcess
 	client *restclient.Client
-	tmpDir string
 )
 
 // TestVolume creates a volume and starts it, runs further tests on it and
@@ -41,12 +40,7 @@ func TestVolume(t *testing.T) {
 	r.Nil(err)
 	defer teardownCluster(gds)
 
-	client = initRestclient(gds[0].ClientAddress)
-
-	tmpDir, err = ioutil.TempDir(baseLocalStateDir, t.Name())
-	r.Nil(err)
-	t.Logf("Using temp dir: %s", tmpDir)
-	//defer os.RemoveAll(tmpDir)
+	client = initRestclient(gds[0])
 
 	t.Run("CreateWithoutName", testVolumeCreateWithoutName)
 
@@ -79,8 +73,7 @@ func testVolumeCreateWithoutName(t *testing.T) {
 
 	var brickPaths []string
 	for i := 1; i <= 2; i++ {
-		brickPath, err := ioutil.TempDir(tmpDir, "brick")
-		r.Nil(err)
+		brickPath := testTempDir(t, "brick")
 		brickPaths = append(brickPaths, brickPath)
 	}
 
@@ -107,8 +100,7 @@ func testVolumeCreate(t *testing.T) {
 
 	var brickPaths []string
 	for i := 1; i <= 4; i++ {
-		brickPath, err := ioutil.TempDir(tmpDir, "brick")
-		r.Nil(err)
+		brickPath := testTempDir(t, "brick")
 		brickPaths = append(brickPaths, brickPath)
 	}
 
@@ -391,15 +383,14 @@ func testMountUnmount(t *testing.T, v string) {
 	}
 	r := require.New(t)
 
-	mntPath, err := ioutil.TempDir(tmpDir, "mnt")
-	r.Nil(err)
+	mntPath := testTempDir(t, "mnt")
 	defer os.RemoveAll(mntPath)
 
 	host, _, _ := net.SplitHostPort(gds[0].ClientAddress)
 	mntCmd := exec.Command("mount", "-t", "glusterfs", host+":"+v, mntPath)
 	umntCmd := exec.Command("umount", mntPath)
 
-	err = mntCmd.Run()
+	err := mntCmd.Run()
 	r.Nil(err, fmt.Sprintf("mount failed: %s", err))
 
 	err = umntCmd.Run()
@@ -427,7 +418,7 @@ func TestVolumeOptions(t *testing.T) {
 	brickPath, err := ioutil.TempDir(brickDir, "brick")
 	r.Nil(err)
 
-	client := initRestclient(gds[0].ClientAddress)
+	client := initRestclient(gds[0])
 
 	volname := "testvol"
 	createReq := api.VolCreateReq{
@@ -446,21 +437,41 @@ func TestVolumeOptions(t *testing.T) {
 		Advanced: true,
 	}
 
-	// valid option test cases
 	validOpKeys := []string{"gfproxy.afr.eager-lock", "afr.eager-lock"}
+	invalidOpKeys := []string{"..eager-lock", "a.b.afr.eager-lock", "afr.non-existent", "eager-lock"}
+
+	// valid option test cases
 	for _, validKey := range validOpKeys {
 		createReq.Options = map[string]string{validKey: "on"}
 
 		_, err = client.VolumeCreate(createReq)
 		r.Nil(err)
 
+		// test volume get on valid keys
+		_, err = client.VolumeGet(volname, validKey)
+		r.Nil(err)
+
+		var resetOptionReq api.VolOptionResetReq
+		resetOptionReq.Options = append(resetOptionReq.Options, validKey)
+		resetOptionReq.Force = true
+		r.Nil(client.VolumeReset(volname, resetOptionReq))
+
 		err = client.VolumeDelete(volname)
 		r.Nil(err)
 	}
 
 	// invalid option test cases
-	invalidOpKeys := []string{"..eager-lock", "a.b.afr.eager-lock", "afr.non-existent", "eager-lock"}
 	for _, invalidKey := range invalidOpKeys {
+		createReq.Options = map[string]string{}
+		_, err = client.VolumeCreate(createReq)
+		r.Nil(err)
+
+		_, err = client.VolumeGet(volname, invalidKey)
+		r.NotNil(err)
+
+		err = client.VolumeDelete(volname)
+		r.Nil(err)
+
 		createReq.Options = map[string]string{invalidKey: "on"}
 
 		_, err = client.VolumeCreate(createReq)
@@ -479,9 +490,26 @@ func TestVolumeOptions(t *testing.T) {
 	settableKey := "afr.use-compound-fops"
 	optionReq.Options = map[string]string{settableKey: "on"}
 	r.Nil(client.VolumeSet(volname, optionReq))
+
+	var resetOptionReq api.VolOptionResetReq
+	resetOptionReq.Options = []string{"afr.use-compound-fops"}
+	resetOptionReq.Force = true
+	r.Nil(client.VolumeReset(volname, resetOptionReq))
+
+	validOpKeys = []string{"io-stats.count-fop-hits", "io-stats.latency-measurement"}
+	for _, validKey := range validOpKeys {
+		optionReq.Options = map[string]string{validKey: "on"}
+		r.Nil(client.VolumeSet(volname, optionReq))
+	}
+
+	resetOptionReq.Force = true
+	resetOptionReq.All = true
+	r.Nil(client.VolumeReset(volname, resetOptionReq))
+
 	notSettableKey := "afr.consistent-io"
 	optionReq.Options = map[string]string{notSettableKey: "on"}
 	r.NotNil(client.VolumeSet(volname, optionReq))
+
 	r.Nil(client.VolumeDelete(volname))
 
 	// group option test cases
@@ -495,7 +523,6 @@ func TestVolumeOptions(t *testing.T) {
 		err = client.VolumeDelete(volname)
 		r.Nil(err)
 	}
-
 	for _, validKey := range groupOpKeys {
 		createReq.Options = map[string]string{validKey: "off"}
 
@@ -548,8 +575,7 @@ func testDisperse(t *testing.T) {
 
 	var brickPaths []string
 	for i := 1; i <= 3; i++ {
-		brickPath, err := ioutil.TempDir(tmpDir, "brick")
-		r.Nil(err)
+		brickPath := testTempDir(t, "brick")
 		brickPaths = append(brickPaths, brickPath)
 	}
 

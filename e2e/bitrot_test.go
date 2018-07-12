@@ -1,7 +1,6 @@
 package e2e
 
 import (
-	"io/ioutil"
 	"testing"
 
 	"github.com/gluster/glusterd2/pkg/api"
@@ -19,11 +18,7 @@ func TestBitrot(t *testing.T) {
 	r.Nil(err)
 	defer teardownCluster(gds)
 
-	client = initRestclient(gds[0].ClientAddress)
-
-	tmpDir, err = ioutil.TempDir(baseLocalStateDir, t.Name())
-	r.Nil(err)
-	t.Logf("Using temp dir: %s", tmpDir)
+	client = initRestclient(gds[0])
 
 	// test Bitrot on dist-rep volume
 	t.Run("Replica-volume", testBitrotOnReplicaVolume)
@@ -38,8 +33,7 @@ func testBitrotOnReplicaVolume(t *testing.T) {
 	var brickPaths []string
 
 	for i := 1; i <= 4; i++ {
-		brickPath, err := ioutil.TempDir(tmpDir, "brick")
-		r.Nil(err)
+		brickPath := testTempDir(t, "brick")
 		brickPaths = append(brickPaths, brickPath)
 	}
 
@@ -81,8 +75,7 @@ func testBitrotOnDistVolume(t *testing.T) {
 	var brickPaths []string
 
 	for i := 1; i <= 4; i++ {
-		brickPath, err := ioutil.TempDir(tmpDir, "brick")
-		r.Nil(err)
+		brickPath := testTempDir(t, "brick")
 		brickPaths = append(brickPaths, brickPath)
 	}
 

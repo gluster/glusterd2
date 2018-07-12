@@ -19,7 +19,7 @@ func generateQuotadVolfile(volfile *Volfile, clusterinfo []*volume.Volinfo, peer
 
 	for _, v := range clusterinfo {
 		//If quota is not enabled for volume, then skip those volumes
-		val, exists := v.Options["features.quota"]
+		val, exists := v.Options["quota.enable"]
 		if exists && val == "on" {
 			dht := quota.Add("cluster/distribute", v, nil).SetName(v.Name)
 			clusterGraph(volfile, dht, v, peerid, nil)

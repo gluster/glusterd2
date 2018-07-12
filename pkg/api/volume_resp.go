@@ -73,6 +73,15 @@ type VolumeStatusResp struct {
 	Size   SizeInfo   `json:"size"`
 }
 
+// VolumeOptionGetResp is the response sent for a volume option get request
+type VolumeOptionGetResp struct {
+	OptName      string `json:"name"`
+	Value        string `json:"value"`
+	Modified     bool   `json:"modified"`
+	DefaultValue string `json:"default-value"`
+	OptionLevel  string `json:"option-level"`
+}
+
 // VolumeCreateResp is the response sent for a volume create request.
 type VolumeCreateResp VolumeInfo
 
@@ -118,3 +127,6 @@ type OptionGroupListResp []OptionGroup
 
 // VolumeEditResp is the response sent for a edit volume request
 type VolumeEditResp VolumeInfo
+
+// VolumeOptionsGetResp is the response sent for a volume get request for all options
+type VolumeOptionsGetResp []VolumeOptionGetResp

@@ -60,6 +60,21 @@ func volumeResetHandler(w http.ResponseWriter, r *http.Request) {
 	oldvolinfo := volinfo
 	// Delete the option after checking for volopt flags
 	opReset := false
+
+	if req.All {
+		req.Options = []string{}
+		for key := range volinfo.Options {
+			op, err := xlator.FindOption(key)
+			if err != nil {
+				restutils.SendHTTPError(ctx, w, http.StatusInternalServerError, err)
+				return
+			}
+			if !op.IsNeverReset() {
+				req.Options = append(req.Options, key)
+			}
+		}
+	}
+
 	for _, k := range req.Options {
 		// Check if the key is set or not
 		if _, ok := volinfo.Options[k]; ok {

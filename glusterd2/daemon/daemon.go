@@ -141,7 +141,7 @@ func Stop(d Daemon, force bool, logger log.FieldLogger) error {
 	// It is assumed that the process d has written to pidfile
 	pid, err := ReadPidFromFile(d.PidFile())
 	if err != nil {
-		return err
+		return errors.ErrPidFileNotFound
 	}
 
 	process, err := GetProcess(pid)
