@@ -38,8 +38,8 @@ func runGlfshealBin(volname string, args []string) (string, error) {
 
 	cmd := exec.Command(path, args...)
 	cmd.Stdout = &out
-	err = cmd.Run()
-	if err != nil {
+
+	if err = cmd.Run(); err != nil {
 		return healInfoOutput, err
 	}
 
@@ -103,7 +103,7 @@ func selfhealInfoHandler(w http.ResponseWriter, r *http.Request) {
 	}
 	healInfoOutput, err := getHealInfo(volname, option)
 	if err != nil {
-		logger.WithField("volname", volname).Debug("heal info operation failed")
+		logger.WithError(err).WithField("volname", volname).Error("heal info operation failed")
 		restutils.SendHTTPError(ctx, w, http.StatusInternalServerError, "heal info operation failed")
 		return
 	}
