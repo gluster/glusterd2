@@ -25,7 +25,7 @@ func snapshotBrickDelete(errCh chan error, wg *sync.WaitGroup, snapVol volume.Vo
 	if snapVol.State == volume.VolStarted {
 		if err := snapshot.StopBrick(b, logger); err != nil {
 			log.WithError(err).WithField(
-				"brick", b.Path).Warning("Failed to cleanup the brick.Earlier it might have stopped abnormaly")
+				"brick", b.Path).Warning("Failed to cleanup the brick.Earlier it might have stopped abnormally")
 
 		}
 	}
