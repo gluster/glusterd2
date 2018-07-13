@@ -13,9 +13,9 @@ import (
 func TestGeorepCreateDelete(t *testing.T) {
 	r := require.New(t)
 
-	gds, err := setupCluster("./config/1.toml", "./config/2.toml")
+	tc, err := setupCluster("./config/1.toml", "./config/2.toml")
 	r.Nil(err)
-	defer teardownCluster(gds)
+	defer teardownCluster(tc)
 
 	brickDir, err := ioutil.TempDir(baseLocalStateDir, t.Name())
 	r.Nil(err)
@@ -28,7 +28,7 @@ func TestGeorepCreateDelete(t *testing.T) {
 		brickPaths = append(brickPaths, brickPath)
 	}
 
-	client := initRestclient(gds[0])
+	client := initRestclient(tc.gds[0])
 
 	volname := formatVolName(t.Name())
 	reqVol := api.VolCreateReq{
@@ -37,8 +37,8 @@ func TestGeorepCreateDelete(t *testing.T) {
 			{
 				Type: "distribute",
 				Bricks: []api.BrickReq{
-					{PeerID: gds[0].PeerID(), Path: brickPaths[0]},
-					{PeerID: gds[0].PeerID(), Path: brickPaths[1]},
+					{PeerID: tc.gds[0].PeerID(), Path: brickPaths[0]},
+					{PeerID: tc.gds[0].PeerID(), Path: brickPaths[1]},
 				},
 			},
 		},
@@ -54,8 +54,8 @@ func TestGeorepCreateDelete(t *testing.T) {
 			{
 				Type: "distribute",
 				Bricks: []api.BrickReq{
-					{PeerID: gds[1].PeerID(), Path: brickPaths[2]},
-					{PeerID: gds[1].PeerID(), Path: brickPaths[3]},
+					{PeerID: tc.gds[1].PeerID(), Path: brickPaths[2]},
+					{PeerID: tc.gds[1].PeerID(), Path: brickPaths[3]},
 				},
 			},
 		},
@@ -68,7 +68,7 @@ func TestGeorepCreateDelete(t *testing.T) {
 		MasterVol: volname,
 		RemoteVol: volname2,
 		RemoteHosts: []georepapi.GeorepRemoteHostReq{
-			{PeerID: gds[1].PeerID(), Hostname: gds[1].PeerAddress},
+			{PeerID: tc.gds[1].PeerID(), Hostname: tc.gds[1].PeerAddress},
 		},
 	}
 

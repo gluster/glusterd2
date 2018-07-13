@@ -132,6 +132,25 @@ func Start(d Daemon, wait bool, logger log.FieldLogger) error {
 	return nil
 }
 
+// Kill function terminate the process gracefully or forcefully.
+// When force == false, a SIGTERM signal is sent to the daemon.
+// When force == true, a SIGKILL signal is sent to the daemon.
+func Kill(pid int, force bool) error {
+
+	process, err := GetProcess(pid)
+	if err != nil {
+		return err
+	}
+
+	if force {
+		err = process.Kill()
+	} else {
+		err = process.Signal(syscall.SIGTERM)
+	}
+
+	return err
+}
+
 // Stop function reads the PID from path returned by PidFile() and can
 // terminate the process gracefully or forcefully.
 // When force == false, a SIGTERM signal is sent to the daemon.
@@ -144,22 +163,13 @@ func Stop(d Daemon, force bool, logger log.FieldLogger) error {
 		return errors.ErrPidFileNotFound
 	}
 
-	process, err := GetProcess(pid)
-	if err != nil {
-		return err
-	}
-
 	logger.WithFields(log.Fields{
 		"name": d.Name(),
 		"pid":  pid,
 	}).Debug("Stopping daemon.")
 	events.Broadcast(newEvent(d, daemonStopping, pid))
 
-	if force == true {
-		err = process.Kill()
-	} else {
-		err = process.Signal(syscall.SIGTERM)
-	}
+	err = Kill(pid, force)
 
 	// TODO: Do this under some lock ?
 	_ = os.Remove(d.PidFile())

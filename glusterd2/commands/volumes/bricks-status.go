@@ -20,24 +20,6 @@ func registerBricksStatusStepFuncs() {
 	transaction.RegisterStepFunc(bricksStatus, "bricks-status.Check")
 }
 
-func createBrickStatusRsp(brickStatuses []brick.Brickstatus) []*api.BrickStatus {
-	var brickStatusesRsp []*api.BrickStatus
-	for _, status := range brickStatuses {
-		s := &api.BrickStatus{
-			Info:      brick.CreateBrickInfo(&status.Info),
-			Online:    status.Online,
-			Pid:       status.Pid,
-			Port:      status.Port,
-			FS:        status.FS,
-			MountOpts: status.MountOpts,
-			Device:    status.Device,
-			Size:      brick.CreateBrickSizeInfo(&status.Size),
-		}
-		brickStatusesRsp = append(brickStatusesRsp, s)
-	}
-	return brickStatusesRsp
-}
-
 func bricksStatus(ctx transaction.TxnCtx) error {
 	var volname string
 	if err := ctx.Get("volname", &volname); err != nil {
@@ -55,7 +37,7 @@ func bricksStatus(ctx transaction.TxnCtx) error {
 		ctx.Logger().WithError(err).Error("Failed to get brick status information.")
 		return err
 	}
-	brickStatusesRsp := createBrickStatusRsp(brickStatuses)
+	brickStatusesRsp := brick.CreateBrickStatusRsp(brickStatuses)
 	// Store the results in transaction context. This will be consumed by
 	// the node that initiated the transaction.
 	ctx.SetNodeResult(gdctx.MyUUID, brickStatusTxnKey, brickStatusesRsp)

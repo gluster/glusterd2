@@ -14,20 +14,20 @@ func TestBitrot(t *testing.T) {
 
 	r := require.New(t)
 
-	gds, err = setupCluster("./config/1.toml", "./config/2.toml")
+	tc, err := setupCluster("./config/1.toml", "./config/2.toml")
 	r.Nil(err)
-	defer teardownCluster(gds)
+	defer teardownCluster(tc)
 
-	client = initRestclient(gds[0])
+	client = initRestclient(tc.gds[0])
 
 	// test Bitrot on dist-rep volume
-	t.Run("Replica-volume", testBitrotOnReplicaVolume)
+	t.Run("Replica-volume", tc.wrap(testBitrotOnReplicaVolume))
 	// test Bitrot on pure distribute volume
-	t.Run("Dist-volume", testBitrotOnDistVolume)
+	t.Run("Dist-volume", tc.wrap(testBitrotOnDistVolume))
 
 }
 
-func testBitrotOnReplicaVolume(t *testing.T) {
+func testBitrotOnReplicaVolume(t *testing.T, tc *testCluster) {
 	r := require.New(t)
 	volumeName := formatVolName(t.Name())
 	var brickPaths []string
@@ -45,16 +45,16 @@ func testBitrotOnReplicaVolume(t *testing.T) {
 				ReplicaCount: 2,
 				Type:         "replicate",
 				Bricks: []api.BrickReq{
-					{PeerID: gds[0].PeerID(), Path: brickPaths[0]},
-					{PeerID: gds[1].PeerID(), Path: brickPaths[1]},
+					{PeerID: tc.gds[0].PeerID(), Path: brickPaths[0]},
+					{PeerID: tc.gds[1].PeerID(), Path: brickPaths[1]},
 				},
 			},
 			{
 				Type:         "replicate",
 				ReplicaCount: 2,
 				Bricks: []api.BrickReq{
-					{PeerID: gds[0].PeerID(), Path: brickPaths[2]},
-					{PeerID: gds[1].PeerID(), Path: brickPaths[3]},
+					{PeerID: tc.gds[0].PeerID(), Path: brickPaths[2]},
+					{PeerID: tc.gds[1].PeerID(), Path: brickPaths[3]},
 				},
 			},
 		},
@@ -69,7 +69,7 @@ func testBitrotOnReplicaVolume(t *testing.T) {
 	r.Nil(client.VolumeDelete(volumeName))
 }
 
-func testBitrotOnDistVolume(t *testing.T) {
+func testBitrotOnDistVolume(t *testing.T, tc *testCluster) {
 	r := require.New(t)
 	volumeName := formatVolName(t.Name())
 	var brickPaths []string
@@ -85,15 +85,15 @@ func testBitrotOnDistVolume(t *testing.T) {
 			{
 				Type: "distribute",
 				Bricks: []api.BrickReq{
-					{PeerID: gds[0].PeerID(), Path: brickPaths[0]},
-					{PeerID: gds[1].PeerID(), Path: brickPaths[1]},
+					{PeerID: tc.gds[0].PeerID(), Path: brickPaths[0]},
+					{PeerID: tc.gds[1].PeerID(), Path: brickPaths[1]},
 				},
 			},
 			{
 				Type: "distribute",
 				Bricks: []api.BrickReq{
-					{PeerID: gds[0].PeerID(), Path: brickPaths[2]},
-					{PeerID: gds[1].PeerID(), Path: brickPaths[3]},
+					{PeerID: tc.gds[0].PeerID(), Path: brickPaths[2]},
+					{PeerID: tc.gds[1].PeerID(), Path: brickPaths[3]},
 				},
 			},
 		},

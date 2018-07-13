@@ -2,10 +2,8 @@ package e2e
 
 import (
 	"bytes"
-	"errors"
 	"fmt"
 	"io/ioutil"
-	"net/http"
 	"os"
 	"os/exec"
 	"path"
@@ -14,168 +12,35 @@ import (
 	"strings"
 	"syscall"
 	"testing"
-	"time"
 
 	"github.com/gluster/glusterd2/pkg/api"
 	"github.com/gluster/glusterd2/pkg/restclient"
-
-	toml "github.com/pelletier/go-toml"
 )
 
-type gdProcess struct {
-	Cmd           *exec.Cmd
-	ClientAddress string `toml:"clientaddress"`
-	PeerAddress   string `toml:"peeraddress"`
-	LocalStateDir string `toml:"localstatedir"`
-	RestAuth      bool   `toml:"restauth"`
-	Rundir        string `toml:"rundir"`
-	uuid          string
+type testCluster struct {
+	gds  []*gdProcess
+	etcd *etcdProcess
 }
 
-func (g *gdProcess) Stop() error {
-	g.Cmd.Process.Signal(os.Interrupt) // try shutting down gracefully
-	time.Sleep(500 * time.Millisecond)
-	if g.IsRunning() {
-		time.Sleep(1 * time.Second)
-	} else {
-		return nil
-	}
-	return g.Cmd.Process.Kill()
-}
+// wrap takes a test function that requires the test type T and
+// a test cluster instance and returns a function that only
+// requires the test type (using the given test cluster).
+func (tc *testCluster) wrap(
+	f func(t *testing.T, c *testCluster)) func(*testing.T) {
 
-func (g *gdProcess) updateDirs() {
-	g.Rundir = path.Clean(g.Rundir)
-	if !path.IsAbs(g.Rundir) {
-		g.Rundir = path.Join(baseLocalStateDir, g.Rundir)
-	}
-	g.LocalStateDir = path.Clean(g.LocalStateDir)
-	if !path.IsAbs(g.LocalStateDir) {
-		g.LocalStateDir = path.Join(baseLocalStateDir, g.LocalStateDir)
+	return func(t *testing.T) {
+		f(t, tc)
 	}
 }
 
-func (g *gdProcess) EraseLocalStateDir() error {
-	return os.RemoveAll(g.LocalStateDir)
-}
+func setupCluster(configFiles ...string) (*testCluster, error) {
 
-func (g *gdProcess) IsRunning() bool {
-
-	process, err := os.FindProcess(g.Cmd.Process.Pid)
-	if err != nil {
-		return false
-	}
-
-	if err := process.Signal(syscall.Signal(0)); err != nil {
-		return false
-	}
-
-	return true
-}
-
-func (g *gdProcess) PeerID() string {
-
-	if g.uuid != "" {
-		return g.uuid
-	}
-
-	// Endpoint doesn't matter here. All responses include a
-	// X-Gluster-Peer-Id response header.
-	endpoint := fmt.Sprintf("http://%s/version", g.ClientAddress)
-	resp, err := http.Get(endpoint)
-	if err != nil {
-		return ""
-	}
-	defer resp.Body.Close()
-
-	g.uuid = resp.Header.Get("X-Gluster-Peer-Id")
-	return g.uuid
-}
-
-func (g *gdProcess) IsRestServerUp() bool {
-
-	endpoint := fmt.Sprintf("http://%s/v1/peers", g.ClientAddress)
-	resp, err := http.Get(endpoint)
-	if err != nil {
-		return false
-	}
-	defer resp.Body.Close()
-
-	if resp.StatusCode/100 == 5 {
-		return false
-	}
-
-	return true
-}
-
-func spawnGlusterd(configFilePath string, cleanStart bool) (*gdProcess, error) {
-
-	fContent, err := ioutil.ReadFile(configFilePath)
-	if err != nil {
-		return nil, err
-	}
-
-	g := gdProcess{}
-	if err = toml.Unmarshal(fContent, &g); err != nil {
-		return nil, err
-	}
-
-	// The config files in e2e/config contain relative paths, convert them
-	// to absolute paths.
-	g.updateDirs()
-
-	if cleanStart {
-		g.EraseLocalStateDir() // cleanup leftovers from previous test
-	}
-
-	if err := os.MkdirAll(path.Join(g.LocalStateDir, "log"), os.ModeDir|os.ModePerm); err != nil {
-		return nil, err
-	}
-
-	absConfigFilePath, err := filepath.Abs(configFilePath)
-	if err != nil {
-		return nil, err
-	}
-	g.Cmd = exec.Command(path.Join(binDir, "glusterd2"),
-		"--config", absConfigFilePath,
-		"--localstatedir", g.LocalStateDir,
-		"--rundir", g.Rundir,
-		"--logdir", path.Join(g.LocalStateDir, "log"),
-		"--logfile", "glusterd2.log")
-
-	if err := g.Cmd.Start(); err != nil {
-		return nil, err
-	}
-
-	go func() {
-		g.Cmd.Wait()
-	}()
-
-	retries := 4
-	waitTime := 2000
-	for i := 0; i < retries; i++ {
-		// opposite of exponential backoff
-		time.Sleep(time.Duration(waitTime) * time.Millisecond)
-		if g.IsRestServerUp() {
-			break
-		}
-		waitTime = waitTime / 2
-	}
-
-	if !g.IsRestServerUp() {
-		return nil, errors.New("timeout: could not query rest server")
-	}
-
-	return &g, nil
-}
-
-func setupCluster(configFiles ...string) ([]*gdProcess, error) {
-
-	gds := make([]*gdProcess, 0, len(configFiles))
+	tc := &testCluster{}
 
 	cleanupRequired := true
 	cleanup := func() {
 		if cleanupRequired {
-			for _, p := range gds {
+			for _, p := range tc.gds {
 				p.Stop()
 				p.EraseLocalStateDir()
 			}
@@ -183,19 +48,37 @@ func setupCluster(configFiles ...string) ([]*gdProcess, error) {
 	}
 	defer cleanup()
 
+	if externalEtcd {
+		tc.etcd = &etcdProcess{
+			DataDir: path.Join(baseLocalStateDir, "etcd/data"),
+			LogPath: path.Join(baseLocalStateDir, "etcd/etcd.log"),
+		}
+		if err := os.MkdirAll(tc.etcd.DataDir, 0755); err != nil {
+			return nil, err
+		}
+		err := tc.etcd.Spawn()
+		if err != nil {
+			return nil, err
+		}
+	}
+	// exit the function early if no gd2 instances were requested
+	if len(configFiles) == 0 {
+		return tc, nil
+	}
+
 	for _, configFile := range configFiles {
 		g, err := spawnGlusterd(configFile, true)
 		if err != nil {
 			return nil, err
 		}
-		gds = append(gds, g)
+		tc.gds = append(tc.gds, g)
 	}
 
 	// restclient instance that will be used for peer operations
-	client := initRestclient(gds[0])
+	client := initRestclient(tc.gds[0])
 
 	// first gd2 instance spawned shall add other glusterd2 instances as its peers
-	for i, gd := range gds {
+	for i, gd := range tc.gds {
 		if i == 0 {
 			// do not add self
 			continue
@@ -217,19 +100,22 @@ func setupCluster(configFiles ...string) ([]*gdProcess, error) {
 		return nil, err
 	}
 
-	if len(peers) != len(gds) || len(peers) != len(configFiles) {
+	if len(peers) != len(tc.gds) || len(peers) != len(configFiles) {
 		return nil, fmt.Errorf("setupCluster() failed to create a cluster")
 	}
 
 	// do not run logic in cleanup() function that was deferred
 	cleanupRequired = false
 
-	return gds, nil
+	return tc, nil
 }
 
-func teardownCluster(gds []*gdProcess) error {
-	for _, gd := range gds {
+func teardownCluster(tc *testCluster) error {
+	for _, gd := range tc.gds {
 		gd.Stop()
+	}
+	if tc.etcd != nil {
+		tc.etcd.Stop()
 	}
 	processes := []string{"glusterfs", "glusterfsd", "glustershd"}
 	for _, p := range processes {

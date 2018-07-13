@@ -13,6 +13,11 @@ import (
 func TestRestart(t *testing.T) {
 	r := require.New(t)
 
+	// set up a cluster w/o glusterd instances for dependencies
+	tc, err := setupCluster()
+	r.NoError(err)
+	defer teardownCluster(tc)
+
 	gd, err := spawnGlusterd("./config/1.toml", true)
 	r.Nil(err)
 	r.True(gd.IsRunning())
@@ -21,7 +26,7 @@ func TestRestart(t *testing.T) {
 	r.Nil(err)
 	defer os.RemoveAll(dir)
 
-	client := initRestclient(gds[0])
+	client := initRestclient(gd)
 
 	createReq := api.VolCreateReq{
 		Name: formatVolName(t.Name()),
@@ -52,7 +57,7 @@ func TestRestart(t *testing.T) {
 }
 
 func getVols(gd *gdProcess, r *require.Assertions) api.VolumeListResp {
-	client := initRestclient(gds[0])
+	client := initRestclient(gd)
 	volname := ""
 	vols, err := client.Volumes(volname)
 	r.Nil(err)

@@ -12,6 +12,11 @@ import (
 func TestAddRemovePeer(t *testing.T) {
 	r := require.New(t)
 
+	// set up a cluster w/o glusterd instances for dependencies
+	tc, err := setupCluster()
+	r.NoError(err)
+	defer teardownCluster(tc)
+
 	g1, err := spawnGlusterd("./config/1.toml", true)
 	r.Nil(err)
 	defer g1.Stop()
@@ -27,7 +32,7 @@ func TestAddRemovePeer(t *testing.T) {
 	defer g3.Stop()
 	r.True(g3.IsRunning())
 
-	client := initRestclient(gds[0])
+	client := initRestclient(g1)
 	peerAddReq := api.PeerAddReq{
 		Addresses: []string{g2.PeerAddress},
 		Metadata: map[string]string{

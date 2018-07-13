@@ -27,10 +27,15 @@ func (c *Client) SnapshotDeactivate(snapname string) error {
 }
 
 // SnapshotList returns list of all snapshots or all snapshots of a volume
-func (c *Client) SnapshotList(req api.SnapListReq) (api.SnapListResp, error) {
+func (c *Client) SnapshotList(volname string) (api.SnapListResp, error) {
 	var snaps api.SnapListResp
-	url := fmt.Sprintf("/v1/snapshots")
-	err := c.get(url, req, http.StatusOK, &snaps)
+	var url string
+	if volname == "" {
+		url = fmt.Sprintf("/v1/snapshots")
+	} else {
+		url = fmt.Sprintf("/v1/snapshots?volume=%s", volname)
+	}
+	err := c.get(url, nil, http.StatusOK, &snaps)
 	return snaps, err
 }
 
@@ -41,4 +46,36 @@ func (c *Client) SnapshotInfo(snapname string) (api.SnapGetResp, error) {
 	url = fmt.Sprintf("/v1/snapshot/%s", snapname)
 	err := c.get(url, nil, http.StatusOK, &snap)
 	return snap, err
+}
+
+// SnapshotDelete will delete Gluster Snapshot and respective lv
+func (c *Client) SnapshotDelete(snapname string) error {
+	url := fmt.Sprintf("/v1/snapshot/%s", snapname)
+	err := c.del(url, nil, http.StatusNoContent, nil)
+	return err
+}
+
+// SnapshotStatus will list the detailed status of snapshot bricks
+func (c *Client) SnapshotStatus(snapname string) (api.SnapStatusResp, error) {
+	var resp api.SnapStatusResp
+
+	url := fmt.Sprintf("/v1/snapshot/%s/status", snapname)
+	err := c.get(url, nil, http.StatusOK, &resp)
+	return resp, err
+}
+
+//SnapshotRestore will restore the volume to given snapshot
+func (c *Client) SnapshotRestore(snapname string) (api.VolumeGetResp, error) {
+	var resp api.VolumeGetResp
+	url := fmt.Sprintf("/v1/snapshot/%s/restore", snapname)
+	err := c.post(url, nil, http.StatusOK, &resp)
+	return resp, err
+}
+
+// SnapshotClone creates a writable Gluster Snapshot, it will be similiar to a volume
+func (c *Client) SnapshotClone(snapname string, req api.SnapCloneReq) (api.VolumeCreateResp, error) {
+	var vol api.VolumeCreateResp
+	url := fmt.Sprintf("/v1/snapshot/%s/clone", snapname)
+	err := c.post(url, req, http.StatusCreated, &vol)
+	return vol, err
 }

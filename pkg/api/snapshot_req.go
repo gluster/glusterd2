@@ -14,7 +14,7 @@ type SnapActivateReq struct {
 	Force bool `json:"force,omitempty"`
 }
 
-//SnapListReq represents a request to activate a snapshot
-type SnapListReq struct {
-	Volname string `json:"volname,omitempty"`
+//SnapCloneReq represents a request to clone a snapshot
+type SnapCloneReq struct {
+	CloneName string `json:"clonename"`
 }
