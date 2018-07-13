@@ -9,12 +9,12 @@ import (
 	"github.com/stretchr/testify/require"
 )
 
-func TestSelfHealInfo(t *testing.T) {
+func TestSelfHeal(t *testing.T) {
 	r := require.New(t)
 
-	gds, err := setupCluster("./config/1.toml")
+	tc, err := setupCluster("./config/1.toml")
 	r.Nil(err)
-	defer teardownCluster(gds)
+	defer teardownCluster(tc)
 
 	brickDir, err := ioutil.TempDir(baseLocalStateDir, t.Name())
 	r.Nil(err)
@@ -27,7 +27,7 @@ func TestSelfHealInfo(t *testing.T) {
 		brickPaths[i-1] = brickPath
 	}
 
-	client := initRestclient(gds[0])
+	client := initRestclient(tc.gds[0])
 	volname := formatVolName(t.Name())
 	reqVol := api.VolCreateReq{
 		Name: volname,
@@ -36,8 +36,8 @@ func TestSelfHealInfo(t *testing.T) {
 				ReplicaCount: 2,
 				Type:         "replicate",
 				Bricks: []api.BrickReq{
-					{PeerID: gds[0].PeerID(), Path: brickPaths[0]},
-					{PeerID: gds[0].PeerID(), Path: brickPaths[1]},
+					{PeerID: tc.gds[0].PeerID(), Path: brickPaths[0]},
+					{PeerID: tc.gds[0].PeerID(), Path: brickPaths[1]},
 				},
 			},
 		},
@@ -55,9 +55,17 @@ func TestSelfHealInfo(t *testing.T) {
 	_, err = client.SelfHealInfo(vol1.Name, "split-brain-info")
 	r.Nil(err)
 
+	var optionReq api.VolOptionReq
+
+	optionReq.Options = map[string]string{"replicate.self-heal-daemon": "on"}
+	optionReq.Advanced = true
+
+	r.Nil(client.VolumeSet(vol1.Name, optionReq))
+	r.Nil(client.SelfHeal(vol1.Name, "index"))
+	r.Nil(client.SelfHeal(vol1.Name, "full"))
+
 	// Stop Volume
 	r.Nil(client.VolumeStop(vol1.Name), "Volume stop failed")
 	// delete volume
-	err = client.VolumeDelete(vol1.Name)
-	r.Nil(err)
+	r.Nil(client.VolumeDelete(vol1.Name))
 }

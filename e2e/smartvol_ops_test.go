@@ -232,11 +232,11 @@ func TestSmartVolume(t *testing.T) {
 
 	r := require.New(t)
 
-	gds, err = setupCluster("./config/1.toml", "./config/2.toml", "./config/3.toml")
+	tc, err := setupCluster("./config/1.toml", "./config/2.toml", "./config/3.toml")
 	r.Nil(err)
-	defer teardownCluster(gds)
+	defer teardownCluster(tc)
 
-	client = initRestclient(gds[0])
+	client = initRestclient(tc.gds[0])
 
 	devicesDir, err := ioutil.TempDir(baseLocalStateDir, t.Name())
 	r.Nil(err)
@@ -248,13 +248,13 @@ func TestSmartVolume(t *testing.T) {
 	r.Nil(prepareLoopDevice(devicesDir+"/gluster_dev2.img", "2", "400M"))
 	r.Nil(prepareLoopDevice(devicesDir+"/gluster_dev3.img", "3", "400M"))
 
-	_, err = client.DeviceAdd(gds[0].PeerID(), "/dev/gluster_loop1")
+	_, err = client.DeviceAdd(tc.gds[0].PeerID(), "/dev/gluster_loop1")
 	r.Nil(err)
 
-	_, err = client.DeviceAdd(gds[1].PeerID(), "/dev/gluster_loop2")
+	_, err = client.DeviceAdd(tc.gds[1].PeerID(), "/dev/gluster_loop2")
 	r.Nil(err)
 
-	_, err = client.DeviceAdd(gds[2].PeerID(), "/dev/gluster_loop3")
+	_, err = client.DeviceAdd(tc.gds[2].PeerID(), "/dev/gluster_loop3")
 	r.Nil(err)
 
 	t.Run("Smartvol Distributed Volume", testSmartVolumeDistribute)

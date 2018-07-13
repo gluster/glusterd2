@@ -35,7 +35,7 @@ func optionSetValidate(c transaction.TxnCtx) error {
 	// validateOptions.
 
 	if err := validateOptions(options, req.Advanced, req.Experimental, req.Deprecated); err != nil {
-		return fmt.Errorf("Validation failed for volume option: %s", err.Error())
+		return fmt.Errorf("validation failed for volume option: %s", err.Error())
 	}
 
 	var volinfo volume.Volinfo
@@ -43,8 +43,8 @@ func optionSetValidate(c transaction.TxnCtx) error {
 		return err
 	}
 
-	if err := validateXlatorOptions(req.Options, &volinfo); err != nil {
-		return fmt.Errorf("Validation failed for volume option:: %s", err.Error())
+	if err := validateXlatorOptions(options, &volinfo); err != nil {
+		return fmt.Errorf("validation failed for volume option:: %s", err.Error())
 	}
 
 	for k, v := range options {

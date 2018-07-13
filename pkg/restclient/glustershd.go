@@ -22,3 +22,18 @@ func (c *Client) SelfHealInfo(params ...string) ([]glustershdapi.BrickHealInfo, 
 	err := c.get(url, nil, http.StatusOK, &output)
 	return output, err
 }
+
+// SelfHeal sends request to start the heal process on the specified volname
+func (c *Client) SelfHeal(volname string, healType string) error {
+	var url string
+	switch healType {
+	case "index":
+		url = fmt.Sprintf("/v1/volumes/%s/heal", volname)
+	case "full":
+		url = fmt.Sprintf("/v1/volumes/%s/heal?type=%s", volname, healType)
+	default:
+		return errors.New("invalid parameters")
+	}
+
+	return c.post(url, nil, http.StatusOK, nil)
+}

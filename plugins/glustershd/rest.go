@@ -20,6 +20,13 @@ import (
 	config "github.com/spf13/viper"
 )
 
+type healTypes int8
+
+const (
+	indexHeal healTypes = 1 + iota
+	fullHeal
+)
+
 func runGlfshealBin(volname string, args []string) (string, error) {
 	var out bytes.Buffer
 	var buffer bytes.Buffer
@@ -38,8 +45,8 @@ func runGlfshealBin(volname string, args []string) (string, error) {
 
 	cmd := exec.Command(path, args...)
 	cmd.Stdout = &out
-	err = cmd.Run()
-	if err != nil {
+
+	if err = cmd.Run(); err != nil {
 		return healInfoOutput, err
 	}
 
@@ -59,7 +66,7 @@ func getHealInfo(volname string, option string) (string, error) {
 func selfhealInfoHandler(w http.ResponseWriter, r *http.Request) {
 	var option string
 	p := mux.Vars(r)
-	volname := p["name"]
+	volname := p["volname"]
 	if val, ok := p["opts"]; ok {
 		option = val
 	}
@@ -103,7 +110,7 @@ func selfhealInfoHandler(w http.ResponseWriter, r *http.Request) {
 	}
 	healInfoOutput, err := getHealInfo(volname, option)
 	if err != nil {
-		logger.WithField("volname", volname).Debug("heal info operation failed")
+		logger.WithError(err).WithField("volname", volname).Error("heal info operation failed")
 		restutils.SendHTTPError(ctx, w, http.StatusInternalServerError, "heal info operation failed")
 		return
 	}
@@ -120,4 +127,77 @@ func selfhealInfoHandler(w http.ResponseWriter, r *http.Request) {
 
 	restutils.SendHTTPResponse(ctx, w, http.StatusOK, &info.Bricks)
 
+}
+
+func selfHealHandler(w http.ResponseWriter, r *http.Request) {
+	// Collect inputs from URL
+	volname := mux.Vars(r)["volname"]
+
+	ctx := r.Context()
+	logger := gdctx.GetReqLogger(ctx)
+
+	healType := indexHeal
+	if heal, ok := r.URL.Query()["type"]; ok {
+		switch heal[0] {
+		case "index":
+			healType = indexHeal
+		case "full":
+			healType = fullHeal
+		default:
+			restutils.SendHTTPError(ctx, w, http.StatusBadRequest, "heal type can only be either index or full")
+			return
+		}
+	}
+	txn, err := transaction.NewTxnWithLocks(ctx, volname)
+	if err != nil {
+		status, err := restutils.ErrToStatusCode(err)
+		restutils.SendHTTPError(ctx, w, status, err)
+		return
+	}
+	defer txn.Done()
+
+	// Validate volume existence
+	volinfo, err := volume.GetVolume(volname)
+	if err != nil {
+		status, err := restutils.ErrToStatusCode(err)
+		restutils.SendHTTPError(ctx, w, status, err)
+		return
+	}
+
+	// Check if volume is started
+	if volinfo.State != volume.VolStarted {
+		restutils.SendHTTPError(ctx, w, http.StatusBadRequest, gderrors.ErrVolNotStarted)
+		return
+	}
+
+	// Check if self heal is already enabled
+	if !isHealEnabled(volinfo) {
+		restutils.SendHTTPError(ctx, w, http.StatusBadRequest, "self heal option is disabled for this volume")
+		return
+	}
+
+	if err := txn.Ctx.Set("volinfo", volinfo); err != nil {
+		restutils.SendHTTPError(ctx, w, http.StatusInternalServerError, err)
+		return
+	}
+
+	if err := txn.Ctx.Set("healType", healType); err != nil {
+		restutils.SendHTTPError(ctx, w, http.StatusInternalServerError, err)
+		return
+	}
+
+	txn.Steps = []*transaction.Step{
+		{
+			DoFunc: "selfheal.Heal",
+			Nodes:  volinfo.Nodes(),
+		},
+	}
+
+	if err = txn.Do(); err != nil {
+		logger.WithError(err).Error("failed to start healing process")
+		status, err := restutils.ErrToStatusCode(err)
+		restutils.SendHTTPError(ctx, w, status, err)
+		return
+	}
+	restutils.SendHTTPResponse(ctx, w, http.StatusOK, nil)
 }

@@ -20,20 +20,20 @@ func TestWebhook(t *testing.T) {
 
 	r := require.New(t)
 
-	gds, err = setupCluster("./config/1.toml", "./config/2.toml")
+	tc, err := setupCluster("./config/1.toml", "./config/2.toml")
 	r.Nil(err)
-	defer teardownCluster(gds)
+	defer teardownCluster(tc)
 
-	client = initRestclient(gds[0])
+	client = initRestclient(tc.gds[0])
 
-	t.Run("Register-webhook", testAddWebhook)
+	t.Run("Register-webhook", tc.wrap(testAddWebhook))
 	t.Run("List-webhook", testGetWebhook)
 	t.Run("Delete-webhook", testDeleteWebhook)
 	t.Run("List-gluster-events", testEvents)
 
 }
 
-func testAddWebhook(t *testing.T) {
+func testAddWebhook(t *testing.T, tc *testCluster) {
 	r := require.New(t)
 
 	ts := httptest.NewServer(http.HandlerFunc(func(hw http.ResponseWriter, hr *http.Request) {
@@ -61,16 +61,16 @@ func testAddWebhook(t *testing.T) {
 				ReplicaCount: 2,
 				Type:         "replicate",
 				Bricks: []api.BrickReq{
-					{PeerID: gds[0].PeerID(), Path: brickPaths[0]},
-					{PeerID: gds[1].PeerID(), Path: brickPaths[1]},
+					{PeerID: tc.gds[0].PeerID(), Path: brickPaths[0]},
+					{PeerID: tc.gds[1].PeerID(), Path: brickPaths[1]},
 				},
 			},
 			{
 				Type:         "replicate",
 				ReplicaCount: 2,
 				Bricks: []api.BrickReq{
-					{PeerID: gds[0].PeerID(), Path: brickPaths[2]},
-					{PeerID: gds[1].PeerID(), Path: brickPaths[3]},
+					{PeerID: tc.gds[0].PeerID(), Path: brickPaths[2]},
+					{PeerID: tc.gds[1].PeerID(), Path: brickPaths[3]},
 				},
 			},
 		},

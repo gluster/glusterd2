@@ -25,7 +25,6 @@ const (
 )
 
 var (
-	gds    []*gdProcess
 	client *restclient.Client
 )
 
@@ -36,39 +35,39 @@ func TestVolume(t *testing.T) {
 
 	r := require.New(t)
 
-	gds, err = setupCluster("./config/1.toml", "./config/2.toml")
+	tc, err := setupCluster("./config/1.toml", "./config/2.toml")
 	r.Nil(err)
-	defer teardownCluster(gds)
+	defer teardownCluster(tc)
 
-	client = initRestclient(gds[0])
+	client = initRestclient(tc.gds[0])
 
-	t.Run("CreateWithoutName", testVolumeCreateWithoutName)
+	t.Run("CreateWithoutName", tc.wrap(testVolumeCreateWithoutName))
 
 	// Create the volume
-	t.Run("Create", testVolumeCreate)
+	t.Run("Create", tc.wrap(testVolumeCreate))
 	// Expand the volume
-	t.Run("Expand", testVolumeExpand)
+	t.Run("Expand", tc.wrap(testVolumeExpand))
 
 	// Run tests that depend on this volume
 	t.Run("Start", testVolumeStart)
-	t.Run("Mount", testVolumeMount)
+	t.Run("Mount", tc.wrap(testVolumeMount))
 	t.Run("Status", testVolumeStatus)
 	t.Run("Statedump", testVolumeStatedump)
 	t.Run("Stop", testVolumeStop)
 	t.Run("List", testVolumeList)
 	t.Run("Info", testVolumeInfo)
 	t.Run("Edit", testEditVolume)
-	t.Run("VolumeFlags", testVolumeCreateWithFlags)
+	t.Run("VolumeFlags", tc.wrap(testVolumeCreateWithFlags))
 	// delete volume
 	t.Run("Delete", testVolumeDelete)
 
 	// Disperse volume test
-	t.Run("Disperse", testDisperse)
-	t.Run("DisperseMount", testDisperseMount)
+	t.Run("Disperse", tc.wrap(testDisperse))
+	t.Run("DisperseMount", tc.wrap(testDisperseMount))
 	t.Run("DisperseDelete", testDisperseDelete)
 }
 
-func testVolumeCreateWithoutName(t *testing.T) {
+func testVolumeCreateWithoutName(t *testing.T, tc *testCluster) {
 	r := require.New(t)
 
 	var brickPaths []string
@@ -82,8 +81,8 @@ func testVolumeCreateWithoutName(t *testing.T) {
 		Subvols: []api.SubvolReq{
 			{
 				Bricks: []api.BrickReq{
-					{PeerID: gds[0].PeerID(), Path: brickPaths[0]},
-					{PeerID: gds[1].PeerID(), Path: brickPaths[1]},
+					{PeerID: tc.gds[0].PeerID(), Path: brickPaths[0]},
+					{PeerID: tc.gds[1].PeerID(), Path: brickPaths[1]},
 				},
 			},
 		},
@@ -95,7 +94,7 @@ func testVolumeCreateWithoutName(t *testing.T) {
 	r.Nil(client.VolumeDelete(volinfo.Name))
 }
 
-func testVolumeCreate(t *testing.T) {
+func testVolumeCreate(t *testing.T, tc *testCluster) {
 	r := require.New(t)
 
 	var brickPaths []string
@@ -112,16 +111,16 @@ func testVolumeCreate(t *testing.T) {
 				ReplicaCount: 2,
 				Type:         "replicate",
 				Bricks: []api.BrickReq{
-					{PeerID: gds[0].PeerID(), Path: brickPaths[0]},
-					{PeerID: gds[1].PeerID(), Path: brickPaths[1]},
+					{PeerID: tc.gds[0].PeerID(), Path: brickPaths[0]},
+					{PeerID: tc.gds[1].PeerID(), Path: brickPaths[1]},
 				},
 			},
 			{
 				Type:         "replicate",
 				ReplicaCount: 2,
 				Bricks: []api.BrickReq{
-					{PeerID: gds[0].PeerID(), Path: brickPaths[2]},
-					{PeerID: gds[1].PeerID(), Path: brickPaths[3]},
+					{PeerID: tc.gds[0].PeerID(), Path: brickPaths[2]},
+					{PeerID: tc.gds[1].PeerID(), Path: brickPaths[3]},
 				},
 			},
 		},
@@ -138,10 +137,10 @@ func testVolumeCreate(t *testing.T) {
 	_, err = client.VolumeCreate(createReq)
 	r.NotNil(err)
 
-	testDisallowBrickReuse(t, brickPaths[0])
+	testDisallowBrickReuse(t, brickPaths[0], tc)
 }
 
-func testDisallowBrickReuse(t *testing.T, brickInUse string) {
+func testDisallowBrickReuse(t *testing.T, brickInUse string, tc *testCluster) {
 	r := require.New(t)
 	volname := formatVolName(t.Name())
 
@@ -150,7 +149,7 @@ func testDisallowBrickReuse(t *testing.T, brickInUse string) {
 		Subvols: []api.SubvolReq{
 			{
 				Bricks: []api.BrickReq{
-					{PeerID: gds[0].PeerID(), Path: brickInUse},
+					{PeerID: tc.gds[0].PeerID(), Path: brickInUse},
 				},
 			},
 		},
@@ -161,7 +160,7 @@ func testDisallowBrickReuse(t *testing.T, brickInUse string) {
 	r.NotNil(err)
 }
 
-func testVolumeCreateWithFlags(t *testing.T) {
+func testVolumeCreateWithFlags(t *testing.T, tc *testCluster) {
 	r := require.New(t)
 	volumeName := formatVolName(t.Name())
 	var brickPaths []string
@@ -183,16 +182,16 @@ func testVolumeCreateWithFlags(t *testing.T) {
 				ReplicaCount: 2,
 				Type:         "replicate",
 				Bricks: []api.BrickReq{
-					{PeerID: gds[0].PeerID(), Path: brickPaths[0]},
-					{PeerID: gds[1].PeerID(), Path: brickPaths[1]},
+					{PeerID: tc.gds[0].PeerID(), Path: brickPaths[0]},
+					{PeerID: tc.gds[1].PeerID(), Path: brickPaths[1]},
 				},
 			},
 			{
 				Type:         "replicate",
 				ReplicaCount: 2,
 				Bricks: []api.BrickReq{
-					{PeerID: gds[0].PeerID(), Path: brickPaths[2]},
-					{PeerID: gds[1].PeerID(), Path: brickPaths[3]},
+					{PeerID: tc.gds[0].PeerID(), Path: brickPaths[2]},
+					{PeerID: tc.gds[1].PeerID(), Path: brickPaths[3]},
 				},
 			},
 		},
@@ -224,7 +223,7 @@ func testVolumeCreateWithFlags(t *testing.T) {
 
 }
 
-func testVolumeExpand(t *testing.T) {
+func testVolumeExpand(t *testing.T, tc *testCluster) {
 	r := require.New(t)
 
 	var brickPaths []string
@@ -239,10 +238,10 @@ func testVolumeExpand(t *testing.T) {
 
 	expandReq := api.VolExpandReq{
 		Bricks: []api.BrickReq{
-			{PeerID: gds[0].PeerID(), Path: brickPaths[0]},
-			{PeerID: gds[1].PeerID(), Path: brickPaths[1]},
-			{PeerID: gds[0].PeerID(), Path: brickPaths[2]},
-			{PeerID: gds[1].PeerID(), Path: brickPaths[3]},
+			{PeerID: tc.gds[0].PeerID(), Path: brickPaths[0]},
+			{PeerID: tc.gds[1].PeerID(), Path: brickPaths[1]},
+			{PeerID: tc.gds[0].PeerID(), Path: brickPaths[2]},
+			{PeerID: tc.gds[1].PeerID(), Path: brickPaths[3]},
 		},
 		Flags: flags,
 	}
@@ -373,11 +372,11 @@ func testVolumeStatedump(t *testing.T) {
 }
 
 // testVolumeMount mounts checks if the volume mounts successfully and unmounts it
-func testVolumeMount(t *testing.T) {
-	testMountUnmount(t, volname)
+func testVolumeMount(t *testing.T, tc *testCluster) {
+	testMountUnmount(t, volname, tc)
 }
 
-func testMountUnmount(t *testing.T, v string) {
+func testMountUnmount(t *testing.T, v string, tc *testCluster) {
 	if _, err := os.Lstat("/dev/fuse"); os.IsNotExist(err) {
 		t.Skip("skipping mount /dev/fuse unavailable")
 	}
@@ -386,7 +385,7 @@ func testMountUnmount(t *testing.T, v string) {
 	mntPath := testTempDir(t, "mnt")
 	defer os.RemoveAll(mntPath)
 
-	host, _, _ := net.SplitHostPort(gds[0].ClientAddress)
+	host, _, _ := net.SplitHostPort(tc.gds[0].ClientAddress)
 	mntCmd := exec.Command("mount", "-t", "glusterfs", host+":"+v, mntPath)
 	umntCmd := exec.Command("umount", mntPath)
 
@@ -408,9 +407,9 @@ func TestVolumeOptions(t *testing.T) {
 
 	r := require.New(t)
 
-	gds, err := setupCluster("./config/1.toml")
+	tc, err := setupCluster("./config/1.toml")
 	r.Nil(err)
-	defer teardownCluster(gds)
+	defer teardownCluster(tc)
 
 	brickDir, err := ioutil.TempDir(baseLocalStateDir, t.Name())
 	defer os.RemoveAll(brickDir)
@@ -418,7 +417,7 @@ func TestVolumeOptions(t *testing.T) {
 	brickPath, err := ioutil.TempDir(brickDir, "brick")
 	r.Nil(err)
 
-	client := initRestclient(gds[0])
+	client := initRestclient(tc.gds[0])
 
 	volname := "testvol"
 	createReq := api.VolCreateReq{
@@ -427,7 +426,7 @@ func TestVolumeOptions(t *testing.T) {
 			{
 				Type: "distribute",
 				Bricks: []api.BrickReq{
-					{PeerID: gds[0].PeerID(), Path: brickPath},
+					{PeerID: tc.gds[0].PeerID(), Path: brickPath},
 				},
 			},
 		},
@@ -570,7 +569,7 @@ func TestVolumeOptions(t *testing.T) {
 
 }
 
-func testDisperse(t *testing.T) {
+func testDisperse(t *testing.T, tc *testCluster) {
 	r := require.New(t)
 
 	var brickPaths []string
@@ -585,9 +584,9 @@ func testDisperse(t *testing.T) {
 			{
 				Type: "disperse",
 				Bricks: []api.BrickReq{
-					{PeerID: gds[0].PeerID(), Path: brickPaths[0]},
-					{PeerID: gds[1].PeerID(), Path: brickPaths[1]},
-					{PeerID: gds[0].PeerID(), Path: brickPaths[2]},
+					{PeerID: tc.gds[0].PeerID(), Path: brickPaths[0]},
+					{PeerID: tc.gds[1].PeerID(), Path: brickPaths[1]},
+					{PeerID: tc.gds[0].PeerID(), Path: brickPaths[2]},
 				},
 				DisperseRedundancy: 1,
 			},
@@ -601,8 +600,8 @@ func testDisperse(t *testing.T) {
 	r.Nil(client.VolumeStart(disperseVolName, true), "disperse volume start failed")
 }
 
-func testDisperseMount(t *testing.T) {
-	testMountUnmount(t, disperseVolName)
+func testDisperseMount(t *testing.T, tc *testCluster) {
+	testMountUnmount(t, disperseVolName, tc)
 }
 
 func testDisperseDelete(t *testing.T) {
