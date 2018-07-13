@@ -44,15 +44,13 @@ func (shd *Glustershd) Args() []string {
 	volFileID := "gluster/glustershd"
 
 	logFile := path.Join(config.GetString("logdir"), "glusterfs", "glustershd.log")
-	glusterdSockDir := config.GetString("rundir")
-	socketfilepath := fmt.Sprintf("%s/%x.socket", glusterdSockDir, xxhash.Sum64String(gdctx.MyUUID.String()))
 
 	shd.args = []string{}
 	shd.args = append(shd.args, "-s", shost)
 	shd.args = append(shd.args, "--volfile-id", volFileID)
 	shd.args = append(shd.args, "-p", shd.PidFile())
 	shd.args = append(shd.args, "-l", logFile)
-	shd.args = append(shd.args, "-S", socketfilepath)
+	shd.args = append(shd.args, "-S", shd.SocketFile())
 	shd.args = append(shd.args,
 		"--xlator-option",
 		fmt.Sprintf("*replicate*.node-uuid=%s", gdctx.MyUUID))
@@ -62,7 +60,12 @@ func (shd *Glustershd) Args() []string {
 
 // SocketFile returns path to the socket file used for IPC.
 func (shd *Glustershd) SocketFile() string {
-	return ""
+	if shd.socketfilepath != "" {
+		return shd.socketfilepath
+	}
+	shd.socketfilepath = fmt.Sprintf("%s/shd-%x.socket", config.GetString("rundir"), xxhash.Sum64String(gdctx.MyUUID.String()))
+
+	return shd.socketfilepath
 }
 
 // PidFile returns path to the pid file of self heal process.

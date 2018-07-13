@@ -10,17 +10,13 @@ import (
 
 var names = [...]string{"distribute", "dht"}
 
-func validateOptions(v *volume.Volinfo, key string, value string) error {
-	var err error
+func validateOptions(v *volume.Volinfo, key, value string) error {
 	if strings.Contains(key, "readdirplus-for-dir") {
 		if value == "on" {
-			val, exists := v.Options["features.cache-invalidation"]
-			if exists && val == "on" {
+			if v, ok := v.Options["features.cache-invalidation"]; ok && v == "on" {
 				return nil
 			}
-			err = fmt.Errorf("Enable \"features.cache-invalidation\" before enabling %s",
-				key)
-			return err
+			return fmt.Errorf("Enable \"features.cache-invalidation\" before enabling %s", key)
 		}
 	}
 	return nil
