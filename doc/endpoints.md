@@ -75,6 +75,7 @@ QuotaList | GET | /quota/{volname}/limit | [](https://godoc.org/github.com/glust
 QuotaLimit | POST | /quota/{volname}/limit | [](https://godoc.org/github.com/gluster/glusterd2/pkg/api#) | [](https://godoc.org/github.com/gluster/glusterd2/pkg/api#)
 QuotaRemove | DELETE | /quota/{volname}/limit | [](https://godoc.org/github.com/gluster/glusterd2/pkg/api#) | [](https://godoc.org/github.com/gluster/glusterd2/pkg/api#)
 WebhookAdd | POST | /events/webhook | [Webhook](https://godoc.org/github.com/gluster/glusterd2/pkg/api#Webhook) | [](https://godoc.org/github.com/gluster/glusterd2/pkg/api#)
+WebhookTest | POST | /events/webhook/test | [Webhook](https://godoc.org/github.com/gluster/glusterd2/pkg/api#Webhook) | [](https://godoc.org/github.com/gluster/glusterd2/pkg/api#)
 WebhookDelete | DELETE | /events/webhook | [WebhookDel](https://godoc.org/github.com/gluster/glusterd2/pkg/api#WebhookDel) | [](https://godoc.org/github.com/gluster/glusterd2/pkg/api#)
 WebhookList | GET | /events/webhook | [](https://godoc.org/github.com/gluster/glusterd2/pkg/api#) | [WebhookList](https://godoc.org/github.com/gluster/glusterd2/pkg/api#WebhookList)
 EventsList | GET | /events | [](https://godoc.org/github.com/gluster/glusterd2/pkg/api#) | [Event](https://godoc.org/github.com/gluster/glusterd2/pkg/api#Event)

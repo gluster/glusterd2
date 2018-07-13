@@ -27,6 +27,13 @@ func (p *Plugin) RestRoutes() route.Routes {
 			RequestType: utils.GetTypeString((*events.Webhook)(nil)),
 			HandlerFunc: webhookAddHandler},
 		route.Route{
+			Name:        "WebhookTest",
+			Method:      "POST",
+			Pattern:     "/events/webhook/test",
+			Version:     1,
+			RequestType: utils.GetTypeString((*events.Webhook)(nil)),
+			HandlerFunc: webhookTestHandler},
+		route.Route{
 			Name:        "WebhookDelete",
 			Method:      "DELETE",
 			Pattern:     "/events/webhook",
@@ -53,5 +60,6 @@ func (p *Plugin) RestRoutes() route.Routes {
 // RegisterStepFuncs registers transaction step functions with
 // Glusterd Transaction framework
 func (p *Plugin) RegisterStepFuncs() {
+	registerWebhookTestStepFuncs()
 	return
 }

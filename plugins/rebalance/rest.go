@@ -288,7 +288,7 @@ func createRebalanceStatusResp(ctx transaction.TxnCtx, volInfo *volume.Volinfo) 
 
 	err := ctx.Get("rinfo", &rebalInfo)
 	if err != nil {
-		log.WithError(err).WithField("volume", volInfo.Name).Error("Failed to get rebalinfo")
+		log.WithError(err).WithField("volume", volInfo.Name).Error("Failed to get rebalance information")
 		return nil, err
 	}
 

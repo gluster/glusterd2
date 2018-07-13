@@ -1,11 +1,19 @@
 package events
 
 import (
+	"encoding/json"
+	"fmt"
+	"net/http"
 	"sort"
 	"strings"
 	"sync"
+	"time"
 
 	"github.com/gluster/glusterd2/pkg/api"
+	eventsapi "github.com/gluster/glusterd2/plugins/events/api"
+
+	jwt "github.com/dgrijalva/jwt-go"
+	log "github.com/sirupsen/logrus"
 )
 
 // Handler defines the event handler interface.
@@ -153,4 +161,70 @@ func (h *handler) Handle(e *api.Event) {
 
 func (h *handler) Events() []string {
 	return h.events
+}
+
+func getJWTToken(eventtype, secret string) string {
+	claims := &jwt.StandardClaims{
+		IssuedAt:  time.Now().Unix(),
+		ExpiresAt: time.Now().Add(time.Second * 10).Unix(),
+		Subject:   eventtype,
+	}
+
+	token := jwt.NewWithClaims(jwt.SigningMethodHS256, claims)
+	ss, err := token.SignedString([]byte(secret))
+	if err != nil {
+		return ""
+	}
+	return ss
+}
+
+//WebhookPublish sends event to registered webhooks
+func WebhookPublish(webhook *eventsapi.Webhook, e *api.Event) error {
+	message, err := json.Marshal(e)
+	if err != nil {
+		log.WithFields(log.Fields{
+			"name":  e.Name,
+			"error": err.Error(),
+		}).Error("failed to marshal event")
+		return err
+	}
+
+	body := strings.NewReader(string(message))
+
+	req, err := http.NewRequest("POST", webhook.URL, body)
+	if err != nil {
+		log.WithError(err).Error("error forming the request object")
+		return err
+	}
+	req.Header.Set("Content-Type", "application/json")
+	if webhook.Token != "" {
+		req.Header.Set("Authorization", "bearer "+webhook.Token)
+	}
+
+	if webhook.Secret != "" {
+		token := getJWTToken(e.Name, webhook.Secret)
+		req.Header.Set("Authorization", "bearer "+token)
+	}
+
+	tr := &http.Transport{
+		DisableCompression:    true,
+		DisableKeepAlives:     true,
+		ResponseHeaderTimeout: 3 * time.Second,
+	}
+
+	client := &http.Client{Transport: tr}
+
+	resp, err := client.Do(req)
+	if err != nil {
+		log.WithError(err).Error("error while connecting to webhook")
+		return err
+	}
+
+	defer resp.Body.Close()
+
+	if resp.StatusCode != http.StatusOK {
+		log.Error("webhook responded with status: ", string(resp.StatusCode))
+		return fmt.Errorf("failed with unexpected status code %d", resp.StatusCode)
+	}
+	return nil
 }

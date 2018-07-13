@@ -31,14 +31,10 @@ func validateSnapDeactivate(c transaction.TxnCtx) error {
 	vol := &snapinfo.SnapVolinfo
 	switch vol.State == volume.VolStarted {
 	case true:
-		brickStatuses, err := volume.CheckBricksStatus(vol)
+		brickinfos, err = snapshot.GetOnlineBricks(vol)
 		if err != nil {
+			log.WithError(err).Error("failed to get online Bricks")
 			return err
-		}
-		for _, brick := range brickStatuses {
-			if brick.Online == true {
-				brickinfos = append(brickinfos, brick.Info)
-			}
 		}
 	case false:
 		return errors.New("snapshot is already stopped")
@@ -70,11 +66,21 @@ func deactivateSnapshot(c transaction.TxnCtx) error {
 		log.WithError(err).Error("failed to set request in transaction context")
 		return err
 	}
+	//TODO Stop other process of snapshot volume
+	//Yet to implement a generic way in glusterd2
 
 	err = snapshot.ActivateDeactivateFunc(snapinfo, brickinfos, activate, c.Logger())
 	if err != nil {
 		return err
 	}
+	vol := &snapinfo.SnapVolinfo
+	for _, b := range vol.GetLocalBricks() {
+		//Remove mount point of offline bricks if it present
+		if snapshot.IsMountExist(b.Path, vol.ID) {
+			snapshot.UmountBrick(b)
+		}
+	}
+
 	return nil
 
 }
@@ -152,7 +158,8 @@ func snapshotDeactivateHandler(w http.ResponseWriter, r *http.Request) {
 
 	snapinfo, err := snapshot.GetSnapshot(snapname)
 	if err != nil {
-		restutils.SendHTTPError(ctx, w, http.StatusNotFound, err)
+		status, err := restutils.ErrToStatusCode(err)
+		restutils.SendHTTPError(ctx, w, status, err)
 		return
 	}
 

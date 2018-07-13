@@ -71,7 +71,7 @@ func isBrickPathAvailable(peerID uuid.UUID, brickPath string) error {
 func CheckBricksStatus(volinfo *Volinfo) ([]brick.Brickstatus, error) {
 
 	var brickStatuses []brick.Brickstatus
-	mtabEntries, err := getMounts()
+	mtabEntries, err := GetMounts()
 	if err != nil {
 		log.WithError(err).Error("Failed to read /etc/mtab file.")
 		return brickStatuses, err
@@ -148,7 +148,7 @@ func GetBrickMountRoot(brickPath string) (string, error) {
 
 //GetBrickMountInfo return mount related information
 func GetBrickMountInfo(mountRoot string) (*Mntent, error) {
-	mtabEntries, err := getMounts()
+	mtabEntries, err := GetMounts()
 	if err != nil {
 		return nil, err
 	}

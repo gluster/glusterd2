@@ -11,18 +11,6 @@ import (
 type Command struct {
 }
 
-/*
-// Name returns name of plugin
-func (p *Command) Name() string {
-	return "snapshot"
-}
-
-// SunRPCProgram returns sunrpc program to register with Glusterd
-func (p *Command) SunRPCProgram() sunrpc.Program {
-	return nil
-}
-*/
-
 // Routes returns list of REST API routes to register with Glusterd
 func (c *Command) Routes() route.Routes {
 	return route.Routes{
@@ -68,14 +56,13 @@ func (c *Command) Routes() route.Routes {
 			Pattern:     "/snapshots",
 			Version:     1,
 			HandlerFunc: snapshotListHandler},
-		/*
-			route.Route{
-				Name:        "SnapshotStatus",
-				Method:      "GET",
-				Pattern:     "/snapshot",
-				Version:     1,
-				HandlerFunc: snapshotStatusHandler},
-		*/
+
+		route.Route{
+			Name:        "SnapshotStatus",
+			Method:      "GET",
+			Pattern:     "/snapshot/{snapname}/status",
+			Version:     1,
+			HandlerFunc: snapshotStatusHandler},
 		route.Route{
 			Name:        "SnapshotDelete",
 			Method:      "DELETE",
@@ -90,7 +77,7 @@ func (c *Command) Routes() route.Routes {
 			HandlerFunc: snapshotConfigGetHandler},
 		route.Route{
 			Name:        "SnapshotConfigSet",
-			Method:      "PUT",
+			Method:      "POST",
 			Pattern:     "/snapshot/config",
 			Version:     1,
 			HandlerFunc: snapshotConfigSetHandler},
@@ -101,26 +88,6 @@ func (c *Command) Routes() route.Routes {
 			Version:     1,
 			HandlerFunc: snapshotConfigResetHandler},
 	}
-}
-
-func snapshotCloneHandler(w http.ResponseWriter, r *http.Request) {
-	ctx := r.Context()
-	restutils.SendHTTPResponse(ctx, w, http.StatusNotImplemented, "Snapshot Clone")
-}
-
-func snapshotRestoreHandler(w http.ResponseWriter, r *http.Request) {
-	ctx := r.Context()
-	restutils.SendHTTPResponse(ctx, w, http.StatusNotImplemented, "Snapshot Restore")
-}
-
-func snapshotStatusHandler(w http.ResponseWriter, r *http.Request) {
-	ctx := r.Context()
-	restutils.SendHTTPResponse(ctx, w, http.StatusNotImplemented, "Snapshot Status")
-}
-
-func snapshotDeleteHandler(w http.ResponseWriter, r *http.Request) {
-	ctx := r.Context()
-	restutils.SendHTTPResponse(ctx, w, http.StatusNotImplemented, "Snapshot Delete")
 }
 
 func snapshotConfigGetHandler(w http.ResponseWriter, r *http.Request) {
@@ -144,5 +111,9 @@ func (c *Command) RegisterStepFuncs() {
 	registerSnapCreateStepFuncs()
 	registerSnapActivateStepFuncs()
 	registerSnapDeactivateStepFuncs()
+	registerSnapDeleteStepFuncs()
+	registerSnapshotStatusStepFuncs()
+	registerSnapRestoreStepFuncs()
+	registerSnapCloneStepFuncs()
 	return
 }

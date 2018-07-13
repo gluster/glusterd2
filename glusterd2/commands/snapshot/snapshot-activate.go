@@ -18,8 +18,8 @@ import (
 
 func validateSnapActivate(c transaction.TxnCtx) error {
 	var req api.VolCreateReq
-	var snapname string
 	var brickinfos []brick.Brickinfo
+	var snapname string
 
 	if err := c.Get("req", &req); err != nil {
 		return err
@@ -41,15 +41,10 @@ func validateSnapActivate(c transaction.TxnCtx) error {
 		}
 		fallthrough
 	case false:
-		brickStatuses, err := volume.CheckBricksStatus(vol)
+		brickinfos, err = snapshot.GetOfflineBricks(vol)
 		if err != nil {
+			log.WithError(err).Error("failed to get offline Bricks")
 			return err
-		}
-
-		for _, brick := range brickStatuses {
-			if brick.Online == false {
-				brickinfos = append(brickinfos, brick.Info)
-			}
 		}
 	}
 	if err := c.SetNodeResult(gdctx.MyUUID, "brickListToOperate", &brickinfos); err != nil {
@@ -164,7 +159,8 @@ func snapshotActivateHandler(w http.ResponseWriter, r *http.Request) {
 
 	snapinfo, err := snapshot.GetSnapshot(snapname)
 	if err != nil {
-		restutils.SendHTTPError(ctx, w, http.StatusNotFound, err)
+		status, err := restutils.ErrToStatusCode(err)
+		restutils.SendHTTPError(ctx, w, status, err)
 		return
 	}
 

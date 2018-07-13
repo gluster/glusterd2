@@ -12,9 +12,9 @@ import (
 func TestSelfHeal(t *testing.T) {
 	r := require.New(t)
 
-	gds, err := setupCluster("./config/1.toml")
+	tc, err := setupCluster("./config/1.toml")
 	r.Nil(err)
-	defer teardownCluster(gds)
+	defer teardownCluster(tc)
 
 	brickDir, err := ioutil.TempDir(baseLocalStateDir, t.Name())
 	r.Nil(err)
@@ -27,7 +27,7 @@ func TestSelfHeal(t *testing.T) {
 		brickPaths[i-1] = brickPath
 	}
 
-	client := initRestclient(gds[0])
+	client := initRestclient(tc.gds[0])
 	volname := formatVolName(t.Name())
 	reqVol := api.VolCreateReq{
 		Name: volname,
@@ -36,8 +36,8 @@ func TestSelfHeal(t *testing.T) {
 				ReplicaCount: 2,
 				Type:         "replicate",
 				Bricks: []api.BrickReq{
-					{PeerID: gds[0].PeerID(), Path: brickPaths[0]},
-					{PeerID: gds[0].PeerID(), Path: brickPaths[1]},
+					{PeerID: tc.gds[0].PeerID(), Path: brickPaths[0]},
+					{PeerID: tc.gds[0].PeerID(), Path: brickPaths[1]},
 				},
 			},
 		},

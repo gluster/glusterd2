@@ -1,7 +1,6 @@
 package cmd
 
 import (
-	"errors"
 	"fmt"
 
 	log "github.com/sirupsen/logrus"
@@ -10,9 +9,9 @@ import (
 
 const (
 	helpRebalanceCmd       = "Gluster Rebalance"
-	helpRebalanceStartCmd  = "Start rebalance session for gluster volume"
-	helpRebalanceStatusCmd = "Status of rebalance seesion"
-	helpRebalanceStopCmd   = "Stop rebalance session"
+	helpRebalanceStartCmd  = "Start rebalance operation for gluster volume"
+	helpRebalanceStatusCmd = "Status of rebalance operation"
+	helpRebalanceStopCmd   = "Stop rebalance operation"
 )
 
 var (
@@ -41,10 +40,6 @@ var rebalanceStartCmd = &cobra.Command{
 	Args:  cobra.ExactArgs(1),
 	Run: func(cmd *cobra.Command, args []string) {
 		volname := cmd.Flags().Args()[0]
-		if flagRebalanceStartCmdForce && flagRebalanceStartCmdFixLayout {
-			err := errors.New("conflicting options found")
-			failure("Please provide only 1 option", err, 1)
-		}
 		var err error
 		if flagRebalanceStartCmdForce {
 			err = client.RebalanceStart(volname, "force")
@@ -55,12 +50,27 @@ var rebalanceStartCmd = &cobra.Command{
 		}
 		if err != nil {
 			if verbose {
-				log.WithError(err).WithFields(log.Fields{
-					"volume": volname,
-				}).Error("rebalance start failed")
+				log.WithError(err).WithField("volume", volname).Error("rebalance start failed")
 			}
 			failure("rebalance start failed", err, 1)
 		}
 		fmt.Printf("Rebalance for %s started successfully\n", volname)
+	},
+}
+
+var rebalanceStopCmd = &cobra.Command{
+	Use:   "<VOLNAME> stop",
+	Short: helpRebalanceStopCmd,
+	Args:  cobra.ExactArgs(1),
+	Run: func(cmd *cobra.Command, args []string) {
+		volname := cmd.Flags().Args()[0]
+		err := client.RebalanceStop(volname)
+		if err != nil {
+			if verbose {
+				log.WithError(err).WithField("volume", volname).Error("Rebalance stop failed")
+			}
+			failure("rebalance start failed", err, 1)
+		}
+		fmt.Printf("Rebalance for %s stopped successfully\n", volname)
 	},
 }
