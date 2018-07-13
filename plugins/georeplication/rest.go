@@ -25,7 +25,7 @@ import (
 )
 
 // newGeorepSession creates new instance of GeorepSession
-func newGeorepSession(mastervolid uuid.UUID, remotevolid uuid.UUID, req georepapi.GeorepCreateReq) *georepapi.GeorepSession {
+func newGeorepSession(mastervolid, remotevolid uuid.UUID, req georepapi.GeorepCreateReq) *georepapi.GeorepSession {
 	remoteUser := req.RemoteUser
 	if req.RemoteUser == "" {
 		remoteUser = "root"
@@ -49,7 +49,7 @@ func newGeorepSession(mastervolid uuid.UUID, remotevolid uuid.UUID, req georepap
 	}
 }
 
-func validateMasterAndRemoteIDFormat(ctx context.Context, w http.ResponseWriter, masteridRaw string, remoteidRaw string) (uuid.UUID, uuid.UUID, error) {
+func validateMasterAndRemoteIDFormat(ctx context.Context, w http.ResponseWriter, masteridRaw, remoteidRaw string) (uuid.UUID, uuid.UUID, error) {
 	// Validate UUID format of Master and Remote Volume ID
 	masterid := uuid.Parse(masteridRaw)
 	if masterid == nil {
@@ -163,6 +163,9 @@ func georepCreateHandler(w http.ResponseWriter, r *http.Request) {
 		geoSession.Options["gluster-logdir"] = path.Join(config.GetString("logdir"), "glusterfs")
 	}
 
+	//store volinfo to revert back changes in case of transaction failure
+	oldvolinfo := vol
+
 	// Required Volume Options
 	vol.Options["marker.xtime"] = "on"
 	vol.Options["marker.gsync-force-xtime"] = "on"
@@ -171,11 +174,19 @@ func georepCreateHandler(w http.ResponseWriter, r *http.Request) {
 	// Workaround till {{ volume.id }} added to the marker options table
 	vol.Options["marker.volume-uuid"] = vol.ID.String()
 
+	//save volume information for transaction failure scenario
+	if err := txn.Ctx.Set("oldvolinfo", oldvolinfo); err != nil {
+		logger.WithError(err).Error("failed to set oldvolinfo in transaction context")
+		restutils.SendHTTPError(ctx, w, http.StatusInternalServerError, err)
+		return
+	}
+
 	txn.Nodes = vol.Nodes()
 	txn.Steps = []*transaction.Step{
 		{
-			DoFunc: "vol-option.UpdateVolinfo",
-			Nodes:  []uuid.UUID{gdctx.MyUUID},
+			DoFunc:   "vol-option.UpdateVolinfo",
+			UndoFunc: "vol-option.UpdateVolinfo.Undo",
+			Nodes:    []uuid.UUID{gdctx.MyUUID},
 		},
 		{
 			DoFunc: "vol-option.NotifyVolfileChange",
@@ -198,10 +209,8 @@ func georepCreateHandler(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	err = txn.Do()
-	if err != nil {
-		logger.WithFields(log.Fields{
-			"error":       err.Error(),
+	if err = txn.Do(); err != nil {
+		logger.WithError(err).WithFields(log.Fields{
 			"mastervolid": masterid,
 			"remotevolid": remoteid,
 		}).Error("failed to create geo-replication session")
@@ -334,8 +343,7 @@ func georepActionHandler(w http.ResponseWriter, r *http.Request, action actionTy
 
 	err = txn.Do()
 	if err != nil {
-		logger.WithFields(log.Fields{
-			"error":       err.Error(),
+		logger.WithError(err).WithFields(log.Fields{
 			"mastervolid": masterid,
 			"remotevolid": remoteid,
 		}).Error("failed to " + action.String() + " geo-replication session")
@@ -436,8 +444,7 @@ func georepDeleteHandler(w http.ResponseWriter, r *http.Request) {
 
 	err = txn.Do()
 	if err != nil {
-		logger.WithFields(log.Fields{
-			"error":       err.Error(),
+		logger.WithError(err).WithFields(log.Fields{
 			"mastervolid": masterid,
 			"remotevolid": remoteid,
 		}).Error("failed to delete geo-replication session")
@@ -516,9 +523,7 @@ func georepStatusHandler(w http.ResponseWriter, r *http.Request) {
 	err = txn.Do()
 	if err != nil {
 		// TODO: Handle partial failure if a few glusterd's down
-
-		logger.WithFields(log.Fields{
-			"error":       err.Error(),
+		logger.WithError(err).WithFields(log.Fields{
 			"mastervolid": masterid,
 			"remotevolid": remoteid,
 		}).Error("failed to get status of geo-replication session")
@@ -530,12 +535,16 @@ func georepStatusHandler(w http.ResponseWriter, r *http.Request) {
 	result, err := aggregateGsyncdStatus(txn.Ctx, txn.Nodes)
 	if err != nil {
 		errMsg := "Failed to aggregate gsyncd status results from multiple nodes."
-		logger.WithField("error", err.Error()).Error("gsyncdStatusHandler:" + errMsg)
+		logger.WithError(err).Error("gsyncdStatusHandler:" + errMsg)
 		restutils.SendHTTPError(ctx, w, http.StatusInternalServerError, errMsg)
 		return
 	}
 
-	for _, b := range vol.GetBricks() {
+	bricks := vol.GetBricks()
+	geoSession.Workers = make([]georepapi.GeorepWorker, 0, len(bricks))
+
+	for _, b := range bricks {
+
 		// Set default values to all status fields, If a node or worker is down and
 		// status not available these default values will be sent back in response
 		geoSession.Workers = append(geoSession.Workers, georepapi.GeorepWorker{
@@ -639,8 +648,7 @@ func georepConfigGetHandler(w http.ResponseWriter, r *http.Request) {
 	}
 	out, err := utils.ExecuteCommandOutput(gsyncdCommand, args...)
 	if err != nil {
-		logger.WithFields(log.Fields{
-			"error":       err.Error(),
+		logger.WithError(err).WithFields(log.Fields{
 			"mastervolid": masterid,
 			"remotevolid": remoteid,
 		}).Error("failed to get session configurations")
@@ -650,8 +658,7 @@ func georepConfigGetHandler(w http.ResponseWriter, r *http.Request) {
 
 	var opts []georepapi.GeorepOption
 	if err = json.Unmarshal(out, &opts); err != nil {
-		logger.WithFields(log.Fields{
-			"error":       err.Error(),
+		logger.WithError(err).WithFields(log.Fields{
 			"mastervolid": masterid,
 			"remotevolid": remoteid,
 		}).Error("failed to parse configurations")
@@ -725,8 +732,7 @@ func georepConfigSetHandler(w http.ResponseWriter, r *http.Request) {
 		val, ok := geoSession.Options[k]
 		if (ok && v != val) || !ok {
 			configWillChange = true
-			err = checkConfig(k, v)
-			if err != nil {
+			if err = checkConfig(k, v); err != nil {
 				restutils.SendHTTPError(ctx, w, http.StatusBadRequest, "Invalid Config Name/Value")
 				return
 			}
@@ -803,8 +809,7 @@ func georepConfigSetHandler(w http.ResponseWriter, r *http.Request) {
 
 	err = txn.Do()
 	if err != nil {
-		logger.WithFields(log.Fields{
-			"error":       err.Error(),
+		logger.WithError(err).WithFields(log.Fields{
 			"mastervolid": masterid,
 			"remotevolid": remoteid,
 		}).Error("failed to update geo-replication session config")
@@ -812,7 +817,7 @@ func georepConfigSetHandler(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	var allopts []string
+	var allopts = make([]string, 0, len(req))
 	for k, v := range req {
 		allopts = append(allopts, k+"="+v)
 	}
@@ -863,10 +868,8 @@ func georepConfigResetHandler(w http.ResponseWriter, r *http.Request) {
 	restartRequired := false
 	// Check if config exists, reset can be done only if it is set before
 	for _, k := range req {
-		_, ok := geoSession.Options[k]
-		if ok {
+		if _, ok := geoSession.Options[k]; ok {
 			configWillChange = true
-
 			restartRequired = restartRequiredOnConfigChange(k)
 		}
 	}
@@ -939,8 +942,7 @@ func georepConfigResetHandler(w http.ResponseWriter, r *http.Request) {
 
 	err = txn.Do()
 	if err != nil {
-		logger.WithFields(log.Fields{
-			"error":       err.Error(),
+		logger.WithError(err).WithFields(log.Fields{
 			"mastervolid": masterid,
 			"remotevolid": remoteid,
 		}).Error("failed to update geo-replication session config")
@@ -1007,10 +1009,7 @@ func georepSSHKeyGenerateHandler(w http.ResponseWriter, r *http.Request) {
 
 	err = txn.Do()
 	if err != nil {
-		logger.WithFields(log.Fields{
-			"error":   err.Error(),
-			"volname": volname,
-		}).Error("failed to generate SSH Keys")
+		logger.WithError(err).WithField("volname", volname).Error("failed to generate SSH Keys")
 		restutils.SendHTTPError(ctx, w, http.StatusInternalServerError, err)
 		return
 	}
@@ -1034,10 +1033,7 @@ func georepSSHKeyGetHandler(w http.ResponseWriter, r *http.Request) {
 
 	sshkeys, err := getSSHPublicKeys(volname)
 	if err != nil {
-		logger.WithFields(log.Fields{
-			"error":   err.Error(),
-			"volname": volname,
-		}).Error("failed to get SSH public Keys")
+		logger.WithError(err).WithField("volname", volname).Error("failed to get SSH public Keys")
 		restutils.SendHTTPError(ctx, w, http.StatusInternalServerError, err)
 		return
 	}
@@ -1101,10 +1097,7 @@ func georepSSHKeyPushHandler(w http.ResponseWriter, r *http.Request) {
 
 	err = txn.Do()
 	if err != nil {
-		logger.WithFields(log.Fields{
-			"error":   err.Error(),
-			"volname": volname,
-		}).Error("failed to push SSH Keys")
+		logger.WithError(err).WithField("volname", volname).Error("failed to push SSH Keys")
 		restutils.SendHTTPError(ctx, w, http.StatusInternalServerError, err)
 		return
 	}

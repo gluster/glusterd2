@@ -9,7 +9,7 @@ import (
 	"github.com/stretchr/testify/require"
 )
 
-func TestSelfHealInfo(t *testing.T) {
+func TestSelfHeal(t *testing.T) {
 	r := require.New(t)
 
 	gds, err := setupCluster("./config/1.toml")
@@ -55,9 +55,17 @@ func TestSelfHealInfo(t *testing.T) {
 	_, err = client.SelfHealInfo(vol1.Name, "split-brain-info")
 	r.Nil(err)
 
+	var optionReq api.VolOptionReq
+
+	optionReq.Options = map[string]string{"replicate.self-heal-daemon": "on"}
+	optionReq.Advanced = true
+
+	r.Nil(client.VolumeSet(vol1.Name, optionReq))
+	r.Nil(client.SelfHeal(vol1.Name, "index"))
+	r.Nil(client.SelfHeal(vol1.Name, "full"))
+
 	// Stop Volume
 	r.Nil(client.VolumeStop(vol1.Name), "Volume stop failed")
 	// delete volume
-	err = client.VolumeDelete(vol1.Name)
-	r.Nil(err)
+	r.Nil(client.VolumeDelete(vol1.Name))
 }
