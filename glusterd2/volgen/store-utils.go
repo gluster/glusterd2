@@ -48,3 +48,9 @@ func GetVolfile(volfileID string) ([]byte, error) {
 	}
 	return resp.Kvs[0].Value, nil
 }
+
+// DeleteVolfiles deletes all the Volfiles with given prefix
+func DeleteVolfiles(prefix string) error {
+	_, err := store.Delete(context.TODO(), volfilePrefix+prefix, clientv3.WithPrefix())
+	return err
+}

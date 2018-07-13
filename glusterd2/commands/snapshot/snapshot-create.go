@@ -202,6 +202,12 @@ func undoStoreSnapshotOnCreate(c transaction.TxnCtx) error {
 		return err
 	}
 
+	if err := volgen.DeleteVolfiles(snapInfo.SnapVolinfo.VolfileID); err != nil {
+		c.Logger().WithError(err).
+			WithField("snapshot", snapshot.GetStorePath(&snapInfo)).
+			Warn("failed to delete volfiles of snapshot")
+	}
+
 	return nil
 }
 
