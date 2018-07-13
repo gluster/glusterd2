@@ -89,7 +89,6 @@ func loadXlator(xlPath string) (*Xlator, error) {
 	defer C.dlclose(handle)
 
 	xl := new(Xlator)
-	xl.ID = strings.TrimSuffix(filepath.Base(xlPath), filepath.Ext(xlPath))
 
 	xlSym := C.CString("xlator_api")
 	defer C.free(unsafe.Pointer(xlSym))
@@ -97,9 +96,7 @@ func loadXlator(xlPath string) (*Xlator, error) {
 	p := C.dlsym(handle, xlSym)
 	if p != nil {
 		xp := (*C.xlator_api_t)(p)
-		// FIXME: It's named "server-protocol" instead of "server" in server.so
-		//        https://review.gluster.org/18879
-		// xl.ID = C.GoString(xp.identifier)
+		xl.ID = C.GoString(xp.identifier)
 		xl.rawID = uint32(xp.xlator_id)
 		xl.Flags = uint32(xp.flags)
 		for _, k := range xp.op_version {
@@ -113,6 +110,14 @@ func loadXlator(xlPath string) (*Xlator, error) {
 		if p == nil {
 			return xl, nil
 		}
+	}
+
+	if xl.ID == "" {
+		// The xlator ID defaults to name of its .so file unless the
+		// xlator defines 'xlator_api_t' structure which has the
+		// 'identifier' field.
+		xl.ID = strings.TrimSuffix(filepath.Base(xlPath),
+			filepath.Ext(xlPath))
 	}
 
 	soOptions := (*[maxOptions]C.volume_option_t)(p)
