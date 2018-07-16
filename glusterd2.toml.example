@@ -1,5 +1,5 @@
 localstatedir = "/var/lib/glusterd"
 peeraddress = ":24008"
 clientaddress = ":24007"
-#restauth should be set to false to disable REST authentication in glusterd2
-#restauth = false
+#restauth enables/disables REST authentication in glusterd2
+#restauth = true

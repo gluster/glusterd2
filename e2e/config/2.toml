@@ -7,5 +7,4 @@ peeraddress = "127.0.0.1:23008"
 clientaddress = "127.0.0.1:23007"
 etcdcurls = "http://127.0.0.1:2379"
 etcdpurls = "http://127.0.0.1:2380"
-#restauth should be set to false to disable REST authentication in glusterd2
 restauth = true
