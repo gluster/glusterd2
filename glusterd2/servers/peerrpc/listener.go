@@ -6,6 +6,8 @@ import (
 
 	log "github.com/sirupsen/logrus"
 	config "github.com/spf13/viper"
+	"go.opencensus.io/plugin/ocgrpc"
+	"go.opencensus.io/trace"
 	"google.golang.org/grpc"
 )
 
@@ -18,7 +20,10 @@ type Server struct {
 // New returns a new peerrpc.Server with registered gRPC services
 func New() *Server {
 	s := &Server{
-		grpc.NewServer(),
+		grpc.NewServer(grpc.StatsHandler(&ocgrpc.ServerHandler{
+			StartOptions: trace.StartOptions{
+				Sampler: trace.AlwaysSample(),
+			}})),
 	}
 	registerServices(s.server)
 

@@ -9,6 +9,8 @@ import (
 
 	"github.com/pborman/uuid"
 	log "github.com/sirupsen/logrus"
+	"go.opencensus.io/plugin/ocgrpc"
+	"go.opencensus.io/trace"
 	netctx "golang.org/x/net/context"
 	"google.golang.org/grpc"
 )
@@ -35,7 +37,13 @@ func runStepOn(step string, node uuid.UUID, c TxnCtx) error {
 		return err
 	}
 
-	conn, err = grpc.Dial(remote, grpc.WithInsecure())
+	conn, err = grpc.Dial(remote,
+		grpc.WithStatsHandler(&ocgrpc.ClientHandler{
+			StartOptions: trace.StartOptions{
+				Sampler: trace.AlwaysSample(),
+			}}),
+		grpc.WithInsecure(),
+	)
 	if err == nil && conn != nil {
 		logger.WithFields(log.Fields{
 			"remote": remote,
