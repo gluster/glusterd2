@@ -103,6 +103,9 @@ func clusterGraph(volfile *Volfile, dht *Entry, vol *volume.Volinfo, peerid uuid
 					remotePort = taParts[2]
 				}
 
+				afrPendingXattr = append(afrPendingXattr, fmt.Sprintf("%s-ta-%d", vol.Name, clientIdx))
+				clientIdx++
+
 				name := fmt.Sprintf("%s-thin-arbiter-client", subvol.Name)
 				parent.Add("protocol/client", vol, nil).
 					SetName(name).
