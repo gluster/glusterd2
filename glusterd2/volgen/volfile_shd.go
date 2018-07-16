@@ -11,6 +11,9 @@ func generateShdVolfile(volfile *Volfile, clusterinfo []*volume.Volinfo, peerid 
 	shd := volfile.RootEntry.Add("debug/io-stats", nil, nil).SetName("glustershd")
 
 	for _, vol := range clusterinfo {
+		if vol.State != volume.VolStarted {
+			continue
+		}
 
 		filters := clusterGraphFilters{subvolTypes: []volume.SubvolType{
 			volume.SubvolReplicate,
