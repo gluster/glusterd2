@@ -18,6 +18,10 @@ func generateQuotadVolfile(volfile *Volfile, clusterinfo []*volume.Volinfo, peer
 	quota := volfile.RootEntry.Add("features/quotad", nil, nil).SetName("quotad").SetExtraOptions(quotaOpts)
 
 	for _, v := range clusterinfo {
+		if v.State != volume.VolStarted {
+			continue
+		}
+
 		//If quota is not enabled for volume, then skip those volumes
 		val, exists := v.Options["quota.enable"]
 		if exists && val == "on" {
