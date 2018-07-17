@@ -1,4 +1,4 @@
-package volgen2
+package volgen
 
 import (
 	"context"
@@ -47,4 +47,10 @@ func GetVolfile(volfileID string) ([]byte, error) {
 		return []byte{}, errors.ErrVolFileNotFound
 	}
 	return resp.Kvs[0].Value, nil
+}
+
+// DeleteVolfiles deletes all the Volfiles with given prefix
+func DeleteVolfiles(prefix string) error {
+	_, err := store.Delete(context.TODO(), volfilePrefix+prefix, clientv3.WithPrefix())
+	return err
 }

@@ -46,7 +46,7 @@ func (r *Process) Args() []string {
 		volfileserver = "localhost"
 	}
 
-	volFileID := path.Join("rebalance/", r.rInfo.Volname)
+	volFileID := r.rInfo.Volname + "/rebalance"
 	logDir := path.Join(config.GetString("logdir"), "glusterfs")
 	logFile := fmt.Sprintf("%s/%s-rebalance.log", logDir, r.rInfo.Volname)
 	cmd := r.rInfo.Cmd

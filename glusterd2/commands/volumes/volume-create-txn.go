@@ -23,11 +23,6 @@ func undoStoreVolumeOnCreate(c transaction.TxnCtx) error {
 		return err
 	}
 
-	if err := deleteVolfiles(c); err != nil {
-		c.Logger().WithError(err).WithField(
-			"volume", volinfo.Name).Warn("Failed to delete volfiles")
-	}
-
 	if err := deleteVolume(c); err != nil {
 		c.Logger().WithError(err).WithField(
 			"volume", volinfo.Name).Warn("Failed to delete volinfo from store")

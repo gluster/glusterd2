@@ -1,4 +1,4 @@
-package volgen2
+package volgen
 
 import (
 	"github.com/gluster/glusterd2/glusterd2/volume"
@@ -11,7 +11,7 @@ func generateTCPGfProxyFuseVolfile(volfile *Volfile, vol *volume.Volinfo, peerid
 	/*
 		Name should be different for snapshot
 	*/
-	volfile.FileName = "gfproxy-client/" + vol.VolfileID
+	volfile.FileName = vol.VolfileID + "/gfproxy-client"
 
 	volfile.RootEntry.Add("debug/io-stats", vol, nil).SetName(vol.Name).
 		Add("performance/write-behind", vol, nil).
@@ -20,7 +20,7 @@ func generateTCPGfProxyFuseVolfile(volfile *Volfile, vol *volume.Volinfo, peerid
 
 func generateGfproxydVolfile(volfile *Volfile, vol *volume.Volinfo, peerid uuid.UUID) {
 
-	volfile.FileName = "gfproxyd/" + vol.Name
+	volfile.FileName = vol.Name + "/gfproxyd"
 
 	dht := volfile.RootEntry.Add("protocol/server", vol, nil).SetExtraData(map[string]string{"brick.path": "", "brick.hostname": ""}).
 		Add("debug/io-stats", vol, nil).SetName(vol.Name).
