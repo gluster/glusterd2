@@ -166,26 +166,43 @@ func volumeCreateCmdRun(cmd *cobra.Command, args []string) {
 	if flagCreateReplicaCount > 0 {
 		// Replicate Volume Support
 
-		if numBricks%flagCreateReplicaCount != 0 {
-			failure("Invalid number of bricks specified", nil, 1)
+		// if arbiter count is specified
+		if cmd.Flags().Changed("arbiter") {
+			if flagCreateArbiterCount != 1 && flagCreateReplicaCount != 2 {
+				failure("Invalid arbiter/replica count specified. Supported arbiter configuration: replica 2, arbiter 1", nil, 1)
+			}
 		}
 
-		numSubvols := numBricks / flagCreateReplicaCount
+		if numBricks%(flagCreateReplicaCount+flagCreateArbiterCount) != 0 {
+			failure("Invalid number of bricks specified. Number of bricks must be a multiple of replica (+arbiter) count.", nil, 1)
+		}
 
+		// FIXME: Things would've been so much simpler if specifying the
+		// arbiter brick was simply a separate command flag such as
+		// --arbiter-brick or even a boolean as we always pick the last
+		// brick as arbiter.
+
+		numSubvols := numBricks / (flagCreateReplicaCount + flagCreateArbiterCount)
+
+		subvolStart := 0
+		subvolEnd := flagCreateReplicaCount + flagCreateArbiterCount
 		for i := 0; i < numSubvols; i++ {
-			idx := i * flagCreateReplicaCount
 
-			// If Arbiter is set, set it as Brick Type for last brick
+			// If arbiter count is set, mark the brick type of last
+			// brick in the subvol as of Arbiter type.
 			if flagCreateArbiterCount > 0 {
-				bricks[idx+flagCreateReplicaCount-1].Type = "arbiter"
+				bricks[subvolEnd-1].Type = "arbiter"
 			}
 
 			subvols = append(subvols, api.SubvolReq{
 				Type:         "replicate",
-				Bricks:       bricks[idx : idx+flagCreateReplicaCount],
+				Bricks:       bricks[subvolStart:subvolEnd],
 				ReplicaCount: flagCreateReplicaCount,
 				ArbiterCount: flagCreateArbiterCount,
 			})
+
+			subvolStart = subvolEnd
+			subvolEnd += (flagCreateReplicaCount + flagCreateArbiterCount)
 		}
 	} else if flagCreateDisperseCount > 0 || flagCreateDisperseDataCount > 0 || flagCreateDisperseRedundancyCount > 0 {
 		subvolSize := 0
