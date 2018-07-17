@@ -11,6 +11,20 @@ import (
 	"github.com/spf13/cobra"
 )
 
+var (
+	// variables set by LDFLAGS during build time
+	defaultAuthPath = ""
+)
+
+var (
+	// global variables set during runtime
+	secret string
+)
+
+const (
+	defaultLogLevel = "INFO"
+)
+
 // RootCmd represents main command
 var RootCmd = &cobra.Command{
 	Use:   "glustercli",
@@ -21,29 +35,45 @@ var RootCmd = &cobra.Command{
 			fmt.Println("Error initializing log file ", err)
 		}
 
-		if flagAuthFile == "" && flagSecret == "" {
+		// Secret is taken in following order of precedence (highest to lowest):
+		// --secret
+		// --secret-file
+		// GLUSTERD2_AUTH_SECRET (environment variable)
+		// --secret-file (default path)
+
+		// NOTE: For simplicity, we don't distinguish between an empty
+		// value and an unset value.
+
+		// --secret
+		if flagSecret != "" {
+			secret = flagSecret
+		}
+
+		// --secret-file
+		if flagSecretFile != "" && secret == "" {
+			data, err := ioutil.ReadFile(flagSecretFile)
+			if err != nil {
+				failure(fmt.Sprintf("failed to read secret file %s", flagSecretFile),
+					err, 1)
+			}
+			secret = string(data)
+		}
+
+		// GLUSTERD2_AUTH_SECRET
+		if secret == "" {
+			secret = os.Getenv("GLUSTERD2_AUTH_SECRET")
+		}
+
+		// --secret-file (default path)
+		if flagSecretFile == "" && secret == "" {
 			data, err := ioutil.ReadFile(defaultAuthPath)
 			if err != nil && !os.IsNotExist(err) {
 				if verbose {
-					log.WithError(err).Error("failed to read secret")
+					log.WithError(err).Error(
+						fmt.Sprintf("failed to read default secret file %s", defaultAuthPath))
 				}
 			}
 			secret = string(data)
-		}
-
-		if flagAuthFile != "" {
-			data, err := ioutil.ReadFile(flagAuthFile)
-			if err != nil {
-				if verbose {
-					log.WithError(err).Error("failed to read secret")
-				}
-				failure("failed to read secret", err, 1)
-			}
-			secret = string(data)
-		}
-
-		if flagSecret != "" {
-			secret = flagSecret
 		}
 
 		initRESTClient(flagEndpoints[0], flagUser, secret, flagCacert, flagInsecure)
@@ -51,6 +81,7 @@ var RootCmd = &cobra.Command{
 }
 
 var (
+	// set by command line flags
 	flagXMLOutput  bool
 	flagJSONOutput bool
 	flagEndpoints  []string
@@ -60,14 +91,7 @@ var (
 	verbose        bool
 	flagUser       string
 	flagSecret     string
-	flagAuthFile   string
-	secret         string
-	//defaultAuthPath is set by LDFLAGS
-	defaultAuthPath = ""
-)
-
-const (
-	defaultLogLevel = "INFO"
+	flagSecretFile string
 )
 
 func init() {
@@ -80,7 +104,7 @@ func init() {
 	//user and secret for token authentication
 	RootCmd.PersistentFlags().StringVar(&flagUser, "user", "glustercli", "Username for authentication")
 	RootCmd.PersistentFlags().StringVar(&flagSecret, "secret", "", "Password for authentication")
-	RootCmd.PersistentFlags().StringVar(&flagAuthFile, "authfile", "", "Auth file path, which contains secret for authentication")
+	RootCmd.PersistentFlags().StringVar(&flagSecretFile, "secret-file", "", "Path to file which contains the secret for authentication")
 
 	// Log options
 	RootCmd.PersistentFlags().StringVarP(&flagLogLevel, logging.LevelFlag, "", defaultLogLevel, logging.LevelHelp)
