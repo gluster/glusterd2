@@ -106,7 +106,7 @@ func testSmartVolumeArbiter(t *testing.T) {
 	createReq := api.VolCreateReq{
 		Name:         smartvolname,
 		Size:         20,
-		ReplicaCount: 3,
+		ReplicaCount: 2,
 		ArbiterCount: 1,
 	}
 	volinfo, err := client.VolumeCreate(createReq)

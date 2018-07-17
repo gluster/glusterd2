@@ -22,11 +22,11 @@ func (s *replicaSubvolPlanner) Init(req *api.VolCreateReq, subvolSize uint64) {
 }
 
 func (s *replicaSubvolPlanner) BricksCount() int {
-	return s.replicaCount
+	return s.replicaCount + s.arbiterCount
 }
 
 func (s *replicaSubvolPlanner) BrickSize(idx int) uint64 {
-	if idx == (s.replicaCount-1) && s.arbiterCount > 0 {
+	if idx == (s.replicaCount) && s.arbiterCount > 0 {
 		return s.arbiterBrickSize
 	}
 
@@ -34,7 +34,7 @@ func (s *replicaSubvolPlanner) BrickSize(idx int) uint64 {
 }
 
 func (s *replicaSubvolPlanner) BrickType(idx int) string {
-	if idx == (s.replicaCount-1) && s.arbiterCount > 0 {
+	if idx == (s.replicaCount) && s.arbiterCount > 0 {
 		return "arbiter"
 	}
 
