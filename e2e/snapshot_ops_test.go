@@ -82,7 +82,7 @@ func TestSnapshot(t *testing.T) {
 
 	/*
 		TODO:
-		test snapshot on a volume that is expanded or shrinked
+		test snapshot on a volume that is expanded or shrunk
 	*/
 
 }
