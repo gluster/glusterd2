@@ -77,6 +77,10 @@ var RootCmd = &cobra.Command{
 		}
 
 		initRESTClient(flagEndpoints[0], flagUser, secret, flagCacert, flagInsecure)
+		if len(os.Args) > 1 {
+			args := []string{"glustercli"}
+			client.SetOriginArgs(append(args, os.Args[1:]...))
+		}
 	},
 }
 
