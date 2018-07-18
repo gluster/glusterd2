@@ -115,6 +115,10 @@ func volumeCreateOnLvm(volName string, brickPaths []string, client *restclient.C
 				},
 			},
 		},
+		Metadata: map[string]string{
+			"owner": "gd2test",
+		},
+
 		Force: true,
 	}
 	_, err := client.VolumeCreate(createReq)
@@ -163,6 +167,7 @@ func testSnapshotList(t *testing.T) {
 
 	snaps, err := client.SnapshotList("")
 	r.Nil(err)
+	r.Len(snaps, 1)
 	r.Len(snaps[0].SnapName, 2)
 
 	snaps, err = client.SnapshotList(snapTestName)

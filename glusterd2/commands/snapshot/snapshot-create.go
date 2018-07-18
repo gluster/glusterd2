@@ -202,13 +202,14 @@ func undoStoreSnapshotOnCreate(c transaction.TxnCtx) error {
 		c.Logger().WithError(err).
 			WithField("snapshot", snapshot.GetStorePath(&snapInfo)).
 			Warn("failed to delete volfiles of snapshot")
+		return err
 	}
 
 	return nil
 }
 
 // storeSnapshot uses to store the volinfo and to generate client volfile
-func storeSnapshot(c transaction.TxnCtx) error {
+func storeSnapshotCreate(c transaction.TxnCtx) error {
 
 	var snapInfo snapshot.Snapinfo
 	if err := c.Get("snapinfo", &snapInfo); err != nil {
@@ -668,8 +669,9 @@ func validateOriginNodeSnapCreate(c transaction.TxnCtx) error {
 	}
 
 	if volinfo.State != volume.VolStarted {
-		return errors.New("volume has not started")
+		return gderrors.ErrVolNotStarted
 	}
+
 	barrierOp := volinfo.Options["features.barrier"]
 	if err := c.Set("barrier-enabled", &barrierOp); err != nil {
 		return err
@@ -695,14 +697,13 @@ func registerSnapCreateStepFuncs() {
 		name string
 		sf   transaction.StepFunc
 	}{
-		{"snap-create.OriginNodeValidate", validateOriginNodeSnapCreate},
 		{"snap-create.Validate", validateSnapCreate},
 		{"snap-create.CreateSnapinfo", createSnapinfo},
 		{"snap-create.ActivateBarrier", activateBarrier},
 		{"snap-create.TakeBrickSnapshots", takeSnapshots},
 		{"snap-create.UndoBrickSnapshots", undoBrickSnapshots},
 		{"snap-create.DeactivateBarrier", deactivateBarrier},
-		{"snap-create.StoreSnapshot", storeSnapshot},
+		{"snap-create.StoreSnapshot", storeSnapshotCreate},
 		{"snap-create.UndoStoreSnapshotOnCreate", undoStoreSnapshotOnCreate},
 	}
 	for _, sf := range sfs {
@@ -741,6 +742,16 @@ func snapshotCreateHandler(w http.ResponseWriter, r *http.Request) {
 	}
 	defer txn.Done()
 
+	if err = txn.Ctx.Set("data", data); err != nil {
+		logger.WithError(err).Error("failed to set request in transaction context")
+		restutils.SendHTTPError(ctx, w, http.StatusInternalServerError, err)
+		return
+	}
+
+	if err := validateOriginNodeSnapCreate(txn.Ctx); err != nil {
+		restutils.SendHTTPError(ctx, w, http.StatusUnprocessableEntity, err)
+		return
+	}
 	vol, e := volume.GetVolume(req.VolName)
 	if e != nil {
 		status, err := restutils.ErrToStatusCode(e)
@@ -750,10 +761,6 @@ func snapshotCreateHandler(w http.ResponseWriter, r *http.Request) {
 
 	txn.Nodes = vol.Nodes()
 	txn.Steps = []*transaction.Step{
-		{
-			DoFunc: "snap-create.OriginNodeValidate",
-			Nodes:  []uuid.UUID{gdctx.MyUUID},
-		},
 		{
 			DoFunc: "snap-create.Validate",
 			Nodes:  txn.Nodes,
@@ -783,11 +790,6 @@ func snapshotCreateHandler(w http.ResponseWriter, r *http.Request) {
 			UndoFunc: "snap-create.UndoStoreSnapshotOnCreate",
 			Nodes:    []uuid.UUID{gdctx.MyUUID},
 		},
-	}
-	if err = txn.Ctx.Set("data", data); err != nil {
-		logger.WithError(err).Error("failed to set request in transaction context")
-		restutils.SendHTTPError(ctx, w, http.StatusInternalServerError, err)
-		return
 	}
 
 	if err = txn.Do(); err != nil {

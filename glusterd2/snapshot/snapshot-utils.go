@@ -108,6 +108,13 @@ func MountSnapBrickDirectory(vol *volume.Volinfo, brickinfo *brick.Brickinfo) er
 func getOnlineOfflineBricks(vol *volume.Volinfo, online bool) ([]brick.Brickinfo, error) {
 	var brickinfos []brick.Brickinfo
 
+	if vol.State == volume.VolStopped {
+		//If volume is not started, We will assume all bricks are stopped.
+		if online == true {
+			return brickinfos, nil
+		}
+		return vol.GetLocalBricks(), nil
+	}
 	brickStatuses, err := volume.CheckBricksStatus(vol)
 	if err != nil {
 		return brickinfos, err

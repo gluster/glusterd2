@@ -250,14 +250,20 @@ func storeSnapRestore(c transaction.TxnCtx) error {
 		return err
 	}
 
+	if err := snapshot.DeleteSnapshot(snapInfo); err != nil {
+		c.Logger().WithError(err).WithField(
+			"snapshot", snapVol.Name).Debug("failed to delete snap from store")
+	}
+	if err := volgen.DeleteVolfiles(snapInfo.SnapVolinfo.VolfileID); err != nil {
+		c.Logger().WithError(err).
+			WithField("snapshot", snapshot.GetStorePath(snapInfo)).
+			Warn("failed to delete volfiles of snapshot")
+	}
+
 	if err := volgen.Generate(); err != nil {
 		c.Logger().WithError(err).WithField(
 			"volume", newVolinfo.Name).Debug("failed to generate volfiles")
 		return err
-	}
-	if err := snapshot.DeleteSnapshot(snapInfo); err != nil {
-		c.Logger().WithError(err).WithField(
-			"snapshot", snapVol.Name).Debug("failed to delete snap from store")
 	}
 
 	return nil
