@@ -45,9 +45,15 @@ func undoStoreSnapshotClone(c transaction.TxnCtx) error {
 		return err
 	}
 
-	// TODO Delete volfile from etcd properly
-	volume.DeleteVolume(vol.Name)
+	if err := volume.DeleteVolume(vol.Name); err != nil {
+		return err
+	}
 
+	if err := volgen.DeleteVolfiles(vol.Name); err != nil {
+		c.Logger().WithError(err).
+			WithField("volume", vol.Name).
+			Warn("failed to delete volfiles of volume")
+	}
 	return nil
 }
 

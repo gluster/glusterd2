@@ -91,6 +91,14 @@ func snapshotDeleteStore(c transaction.TxnCtx) error {
 			Warn("failed to delete volfiles of snapshot")
 	}
 
+	//Snapshot can be deleted even if it is activated, hence regenerating volfiles
+	//Not needed if snapshot is already deactivated
+	if err := volgen.Generate(); err != nil {
+		c.Logger().WithError(err).WithField(
+			"snapshot", snapinfo.SnapVolinfo.Name).Debug("generateVolfiles: failed to generate volfiles")
+		return err
+	}
+
 	return nil
 }
 
