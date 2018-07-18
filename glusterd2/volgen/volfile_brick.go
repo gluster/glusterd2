@@ -11,7 +11,7 @@ import (
 
 func generateBrickVolfile(volfile *Volfile, b *brick.Brickinfo, vol *volume.Volinfo, peerid uuid.UUID) {
 	volfile.FileName = fmt.Sprintf("%s.%s.%s",
-		vol.Name,
+		vol.VolfileID,
 		b.PeerID,
 		strings.Trim(strings.Replace(b.Path, "/", "-", -1), "-"),
 	)

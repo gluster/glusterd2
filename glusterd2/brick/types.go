@@ -34,6 +34,7 @@ type Brickinfo struct {
 	PeerID         uuid.UUID
 	Path           string
 	VolumeName     string
+	VolfileID      string
 	VolumeID       uuid.UUID
 	Type           Type
 	Decommissioned bool
