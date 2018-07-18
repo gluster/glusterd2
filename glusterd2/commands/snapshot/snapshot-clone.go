@@ -49,7 +49,7 @@ func undoStoreSnapshotClone(c transaction.TxnCtx) error {
 		return err
 	}
 
-	if err := volgen.DeleteVolfiles(vol.Name); err != nil {
+	if err := volgen.DeleteVolfiles(vol.VolfileID); err != nil {
 		c.Logger().WithError(err).
 			WithField("volume", vol.Name).
 			Warn("failed to delete volfiles of volume")

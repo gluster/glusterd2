@@ -173,6 +173,7 @@ func createVolumeBrickFromSnap(bricks []brick.Brickinfo, vol *volume.Volinfo) []
 			Type:           b.Type,
 			VolumeID:       vol.ID,
 			VolumeName:     vol.Name,
+			VolfileID:      vol.Name,
 		}
 		newBricks = append(newBricks, newBrick)
 	}
