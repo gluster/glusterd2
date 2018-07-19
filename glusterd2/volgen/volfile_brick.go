@@ -18,8 +18,8 @@ func generateBrickVolfile(volfile *Volfile, b *brick.Brickinfo, vol *volume.Voli
 	last := volfile.RootEntry.
 		Add("protocol/server", vol, b).
 		Add("performance/decompounder", vol, b).SetName(b.Path).
-		Add("features/sdfs", vol, b).
 		Add("debug/io-stats", vol, b).
+		Add("features/sdfs", vol, b).
 		Add("features/quota", vol, b).
 		Add("features/index", vol, b).
 		Add("features/barrier", vol, b).
