@@ -24,10 +24,10 @@ const (
 
 //MountInfo is used to store mount related information of a volume
 type MountInfo struct {
-	Mountdir   string
-	DevicePath string
-	FsType     string
-	MntOpts    string
+	BrickDirSuffix string
+	DevicePath     string
+	FsType         string
+	MntOpts        string
 }
 
 // Brickinfo is the static information about the brick
