@@ -23,6 +23,7 @@ var (
 
 const (
 	defaultLogLevel = "INFO"
+	defaultTimeout  = 30 // in seconds
 )
 
 // RootCmd represents main command
@@ -84,14 +85,15 @@ var (
 	// set by command line flags
 	flagXMLOutput  bool
 	flagJSONOutput bool
-	flagEndpoints  []string
-	flagCacert     string
 	flagInsecure   bool
-	flagLogLevel   string
 	verbose        bool
+	flagCacert     string
+	flagLogLevel   string
 	flagUser       string
 	flagSecret     string
 	flagSecretFile string
+	flagEndpoints  []string
+	flagTimeout    uint
 )
 
 func init() {
@@ -100,6 +102,8 @@ func init() {
 	RootCmd.PersistentFlags().BoolVarP(&flagJSONOutput, "json", "", false, "JSON Output")
 	RootCmd.PersistentFlags().StringSliceVar(&flagEndpoints, "endpoints", []string{"http://127.0.0.1:24007"}, "glusterd2 endpoints")
 	RootCmd.PersistentFlags().BoolVarP(&verbose, "verbose", "v", false, "verbose output")
+	RootCmd.PersistentFlags().UintVar(&flagTimeout, "timeout", defaultTimeout,
+		"overall client timeout (in seconds) which includes time taken to read the response body")
 
 	//user and secret for token authentication
 	RootCmd.PersistentFlags().StringVar(&flagUser, "user", "glustercli", "Username for authentication")
