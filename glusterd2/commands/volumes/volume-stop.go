@@ -68,9 +68,20 @@ func stopBricks(c transaction.TxnCtx) error {
 }
 
 func registerVolStopStepFuncs() {
-	transaction.RegisterStepFunc(stopBricks, "vol-stop.StopBricks")
-	transaction.RegisterStepFunc(storeVolume, "vol-stop.UpdateVolinfo")
-	transaction.RegisterStepFunc(undoStoreVolume, "vol-stop.UpdateVolinfo.Undo")
+	var sfs = []struct {
+		name string
+		sf   transaction.StepFunc
+	}{
+		{"vol-stop.StopBricks", stopBricks},
+		{"vol-stop.XlatorActionDoVolumeStop", xlatorActionDoVolumeStop},
+		{"vol-stop.XlatorActionUndoVOlumeStop", xlatorActionUndoVolumeStop},
+		{"vol-stop.UpdateVolinfo", storeVolume},
+		{"vol-stop.UpdateVolinfo.Undo", undoStoreVolume},
+	}
+	for _, sf := range sfs {
+		transaction.RegisterStepFunc(sf.sf, sf.name)
+	}
+
 }
 
 func volumeStopHandler(w http.ResponseWriter, r *http.Request) {
@@ -108,6 +119,11 @@ func volumeStopHandler(w http.ResponseWriter, r *http.Request) {
 			DoFunc:   "vol-stop.UpdateVolinfo",
 			UndoFunc: "vol-stop.UpdateVolinfo.Undo",
 			Nodes:    []uuid.UUID{gdctx.MyUUID},
+		},
+		{
+			DoFunc:   "vol-stop.XlatorActionDoVolumeStop",
+			UndoFunc: "vol-stop.XlatorActionUndoVolumeStop",
+			Nodes:    volinfo.Nodes(),
 		},
 	}
 
