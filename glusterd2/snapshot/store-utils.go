@@ -58,6 +58,21 @@ func GetSnapshots() ([]*Snapinfo, error) {
 	return snaps, nil
 }
 
+//GetActivatedSnapshotVolumes return the volfile for all activated snapshots
+func GetActivatedSnapshotVolumes() ([]*volume.Volinfo, error) {
+	var vols []*volume.Volinfo
+	resp, err := GetSnapshots()
+	if err != nil {
+		return vols, err
+	}
+	for _, snap := range resp {
+		if snap.SnapVolinfo.State == volume.VolStarted {
+			vols = append(vols, &snap.SnapVolinfo)
+		}
+	}
+	return vols, nil
+}
+
 //GetSnapshotVolumes return the volfile for all snapshots
 func GetSnapshotVolumes() ([]*volume.Volinfo, error) {
 	var vols []*volume.Volinfo

@@ -28,7 +28,7 @@ func txnPrepareBricks(c transaction.TxnCtx) error {
 			}
 
 			// Create Mount directory
-			mountRoot := strings.TrimSuffix(b.Path, b.Mountdir)
+			mountRoot := strings.TrimSuffix(b.Path, b.BrickDirSuffix)
 			err := os.MkdirAll(mountRoot, os.ModeDir|os.ModePerm)
 			if err != nil {
 				c.Logger().WithError(err).WithField("path", mountRoot).Error("failed to create brick mount directory")
@@ -112,7 +112,7 @@ func txnUndoPrepareBricks(c transaction.TxnCtx) error {
 			}
 
 			// UnMount the Brick
-			mountRoot := strings.TrimSuffix(b.Path, b.Mountdir)
+			mountRoot := strings.TrimSuffix(b.Path, b.BrickDirSuffix)
 			err := deviceutils.BrickUnmount(mountRoot)
 			if err != nil {
 				c.Logger().WithError(err).WithField("path", mountRoot).Error("brick unmount failed")
@@ -154,7 +154,7 @@ func txnCleanBricks(c transaction.TxnCtx) error {
 
 	for _, b := range volinfo.GetLocalBricks() {
 		// UnMount the Brick if mounted
-		mountRoot := strings.TrimSuffix(b.Path, b.MountInfo.Mountdir)
+		mountRoot := strings.TrimSuffix(b.Path, b.MountInfo.BrickDirSuffix)
 		_, err := volume.GetBrickMountInfo(mountRoot)
 		if err != nil {
 			if !volume.IsMountNotFoundError(err) {

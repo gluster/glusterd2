@@ -11,8 +11,19 @@ import (
 	"os/exec"
 	"strings"
 	"syscall"
+	"time"
 
+	"github.com/gluster/glusterd2/glusterd2/brick"
+	"github.com/gluster/glusterd2/pkg/utils"
+
+	"github.com/pborman/uuid"
+	log "github.com/sirupsen/logrus"
 	config "github.com/spf13/viper"
+	"golang.org/x/sys/unix"
+)
+
+const (
+	volumeIDXattrKey = "trusted.glusterfs.volume-id"
 )
 
 //For now duplicating SizeInfo till we have a common package for both brick and volume
@@ -143,4 +154,150 @@ func GetMounts() ([]*Mntent, error) {
 	}
 
 	return l, nil
+}
+
+//IsMountExist return success when mount point already exist
+//If mtab values is given, it does high level validation of mount
+//Else it will skip device verfication and just does xattr validation
+func IsMountExist(b *brick.Brickinfo, iD uuid.UUID, mtab []*Mntent) bool {
+
+	if _, err := os.Lstat(b.Path); err != nil {
+		return false
+	}
+
+	data := make([]byte, 16)
+	sz, err := syscall.Getxattr(b.Path, volumeIDXattrKey, data)
+	if err != nil || sz <= 0 {
+		return false
+	}
+
+	//Check for little or big endian ?
+	if !uuid.Equal(iD, data[:sz]) {
+		return false
+	}
+
+	if mtab == nil {
+		//Skip high level mount validation
+		return true
+	}
+
+	mountData := b.MountInfo
+	mountRoot := strings.TrimSuffix(b.Path, mountData.BrickDirSuffix)
+	for _, entry := range mtab {
+		if entry.MntDir == mountRoot {
+			if entry.MntType != mountData.FsType {
+				return false
+			}
+			devicePath, err := os.Readlink(mountData.DevicePath)
+			if err != nil {
+				return false
+			}
+			deviceMapper, err := os.Readlink(entry.FsName)
+			if err != nil {
+				return false
+			}
+			if deviceMapper == devicePath {
+				return true
+			}
+			//No need to continue as mount root already processed
+			break
+		}
+	}
+	return false
+}
+
+//UmountBrickDirectory does an umount of the path
+func UmountBrickDirectory(path string) error {
+	err := syscall.Unmount(path, syscall.MNT_FORCE)
+	return err
+}
+
+//MountBrickDirectory creates the directory strcture for bricks
+func MountBrickDirectory(vol *Volinfo, brickinfo *brick.Brickinfo, mtab []*Mntent) error {
+
+	provisionType := brickinfo.PType
+	if !(provisionType.IsAutoProvisioned() || provisionType.IsSnapshotProvisioned()) {
+		return nil
+	}
+
+	mountData := brickinfo.MountInfo
+	mountRoot := strings.TrimSuffix(brickinfo.Path, mountData.BrickDirSuffix)
+	//Because of abnormal shutdown of the brick, mount point might already be existing
+	if IsMountExist(brickinfo, vol.ID, mtab) {
+		log.WithFields(log.Fields{
+			"mountRoot":  mountRoot,
+			"fsType":     mountData.FsType,
+			"devicePath": mountData.DevicePath,
+		}).Debug("Mount point already exist")
+		return nil
+	}
+
+	if err := os.MkdirAll(mountRoot, os.ModeDir|os.ModePerm); err != nil {
+		log.WithError(err).Error("Failed to create snapshot directory ", brickinfo.String())
+		return err
+	}
+
+	if err := MountDirectory(mountRoot, brickinfo.MountInfo); err != nil {
+		log.WithError(err).WithFields(log.Fields{"brickPath": brickinfo.String(),
+			"mountRoot": mountRoot}).Error("Failed to mount snapshot directory")
+
+		return err
+	}
+
+	if err := unix.Setxattr(brickinfo.Path, volumeIDXattrKey, vol.ID, 0); err != nil {
+		log.WithFields(log.Fields{"error": err.Error(),
+			"brickPath": brickinfo.Path,
+			"xattr":     volumeIDXattrKey}).Error("setxattr failed")
+		return err
+	}
+
+	return nil
+}
+
+//MountDirectory will mount the bricks to the given path
+func MountDirectory(mountPath string, mountData brick.MountInfo) error {
+	err := utils.ExecuteCommandRun("mount", "-o", mountData.MntOpts, mountData.DevicePath, mountPath)
+	// Use syscall.Mount command to mount the bricks
+	return err
+}
+
+//StopBrick terminate the process and umount the brick directory
+func StopBrick(b brick.Brickinfo, logger log.FieldLogger) error {
+	if err := b.TerminateBrick(); err != nil {
+		if err = b.StopBrick(logger); err != nil {
+			return err
+		}
+	}
+	return UmountBrick(b)
+}
+
+//UmountBrick will umount the brick directory
+func UmountBrick(b brick.Brickinfo) error {
+	//TODO Validate mount point before umount
+	var err error
+
+	length := len(b.Path) - len(b.MountInfo.BrickDirSuffix)
+	for j := 0; j < 3; j++ {
+		err = UmountBrickDirectory(b.Path[:length])
+		if err == nil {
+			break
+		}
+		time.Sleep(3 * time.Second)
+	}
+	return err
+}
+
+//MountVolumeBricks will mount local bricks of a volume
+func MountVolumeBricks(volinfo *Volinfo) error {
+	mtab, err := GetMounts()
+	if err != nil {
+		return err
+	}
+
+	for _, b := range volinfo.GetLocalBricks() {
+		if err := MountBrickDirectory(volinfo, &b, mtab); err != nil {
+			return err
+		}
+	}
+	return nil
 }

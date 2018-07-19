@@ -42,10 +42,16 @@ func deactivateSnapshot(c transaction.TxnCtx) error {
 	if err = snapshot.ActivateDeactivateFunc(&snapinfo, brickinfos, activate, c.Logger()); err != nil {
 		return err
 	}
+
+	mtab, err := volume.GetMounts()
+	if err != nil {
+		return err
+	}
+
 	for _, b := range vol.GetLocalBricks() {
 		//Remove mount point of offline bricks if it present
-		if snapshot.IsMountExist(b.Path, vol.ID) {
-			snapshot.UmountBrick(b)
+		if volume.IsMountExist(&b, vol.ID, mtab) {
+			volume.UmountBrick(b)
 		}
 	}
 

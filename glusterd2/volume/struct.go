@@ -167,10 +167,10 @@ func NewBrickEntries(bricks []api.BrickReq, volName, volfileID string, volID uui
 		if ptype.IsAutoProvisioned() {
 			// Auto provisioned bricks
 			binfo.MountInfo = brick.MountInfo{
-				Mountdir:   b.Mountdir,
-				DevicePath: b.DevicePath,
-				FsType:     b.FsType,
-				MntOpts:    b.MntOpts,
+				BrickDirSuffix: b.BrickDirSuffix,
+				DevicePath:     b.DevicePath,
+				FsType:         b.FsType,
+				MntOpts:        b.MntOpts,
 			}
 		}
 
