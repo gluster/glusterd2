@@ -437,7 +437,9 @@ func TestVolumeOptions(t *testing.T) {
 		Force: true,
 		// XXX: Setting advanced, as all options are advanced by default
 		// TODO: Remove this later if the default changes
-		Advanced: true,
+		VolOptionReq: api.VolOptionReq{
+			Advanced: true,
+		},
 	}
 
 	validOpKeys := []string{"gfproxy.afr.eager-lock", "afr.eager-lock"}
