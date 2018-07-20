@@ -100,6 +100,9 @@ func deleteLV(num int, force bool) error {
 		if _, err := exec.Command(lvm.RemoveCommand, "-f", vg).Output(); err != nil && !force {
 			return err
 		}
+		if _, err := exec.Command(lvm.VgRemoveCommand, "-f", vg).Output(); err != nil && !force {
+			return err
+		}
 
 	}
 	return nil
@@ -193,14 +196,15 @@ func Cleanup(baseWorkdir, prefix string, brickCount int) {
 		}
 	}
 
-	deleteVHD(brickCount, true)
 	deleteLV(brickCount, true)
+	deleteVHD(brickCount, true)
 
 	vg := fmt.Sprintf("%s_vg_", lvmPrefix)
 	out, err := exec.Command(lvm.LVSCommand, "--noheadings", "-o", "vg_name").Output()
 	for _, entry := range strings.Split(string(out), "\n") {
 		if strings.HasPrefix(entry, vg) {
 			exec.Command(lvm.RemoveCommand, "-f", entry)
+			exec.Command(lvm.VgRemoveCommand, "-f", entry)
 		}
 	}
 	os.RemoveAll(brickPrefix)
