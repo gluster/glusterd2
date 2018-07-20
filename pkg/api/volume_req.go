@@ -2,9 +2,20 @@ package api
 
 // BrickReq represents Brick Request
 type BrickReq struct {
-	Type   string `json:"type"`
-	PeerID string `json:"peerid"`
-	Path   string `json:"path"`
+	Type           string `json:"type"`
+	PeerID         string `json:"peerid"`
+	Path           string `json:"path"`
+	TpMetadataSize uint64 `json:"metadata-size,omitempty"`
+	TpSize         uint64 `json:"thinpool-size,omitempty"`
+	VgName         string `json:"vg-name,omitempty"`
+	TpName         string `json:"thinpool-name,omitempty"`
+	LvName         string `json:"logical-volume,omitempty"`
+	Size           uint64 `json:"size,omitempty"`
+	VgID           string `json:"vg-id,omitempty"`
+	Mountdir       string `json:"mount-dir,omitempty"`
+	DevicePath     string `json:"device-path,omitempty"`
+	MntOpts        string `json:"mnt-opts,omitempty"`
+	FsType         string `json:"fs-type,omitempty"`
 }
 
 // SubvolReq represents Sub volume Request
@@ -27,16 +38,31 @@ type SubvolReq struct {
 "create-brick-dir" : if brick dir is not present, create it
 */
 type VolCreateReq struct {
-	Name         string            `json:"name,omitempty"`
-	Transport    string            `json:"transport,omitempty"`
-	Subvols      []SubvolReq       `json:"subvols"`
-	Options      map[string]string `json:"options,omitempty"`
-	Force        bool              `json:"force,omitempty"`
-	Advanced     bool              `json:"advanced,omitempty"`
-	Experimental bool              `json:"experimental,omitempty"`
-	Deprecated   bool              `json:"deprecated,omitempty"`
-	Metadata     map[string]string `json:"metadata,omitempty"`
-	Flags        map[string]bool   `json:"flags,omitempty"`
+	Name                    string            `json:"name,omitempty"`
+	Transport               string            `json:"transport,omitempty"`
+	Subvols                 []SubvolReq       `json:"subvols"`
+	Options                 map[string]string `json:"options,omitempty"`
+	Force                   bool              `json:"force,omitempty"`
+	Advanced                bool              `json:"advanced,omitempty"`
+	Experimental            bool              `json:"experimental,omitempty"`
+	Deprecated              bool              `json:"deprecated,omitempty"`
+	Metadata                map[string]string `json:"metadata,omitempty"`
+	Flags                   map[string]bool   `json:"flags,omitempty"`
+	Size                    uint64            `json:"size"`
+	DistributeCount         int               `json:"distribute,omitempty"`
+	ReplicaCount            int               `json:"replica,omitempty"`
+	ArbiterCount            int               `json:"arbiter,omitempty"`
+	DisperseCount           int               `json:"disperse,omitempty"`
+	DisperseRedundancyCount int               `json:"disperse-redundancy,omitempty"`
+	DisperseDataCount       int               `json:"disperse-data,omitempty"`
+	SnapshotEnabled         bool              `json:"snapshot,omitempty"`
+	SnapshotReserveFactor   float64           `json:"snapshot-reserve-factor,omitempty"`
+	LimitPeers              []string          `json:"limit-peers,omitempty"`
+	LimitZones              []string          `json:"limit-zones,omitempty"`
+	ExcludePeers            []string          `json:"exclude-peers,omitempty"`
+	ExcludeZones            []string          `json:"exclude-zones,omitempty"`
+	SubvolZonesOverlap      bool              `json:"subvolume-zones-overlap,omitempty"`
+	SubvolType              string            `json:"subvolume-type,omitempty"`
 }
 
 // VolOptionReq represents an incoming request to set volume options

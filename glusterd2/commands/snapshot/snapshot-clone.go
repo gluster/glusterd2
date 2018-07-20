@@ -11,7 +11,7 @@ import (
 	"github.com/gluster/glusterd2/glusterd2/snapshot"
 	"github.com/gluster/glusterd2/glusterd2/snapshot/lvm"
 	"github.com/gluster/glusterd2/glusterd2/transaction"
-	volgen2 "github.com/gluster/glusterd2/glusterd2/volgen2"
+	"github.com/gluster/glusterd2/glusterd2/volgen"
 	"github.com/gluster/glusterd2/glusterd2/volume"
 	"github.com/gluster/glusterd2/pkg/api"
 	gderrors "github.com/gluster/glusterd2/pkg/errors"
@@ -63,7 +63,7 @@ func storeSnapshotClone(c transaction.TxnCtx) error {
 		return err
 	}
 
-	if err := volgen2.Generate(); err != nil {
+	if err := volgen.Generate(); err != nil {
 		c.Logger().WithError(err).WithField(
 			"volume", vol.Name).Debug("generateVolfiles: failed to generate volfiles")
 		return err

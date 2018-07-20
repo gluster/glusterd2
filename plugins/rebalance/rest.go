@@ -47,7 +47,7 @@ func rebalanceStartHandler(w http.ResponseWriter, r *http.Request) {
 	rebalInfo, err := GetRebalanceInfo(volname)
 	if err == nil {
 		if rebalInfo.State == rebalanceapi.Started {
-			log.WithError(err).WithField("volume", volname).Error("Rebalance process has already been started.")
+			log.WithError(err).WithField("volume-name", volname).Error("Rebalance process has already been started.")
 			restutils.SendHTTPError(ctx, w, http.StatusBadRequest, ErrRebalanceAlreadyStarted)
 			return
 		}

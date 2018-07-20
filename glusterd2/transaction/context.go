@@ -23,6 +23,8 @@ type TxnCtx interface {
 	Get(key string, value interface{}) error
 	// GetNodeResult is similar to Get but prefixes the key with node UUID specified.
 	GetNodeResult(peerID uuid.UUID, key string, value interface{}) error
+	// GetTxnReqID gets the reqID string saved in the transaction.
+	GetTxnReqID() string
 	// Delete deletes the key and value
 	Delete(key string) error
 	// Logger returns the Logrus logger associated with the context
@@ -163,6 +165,11 @@ func (c *Tctx) Get(key string, value interface{}) error {
 func (c *Tctx) GetNodeResult(peerID uuid.UUID, key string, value interface{}) error {
 	storeKey := peerID.String() + "/" + key
 	return c.Get(storeKey, value)
+}
+
+// GetTxnReqID gets the reqID string saved within the txnCtxConfig.
+func (c *Tctx) GetTxnReqID() string {
+	return c.config.LogFields["reqid"].(string)
 }
 
 // Delete deletes the key and attached value

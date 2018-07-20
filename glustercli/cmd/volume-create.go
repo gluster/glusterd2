@@ -5,7 +5,6 @@ import (
 	"strings"
 
 	"github.com/gluster/glusterd2/pkg/api"
-	smartvolapi "github.com/gluster/glusterd2/plugins/smartvol/api"
 
 	log "github.com/sirupsen/logrus"
 	"github.com/spf13/cobra"
@@ -93,7 +92,7 @@ func smartVolumeCreate(cmd *cobra.Command, args []string) {
 		failure("Invalid Volume Size specified", nil, 1)
 	}
 
-	req := smartvolapi.VolCreateReq{
+	req := api.VolCreateReq{
 		Name:                    flagCreateVolumeName,
 		Transport:               flagCreateTransport,
 		Size:                    size,
@@ -113,7 +112,7 @@ func smartVolumeCreate(cmd *cobra.Command, args []string) {
 		Force:                   flagCreateForce,
 	}
 
-	vol, err := client.SmartVolumeCreate(req)
+	vol, err := client.VolumeCreate(req)
 	if err != nil {
 		if verbose {
 			log.WithFields(log.Fields{

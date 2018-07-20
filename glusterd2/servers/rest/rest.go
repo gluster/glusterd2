@@ -19,6 +19,7 @@ import (
 	"github.com/justinas/alice"
 	log "github.com/sirupsen/logrus"
 	config "github.com/spf13/viper"
+	"go.opencensus.io/plugin/ochttp"
 )
 
 const (
@@ -84,14 +85,17 @@ func NewMuxed(m cmux.CMux) *GDRest {
 
 	rest.registerRoutes()
 
-	// Chain of ordered middlewares.
-	rest.server.Handler = alice.New(
-		middleware.Recover,
-		middleware.Expvar,
-		middleware.ReqIDGenerator,
-		middleware.LogRequest,
-		middleware.Auth,
-	).Then(rest.Routes)
+	// Set Handler to opencensus HTTP handler to enable tracing
+	// Set chain of ordered middlewares
+	rest.server.Handler = &ochttp.Handler{
+		Handler: alice.New(
+			middleware.Recover,
+			middleware.Expvar,
+			middleware.ReqIDGenerator,
+			middleware.LogRequest,
+			middleware.Auth,
+		).Then(rest.Routes),
+	}
 
 	return rest
 }

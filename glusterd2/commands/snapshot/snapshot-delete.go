@@ -12,6 +12,7 @@ import (
 	"github.com/gluster/glusterd2/glusterd2/snapshot"
 	"github.com/gluster/glusterd2/glusterd2/snapshot/lvm"
 	"github.com/gluster/glusterd2/glusterd2/transaction"
+	"github.com/gluster/glusterd2/glusterd2/volgen"
 	"github.com/gluster/glusterd2/glusterd2/volume"
 	log "github.com/sirupsen/logrus"
 
@@ -25,7 +26,7 @@ func snapshotBrickDelete(errCh chan error, wg *sync.WaitGroup, snapVol volume.Vo
 	if snapVol.State == volume.VolStarted {
 		if err := snapshot.StopBrick(b, logger); err != nil {
 			log.WithError(err).WithField(
-				"brick", b.Path).Warning("Failed to cleanup the brick.Earlier it might have stopped abnormaly")
+				"brick", b.Path).Warning("Failed to cleanup the brick.Earlier it might have stopped abnormally")
 
 		}
 	}
@@ -80,7 +81,17 @@ func snapshotDeleteStore(c transaction.TxnCtx) error {
 		return err
 	}
 
-	return snapshot.DeleteSnapshot(&snapinfo)
+	if err := snapshot.DeleteSnapshot(&snapinfo); err != nil {
+		return err
+	}
+
+	if err := volgen.DeleteVolfiles(snapinfo.SnapVolinfo.VolfileID); err != nil {
+		c.Logger().WithError(err).
+			WithField("snapshot", snapshot.GetStorePath(&snapinfo)).
+			Warn("failed to delete volfiles of snapshot")
+	}
+
+	return nil
 }
 
 /*

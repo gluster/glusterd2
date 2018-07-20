@@ -5,6 +5,7 @@ import (
 	"io"
 	"os"
 	"strings"
+	"time"
 
 	"github.com/gluster/glusterd2/pkg/restclient"
 )
@@ -20,6 +21,7 @@ var (
 
 func initRESTClient(hostname, user, secret, cacert string, insecure bool) {
 	client = restclient.New(hostname, user, secret, cacert, insecure)
+	client.SetTimeout(time.Duration(flagTimeout) * time.Second)
 }
 
 func isConnectionRefusedErr(err error) bool {

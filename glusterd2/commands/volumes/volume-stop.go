@@ -14,6 +14,7 @@ import (
 	"github.com/gluster/glusterd2/pkg/errors"
 
 	"github.com/gorilla/mux"
+	"github.com/pborman/uuid"
 	log "github.com/sirupsen/logrus"
 )
 
@@ -68,6 +69,8 @@ func stopBricks(c transaction.TxnCtx) error {
 
 func registerVolStopStepFuncs() {
 	transaction.RegisterStepFunc(stopBricks, "vol-stop.StopBricks")
+	transaction.RegisterStepFunc(storeVolume, "vol-stop.UpdateVolinfo")
+	transaction.RegisterStepFunc(undoStoreVolume, "vol-stop.UpdateVolinfo.Undo")
 }
 
 func volumeStopHandler(w http.ResponseWriter, r *http.Request) {
@@ -101,7 +104,19 @@ func volumeStopHandler(w http.ResponseWriter, r *http.Request) {
 			DoFunc: "vol-stop.StopBricks",
 			Nodes:  volinfo.Nodes(),
 		},
+		{
+			DoFunc:   "vol-stop.UpdateVolinfo",
+			UndoFunc: "vol-stop.UpdateVolinfo.Undo",
+			Nodes:    []uuid.UUID{gdctx.MyUUID},
+		},
 	}
+
+	if err := txn.Ctx.Set("oldvolinfo", volinfo); err != nil {
+		restutils.SendHTTPError(ctx, w, http.StatusInternalServerError, err)
+		return
+	}
+
+	volinfo.State = volume.VolStopped
 
 	if err := txn.Ctx.Set("volinfo", volinfo); err != nil {
 		restutils.SendHTTPError(ctx, w, http.StatusInternalServerError, err)
@@ -111,12 +126,6 @@ func volumeStopHandler(w http.ResponseWriter, r *http.Request) {
 	if err := txn.Do(); err != nil {
 		logger.WithError(err).WithField(
 			"volume", volname).Error("transaction to stop volume failed")
-		restutils.SendHTTPError(ctx, w, http.StatusInternalServerError, err)
-		return
-	}
-
-	volinfo.State = volume.VolStopped
-	if err := volume.AddOrUpdateVolumeFunc(volinfo); err != nil {
 		restutils.SendHTTPError(ctx, w, http.StatusInternalServerError, err)
 		return
 	}

@@ -12,6 +12,7 @@ import (
 	"github.com/gluster/glusterd2/pkg/errors"
 
 	"github.com/gorilla/mux"
+	"github.com/pborman/uuid"
 	log "github.com/sirupsen/logrus"
 )
 
@@ -64,6 +65,8 @@ func stopAllBricks(c transaction.TxnCtx) error {
 func registerVolStartStepFuncs() {
 	transaction.RegisterStepFunc(startAllBricks, "vol-start.StartBricks")
 	transaction.RegisterStepFunc(stopAllBricks, "vol-start.StartBricksUndo")
+	transaction.RegisterStepFunc(storeVolume, "vol-start.UpdateVolinfo")
+	transaction.RegisterStepFunc(undoStoreVolume, "vol-start.UpdateVolinfo.Undo")
 }
 
 func volumeStartHandler(w http.ResponseWriter, r *http.Request) {
@@ -104,7 +107,19 @@ func volumeStartHandler(w http.ResponseWriter, r *http.Request) {
 			UndoFunc: "vol-start.StartBricksUndo",
 			Nodes:    volinfo.Nodes(),
 		},
+		{
+			DoFunc:   "vol-start.UpdateVolinfo",
+			UndoFunc: "vol-start.UpdateVolinfo.Undo",
+			Nodes:    []uuid.UUID{gdctx.MyUUID},
+		},
 	}
+
+	if err := txn.Ctx.Set("oldvolinfo", volinfo); err != nil {
+		restutils.SendHTTPError(ctx, w, http.StatusInternalServerError, err)
+		return
+	}
+
+	volinfo.State = volume.VolStarted
 
 	if err := txn.Ctx.Set("volinfo", volinfo); err != nil {
 		restutils.SendHTTPError(ctx, w, http.StatusInternalServerError, err)
@@ -114,12 +129,6 @@ func volumeStartHandler(w http.ResponseWriter, r *http.Request) {
 	if err := txn.Do(); err != nil {
 		logger.WithError(err).WithField(
 			"volume", volname).Error("transaction to start volume failed")
-		restutils.SendHTTPError(ctx, w, http.StatusInternalServerError, err)
-		return
-	}
-
-	volinfo.State = volume.VolStarted
-	if err := volume.AddOrUpdateVolumeFunc(volinfo); err != nil {
 		restutils.SendHTTPError(ctx, w, http.StatusInternalServerError, err)
 		return
 	}

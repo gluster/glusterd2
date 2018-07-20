@@ -160,6 +160,16 @@ func NewBrickEntries(bricks []api.BrickReq, volName string, volID uuid.UUID) ([]
 		binfo.VolumeID = volID
 		binfo.ID = uuid.NewRandom()
 
+		// Auto provisioned bricks
+		if b.VgName != "" && b.LvName != "" {
+			binfo.MountInfo = brick.MountInfo{
+				Mountdir:   b.Mountdir,
+				DevicePath: b.DevicePath,
+				FsType:     b.FsType,
+				MntOpts:    b.MntOpts,
+			}
+		}
+
 		brickInfos = append(brickInfos, binfo)
 	}
 	return brickInfos, nil

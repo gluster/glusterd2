@@ -35,7 +35,8 @@ type Txn struct {
 	// Nodes is the union of the all the TxnStep.Nodes and is implicitly
 	// set in Txn.Do(). This list is used to determine liveness of the
 	// nodes before running the transaction steps.
-	Nodes []uuid.UUID
+	Nodes   []uuid.UUID
+	OrigCtx context.Context
 }
 
 // NewTxn returns an initialized Txn without any steps
@@ -55,6 +56,7 @@ func NewTxn(ctx context.Context) *Txn {
 	}
 	t.Ctx = newCtx(config)
 
+	t.OrigCtx = ctx
 	t.Ctx.Logger().Debug("new transaction created")
 	return t
 }
@@ -130,7 +132,7 @@ func (t *Txn) Do() error {
 			continue
 		}
 
-		if err := s.do(t.Ctx); err != nil {
+		if err := s.do(t.OrigCtx, t.Ctx); err != nil {
 			expTxn.Add("initiated_txn_failure", 1)
 			if !t.DisableRollback {
 				t.Ctx.Logger().WithError(err).Error("Transaction failed, rolling back changes")

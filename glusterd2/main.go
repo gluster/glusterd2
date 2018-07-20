@@ -14,9 +14,11 @@ import (
 	"github.com/gluster/glusterd2/glusterd2/peer"
 	"github.com/gluster/glusterd2/glusterd2/servers"
 	"github.com/gluster/glusterd2/glusterd2/store"
+	gdutils "github.com/gluster/glusterd2/glusterd2/utils"
 	"github.com/gluster/glusterd2/glusterd2/xlator"
 	"github.com/gluster/glusterd2/pkg/errors"
 	"github.com/gluster/glusterd2/pkg/logging"
+	"github.com/gluster/glusterd2/pkg/tracing"
 	"github.com/gluster/glusterd2/pkg/utils"
 	"github.com/gluster/glusterd2/version"
 
@@ -119,6 +121,11 @@ func main() {
 		log.WithError(err).Fatal("Failed to generate local auth token")
 	}
 
+	// Create the Opencensus Jaeger exporter
+	if exporter := tracing.InitJaegerExporter(); exporter != nil {
+		defer exporter.Flush()
+	}
+
 	// Start all servers (rest, peerrpc, sunrpc) managed by suture supervisor
 	super := initGD2Supervisor()
 	super.ServeBackground()
@@ -126,6 +133,9 @@ func main() {
 
 	// Restart previously running daemons
 	daemon.StartAllDaemons()
+
+	// Mount all Local Bricks
+	gdutils.MountLocalBricks()
 
 	// Use the main goroutine as signal handling loop
 	sigCh := make(chan os.Signal)

@@ -1,133 +1,157 @@
 package volgen
 
 import (
-	"bytes"
-	"context"
-	"fmt"
-	"os"
+	"errors"
 	"path"
 	"strings"
 
 	"github.com/gluster/glusterd2/glusterd2/brick"
-	"github.com/gluster/glusterd2/glusterd2/snapshot"
-	"github.com/gluster/glusterd2/glusterd2/store"
 	"github.com/gluster/glusterd2/glusterd2/volume"
-	"github.com/gluster/glusterd2/pkg/utils"
+
+	"github.com/pborman/uuid"
 )
 
-const (
-	fuseTmpl  = "fuse.graph"
-	brickTmpl = "brick.graph"
-)
+// Entry represents one Xlator entry in Volfile
+type Entry struct {
+	Name     string
+	Type     string
+	VolumeID uuid.UUID
+	BrickID  uuid.UUID
+	// ExtraOptions represents additional options or override options
+	// which are not automatically detected from xlators so or stored options
+	// For example, Quotad uses "option <volname>.volume-id = <volname>"
+	ExtraOptions map[string]string
+	// ExtraData represents additional data which will be used for replacing
+	// template variables used in option name or value. For example, gfproxy client
+	// uses protocol/client at volume level, where brick info is not available,
+	// so option remote-subvolume = {{brick.path}} will not get replaced.
+	// In Glusterd1 generated volfile, this "brick.path" is filled with "gfproxyd-<volname>"
+	// option remote-subvolume gfproxyd-<volname>
+	ExtraData  map[string]string
+	SubEntries []Entry
+	// IgnoreOptions represents list of options which should not be added in the
+	// generated Volfile. For example, bitd and scrubd both uses same xlator, if
+	// scrubber = on, then it becomes scrub daemon else it becomes bitd.
+	IgnoreOptions map[string]bool
+}
 
-var (
-	volfilePrefix = "volfiles/"
-)
+// Volfile represents Gluster Volfile
+type Volfile struct {
+	Name      string
+	FileName  string
+	RootEntry Entry
+}
 
-// Generate generates all associated volfiles for the given volinfo.
-// NOTE: Currently only does client and brick volfiles
-func Generate(vol *volume.Volinfo) error {
-	if err := GenerateClientVolfile(vol); err != nil {
-		return err
+// New initializes Entry structure
+func New(name string) *Volfile {
+	return &Volfile{Name: name, RootEntry: Entry{}}
+}
+
+// Add adds sub entry
+func (e *Entry) Add(xlatorType string, vol *volume.Volinfo, b *brick.Brickinfo) *Entry {
+	name := ""
+	var volid uuid.UUID
+	var brickid uuid.UUID
+
+	if vol != nil {
+		volid = vol.ID
+		name = vol.Name + "-" + path.Base(xlatorType)
 	}
 
-	for _, subvol := range vol.Subvols {
-		for _, b := range subvol.Bricks {
-			if err := GenerateBrickVolfile(vol, &b); err != nil {
-				return err
-			}
+	if b != nil {
+		brickid = b.ID
+	}
+
+	e.SubEntries = append(e.SubEntries, Entry{Name: name, VolumeID: volid, BrickID: brickid, Type: xlatorType})
+
+	// Return the last element's pointer, useful if sub elements to be added to the newly added element
+	return &e.SubEntries[len(e.SubEntries)-1]
+}
+
+// SetName sets entry name
+func (e *Entry) SetName(name string) *Entry {
+	e.Name = name
+	return e
+}
+
+// SetExtraOptions sets extra options
+func (e *Entry) SetExtraOptions(opts map[string]string) *Entry {
+	e.ExtraOptions = opts
+	return e
+}
+
+// SetExtraData sets extra data
+func (e *Entry) SetExtraData(data map[string]string) *Entry {
+	e.ExtraData = data
+	return e
+}
+
+// SetIgnoreOptions sets list of options not required to add in generated
+// volfile
+func (e *Entry) SetIgnoreOptions(opts []string) *Entry {
+	e.IgnoreOptions = make(map[string]bool)
+	for _, opt := range opts {
+		e.IgnoreOptions[opt] = true
+	}
+	return e
+}
+
+// Generate generates Volfile content
+func (v *Volfile) Generate(graph string, extra *map[string]extrainfo) (string, error) {
+	if v.Name == "" || v.FileName == "" {
+		return "", errors.New("incomplete details")
+	}
+
+	return v.RootEntry.Generate(graph, extra)
+
+}
+
+// Generate generates the Volfile content
+func (e *Entry) Generate(graph string, extra *map[string]extrainfo) (string, error) {
+	if graph == "" {
+		graph = e.Name
+	}
+
+	out := ""
+	subvolumes := []string{}
+	for _, entry := range e.SubEntries {
+		out1, err := entry.Generate(graph, extra)
+		if err != nil {
+			return "", err
 		}
+		out += out1
+		subvolumes = append(subvolumes, entry.Name)
 	}
 
-	return nil
-}
+	if e.Type == "" {
+		return out, nil
+	}
 
-// GenerateClientVolfile generates the client volfile and stores it in etcd
-func GenerateClientVolfile(vol *volume.Volinfo) error {
-	ct, err := GetTemplate(fuseTmpl, vol.GraphMap)
+	// volume <name>
+	out += "volume " + e.Name + "\n"
+
+	// type <type>
+	out += "    type " + e.Type + "\n"
+
+	// option <key> <value>
+	// ty := path.Base(e.Type)
+	opts, err := e.getOptions(graph, extra)
 	if err != nil {
-		return err
+		return "", err
+	}
+	for k, v := range opts {
+		if _, ok := e.IgnoreOptions[k]; ok {
+			continue
+		}
+		out += "    option " + k + " " + v + "\n"
 	}
 
-	cg, err := ct.Generate(vol, nil)
-	if err != nil {
-		return err
+	// subvolumes <subvol1,subvol2..>
+	if len(subvolumes) > 0 {
+		out += "    subvolumes " + strings.Join(subvolumes, " ") + "\n"
 	}
 
-	buf := new(bytes.Buffer)
-	if err := cg.Write(buf); err != nil {
-		return err
-	}
-	if _, err := store.Put(context.TODO(), volfilePrefix+vol.Name, buf.String()); err != nil {
-		return err
-	}
-
-	// XXX: Also write to file, during development
-	cg.WriteToFile(getClientVolFilePath(vol.Name))
-
-	return nil
-}
-
-// DeleteClientVolfile deletes the client volfile (duh!)
-func DeleteClientVolfile(vol *volume.Volinfo) error {
-
-	if _, err := store.Delete(context.TODO(), volfilePrefix+vol.Name); err != nil {
-		return err
-	}
-
-	// XXX: Also delete the file on disk
-	os.Remove(getClientVolFilePath(vol.Name))
-
-	return nil
-}
-
-// DeleteClientSnapVolfile deletes the client volfile (duh!)
-func DeleteClientSnapVolfile(snapInfo *snapshot.Snapinfo) error {
-
-	if _, err := store.Delete(context.TODO(), snapshot.GetStorePath(snapInfo)); err != nil {
-		return err
-	}
-
-	vol := &snapInfo.SnapVolinfo
-	// XXX: Also delete the file on disk
-	os.Remove(getClientVolFilePath(vol.Name))
-
-	return nil
-}
-
-// GenerateBrickVolfile generates the brick volfile for a single brick
-func GenerateBrickVolfile(vol *volume.Volinfo, b *brick.Brickinfo) error {
-	bt, err := GetTemplate(brickTmpl, vol.GraphMap)
-	if err != nil {
-		return err
-	}
-
-	bg, err := bt.Generate(vol, utils.MergeStringMaps(vol.StringMap(), b.StringMap()))
-	if err != nil {
-		return err
-	}
-
-	return bg.WriteToFile(getBrickVolFilePath(vol.Name, b.PeerID.String(), b.Path))
-}
-
-// DeleteBrickVolfile deletes the brick volfile of a single brick
-func DeleteBrickVolfile(b *brick.Brickinfo) error {
-
-	path := getBrickVolFilePath(b.VolumeName, b.PeerID.String(), b.Path)
-	return os.Remove(path)
-}
-func getClientVolFilePath(volname string) string {
-	dir := utils.GetVolumeDir(volname)
-
-	file := fmt.Sprintf("%s.tcp-fuse.vol", volname)
-	return path.Join(dir, file)
-}
-
-func getBrickVolFilePath(volname string, brickPeerID string, brickPath string) string {
-	dir := utils.GetVolumeDir(volname)
-
-	brickPathWithoutSlashes := strings.Trim(strings.Replace(brickPath, "/", "-", -1), "-")
-	file := fmt.Sprintf("%s.%s.%s.vol", volname, brickPeerID, brickPathWithoutSlashes)
-
-	return path.Join(dir, file)
+	// end volume
+	out += "end-volume\n\n"
+	return out, nil
 }

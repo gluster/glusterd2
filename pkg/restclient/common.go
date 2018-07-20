@@ -18,8 +18,8 @@ import (
 )
 
 const (
-	expireSeconds = 120
-	clientTimeout = 30
+	expireSeconds        = 120
+	defaultClientTimeout = 30 // in seconds
 )
 
 // Client represents Glusterd2 REST Client
@@ -29,11 +29,26 @@ type Client struct {
 	password string
 	cacert   string
 	insecure bool
+	timeout  time.Duration
+}
+
+// SetTimeout sets the overall client timeout which includes the time taken
+// from setting up TCP connection till client finishes reading the response
+// body.
+func (c *Client) SetTimeout(timeout time.Duration) {
+	c.timeout = timeout
 }
 
 // New creates new instance of Glusterd REST Client
 func New(baseURL string, username string, password string, cacert string, insecure bool) *Client {
-	return &Client{baseURL, username, password, cacert, insecure}
+	return &Client{
+		baseURL:  baseURL,
+		username: username,
+		password: password,
+		cacert:   cacert,
+		insecure: insecure,
+		timeout:  defaultClientTimeout * time.Second,
+	}
 }
 
 func parseHTTPError(jsonData []byte) string {
@@ -136,7 +151,7 @@ func (c *Client) do(method string, url string, data interface{}, expectStatusCod
 
 	client := &http.Client{
 		Transport: tr,
-		Timeout:   clientTimeout * time.Second}
+		Timeout:   c.timeout}
 
 	resp, err := client.Do(req)
 	if err != nil {

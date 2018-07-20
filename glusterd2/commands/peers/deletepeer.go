@@ -38,15 +38,11 @@ func deletePeerHandler(w http.ResponseWriter, r *http.Request) {
 	// Check whether the member exists
 	p, err := peer.GetPeerF(id)
 	if err != nil {
-		logger.WithError(err).Error("failed to get peer")
-		restutils.SendHTTPError(ctx, w, http.StatusInternalServerError, "could not validate delete request")
-		return
-	} else if p == nil {
-		logger.Debug("request denied, received request to remove unknown peer")
-		restutils.SendHTTPError(ctx, w, http.StatusNotFound, "peer not found in cluster")
+		logger.WithError(err).WithField("peerid", id).Error("Failed to get peer")
+		status, err := restutils.ErrToStatusCode(err)
+		restutils.SendHTTPError(ctx, w, status, err)
 		return
 	}
-
 	// You cannot remove yourself
 	if id == gdctx.MyUUID.String() {
 		logger.Debug("request denied, received request to delete self from cluster")

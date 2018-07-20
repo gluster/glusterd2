@@ -6,7 +6,7 @@ import (
 	"syscall"
 	"testing"
 
-	smartvolapi "github.com/gluster/glusterd2/plugins/smartvol/api"
+	"github.com/gluster/glusterd2/pkg/api"
 
 	"github.com/stretchr/testify/require"
 )
@@ -32,12 +32,12 @@ func testSmartVolumeDistribute(t *testing.T) {
 	r := require.New(t)
 	smartvolname := formatVolName(t.Name())
 	// create Distribute 3 Volume
-	createReq := smartvolapi.VolCreateReq{
+	createReq := api.VolCreateReq{
 		Name:            smartvolname,
 		Size:            60,
 		DistributeCount: 3,
 	}
-	volinfo, err := client.SmartVolumeCreate(createReq)
+	volinfo, err := client.VolumeCreate(createReq)
 	r.Nil(err)
 
 	r.Len(volinfo.Subvols, 3)
@@ -57,12 +57,12 @@ func testSmartVolumeReplicate2(t *testing.T) {
 	r := require.New(t)
 	smartvolname := formatVolName(t.Name())
 	// create Replica 2 Volume
-	createReq := smartvolapi.VolCreateReq{
+	createReq := api.VolCreateReq{
 		Name:         smartvolname,
 		Size:         20,
 		ReplicaCount: 2,
 	}
-	volinfo, err := client.SmartVolumeCreate(createReq)
+	volinfo, err := client.VolumeCreate(createReq)
 	r.Nil(err)
 
 	r.Len(volinfo.Subvols, 1)
@@ -80,12 +80,12 @@ func testSmartVolumeReplicate3(t *testing.T) {
 
 	smartvolname := formatVolName(t.Name())
 	// create Replica 3 Volume
-	createReq := smartvolapi.VolCreateReq{
+	createReq := api.VolCreateReq{
 		Name:         smartvolname,
 		Size:         20,
 		ReplicaCount: 3,
 	}
-	volinfo, err := client.SmartVolumeCreate(createReq)
+	volinfo, err := client.VolumeCreate(createReq)
 	r.Nil(err)
 
 	r.Len(volinfo.Subvols, 1)
@@ -103,13 +103,13 @@ func testSmartVolumeArbiter(t *testing.T) {
 
 	smartvolname := formatVolName(t.Name())
 	// create Replica 3 Arbiter Volume
-	createReq := smartvolapi.VolCreateReq{
+	createReq := api.VolCreateReq{
 		Name:         smartvolname,
 		Size:         20,
 		ReplicaCount: 3,
 		ArbiterCount: 1,
 	}
-	volinfo, err := client.SmartVolumeCreate(createReq)
+	volinfo, err := client.VolumeCreate(createReq)
 	r.Nil(err)
 
 	r.Len(volinfo.Subvols, 1)
@@ -132,12 +132,12 @@ func testSmartVolumeDisperse(t *testing.T) {
 	smartvolname := formatVolName(t.Name())
 
 	// create Disperse Volume
-	createReq := smartvolapi.VolCreateReq{
+	createReq := api.VolCreateReq{
 		Name:          smartvolname,
 		Size:          40,
 		DisperseCount: 3,
 	}
-	volinfo, err := client.SmartVolumeCreate(createReq)
+	volinfo, err := client.VolumeCreate(createReq)
 	r.Nil(err)
 
 	r.Len(volinfo.Subvols, 1)
@@ -157,14 +157,14 @@ func testSmartVolumeDistributeReplicate(t *testing.T) {
 	smartvolname := formatVolName(t.Name())
 
 	// create Distribute Replicate(2x3) Volume
-	createReq := smartvolapi.VolCreateReq{
+	createReq := api.VolCreateReq{
 		Name:               smartvolname,
 		Size:               40,
 		DistributeCount:    2,
 		ReplicaCount:       3,
 		SubvolZonesOverlap: true,
 	}
-	volinfo, err := client.SmartVolumeCreate(createReq)
+	volinfo, err := client.VolumeCreate(createReq)
 	r.Nil(err)
 
 	r.Len(volinfo.Subvols, 2)
@@ -188,14 +188,14 @@ func testSmartVolumeDistributeDisperse(t *testing.T) {
 	smartvolname := formatVolName(t.Name())
 
 	// create Distribute Disperse(2x3) Volume
-	createReq := smartvolapi.VolCreateReq{
+	createReq := api.VolCreateReq{
 		Name:               smartvolname,
 		Size:               80,
 		DistributeCount:    2,
 		DisperseCount:      3,
 		SubvolZonesOverlap: true,
 	}
-	volinfo, err := client.SmartVolumeCreate(createReq)
+	volinfo, err := client.VolumeCreate(createReq)
 	r.Nil(err)
 
 	r.Len(volinfo.Subvols, 2)
@@ -216,10 +216,10 @@ func testSmartVolumeDistributeDisperse(t *testing.T) {
 func testSmartVolumeWithoutName(t *testing.T) {
 	r := require.New(t)
 
-	createReq := smartvolapi.VolCreateReq{
+	createReq := api.VolCreateReq{
 		Size: 20,
 	}
-	volinfo, err := client.SmartVolumeCreate(createReq)
+	volinfo, err := client.VolumeCreate(createReq)
 	r.Nil(err)
 
 	r.Nil(client.VolumeDelete(volinfo.Name))

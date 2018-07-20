@@ -72,7 +72,7 @@ func (c *Client) SnapshotRestore(snapname string) (api.VolumeGetResp, error) {
 	return resp, err
 }
 
-// SnapshotClone creates a writable Gluster Snapshot, it will be similiar to a volume
+// SnapshotClone creates a writable Gluster Snapshot, it will be similar to a volume
 func (c *Client) SnapshotClone(snapname string, req api.SnapCloneReq) (api.VolumeCreateResp, error) {
 	var vol api.VolumeCreateResp
 	url := fmt.Sprintf("/v1/snapshot/%s/clone", snapname)

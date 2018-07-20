@@ -2,6 +2,13 @@
 
 
 [[projects]]
+  branch = "master"
+  name = "git.apache.org/thrift.git"
+  packages = ["lib/go/thrift"]
+  revision = "f5f430df56871bc937950274b2c86681d3db6e59"
+  source = "github.com/apache/thrift"
+
+[[projects]]
   name = "github.com/asaskevich/govalidator"
   packages = ["."]
   revision = "521b25f4b05fd26bec69d9dedeb8f9c9a83939a8"
@@ -391,6 +398,26 @@
   version = "0.0.1"
 
 [[projects]]
+  name = "go.opencensus.io"
+  packages = [
+    "exporter/jaeger",
+    "exporter/jaeger/internal/gen-go/jaeger",
+    "internal",
+    "internal/tagencoding",
+    "plugin/ochttp",
+    "plugin/ochttp/propagation/b3",
+    "stats",
+    "stats/internal",
+    "stats/view",
+    "tag",
+    "trace",
+    "trace/internal",
+    "trace/propagation"
+  ]
+  revision = "c3ed530f775d85e577ca652cb052a52c078aad26"
+  version = "v0.11.0"
+
+[[projects]]
   name = "golang.org/x/crypto"
   packages = [
     "bcrypt",
@@ -412,6 +439,12 @@
     "trace"
   ]
   revision = "f5dfe339be1d06f81b22525fe34671ee7d2c8904"
+
+[[projects]]
+  branch = "master"
+  name = "golang.org/x/sync"
+  packages = ["semaphore"]
+  revision = "1d60e4601c6fd243af51cc01ddf169918a5407ca"
 
 [[projects]]
   branch = "master"
@@ -438,6 +471,12 @@
   revision = "0ad425fe45e885577bef05dc1c50f72e33188b16"
 
 [[projects]]
+  branch = "master"
+  name = "google.golang.org/api"
+  packages = ["support/bundler"]
+  revision = "2eea9ba0a3d94f6ab46508083e299a00bbbc65f6"
+
+[[projects]]
   name = "google.golang.org/grpc"
   packages = [
     ".",
@@ -462,6 +501,6 @@
 [solve-meta]
   analyzer-name = "dep"
   analyzer-version = 1
-  inputs-digest = "19dda7f9b0c842a769bea1b5d69e3a41f5b7de536176724a9cdebc241dd0e96c"
+  inputs-digest = "4349628706ad8a7873c76ab4f36fed3e6656efaeca63db11754957dfe75b22a0"
   solver-name = "gps-cdcl"
   solver-version = 1
