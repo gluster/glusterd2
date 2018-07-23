@@ -4,7 +4,7 @@ import (
 	"github.com/gluster/glusterd2/glusterd2/servers/rest/route"
 	"github.com/gluster/glusterd2/pkg/api"
 	"github.com/gluster/glusterd2/pkg/utils"
-	"github.com/gluster/glusterd2/plugins/events/api"
+	eventsapi "github.com/gluster/glusterd2/plugins/events/api"
 )
 
 // Plugin is a structure which implements GlusterdPlugin interface
@@ -24,28 +24,28 @@ func (p *Plugin) RestRoutes() route.Routes {
 			Method:      "POST",
 			Pattern:     "/events/webhook",
 			Version:     1,
-			RequestType: utils.GetTypeString((*events.Webhook)(nil)),
+			RequestType: utils.GetTypeString((*eventsapi.Webhook)(nil)),
 			HandlerFunc: webhookAddHandler},
 		route.Route{
 			Name:        "WebhookTest",
 			Method:      "POST",
 			Pattern:     "/events/webhook/test",
 			Version:     1,
-			RequestType: utils.GetTypeString((*events.Webhook)(nil)),
+			RequestType: utils.GetTypeString((*eventsapi.Webhook)(nil)),
 			HandlerFunc: webhookTestHandler},
 		route.Route{
 			Name:        "WebhookDelete",
 			Method:      "DELETE",
 			Pattern:     "/events/webhook",
 			Version:     1,
-			RequestType: utils.GetTypeString((*events.WebhookDel)(nil)),
+			RequestType: utils.GetTypeString((*eventsapi.WebhookDel)(nil)),
 			HandlerFunc: webhookDeleteHandler},
 		route.Route{
 			Name:         "WebhookList",
 			Method:       "GET",
 			Pattern:      "/events/webhook",
 			Version:      1,
-			ResponseType: utils.GetTypeString((*events.WebhookList)(nil)),
+			ResponseType: utils.GetTypeString((*eventsapi.WebhookList)(nil)),
 			HandlerFunc:  webhookListHandler},
 		route.Route{
 			Name:         "EventsList",

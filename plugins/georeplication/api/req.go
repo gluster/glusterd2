@@ -1,4 +1,4 @@
-package georeplication
+package api
 
 // GeorepRemoteHostReq represents Remote host ID and IP/Hostname
 type GeorepRemoteHostReq struct {
