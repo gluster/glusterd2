@@ -1,4 +1,4 @@
-package georeplication
+package api
 
 import (
 	"github.com/pborman/uuid"

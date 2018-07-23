@@ -1,4 +1,4 @@
-package glustershd
+package api
 
 import (
 	"encoding/xml"

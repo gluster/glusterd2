@@ -1,4 +1,4 @@
-package events
+package api
 
 import (
 	"github.com/gluster/glusterd2/pkg/api"
