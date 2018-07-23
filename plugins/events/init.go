@@ -48,10 +48,11 @@ func (p *Plugin) RestRoutes() route.Routes {
 			ResponseType: utils.GetTypeString((*eventsapi.WebhookList)(nil)),
 			HandlerFunc:  webhookListHandler},
 		route.Route{
-			Name:         "EventsList",
-			Method:       "GET",
-			Pattern:      "/events",
-			Version:      1,
+			Name:    "EventsList",
+			Method:  "GET",
+			Pattern: "/events",
+			Version: 1,
+			// FIXME: This type is not in 'eventsapi'
 			ResponseType: utils.GetTypeString((*api.Event)(nil)),
 			HandlerFunc:  eventsListHandler},
 	}
