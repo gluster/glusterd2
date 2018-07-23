@@ -14,6 +14,7 @@ import (
 var (
 	// variables set by LDFLAGS during build time
 	defaultAuthPath = ""
+	cliVersion      = ""
 )
 
 var (
@@ -96,6 +97,19 @@ var (
 	flagTimeout    uint
 )
 
+var versionCmd = &cobra.Command{
+	Use:   "version",
+	Short: "Print glusterd and gluster-cli version",
+	Run: func(cmd *cobra.Command, args []string) {
+		gd, err := client.Version()
+		if err == nil {
+			fmt.Println("glusterd version:", gd.GlusterdVersion)
+			fmt.Println("glusterd api-version:", gd.APIVersion)
+		}
+		fmt.Println("gluster-cli version:", cliVersion)
+	},
+}
+
 func init() {
 	// Global flags, applicable for all sub commands
 	RootCmd.PersistentFlags().BoolVarP(&flagXMLOutput, "xml", "", false, "XML Output")
@@ -117,4 +131,5 @@ func init() {
 	RootCmd.PersistentFlags().StringVarP(&flagCacert, "cacert", "", "", "Path to CA certificate")
 	RootCmd.PersistentFlags().BoolVarP(&flagInsecure, "insecure", "", false,
 		"Accepts any certificate presented by the server and any host name in that certificate.")
+	RootCmd.AddCommand(versionCmd)
 }
