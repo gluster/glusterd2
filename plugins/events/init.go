@@ -20,28 +20,28 @@ func (p *Plugin) Name() string {
 func (p *Plugin) RestRoutes() route.Routes {
 	return route.Routes{
 		route.Route{
-			Name:        "WebhookAdd",
+			Name:        "EventsWebhookAdd",
 			Method:      "POST",
 			Pattern:     "/events/webhook",
 			Version:     1,
 			RequestType: utils.GetTypeString((*eventsapi.Webhook)(nil)),
 			HandlerFunc: webhookAddHandler},
 		route.Route{
-			Name:        "WebhookTest",
+			Name:        "EventsWebhookTest",
 			Method:      "POST",
 			Pattern:     "/events/webhook/test",
 			Version:     1,
 			RequestType: utils.GetTypeString((*eventsapi.Webhook)(nil)),
 			HandlerFunc: webhookTestHandler},
 		route.Route{
-			Name:        "WebhookDelete",
+			Name:        "EventsWebhookDelete",
 			Method:      "DELETE",
 			Pattern:     "/events/webhook",
 			Version:     1,
 			RequestType: utils.GetTypeString((*eventsapi.WebhookDel)(nil)),
 			HandlerFunc: webhookDeleteHandler},
 		route.Route{
-			Name:         "WebhookList",
+			Name:         "EventsWebhookList",
 			Method:       "GET",
 			Pattern:      "/events/webhook",
 			Version:      1,
