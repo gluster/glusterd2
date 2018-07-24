@@ -139,7 +139,7 @@ func runStepFuncOnNode(origCtx context.Context, stepName string, ctx TxnCtx, nod
 		err = runStepFuncLocally(origCtx, stepName, ctx)
 	} else {
 		// remote node
-		err = runStepOn(stepName, node, ctx)
+		err = runStepOn(origCtx, stepName, node, ctx)
 	}
 
 	respCh <- stepPeerResp{node, err}
