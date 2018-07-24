@@ -25,22 +25,20 @@ func (p *Plugin) RestRoutes() route.Routes {
 			Pattern:     "/volumes/{volname}/rebalance/start",
 			Version:     1,
 			RequestType: utils.GetTypeString((*rebalanceapi.StartReq)(nil)),
-			//			ResponseType: utils.GetTypeString((*rebalanceapi.RebalInfo)(nil)),
 			HandlerFunc: rebalanceStartHandler},
 		route.Route{
-			Name:    "RebalanceStop",
-			Method:  "POST",
-			Pattern: "/volumes/{volname}/rebalance/stop",
-			Version: 1,
-			//			ResponseType: utils.GetTypeString((*rebalanceapi.RebalInfo)(nil)),
+			Name:        "RebalanceStop",
+			Method:      "POST",
+			Pattern:     "/volumes/{volname}/rebalance/stop",
+			Version:     1,
 			HandlerFunc: rebalanceStopHandler},
 		route.Route{
-			Name:    "RebalanceStatus",
-			Method:  "GET",
-			Pattern: "/volumes/{volname}/rebalance",
-			Version: 1,
-			//			ResponseType: utils.GetTypeString((*rebalanceapi.RebalInfo)(nil)),
-			HandlerFunc: rebalanceStatusHandler},
+			Name:         "RebalanceStatus",
+			Method:       "GET",
+			Pattern:      "/volumes/{volname}/rebalance",
+			Version:      1,
+			ResponseType: utils.GetTypeString((*rebalanceapi.RebalStatus)(nil)),
+			HandlerFunc:  rebalanceStatusHandler},
 	}
 }
 

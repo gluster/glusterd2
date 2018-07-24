@@ -44,14 +44,18 @@ func rebalanceStartHandler(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	rebalinfo := createRebalanceInfo(volname, &req)
-	if rebalinfo == nil {
-		logger.WithError(err).Error("failed to create Rebalance info")
-		restutils.SendHTTPError(ctx, w, http.StatusInternalServerError, err)
-		return
+	rebalInfo, err := GetRebalanceInfo(volname)
+	if err == nil {
+		if rebalInfo.State == rebalanceapi.Started {
+			log.WithError(err).WithField("volume-name", volname).Error("Rebalance process has already been started.")
+			restutils.SendHTTPError(ctx, w, http.StatusBadRequest, ErrRebalanceAlreadyStarted)
+			return
+		}
 	}
 
-	if rebalinfo.Cmd == rebalanceapi.CmdNone {
+	rebalInfo = createRebalanceInfo(volname, &req)
+
+	if rebalInfo.Cmd == rebalanceapi.CmdNone {
 		restutils.SendHTTPError(ctx, w, http.StatusBadRequest, ErrRebalanceInvalidOption)
 		return
 	}
@@ -100,14 +104,14 @@ func rebalanceStartHandler(w http.ResponseWriter, r *http.Request) {
 
 	err = txn.Ctx.Set("volname", volname)
 	if err != nil {
-		logger.WithError(err).Error("failed to set volname in transaction context")
+		logger.WithError(err).WithField("key", "volname").Error("failed to set volname in transaction context")
 		restutils.SendHTTPError(ctx, w, http.StatusInternalServerError, err)
 		return
 	}
 
-	err = txn.Ctx.Set("rinfo", rebalinfo)
+	err = txn.Ctx.Set("rinfo", rebalInfo)
 	if err != nil {
-		logger.WithError(err).Error("failed to set rebalance info in transaction context")
+		logger.WithError(err).WithField("key", "rinfo").Error("failed to set rebalance info in transaction context")
 		restutils.SendHTTPError(ctx, w, http.StatusInternalServerError, err)
 		return
 	}
@@ -118,25 +122,14 @@ func rebalanceStartHandler(w http.ResponseWriter, r *http.Request) {
 		 * rebalance process is one per node per volume.
 		 * Need to handle scenarios where process is started in
 		 * few nodes and failed in few others */
-		logger.WithFields(log.Fields{
-			"error":   err.Error(),
-			"volname": volname,
-		}).Error("failed to start rebalance on volume")
-		restutils.SendHTTPError(ctx, w, http.StatusInternalServerError, err)
+		logger.WithError(err).WithField("volname", volname).Error("failed to start rebalance on volume")
+		status, err := restutils.ErrToStatusCode(err)
+		restutils.SendHTTPError(ctx, w, status, err)
 		return
 	}
 
-	rebalinfo, err = GetRebalanceInfo(volname)
-	if err != nil {
-		logger.WithFields(log.Fields{
-			"error":   err.Error(),
-			"volname": volname,
-		}).Error("failed to get the rebalance info for volume")
-	}
-
-	logger.WithField("volname", rebalinfo.Volname).Info("rebalance started")
-
-	restutils.SendHTTPResponse(ctx, w, http.StatusOK, rebalinfo.RebalanceID)
+	logger.WithField("volname", rebalInfo.Volname).Info("rebalance started")
+	restutils.SendHTTPResponse(ctx, w, http.StatusOK, nil)
 }
 
 func rebalanceStopHandler(w http.ResponseWriter, r *http.Request) {
@@ -162,15 +155,15 @@ func rebalanceStopHandler(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	rebalinfo, err := GetRebalanceInfo(volname)
+	rebalInfo, err := GetRebalanceInfo(volname)
 	if err != nil {
-		restutils.SendHTTPError(r.Context(), w, http.StatusBadRequest, ErrRebalanceNotStarted)
+		restutils.SendHTTPError(ctx, w, http.StatusBadRequest, err)
 		return
 	}
 
 	// Check whether the rebalance state is started
-	if rebalinfo.State != rebalanceapi.Started {
-		restutils.SendHTTPError(r.Context(), w, http.StatusBadRequest, ErrRebalanceNotStarted)
+	if rebalInfo.State != rebalanceapi.Started {
+		restutils.SendHTTPError(ctx, w, http.StatusBadRequest, ErrRebalanceNotStarted)
 		return
 	}
 
@@ -188,34 +181,30 @@ func rebalanceStopHandler(w http.ResponseWriter, r *http.Request) {
 
 	err = txn.Ctx.Set("volname", volname)
 	if err != nil {
-		logger.WithError(err).Error("failed to set volname in transaction context")
-		restutils.SendHTTPError(ctx, w, http.StatusInternalServerError, err.Error())
+		logger.WithError(err).WithField("key", "volname").Error("failed to set volname in transaction context")
+		restutils.SendHTTPError(ctx, w, http.StatusInternalServerError, err)
 		return
 	}
 
-	rebalinfo.Volname = volname
-	rebalinfo.State = rebalanceapi.Stopped
-	rebalinfo.Cmd = rebalanceapi.CmdStop
+	rebalInfo.State = rebalanceapi.Stopped
+	rebalInfo.Cmd = rebalanceapi.CmdStop
 
-	err = txn.Ctx.Set("rinfo", rebalinfo)
+	err = txn.Ctx.Set("rinfo", rebalInfo)
 	if err != nil {
-		logger.WithError(err).Error("failed to set rebalance info in transaction context")
-		restutils.SendHTTPError(ctx, w, http.StatusInternalServerError, err.Error())
+		logger.WithError(err).WithField("key", "rebalInfo").Error("failed to set rebalance info in transaction context")
+		restutils.SendHTTPError(ctx, w, http.StatusInternalServerError, err)
 		return
 	}
 
 	err = txn.Do()
 	if err != nil {
-		logger.WithFields(log.Fields{
-			"error":   err.Error(),
-			"volname": volname,
-		}).Error("failed to stop rebalance on volume")
-		restutils.SendHTTPError(r.Context(), w, http.StatusInternalServerError, err.Error())
+		logger.WithError(err).WithField("volname", volname).Error("failed to stop rebalance on volume")
+		restutils.SendHTTPError(ctx, w, http.StatusInternalServerError, err)
 		return
 	}
 
-	logger.WithField("volname", rebalinfo.Volname).Info("rebalance stopped")
-	restutils.SendHTTPResponse(r.Context(), w, http.StatusOK, rebalinfo)
+	logger.WithField("volname", rebalInfo.Volname).Info("rebalance stopped")
+	restutils.SendHTTPResponse(ctx, w, http.StatusOK, nil)
 }
 
 func rebalanceStatusHandler(w http.ResponseWriter, r *http.Request) {
@@ -241,16 +230,16 @@ func rebalanceStatusHandler(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	rebalinfo, err := GetRebalanceInfo(volname)
+	rebalInfo, err := GetRebalanceInfo(volname)
 	if err != nil {
-		restutils.SendHTTPError(ctx, w, http.StatusNotFound, err.Error())
+		restutils.SendHTTPError(ctx, w, http.StatusNotFound, err)
 		return
 	}
 
 	err = txn.Ctx.Set("volname", volname)
 	if err != nil {
-		logger.WithError(err).Error("failed to set volname in transaction context")
-		restutils.SendHTTPError(ctx, w, http.StatusInternalServerError, err.Error())
+		logger.WithError(err).WithField("key", "volname").Error("failed to set volname in transaction context")
+		restutils.SendHTTPError(ctx, w, http.StatusInternalServerError, err)
 		return
 	}
 
@@ -266,57 +255,55 @@ func rebalanceStatusHandler(w http.ResponseWriter, r *http.Request) {
 		},
 	}
 
-	err = txn.Ctx.Set("rinfo", rebalinfo)
+	err = txn.Ctx.Set("rinfo", rebalInfo)
 	if err != nil {
-		logger.WithError(err).Error("failed to set rebalance info in transaction context")
-		restutils.SendHTTPError(ctx, w, http.StatusInternalServerError, err.Error())
+		logger.WithError(err).WithField("key", "rinfo").Error("failed to set rebalance info in transaction context")
+		restutils.SendHTTPError(ctx, w, http.StatusInternalServerError, err)
 		return
 	}
 
 	err = txn.Do()
 	if err != nil {
-		logger.WithFields(log.Fields{
-			"error":   err.Error(),
-			"volname": volname,
-		}).Error("failed to query rebalance status for volume")
+		logger.WithError(err).WithField("volname", volname).Error("failed to query rebalance status for volume")
+		return
 	}
 
 	response, err := createRebalanceStatusResp(txn.Ctx, vol)
 	if err != nil {
-		errMsg := "Failed to create rebalance status response"
-		logger.WithField("error", err.Error()).Error("rebalanceStatusHandler:" + errMsg)
-		restutils.SendHTTPError(ctx, w, http.StatusInternalServerError,
-			errMsg)
+		errMsg := "failed to create rebalance status response"
+		logger.WithError(err).Error("rebalanceStatusHandler:" + errMsg)
+		restutils.SendHTTPError(ctx, w, http.StatusInternalServerError, errMsg)
 		return
 	}
 
-	restutils.SendHTTPResponse(r.Context(), w, http.StatusOK, response)
+	restutils.SendHTTPResponse(ctx, w, http.StatusOK, response)
 }
 
-func createRebalanceStatusResp(ctx transaction.TxnCtx, volinfo *volume.Volinfo) (*rebalanceapi.RebalStatus, error) {
+func createRebalanceStatusResp(ctx transaction.TxnCtx, volInfo *volume.Volinfo) (*rebalanceapi.RebalStatus, error) {
 	var (
 		resp      rebalanceapi.RebalStatus
 		tmp       rebalanceapi.RebalNodeStatus
-		rebalinfo rebalanceapi.RebalInfo
+		rebalInfo rebalanceapi.RebalInfo
 	)
 
-	err := ctx.Get("rinfo", &rebalinfo)
+	err := ctx.Get("rinfo", &rebalInfo)
 	if err != nil {
-		log.WithField("volume", volinfo.Name).Error("Failed to get rebalinfo")
+		log.WithError(err).WithField("volume", volInfo.Name).Error("Failed to get rebalance information")
 		return nil, err
 	}
 
 	// Fill common info
-	resp.Volname = volinfo.Name
-	resp.RebalanceID = rebalinfo.RebalanceID
+	resp.Volname = volInfo.Name
+	resp.RebalanceID = rebalInfo.RebalanceID
+	resp.State = rebalInfo.State
 
 	// Get the status for the completed processes first
-	for _, tmp := range rebalinfo.RebalStats {
+	for _, tmp := range rebalInfo.RebalStats {
 		resp.Nodes = append(resp.Nodes, tmp)
 	}
 
 	// Loop over each node of the volume and aggregate
-	for _, node := range volinfo.Nodes() {
+	for _, node := range volInfo.Nodes() {
 		err := ctx.GetNodeResult(node, rebalStatusTxnKey, &tmp)
 		if err != nil {
 			// skip. We might have it in the rebalinfo
@@ -325,5 +312,6 @@ func createRebalanceStatusResp(ctx transaction.TxnCtx, volinfo *volume.Volinfo) 
 
 		resp.Nodes = append(resp.Nodes, tmp)
 	}
+
 	return &resp, nil
 }

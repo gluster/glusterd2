@@ -64,6 +64,7 @@ type RebalInfo struct {
 // RebalStatus represents the rebalance status response
 type RebalStatus struct {
 	Volname     string            `json:"volume"`
+	State       Status            `json:"state"`
 	RebalanceID uuid.UUID         `json:"rebalance-id"`
 	Nodes       []RebalNodeStatus `json:"nodes-status"`
 }

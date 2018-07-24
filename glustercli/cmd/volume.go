@@ -183,10 +183,7 @@ var volumeStartCmd = &cobra.Command{
 		err := client.VolumeStart(volname, flagStartCmdForce)
 		if err != nil {
 			if verbose {
-				log.WithFields(log.Fields{
-					"volume": volname,
-					"error":  err.Error(),
-				}).Error("volume start failed")
+				log.WithError(err).WithField("volume", volname).Error("volume start failed")
 			}
 			failure("volume start failed", err, 1)
 		}
@@ -203,10 +200,7 @@ var volumeStopCmd = &cobra.Command{
 		err := client.VolumeStop(volname)
 		if err != nil {
 			if verbose {
-				log.WithFields(log.Fields{
-					"volume": volname,
-					"error":  err.Error(),
-				}).Error("volume stop failed")
+				log.WithError(err).WithField("volume", volname).Error("volume stop failed")
 			}
 			failure("Volume stop failed", err, 1)
 		}
@@ -223,10 +217,7 @@ var volumeDeleteCmd = &cobra.Command{
 		err := client.VolumeDelete(volname)
 		if err != nil {
 			if verbose {
-				log.WithFields(log.Fields{
-					"volume": volname,
-					"error":  err.Error(),
-				}).Error("volume deletion failed")
+				log.WithError(err).WithField("volume", volname).Error("volume deletion failed")
 			}
 			failure("Volume deletion failed", err, 1)
 		}
@@ -380,9 +371,7 @@ var volumeInfoCmd = &cobra.Command{
 		err := volumeInfoHandler2(cmd, true)
 		if err != nil {
 			if verbose {
-				log.WithFields(log.Fields{
-					"error": err.Error(),
-				}).Error("error getting volumes list")
+				log.WithError(err).Error("error getting volumes list")
 			}
 			failure("Error getting Volumes list", err, 1)
 		}
@@ -397,9 +386,7 @@ var volumeListCmd = &cobra.Command{
 		err := volumeInfoHandler2(cmd, false)
 		if err != nil {
 			if verbose {
-				log.WithFields(log.Fields{
-					"error": err.Error(),
-				}).Error("error getting volumes list")
+				log.WithError(err).Error("error getting volumes list")
 			}
 			failure("Error getting Volumes list", err, 1)
 		}
