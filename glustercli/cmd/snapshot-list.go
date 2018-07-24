@@ -1,6 +1,7 @@
 package cmd
 
 import (
+	"fmt"
 	"os"
 
 	"github.com/gluster/glusterd2/pkg/api"
@@ -36,6 +37,10 @@ func snapshotListHandler(cmd *cobra.Command) error {
 	table.SetAutoMergeCells(true)
 	table.SetRowLine(true)
 	if volname == "" {
+		if len(snaps) == 0 {
+			fmt.Println("There are no snapshots in the system")
+			return nil
+		}
 		table.SetHeader([]string{"Name", "Origin Volume"})
 		for _, snap := range snaps {
 			for _, entry := range snap.SnapName {
@@ -43,6 +48,11 @@ func snapshotListHandler(cmd *cobra.Command) error {
 			}
 		}
 	} else {
+		if len(snaps[0].SnapName) == 0 {
+			fmt.Printf("There are no snapshots for volume %s\n", snaps[0].ParentName)
+			return nil
+		}
+
 		table.SetHeader([]string{"Name"})
 		for _, entry := range snaps[0].SnapName {
 			table.Append([]string{entry})
