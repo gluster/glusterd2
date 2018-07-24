@@ -1,7 +1,6 @@
 package restclient
 
 import (
-	"bytes"
 	"crypto/tls"
 	"crypto/x509"
 	"encoding/json"
@@ -11,8 +10,6 @@ import (
 	"net/http"
 	"strings"
 	"time"
-
-	"github.com/gluster/glusterd2/pkg/api"
 
 	"github.com/dgrijalva/jwt-go"
 )
@@ -24,12 +21,20 @@ const (
 
 // Client represents Glusterd2 REST Client
 type Client struct {
-	baseURL  string
-	username string
-	password string
-	cacert   string
-	insecure bool
-	timeout  time.Duration
+	baseURL     string
+	username    string
+	password    string
+	cacert      string
+	insecure    bool
+	timeout     time.Duration
+	lastRespErr *http.Response
+}
+
+// LastErrorResponse returns the last error response received by this
+// client from glusterd2. Please note that the Body of the response has
+// been read and drained.
+func (c *Client) LastErrorResponse() *http.Response {
+	return c.lastRespErr
 }
 
 // SetTimeout sets the overall client timeout which includes the time taken
@@ -49,28 +54,6 @@ func New(baseURL string, username string, password string, cacert string, insecu
 		insecure: insecure,
 		timeout:  defaultClientTimeout * time.Second,
 	}
-}
-
-func parseHTTPError(jsonData []byte) string {
-	var errResp api.ErrorResp
-	err := json.Unmarshal(jsonData, &errResp)
-	if err != nil {
-		return err.Error()
-	}
-
-	var buffer bytes.Buffer
-	for _, apiErr := range errResp.Errors {
-		switch api.ErrorCode(apiErr.Code) {
-		case api.ErrTxnStepFailed:
-			buffer.WriteString(fmt.Sprintf(
-				"Transaction step %s failed on peer %s with error: %s\n",
-				apiErr.Fields["step"], apiErr.Fields["peer-id"], apiErr.Fields["error"]))
-		default:
-			buffer.WriteString(apiErr.Message)
-		}
-	}
-
-	return buffer.String()
 }
 
 func getAuthToken(username string, password string) string {
@@ -104,12 +87,12 @@ func (c *Client) del(url string, data interface{}, expectStatusCode int, output 
 	return c.do("DELETE", url, data, expectStatusCode, output)
 }
 
-func (c *Client) do(method string, url string, data interface{}, expectStatusCode int, output interface{}) error {
+func (c *Client) do(method string, url string, input interface{}, expectStatusCode int, output interface{}) error {
 	url = fmt.Sprintf("%s%s", c.baseURL, url)
 
 	var body io.Reader
-	if data != nil {
-		reqBody, marshalErr := json.Marshal(data)
+	if input != nil {
+		reqBody, marshalErr := json.Marshal(input)
 		if marshalErr != nil {
 			return marshalErr
 		}
@@ -151,24 +134,32 @@ func (c *Client) do(method string, url string, data interface{}, expectStatusCod
 
 	client := &http.Client{
 		Transport: tr,
-		Timeout:   c.timeout}
+		Timeout:   c.timeout,
+	}
 
 	resp, err := client.Do(req)
 	if err != nil {
 		return err
 	}
-
 	defer resp.Body.Close()
-	outputRaw, err := ioutil.ReadAll(resp.Body)
+
+	if resp.StatusCode != expectStatusCode {
+		// FIXME: We should may be rather look for 4xx or 5xx series
+		// to determine that we got an error response instead of
+		// comparing to what's expected ?
+		c.lastRespErr = resp
+		return newHTTPErrorResponse(resp)
+	}
+
+	b, err := ioutil.ReadAll(resp.Body)
 	if err != nil {
 		return err
 	}
-	if resp.StatusCode != expectStatusCode {
-		return &UnexpectedStatusError{"Unexpected Status", expectStatusCode, resp.StatusCode, parseHTTPError(outputRaw)}
-	}
 
+	// If a response struct is specified, unmarshall the json response
+	// body into the response struct provided.
 	if output != nil {
-		return json.Unmarshal(outputRaw, output)
+		return json.Unmarshal(b, output)
 	}
 
 	return nil
