@@ -180,7 +180,7 @@ func CheckBricksFsCompatability(volinfo *volume.Volinfo) []string {
 
 	var paths []string
 	for _, brick := range volinfo.GetLocalBricks() {
-		if lvm.FsCompatableCheck(brick.Path) != true {
+		if lvm.FsCompatibleCheck(brick.Path) != true {
 			paths = append(paths, brick.String())
 		}
 	}
@@ -193,7 +193,7 @@ func CheckBricksSizeCompatability(volinfo *volume.Volinfo) []string {
 
 	var paths []string
 	for _, brick := range volinfo.GetLocalBricks() {
-		if lvm.SizeCompatableCheck(brick.Path) != true {
+		if lvm.SizeCompatibleCheck(brick.Path) != true {
 			paths = append(paths, brick.String())
 		}
 	}

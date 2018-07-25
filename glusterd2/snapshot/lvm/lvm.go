@@ -67,8 +67,8 @@ func CommonPrevalidation(lvmCommand string) error {
 	return nil
 }
 
-//FsCompatableCheck check for lvm compatibility for a path
-func FsCompatableCheck(brickPath string) bool {
+//FsCompatibleCheck check for lvm compatibility for a path
+func FsCompatibleCheck(brickPath string) bool {
 	mountRoot, err := volume.GetBrickMountRoot(brickPath)
 	if err != nil {
 		return false
@@ -91,8 +91,8 @@ func FsCompatableCheck(brickPath string) bool {
 	return true
 }
 
-//SizeCompatableCheck check for lvm compatibility for a path
-func SizeCompatableCheck(brickPath string) bool {
+//SizeCompatibleCheck check for lvm compatibility for a path
+func SizeCompatibleCheck(brickPath string) bool {
 	mountRoot, err := volume.GetBrickMountRoot(brickPath)
 	if err != nil {
 		return false

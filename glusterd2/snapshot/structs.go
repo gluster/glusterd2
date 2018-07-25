@@ -13,5 +13,5 @@ type Snapinfo struct {
 	ParentVolume string
 	Description  string
 	OptionChange map[string]string
-	SnapTime     time.Time
+	CreatedAt    time.Time
 }

@@ -38,8 +38,8 @@ import (
 )
 
 type txnData struct {
-	Req      api.SnapCreateReq
-	SnapTime time.Time
+	Req       api.SnapCreateReq
+	CreatedAt time.Time
 }
 
 func barrierActivateDeactivateFunc(volinfo *volume.Volinfo, option string, originUUID uuid.UUID) error {
@@ -565,7 +565,7 @@ func createSnapinfo(c transaction.TxnCtx) error {
 	duplicateVolinfo(volinfo, snapVolinfo)
 
 	snapInfo.OptionChange = make(map[string]string)
-	snapInfo.SnapTime = data.SnapTime
+	snapInfo.CreatedAt = data.CreatedAt
 
 	for key, value := range ignoreOps {
 		currentValue, ok := snapVolinfo.Options[key]
@@ -724,9 +724,9 @@ func snapshotCreateHandler(w http.ResponseWriter, r *http.Request) {
 		restutils.SendHTTPError(ctx, w, http.StatusBadRequest, err)
 		return
 	}
-	data.SnapTime = time.Now().UTC()
+	data.CreatedAt = time.Now().UTC()
 	if req.TimeStamp == true {
-		req.SnapName = req.SnapName + (data.SnapTime).Format("_GMT_2006_01_02_15_04_05")
+		req.SnapName = req.SnapName + (data.CreatedAt).Format("_GMT_2006_01_02_15_04_05")
 	}
 
 	if !volume.IsValidName(req.SnapName) {
@@ -824,6 +824,6 @@ func createSnapInfoResp(snap *snapshot.Snapinfo) *api.SnapInfo {
 		VolInfo:       *vinfo,
 		ParentVolName: snap.ParentVolume,
 		Description:   snap.Description,
-		SnapTime:      (snap.SnapTime).Format("Mon Jan _2 2006 15:04:05 GMT"),
+		SnapTime:      (snap.CreatedAt).Format("Mon Jan _2 2006 15:04:05 GMT"),
 	}
 }

@@ -101,7 +101,8 @@ func (b *Glusterfsd) SocketFile() string {
 	// Then xxhash of the above key shall be the name of socket file.
 	// Example: /var/run/gluster/<xxhash-hash>.socket
 	glusterdSockDir := config.GetString("rundir")
-	b.socketfilepath = fmt.Sprintf("%s/%x.socket", glusterdSockDir, xxhash.Sum64String(key))
+	hash := strconv.FormatUint(xxhash.Sum64String(key), 16)
+	b.socketfilepath = path.Join(glusterdSockDir, hash+".socket")
 	// FIXME: The brick can no longer clean this up on clean shut down
 
 	return b.socketfilepath
