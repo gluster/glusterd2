@@ -80,7 +80,8 @@ func validateXlatorOptions(opts map[string]string, volinfo *volume.Volinfo) erro
 	return nil
 }
 
-func expandGroupOptions(opts map[string]string) (map[string]string, error) {
+func getGroupOptionsFromStore() (map[string]*api.OptionGroup, error) {
+
 	resp, err := store.Get(context.TODO(), "groupoptions")
 	if err != nil {
 		return nil, err
@@ -88,6 +89,16 @@ func expandGroupOptions(opts map[string]string) (map[string]string, error) {
 
 	var groupOptions map[string]*api.OptionGroup
 	if err := json.Unmarshal(resp.Kvs[0].Value, &groupOptions); err != nil {
+		return nil, err
+	}
+
+	return groupOptions, nil
+}
+
+func expandGroupOptions(opts map[string]string) (map[string]string, error) {
+
+	groupOptions, err := getGroupOptionsFromStore()
+	if err != nil {
 		return nil, err
 	}
 
@@ -113,6 +124,28 @@ func expandGroupOptions(opts map[string]string) (map[string]string, error) {
 			}
 		}
 	}
+
+	return options, nil
+}
+
+func expandGroupOptionsReset(reqOpts []string) ([]string, error) {
+
+	groupOptions, err := getGroupOptionsFromStore()
+	if err != nil {
+		return nil, err
+	}
+
+	var options []string
+	for _, reqOpt := range reqOpts {
+		if optionSet, ok := groupOptions[reqOpt]; ok {
+			for _, option := range optionSet.Options {
+				options = append(options, option.Name)
+			}
+		} else {
+			options = append(options, reqOpt)
+		}
+	}
+
 	return options, nil
 }
 
