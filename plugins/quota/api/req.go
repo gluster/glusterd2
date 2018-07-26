@@ -1,4 +1,4 @@
-package quota
+package api
 
 // SetLimitReq represents REST API request to Limit Usage/objects of a directory
 type SetLimitReq struct {

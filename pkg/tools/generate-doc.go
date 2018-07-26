@@ -31,8 +31,58 @@ $ ./generate-doc
 
 Name | Methods | Path | Request | Response
 --- | --- | --- | --- | ---{{range $index, $element := .}}
-{{.Name}} | {{.Method}} | {{.Path}} | [{{.RequestType}}](https://godoc.org/github.com/gluster/glusterd2/pkg/api#{{.RequestType}}) | [{{.ResponseType}}](https://godoc.org/github.com/gluster/glusterd2/pkg/api#{{.ResponseType}}){{end}}
+{{.Name}} | {{.Method}} | {{.Path}} | [{{.RequestType}}]({{.BaseURL}}#{{.RequestType}}) | [{{.ResponseType}}]({{.BaseURL}}#{{.ResponseType}}){{end}}
 `
+
+// DocEndpoint is a structure the fields of which will be used in the
+// template described above. DocEndpoint embeds api.Endpoint and
+// extends it by adding a BaseURL that points to the godoc.org site
+// with relevant package name as suffix.
+type DocEndpoint struct {
+	*api.Endpoint
+	BaseURL string
+}
+
+var pluginMap = map[string]string{
+	"Bitro": "plugins/bitrot/api",
+	"Devic": "plugins/device/api",
+	"Event": "plugins/events/api",
+	"GeoRe": "plugins/georeplication/api",
+	"SelfH": "plugins/glustershd/api", // TODO: change package name to selfheal
+	"Quota": "plugins/quota/api",
+	"Rebal": "plugins/rebalance/api",
+}
+
+const basePath = "https://godoc.org/github.com/gluster/glusterd2/"
+
+func getGodocURL(endpoint *api.Endpoint) string {
+
+	url := basePath + "pkg/api"
+
+	if pluginPkg, ok := pluginMap[endpoint.Name[:5]]; ok {
+		url = basePath + pluginPkg
+	}
+
+	return url
+}
+
+func generateDocEndpoints(endpoints []api.Endpoint) []DocEndpoint {
+
+	docEndpoints := make([]DocEndpoint, len(endpoints))
+
+	var tmp []string
+	var baseURL string
+	for i := range endpoints {
+		tmp = strings.Split(endpoints[i].RequestType, ".")
+		endpoints[i].RequestType = tmp[len(tmp)-1]
+		tmp = strings.Split(endpoints[i].ResponseType, ".")
+		endpoints[i].ResponseType = tmp[len(tmp)-1]
+		baseURL = getGodocURL(&endpoints[i])
+		docEndpoints[i] = DocEndpoint{&endpoints[i], baseURL}
+	}
+
+	return docEndpoints
+}
 
 // TODO: Consider making this code comment instead of markdown in the
 // file pkg/api/doc.go to be rendered by godoc in HTML
@@ -59,22 +109,16 @@ func main() {
 		log.Fatal(err)
 	}
 
-	var tmp []string
-	for i := range endpoints {
-		tmp = strings.Split(endpoints[i].RequestType, ".")
-		endpoints[i].RequestType = tmp[len(tmp)-1]
-		tmp = strings.Split(endpoints[i].ResponseType, ".")
-		endpoints[i].ResponseType = tmp[len(tmp)-1]
-	}
-
 	f, err := os.Create(outFile)
 	if err != nil {
 		log.Fatal(err)
 	}
 	defer f.Close()
 
+	docEndpoints := generateDocEndpoints(endpoints)
+
 	t := template.Must(template.New("endpoints").Parse(endpointsTable))
-	if err := t.Execute(f, endpoints); err != nil {
+	if err := t.Execute(f, docEndpoints); err != nil {
 		log.Fatal(err)
 	}
 }

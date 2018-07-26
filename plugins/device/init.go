@@ -42,7 +42,7 @@ func (p *Plugin) RestRoutes() route.Routes {
 			RequestType: utils.GetTypeString((*deviceapi.EditDeviceReq)(nil)),
 			HandlerFunc: deviceEditHandler},
 		route.Route{
-			Name:         "ListAllDevices",
+			Name:         "DeviceListAll",
 			Method:       "GET",
 			Pattern:      "/devices",
 			Version:      1,

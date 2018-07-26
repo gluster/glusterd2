@@ -32,13 +32,13 @@ func (p *Plugin) RestRoutes() route.Routes {
 			Version:     1,
 			HandlerFunc: bitrotDisableHandler},
 		route.Route{
-			Name:        "ScrubOndemand",
+			Name:        "BitrotScrubOndemand",
 			Method:      "POST",
 			Pattern:     "/volumes/{volname}/bitrot/scrubondemand",
 			Version:     1,
 			HandlerFunc: bitrotScrubOndemandHandler},
 		route.Route{
-			Name:        "ScrubStatus",
+			Name:        "BitrotScrubStatus",
 			Method:      "GET",
 			Pattern:     "/volumes/{volname}/bitrot/scrubstatus",
 			Version:     1,
