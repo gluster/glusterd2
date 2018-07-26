@@ -162,7 +162,7 @@ func GetBrickMountInfo(mountRoot string) (*Mntent, error) {
 
 }
 
-//CreateSubvolInfo parses subvol  information for response
+//CreateSubvolInfo parses subvol information for response
 func CreateSubvolInfo(sv *[]Subvol) []api.Subvol {
 	var subvols []api.Subvol
 
@@ -173,20 +173,21 @@ func CreateSubvolInfo(sv *[]Subvol) []api.Subvol {
 		}
 
 		subvols = append(subvols, api.Subvol{
-			Name:         subvol.Name,
-			Type:         api.SubvolType(subvol.Type),
-			Bricks:       blist,
-			ReplicaCount: subvol.ReplicaCount,
-			ArbiterCount: subvol.ArbiterCount,
+			Name:          subvol.Name,
+			Type:          api.SubvolType(subvol.Type),
+			Bricks:        blist,
+			ReplicaCount:  subvol.ReplicaCount,
+			ArbiterCount:  subvol.ArbiterCount,
+			DisperseCount: subvol.DisperseCount,
 		})
 	}
 	return subvols
 }
 
-//CreateVolumeInfoResp parses volume  information for response
+//CreateVolumeInfoResp parses volume information for response
 func CreateVolumeInfoResp(v *Volinfo) *api.VolumeInfo {
 
-	return &api.VolumeInfo{
+	resp := &api.VolumeInfo{
 		ID:        v.ID,
 		Name:      v.Name,
 		Type:      api.VolType(v.Type),
@@ -198,4 +199,13 @@ func CreateVolumeInfoResp(v *Volinfo) *api.VolumeInfo {
 		Metadata:  v.Metadata,
 		SnapList:  v.SnapList,
 	}
+
+	// for common use cases, replica count of the volume is usually the
+	// replica count of any one of the subvols and we take replica count
+	// from the first subvol
+	resp.ReplicaCount = resp.Subvols[0].ReplicaCount
+	resp.ArbiterCount = resp.Subvols[0].ArbiterCount
+	resp.DisperseCount = resp.Subvols[0].DisperseCount
+
+	return resp
 }

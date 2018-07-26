@@ -20,7 +20,7 @@ func (p *Plugin) Name() string {
 func (p *Plugin) RestRoutes() route.Routes {
 	return route.Routes{
 		route.Route{
-			Name:         "GeoreplicationCreate",
+			Name:         "GeoReplicationCreate",
 			Method:       "POST",
 			Pattern:      "/geo-replication/{mastervolid}/{remotevolid}",
 			Version:      1,
@@ -28,7 +28,7 @@ func (p *Plugin) RestRoutes() route.Routes {
 			ResponseType: utils.GetTypeString((*georepapi.GeorepSession)(nil)),
 			HandlerFunc:  georepCreateHandler},
 		route.Route{
-			Name:         "GeoreplicationStart",
+			Name:         "GeoReplicationStart",
 			Method:       "POST",
 			Pattern:      "/geo-replication/{mastervolid}/{remotevolid}/start",
 			Version:      1,
@@ -36,7 +36,7 @@ func (p *Plugin) RestRoutes() route.Routes {
 			ResponseType: utils.GetTypeString((*georepapi.GeorepSession)(nil)),
 			HandlerFunc:  georepStartHandler},
 		route.Route{
-			Name:         "GeoreplicationStop",
+			Name:         "GeoReplicationStop",
 			Method:       "POST",
 			Pattern:      "/geo-replication/{mastervolid}/{remotevolid}/stop",
 			Version:      1,
@@ -44,13 +44,13 @@ func (p *Plugin) RestRoutes() route.Routes {
 			ResponseType: utils.GetTypeString((*georepapi.GeorepSession)(nil)),
 			HandlerFunc:  georepStopHandler},
 		route.Route{
-			Name:        "GeoreplicationDelete",
+			Name:        "GeoReplicationDelete",
 			Method:      "DELETE",
 			Pattern:     "/geo-replication/{mastervolid}/{remotevolid}",
 			Version:     1,
 			HandlerFunc: georepDeleteHandler},
 		route.Route{
-			Name:         "GeoreplicationPause",
+			Name:         "GeoReplicationPause",
 			Method:       "POST",
 			Pattern:      "/geo-replication/{mastervolid}/{remotevolid}/pause",
 			Version:      1,
@@ -58,7 +58,7 @@ func (p *Plugin) RestRoutes() route.Routes {
 			ResponseType: utils.GetTypeString((*georepapi.GeorepSession)(nil)),
 			HandlerFunc:  georepPauseHandler},
 		route.Route{
-			Name:         "GeoreplicationResume",
+			Name:         "GeoReplicationResume",
 			Method:       "POST",
 			Pattern:      "/geo-replication/{mastervolid}/{remotevolid}/resume",
 			Version:      1,
@@ -66,7 +66,7 @@ func (p *Plugin) RestRoutes() route.Routes {
 			ResponseType: utils.GetTypeString((*georepapi.GeorepSession)(nil)),
 			HandlerFunc:  georepResumeHandler},
 		route.Route{
-			Name:         "GeoreplicationStatus",
+			Name:         "GeoReplicationStatus",
 			Method:       "GET",
 			Pattern:      "/geo-replication/{mastervolid}/{remotevolid}",
 			Version:      1,
@@ -96,28 +96,28 @@ func (p *Plugin) RestRoutes() route.Routes {
 			HandlerFunc: georepConfigResetHandler,
 		},
 		route.Route{
-			Name:         "GeoreplicationStatusList",
+			Name:         "GeoReplicationStatusList",
 			Method:       "GET",
 			Pattern:      "/geo-replication",
 			Version:      1,
 			ResponseType: utils.GetTypeString((*georepapi.GeorepSession)(nil)),
 			HandlerFunc:  georepStatusListHandler},
 		route.Route{
-			Name:         "GeoreplicationSshKeyGenerate",
+			Name:         "GeoReplicationSshKeyGenerate",
 			Method:       "POST",
 			Pattern:      "/ssh-key/{volname}/generate",
 			Version:      1,
 			ResponseType: utils.GetTypeString((*georepapi.GeorepSSHPublicKey)(nil)),
 			HandlerFunc:  georepSSHKeyGenerateHandler},
 		route.Route{
-			Name:        "GeoreplicationSshKeyPush",
+			Name:        "GeoReplicationSshKeyPush",
 			Method:      "POST",
 			Pattern:     "/ssh-key/{volname}/push",
 			Version:     1,
 			RequestType: utils.GetTypeString((*georepapi.GeorepSSHPublicKey)(nil)),
 			HandlerFunc: georepSSHKeyPushHandler},
 		route.Route{
-			Name:         "GeoreplicationSshKeyGet",
+			Name:         "GeoReplicationSshKeyGet",
 			Method:       "GET",
 			Pattern:      "/ssh-key/{volname}",
 			Version:      1,

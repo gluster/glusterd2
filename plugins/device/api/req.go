@@ -1,4 +1,4 @@
-package device
+package api
 
 const (
 	// DeviceEnabled represents enabled
