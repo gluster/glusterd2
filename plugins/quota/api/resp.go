@@ -1,4 +1,4 @@
-package quota
+package api
 
 type crawlInfo struct {
 	CrawlPid int `json:"crawl-pid"`

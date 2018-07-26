@@ -1,4 +1,4 @@
-package bitrot
+package api
 
 // ScrubNodeInfo contains information about the scrub status for node
 // Clients should NOT use this struct directly.
