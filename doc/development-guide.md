@@ -71,7 +71,7 @@ Once your PR has has been submitted for review the following critieria will need
 * Each PR needs reviews accepting the change from at least two developers for merging
   * It is common to request reviews from those reviewers automatically suggested by github
 * Each PR needs to have been open for at least 24 working hours to allow for community feedback
-  * The 24 working hours counts hours occuring Mon-Fri in the local timezone of the submitter
+  * The 24 working hours counts hours occurring Mon-Fri in the local timezone of the submitter
 * Each PR must be fully updated to master and tests must have passed
 
 When the criteria are met a project maintainer can merge your changes into the project's master branch.

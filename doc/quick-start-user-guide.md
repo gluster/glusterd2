@@ -9,18 +9,9 @@ This guide takes the following as an example of IPs for the two nodes:
  * **Node 1**: `192.168.56.101`
  * **Node 2**: `192.168.56.102`
 
-Please follow these steps for setup on **each of the two nodes**.
+Please follow these steps for setting up glusterd2 on **each of the two nodes**.
 
-### Installing dependent packages
-
-Install rpcbind:
-
-```sh
-# dnf install rpcbind
-# mkdir -p /run/rpcbind
-# systemctl start rpcbind
-# systemctl enable rpcbind
-```
+### Installing Glusterfs
 
 > **IMPORTANT:** Please install glusterfs from source using code from the [master branch](https://github.com/gluster/glusterfs/tree/master) OR if on CentOS 7, you can install glusterfs using nightly RPMs.
 
@@ -39,19 +30,20 @@ Install packages that provide GlusterFS server (brick process) and client (fuse,
 
 As we do not have releases often, our nightly RPMs are generally more stable
 as they contain the latest fixes. If you are on centos 7, you can download the
-latest glusterd2 nightly RPM using the following method:
+latest glusterd2 nightly [RPMs](https://github.com/gluster/glusterd2/wiki/Nightly-Builds) using the following method:
 
 ```sh
 # curl -o /etc/yum.repos.d/glusterd2-nightly-master.repo http://artifacts.ci.centos.org/gluster/gd2-nightly/gd2-master.repo
 # yum install glusterd2
 ```
 
-Alternatlively, if you are using a non-RPM based distro, you can download
-binaries of the latest release. Like all Go programs, glusterd2 is a single
-binary (statically linked) without external dependencies. You can download the
-[latest release](https://github.com/gluster/glusterd2/releases) from Github.
+For other distros, you can download binaries of the [latest release](https://github.com/gluster/glusterd2/releases) from Github. 
+Like all Go programs, glusterd2 is a single binary (statically linked) without 
+external dependencies.
 
-### Running glusterd2
+**Config File:** Default path of glusterd2 config file is `/etc/glusterd2/glusterd2.toml`.
+
+### Custom configuration for glusterd2 [Optional Step].
 
 **Create a working directory:** This is where glusterd2 will store all data which includes logs, pid files, etcd information etc. For this example, we will be using a temporary path. If a working directory is not specified, it defaults to current directory.
 
@@ -70,14 +62,63 @@ clientaddress = "192.168.56.101:24007"
 etcdcurls = "http://192.168.56.101:2379"
 etcdpurls = "http://192.168.56.101:2380"
 ```
-
 Replace the IP address accordingly on each node.
 
-**Start glusterd2 process:** Glusterd2 is not a daemon and currently can run only in the foreground.
+### Using external etcd instead of embedded etcd.
+
+By default glusterd2 uses embedded etcd, but glusterd2 also supports usage of external etcd.
+
+To provide external etcd details. Edit glusterd2 config file by adding `noembed` option and specifying
+the etcd endpoint:
+
+```toml
+etcdendpoints = "http://[ip_address]:[port]"
+noembed = true
+```
+Provide ip-address and port of node where etcd is running.
+
+### Running glusterd2 for RPM installation
+
+**Enable glusterd2 service:** Enable glusterd2 service to ensure that glusterd2 service starts automatically when system starts.
+To enable glusterd2 service run:
+
+```sh
+# systemctl enable glusterd2
+```
+
+**Start glusterd2 service:** To start glusterd2 process run:
+
+```sh
+# systemctl start glusterd2
+```
+
+Check the status of glusterd2 service:
+
+```sh
+# systemctl status glusterd2
+```
+Please ensure that glusterd2 service status is "active (runnning)" before proceeding.
+
+
+### Running glusterd2 for binaries installation
+
+**Start glusterd2 process:** Create a config file and provide the path of config file while running glusterd2 as shown below.
 
 ```sh
 # ./glusterd2 --config conf.toml
 ```
+
+### Authentication
+
+In glusterd2, REST API authentication is enabled by default. To disable rest authentication add `restauth=false` in Glusterd2 config file(`/etc/glusterd2/glusterd2.toml`) or the custom config file provided by you (conf.toml as per above example)
+
+Please restart glusterd2 service after changing config file.
+
+```sh
+# systemctl restart glusterd2
+```
+
+### Output
 
 You will see an output similar to the following:
 ```log
