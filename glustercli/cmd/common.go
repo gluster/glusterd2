@@ -49,12 +49,26 @@ func handleGlusterdConnectFailure(msg, endpoints string, err error, errcode int)
 }
 
 func failure(msg string, err error, errcode int) {
+
 	handleGlusterdConnectFailure(msg, flagEndpoints[0], err, errcode)
 
-	// If different error
-	os.Stderr.WriteString(msg + "\n")
+	w := os.Stderr
+
+	w.WriteString(msg + "\n")
+
 	if err != nil {
-		os.Stderr.WriteString("\nError: " + err.Error() + "\n")
+		resp := client.LastErrorResponse()
+
+		w.WriteString("\nResponse headers:\n")
+		for k, v := range resp.Header {
+			if strings.HasSuffix(k, "-Id") {
+				w.WriteString(fmt.Sprintf("%s: %s\n", k, v[0]))
+			}
+		}
+
+		w.WriteString("\nResponse body:\n")
+		w.WriteString(fmt.Sprintf("%s\n", err.Error()))
 	}
+
 	os.Exit(errcode)
 }
