@@ -1,6 +1,7 @@
 package restclient
 
 import (
+	"bytes"
 	"crypto/tls"
 	"crypto/x509"
 	"encoding/json"
@@ -8,7 +9,6 @@ import (
 	"io"
 	"io/ioutil"
 	"net/http"
-	"strings"
 	"time"
 
 	"github.com/dgrijalva/jwt-go"
@@ -96,7 +96,7 @@ func (c *Client) do(method string, url string, input interface{}, expectStatusCo
 		if marshalErr != nil {
 			return marshalErr
 		}
-		body = strings.NewReader(string(reqBody))
+		body = bytes.NewReader(reqBody)
 	}
 
 	req, err := http.NewRequest(method, url, body)
