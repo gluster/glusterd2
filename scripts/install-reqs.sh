@@ -4,7 +4,7 @@ GOPATH=$(go env GOPATH)
 GOBINDIR=$GOPATH/bin
 
 install_dep() {
-  DEPVER="v0.3.1"
+  DEPVER="v0.5.0"
   DEPURL="https://github.com/golang/dep/releases/download/${DEPVER}/dep-linux-amd64"
   type dep >/dev/null 2>&1
   if [ $? -eq 0 ]; then
