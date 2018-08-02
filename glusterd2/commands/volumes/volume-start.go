@@ -1,6 +1,7 @@
 package volumecommands
 
 import (
+	"io"
 	"net/http"
 
 	"github.com/gluster/glusterd2/glusterd2/events"
@@ -76,7 +77,8 @@ func volumeStartHandler(w http.ResponseWriter, r *http.Request) {
 	volname := mux.Vars(r)["volname"]
 	var req api.VolumeStartReq
 
-	if err := restutils.UnmarshalRequest(r, &req); err != nil {
+	// request body is optional
+	if err := restutils.UnmarshalRequest(r, &req); err != nil && err != io.EOF {
 		restutils.SendHTTPError(ctx, w, http.StatusBadRequest, err)
 		return
 	}

@@ -16,12 +16,13 @@ type BrickInfo struct {
 
 // Subvol contains static information about sub volume
 type Subvol struct {
-	Name         string      `json:"name"`
-	Type         SubvolType  `json:"type"`
-	Bricks       []BrickInfo `json:"bricks"`
-	Subvols      []Subvol    `json:"subvols,omitempty"`
-	ReplicaCount int         `json:"replica-count"`
-	ArbiterCount int         `json:"arbiter-count"`
+	Name          string      `json:"name"`
+	Type          SubvolType  `json:"type"`
+	Bricks        []BrickInfo `json:"bricks"`
+	Subvols       []Subvol    `json:"subvols,omitempty"`
+	ReplicaCount  int         `json:"replica-count"`
+	ArbiterCount  int         `json:"arbiter-count"`
+	DisperseCount int         `json:"disperse-count"`
 }
 
 // SizeInfo represents sizing information.
@@ -52,18 +53,19 @@ type BricksStatusResp []BrickStatus
 // VolumeInfo contains static information about the volume.
 // Clients should NOT use this struct directly.
 type VolumeInfo struct {
-	ID           uuid.UUID         `json:"id"`
-	Name         string            `json:"name"`
-	Type         VolType           `json:"type"`
-	Transport    string            `json:"transport"`
-	DistCount    int               `json:"distribute-count"`
-	ReplicaCount int               `json:"replica-count"`
-	ArbiterCount int               `json:"arbiter-count"`
-	Options      map[string]string `json:"options"`
-	State        VolState          `json:"state"`
-	Subvols      []Subvol          `json:"subvols"`
-	Metadata     map[string]string `json:"metadata"`
-	SnapList     []string          `json:"snap-list"`
+	ID            uuid.UUID         `json:"id"`
+	Name          string            `json:"name"`
+	Type          VolType           `json:"type"`
+	Transport     string            `json:"transport"`
+	DistCount     int               `json:"distribute-count"`
+	ReplicaCount  int               `json:"replica-count"`
+	ArbiterCount  int               `json:"arbiter-count,omitempty"`
+	DisperseCount int               `json:"disperse-count,omitempty"`
+	Options       map[string]string `json:"options"`
+	State         VolState          `json:"state"`
+	Subvols       []Subvol          `json:"subvols"`
+	Metadata      map[string]string `json:"metadata"`
+	SnapList      []string          `json:"snap-list"`
 }
 
 // VolumeStatusResp response contains the statuses of all bricks of the volume.
