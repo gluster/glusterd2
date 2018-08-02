@@ -8,6 +8,7 @@ import (
 
 	"github.com/gluster/glusterd2/glusterd2/gdctx"
 	restutils "github.com/gluster/glusterd2/glusterd2/servers/rest/utils"
+	"github.com/gluster/glusterd2/pkg/utils"
 
 	"github.com/dgrijalva/jwt-go"
 )
@@ -75,6 +76,10 @@ func Auth(next http.Handler) http.Handler {
 			secret := getAuthSecret(claims["iss"].(string))
 			if secret == "" {
 				return nil, fmt.Errorf("Invalid App ID: %s", claims["iss"])
+			}
+			// Check qsh claim
+			if claims["qsh"] != utils.GenerateQsh(r) {
+				return nil, errors.New("invalid qsh claim in token")
 			}
 			// All checks GOOD, return the Secret to validate
 			return []byte(secret), nil
