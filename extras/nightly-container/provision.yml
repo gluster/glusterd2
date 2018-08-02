@@ -1,0 +1,87 @@
+---
+- hosts: builder
+  remote_user: root
+  gather_facts: no
+
+  tasks:
+    - name: Upgrade to latest packages
+      yum:
+        name: "*"
+        state: latest
+
+    # TODO: Currently using centos-ci nightly builds. Need to move to using the
+    # nightly bits that get produced by the build.gluster.org nightly pipeline.
+    - name: Add nightly repositories
+      get_url:
+        url: "{{ item.url }}"
+        dest: "{{ item.path }}"
+        mode: 0644
+        owner: root
+      with_items:
+        - {url: "http://artifacts.ci.centos.org/gluster/nightly/master.repo", path: "/etc/yum.repos.d/glusterfs-nightly.repo"}
+        - {url: "http://artifacts.ci.centos.org/gluster/gd2-nightly/gd2-master.repo", path: "/etc/yum.repos.d/glusterd2-nightly.repo"}
+
+    # Required for correct userspace-rcu versions. The version available from
+    # centos-release-gluster does not work ATM with the nightly builds
+    - name: Enable epel repository
+      yum:
+        name: epel-release
+        state: present
+
+    - name: Install Gluster, GD2 and dependencies
+      yum:
+        name: "{{ item }}"
+        state: present
+      with_items:
+        - glusterfs-server
+        - glusterd2
+        - lvm2
+        - xfsprogs
+
+    - name: Clean yum cache
+      command: yum clean all
+      args:
+        warn: no
+
+    - name: Configure lvm
+      replace:
+        path: /etc/lvm/lvm.conf
+        regexp: '(\s+{{ item.option }}\s=)\s({{ item.oldval }})(\s*)?$'
+        replace: '\1 {{ item.newval }}\3'
+      with_items:
+        - {option: "udev_rules", oldval: "1", newval: "0"}
+        - {option: "udev_sync", oldval: "1", newval: "0"}
+        - {option: "use_lvmetad", oldval: "1", newval: "0"}
+
+    # Using shell here instead of find/file modules as this is much easier
+    - name: Cleanup systemd targets
+      shell: |
+        rm -f /etc/systemd/system/*.wants/*
+        rm -f /lib/systemd/system/multi-user.target.wants/*
+        rm -f /lib/systemd/system/local-fs.target.wants/*
+        rm -f /lib/systemd/system/basic.target.wants/*
+        rm -f /lib/systemd/system/anaconda.target.wants/*
+        rm -f /lib/systemd/system/sockets.target.wants/*udev*
+        rm -f /lib/systemd/system/sockets.target.wants/*initctl*
+        find /lib/systemd/system/sysinit.target.wants -type l -not -name systemd-tmpfiles-setup.service -exec rm -f {} \;
+      args:
+        warn: no
+
+    - name: Update udev systemd rules
+      command: sed -ibak 's/ENV{DM_UDEV_DISABLE_OTHER_RULES_FLAG}=="1", ENV{SYSTEMD_READY}="0"/ENV{DM_UDEV_DISABLE_OTHER_RULES_FLAG}=="1", GOTO="systemd_end"/g' /usr/lib/udev/rules.d/99-systemd.rules
+      args:
+        warn: no
+
+    - name: Mask getty.target
+      command: systemctl mask getty.target
+      args:
+        warn: no
+
+    # Using direct systemctl here as the way the service/systemd modules work
+    # requires dbus, which is not available in the container
+    - name: Enable glusterd2.service
+      command: systemctl enable glusterd2.service
+      args:
+        warn: no
+
+## TODO: Customize GD2 config to use external etcd
