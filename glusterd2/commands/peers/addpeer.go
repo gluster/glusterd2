@@ -111,6 +111,10 @@ func addPeerHandler(w http.ResponseWriter, r *http.Request) {
 		newpeer.Metadata[key] = value
 	}
 
+	if req.Disabled {
+		newpeer.Disabled = req.Disabled
+	}
+
 	//check if remotePeerAddress already present
 	found := utils.StringInSlice(remotePeerAddress, newpeer.PeerAddresses)
 	//if not found prepend the remotePeerAddress to peer details
@@ -142,6 +146,7 @@ func createPeerAddResp(p *peer.Peer) *api.PeerAddResp {
 		Name:            p.Name,
 		PeerAddresses:   p.PeerAddresses,
 		ClientAddresses: p.ClientAddresses,
+		Disabled:        p.Disabled,
 		Metadata:        p.Metadata,
 	}
 }

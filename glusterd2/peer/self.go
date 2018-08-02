@@ -58,10 +58,11 @@ func AddSelfDetails() error {
 	if err == errors.ErrPeerNotFound {
 		p.Metadata = make(map[string]string)
 		p.Metadata["_zone"] = p.ID.String()
+		p.Disabled = false
 
 	} else if err == nil && peerInfo != nil {
 		p.Metadata = peerInfo.Metadata
-
+		p.Disabled = peerInfo.Disabled
 		found := utils.StringInSlice(p.PeerAddresses[0], peerInfo.PeerAddresses)
 		if !found {
 			p.PeerAddresses = append(peerInfo.PeerAddresses, p.PeerAddresses...)

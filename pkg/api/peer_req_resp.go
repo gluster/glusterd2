@@ -12,6 +12,7 @@ type Peer struct {
 	ClientAddresses []string          `json:"client-addresses"`
 	Online          bool              `json:"online"`
 	PID             int               `json:"pid,omitempty"`
+	Disabled        bool              `json:"disabled,omitempty"`
 	Metadata        map[string]string `json:"metadata"`
 }
 
@@ -19,6 +20,7 @@ type Peer struct {
 type PeerAddReq struct {
 	Addresses []string          `json:"addresses"`
 	Zone      string            `json:"zone,omitempty"`
+	Disabled  bool              `json:"disabled,omitempty"`
 	Metadata  map[string]string `json:"metadata,omitempty"`
 }
 
