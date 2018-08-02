@@ -94,6 +94,8 @@ Now you have two nodes running glusterd2.
 
 > NOTE: Ensure that firewalld is configured (or stopped) to let traffic on ports ` before adding a peer.
 
+REST API authentication is enabled by default, read more about it [here](rest-authentication.md).
+
 ## Add peer
 
 Glusterd2 natively provides only ReST API for clients to perform management operations. A CLI is provided which interacts with glusterd2 using the [ReST APIs](https://github.com/gluster/glusterd2/wiki/ReST-API).

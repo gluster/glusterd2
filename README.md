@@ -10,6 +10,7 @@ GlusterD, while also becoming more modular and easing extensibility.
 ## Documentation
 
 * [Quick Start User Guide](doc/quick-start-user-guide.md)
+* [REST API Authentication](doc/rest-authentication.md)
 * [Development Guide](doc/development-guide.md)
 * [Coding Guidelines](doc/coding.md)
 * [REST API Reference](doc/endpoints.md)
