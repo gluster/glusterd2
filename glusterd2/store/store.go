@@ -215,3 +215,10 @@ func Delete(ctx context.Context, key string, opts ...clientv3.OpOption) (*client
 	}
 	return Store.Delete(ctx, key, opts...)
 }
+
+// Txn is a wrapper function that calls clientv3.KV.Txn which creates a transaction
+func Txn(ctx context.Context) clientv3.Txn {
+	// can't cancel() here as caller will have to eventually call
+	// clientv3.Txn.Commit()
+	return Store.Txn(ctx)
+}
