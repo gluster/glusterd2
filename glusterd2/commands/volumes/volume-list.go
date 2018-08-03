@@ -24,6 +24,7 @@ func volumeListHandler(w http.ResponseWriter, r *http.Request) {
 	volumes, err := volume.GetVolumes(filterParams)
 	if err != nil {
 		restutils.SendHTTPError(ctx, w, http.StatusInternalServerError, err)
+		return
 	}
 	resp := createVolumeListResp(volumes)
 	restutils.SendHTTPResponse(ctx, w, http.StatusOK, resp)
