@@ -2,7 +2,6 @@ package e2e
 
 import (
 	"testing"
-	"time"
 
 	"github.com/gluster/glusterd2/pkg/api"
 
@@ -42,8 +41,6 @@ func TestAddRemovePeer(t *testing.T) {
 	_, err = client.PeerAdd(peerAddReq)
 	r.Nil(err)
 
-	time.Sleep(6 * time.Second)
-
 	// add peer: ask g1 to add g3 as peer
 	peerAddReq = api.PeerAddReq{
 		Addresses: []string{g3.PeerAddress},
@@ -51,8 +48,6 @@ func TestAddRemovePeer(t *testing.T) {
 
 	peerinfo, err := client.PeerAdd(peerAddReq)
 	r.Nil(err)
-
-	time.Sleep(6 * time.Second)
 
 	_, err = client.GetPeer(peerinfo.ID.String())
 	r.Nil(err)
