@@ -286,7 +286,7 @@ func snapshotCloneHandler(w http.ResponseWriter, r *http.Request) {
 
 	snapname := mux.Vars(r)["snapname"]
 	if snapname == "" {
-		restutils.SendHTTPError(ctx, w, http.StatusUnprocessableEntity, errors.New("Snapshot name should not be empty"))
+		restutils.SendHTTPError(ctx, w, http.StatusBadRequest, errors.New("Snapshot name should not be empty"))
 		return
 	}
 
@@ -296,7 +296,7 @@ func snapshotCloneHandler(w http.ResponseWriter, r *http.Request) {
 	}
 
 	if !volume.IsValidName(req.CloneName) {
-		restutils.SendHTTPError(ctx, w, http.StatusUnprocessableEntity, gderrors.ErrInvalidVolName)
+		restutils.SendHTTPError(ctx, w, http.StatusBadRequest, gderrors.ErrInvalidVolName)
 		return
 	}
 
