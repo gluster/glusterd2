@@ -705,7 +705,7 @@ func snapshotCreateHandler(w http.ResponseWriter, r *http.Request) {
 	}
 
 	if !volume.IsValidName(req.SnapName) {
-		restutils.SendHTTPError(ctx, w, http.StatusUnprocessableEntity, gderrors.ErrInvalidSnapName)
+		restutils.SendHTTPError(ctx, w, http.StatusBadRequest, gderrors.ErrInvalidSnapName)
 		return
 	}
 
