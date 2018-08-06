@@ -218,3 +218,24 @@ func Exists(name string) bool {
 
 	return resp.Count == 1
 }
+
+// CheckBrickExistence checks if a brick is part of a host in the volume
+func CheckBrickExistence(volinfo *Volinfo, hostname, brickname string) error {
+	bricks := volinfo.GetBricks()
+	hostFound := false
+	for _, b := range bricks {
+		if b.Hostname == hostname {
+			hostFound = true
+		}
+	}
+	if hostFound {
+		for _, b := range bricks {
+			if b.Path == brickname && b.Hostname == hostname {
+				return nil
+			}
+		}
+		return gderror.ErrInvalidBrickName
+	}
+
+	return gderror.ErrInvalidHostName
+}
