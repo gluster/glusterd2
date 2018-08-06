@@ -1,7 +1,6 @@
 package events
 
 import (
-	"errors"
 	"strings"
 	"sync"
 
@@ -19,6 +18,7 @@ const (
 type livenessWatcher struct {
 	stopCh chan struct{}
 	wg     sync.WaitGroup
+	stop   sync.Once
 }
 
 var lWatcher *livenessWatcher
@@ -68,12 +68,10 @@ func (l *livenessWatcher) Watch() {
 //Stop will stop the livenessWatcher if it is running and waits for
 //it to exit.
 func (l *livenessWatcher) Stop() error {
-	if l.stopCh == nil {
-		return errors.New("livness watcher has not been started")
-	}
-	close(l.stopCh)
-	l.stopCh = nil
-	l.wg.Wait()
+	l.stop.Do(func() {
+		close(l.stopCh)
+		l.wg.Wait()
+	})
 	return nil
 }
 
