@@ -40,6 +40,7 @@ fi
 
 if [ "$BIN" == "glustercli" ]; then
     LDFLAGS+=" -X ${GOPKG}/cmd.defaultAuthPath=${GD2_STATE_DIR}/auth"
+    LDFLAGS+=" -X ${GOPKG}/cmd.cliVersion=${VERSION} -X ${REPO_PATH}/version.GitSHA=${GIT_SHA}"
 fi
 
 GOBUILD_TAGS=""

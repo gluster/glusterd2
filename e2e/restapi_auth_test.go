@@ -28,4 +28,8 @@ func TestRESTAPIAuth(t *testing.T) {
 	peers, err := client.Peers()
 	r.Nil(err)
 	r.Len(peers, 1)
+
+	//Get glusterd2 version
+	_, err = client.Version()
+	r.Nil(err)
 }

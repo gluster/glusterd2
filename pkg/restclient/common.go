@@ -169,3 +169,10 @@ func (c *Client) do(method string, url string, input interface{}, expectStatusCo
 func (c *Client) Ping() error {
 	return c.get("/ping", nil, http.StatusOK, nil)
 }
+
+//Version returns glusterd2 version
+func (c *Client) Version() (api.VersionResp, error) {
+	var v api.VersionResp
+	err := c.get("/version", nil, http.StatusOK, &v)
+	return v, err
+}
