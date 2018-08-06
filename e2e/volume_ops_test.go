@@ -76,10 +76,11 @@ func TestVolume(t *testing.T) {
 	// Self Heal Test
 	t.Run("SelfHeal", tc.wrap(testSelfHeal))
 	t.Run("GranularEntryHeal", tc.wrap(testGranularEntryHeal))
+	t.Run("SelfHeal", tc.wrap(testSelfHeal))
+	t.Run("SplitBrainOperations", tc.wrap(testSplitBrainOperation))
 
 	// Volume profile test
 	t.Run("VolumeProfile", tc.wrap(testVolumeProfileInfo))
-
 }
 
 func testVolumeCreate(t *testing.T, tc *testCluster) {

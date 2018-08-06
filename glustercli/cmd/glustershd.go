@@ -1,7 +1,9 @@
 package cmd
 
 import (
+	"errors"
 	"fmt"
+	"strings"
 
 	glustershdapi "github.com/gluster/glusterd2/plugins/glustershd/api"
 
@@ -13,6 +15,12 @@ var (
 	// Heal Info Flags
 	flagSummaryInfo    bool
 	flagSplitBrainInfo bool
+
+	// Split Brain Flags
+	flagSplitBrainBiggerFile  bool
+	flagSplitBrainLatestMtime bool
+	flagSplitBrainSourceBrick string
+	flagFileName              string
 )
 
 var selfHealCmd = &cobra.Command{
@@ -28,6 +36,12 @@ func init() {
 	selfHealCmd.AddCommand(selfHealInfoCmd)
 	selfHealCmd.AddCommand(selfHealIndexCmd)
 	selfHealCmd.AddCommand(selfHealFullCmd)
+
+	selfHealSplitBrainCmd.Flags().BoolVar(&flagSplitBrainBiggerFile, "bigger-file", false, "Use bigger-file to resolve split-brain")
+	selfHealSplitBrainCmd.Flags().BoolVar(&flagSplitBrainLatestMtime, "latest-mtime", false, "Use latest-mtime to resolve split-brain")
+	selfHealSplitBrainCmd.Flags().StringVar(&flagSplitBrainSourceBrick, "source-brick", "", "Use a brick as source to resolve split-brain")
+	selfHealSplitBrainCmd.Flags().StringVar(&flagFileName, "file", "", "Specify filename that is in split-brain")
+	selfHealCmd.AddCommand(selfHealSplitBrainCmd)
 
 	volumeCmd.AddCommand(selfHealCmd)
 }
@@ -111,5 +125,47 @@ var selfHealFullCmd = &cobra.Command{
 			failure(fmt.Sprintf("Failed to run heal for volume %s\n", volname), err, 1)
 		}
 		fmt.Println("Heal on volume has been successfully launched. Use heal info to check status")
+	},
+}
+
+var selfHealSplitBrainCmd = &cobra.Command{
+	Use:   "split-brain <volname> [--bigger-file --file <filename>|--latest-mtime --file <filename>|--source-brick <hostname:brickname> [--file <filename>]]",
+	Short: "Split-brain operations",
+	Long:  "Resolve split-brain situation based on bigger-file, latest-mtime or a source-brick",
+	Args:  cobra.MinimumNArgs(1),
+	Run: func(cmd *cobra.Command, args []string) {
+		var operation string
+		var req glustershdapi.SplitBrainReq
+		volname := args[0]
+		if flagSplitBrainBiggerFile {
+			if flagFileName == "" {
+				failure("Split brain operation failed", errors.New("Please provide filename"), 1)
+			}
+			req.FileName = flagFileName
+			operation = "bigger-file"
+		} else if flagSplitBrainLatestMtime {
+			if flagFileName == "" {
+				failure("Split brain operation failed", errors.New("Please provide filename"), 1)
+			}
+			req.FileName = flagFileName
+			operation = "latest-mtime"
+		} else if flagSplitBrainSourceBrick != "" {
+			hnameAndBrick := strings.Split(flagSplitBrainSourceBrick, ":")
+			if len(hnameAndBrick) < 2 {
+				failure("Split brain operation failed", errors.New("Please provide both hostname and brickpath"), 1)
+			}
+			req.HostName, req.BrickName = hnameAndBrick[0], hnameAndBrick[1]
+			if flagFileName != "" {
+				req.FileName = flagFileName
+			}
+			operation = "source-brick"
+		} else {
+			failure("Split brain operation failed", errors.New("Please provide a valid split-brain resolution operation"), 1)
+		}
+		err := client.SelfHealSplitBrain(volname, operation, req)
+		if err != nil {
+			failure(fmt.Sprintf("Failed to resolve split-brain for volume %s\n", volname), err, 1)
+		}
+		fmt.Printf("Split Brain Resolution successfull on volume %s \n", volname)
 	},
 }
