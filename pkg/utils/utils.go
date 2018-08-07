@@ -2,7 +2,10 @@ package utils
 
 import (
 	"bytes"
+	"crypto/sha256"
+	"encoding/hex"
 	"net"
+	"net/http"
 	"os"
 	"os/exec"
 	"reflect"
@@ -219,4 +222,14 @@ func ExecuteCommandRun(cmdName string, arg ...string) error {
 	cmd.Stderr = &stderr
 
 	return execStderrCombined(cmd.Run(), &stderr)
+}
+
+//GenerateQsh generate the hash string to avoid URL tampering
+func GenerateQsh(r *http.Request) string {
+	// qsh URL tampering prevention.
+	//more info https://developer.atlassian.com/cloud/bitbucket/query-string-hash
+	claim := r.Method + "&" + r.URL.Path
+	hash := sha256.New()
+	hash.Write([]byte(claim))
+	return hex.EncodeToString(hash.Sum(nil))
 }

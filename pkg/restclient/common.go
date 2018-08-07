@@ -11,6 +11,8 @@ import (
 	"net/http"
 	"time"
 
+	"github.com/gluster/glusterd2/pkg/utils"
+
 	"github.com/dgrijalva/jwt-go"
 )
 
@@ -45,7 +47,7 @@ func (c *Client) SetTimeout(timeout time.Duration) {
 }
 
 // New creates new instance of Glusterd REST Client
-func New(baseURL string, username string, password string, cacert string, insecure bool) *Client {
+func New(baseURL, username, password, cacert string, insecure bool) *Client {
 	return &Client{
 		baseURL:  baseURL,
 		username: username,
@@ -56,19 +58,23 @@ func New(baseURL string, username string, password string, cacert string, insecu
 	}
 }
 
-func getAuthToken(username string, password string) string {
-	// Create the Claims
-	claims := &jwt.StandardClaims{
-		ExpiresAt: time.Now().Add(time.Second * expireSeconds).Unix(),
-		Issuer:    username,
-	}
-	token := jwt.NewWithClaims(jwt.SigningMethodHS256, claims)
-	ss, err := token.SignedString([]byte(password))
+func (c *Client) setAuthToken(r *http.Request) {
+	// Create Token
+	token := jwt.NewWithClaims(jwt.SigningMethodHS256, jwt.MapClaims{
+		// Set issuer
+		"iss": c.username,
+		// Set expiration
+		"exp": time.Now().Add(time.Second * expireSeconds).Unix(),
+		// Set qsh
+		"qsh": utils.GenerateQsh(r),
+	})
+	// Sign the token
+	signedtoken, err := token.SignedString([]byte(c.password))
 	if err != nil {
-		return ""
+		return
 	}
-
-	return ss
+	r.Header.Set("Authorization", "bearer "+signedtoken)
+	return
 }
 
 func (c *Client) post(url string, data interface{}, expectStatusCode int, output interface{}) error {
@@ -109,7 +115,7 @@ func (c *Client) do(method string, url string, input interface{}, expectStatusCo
 
 	// Set Authorization if username and password is not empty string
 	if c.username != "" && c.password != "" {
-		req.Header.Set("Authorization", "bearer "+getAuthToken(c.username, c.password))
+		c.setAuthToken(req)
 	}
 
 	tr := &http.Transport{
