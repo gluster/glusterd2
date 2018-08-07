@@ -79,7 +79,7 @@ func editPeer(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 	resp := createPeerEditResp(&peerInfo)
-	restutils.SendHTTPResponse(ctx, w, http.StatusCreated, resp)
+	restutils.SendHTTPResponse(ctx, w, http.StatusOK, resp)
 
 }
 
