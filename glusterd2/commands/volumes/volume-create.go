@@ -218,6 +218,7 @@ func volumeCreateHandler(w http.ResponseWriter, r *http.Request) {
 	events.Broadcast(volume.NewEvent(volume.EventVolumeCreated, volinfo))
 
 	resp := createVolumeCreateResp(volinfo)
+	restutils.SetLocationHeader(r, w, volinfo.Name)
 	restutils.SendHTTPResponse(ctx, w, http.StatusCreated, resp)
 }
 

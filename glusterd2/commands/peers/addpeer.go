@@ -128,6 +128,7 @@ func addPeerHandler(w http.ResponseWriter, r *http.Request) {
 	}
 
 	resp := createPeerAddResp(newpeer)
+	restutils.SetLocationHeader(r, w, newpeer.ID.String())
 	restutils.SendHTTPResponse(ctx, w, http.StatusCreated, resp)
 
 	// Save updated store endpoints for restarts
