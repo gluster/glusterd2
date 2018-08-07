@@ -103,8 +103,6 @@ func init() {
 	volumeEditCmd.MarkFlagRequired("key")
 	volumeEditCmd.MarkFlagRequired("value")
 	volumeCmd.AddCommand(volumeEditCmd)
-
-	RootCmd.AddCommand(volumeCmd)
 }
 
 var volumeCmd = &cobra.Command{
@@ -182,7 +180,7 @@ var volumeStartCmd = &cobra.Command{
 		volname := cmd.Flags().Args()[0]
 		err := client.VolumeStart(volname, flagStartCmdForce)
 		if err != nil {
-			if verbose {
+			if GlobalFlag.Verbose {
 				log.WithFields(log.Fields{
 					"volume": volname,
 					"error":  err.Error(),
@@ -202,7 +200,7 @@ var volumeStopCmd = &cobra.Command{
 		volname := cmd.Flags().Args()[0]
 		err := client.VolumeStop(volname)
 		if err != nil {
-			if verbose {
+			if GlobalFlag.Verbose {
 				log.WithFields(log.Fields{
 					"volume": volname,
 					"error":  err.Error(),
@@ -222,7 +220,7 @@ var volumeDeleteCmd = &cobra.Command{
 		volname := cmd.Flags().Args()[0]
 		err := client.VolumeDelete(volname)
 		if err != nil {
-			if verbose {
+			if GlobalFlag.Verbose {
 				log.WithFields(log.Fields{
 					"volume": volname,
 					"error":  err.Error(),
@@ -379,7 +377,7 @@ var volumeInfoCmd = &cobra.Command{
 	Run: func(cmd *cobra.Command, args []string) {
 		err := volumeInfoHandler2(cmd, true)
 		if err != nil {
-			if verbose {
+			if GlobalFlag.Verbose {
 				log.WithFields(log.Fields{
 					"error": err.Error(),
 				}).Error("error getting volumes list")
@@ -396,7 +394,7 @@ var volumeListCmd = &cobra.Command{
 	Run: func(cmd *cobra.Command, args []string) {
 		err := volumeInfoHandler2(cmd, false)
 		if err != nil {
-			if verbose {
+			if GlobalFlag.Verbose {
 				log.WithFields(log.Fields{
 					"error": err.Error(),
 				}).Error("error getting volumes list")
@@ -432,7 +430,7 @@ func volumeStatusHandler(cmd *cobra.Command) error {
 			if err == nil {
 				volumeStatusDisplay(vol)
 			} else {
-				if verbose {
+				if GlobalFlag.Verbose {
 					log.WithFields(log.Fields{
 						"error": err.Error(),
 					}).Error("error getting volume status")
@@ -457,7 +455,7 @@ var volumeStatusCmd = &cobra.Command{
 	Run: func(cmd *cobra.Command, args []string) {
 		err := volumeStatusHandler(cmd)
 		if err != nil {
-			if verbose {
+			if GlobalFlag.Verbose {
 				log.WithFields(log.Fields{
 					"error": err.Error(),
 				}).Error("error getting volume status")
@@ -475,7 +473,7 @@ var volumeSizeCmd = &cobra.Command{
 		volname := cmd.Flags().Args()[0]
 		vol, err := client.VolumeStatus(volname)
 		if err != nil {
-			if verbose {
+			if GlobalFlag.Verbose {
 				log.WithFields(log.Fields{
 					"error": err.Error(),
 				}).Error("error getting volume size")
@@ -497,7 +495,7 @@ var volumeExpandCmd = &cobra.Command{
 		volname := cmd.Flags().Args()[0]
 		bricks, err := bricksAsUUID(cmd.Flags().Args()[1:])
 		if err != nil {
-			if verbose {
+			if GlobalFlag.Verbose {
 				log.WithFields(log.Fields{
 					"volume": volname,
 					"error":  err.Error(),
@@ -519,7 +517,7 @@ var volumeExpandCmd = &cobra.Command{
 			Flags:        flags,
 		})
 		if err != nil {
-			if verbose {
+			if GlobalFlag.Verbose {
 				log.WithFields(log.Fields{
 					"volume": volname,
 					"error":  err.Error(),
@@ -545,7 +543,7 @@ var volumeEditCmd = &cobra.Command{
 		}
 		_, err := client.EditVolume(volname, editMetadataReq)
 		if err != nil {
-			if verbose {
+			if GlobalFlag.Verbose {
 				log.WithFields(log.Fields{
 					"error": err.Error(),
 				}).Error("failed to edit metadata")

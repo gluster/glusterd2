@@ -48,7 +48,7 @@ var selfHealInfoCmd = &cobra.Command{
 			selfHealInfo, err = client.SelfHealInfo(volname)
 		}
 		if err != nil {
-			if verbose {
+			if GlobalFlag.Verbose {
 				log.WithFields(log.Fields{
 					"volume": volname,
 					"error":  err.Error(),

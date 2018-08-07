@@ -14,8 +14,6 @@ const (
 
 func init() {
 	deviceCmd.AddCommand(deviceAddCmd)
-
-	RootCmd.AddCommand(deviceCmd)
 }
 
 var deviceCmd = &cobra.Command{
@@ -34,7 +32,7 @@ var deviceAddCmd = &cobra.Command{
 		_, err := client.DeviceAdd(peerid, devname)
 
 		if err != nil {
-			if verbose {
+			if GlobalFlag.Verbose {
 				log.WithFields(log.Fields{
 					"device": devname,
 					"peerid": peerid,
