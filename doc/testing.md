@@ -48,3 +48,16 @@ tests.
 
 The argument to the -run command-line flag is an unanchored regular expression
 that matches the test's name.
+
+## Retriggering tests in the CentOS CI system
+
+The CentOS CI system runs `e2e` tests for every proposed PR and reports the
+result back in the PR with a link to output of the tests.
+
+If you are certain that the tests run by CentOS CI have failed spuriously, you
+can retrigger running the `e2e` tests by writing the following magic phrase
+on the PR as a comment:
+
+```
+retest this please
+```

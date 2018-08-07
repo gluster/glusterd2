@@ -30,8 +30,6 @@ func (c *Command) Routes() route.Routes {
 			RequestType:  utils.GetTypeString((*api.VolExpandReq)(nil)),
 			ResponseType: utils.GetTypeString((*api.VolumeExpandResp)(nil)),
 			HandlerFunc:  volumeExpandHandler},
-		// TODO: Implmement volume reset as
-		// DELETE /volumes/{volname}/options
 		route.Route{
 			Name:         "VolumeOptionGet",
 			Method:       "GET",
@@ -55,12 +53,13 @@ func (c *Command) Routes() route.Routes {
 			ResponseType: utils.GetTypeString((*api.VolumeOptionResp)(nil)),
 			HandlerFunc:  volumeOptionsHandler},
 		route.Route{
-			Name:        "VolumeReset",
-			Method:      "DELETE",
-			Pattern:     "/volumes/{volname}/options",
-			Version:     1,
-			RequestType: utils.GetTypeString((*api.VolOptionResetReq)(nil)),
-			HandlerFunc: volumeResetHandler},
+			Name:         "VolumeReset",
+			Method:       "DELETE", // Do DELETE requests have a body? Should this be query param ?
+			Pattern:      "/volumes/{volname}/options",
+			Version:      1,
+			RequestType:  utils.GetTypeString((*api.VolOptionResetReq)(nil)),
+			ResponseType: utils.GetTypeString((*api.VolumeOptionResp)(nil)),
+			HandlerFunc:  volumeResetHandler},
 		route.Route{
 			Name:         "OptionGroupList",
 			Method:       "GET",

@@ -4,7 +4,7 @@ GOPATH=$(go env GOPATH)
 GOBINDIR=$GOPATH/bin
 
 install_dep() {
-  DEPVER="v0.3.1"
+  DEPVER="v0.5.0"
   DEPURL="https://github.com/golang/dep/releases/download/${DEPVER}/dep-linux-amd64"
   type dep >/dev/null 2>&1
   if [ $? -eq 0 ]; then
@@ -39,5 +39,27 @@ install_gometalinter() {
   rm -f "$GOBINDIR/$LINTER_TARBALL"
 }
 
+install_etcd() {
+  ETCD_VER="v3.3.9"
+  ETCD_TARBALL="etcd-${ETCD_VER}-linux-amd64.tar.gz"
+  ETCD_URL="https://github.com/coreos/etcd/releases/download/${ETCD_VER}/${ETCD_TARBALL}"
+
+  type etcd >/dev/null 2>&1
+  if [ $? -eq 0 ]; then
+    local version
+    version=$(etcd --version | awk '/^etcd Version/{print $3}')
+    if [[ $version == "$ETCD_VER" || $version >  $ETCD_VER ]]; then
+      echo "etcd ${ETCD_VER} or greater is already installed"
+      return
+    fi
+  fi
+
+  echo "Installing etcd. Version: ${ETCD_VER}"
+  curl -L -o "$GOBINDIR/$ETCD_TARBALL" $ETCD_URL
+  tar -zxf "$GOBINDIR/$ETCD_TARBALL" --overwrite --strip-components 1 -C "$GOBINDIR" --wildcards --no-anchored {etcd,etcdctl}
+  rm -f "$GOBINDIR/$ETCD_TARBALL"
+}
+
 install_dep
 install_gometalinter
+install_etcd

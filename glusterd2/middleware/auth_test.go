@@ -1,6 +1,8 @@
 package middleware
 
 import (
+	"crypto/sha256"
+	"encoding/hex"
 	"net/http"
 	"net/http/httptest"
 	"os"
@@ -29,19 +31,23 @@ func TestGetAuthSecret(t *testing.T) {
 	assert.NotNil(t, secret)
 }
 
-func getAuthToken(username string, password string) string {
-	// Create the Claims
-	claims := &jwt.StandardClaims{
-		ExpiresAt: time.Now().Add(time.Second * time.Duration(120)).Unix(),
-		Issuer:    username,
-	}
-	token := jwt.NewWithClaims(jwt.SigningMethodHS256, claims)
-	ss, err := token.SignedString([]byte(password))
+func getAuthToken(username string, password string, r *http.Request) {
+	// Generate qsh
+	qshstring := "GET&/"
+	hash := sha256.New()
+	hash.Write([]byte(qshstring))
+	// Create Token
+	token := jwt.NewWithClaims(jwt.SigningMethodHS256, jwt.MapClaims{
+		"iss": username,
+		"exp": time.Now().Add(time.Second * time.Duration(120)).Unix(),
+		"qsh": hex.EncodeToString(hash.Sum(nil)),
+	})
+	// Sign the token
+	signedtoken, err := token.SignedString([]byte(password))
 	if err != nil {
-		return ""
+		return
 	}
-
-	return ss
+	r.Header.Set("Authorization", "bearer "+signedtoken)
 }
 
 func generateLocalauthtoken() {
@@ -77,12 +83,12 @@ func TestAuth(t *testing.T) {
 
 	req.Header.Set("Accept", "application/json")
 	req.Header.Set("Content-Type", "application/json")
-	req.Header.Set("Authorization", "bearer "+getAuthToken("glustercli", string(secret)))
+	getAuthToken("glustercli", string(secret), req)
 	resp, err = client.Do(req)
 	assert.Nil(t, err)
 	assert.Equal(t, resp.StatusCode, http.StatusOK)
 
-	req.Header.Set("Authorization", "bearer "+getAuthToken("testuser", string(secret)))
+	getAuthToken("testuser", string(secret), req)
 	resp, err = client.Do(req)
 	assert.Nil(t, err)
 	assert.Equal(t, resp.StatusCode, http.StatusUnauthorized)

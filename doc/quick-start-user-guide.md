@@ -17,7 +17,7 @@ Please follow these steps for setting up glusterd2 on **each of the two nodes**.
 
 **Installing glusterfs from nightly RPMs (CentOS 7):**
 
-These packages require dependencies present in [EPEL](https://fedoraproject.org/wiki/EPEL). Enable the EPEL repositories before enabling gluster nightly packages repo below.
+These packages require dependencies present in [EPEL](https://fedoraproject.org/wiki/EPEL). Enable the [EPEL repositories](https://fedoraproject.org/wiki/EPEL#Quickstart) before enabling gluster nightly packages repo below.
 
 Install packages that provide GlusterFS server (brick process) and client (fuse, libgfapi):
 
@@ -28,9 +28,7 @@ Install packages that provide GlusterFS server (brick process) and client (fuse,
 
 ### Download glusterd2
 
-As we do not have releases often, our nightly RPMs are generally more stable
-as they contain the latest fixes. If you are on centos 7, you can download the
-latest glusterd2 nightly [RPMs](https://github.com/gluster/glusterd2/wiki/Nightly-Builds) using the following method:
+We recommend that you use the RPMs made available nightly as they contain the latest fixes. If you are on CentOS 7, you can download the latest glusterd2 nightly RPM using the following method:
 
 ```sh
 # curl -o /etc/yum.repos.d/glusterd2-nightly-master.repo http://artifacts.ci.centos.org/gluster/gd2-nightly/gd2-master.repo
@@ -43,9 +41,9 @@ external dependencies.
 
 **Config File:** Default path of glusterd2 config file is `/etc/glusterd2/glusterd2.toml`.
 
-### Custom configuration for glusterd2 [Optional Step].
+### Custom configuration for glusterd2 [Optional].
 
-**Create a working directory:** This is where glusterd2 will store all data which includes logs, pid files, etcd information etc. For this example, we will be using a temporary path. If a working directory is not specified, it defaults to current directory.
+**Create a working directory:** This is where glusterd2 will store all data which includes logs, pid files, etcd information etc. For the purposes of this example, we will be using a temporary path. If a working directory is not specified, it defaults to current directory.
 
 ```sh
 $ mkdir -p /var/lib/gd2
@@ -114,26 +112,12 @@ In glusterd2, REST API authentication is enabled by default. To disable rest aut
 
 Please restart glusterd2 service after changing config file.
 
-```sh
-# systemctl restart glusterd2
-```
-
-### Output
-
-You will see an output similar to the following:
-```log
-INFO[2017-08-28T16:03:58+05:30] Starting GlusterD                             pid=1650
-INFO[2017-08-28T16:03:58+05:30] loaded configuration from file                file=conf.toml
-INFO[2017-08-28T16:03:58+05:30] Generated new UUID                            uuid=19db62df-799b-47f1-80e4-0f5400896e05
-INFO[2017-08-28T16:03:58+05:30] started muxsrv listener                      
-INFO[2017-08-28T16:03:58+05:30] Started GlusterD ReST server                  ip:port=192.168.56.101:24007
-INFO[2017-08-28T16:03:58+05:30] Registered RPC Listener                       ip:port=192.168.56.101:24008
-INFO[2017-08-28T16:03:58+05:30] started GlusterD SunRPC server                ip:port=192.168.56.101:24007
-```
+### Using Glusterd2
 
 Now you have two nodes running glusterd2.
 
 > NOTE: Ensure that firewalld is configured (or stopped) to let traffic on ports ` before adding a peer.
+
 
 ## Add peer
 
