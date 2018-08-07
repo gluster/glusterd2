@@ -153,7 +153,7 @@ func (c *Client) VolumeStatedump(volname string, req api.VolStatedumpReq) error 
 
 // OptionGroupCreate creates a new option group
 func (c *Client) OptionGroupCreate(req api.OptionGroupReq) error {
-	return c.post("/v1/volumes/options-group", req, http.StatusCreated, nil)
+	return c.post("/v1/volumes/options-group", req, http.StatusOK, nil)
 }
 
 // OptionGroupList returns a list of all option groups
