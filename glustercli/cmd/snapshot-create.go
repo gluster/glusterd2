@@ -50,7 +50,7 @@ func snapshotCreateCmdRun(cmd *cobra.Command, args []string) {
 
 	snap, err := client.SnapshotCreate(req)
 	if err != nil {
-		if verbose {
+		if GlobalFlag.Verbose {
 			log.WithFields(log.Fields{
 				"volume":   volname,
 				"snapshot": snapname,

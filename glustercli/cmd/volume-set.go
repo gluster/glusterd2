@@ -52,7 +52,7 @@ func volumeSetCmdRun(cmd *cobra.Command, args []string) {
 	volname := args[0]
 	options := args[1:]
 	if err := volumeOptionJSONHandler(cmd, volname, options); err != nil {
-		if verbose {
+		if GlobalFlag.Verbose {
 			log.WithFields(log.Fields{
 				"volume": volname,
 				"error":  err.Error(),

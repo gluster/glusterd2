@@ -30,7 +30,7 @@ func snapshotRestoreCmdRun(cmd *cobra.Command, args []string) {
 	snapname := cmd.Flags().Args()[0]
 	vol, err := client.SnapshotRestore(snapname)
 	if err != nil {
-		if verbose {
+		if GlobalFlag.Verbose {
 			log.WithFields(log.Fields{
 				"snapshot": snapname,
 				"volume":   vol.Name,

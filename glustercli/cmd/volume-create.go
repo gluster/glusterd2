@@ -114,7 +114,7 @@ func smartVolumeCreate(cmd *cobra.Command, args []string) {
 
 	vol, err := client.VolumeCreate(req)
 	if err != nil {
-		if verbose {
+		if GlobalFlag.Verbose {
 			log.WithFields(log.Fields{
 				"volume": flagCreateVolumeName,
 				"error":  err.Error(),
@@ -152,7 +152,7 @@ func volumeCreateCmdRun(cmd *cobra.Command, args []string) {
 
 	bricks, err := bricksAsUUID(brickArgs)
 	if err != nil {
-		if verbose {
+		if GlobalFlag.Verbose {
 			log.WithFields(log.Fields{
 				"error":  err.Error(),
 				"volume": volname,
@@ -296,7 +296,7 @@ func volumeCreateCmdRun(cmd *cobra.Command, args []string) {
 
 	vol, err := client.VolumeCreate(req)
 	if err != nil {
-		if verbose {
+		if GlobalFlag.Verbose {
 			log.WithFields(log.Fields{
 				"volume": volname,
 				"error":  err.Error(),
