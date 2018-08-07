@@ -783,8 +783,8 @@ func snapshotCreateHandler(w http.ResponseWriter, r *http.Request) {
 	}
 
 	resp := createSnapCreateResp(&snapInfo)
+	restutils.SetLocationHeader(r, w, snapInfo.SnapVolinfo.Name)
 	restutils.SendHTTPResponse(ctx, w, http.StatusCreated, resp)
-
 }
 
 // createSnapCreateResp functions create resnse for rest utils

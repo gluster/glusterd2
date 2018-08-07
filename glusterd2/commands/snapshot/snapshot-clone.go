@@ -380,6 +380,7 @@ func snapshotCloneHandler(w http.ResponseWriter, r *http.Request) {
 	}
 
 	resp := createVolumeCreateResp(vol)
+	restutils.SetLocationHeader(r, w, vol.Name)
 	restutils.SendHTTPResponse(ctx, w, http.StatusCreated, resp)
 
 }
