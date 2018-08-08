@@ -72,10 +72,10 @@ func NewMuxed(m cmux.CMux) *GDRest {
 		if l, err := tlsListener(m.Match(tlsmatcher.TLS12), certfile, keyfile); err != nil {
 			// TODO: Don't use Fatal(), bubble up error till main()
 			// NOTE: Methods of suture.Service interface do not return error
-			log.WithFields(log.Fields{
+			log.WithError(err).WithFields(log.Fields{
 				"cert-file": certfile,
 				"key-file":  keyfile,
-			}).WithError(err).Fatal("Failed to create SSL/TLS listener")
+			}).Fatal("Failed to create SSL/TLS listener")
 		} else {
 			rest.listener = l
 		}

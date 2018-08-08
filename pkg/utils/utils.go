@@ -70,7 +70,7 @@ func IsLocalAddress(address string) (bool, error) {
 func ParseHostAndBrickPath(brickPath string) (string, string, error) {
 	i := strings.LastIndex(brickPath, ":")
 	if i == -1 {
-		log.WithField("brick", brickPath).Error(errors.ErrInvalidBrickPath.Error())
+		log.WithError(errors.ErrInvalidBrickPath).WithField("brick", brickPath)
 		return "", "", errors.ErrInvalidBrickPath
 	}
 	hostname := brickPath[0:i]

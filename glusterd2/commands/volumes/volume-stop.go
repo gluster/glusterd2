@@ -57,10 +57,10 @@ func stopBricks(c transaction.TxnCtx) error {
 
 		// On graceful shutdown of brick, daemon.Stop() isn't called.
 		if err := daemon.DelDaemon(brickDaemon); err != nil {
-			log.WithFields(log.Fields{
+			log.WithError(err).WithFields(log.Fields{
 				"name": brickDaemon.Name(),
 				"id":   brickDaemon.ID(),
-			}).WithError(err).Warn("failed to delete brick entry from store, it may be restarted on GlusterD restart")
+			}).Warn("failed to delete brick entry from store, it may be restarted on GlusterD restart")
 		}
 	}
 

@@ -113,13 +113,13 @@ func (p *GfHandshake) ServerGetspec(args *GfGetspecReq, reply *GfGetspecRsp) err
 	volfileID := strings.TrimPrefix(args.Key, "/")
 	resp, err := store.Get(context.TODO(), volfilePrefix+volfileID)
 	if err != nil {
-		log.WithField("volfile", args.Key).WithError(err).Error("ServerGetspec(): failed to retrive volfile from store")
+		log.WithError(err).WithField("volfile", args.Key).Error("ServerGetspec(): failed to retrive volfile from store")
 		goto Out
 	}
 
 	if resp.Count != 1 {
 		err = errors.New("volfile not found in store")
-		log.WithField("volfile", args.Key).Error(err.Error())
+		log.WithError(err).WithField("volfile", args.Key)
 		goto Out
 	}
 

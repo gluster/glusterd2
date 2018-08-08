@@ -88,7 +88,7 @@ func MountSnapBrickDirectory(vol *volume.Volinfo, brickinfo *brick.Brickinfo) er
 	*/
 
 	if err := lvm.MountSnapshotDirectory(mountRoot, brickinfo.MountInfo); err != nil {
-		log.WithFields(log.Fields{"error": err.Error(),
+		log.WithError(err).WithFields(log.Fields{
 			"brickPath": brickinfo.String(),
 			"mountRoot": mountRoot}).Error("Failed to mount snapshot directory")
 
@@ -97,7 +97,7 @@ func MountSnapBrickDirectory(vol *volume.Volinfo, brickinfo *brick.Brickinfo) er
 
 	err := unix.Setxattr(brickinfo.Path, volumeIDXattrKey, vol.ID, 0)
 	if err != nil {
-		log.WithFields(log.Fields{"error": err.Error(),
+		log.WithError(err).WithFields(log.Fields{
 			"brickPath": brickinfo.Path,
 			"xattr":     volumeIDXattrKey}).Error("setxattr failed")
 		return err

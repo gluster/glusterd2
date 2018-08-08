@@ -81,7 +81,7 @@ func volumeBricksStatusHandler(w http.ResponseWriter, r *http.Request) {
 	result, err := createBricksStatusResp(txn.Ctx, vol)
 	if err != nil {
 		errMsg := "Failed to aggregate brick status results from multiple nodes."
-		logger.WithField("error", err.Error()).Error("volumeStatusHandler:" + errMsg)
+		logger.WithError(err).Error("volumeStatusHandler:" + errMsg)
 		restutils.SendHTTPError(ctx, w, http.StatusInternalServerError, errMsg)
 		return
 	}

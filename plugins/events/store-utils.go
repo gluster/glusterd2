@@ -44,10 +44,7 @@ func GetWebhookList() ([]*eventsapi.Webhook, error) {
 		var wh eventsapi.Webhook
 
 		if err := json.Unmarshal(kv.Value, &wh); err != nil {
-			log.WithFields(log.Fields{
-				"webhook": string(kv.Key),
-				"error":   err,
-			}).Error("Failed to unmarshal webhook")
+			log.WithError(err).WithField("webhook", string(kv.Key)).Error("Failed to unmarshal webhook")
 			continue
 		}
 
@@ -90,10 +87,8 @@ func GetEventsList() ([]*api.Event, error) {
 		var ev api.Event
 
 		if err := json.Unmarshal(kv.Value, &ev); err != nil {
-			log.WithFields(log.Fields{
-				"event": string(kv.Key),
-				"error": err,
-			}).Error("Failed to unmarshal event")
+			log.WithError(err).WithField(
+				"event", string(kv.Key)).Error("Failed to unmarshal event")
 			continue
 		}
 

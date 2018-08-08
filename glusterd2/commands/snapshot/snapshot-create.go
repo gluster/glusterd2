@@ -431,7 +431,7 @@ func brickSnapshot(errCh chan error, wg *sync.WaitGroup, snapBrick, b brick.Bric
 	}).Debug("Running snapshot create command")
 
 	if err := lvm.LVSnapshot(mntInfo.FsName, mountData.DevicePath); err != nil {
-		log.WithFields(log.Fields{
+		log.WithError(err).WithFields(log.Fields{
 			"mountDevice": mntInfo.FsName,
 			"devicePath":  mountData.DevicePath,
 			"Path":        b.Path,
@@ -441,7 +441,7 @@ func brickSnapshot(errCh chan error, wg *sync.WaitGroup, snapBrick, b brick.Bric
 	}
 
 	if err = lvm.UpdateFsLabel(mountData.DevicePath, mountData.FsType); err != nil {
-		log.WithFields(log.Fields{
+		log.WithError(err).WithFields(log.Fields{
 			"FsType": mountData.FsType,
 			"Path":   b.Path,
 		}).Error("Failed to update the label")
@@ -577,7 +577,7 @@ func createSnapinfo(c transaction.TxnCtx) error {
 
 	err = createSnapSubvols(snapVolinfo, volinfo, nodeData)
 	if err != nil {
-		log.WithFields(log.Fields{
+		log.WithError(err).WithFields(log.Fields{
 			"snapshot":   snapVolinfo.Name,
 			"volumeName": volinfo.Name,
 		}).Error("Failed to create snap volinfo")

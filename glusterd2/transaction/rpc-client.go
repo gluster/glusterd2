@@ -21,10 +21,7 @@ func runStepOn(origCtx netctx.Context, step string, node uuid.UUID, c TxnCtx) er
 	// we have long term connections.
 	p, err := peer.GetPeerF(node.String())
 	if err != nil {
-		c.Logger().WithFields(log.Fields{
-			"peerid": node.String(),
-			"error":  err,
-		}).Error("peer not found")
+		c.Logger().WithError(err).WithField("peerid", node.String()).Error("peer not found")
 		return err
 	}
 
@@ -51,10 +48,7 @@ func runStepOn(origCtx netctx.Context, step string, node uuid.UUID, c TxnCtx) er
 	}
 
 	if conn == nil {
-		logger.WithFields(log.Fields{
-			"error":  err,
-			"remote": p.PeerAddresses[0],
-		}).Error("failed to grpc.Dial remote")
+		logger.WithError(err).WithField("remote", p.PeerAddresses[0]).Error("failed to grpc.Dial remote")
 		return err
 	}
 	defer conn.Close()
@@ -75,10 +69,7 @@ func runStepOn(origCtx netctx.Context, step string, node uuid.UUID, c TxnCtx) er
 
 	rsp, err = client.RunStep(origCtx, req)
 	if err != nil {
-		logger.WithFields(log.Fields{
-			"error": err,
-			"rpc":   "TxnSvc.RunStep",
-		}).Error("failed RPC call")
+		logger.WithError(err).WithField("rpc", "TxnSvc.RunStep").Error("failed RPC call")
 		return err
 	}
 
