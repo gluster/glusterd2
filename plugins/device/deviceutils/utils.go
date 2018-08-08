@@ -134,3 +134,36 @@ func BrickUnmount(mountdir string) error {
 func RemoveLV(vgName, lvName string) error {
 	return utils.ExecuteCommandRun("lvremove", "-f", vgName+"/"+lvName)
 }
+
+// NumberOfLvs returns number of Lvs present in thinpool
+func NumberOfLvs(vgname, tpname string) (int, error) {
+	nlv := 0
+	out, err := utils.ExecuteCommandOutput(
+		"lvs", "--no-headings", "--select",
+		fmt.Sprintf("vg_name=%s&&pool_lv=%s", vgname, tpname),
+	)
+
+	if err == nil {
+		out := strings.Trim(string(out), " \n")
+		if out == "" {
+			nlv = 0
+		} else {
+			nlv = len(strings.Split(out, "\n"))
+		}
+	}
+	return nlv, err
+}
+
+// GetThinpoolName gets thinpool name for a given LV
+func GetThinpoolName(vgname, lvname string) (string, error) {
+	out, err := utils.ExecuteCommandOutput(
+		"lvs", "--no-headings", "--select",
+		fmt.Sprintf("vg_name=%s&&lv_name=%s", vgname, lvname),
+		"-o", "pool_lv",
+	)
+	if err == nil {
+		return strings.Trim(string(out), " \n"), nil
+	}
+
+	return "", err
+}

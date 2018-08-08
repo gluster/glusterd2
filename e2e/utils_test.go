@@ -296,3 +296,12 @@ func getAuth(path string) string {
 	}
 	return ""
 }
+
+func numberOfLvs(vgname string) (int, error) {
+	nlv := 0
+	out, err := exec.Command("vgs", vgname, "--no-headings", "-o", "lv_count").Output()
+	if err == nil {
+		nlv, err = strconv.Atoi(strings.Trim(string(out), " \n"))
+	}
+	return nlv, err
+}

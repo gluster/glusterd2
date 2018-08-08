@@ -147,6 +147,14 @@ func GetBrickMountRoot(brickPath string) (string, error) {
 	return "", errors.New("failed to get mount root")
 }
 
+//IsMountNotFoundError returns true if error matches
+func IsMountNotFoundError(err error) bool {
+	if err != nil {
+		return strings.Contains(err.Error(), "mount point not found")
+	}
+	return false
+}
+
 //GetBrickMountInfo return mount related information
 func GetBrickMountInfo(mountRoot string) (*Mntent, error) {
 	realMountRoot, err := filepath.EvalSymlinks(mountRoot)
