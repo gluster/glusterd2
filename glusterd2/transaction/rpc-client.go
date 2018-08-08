@@ -9,12 +9,14 @@ import (
 
 	"github.com/pborman/uuid"
 	log "github.com/sirupsen/logrus"
+	"go.opencensus.io/plugin/ocgrpc"
+	"go.opencensus.io/trace"
 	netctx "golang.org/x/net/context"
 	"google.golang.org/grpc"
 )
 
 // runStepOn will run the step on the specified node
-func runStepOn(step string, node uuid.UUID, c TxnCtx) error {
+func runStepOn(origCtx netctx.Context, step string, node uuid.UUID, c TxnCtx) error {
 	// TODO: I'm creating connections on demand. This should be changed so that
 	// we have long term connections.
 	p, err := peer.GetPeerF(node.String())
@@ -35,7 +37,13 @@ func runStepOn(step string, node uuid.UUID, c TxnCtx) error {
 		return err
 	}
 
-	conn, err = grpc.Dial(remote, grpc.WithInsecure())
+	conn, err = grpc.Dial(remote,
+		grpc.WithStatsHandler(&ocgrpc.ClientHandler{
+			StartOptions: trace.StartOptions{
+				Sampler: trace.AlwaysSample(),
+			}}),
+		grpc.WithInsecure(),
+	)
 	if err == nil && conn != nil {
 		logger.WithFields(log.Fields{
 			"remote": remote,
@@ -65,7 +73,7 @@ func runStepOn(step string, node uuid.UUID, c TxnCtx) error {
 
 	var rsp *TxnStepResp
 
-	rsp, err = client.RunStep(netctx.TODO(), req)
+	rsp, err = client.RunStep(origCtx, req)
 	if err != nil {
 		logger.WithFields(log.Fields{
 			"error": err,

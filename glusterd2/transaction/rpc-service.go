@@ -7,6 +7,7 @@ import (
 	"github.com/gluster/glusterd2/glusterd2/servers/peerrpc"
 
 	log "github.com/sirupsen/logrus"
+	"go.opencensus.io/trace"
 	"golang.org/x/net/context"
 	"google.golang.org/grpc"
 )
@@ -36,6 +37,13 @@ func (p *txnSvc) RunStep(rpcCtx context.Context, req *TxnStepReq) (*TxnStepResp,
 
 	logger = ctx.Logger().WithField("stepfunc", req.StepFunc)
 	logger.Debug("RunStep request received")
+
+	if rpcCtx != nil {
+		reqID := ctx.GetTxnReqID()
+		spanName := req.StepFunc + " ReqID:" + reqID
+		_, span := trace.StartSpan(rpcCtx, spanName)
+		defer span.End()
+	}
 
 	f, ok = getStepFunc(req.StepFunc)
 	if !ok {

@@ -4,7 +4,7 @@
 
 [[constraint]]
   name = "github.com/coreos/etcd"
-  version = "3.2.9"
+  version = "3.3.8"
 
 [[constraint]]
   name = "github.com/coreos/pkg"
@@ -16,7 +16,7 @@
 
 [[constraint]]
   name = "github.com/golang/protobuf"
-  version = "~1.0.0"
+  version = "~1.1.0"
 
 [[constraint]]
   name = "github.com/gorilla/handlers"
@@ -84,7 +84,7 @@
 
 [[constraint]]
   name = "google.golang.org/grpc"
-  version = "^1.0.4"
+  version = "^1.13.0"
 
 [[constraint]]
   name = "github.com/asaskevich/govalidator"
