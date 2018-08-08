@@ -18,39 +18,38 @@ func contains(s string, list []string) bool {
 }
 
 func validateOptions(v *volume.Volinfo, key string, value string) error {
-	var err error
 	switch key {
 	case "scrub-throttle":
 		acceptedThrottleValues := []string{"lazy", "normal", "aggressive"}
 		if contains(value, acceptedThrottleValues) {
 			return nil
 		}
-		err = fmt.Errorf("Invalid value specified for option '%s'. Possible values: {%s}",
+		return fmt.Errorf(
+			"invalid value specified for option '%s'. Possible values: {%s}",
 			key, strings.Join(acceptedThrottleValues, ", "))
-		return err
 	case "scrub-freq":
 		acceptedFrequencyValues := []string{"hourly", "daily", "weekly", "biweekly", "monthly"}
 		if contains(value, acceptedFrequencyValues) {
 			return nil
 		}
-		err = fmt.Errorf("Invalid value specified for option '%s'. Possible values: {%s}",
+		return fmt.Errorf(
+			"Invalid value specified for option '%s'. Possible values: {%s}",
 			key, strings.Join(acceptedFrequencyValues, ", "))
-		return err
 	case "scrub-state":
 		acceptedScrubStateValues := []string{"pause", "resume"}
 		if contains(value, acceptedScrubStateValues) {
 			return nil
 		}
-		err = fmt.Errorf("Invalid value specified for option '%s'. Possible values: {%s}",
+		return fmt.Errorf(
+			"invalid value specified for option '%s'. possible values: {%s}",
 			key, strings.Join(acceptedScrubStateValues, ", "))
-		return err
+
 	}
 	return nil
 }
 
 func isBitrotEnabled(v *volume.Volinfo) bool {
-	val, exists := v.Options[keyFeaturesBitrot]
-	if exists && val == "on" {
+	if v, ok := v.Options[keyFeaturesBitrot]; ok && v == "on" {
 		return true
 	}
 	return false
