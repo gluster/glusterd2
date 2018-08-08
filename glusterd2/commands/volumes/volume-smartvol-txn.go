@@ -14,10 +14,7 @@ import (
 func txnPrepareBricks(c transaction.TxnCtx) error {
 	var req api.VolCreateReq
 	if err := c.Get("req", &req); err != nil {
-		c.Logger().WithFields(log.Fields{
-			"error": err,
-			"key":   "req",
-		}).Error("failed to get key from store")
+		c.Logger().WithError(err).WithField("key", "req").Error("failed to get key from store")
 		return err
 	}
 
@@ -30,18 +27,14 @@ func txnPrepareBricks(c transaction.TxnCtx) error {
 			// Create Mount directory
 			err := os.MkdirAll(b.Mountdir, os.ModeDir|os.ModePerm)
 			if err != nil {
-				c.Logger().WithFields(log.Fields{
-					"error": err,
-					"path":  b.Mountdir,
-				}).Error("failed to create brick mount directory")
+				c.Logger().WithError(err).WithField("path", b.Mountdir).Error("failed to create brick mount directory")
 				return err
 			}
 
 			// Thin Pool Creation
 			err = deviceutils.CreateTP(b.VgName, b.TpName, b.TpSize, b.TpMetadataSize)
 			if err != nil {
-				c.Logger().WithFields(log.Fields{
-					"error":        err,
+				c.Logger().WithError(err).WithFields(log.Fields{
 					"vg-name":      b.VgName,
 					"tp-name":      b.TpName,
 					"tp-size":      b.TpSize,
@@ -53,8 +46,7 @@ func txnPrepareBricks(c transaction.TxnCtx) error {
 			// LV Creation
 			err = deviceutils.CreateLV(b.VgName, b.TpName, b.LvName, b.Size)
 			if err != nil {
-				c.Logger().WithFields(log.Fields{
-					"error":   err,
+				c.Logger().WithError(err).WithFields(log.Fields{
 					"vg-name": b.VgName,
 					"tp-name": b.TpName,
 					"lv-name": b.LvName,
@@ -73,10 +65,9 @@ func txnPrepareBricks(c transaction.TxnCtx) error {
 			// Mount the Created FS
 			err = deviceutils.BrickMount(b.DevicePath, b.Mountdir)
 			if err != nil {
-				c.Logger().WithFields(log.Fields{
-					"error": err,
-					"dev":   b.DevicePath,
-					"path":  b.Mountdir,
+				c.Logger().WithError(err).WithFields(log.Fields{
+					"dev":  b.DevicePath,
+					"path": b.Mountdir,
 				}).Error("brick mount failed")
 				return err
 			}
@@ -84,10 +75,8 @@ func txnPrepareBricks(c transaction.TxnCtx) error {
 			// Create a directory in Brick Mount
 			err = os.MkdirAll(b.Path, os.ModeDir|os.ModePerm)
 			if err != nil {
-				c.Logger().WithFields(log.Fields{
-					"error": err,
-					"path":  b.Path,
-				}).Error("failed to create brick directory in mount")
+				c.Logger().WithError(err).WithField(
+					"path", b.Path).Error("failed to create brick directory in mount")
 				return err
 			}
 
@@ -102,10 +91,7 @@ func txnPrepareBricks(c transaction.TxnCtx) error {
 func txnUndoPrepareBricks(c transaction.TxnCtx) error {
 	var req api.VolCreateReq
 	if err := c.Get("req", &req); err != nil {
-		c.Logger().WithFields(log.Fields{
-			"error": err,
-			"key":   "req",
-		}).Error("failed to get key from store")
+		c.Logger().WithError(err).WithField("key", "req").Error("failed to get key from store")
 		return err
 	}
 
@@ -119,17 +105,13 @@ func txnUndoPrepareBricks(c transaction.TxnCtx) error {
 			// UnMount the Brick
 			err := deviceutils.BrickUnmount(b.Mountdir)
 			if err != nil {
-				c.Logger().WithFields(log.Fields{
-					"error": err,
-					"path":  b.Mountdir,
-				}).Error("brick unmount failed")
+				c.Logger().WithError(err).WithField("path", b.Mountdir).Error("brick unmount failed")
 			}
 
 			// Remove LV
 			err = deviceutils.RemoveLV(b.VgName, b.LvName)
 			if err != nil {
-				c.Logger().WithFields(log.Fields{
-					"error":   err,
+				c.Logger().WithError(err).WithFields(log.Fields{
 					"vg-name": b.VgName,
 					"lv-name": b.LvName,
 				}).Error("lv remove failed")
@@ -138,8 +120,7 @@ func txnUndoPrepareBricks(c transaction.TxnCtx) error {
 			// Remove Thin Pool
 			err = deviceutils.RemoveLV(b.VgName, b.TpName)
 			if err != nil {
-				c.Logger().WithFields(log.Fields{
-					"error":   err,
+				c.Logger().WithError(err).WithFields(log.Fields{
 					"vg-name": b.VgName,
 					"tp-name": b.TpName,
 				}).Error("thinpool remove failed")

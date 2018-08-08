@@ -56,10 +56,7 @@ var bitrotEnableCmd = &cobra.Command{
 		err := client.BitrotEnable(volname)
 		if err != nil {
 			if GlobalFlag.Verbose {
-				log.WithFields(log.Fields{
-					"volume": volname,
-					"error":  err.Error(),
-				}).Error("failed to enable bitrot")
+				log.WithError(err).WithField("volume", volname).Error("failed to enable bitrot")
 			}
 			failure(fmt.Sprintf("Failed to enable bitrot for volume %s\n", volname), err, 1)
 		}
@@ -77,10 +74,7 @@ var bitrotDisableCmd = &cobra.Command{
 		err := client.BitrotDisable(volname)
 		if err != nil {
 			if GlobalFlag.Verbose {
-				log.WithFields(log.Fields{
-					"volume": volname,
-					"error":  err.Error(),
-				}).Error("failed to disable bitrot")
+				log.WithError(err).WithField("volume", volname).Error("failed to disable bitrot")
 			}
 			failure(fmt.Sprintf("Failed to disable bitrot for volume %s\n", volname), err, 1)
 		}
@@ -103,10 +97,9 @@ var bitrotScrubThrottleCmd = &cobra.Command{
 		err := volumeOptionJSONHandler(cmd, volname, option)
 		if err != nil {
 			if GlobalFlag.Verbose {
-				log.WithFields(log.Fields{
+				log.WithError(err).WithFields(log.Fields{
 					"volume": volname,
 					"value":  args[1],
-					"error":  err.Error(),
 				}).Error("failed to set scrub-throttle")
 			}
 			failure(fmt.Sprintf("Failed to set bitrot scrub throttle to %s for volume %s", args[1], volname), err, 1)
@@ -130,10 +123,9 @@ var bitrotScrubFrequencyCmd = &cobra.Command{
 		err := volumeOptionJSONHandler(cmd, volname, option)
 		if err != nil {
 			if GlobalFlag.Verbose {
-				log.WithFields(log.Fields{
+				log.WithError(err).WithFields(log.Fields{
 					"volume": volname,
 					"value":  args[1],
-					"error":  err.Error(),
 				}).Error("failed to set scrub-frequency")
 			}
 			failure(fmt.Sprintf("Failed to set bitrot scrub frequency to %s for volume %s", args[1], volname), err, 1)
@@ -160,10 +152,9 @@ var bitrotScrubCmd = &cobra.Command{
 			err := volumeOptionJSONHandler(cmd, volname, option)
 			if err != nil {
 				if GlobalFlag.Verbose {
-					log.WithFields(log.Fields{
+					log.WithError(err).WithFields(log.Fields{
 						"volume": volname,
 						"value":  args[1],
-						"error":  err.Error(),
 					}).Error("Bitrot scrub", scrubCmd, "command failed")
 				}
 				failure(fmt.Sprintf("Failed to %s bitrot scrub for volume %s", args[1], volname), err, 1)
@@ -174,10 +165,8 @@ var bitrotScrubCmd = &cobra.Command{
 			scrubStatus, err := client.BitrotScrubStatus(volname)
 			if err != nil {
 				if GlobalFlag.Verbose {
-					log.WithFields(log.Fields{
-						"volume": volname,
-						"error":  err.Error(),
-					}).Error("failed to get bitrot scrub status")
+					log.WithError(err).WithField(
+						"volume", volname).Error("failed to get bitrot scrub status")
 				}
 				failure(fmt.Sprintf("Failed to get bitrot scrub status for volume %s\n", volname), err, 1)
 			}
@@ -221,10 +210,8 @@ var bitrotScrubCmd = &cobra.Command{
 			err := client.BitrotScrubOndemand(volname)
 			if err != nil {
 				if GlobalFlag.Verbose {
-					log.WithFields(log.Fields{
-						"volume": volname,
-						"error":  err.Error(),
-					}).Error("failed to start bitrot scrub on demand")
+					log.WithError(err).WithField(
+						"volume", volname).Error("failed to start bitrot scrub on demand")
 				}
 				failure(fmt.Sprintf("Failed to start bitrot scrub on demand for volume %s\n", volname), err, 1)
 			}

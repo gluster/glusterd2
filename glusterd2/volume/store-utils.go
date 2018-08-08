@@ -90,10 +90,7 @@ func GetVolumesList() (map[string]uuid.UUID, error) {
 		var vol Volinfo
 
 		if err := json.Unmarshal(kv.Value, &vol); err != nil {
-			log.WithFields(log.Fields{
-				"volume": string(kv.Key),
-				"error":  err,
-			}).Error("Failed to unmarshal volume")
+			log.WithError(err).WithField("volume", string(kv.Key)).Error("Failed to unmarshal volume")
 			continue
 		}
 
@@ -138,10 +135,7 @@ func GetVolumes(filterParams ...map[string]string) ([]*Volinfo, error) {
 		var vol Volinfo
 
 		if err := json.Unmarshal(kv.Value, &vol); err != nil {
-			log.WithFields(log.Fields{
-				"volume": string(kv.Key),
-				"error":  err,
-			}).Error("Failed to unmarshal volume")
+			log.WithError(err).WithField("volume", string(kv.Key)).Error("Failed to unmarshal volume")
 			continue
 		}
 		switch filterType {

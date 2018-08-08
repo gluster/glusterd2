@@ -33,10 +33,9 @@ var deviceAddCmd = &cobra.Command{
 
 		if err != nil {
 			if GlobalFlag.Verbose {
-				log.WithFields(log.Fields{
+				log.WithError(err).WithFields(log.Fields{
 					"device": devname,
 					"peerid": peerid,
-					"error":  err.Error(),
 				}).Error("device add failed")
 			}
 			failure("Device add failed", err, 1)

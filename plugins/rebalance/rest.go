@@ -118,20 +118,15 @@ func rebalanceStartHandler(w http.ResponseWriter, r *http.Request) {
 		 * rebalance process is one per node per volume.
 		 * Need to handle scenarios where process is started in
 		 * few nodes and failed in few others */
-		logger.WithFields(log.Fields{
-			"error":   err.Error(),
-			"volname": volname,
-		}).Error("failed to start rebalance on volume")
+		logger.WithError(err).WithField("volname", volname).Error("failed to start rebalance on volume")
 		restutils.SendHTTPError(ctx, w, http.StatusInternalServerError, err)
 		return
 	}
 
 	rebalinfo, err = GetRebalanceInfo(volname)
 	if err != nil {
-		logger.WithFields(log.Fields{
-			"error":   err.Error(),
-			"volname": volname,
-		}).Error("failed to get the rebalance info for volume")
+		logger.WithError(err).WithField(
+			"volname", volname).Error("failed to get the rebalance info for volume")
 	}
 
 	logger.WithField("volname", rebalinfo.Volname).Info("rebalance started")
@@ -206,10 +201,7 @@ func rebalanceStopHandler(w http.ResponseWriter, r *http.Request) {
 
 	err = txn.Do()
 	if err != nil {
-		logger.WithFields(log.Fields{
-			"error":   err.Error(),
-			"volname": volname,
-		}).Error("failed to stop rebalance on volume")
+		logger.WithError(err).WithField("volname", volname).Error("failed to stop rebalance on volume")
 		restutils.SendHTTPError(r.Context(), w, http.StatusInternalServerError, err.Error())
 		return
 	}
@@ -275,16 +267,13 @@ func rebalanceStatusHandler(w http.ResponseWriter, r *http.Request) {
 
 	err = txn.Do()
 	if err != nil {
-		logger.WithFields(log.Fields{
-			"error":   err.Error(),
-			"volname": volname,
-		}).Error("failed to query rebalance status for volume")
+		logger.WithError(err).WithField("volname", volname).Error("failed to query rebalance status for volume")
 	}
 
 	response, err := createRebalanceStatusResp(txn.Ctx, vol)
 	if err != nil {
 		errMsg := "Failed to create rebalance status response"
-		logger.WithField("error", err.Error()).Error("rebalanceStatusHandler:" + errMsg)
+		logger.WithError(err).Error("rebalanceStatusHandler:" + errMsg)
 		restutils.SendHTTPError(ctx, w, http.StatusInternalServerError,
 			errMsg)
 		return

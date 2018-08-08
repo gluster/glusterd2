@@ -140,8 +140,7 @@ func undoStartBricksOnExpand(c transaction.TxnCtx) error {
 		}).Info("volume expand failed, stopping brick")
 
 		if err := b.StopBrick(c.Logger()); err != nil {
-			c.Logger().WithFields(log.Fields{
-				"error":  err,
+			c.Logger().WithError(err).WithFields(log.Fields{
 				"volume": b.VolumeName,
 				"brick":  b.String(),
 			}).Debug("stopping brick failed")

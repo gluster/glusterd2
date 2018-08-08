@@ -37,7 +37,7 @@ func (s *Server) Serve() {
 
 	l, e := net.Listen("tcp", listenAddr)
 	if e != nil {
-		log.WithField("error", e).Error("net.Listen() error")
+		log.WithError(e).Error("net.Listen() error")
 		return
 	}
 	log.WithField("ip:port", listenAddr).Info("Registered RPC Listener")

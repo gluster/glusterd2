@@ -29,10 +29,7 @@ func snapshotDeactivateCmdRun(cmd *cobra.Command, args []string) {
 	err := client.SnapshotDeactivate(snapname)
 	if err != nil {
 		if GlobalFlag.Verbose {
-			log.WithFields(log.Fields{
-				"snapshot": snapname,
-				"error":    err.Error(),
-			}).Error("snapshot deactivation failed")
+			log.WithError(err).WithField("snapshot", snapname).Error("snapshot deactivation failed")
 		}
 		failure("snapshot deactivation failed", err, 1)
 	}

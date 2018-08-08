@@ -73,9 +73,7 @@ func snapshotStatusCmdRun(cmd *cobra.Command, args []string) {
 	err := snapshotStatusHandler(cmd)
 	if err != nil {
 		if GlobalFlag.Verbose {
-			log.WithFields(log.Fields{
-				"error": err.Error(),
-			}).Error("error getting snapshot status")
+			log.WithError(err).Error("error getting snapshot status")
 		}
 		failure("Error getting Snapshot status", err, 1)
 	}

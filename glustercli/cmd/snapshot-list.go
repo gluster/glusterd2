@@ -64,9 +64,7 @@ func snapshotListCmdRun(cmd *cobra.Command, args []string) {
 	err := snapshotListHandler(cmd)
 	if err != nil {
 		if GlobalFlag.Verbose {
-			log.WithFields(log.Fields{
-				"error": err.Error(),
-			}).Error("error getting snapshot list")
+			log.WithError(err).Error("error getting snapshot list")
 		}
 		failure("Error getting Snapshot list", err, 1)
 	}

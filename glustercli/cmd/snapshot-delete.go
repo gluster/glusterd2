@@ -32,10 +32,8 @@ func snapshotDeleteCmdRun(cmd *cobra.Command, args []string) {
 	err := client.SnapshotDelete(snapname)
 	if err != nil {
 		if GlobalFlag.Verbose {
-			log.WithFields(log.Fields{
-				"snapshot": snapname,
-				"error":    err.Error(),
-			}).Error("snapshot delete failed")
+			log.WithError(err).WithField(
+				"snapshot", snapname).Error("snapshot delete failed")
 		}
 		failure("Snapshot delete failed", err, 1)
 	}

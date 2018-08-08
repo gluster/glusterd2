@@ -115,10 +115,8 @@ func smartVolumeCreate(cmd *cobra.Command, args []string) {
 	vol, err := client.VolumeCreate(req)
 	if err != nil {
 		if GlobalFlag.Verbose {
-			log.WithFields(log.Fields{
-				"volume": flagCreateVolumeName,
-				"error":  err.Error(),
-			}).Error("volume creation failed")
+			log.WithError(err).WithField(
+				"volume", flagCreateVolumeName).Error("volume creation failed")
 		}
 		failure("Volume creation failed", err, 1)
 	}
@@ -153,10 +151,8 @@ func volumeCreateCmdRun(cmd *cobra.Command, args []string) {
 	bricks, err := bricksAsUUID(brickArgs)
 	if err != nil {
 		if GlobalFlag.Verbose {
-			log.WithFields(log.Fields{
-				"error":  err.Error(),
-				"volume": volname,
-			}).Error("error getting brick UUIDs")
+			log.WithError(err).WithField(
+				"volume", volname).Error("error getting brick UUIDs")
 		}
 		failure("Error getting brick UUIDs", err, 1)
 	}
@@ -297,10 +293,7 @@ func volumeCreateCmdRun(cmd *cobra.Command, args []string) {
 	vol, err := client.VolumeCreate(req)
 	if err != nil {
 		if GlobalFlag.Verbose {
-			log.WithFields(log.Fields{
-				"volume": volname,
-				"error":  err.Error(),
-			}).Error("volume creation failed")
+			log.WithError(err).WithField("volume", volname).Error("volume creation failed")
 		}
 		failure("Volume creation failed", err, 1)
 	}

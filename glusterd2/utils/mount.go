@@ -43,8 +43,7 @@ func MountLocalBricks() error {
 
 				err := utils.ExecuteCommandRun("mount", "-o", b.MountInfo.MntOpts, b.MountInfo.DevicePath, b.MountInfo.Mountdir)
 				if err != nil {
-					log.WithFields(log.Fields{
-						"error":  err,
+					log.WithError(err).WithFields(log.Fields{
 						"volume": v.Name,
 						"dev":    b.MountInfo.DevicePath,
 						"path":   b.MountInfo.Mountdir,

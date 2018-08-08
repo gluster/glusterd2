@@ -244,7 +244,7 @@ func createCloneVolinfo(c transaction.TxnCtx) error {
 
 	err = createSnapSubvols(newVol, volinfo, nodeData)
 	if err != nil {
-		log.WithFields(log.Fields{
+		log.WithError(err).WithFields(log.Fields{
 			"snapshot":    snapname,
 			"volume name": clonename,
 		}).Error("Failed to create clone volinfo")
