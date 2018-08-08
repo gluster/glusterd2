@@ -106,10 +106,10 @@ func handleEvents(in <-chan *api.Event, h Handler) {
 	for e := range in {
 		if interested(e, events) {
 			wg.Add(1)
-			go func() {
+			go func(e *api.Event) {
 				h.Handle(e)
 				wg.Done()
-			}()
+			}(e)
 		}
 	}
 

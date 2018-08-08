@@ -167,7 +167,7 @@ func snapshotActivateHandler(w http.ResponseWriter, r *http.Request) {
 	var req api.SnapActivateReq
 	vol = &snapinfo.SnapVolinfo
 	if err := restutils.UnmarshalRequest(r, &req); err != nil {
-		restutils.SendHTTPError(ctx, w, http.StatusUnprocessableEntity, err)
+		restutils.SendHTTPError(ctx, w, http.StatusBadRequest, err)
 		return
 	}
 
