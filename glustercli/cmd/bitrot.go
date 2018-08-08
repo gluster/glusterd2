@@ -40,8 +40,6 @@ func init() {
 	// Bitrot scrub command
 	bitrotCmd.AddCommand(bitrotScrubCmd)
 
-	RootCmd.AddCommand(bitrotCmd)
-
 }
 
 var bitrotCmd = &cobra.Command{
@@ -57,7 +55,7 @@ var bitrotEnableCmd = &cobra.Command{
 		volname := args[0]
 		err := client.BitrotEnable(volname)
 		if err != nil {
-			if verbose {
+			if GlobalFlag.Verbose {
 				log.WithFields(log.Fields{
 					"volume": volname,
 					"error":  err.Error(),
@@ -78,7 +76,7 @@ var bitrotDisableCmd = &cobra.Command{
 
 		err := client.BitrotDisable(volname)
 		if err != nil {
-			if verbose {
+			if GlobalFlag.Verbose {
 				log.WithFields(log.Fields{
 					"volume": volname,
 					"error":  err.Error(),
@@ -104,7 +102,7 @@ var bitrotScrubThrottleCmd = &cobra.Command{
 		flagSetAdv = true
 		err := volumeOptionJSONHandler(cmd, volname, option)
 		if err != nil {
-			if verbose {
+			if GlobalFlag.Verbose {
 				log.WithFields(log.Fields{
 					"volume": volname,
 					"value":  args[1],
@@ -131,7 +129,7 @@ var bitrotScrubFrequencyCmd = &cobra.Command{
 		flagSetAdv = true
 		err := volumeOptionJSONHandler(cmd, volname, option)
 		if err != nil {
-			if verbose {
+			if GlobalFlag.Verbose {
 				log.WithFields(log.Fields{
 					"volume": volname,
 					"value":  args[1],
@@ -161,7 +159,7 @@ var bitrotScrubCmd = &cobra.Command{
 			flagSetAdv = true
 			err := volumeOptionJSONHandler(cmd, volname, option)
 			if err != nil {
-				if verbose {
+				if GlobalFlag.Verbose {
 					log.WithFields(log.Fields{
 						"volume": volname,
 						"value":  args[1],
@@ -175,7 +173,7 @@ var bitrotScrubCmd = &cobra.Command{
 		case scrubStatus:
 			scrubStatus, err := client.BitrotScrubStatus(volname)
 			if err != nil {
-				if verbose {
+				if GlobalFlag.Verbose {
 					log.WithFields(log.Fields{
 						"volume": volname,
 						"error":  err.Error(),
@@ -222,7 +220,7 @@ var bitrotScrubCmd = &cobra.Command{
 		case scrubOndemand:
 			err := client.BitrotScrubOndemand(volname)
 			if err != nil {
-				if verbose {
+				if GlobalFlag.Verbose {
 					log.WithFields(log.Fields{
 						"volume": volname,
 						"error":  err.Error(),

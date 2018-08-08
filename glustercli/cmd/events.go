@@ -30,8 +30,6 @@ func init() {
 	eventsCmd.AddCommand(eventsWebhookDeleteCmd)
 
 	eventsCmd.AddCommand(eventsWebhookListCmd)
-
-	RootCmd.AddCommand(eventsCmd)
 }
 
 var eventsCmd = &cobra.Command{
@@ -47,7 +45,7 @@ var eventsWebhookAddCmd = &cobra.Command{
 		url := args[0]
 		err := client.WebhookAdd(url, flagWebhookAddCmdToken, flagWebhookAddCmdSecret)
 		if err != nil {
-			if verbose {
+			if GlobalFlag.Verbose {
 				log.WithFields(log.Fields{
 					"url":   url,
 					"error": err.Error(),
@@ -67,7 +65,7 @@ var eventsWebhookDeleteCmd = &cobra.Command{
 		url := args[0]
 		err := client.WebhookDelete(url)
 		if err != nil {
-			if verbose {
+			if GlobalFlag.Verbose {
 				log.WithFields(log.Fields{
 					"url":   url,
 					"error": err.Error(),
@@ -86,7 +84,7 @@ var eventsWebhookListCmd = &cobra.Command{
 	Run: func(cmd *cobra.Command, args []string) {
 		webhooks, err := client.Webhooks()
 		if err != nil {
-			if verbose {
+			if GlobalFlag.Verbose {
 				log.WithFields(log.Fields{
 					"error": err.Error(),
 				}).Error("failed to get list of Webhooks")

@@ -39,8 +39,6 @@ func init() {
 	peerListCmd.Flags().StringVar(&flagCmdFilterKey, "key", "", "Filter by metadata key")
 	peerListCmd.Flags().StringVar(&flagCmdFilterValue, "value", "", "Filter by metadata value")
 	peerCmd.AddCommand(peerListCmd)
-
-	RootCmd.AddCommand(peerCmd)
 }
 
 var peerCmd = &cobra.Command{
@@ -59,7 +57,7 @@ var peerAddCmd = &cobra.Command{
 		}
 		peer, err := client.PeerAdd(peerAddReq)
 		if err != nil {
-			if verbose {
+			if GlobalFlag.Verbose {
 				log.WithFields(log.Fields{
 					"host":  hostname,
 					"error": err.Error(),
@@ -89,7 +87,7 @@ var peerRemoveCmd = &cobra.Command{
 			err = client.PeerRemove(peerID)
 		}
 		if err != nil {
-			if verbose {
+			if GlobalFlag.Verbose {
 				log.WithFields(log.Fields{
 					"peerID": peerID,
 					"error":  err.Error(),
@@ -116,7 +114,7 @@ func peerStatusHandler(cmd *cobra.Command) {
 		})
 	}
 	if err != nil {
-		if verbose {
+		if GlobalFlag.Verbose {
 			log.WithFields(log.Fields{
 				"error": err.Error(),
 			}).Error("peer status failed")

@@ -28,7 +28,7 @@ func snapshotDeactivateCmdRun(cmd *cobra.Command, args []string) {
 	snapname := cmd.Flags().Args()[0]
 	err := client.SnapshotDeactivate(snapname)
 	if err != nil {
-		if verbose {
+		if GlobalFlag.Verbose {
 			log.WithFields(log.Fields{
 				"snapshot": snapname,
 				"error":    err.Error(),
