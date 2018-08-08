@@ -9,7 +9,7 @@ Glusterd2 is written in Go and if you are new to the language, it is **highly** 
 
 ### Workspace and repository setup
 
-1. [Download](https://golang.org/dl/) Go (>=1.8) and [install](https://golang.org/doc/install) it on your system.
+1. [Download](https://golang.org/dl/) Go (>=1.9) and [install](https://golang.org/doc/install) it on your system.
 1. Setup the [GOPATH](http://www.g33knotes.org/2014/07/60-second-count-down-to-go.html) environment.
 1. Run `$ go get -d github.com/gluster/glusterd2`  
    This will just download the source and not build it. The downloaded source will be at `$GOPATH/src/github.com/gluster/glusterd2`
