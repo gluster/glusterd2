@@ -43,10 +43,18 @@ func deletePeerHandler(w http.ResponseWriter, r *http.Request) {
 		restutils.SendHTTPError(ctx, w, status, err)
 		return
 	}
+
 	// You cannot remove yourself
 	if id == gdctx.MyUUID.String() {
 		logger.Debug("request denied, received request to delete self from cluster")
 		restutils.SendHTTPError(ctx, w, http.StatusBadRequest, "removing self is disallowed.")
+		return
+	}
+
+	//Check if peer liveness key is present in store
+	if _, alive := store.Store.IsNodeAlive(id); !alive {
+		logger.Error("can not delete peer, peer is not alive")
+		restutils.SendHTTPError(ctx, w, http.StatusInternalServerError, "peer is not alive")
 		return
 	}
 
@@ -58,13 +66,6 @@ func deletePeerHandler(w http.ResponseWriter, r *http.Request) {
 	} else if exists {
 		logger.Debug("request denied, peer has bricks")
 		restutils.SendHTTPError(ctx, w, http.StatusForbidden, "cannot delete peer, peer has bricks")
-		return
-	}
-
-	// Remove the peer details from the store
-	if err := peer.DeletePeer(id); err != nil {
-		logger.WithError(err).WithField("peer", id).Error("failed to remove peer from the store")
-		restutils.SendHTTPError(ctx, w, http.StatusInternalServerError, err)
 		return
 	}
 
@@ -101,6 +102,13 @@ func deletePeerHandler(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 	logger.Debug("peer left cluster")
+
+	// Remove the peer details from the store
+	if err := peer.DeletePeer(id); err != nil {
+		logger.WithError(err).WithField("peer", id).Error("failed to remove peer from the store")
+		restutils.SendHTTPError(ctx, w, http.StatusInternalServerError, err)
+		return
+	}
 
 	restutils.SendHTTPResponse(ctx, w, http.StatusNoContent, nil)
 

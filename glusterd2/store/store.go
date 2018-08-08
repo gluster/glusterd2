@@ -4,6 +4,7 @@ package store
 import (
 	"context"
 	"errors"
+	"expvar"
 	"fmt"
 	"os"
 	"sync"
@@ -24,6 +25,8 @@ const (
 	putTimeout    = 5
 	deleteTimeout = 5
 )
+
+var storeCounters = expvar.NewMap("store")
 
 var (
 	// Store is the default GDStore that must to be used by the packages in GD2
@@ -191,6 +194,7 @@ func Get(ctx context.Context, key string, opts ...clientv3.OpOption) (*clientv3.
 		defer cancel()
 	}
 
+	defer storeCounters.Add("get", 1)
 	return Store.Get(ctx, key, opts...)
 }
 
@@ -202,6 +206,8 @@ func Put(ctx context.Context, key, val string, opts ...clientv3.OpOption) (*clie
 		ctx, cancel = context.WithTimeout(context.Background(), putTimeout*time.Second)
 		defer cancel()
 	}
+
+	defer storeCounters.Add("put", 1)
 	return Store.Put(ctx, key, val, opts...)
 }
 
@@ -213,5 +219,15 @@ func Delete(ctx context.Context, key string, opts ...clientv3.OpOption) (*client
 		ctx, cancel = context.WithTimeout(context.Background(), deleteTimeout*time.Second)
 		defer cancel()
 	}
+
+	defer storeCounters.Add("delete", 1)
 	return Store.Delete(ctx, key, opts...)
+}
+
+// Txn is a wrapper function that calls clientv3.KV.Txn which creates a transaction
+func Txn(ctx context.Context) clientv3.Txn {
+	// can't cancel() here as caller will have to eventually call
+	// clientv3.Txn.Commit()
+	defer storeCounters.Add("txn", 1)
+	return Store.Txn(ctx)
 }

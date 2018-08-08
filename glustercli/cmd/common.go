@@ -56,9 +56,14 @@ func failure(msg string, err error, errcode int) {
 
 	w.WriteString(msg + "\n")
 
-	if err != nil {
-		resp := client.LastErrorResponse()
+	resp := client.LastErrorResponse()
 
+	if resp == nil && err != nil {
+		fmt.Fprintln(w, err)
+		os.Exit(errcode)
+	}
+
+	if err != nil {
 		w.WriteString("\nResponse headers:\n")
 		for k, v := range resp.Header {
 			if strings.HasSuffix(k, "-Id") {

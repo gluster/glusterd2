@@ -12,20 +12,18 @@ import (
 	"github.com/gluster/glusterd2/pkg/errors"
 	bitrotapi "github.com/gluster/glusterd2/plugins/bitrot/api"
 	"github.com/gorilla/mux"
-	log "github.com/sirupsen/logrus"
 
 	"github.com/pborman/uuid"
 )
 
 func bitrotEnableHandler(w http.ResponseWriter, r *http.Request) {
 	// Collect inputs from URL
-	p := mux.Vars(r)
-	volName := p["volname"]
+	volname := mux.Vars(r)["volname"]
 
 	ctx := r.Context()
 	logger := gdctx.GetReqLogger(ctx)
 
-	txn, err := transaction.NewTxnWithLocks(ctx, volName)
+	txn, err := transaction.NewTxnWithLocks(ctx, volname)
 	if err != nil {
 		status, err := restutils.ErrToStatusCode(err)
 		restutils.SendHTTPError(ctx, w, status, err)
@@ -34,7 +32,7 @@ func bitrotEnableHandler(w http.ResponseWriter, r *http.Request) {
 	defer txn.Done()
 
 	// Validate volume existence
-	volinfo, err := volume.GetVolume(volName)
+	volinfo, err := volume.GetVolume(volname)
 	if err != nil {
 		status, err := restutils.ErrToStatusCode(err)
 		restutils.SendHTTPError(ctx, w, status, err)
@@ -54,7 +52,6 @@ func bitrotEnableHandler(w http.ResponseWriter, r *http.Request) {
 	}
 	//save volume information for transaction failure scenario
 	if err := txn.Ctx.Set("oldvolinfo", volinfo); err != nil {
-		logger.WithError(err).Error("failed to set oldvolinfo in transaction context")
 		restutils.SendHTTPError(ctx, w, http.StatusInternalServerError, err)
 		return
 	}
@@ -66,7 +63,6 @@ func bitrotEnableHandler(w http.ResponseWriter, r *http.Request) {
 	volinfo.Options[keyFeaturesScrub] = "true"
 
 	if err := txn.Ctx.Set("volinfo", volinfo); err != nil {
-		logger.WithError(err).Error("failed to set volinfo in transaction context")
 		restutils.SendHTTPError(ctx, w, http.StatusInternalServerError, err)
 		return
 	}
@@ -89,31 +85,27 @@ func bitrotEnableHandler(w http.ResponseWriter, r *http.Request) {
 		},
 	}
 
-	err = txn.Do()
-	if err != nil {
+	if err = txn.Do(); err != nil {
 		/* TODO: Need to handle failure case. Unlike other daemons,
 		 * bitrot daemon is one per node and depends on volfile change.
 		 * Need to handle scenarios where bitrot enable is succeeded in
 		 * few nodes and failed in few others */
-		logger.WithFields(log.Fields{
-			"error":   err.Error(),
-			"volname": volName,
-		}).Error("failed to enable bitrot")
+		logger.WithError(err).WithField("volname",
+			volinfo.Name).Error("failed to enable bitrot")
 		restutils.SendHTTPError(ctx, w, http.StatusInternalServerError, err)
 		return
 	}
-	restutils.SendHTTPResponse(ctx, w, http.StatusOK, "Bitrot enabled successfully")
+	restutils.SendHTTPResponse(ctx, w, http.StatusOK, nil)
 }
 
 func bitrotDisableHandler(w http.ResponseWriter, r *http.Request) {
 	// Collect inputs from URL
-	p := mux.Vars(r)
-	volName := p["volname"]
+	volname := mux.Vars(r)["volname"]
 
 	ctx := r.Context()
 	logger := gdctx.GetReqLogger(ctx)
 
-	txn, err := transaction.NewTxnWithLocks(ctx, volName)
+	txn, err := transaction.NewTxnWithLocks(ctx, volname)
 	if err != nil {
 		status, err := restutils.ErrToStatusCode(err)
 		restutils.SendHTTPError(ctx, w, status, err)
@@ -122,7 +114,7 @@ func bitrotDisableHandler(w http.ResponseWriter, r *http.Request) {
 	defer txn.Done()
 
 	// Validate volume existence
-	volinfo, err := volume.GetVolume(volName)
+	volinfo, err := volume.GetVolume(volname)
 	if err != nil {
 		status, err := restutils.ErrToStatusCode(err)
 		restutils.SendHTTPError(ctx, w, status, err)
@@ -141,7 +133,6 @@ func bitrotDisableHandler(w http.ResponseWriter, r *http.Request) {
 	volinfo.Options[keyFeaturesScrub] = "false"
 
 	if err := txn.Ctx.Set("volinfo", volinfo); err != nil {
-		logger.WithError(err).Error("failed to set volinfo in transaction context")
 		restutils.SendHTTPError(ctx, w, http.StatusInternalServerError, err)
 		return
 	}
@@ -163,29 +154,24 @@ func bitrotDisableHandler(w http.ResponseWriter, r *http.Request) {
 		},
 	}
 
-	err = txn.Do()
-	if err != nil {
+	if err = txn.Do(); err != nil {
 		// TODO: Handle rollback
-		logger.WithFields(log.Fields{
-			"error":   err.Error(),
-			"volname": volName,
-		}).Error("failed to disable bitrot")
+		logger.WithError(err).WithField("volname",
+			volinfo.Name).Error("failed to disable bitrot")
 		restutils.SendHTTPError(ctx, w, http.StatusInternalServerError, err)
 		return
 	}
-
-	restutils.SendHTTPResponse(ctx, w, http.StatusOK, "Bitrot disabled successfully")
+	restutils.SendHTTPResponse(ctx, w, http.StatusOK, nil)
 }
 
 func bitrotScrubOndemandHandler(w http.ResponseWriter, r *http.Request) {
 	// Collect inputs from URL
-	p := mux.Vars(r)
-	volName := p["volname"]
+	volname := mux.Vars(r)["volname"]
 
 	ctx := r.Context()
 	logger := gdctx.GetReqLogger(ctx)
 
-	txn, err := transaction.NewTxnWithLocks(ctx, volName)
+	txn, err := transaction.NewTxnWithLocks(ctx, volname)
 	if err != nil {
 		status, err := restutils.ErrToStatusCode(err)
 		restutils.SendHTTPError(ctx, w, status, err)
@@ -194,7 +180,7 @@ func bitrotScrubOndemandHandler(w http.ResponseWriter, r *http.Request) {
 	defer txn.Done()
 
 	// Validate volume existence
-	volinfo, err := volume.GetVolume(volName)
+	volinfo, err := volume.GetVolume(volname)
 	if err != nil {
 		status, err := restutils.ErrToStatusCode(err)
 		restutils.SendHTTPError(ctx, w, status, err)
@@ -220,29 +206,28 @@ func bitrotScrubOndemandHandler(w http.ResponseWriter, r *http.Request) {
 			Nodes:  txn.Nodes,
 		},
 	}
-	txn.Ctx.Set("volname", volName)
-
-	err = txn.Do()
-	if err != nil {
-		logger.WithFields(log.Fields{
-			"error":   err.Error(),
-			"volname": volName,
-		}).Error("failed to start scrubber")
+	if err = txn.Ctx.Set("volname", volname); err != nil {
 		restutils.SendHTTPError(ctx, w, http.StatusInternalServerError, err)
 		return
 	}
-	restutils.SendHTTPResponse(ctx, w, http.StatusOK, "Scrubber started successfully")
+
+	if err = txn.Do(); err != nil {
+		logger.WithError(err).WithField("volname",
+			volinfo.Name).Error("failed to start scrubber")
+		restutils.SendHTTPError(ctx, w, http.StatusInternalServerError, err)
+		return
+	}
+	restutils.SendHTTPResponse(ctx, w, http.StatusOK, nil)
 }
 
 func bitrotScrubStatusHandler(w http.ResponseWriter, r *http.Request) {
 	// Collect inputs from URL
-	p := mux.Vars(r)
-	volName := p["volname"]
+	volname := mux.Vars(r)["volname"]
 
 	ctx := r.Context()
 	logger := gdctx.GetReqLogger(ctx)
 
-	txn, err := transaction.NewTxnWithLocks(ctx, volName)
+	txn, err := transaction.NewTxnWithLocks(ctx, volname)
 	if err != nil {
 		status, err := restutils.ErrToStatusCode(err)
 		restutils.SendHTTPError(ctx, w, status, err)
@@ -251,7 +236,7 @@ func bitrotScrubStatusHandler(w http.ResponseWriter, r *http.Request) {
 	defer txn.Done()
 
 	// Validate volume existence
-	volinfo, err := volume.GetVolume(volName)
+	volinfo, err := volume.GetVolume(volname)
 	if err != nil {
 		status, err := restutils.ErrToStatusCode(err)
 		restutils.SendHTTPError(ctx, w, status, err)
@@ -283,25 +268,24 @@ func bitrotScrubStatusHandler(w http.ResponseWriter, r *http.Request) {
 			Nodes:  txn.Nodes,
 		},
 	}
-	txn.Ctx.Set("volname", volName)
+	if err = txn.Ctx.Set("volname", volname); err != nil {
+		restutils.SendHTTPError(ctx, w, http.StatusInternalServerError, err)
+		return
+	}
 
-	err = txn.Do()
-	if err != nil {
-		logger.WithFields(log.Fields{
-			"error":   err.Error(),
-			"volname": volName,
-		}).Error("failed to get scrubber status")
-		restutils.SendHTTPError(ctx, w, http.StatusInternalServerError,
-			err)
+	if err = txn.Do(); err != nil {
+		logger.WithError(err).WithField("volname",
+			volinfo.Name).Error("failed to get scrubber status")
+		restutils.SendHTTPError(ctx, w, http.StatusInternalServerError, err)
 		return
 	}
 
 	result, err := createScrubStatusResp(txn.Ctx, volinfo)
 	if err != nil {
-		errMsg := "Failed to aggregate scrub status results from multiple nodes."
-		logger.WithField("error", err.Error()).Error("bitrotScrubStatusHandler:" + errMsg)
-		restutils.SendHTTPError(ctx, w, http.StatusInternalServerError,
-			errMsg)
+		errMsg := "failed to aggregate scrub status results from multiple nodes"
+		logger.WithError(err).WithField("volname",
+			volinfo.Name).Error("bitrotScrubStatusHandler:" + errMsg)
+		restutils.SendHTTPError(ctx, w, http.StatusInternalServerError, errMsg)
 		return
 	}
 	restutils.SendHTTPResponse(ctx, w, http.StatusOK, result)
@@ -311,7 +295,6 @@ func createScrubStatusResp(ctx transaction.TxnCtx, volinfo *volume.Volinfo) (*bi
 
 	var resp bitrotapi.ScrubStatus
 	var exists bool
-
 	// Fill generic info which are same for each node
 	resp.Volume = volinfo.Name
 	resp.State = "Active (Idle)"
@@ -320,10 +303,8 @@ func createScrubStatusResp(ctx transaction.TxnCtx, volinfo *volume.Volinfo) (*bi
 		// If not available in Options, it's not set. Use default value
 		opt, err := xlator.FindOption(keyScrubFrequency)
 		if err != nil {
-			log.WithFields(log.Fields{
-				"error":   err.Error(),
-				"volname": volinfo.Name,
-			}).Error("failed to get scrub-freq option")
+			ctx.Logger().WithError(err).WithField("volname",
+				volinfo.Name).Error("failed to get scrub-freq option")
 			return &resp, err
 		}
 		resp.Frequency = opt.DefaultValue
@@ -334,10 +315,8 @@ func createScrubStatusResp(ctx transaction.TxnCtx, volinfo *volume.Volinfo) (*bi
 		// If not available in Options, it's not set. Use default value
 		opt, err := xlator.FindOption(keyScrubThrottle)
 		if err != nil {
-			log.WithFields(log.Fields{
-				"error":   err.Error(),
-				"volname": volinfo.Name,
-			}).Error("failed to get scrub-throttle option")
+			ctx.Logger().WithError(err).WithField("volname",
+				volinfo.Name).Error("failed to get scrub-throttle option")
 			return &resp, err
 		}
 		resp.Throttle = opt.DefaultValue
@@ -345,7 +324,8 @@ func createScrubStatusResp(ctx transaction.TxnCtx, volinfo *volume.Volinfo) (*bi
 	//Bitd log file
 	bitrotDaemon, err := newBitd()
 	if err != nil {
-		log.WithError(err).Error("Failed to create Bitd instance")
+		ctx.Logger().WithError(err).WithField("volname",
+			volinfo.Name).Error("Failed to create Bitd instance")
 		return &resp, err
 	}
 	resp.BitdLogFile = bitrotDaemon.logfile
@@ -353,7 +333,8 @@ func createScrubStatusResp(ctx transaction.TxnCtx, volinfo *volume.Volinfo) (*bi
 	//Scrub log file
 	scrubDaemon, err := newScrubd()
 	if err != nil {
-		log.WithError(err).Error("Failed to create Scrubd instance")
+		ctx.Logger().WithError(err).WithField("volname",
+			volinfo.Name).Error("Failed to create Scrubd instance")
 		return &resp, err
 	}
 	resp.ScrubLogFile = scrubDaemon.logfile
@@ -370,7 +351,8 @@ func createScrubStatusResp(ctx transaction.TxnCtx, volinfo *volume.Volinfo) (*bi
 
 		scrubRunning, err := strconv.Atoi(tmp.ScrubRunning)
 		if err != nil {
-			log.WithError(err).Error("strconv of ScrubRunning failed")
+			ctx.Logger().WithError(err).WithField("volname",
+				volinfo.Name).Error("strconv of ScrubRunning failed")
 			return &resp, err
 		}
 		if scrubRunning == 1 {

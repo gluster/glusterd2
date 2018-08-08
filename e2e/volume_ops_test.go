@@ -512,12 +512,16 @@ func TestVolumeOptions(t *testing.T) {
 	r.Nil(client.VolumeDelete(volname))
 
 	// group option test cases
-	groupOpKeys := []string{"profile.test"}
+	groupOpKeys := []string{"tls"}
 	for _, validKey := range groupOpKeys {
 		createReq.Options = map[string]string{validKey: "on"}
 
 		_, err = client.VolumeCreate(createReq)
 		r.Nil(err)
+
+		var resetOptionReq api.VolOptionResetReq
+		resetOptionReq.Options = []string{"tls"}
+		r.Nil(client.VolumeReset(volname, resetOptionReq))
 
 		err = client.VolumeDelete(volname)
 		r.Nil(err)
