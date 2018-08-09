@@ -4,6 +4,7 @@ import (
 	"errors"
 	"os"
 	"path"
+	"path/filepath"
 	"regexp"
 	"strings"
 	"syscall"
@@ -148,13 +149,17 @@ func GetBrickMountRoot(brickPath string) (string, error) {
 
 //GetBrickMountInfo return mount related information
 func GetBrickMountInfo(mountRoot string) (*Mntent, error) {
+	realMountRoot, err := filepath.EvalSymlinks(mountRoot)
+	if err != nil {
+		return nil, err
+	}
 	mtabEntries, err := GetMounts()
 	if err != nil {
 		return nil, err
 	}
 
 	for _, entry := range mtabEntries {
-		if entry.MntDir == mountRoot {
+		if entry.MntDir == mountRoot || entry.MntDir == realMountRoot {
 			return entry, nil
 		}
 	}
