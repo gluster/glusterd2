@@ -43,9 +43,9 @@ make gd2conf
 # run tests
 make test TESTOPTIONS=-v
 
-# run test till it fails
+# run all tests till it fails
 for i in {1..20}; do
-        go test ./e2e -v -functest -run "TestBitrot"
+        make functest
         if [ $? -ne 0 ]; then
             break
         fi
