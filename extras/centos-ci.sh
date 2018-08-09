@@ -24,7 +24,7 @@ yum -y install git mercurial bzr subversion gcc make
 curl -o /etc/yum.repos.d/glusterfs-nighthly-master.repo http://artifacts.ci.centos.org/gluster/nightly/master.repo
 yum -y install epel-release
 yum -y install glusterfs-server
-yum -y install ShellCheck
+#yum -y install ShellCheck
 
 export GD2SRC=$GOPATH/src/github.com/gluster/glusterd2
 cd "$GD2SRC"
@@ -43,5 +43,16 @@ make gd2conf
 # run tests
 make test TESTOPTIONS=-v
 
-# run functional tests
-make functest
+# run test till it fails
+for i in {1..20}; do
+        go test ./e2e -v -functest -run "TestBitrot"
+        if [ $? -ne 0 ]; then
+            break
+        fi
+        sleep 2
+done
+echo $i
+# dump logs
+if [ $i -ne 20 ]; then
+        for f in `find /tmp/gd2_func_test/ -type f -name "*.log"`; do echo $f; cat $f; done
+fi
