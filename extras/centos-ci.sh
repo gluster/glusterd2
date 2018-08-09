@@ -44,7 +44,7 @@ make gd2conf
 make test TESTOPTIONS=-v
 
 # run all tests till it fails
-for i in {1..20}; do
+for i in {1..5}; do
         make functest
         if [ $? -ne 0 ]; then
             break
@@ -53,6 +53,6 @@ for i in {1..20}; do
 done
 echo $i
 # dump logs
-if [ $i -ne 20 ]; then
+if [ $i -ne 5 ]; then
         for f in `find /tmp/gd2_func_test/ -type f -name "*.log"`; do echo $f; cat $f; done
 fi
