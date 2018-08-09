@@ -142,7 +142,7 @@ func bricksAsUUID(bricks []string) ([]api.BrickReq, error) {
 		return bs, nil
 	}
 
-	peers, err := client.Peers()
+	peers, _, err := client.Peers()
 	if err != nil {
 		return nil, err
 	}
@@ -178,7 +178,7 @@ var volumeStartCmd = &cobra.Command{
 	Args:  cobra.ExactArgs(1),
 	Run: func(cmd *cobra.Command, args []string) {
 		volname := cmd.Flags().Args()[0]
-		err := client.VolumeStart(volname, flagStartCmdForce)
+		_, err := client.VolumeStart(volname, flagStartCmdForce)
 		if err != nil {
 			if GlobalFlag.Verbose {
 				log.WithFields(log.Fields{
@@ -198,7 +198,7 @@ var volumeStopCmd = &cobra.Command{
 	Args:  cobra.ExactArgs(1),
 	Run: func(cmd *cobra.Command, args []string) {
 		volname := cmd.Flags().Args()[0]
-		err := client.VolumeStop(volname)
+		_, err := client.VolumeStop(volname)
 		if err != nil {
 			if GlobalFlag.Verbose {
 				log.WithFields(log.Fields{
@@ -218,7 +218,7 @@ var volumeDeleteCmd = &cobra.Command{
 	Args:  cobra.ExactArgs(1),
 	Run: func(cmd *cobra.Command, args []string) {
 		volname := cmd.Flags().Args()[0]
-		err := client.VolumeDelete(volname)
+		_, err := client.VolumeDelete(volname)
 		if err != nil {
 			if GlobalFlag.Verbose {
 				log.WithFields(log.Fields{
@@ -241,7 +241,7 @@ var volumeGetCmd = &cobra.Command{
 		volname := args[0]
 		optname := args[1]
 
-		opts, err := client.VolumeGet(volname, optname)
+		opts, _, err := client.VolumeGet(volname, optname)
 		if err != nil {
 			log.WithError(err).Error("error getting volume options")
 			failure("Error getting volume options", err, 1)
@@ -325,13 +325,13 @@ func volumeInfoHandler2(cmd *cobra.Command, isInfo bool) error {
 	}
 	if volname == "" {
 		if flagCmdFilterKey == "" && flagCmdFilterValue == "" {
-			vols, err = client.Volumes("")
+			vols, _, err = client.Volumes("")
 		} else if flagCmdFilterKey != "" && flagCmdFilterValue == "" {
-			vols, err = client.Volumes("", map[string]string{"key": flagCmdFilterKey})
+			vols, _, err = client.Volumes("", map[string]string{"key": flagCmdFilterKey})
 		} else if flagCmdFilterKey == "" && flagCmdFilterValue != "" {
-			vols, err = client.Volumes("", map[string]string{"value": flagCmdFilterValue})
+			vols, _, err = client.Volumes("", map[string]string{"value": flagCmdFilterValue})
 		} else if flagCmdFilterKey != "" && flagCmdFilterValue != "" {
-			vols, err = client.Volumes("", map[string]string{"key": flagCmdFilterKey,
+			vols, _, err = client.Volumes("", map[string]string{"key": flagCmdFilterKey,
 				"value": flagCmdFilterValue,
 			})
 		}
@@ -339,7 +339,7 @@ func volumeInfoHandler2(cmd *cobra.Command, isInfo bool) error {
 		if flagCmdFilterKey != "" || flagCmdFilterValue != "" {
 			return errors.New("invalid command. Cannot give filter arguments when providing volname")
 		}
-		vols, err = client.Volumes(volname)
+		vols, _, err = client.Volumes(volname)
 	}
 
 	if err != nil {
@@ -423,9 +423,9 @@ func volumeStatusHandler(cmd *cobra.Command) error {
 	}
 	if volname == "" {
 		var volList api.VolumeListResp
-		volList, err = client.Volumes("")
+		volList, _, err = client.Volumes("")
 		for _, volume := range volList {
-			vol, err = client.BricksStatus(volume.Name)
+			vol, _, err = client.BricksStatus(volume.Name)
 			fmt.Println("Volume :", volume.Name)
 			if err == nil {
 				volumeStatusDisplay(vol)
@@ -439,7 +439,7 @@ func volumeStatusHandler(cmd *cobra.Command) error {
 			}
 		}
 	} else {
-		vol, err = client.BricksStatus(volname)
+		vol, _, err = client.BricksStatus(volname)
 		fmt.Println("Volume :", volname)
 		if err == nil {
 			volumeStatusDisplay(vol)
@@ -471,7 +471,7 @@ var volumeSizeCmd = &cobra.Command{
 	Args:  cobra.ExactArgs(1),
 	Run: func(cmd *cobra.Command, args []string) {
 		volname := cmd.Flags().Args()[0]
-		vol, err := client.VolumeStatus(volname)
+		vol, _, err := client.VolumeStatus(volname)
 		if err != nil {
 			if GlobalFlag.Verbose {
 				log.WithFields(log.Fields{
@@ -510,7 +510,7 @@ var volumeExpandCmd = &cobra.Command{
 		flags["allow-mount-as-brick"] = flagAllowMountAsBrick
 		flags["create-brick-dir"] = flagCreateBrickDir
 
-		vol, err := client.VolumeExpand(volname, api.VolExpandReq{
+		vol, _, err := client.VolumeExpand(volname, api.VolExpandReq{
 			ReplicaCount: flagExpandCmdReplicaCount,
 			Bricks:       bricks, // string of format <UUID>:<path>
 			Force:        flagExpandCmdForce,
@@ -541,7 +541,7 @@ var volumeEditCmd = &cobra.Command{
 			Metadata:       metadata,
 			DeleteMetadata: flagCmdDeleteMetadata,
 		}
-		_, err := client.EditVolume(volname, editMetadataReq)
+		_, _, err := client.EditVolume(volname, editMetadataReq)
 		if err != nil {
 			if GlobalFlag.Verbose {
 				log.WithFields(log.Fields{

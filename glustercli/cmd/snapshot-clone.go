@@ -36,7 +36,7 @@ func snapshotCloneCmdRun(cmd *cobra.Command, args []string) {
 		CloneName: clonename,
 	}
 
-	vol, err := client.SnapshotClone(snapname, req)
+	vol, _, err := client.SnapshotClone(snapname, req)
 	if err != nil {
 		if GlobalFlag.Verbose {
 			log.WithError(err).WithFields(

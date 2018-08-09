@@ -8,26 +8,26 @@ import (
 )
 
 // SnapshotCreate creates Gluster Snapshot
-func (c *Client) SnapshotCreate(req api.SnapCreateReq) (api.SnapCreateResp, error) {
+func (c *Client) SnapshotCreate(req api.SnapCreateReq) (api.SnapCreateResp, *http.Response, error) {
 	var snap api.SnapCreateResp
-	err := c.post("/v1/snapshot", req, http.StatusCreated, &snap)
-	return snap, err
+	resp, err := c.post("/v1/snapshot", req, http.StatusCreated, &snap)
+	return snap, resp, err
 }
 
 //SnapshotActivate activate a Gluster snapshot
-func (c *Client) SnapshotActivate(req api.SnapActivateReq, snapname string) error {
+func (c *Client) SnapshotActivate(req api.SnapActivateReq, snapname string) (*http.Response, error) {
 	url := fmt.Sprintf("/v1/snapshot/%s/activate", snapname)
 	return c.post(url, req, http.StatusOK, nil)
 }
 
 //SnapshotDeactivate deactivate a Gluster snapshot
-func (c *Client) SnapshotDeactivate(snapname string) error {
+func (c *Client) SnapshotDeactivate(snapname string) (*http.Response, error) {
 	url := fmt.Sprintf("/v1/snapshot/%s/deactivate", snapname)
 	return c.post(url, nil, http.StatusOK, nil)
 }
 
 // SnapshotList returns list of all snapshots or all snapshots of a volume
-func (c *Client) SnapshotList(volname string) (api.SnapListResp, error) {
+func (c *Client) SnapshotList(volname string) (api.SnapListResp, *http.Response, error) {
 	var snaps api.SnapListResp
 	var url string
 	if volname == "" {
@@ -35,47 +35,46 @@ func (c *Client) SnapshotList(volname string) (api.SnapListResp, error) {
 	} else {
 		url = fmt.Sprintf("/v1/snapshots?volume=%s", volname)
 	}
-	err := c.get(url, nil, http.StatusOK, &snaps)
-	return snaps, err
+	resp, err := c.get(url, nil, http.StatusOK, &snaps)
+	return snaps, resp, err
 }
 
 // SnapshotInfo returns information about a snapshot
-func (c *Client) SnapshotInfo(snapname string) (api.SnapGetResp, error) {
+func (c *Client) SnapshotInfo(snapname string) (api.SnapGetResp, *http.Response, error) {
 	var snap api.SnapGetResp
 	var url string
 	url = fmt.Sprintf("/v1/snapshot/%s", snapname)
-	err := c.get(url, nil, http.StatusOK, &snap)
-	return snap, err
+	resp, err := c.get(url, nil, http.StatusOK, &snap)
+	return snap, resp, err
 }
 
 // SnapshotDelete will delete Gluster Snapshot and respective lv
-func (c *Client) SnapshotDelete(snapname string) error {
+func (c *Client) SnapshotDelete(snapname string) (*http.Response, error) {
 	url := fmt.Sprintf("/v1/snapshot/%s", snapname)
-	err := c.del(url, nil, http.StatusNoContent, nil)
-	return err
+	return c.del(url, nil, http.StatusNoContent, nil)
 }
 
 // SnapshotStatus will list the detailed status of snapshot bricks
-func (c *Client) SnapshotStatus(snapname string) (api.SnapStatusResp, error) {
+func (c *Client) SnapshotStatus(snapname string) (api.SnapStatusResp, *http.Response, error) {
 	var resp api.SnapStatusResp
 
 	url := fmt.Sprintf("/v1/snapshot/%s/status", snapname)
-	err := c.get(url, nil, http.StatusOK, &resp)
-	return resp, err
+	httpResp, err := c.get(url, nil, http.StatusOK, &resp)
+	return resp, httpResp, err
 }
 
 //SnapshotRestore will restore the volume to given snapshot
-func (c *Client) SnapshotRestore(snapname string) (api.VolumeGetResp, error) {
+func (c *Client) SnapshotRestore(snapname string) (api.VolumeGetResp, *http.Response, error) {
 	var resp api.VolumeGetResp
 	url := fmt.Sprintf("/v1/snapshot/%s/restore", snapname)
-	err := c.post(url, nil, http.StatusOK, &resp)
-	return resp, err
+	httpResp, err := c.post(url, nil, http.StatusOK, &resp)
+	return resp, httpResp, err
 }
 
 // SnapshotClone creates a writable Gluster Snapshot, it will be similar to a volume
-func (c *Client) SnapshotClone(snapname string, req api.SnapCloneReq) (api.VolumeCreateResp, error) {
+func (c *Client) SnapshotClone(snapname string, req api.SnapCloneReq) (api.VolumeCreateResp, *http.Response, error) {
 	var vol api.VolumeCreateResp
 	url := fmt.Sprintf("/v1/snapshot/%s/clone", snapname)
-	err := c.post(url, req, http.StatusCreated, &vol)
-	return vol, err
+	resp, err := c.post(url, req, http.StatusCreated, &vol)
+	return vol, resp, err
 }

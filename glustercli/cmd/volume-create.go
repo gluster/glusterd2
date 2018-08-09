@@ -112,7 +112,7 @@ func smartVolumeCreate(cmd *cobra.Command, args []string) {
 		Force:                   flagCreateForce,
 	}
 
-	vol, err := client.VolumeCreate(req)
+	vol, _, err := client.VolumeCreate(req)
 	if err != nil {
 		if GlobalFlag.Verbose {
 			log.WithError(err).WithField(
@@ -290,7 +290,7 @@ func volumeCreateCmdRun(cmd *cobra.Command, args []string) {
 		}
 	}
 
-	vol, err := client.VolumeCreate(req)
+	vol, _, err := client.VolumeCreate(req)
 	if err != nil {
 		if GlobalFlag.Verbose {
 			log.WithError(err).WithField("volume", volname).Error("volume creation failed")

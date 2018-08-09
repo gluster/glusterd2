@@ -40,7 +40,7 @@ func TestRestart(t *testing.T) {
 		},
 		Force: true,
 	}
-	_, errVolCreate := client.VolumeCreate(createReq)
+	_, _, errVolCreate := client.VolumeCreate(createReq)
 	r.Nil(errVolCreate)
 
 	r.Len(getVols(gd, r), 1)
@@ -59,7 +59,7 @@ func TestRestart(t *testing.T) {
 func getVols(gd *gdProcess, r *require.Assertions) api.VolumeListResp {
 	client := initRestclient(gd)
 	volname := ""
-	vols, err := client.Volumes(volname)
+	vols, _, err := client.Volumes(volname)
 	r.Nil(err)
 	return vols
 }

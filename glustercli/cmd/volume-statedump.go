@@ -78,7 +78,7 @@ func volumeStatedumpCmdRun(cmd *cobra.Command, args []string) {
 	}
 
 	volname := args[0]
-	if err := client.VolumeStatedump(volname, req); err != nil {
+	if _, err := client.VolumeStatedump(volname, req); err != nil {
 		fmt.Println(err)
 	}
 }

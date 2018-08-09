@@ -71,13 +71,13 @@ func volumeOptionJSONHandler(cmd *cobra.Command, volname string, options []strin
 	}
 
 	if volname == "all" {
-		err := client.GlobalOptionSet(api.GlobalOptionReq{
+		_, err := client.GlobalOptionSet(api.GlobalOptionReq{
 			Options: vopt,
 		})
 		return err
 	}
 
-	err := client.VolumeSet(volname, api.VolOptionReq{
+	_, err := client.VolumeSet(volname, api.VolOptionReq{
 		Options:      vopt,
 		Advanced:     flagSetAdv,
 		Experimental: flagSetExp,

@@ -40,7 +40,7 @@ var volumeResetCmd = &cobra.Command{
 				req.Options = options
 			}
 		}
-		err := client.VolumeReset(volname, req)
+		_, err := client.VolumeReset(volname, req)
 		if err != nil {
 			if GlobalFlag.Verbose {
 				log.WithError(err).WithField("volume", volname).Error("volume reset failed")

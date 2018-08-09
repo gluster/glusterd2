@@ -55,7 +55,7 @@ var peerAddCmd = &cobra.Command{
 		peerAddReq := api.PeerAddReq{
 			Addresses: []string{hostname},
 		}
-		peer, err := client.PeerAdd(peerAddReq)
+		peer, _, err := client.PeerAdd(peerAddReq)
 		if err != nil {
 			if GlobalFlag.Verbose {
 				log.WithError(err).WithField("host", hostname).Error("peer add failed")
@@ -81,7 +81,7 @@ var peerRemoveCmd = &cobra.Command{
 			err = errors.New("failed to parse peerID")
 		}
 		if err == nil {
-			err = client.PeerRemove(peerID)
+			_, err = client.PeerRemove(peerID)
 		}
 		if err != nil {
 			if GlobalFlag.Verbose {
@@ -97,13 +97,13 @@ func peerStatusHandler(cmd *cobra.Command) {
 	var peers api.PeerListResp
 	var err error
 	if flagCmdFilterKey == "" && flagCmdFilterValue == "" {
-		peers, err = client.Peers()
+		peers, _, err = client.Peers()
 	} else if flagCmdFilterKey != "" && flagCmdFilterValue == "" {
-		peers, err = client.Peers(map[string]string{"key": flagCmdFilterKey})
+		peers, _, err = client.Peers(map[string]string{"key": flagCmdFilterKey})
 	} else if flagCmdFilterKey == "" && flagCmdFilterValue != "" {
-		peers, err = client.Peers(map[string]string{"value": flagCmdFilterValue})
+		peers, _, err = client.Peers(map[string]string{"value": flagCmdFilterValue})
 	} else if flagCmdFilterKey != "" && flagCmdFilterValue != "" {
-		peers, err = client.Peers(map[string]string{"key": flagCmdFilterKey,
+		peers, _, err = client.Peers(map[string]string{"key": flagCmdFilterKey,
 			"value": flagCmdFilterValue,
 		})
 	}

@@ -29,7 +29,7 @@ var deviceAddCmd = &cobra.Command{
 		peerid := args[0]
 		devname := args[1]
 
-		_, err := client.DeviceAdd(peerid, devname)
+		_, _, err := client.DeviceAdd(peerid, devname)
 
 		if err != nil {
 			if GlobalFlag.Verbose {

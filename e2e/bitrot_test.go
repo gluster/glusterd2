@@ -61,12 +61,13 @@ func testBitrotOnReplicaVolume(t *testing.T, tc *testCluster) {
 		Force: true,
 	}
 
-	_, err := client.VolumeCreate(createReq)
+	_, _, err := client.VolumeCreate(createReq)
 	r.Nil(err)
 
 	testbitrot(t)
 
-	r.Nil(client.VolumeDelete(volumeName))
+	_, err = client.VolumeDelete(volumeName)
+	r.Nil(err)
 }
 
 func testBitrotOnDistVolume(t *testing.T, tc *testCluster) {
@@ -100,14 +101,15 @@ func testBitrotOnDistVolume(t *testing.T, tc *testCluster) {
 		Force: true,
 	}
 
-	_, err := client.VolumeCreate(createReq)
+	_, _, err := client.VolumeCreate(createReq)
 	r.Nil(err)
 
-	_, err = client.Volumes(volumeName)
+	_, _, err = client.Volumes(volumeName)
 	r.Nil(err)
 	testbitrot(t)
 
-	r.Nil(client.VolumeDelete(volumeName))
+	_, err = client.VolumeDelete(volumeName)
+	r.Nil(err)
 
 }
 
@@ -116,64 +118,64 @@ func testbitrot(t *testing.T) {
 	r := require.New(t)
 
 	//check bitrot status, before starting volume
-	_, err1 := client.BitrotScrubStatus(volumeName)
+	_, _, err1 := client.BitrotScrubStatus(volumeName)
 	r.Contains(err1.Error(), "volume not started")
 
 	//start volume
-	err := client.VolumeStart(volumeName, true)
+	_, err := client.VolumeStart(volumeName, true)
 	r.Nil(err)
 
 	//check bitrot status on started volume
-	_, err = client.BitrotScrubStatus(volumeName)
+	_, _, err = client.BitrotScrubStatus(volumeName)
 	r.Contains(err.Error(), "bitrot is not enabled")
 
 	//enable bitrot on volume
-	err = client.BitrotEnable(volumeName)
+	_, err = client.BitrotEnable(volumeName)
 	r.Nil(err)
 
 	//check bitrot status
-	scrubStatus, err := client.BitrotScrubStatus(volumeName)
+	scrubStatus, _, err := client.BitrotScrubStatus(volumeName)
 	r.Nil(err)
 	r.Equal(scrubStatus.State, "Active (Idle)")
 
 	//disable bitrot on volume
-	err = client.BitrotDisable(volumeName)
+	_, err = client.BitrotDisable(volumeName)
 	r.Nil(err)
 
 	//check bitrot status
-	_, err = client.BitrotScrubStatus(volumeName)
+	_, _, err = client.BitrotScrubStatus(volumeName)
 	r.Contains(err.Error(), "bitrot is not enabled")
 
 	//stop volume
-	err = client.VolumeStop(volumeName)
+	_, err = client.VolumeStop(volumeName)
 	r.Nil(err)
 
 	//check bitrot status
-	_, err = client.BitrotScrubStatus(volumeName)
+	_, _, err = client.BitrotScrubStatus(volumeName)
 	r.Contains(err.Error(), "volume not started")
 
 	//enable bitrot on volume
-	err = client.BitrotEnable(volumeName)
+	_, err = client.BitrotEnable(volumeName)
 	r.Contains(err.Error(), "volume not started")
 
 	//start volume
-	err = client.VolumeStart(volumeName, true)
+	_, err = client.VolumeStart(volumeName, true)
 	r.Nil(err)
 
 	//check bitrot status
-	scrubStatus, err = client.BitrotScrubStatus(volumeName)
+	scrubStatus, _, err = client.BitrotScrubStatus(volumeName)
 	r.Contains(err.Error(), "bitrot is not enabled")
 
 	//disable bitrot on volume
-	err = client.BitrotDisable(volumeName)
+	_, err = client.BitrotDisable(volumeName)
 	r.Contains(err.Error(), "bitrot is already disabled")
 
 	//check bitrot status
-	_, err = client.BitrotScrubStatus(volumeName)
+	_, _, err = client.BitrotScrubStatus(volumeName)
 	r.Contains(err.Error(), "bitrot is not enabled")
 
 	//stop volume
-	err = client.VolumeStop(volumeName)
+	_, err = client.VolumeStop(volumeName)
 	r.Nil(err)
 
 }

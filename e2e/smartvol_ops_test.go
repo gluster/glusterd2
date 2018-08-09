@@ -37,7 +37,7 @@ func testSmartVolumeDistribute(t *testing.T) {
 		Size:            60,
 		DistributeCount: 3,
 	}
-	volinfo, err := client.VolumeCreate(createReq)
+	volinfo, _, err := client.VolumeCreate(createReq)
 	r.Nil(err)
 
 	r.Len(volinfo.Subvols, 3)
@@ -50,7 +50,8 @@ func testSmartVolumeDistribute(t *testing.T) {
 	r.Nil(brickSizeTest(volinfo.Subvols[1].Bricks[0].Path, 16, 21))
 	r.Nil(brickSizeTest(volinfo.Subvols[2].Bricks[0].Path, 16, 21))
 
-	r.Nil(client.VolumeDelete(smartvolname))
+	_, err = client.VolumeDelete(smartvolname)
+	r.Nil(err)
 }
 
 func testSmartVolumeReplicate2(t *testing.T) {
@@ -62,7 +63,7 @@ func testSmartVolumeReplicate2(t *testing.T) {
 		Size:         20,
 		ReplicaCount: 2,
 	}
-	volinfo, err := client.VolumeCreate(createReq)
+	volinfo, _, err := client.VolumeCreate(createReq)
 	r.Nil(err)
 
 	r.Len(volinfo.Subvols, 1)
@@ -72,7 +73,8 @@ func testSmartVolumeReplicate2(t *testing.T) {
 	r.Nil(brickSizeTest(volinfo.Subvols[0].Bricks[0].Path, 16, 21))
 	r.Nil(brickSizeTest(volinfo.Subvols[0].Bricks[1].Path, 16, 21))
 
-	r.Nil(client.VolumeDelete(smartvolname))
+	_, err = client.VolumeDelete(smartvolname)
+	r.Nil(err)
 }
 
 func testSmartVolumeReplicate3(t *testing.T) {
@@ -85,7 +87,7 @@ func testSmartVolumeReplicate3(t *testing.T) {
 		Size:         20,
 		ReplicaCount: 3,
 	}
-	volinfo, err := client.VolumeCreate(createReq)
+	volinfo, _, err := client.VolumeCreate(createReq)
 	r.Nil(err)
 
 	r.Len(volinfo.Subvols, 1)
@@ -95,7 +97,8 @@ func testSmartVolumeReplicate3(t *testing.T) {
 	r.Nil(brickSizeTest(volinfo.Subvols[0].Bricks[1].Path, 16, 21))
 	r.Nil(brickSizeTest(volinfo.Subvols[0].Bricks[2].Path, 16, 21))
 
-	r.Nil(client.VolumeDelete(smartvolname))
+	_, err = client.VolumeDelete(smartvolname)
+	r.Nil(err)
 }
 
 func testSmartVolumeArbiter(t *testing.T) {
@@ -109,7 +112,7 @@ func testSmartVolumeArbiter(t *testing.T) {
 		ReplicaCount: 2,
 		ArbiterCount: 1,
 	}
-	volinfo, err := client.VolumeCreate(createReq)
+	volinfo, _, err := client.VolumeCreate(createReq)
 	r.Nil(err)
 
 	r.Len(volinfo.Subvols, 1)
@@ -123,7 +126,8 @@ func testSmartVolumeArbiter(t *testing.T) {
 	// TODO: Change this after arbiter calculation fix
 	r.Nil(brickSizeTest(volinfo.Subvols[0].Bricks[2].Path, 16, 21))
 
-	r.Nil(client.VolumeDelete(smartvolname))
+	_, err = client.VolumeDelete(smartvolname)
+	r.Nil(err)
 }
 
 func testSmartVolumeDisperse(t *testing.T) {
@@ -137,7 +141,7 @@ func testSmartVolumeDisperse(t *testing.T) {
 		Size:          40,
 		DisperseCount: 3,
 	}
-	volinfo, err := client.VolumeCreate(createReq)
+	volinfo, _, err := client.VolumeCreate(createReq)
 	r.Nil(err)
 
 	r.Len(volinfo.Subvols, 1)
@@ -148,7 +152,8 @@ func testSmartVolumeDisperse(t *testing.T) {
 	r.Nil(brickSizeTest(volinfo.Subvols[0].Bricks[1].Path, 16, 21))
 	r.Nil(brickSizeTest(volinfo.Subvols[0].Bricks[2].Path, 16, 21))
 
-	r.Nil(client.VolumeDelete(smartvolname))
+	_, err = client.VolumeDelete(smartvolname)
+	r.Nil(err)
 }
 
 func testSmartVolumeDistributeReplicate(t *testing.T) {
@@ -164,7 +169,7 @@ func testSmartVolumeDistributeReplicate(t *testing.T) {
 		ReplicaCount:       3,
 		SubvolZonesOverlap: true,
 	}
-	volinfo, err := client.VolumeCreate(createReq)
+	volinfo, _, err := client.VolumeCreate(createReq)
 	r.Nil(err)
 
 	r.Len(volinfo.Subvols, 2)
@@ -179,7 +184,8 @@ func testSmartVolumeDistributeReplicate(t *testing.T) {
 	r.Nil(brickSizeTest(volinfo.Subvols[1].Bricks[1].Path, 16, 21))
 	r.Nil(brickSizeTest(volinfo.Subvols[1].Bricks[2].Path, 16, 21))
 
-	r.Nil(client.VolumeDelete(smartvolname))
+	_, err = client.VolumeDelete(smartvolname)
+	r.Nil(err)
 }
 
 func testSmartVolumeDistributeDisperse(t *testing.T) {
@@ -195,7 +201,7 @@ func testSmartVolumeDistributeDisperse(t *testing.T) {
 		DisperseCount:      3,
 		SubvolZonesOverlap: true,
 	}
-	volinfo, err := client.VolumeCreate(createReq)
+	volinfo, _, err := client.VolumeCreate(createReq)
 	r.Nil(err)
 
 	r.Len(volinfo.Subvols, 2)
@@ -210,7 +216,8 @@ func testSmartVolumeDistributeDisperse(t *testing.T) {
 	r.Nil(brickSizeTest(volinfo.Subvols[1].Bricks[1].Path, 16, 21))
 	r.Nil(brickSizeTest(volinfo.Subvols[1].Bricks[2].Path, 16, 21))
 
-	r.Nil(client.VolumeDelete(smartvolname))
+	_, err = client.VolumeDelete(smartvolname)
+	r.Nil(err)
 }
 
 func testSmartVolumeWithoutName(t *testing.T) {
@@ -219,10 +226,11 @@ func testSmartVolumeWithoutName(t *testing.T) {
 	createReq := api.VolCreateReq{
 		Size: 20,
 	}
-	volinfo, err := client.VolumeCreate(createReq)
+	volinfo, _, err := client.VolumeCreate(createReq)
 	r.Nil(err)
 
-	r.Nil(client.VolumeDelete(volinfo.Name))
+	_, err = client.VolumeDelete(volinfo.Name)
+	r.Nil(err)
 }
 
 // TestSmartVolume creates a volume and starts it, runs further tests on it and
@@ -248,13 +256,13 @@ func TestSmartVolume(t *testing.T) {
 	r.Nil(prepareLoopDevice(devicesDir+"/gluster_dev2.img", "2", "400M"))
 	r.Nil(prepareLoopDevice(devicesDir+"/gluster_dev3.img", "3", "400M"))
 
-	_, err = client.DeviceAdd(tc.gds[0].PeerID(), "/dev/gluster_loop1")
+	_, _, err = client.DeviceAdd(tc.gds[0].PeerID(), "/dev/gluster_loop1")
 	r.Nil(err)
 
-	_, err = client.DeviceAdd(tc.gds[1].PeerID(), "/dev/gluster_loop2")
+	_, _, err = client.DeviceAdd(tc.gds[1].PeerID(), "/dev/gluster_loop2")
 	r.Nil(err)
 
-	_, err = client.DeviceAdd(tc.gds[2].PeerID(), "/dev/gluster_loop3")
+	_, _, err = client.DeviceAdd(tc.gds[2].PeerID(), "/dev/gluster_loop3")
 	r.Nil(err)
 
 	t.Run("Smartvol Distributed Volume", testSmartVolumeDistribute)

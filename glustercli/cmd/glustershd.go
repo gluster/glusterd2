@@ -41,11 +41,11 @@ var selfHealInfoCmd = &cobra.Command{
 		var selfHealInfo []glustershdapi.BrickHealInfo
 		volname := args[0]
 		if flagSummaryInfo {
-			selfHealInfo, err = client.SelfHealInfo(volname, "info-summary")
+			selfHealInfo, _, err = client.SelfHealInfo(volname, "info-summary")
 		} else if flagSplitBrainInfo {
-			selfHealInfo, err = client.SelfHealInfo(volname, "split-brain-info")
+			selfHealInfo, _, err = client.SelfHealInfo(volname, "split-brain-info")
 		} else {
-			selfHealInfo, err = client.SelfHealInfo(volname)
+			selfHealInfo, _, err = client.SelfHealInfo(volname)
 		}
 		if err != nil {
 			if GlobalFlag.Verbose {
@@ -90,7 +90,7 @@ var selfHealIndexCmd = &cobra.Command{
 	Run: func(cmd *cobra.Command, args []string) {
 		var err error
 		volname := args[0]
-		err = client.SelfHeal(volname, "index")
+		_, err = client.SelfHeal(volname, "index")
 		if err != nil {
 			failure(fmt.Sprintf("Failed to run heal for volume %s\n", volname), err, 1)
 		}
@@ -106,7 +106,7 @@ var selfHealFullCmd = &cobra.Command{
 	Run: func(cmd *cobra.Command, args []string) {
 		var err error
 		volname := args[0]
-		err = client.SelfHeal(volname, "full")
+		_, err = client.SelfHeal(volname, "full")
 		if err != nil {
 			failure(fmt.Sprintf("Failed to run heal for volume %s\n", volname), err, 1)
 		}
