@@ -124,7 +124,7 @@ func (v *Volinfo) StringMap() map[string]string {
 }
 
 // NewBrickEntries creates the brick list
-func NewBrickEntries(bricks []api.BrickReq, volName, volfileID string, volID uuid.UUID) ([]brick.Brickinfo, error) {
+func NewBrickEntries(bricks []api.BrickReq, volName, volfileID string, volID uuid.UUID, ptype brick.ProvisionType) ([]brick.Brickinfo, error) {
 	var brickInfos []brick.Brickinfo
 	var binfo brick.Brickinfo
 
@@ -161,8 +161,9 @@ func NewBrickEntries(bricks []api.BrickReq, volName, volfileID string, volID uui
 		binfo.VolumeID = volID
 		binfo.ID = uuid.NewRandom()
 
-		// Auto provisioned bricks
-		if b.VgName != "" && b.LvName != "" {
+		binfo.PType = ptype
+		if ptype.IsAutoProvisioned() {
+			// Auto provisioned bricks
 			binfo.MountInfo = brick.MountInfo{
 				Mountdir:   b.Mountdir,
 				DevicePath: b.DevicePath,
