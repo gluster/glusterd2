@@ -4,7 +4,7 @@
 # This script sets up the centos-ci environment and runs the PR tests for GD2.
 
 # if anything fails, we'll abort
-set -e
+# set -e
 
 REQ_GO_VERSION='1.9.4'
 # install Go
