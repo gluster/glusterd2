@@ -60,6 +60,8 @@ func voltypeFromSubvols(req *api.VolCreateReq) volume.VolType {
 
 func populateSubvols(volinfo *volume.Volinfo, req *api.VolCreateReq) error {
 	var err error
+	provisionType := volinfo.GetProvisionType()
+
 	for idx, subvolreq := range req.Subvols {
 		if subvolreq.ReplicaCount == 0 && subvolreq.Type == "replicate" {
 			return errors.New("replica count not specified")
@@ -106,7 +108,7 @@ func populateSubvols(volinfo *volume.Volinfo, req *api.VolCreateReq) error {
 				return err
 			}
 		}
-		s.Bricks, err = volume.NewBrickEntriesFunc(subvolreq.Bricks, volinfo.Name, volinfo.VolfileID, volinfo.ID)
+		s.Bricks, err = volume.NewBrickEntriesFunc(subvolreq.Bricks, volinfo.Name, volinfo.VolfileID, volinfo.ID, provisionType)
 		if err != nil {
 			return err
 		}
@@ -144,14 +146,21 @@ func newVolinfo(req *api.VolCreateReq) (*volume.Volinfo, error) {
 		volinfo.Transport = "tcp"
 	}
 
-	if err := populateSubvols(volinfo, req); err != nil {
-		return nil, err
-	}
-
 	if req.Metadata != nil {
 		volinfo.Metadata = req.Metadata
 	} else {
 		volinfo.Metadata = make(map[string]string)
+	}
+
+	if req.Size > 0 {
+		//AutoProvisioned volume
+		volinfo.Metadata[brick.ProvisionKey] = string(brick.AutoProvisioned)
+	} else {
+		volinfo.Metadata[brick.ProvisionKey] = string(brick.ManuallyProvisioned)
+	}
+
+	if err := populateSubvols(volinfo, req); err != nil {
+		return nil, err
 	}
 
 	return volinfo, nil

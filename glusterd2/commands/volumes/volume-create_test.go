@@ -37,7 +37,7 @@ func TestCreateVolinfo(t *testing.T) {
 	assert.NotNil(t, vol)
 
 	// Mock failure in NewBrickEntries(), createVolume() should fail
-	defer testutils.Patch(&volume.NewBrickEntriesFunc, func(bricks []api.BrickReq, volName, volfileID string, volID uuid.UUID) ([]brick.Brickinfo, error) {
+	defer testutils.Patch(&volume.NewBrickEntriesFunc, func(bricks []api.BrickReq, volName, volfileID string, volID uuid.UUID, pT brick.ProvisionType) ([]brick.Brickinfo, error) {
 		return nil, errBad
 	}).Restore()
 	_, e = newVolinfo(msg)

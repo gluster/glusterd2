@@ -504,7 +504,7 @@ func createSnapSubvols(newVolinfo, origVolinfo *volume.Volinfo, nodeData map[str
 
 				bricks = append(bricks, brick)
 			}
-			s.Bricks, err = volume.NewBrickEntriesFunc(bricks, newVolinfo.Name, newVolinfo.VolfileID, newVolinfo.ID)
+			s.Bricks, err = volume.NewBrickEntriesFunc(bricks, newVolinfo.Name, newVolinfo.VolfileID, newVolinfo.ID, brick.SnapshotProvisioned)
 			if err != nil {
 				return err
 			}
@@ -563,6 +563,7 @@ func createSnapinfo(c transaction.TxnCtx) error {
 	snapInfo := new(snapshot.Snapinfo)
 	snapVolinfo := &snapInfo.SnapVolinfo
 	duplicateVolinfo(volinfo, snapVolinfo)
+	snapVolinfo.Metadata[brick.ProvisionKey] = string(brick.SnapshotProvisioned)
 
 	snapInfo.OptionChange = make(map[string]string)
 	snapInfo.CreatedAt = data.CreatedAt
