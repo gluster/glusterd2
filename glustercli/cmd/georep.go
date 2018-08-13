@@ -346,7 +346,8 @@ func getRemoteClient(host string) (string, *restclient.Client, error) {
 	} else {
 		clienturl = fmt.Sprintf("%s://%s:%d", geoRepHTTPScheme, host, geoRepGlusterdPort)
 	}
-	return clienturl, restclient.New(clienturl, "", "", "", true), nil
+	client, err := restclient.New(clienturl, "", "", "", true)
+	return clienturl, client, err
 }
 
 func getVolIDs(pargs []string) (string, string, error) {

@@ -42,7 +42,10 @@ func TestSnapshot(t *testing.T) {
 	r.Nil(err)
 	defer teardownCluster(tc)
 
-	client = initRestclient(tc.gds[0])
+	client, err = initRestclient(tc.gds[0])
+	r.Nil(err)
+	r.NotNil(client)
+
 	brickPaths, err = lvmtest.CreateLvmBricks(prefix, brickCount)
 	r.Nil(err)
 	defer func() {

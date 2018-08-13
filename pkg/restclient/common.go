@@ -2,8 +2,6 @@ package restclient
 
 import (
 	"bytes"
-	"crypto/tls"
-	"crypto/x509"
 	"encoding/json"
 	"fmt"
 	"io"
@@ -21,15 +19,109 @@ const (
 	defaultClientTimeout = 30 // in seconds
 )
 
+// ClientFunc receives a Client and overrides its members
+type ClientFunc func(*Client) error
+
+// WithTLSConfig overrides http.Client member with a client created
+// using specified TLS configuration.
+func WithTLSConfig(tlsOpts *TLSOptions) ClientFunc {
+	return func(client *Client) error {
+		tlsConfig, err := NewTLSConfig(tlsOpts)
+		if err != nil {
+			return err
+		}
+		tr := &http.Transport{
+			DisableCompression: true,
+			DisableKeepAlives:  true,
+			TLSClientConfig:    tlsConfig,
+		}
+		httpClient := &http.Client{
+			Transport: tr,
+		}
+		client.httpClient = httpClient
+		return nil
+	}
+}
+
+// WithHTTPClient overrides http Client with specified one.
+func WithHTTPClient(httpClient *http.Client) ClientFunc {
+	return func(client *Client) error {
+		if httpClient != nil {
+			client.httpClient = httpClient
+		}
+		return nil
+	}
+}
+
+// WithBaseURL overrides Client base url with specified one
+func WithBaseURL(url string) ClientFunc {
+	return func(client *Client) error {
+		client.baseURL = url
+		return nil
+	}
+}
+
+// WithUsername overrides Client username with specified one
+func WithUsername(username string) ClientFunc {
+	return func(client *Client) error {
+		client.username = username
+		return nil
+	}
+}
+
+// WithPassword overrides Client password with specified one
+func WithPassword(password string) ClientFunc {
+	return func(client *Client) error {
+		client.password = password
+		return nil
+	}
+}
+
+// WithTimeOut overrides Client timeout with specified one
+func WithTimeOut(timeout time.Duration) ClientFunc {
+	return func(client *Client) error {
+		client.httpClient.Timeout = timeout
+		return nil
+	}
+}
+
 // Client represents Glusterd2 REST Client
 type Client struct {
 	baseURL     string
 	username    string
 	password    string
-	cacert      string
-	insecure    bool
 	timeout     time.Duration
+	httpClient  *http.Client
 	lastRespErr *http.Response
+}
+
+// NewClientWithOpts initializes a default Glusterd2 REST Client.
+// It takes functors to modify it while creating.
+// For e.g., `NewClientWithOpts(WithBaseURL(...),WithUsername(...))`
+// We can also initialize custom http Client using WithHTTPClient(...)
+// to send request.
+func NewClientWithOpts(opts ...ClientFunc) (*Client, error) {
+	client := &Client{
+		httpClient: http.DefaultClient,
+	}
+	for _, fn := range opts {
+		if err := fn(client); err != nil {
+			return client, err
+		}
+	}
+	return client, nil
+}
+
+// New creates new instance of Glusterd2 REST Client
+// Deprecated : Use NewClientWithOpts(...)
+func New(baseURL, username, password, cacert string, insecure bool) (*Client, error) {
+	return NewClientWithOpts(
+		WithBaseURL(baseURL),
+		WithTLSConfig(&TLSOptions{CaCertFile: cacert, InsecureSkipVerify: insecure}),
+		WithUsername(username),
+		WithPassword(password),
+		WithTimeOut(defaultClientTimeout*time.Second),
+	)
 }
 
 // LastErrorResponse returns the last error response received by this
@@ -42,20 +134,9 @@ func (c *Client) LastErrorResponse() *http.Response {
 // SetTimeout sets the overall client timeout which includes the time taken
 // from setting up TCP connection till client finishes reading the response
 // body.
+// Deprecated : use `WithTimeOut(...)`
 func (c *Client) SetTimeout(timeout time.Duration) {
-	c.timeout = timeout
-}
-
-// New creates new instance of Glusterd REST Client
-func New(baseURL, username, password, cacert string, insecure bool) *Client {
-	return &Client{
-		baseURL:  baseURL,
-		username: username,
-		password: password,
-		cacert:   cacert,
-		insecure: insecure,
-		timeout:  defaultClientTimeout * time.Second,
-	}
+	WithTimeOut(timeout)(c)
 }
 
 func (c *Client) setAuthToken(r *http.Request) {
@@ -94,56 +175,12 @@ func (c *Client) del(url string, data interface{}, expectStatusCode int, output 
 }
 
 func (c *Client) do(method string, url string, input interface{}, expectStatusCode int, output interface{}) error {
-	url = fmt.Sprintf("%s%s", c.baseURL, url)
-
-	var body io.Reader
-	if input != nil {
-		reqBody, marshalErr := json.Marshal(input)
-		if marshalErr != nil {
-			return marshalErr
-		}
-		body = bytes.NewReader(reqBody)
-	}
-
-	req, err := http.NewRequest(method, url, body)
+	req, err := c.buildRequest(method, url, input)
 	if err != nil {
 		return err
 	}
-	req.Header.Set("Accept", "application/json")
-	req.Header.Set("Content-Type", "application/json")
-	req.Close = true
 
-	// Set Authorization if username and password is not empty string
-	if c.username != "" && c.password != "" {
-		c.setAuthToken(req)
-	}
-
-	tr := &http.Transport{
-		DisableCompression: true,
-		DisableKeepAlives:  true,
-	}
-
-	if c.cacert != "" || c.insecure {
-		caCertPool := x509.NewCertPool()
-		if caCert, err := ioutil.ReadFile(c.cacert); err != nil {
-			if !c.insecure {
-				return err
-			}
-		} else {
-			caCertPool.AppendCertsFromPEM(caCert)
-		}
-		tr.TLSClientConfig = &tls.Config{
-			RootCAs:            caCertPool,
-			InsecureSkipVerify: c.insecure,
-		}
-	}
-
-	client := &http.Client{
-		Transport: tr,
-		Timeout:   c.timeout,
-	}
-
-	resp, err := client.Do(req)
+	resp, err := c.httpClient.Do(req)
 	if err != nil {
 		return err
 	}
@@ -169,6 +206,32 @@ func (c *Client) do(method string, url string, input interface{}, expectStatusCo
 	}
 
 	return nil
+}
+
+func (c *Client) buildRequest(method string, url string, input interface{}) (*http.Request, error) {
+	url = fmt.Sprintf("%s%s", c.baseURL, url)
+	var body io.Reader
+	if input != nil {
+		reqBody, err := json.Marshal(input)
+		if err != nil {
+			return nil, err
+		}
+		body = bytes.NewReader(reqBody)
+	}
+
+	req, err := http.NewRequest(method, url, body)
+	if err != nil {
+		return nil, err
+	}
+	req.Header.Set("Accept", "application/json")
+	req.Header.Set("Content-Type", "application/json")
+	req.Close = true
+
+	// Set Authorization if username and password is not empty string
+	if c.username != "" && c.password != "" {
+		c.setAuthToken(req)
+	}
+	return req, nil
 }
 
 //Ping checks glusterd2 service status
