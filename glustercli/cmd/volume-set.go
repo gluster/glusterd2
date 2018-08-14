@@ -52,11 +52,9 @@ func volumeSetCmdRun(cmd *cobra.Command, args []string) {
 	volname := args[0]
 	options := args[1:]
 	if err := volumeOptionJSONHandler(cmd, volname, options); err != nil {
-		if verbose {
-			log.WithFields(log.Fields{
-				"volume": volname,
-				"error":  err.Error(),
-			}).Error("volume option set failed")
+		if GlobalFlag.Verbose {
+			log.WithError(err).WithField(
+				"volume", volname).Error("volume option set failed")
 		}
 		failure("Volume option set failed", err, 1)
 	} else {

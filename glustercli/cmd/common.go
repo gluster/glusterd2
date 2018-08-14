@@ -21,7 +21,7 @@ var (
 
 func initRESTClient(hostname, user, secret, cacert string, insecure bool) {
 	client = restclient.New(hostname, user, secret, cacert, insecure)
-	client.SetTimeout(time.Duration(flagTimeout) * time.Second)
+	client.SetTimeout(time.Duration(GlobalFlag.Timeout) * time.Second)
 }
 
 func isConnectionRefusedErr(err error) bool {
@@ -50,7 +50,7 @@ func handleGlusterdConnectFailure(msg, endpoints string, err error, errcode int)
 
 func failure(msg string, err error, errcode int) {
 
-	handleGlusterdConnectFailure(msg, flagEndpoints[0], err, errcode)
+	handleGlusterdConnectFailure(msg, GlobalFlag.Endpoints[0], err, errcode)
 
 	w := os.Stderr
 

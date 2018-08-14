@@ -12,7 +12,7 @@ func main() {
 		fmt.Fprintf(os.Stderr, "Usage: %s <filename>\n", os.Args[0])
 		os.Exit(1)
 	}
-	err := cmd.RootCmd.GenBashCompletionFile(os.Args[1])
+	err := cmd.NewGlustercliCmd().GenBashCompletionFile(os.Args[1])
 	if err != nil {
 		fmt.Fprintf(os.Stderr, "Error generating bash completion file, error: %v\n", err)
 		os.Exit(1)

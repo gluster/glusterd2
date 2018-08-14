@@ -114,9 +114,9 @@ func runStepFuncOnNodes(origCtx context.Context, stepName string, ctx TxnCtx, no
 		peerResp = <-respCh
 		if peerResp.Error != nil {
 			resp.errCount++
-			ctx.Logger().WithFields(log.Fields{
+			ctx.Logger().WithError(peerResp.Error).WithFields(log.Fields{
 				"step": stepName, "node": peerResp.PeerID,
-			}).WithError(peerResp.Error).Error("Step failed on node.")
+			}).Error("Step failed on node.")
 		}
 		resp.Resps = append(resp.Resps, peerResp)
 	}
@@ -139,7 +139,7 @@ func runStepFuncOnNode(origCtx context.Context, stepName string, ctx TxnCtx, nod
 		err = runStepFuncLocally(origCtx, stepName, ctx)
 	} else {
 		// remote node
-		err = runStepOn(stepName, node, ctx)
+		err = runStepOn(origCtx, stepName, node, ctx)
 	}
 
 	respCh <- stepPeerResp{node, err}

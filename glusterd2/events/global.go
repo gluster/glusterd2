@@ -37,10 +37,10 @@ func globalHandler(ev *api.Event) {
 	ev.Origin = gdctx.MyUUID
 	v, err := json.Marshal(ev)
 	if err != nil {
-		log.WithFields(log.Fields{
+		log.WithError(err).WithFields(log.Fields{
 			"event.id":   ev.ID.String(),
 			"event.name": ev.Name,
-		}).WithError(err).Error("failed global broadcast, failed to marshal event")
+		}).Error("failed global broadcast, failed to marshal event")
 	}
 
 	// Putting event with a TTL so that we don't have stale events lingering in store
@@ -52,17 +52,17 @@ func globalHandler(ev *api.Event) {
 	}
 	l, err := store.Store.Grant(store.Store.Ctx(), eventsttl)
 	if err != nil {
-		log.WithFields(log.Fields{
+		log.WithError(err).WithFields(log.Fields{
 			"event.id":   ev.ID.String(),
 			"event.name": ev.Name,
-		}).WithError(err).Error("failed global broadcast, failed to get lease")
+		}).Error("failed global broadcast, failed to get lease")
 	}
 
 	if _, err := store.Put(store.Store.Ctx(), k, string(v), clientv3.WithLease(l.ID)); err != nil {
-		log.WithFields(log.Fields{
+		log.WithError(err).WithFields(log.Fields{
 			"event.id":   ev.ID.String(),
 			"event.name": ev.Name,
-		}).WithError(err).Error("failed global broadcast, failed to write event to store")
+		}).Error("failed global broadcast, failed to write event to store")
 	}
 }
 
@@ -81,7 +81,7 @@ func globalListener(glStop chan struct{}) {
 			for _, sev := range resp.Events {
 				var ev api.Event
 				if err := json.Unmarshal(sev.Kv.Value, &ev); err != nil {
-					log.WithField("event.id", string(sev.Kv.Key)).WithError(err).Error("could not unmarshal global event")
+					log.WithError(err).WithField("event.id", string(sev.Kv.Key)).Error("could not unmarshal global event")
 					continue
 				}
 				if !uuid.Equal(ev.Origin, gdctx.MyUUID) {

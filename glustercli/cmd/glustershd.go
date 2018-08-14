@@ -48,11 +48,8 @@ var selfHealInfoCmd = &cobra.Command{
 			selfHealInfo, err = client.SelfHealInfo(volname)
 		}
 		if err != nil {
-			if verbose {
-				log.WithFields(log.Fields{
-					"volume": volname,
-					"error":  err.Error(),
-				}).Error("failed to get heal info")
+			if GlobalFlag.Verbose {
+				log.WithError(err).WithField("volume", volname).Error("failed to get heal info")
 			}
 			failure(fmt.Sprintf("Failed to get heal info for volume %s\n", volname), err, 1)
 		}

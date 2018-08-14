@@ -220,7 +220,7 @@ func georepCreateHandler(w http.ResponseWriter, r *http.Request) {
 
 	events.Broadcast(newGeorepEvent(eventGeorepCreated, geoSession, nil))
 
-	restutils.SendHTTPResponse(ctx, w, http.StatusCreated, geoSession)
+	restutils.SendHTTPResponse(ctx, w, http.StatusOK, geoSession)
 }
 
 func georepActionHandler(w http.ResponseWriter, r *http.Request, action actionType) {
@@ -1020,7 +1020,7 @@ func georepSSHKeyGenerateHandler(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	restutils.SendHTTPResponse(ctx, w, http.StatusCreated, sshkeys)
+	restutils.SendHTTPResponse(ctx, w, http.StatusOK, sshkeys)
 }
 
 func georepSSHKeyGetHandler(w http.ResponseWriter, r *http.Request) {
@@ -1102,5 +1102,5 @@ func georepSSHKeyPushHandler(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	restutils.SendHTTPResponse(ctx, w, http.StatusCreated, nil)
+	restutils.SendHTTPResponse(ctx, w, http.StatusOK, nil)
 }

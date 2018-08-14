@@ -34,8 +34,8 @@ func main() {
 		log.WithError(err).Fatal("Failed to get and set hostname or IP")
 	}
 
-	// Parse command-line arguments
-	parseFlags()
+	// Initalize and parse CLI flags
+	initFlags()
 
 	if showvers, _ := flag.CommandLine.GetBool("version"); showvers {
 		version.DumpVersionInfo()
@@ -50,9 +50,8 @@ func main() {
 		log.WithError(err).Fatal("Failed to initialize logging")
 	}
 
-	// Read config file
-	confFile, _ := flag.CommandLine.GetString("config")
-	if err := initConfig(confFile); err != nil {
+	// Initialize GD2 config
+	if err := initConfig(); err != nil {
 		log.WithError(err).Fatal("Failed to initialize config")
 	}
 

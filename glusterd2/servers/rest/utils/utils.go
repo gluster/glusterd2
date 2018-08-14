@@ -19,6 +19,17 @@ func UnmarshalRequest(r *http.Request, v interface{}) error {
 	return json.NewDecoder(r.Body).Decode(v)
 }
 
+// SetLocationHeader sets the HTTP 'Location' header in returned response. The
+// spec requires that this header be set for following responses: 201, 3xx.
+// An obsolete version of the HTTP 1.1 spec (IETF RFC 2616) required a complete
+// absolute URI to be returned. However, the updated HTTP 1.1 spec (IETF RFC
+// 7231) relaxed the original constraint, allowing the use of relative URLs in
+// Location headers.
+func SetLocationHeader(r *http.Request, w http.ResponseWriter, resourceID string) {
+	relativeURL := fmt.Sprintf("%s/%s", r.URL, resourceID)
+	w.Header().Set("Location", relativeURL)
+}
+
 // SendHTTPResponse sends non-error response to the client.
 func SendHTTPResponse(ctx context.Context, w http.ResponseWriter, statusCode int, resp interface{}) {
 

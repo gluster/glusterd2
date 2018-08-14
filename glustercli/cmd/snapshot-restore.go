@@ -30,11 +30,10 @@ func snapshotRestoreCmdRun(cmd *cobra.Command, args []string) {
 	snapname := cmd.Flags().Args()[0]
 	vol, err := client.SnapshotRestore(snapname)
 	if err != nil {
-		if verbose {
-			log.WithFields(log.Fields{
+		if GlobalFlag.Verbose {
+			log.WithError(err).WithFields(log.Fields{
 				"snapshot": snapname,
 				"volume":   vol.Name,
-				"error":    err.Error(),
 			}).Error("snapshot restore failed")
 		}
 		failure("snapshot activation failed", err, 1)

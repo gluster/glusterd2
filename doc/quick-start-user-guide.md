@@ -41,43 +41,19 @@ external dependencies.
 
 **Config File:** Default path of glusterd2 config file is `/etc/glusterd2/glusterd2.toml`.
 
-### Custom configuration for glusterd2 [Optional].
+### Using external etcd.
 
-**Create a working directory:** This is where glusterd2 will store all data which includes logs, pid files, etcd information etc. For the purposes of this example, we will be using a temporary path. If a working directory is not specified, it defaults to current directory.
-
-```sh
-$ mkdir -p /var/lib/gd2
-```
-
-**Create a config file:** This is optional but if your VM/machine has multiple network interfaces, it is recommended to create a config file. The config file location can be passed to Glusterd2 using the `--config` option.
-Glusterd2 will also pick up conf file named `glusterd2.toml` if available in `/etc/glusterd2/` or the current directory.
-
-```toml
-$ cat conf.toml
-localstatedir = "/var/lib/gd2"
-peeraddress = "192.168.56.101:24008"
-clientaddress = "192.168.56.101:24007"
-etcdcurls = "http://192.168.56.101:2379"
-etcdpurls = "http://192.168.56.101:2380"
-```
-Replace the IP address accordingly on each node.
-
-### Using external etcd instead of embedded etcd.
-
-By default glusterd2 uses embedded etcd, but glusterd2 also supports usage of external etcd.
-
-To provide external etcd details. Edit glusterd2 config file by adding `noembed` option and specifying
-the etcd endpoint:
+Setup etcd on a node. Edit glusterd2 config file by adding `noembed` and `etcdenpoints` options. Replace 
+endpoints argument to point to etcd client URL:
 
 ```toml
 etcdendpoints = "http://[ip_address]:[port]"
 noembed = true
 ```
-Provide ip-address and port of node where etcd is running.
 
 ### Running glusterd2 for RPM installation
 
-**Enable glusterd2 service:** Enable glusterd2 service to ensure that glusterd2 service starts automatically when system starts.
+**Enable glusterd2 service:** Ensure that glusterd2 service starts automatically when system starts.
 To enable glusterd2 service run:
 
 ```sh

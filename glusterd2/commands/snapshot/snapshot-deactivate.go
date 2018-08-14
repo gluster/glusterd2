@@ -191,10 +191,7 @@ func snapshotDeactivateHandler(w http.ResponseWriter, r *http.Request) {
 
 	err = txn.Do()
 	if err != nil {
-		log.WithFields(log.Fields{
-			"error":    err.Error(),
-			"snapshot": snapname,
-		}).Error("failed to de-activate snap")
+		log.WithError(err).WithField("snapshot", snapname).Error("failed to de-activate snap")
 		restutils.SendHTTPError(ctx, w, http.StatusInternalServerError, err)
 		return
 	}

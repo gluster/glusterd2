@@ -100,7 +100,9 @@ func deviceAddHandler(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	restutils.SendHTTPResponse(ctx, w, http.StatusCreated, peerInfo)
+	// FIXME: Change this to http.StatusCreated when we are able to set
+	// location header with a unique URL that points to created device.
+	restutils.SendHTTPResponse(ctx, w, http.StatusOK, peerInfo)
 }
 
 func deviceListHandler(w http.ResponseWriter, r *http.Request) {
@@ -115,7 +117,8 @@ func deviceListHandler(w http.ResponseWriter, r *http.Request) {
 
 	devices, err := deviceutils.GetDevices(peerID)
 	if err != nil {
-		logger.WithError(err).WithField("peerid", peerID).Error("Failed to get devices for peer")
+		logger.WithError(err).WithField("peerid", peerID).Error(
+			"Failed to get devices for peer")
 		status, err := restutils.ErrToStatusCode(err)
 		restutils.SendHTTPError(ctx, w, status, err)
 		return

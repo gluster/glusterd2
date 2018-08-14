@@ -66,5 +66,8 @@ func optionGroupCreateHandler(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	restutils.SendHTTPResponse(ctx, w, http.StatusCreated, req)
+	// FIXME: Change this to http.StatusCreated when we are able to set
+	// location header with a unique URL that points to created option
+	// group.
+	restutils.SendHTTPResponse(ctx, w, http.StatusOK, req)
 }

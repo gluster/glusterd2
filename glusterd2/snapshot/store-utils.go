@@ -48,10 +48,7 @@ func GetSnapshots() ([]*Snapinfo, error) {
 		var snap Snapinfo
 
 		if err := json.Unmarshal(kv.Value, &snap); err != nil {
-			log.WithFields(log.Fields{
-				"snapshot": string(kv.Key),
-				"error":    err,
-			}).Error("Failed to unmarshal snapshot")
+			log.WithError(err).WithField("snapshot", string(kv.Key)).Error("Failed to unmarshal snapshot")
 			continue
 		}
 

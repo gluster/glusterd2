@@ -79,7 +79,7 @@ func GetRebalanceInfo(volname string) (*rebalanceapi.RebalInfo, error) {
 func StoreRebalanceInfo(rinfo *rebalanceapi.RebalInfo) error {
 	json, err := json.Marshal(&rinfo)
 	if err != nil {
-		log.WithField("error", err).Error("Failed to marshal the rebalance info object")
+		log.WithError(err).Error("Failed to marshal the rebalance info object")
 		return err
 	}
 

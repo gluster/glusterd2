@@ -97,10 +97,7 @@ func Start(d Daemon, wait bool, logger log.FieldLogger) error {
 		// daemon tell glusterd2 that it's up and ready.
 		pid, err = ReadPidFromFile(d.PidFile())
 		if err != nil {
-			logger.WithFields(log.Fields{
-				"pidfile": d.PidFile(),
-				"error":   err.Error(),
-			}).Error("Could not read pidfile")
+			logger.WithError(err).WithField("pidfile", d.PidFile()).Error("Could not read pidfile")
 			events.Broadcast(newEvent(d, daemonStartFailed, 0))
 			return err
 		}
@@ -126,7 +123,7 @@ func Start(d Daemon, wait bool, logger log.FieldLogger) error {
 
 	// Save daemon information in the store so it can be restarted
 	if err := saveDaemon(d); err != nil {
-		logger.WithField("name", d.Name()).WithError(err).Warn("failed to save daemon information into store, daemon may not be restarted on GlusterD restart")
+		logger.WithError(err).WithField("name", d.Name()).Warn("failed to save daemon information into store, daemon may not be restarted on GlusterD restart")
 	}
 
 	return nil
@@ -175,7 +172,7 @@ func Stop(d Daemon, force bool, logger log.FieldLogger) error {
 	_ = os.Remove(d.PidFile())
 
 	if err != nil {
-		logger.WithFields(log.Fields{
+		logger.WithError(err).WithFields(log.Fields{
 			"name": d.Name(),
 			"pid":  pid,
 		}).Error("Stopping daemon failed.")
@@ -185,10 +182,10 @@ func Stop(d Daemon, force bool, logger log.FieldLogger) error {
 	}
 
 	if err := DelDaemon(d); err != nil {
-		logger.WithFields(log.Fields{
+		logger.WithError(err).WithFields(log.Fields{
 			"name": d.Name(),
 			"pid":  pid,
-		}).WithError(err).Warn("failed to delete daemon from store, it may be restarted on GlusterD restart")
+		}).Warn("failed to delete daemon from store, it may be restarted on GlusterD restart")
 	}
 
 	return nil
@@ -208,7 +205,7 @@ func StartAllDaemons() {
 
 	for _, d := range ds {
 		if err := Start(d, true, log.StandardLogger()); err != nil {
-			log.WithField("name", d.Name()).WithError(err).Warn("failed to start daemon")
+			log.WithError(err).WithField("name", d.Name()).Warn("failed to start daemon")
 		}
 	}
 	events.Broadcast(events.New(daemonStartedAll, nil, false))
@@ -237,7 +234,7 @@ func Signal(d Daemon, sig syscall.Signal, logger log.FieldLogger) error {
 
 	err = process.Signal(sig)
 	if err != nil {
-		logger.WithFields(log.Fields{
+		logger.WithError(err).WithFields(log.Fields{
 			"name":   d.Name(),
 			"pid":    pid,
 			"signal": sig,
