@@ -29,7 +29,7 @@ func init() {
 func snapshotDeleteCmdRun(cmd *cobra.Command, args []string) {
 	snapname := args[0]
 
-	err := client.SnapshotDelete(snapname)
+	_, err := client.SnapshotDelete(snapname)
 	if err != nil {
 		if GlobalFlag.Verbose {
 			log.WithError(err).WithField(

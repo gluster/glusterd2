@@ -53,7 +53,7 @@ var bitrotEnableCmd = &cobra.Command{
 	Args:  cobra.ExactArgs(1),
 	Run: func(cmd *cobra.Command, args []string) {
 		volname := args[0]
-		err := client.BitrotEnable(volname)
+		_, err := client.BitrotEnable(volname)
 		if err != nil {
 			if GlobalFlag.Verbose {
 				log.WithError(err).WithField("volume", volname).Error("failed to enable bitrot")
@@ -71,7 +71,7 @@ var bitrotDisableCmd = &cobra.Command{
 	Run: func(cmd *cobra.Command, args []string) {
 		volname := args[0]
 
-		err := client.BitrotDisable(volname)
+		_, err := client.BitrotDisable(volname)
 		if err != nil {
 			if GlobalFlag.Verbose {
 				log.WithError(err).WithField("volume", volname).Error("failed to disable bitrot")
@@ -162,7 +162,7 @@ var bitrotScrubCmd = &cobra.Command{
 			fmt.Printf("Bitrot scrub %s is successful for volume %s\n", args[1], volname)
 
 		case scrubStatus:
-			scrubStatus, err := client.BitrotScrubStatus(volname)
+			scrubStatus, _, err := client.BitrotScrubStatus(volname)
 			if err != nil {
 				if GlobalFlag.Verbose {
 					log.WithError(err).WithField(
@@ -207,7 +207,7 @@ var bitrotScrubCmd = &cobra.Command{
 			}
 
 		case scrubOndemand:
-			err := client.BitrotScrubOndemand(volname)
+			_, err := client.BitrotScrubOndemand(volname)
 			if err != nil {
 				if GlobalFlag.Verbose {
 					log.WithError(err).WithField(

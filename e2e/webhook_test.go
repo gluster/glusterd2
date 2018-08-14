@@ -44,7 +44,8 @@ func testAddWebhook(t *testing.T, tc *testCluster) {
 
 	webhookURL = ts.URL
 	//create webhook
-	r.Nil(client.WebhookAdd(webhookURL, "", ""))
+	_, err := client.WebhookAdd(webhookURL, "", "")
+	r.Nil(err)
 
 	volumeName := formatVolName(t.Name())
 	var brickPaths []string
@@ -78,16 +79,17 @@ func testAddWebhook(t *testing.T, tc *testCluster) {
 		Force: true,
 	}
 
-	_, err := client.VolumeCreate(createReq)
+	_, _, err = client.VolumeCreate(createReq)
 	r.Nil(err)
 
-	r.Nil(client.VolumeDelete(volumeName))
+	_, err = client.VolumeDelete(volumeName)
+	r.Nil(err)
 }
 
 func testGetWebhook(t *testing.T) {
 	r := require.New(t)
 
-	webhooks, err := client.Webhooks()
+	webhooks, _, err := client.Webhooks()
 	r.Nil(err)
 	r.Equal(webhooks[0], webhookURL)
 }
@@ -95,14 +97,15 @@ func testGetWebhook(t *testing.T) {
 func testDeleteWebhook(t *testing.T) {
 	r := require.New(t)
 	//delete webhook
-	r.Nil(client.WebhookDelete(webhookURL))
+	_, err := client.WebhookDelete(webhookURL)
+	r.Nil(err)
 
 }
 
 func testEvents(t *testing.T) {
 	r := require.New(t)
 
-	events, err := client.ListEvents()
+	events, _, err := client.ListEvents()
 	r.Nil(err)
 	r.NotEmpty(events)
 }
@@ -119,9 +122,10 @@ func testwebhookconnection(t *testing.T) {
 
 	webhookURL = ts.URL
 	//test webhook connection
-	r.Nil(client.WebhookTest(webhookURL, "", ""))
+	_, err := client.WebhookTest(webhookURL, "", "")
+	r.Nil(err)
 
-	peers, err := client.Peers()
+	peers, _, err := client.Peers()
 	r.Nil(err)
 
 	if c != len(peers) {

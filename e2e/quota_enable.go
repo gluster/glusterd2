@@ -18,7 +18,7 @@ func TestQuota(t *testing.T) {
 	var brickPaths []string
 	r := require.New(t)
 
-	tc, err := setupCluster("./config/1.toml", "./config/2.toml")
+	tc, err := setupCluster(".	/config/1.toml", "./config/2.toml")
 	r.Nil(err)
 	defer teardownCluster(tc)
 
@@ -61,7 +61,7 @@ func TestQuota(t *testing.T) {
 		Force: true,
 	}
 
-	_, err = client.VolumeCreate(createReq)
+	_, _, err = client.VolumeCreate(createReq)
 	r.Nil(err)
 
 	// test Quota on dist-rep volume
@@ -84,7 +84,7 @@ func testQuotaEnable(t *testing.T, tc *testCluster) {
 	optionReqOff.Options = map[string]string{quotaKey: "off"}
 
 	// Quota not enabled: no quotad should be there
-	err = client.VolumeSet(volname, optionReqOff)
+	_, err = client.VolumeSet(volname, optionReqOff)
 	r.Contains(err.Error(), "quotad is not enabled")
 
 	// Checking if the quotad is not running
@@ -103,29 +103,31 @@ func testQuotaEnable(t *testing.T, tc *testCluster) {
 	r.True(isProcessRunning(pidpath))
 
 	// check the error for enabling it again
-	err = client.VolumeSet(volname, optionReqOn)
+	_, err = client.VolumeSet(volname, optionReqOn)
 	r.Contains(err.Error(), "process is already running")
 
 	// Checking if the quotad is running
 	r.True(isProcessRunning(pidpath))
 
 	// Disable quota
-	r.Nil(client.VolumeSet(volname, optionReqOff))
+	_, err = client.VolumeSet(volname, optionReqOff)
+	r.Nil(err)
 
 	// Checking if the quotad is not running
 	r.False(isProcessRunning(pidpath))
 
 	// Check the error for disabling it again.
-	err = client.VolumeSet(volname, optionReqOff)
+	_, err = client.VolumeSet(volname, optionReqOff)
 	r.Contains(err.Error(), "quotad is not enabled")
 
 	// Checking if the quotad is not running
 	r.False(isProcessRunning(pidpath))
 
 	// Stop Volume
-	r.Nil(client.VolumeStop(volname), "Volume stop failed")
+	_, err = client.VolumeStop(volname)
+	r.Nil(err, "Volume stop failed")
 	// delete volume
-	err = client.VolumeDelete(volname)
+	_, err = client.VolumeDelete(volname)
 	r.Nil(err)
 
 }

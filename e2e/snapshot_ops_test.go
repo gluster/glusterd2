@@ -59,7 +59,7 @@ func TestSnapshot(t *testing.T) {
 		r.Nil(err)
 	}()
 
-	if err := client.VolumeStart(snapTestName, true); err != nil {
+	if _, err := client.VolumeStart(snapTestName, true); err != nil {
 		r.Nil(err, "Failed to start the volume")
 	}
 
@@ -112,7 +112,7 @@ func volumeCreateOnLvm(volName string, brickPaths []string, client *restclient.C
 		},
 		Force: true,
 	}
-	_, err := client.VolumeCreate(createReq)
+	_, _, err := client.VolumeCreate(createReq)
 	return err
 }
 
@@ -122,7 +122,7 @@ func testSnapshotCreate(t *testing.T) {
 		VolName:  snapTestName,
 		SnapName: snapname,
 	}
-	_, err := client.SnapshotCreate(snapshotCreateReq)
+	_, _, err := client.SnapshotCreate(snapshotCreateReq)
 	r.Nil(err, "snapshot create failed")
 
 	snapshotCreateReq = api.SnapCreateReq{
@@ -132,7 +132,7 @@ func testSnapshotCreate(t *testing.T) {
 		Description: "Snapshot for testing, timestamp and force flags are enabled",
 		Force:       true,
 	}
-	_, err = client.SnapshotCreate(snapshotCreateReq)
+	_, _, err = client.SnapshotCreate(snapshotCreateReq)
 	r.Nil(err, "snapshot create failed")
 
 }
@@ -142,21 +142,23 @@ func testSnapshotClone(t *testing.T) {
 	snapshotCloneReq := api.SnapCloneReq{
 		CloneName: clonename,
 	}
-	_, err := client.SnapshotClone(snapname, snapshotCloneReq)
+	_, _, err := client.SnapshotClone(snapname, snapshotCloneReq)
 	r.Nil(err, "snapshot clone failed")
 
-	err = client.VolumeStart(clonename, true)
+	_, err = client.VolumeStart(clonename, true)
 	r.Nil(err, "Failed to start cloned volume")
 
-	volumes, err := client.Volumes("")
+	volumes, _, err := client.Volumes("")
 	r.Nil(err)
 	r.Len(volumes, 2)
 
-	r.Nil(client.VolumeStop(clonename), "volume stop failed")
+	_, err = client.VolumeStop(clonename)
+	r.Nil(err, "volume stop failed")
 
-	r.Nil(client.VolumeDelete(clonename))
+	_, err = client.VolumeDelete(clonename)
+	r.Nil(err)
 
-	volumes, err = client.Volumes("")
+	volumes, _, err = client.Volumes("")
 	r.Nil(err)
 	r.Len(volumes, 1)
 }
@@ -164,11 +166,11 @@ func testSnapshotClone(t *testing.T) {
 func testSnapshotList(t *testing.T) {
 	r := require.New(t)
 
-	snaps, err := client.SnapshotList("")
+	snaps, _, err := client.SnapshotList("")
 	r.Nil(err)
 	r.Len(snaps[0].SnapName, 2)
 
-	snaps, err = client.SnapshotList(snapTestName)
+	snaps, _, err = client.SnapshotList(snapTestName)
 	r.Nil(err)
 	r.Len(snaps[0].SnapName, 2)
 
@@ -178,7 +180,7 @@ func testSnapshotInfo(t *testing.T) {
 	r := require.New(t)
 
 	//gets the info of the snapname without timestamp
-	_, err := client.SnapshotInfo(snapname)
+	_, _, err := client.SnapshotInfo(snapname)
 	r.Nil(err)
 }
 
@@ -186,12 +188,12 @@ func testSnapshotActivate(t *testing.T) {
 	var snapshotActivateReq api.SnapActivateReq
 	r := require.New(t)
 
-	vols, err := client.SnapshotList(snapTestName)
+	vols, _, err := client.SnapshotList(snapTestName)
 	r.Nil(err)
 
 	for _, snaps := range vols {
 		for _, snapName := range snaps.SnapName {
-			err = client.SnapshotActivate(snapshotActivateReq, snapName)
+			_, err = client.SnapshotActivate(snapshotActivateReq, snapName)
 			r.Nil(err)
 
 			snapshotActivateReq.Force = true
@@ -203,30 +205,30 @@ func testSnapshotActivate(t *testing.T) {
 func testSnapshotDelete(t *testing.T) {
 	r := require.New(t)
 
-	vols, err := client.SnapshotList(snapTestName)
+	vols, _, err := client.SnapshotList(snapTestName)
 	r.Nil(err)
 	r.Len(vols[0].SnapName, 1)
 
 	for _, snaps := range vols {
 		for _, snapName := range snaps.SnapName {
-			err = client.SnapshotDelete(snapName)
+			_, err = client.SnapshotDelete(snapName)
 			r.Nil(err)
 		}
 	}
 
-	vols, err = client.SnapshotList(snapTestName)
+	vols, _, err = client.SnapshotList(snapTestName)
 	r.Nil(err)
 	r.Len(vols[0].SnapName, 0)
 }
 
 func testSnapshotDeactivate(t *testing.T) {
 	r := require.New(t)
-	vols, err := client.SnapshotList(snapTestName)
+	vols, _, err := client.SnapshotList(snapTestName)
 	r.Nil(err)
 
 	for _, snaps := range vols {
 		for _, snapName := range snaps.SnapName {
-			err = client.SnapshotDeactivate(snapName)
+			_, err = client.SnapshotDeactivate(snapName)
 			r.Nil(err)
 		}
 	}
@@ -238,21 +240,21 @@ func testSnapshotStatusForceActivate(t *testing.T) {
 	var result api.SnapStatusResp
 	r := require.New(t)
 
-	vols, err := client.SnapshotList(snapTestName)
+	vols, _, err := client.SnapshotList(snapTestName)
 	r.Nil(err)
 
 	snapName := vols[0].SnapName[0]
-	result, err = client.SnapshotStatus(snapName)
+	result, _, err = client.SnapshotStatus(snapName)
 	r.Nil(err)
 
 	err = daemon.Kill(result.BrickStatus[0].Brick.Pid, true)
-	err = client.SnapshotActivate(snapshotActivateReq, snapName)
+	_, err = client.SnapshotActivate(snapshotActivateReq, snapName)
 	if err == nil {
 		msg := "snapshot activate should have failed"
 		r.Nil(errors.New(msg), msg)
 	}
 	snapshotActivateReq.Force = true
-	err = client.SnapshotActivate(snapshotActivateReq, snapName)
+	_, err = client.SnapshotActivate(snapshotActivateReq, snapName)
 	r.Nil(err)
 
 	retries := 4
@@ -261,7 +263,7 @@ func testSnapshotStatusForceActivate(t *testing.T) {
 	for i := 0; i < retries; i++ {
 		// opposite of exponential backoff
 		time.Sleep(time.Duration(waitTime) * time.Millisecond)
-		result, err = client.SnapshotStatus(snapName)
+		result, _, err = client.SnapshotStatus(snapName)
 		r.Nil(err)
 
 		online := result.BrickStatus[0].Brick.Online
@@ -279,25 +281,25 @@ func testSnapshotRestore(t *testing.T) {
 	var result api.SnapStatusResp
 	r := require.New(t)
 
-	vols, err := client.SnapshotList(snapTestName)
+	vols, _, err := client.SnapshotList(snapTestName)
 	r.Nil(err)
 
 	snapName := vols[0].SnapName[0]
-	result, err = client.SnapshotStatus(snapName)
+	result, _, err = client.SnapshotStatus(snapName)
 	r.Nil(err)
 
 	err = daemon.Kill(result.BrickStatus[0].Brick.Pid, true)
-	err = client.VolumeStop(snapTestName)
+	_, err = client.VolumeStop(snapTestName)
 	r.Nil(err)
 
-	_, err = client.SnapshotRestore(snapName)
+	_, _, err = client.SnapshotRestore(snapName)
 	r.Nil(err)
 
-	snaps, err := client.SnapshotList(snapTestName)
+	snaps, _, err := client.SnapshotList(snapTestName)
 	r.Nil(err)
 	r.Len(snaps[0].SnapName, 1)
 
-	err = client.VolumeStart(snapTestName, true)
+	_, err = client.VolumeStart(snapTestName, true)
 	r.Nil(err)
 
 }

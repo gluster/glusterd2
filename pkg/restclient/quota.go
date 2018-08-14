@@ -6,7 +6,7 @@ import (
 )
 
 // QuotaEnable starts a Gluster Volume
-func (c *Client) QuotaEnable(volname string) error {
+func (c *Client) QuotaEnable(volname string) (*http.Response, error) {
 	url := fmt.Sprintf("/v1/quota/%s", volname)
 	return c.post(url, nil, http.StatusOK, nil)
 }

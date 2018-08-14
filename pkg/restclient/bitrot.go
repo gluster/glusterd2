@@ -8,27 +8,27 @@ import (
 )
 
 // BitrotEnable enables bitrot for a volume
-func (c *Client) BitrotEnable(volname string) error {
+func (c *Client) BitrotEnable(volname string) (*http.Response, error) {
 	url := fmt.Sprintf("/v1/volumes/%s/bitrot/enable", volname)
 	return c.post(url, nil, http.StatusOK, nil)
 }
 
 // BitrotDisable disables bitrot for a volume
-func (c *Client) BitrotDisable(volname string) error {
+func (c *Client) BitrotDisable(volname string) (*http.Response, error) {
 	url := fmt.Sprintf("/v1/volumes/%s/bitrot/disable", volname)
 	return c.post(url, nil, http.StatusOK, nil)
 }
 
 // BitrotScrubOndemand starts bitrot scrubber on demand for a volume
-func (c *Client) BitrotScrubOndemand(volname string) error {
+func (c *Client) BitrotScrubOndemand(volname string) (*http.Response, error) {
 	url := fmt.Sprintf("/v1/volumes/%s/bitrot/scrubondemand", volname)
 	return c.post(url, nil, http.StatusOK, nil)
 }
 
 // BitrotScrubStatus returns bitrot scrub status of a volume
-func (c *Client) BitrotScrubStatus(volname string) (bitrotapi.ScrubStatus, error) {
+func (c *Client) BitrotScrubStatus(volname string) (bitrotapi.ScrubStatus, *http.Response, error) {
 	var scrubStatus bitrotapi.ScrubStatus
 	url := fmt.Sprintf("/v1/volumes/%s/bitrot/scrubstatus", volname)
-	err := c.get(url, nil, http.StatusOK, &scrubStatus)
-	return scrubStatus, err
+	resp, err := c.get(url, nil, http.StatusOK, &scrubStatus)
+	return scrubStatus, resp, err
 }

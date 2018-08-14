@@ -28,7 +28,7 @@ func init() {
 
 func snapshotRestoreCmdRun(cmd *cobra.Command, args []string) {
 	snapname := cmd.Flags().Args()[0]
-	vol, err := client.SnapshotRestore(snapname)
+	vol, _, err := client.SnapshotRestore(snapname)
 	if err != nil {
 		if GlobalFlag.Verbose {
 			log.WithError(err).WithFields(log.Fields{

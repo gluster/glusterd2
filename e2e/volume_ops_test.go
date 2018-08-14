@@ -88,10 +88,11 @@ func testVolumeCreateWithoutName(t *testing.T, tc *testCluster) {
 		},
 		Force: true,
 	}
-	volinfo, err := client.VolumeCreate(createReq)
+	volinfo, _, err := client.VolumeCreate(createReq)
 	r.Nil(err)
 
-	r.Nil(client.VolumeDelete(volinfo.Name))
+	_, err = client.VolumeDelete(volinfo.Name)
+	r.Nil(err)
 }
 
 func testVolumeCreate(t *testing.T, tc *testCluster) {
@@ -129,12 +130,12 @@ func testVolumeCreate(t *testing.T, tc *testCluster) {
 		},
 		Force: true,
 	}
-	_, err := client.VolumeCreate(createReq)
+	_, _, err := client.VolumeCreate(createReq)
 	r.Nil(err)
 
 	//invalid volume name
 	createReq.Name = "##@@#@!#@!!@#"
-	_, err = client.VolumeCreate(createReq)
+	_, _, err = client.VolumeCreate(createReq)
 	r.NotNil(err)
 
 	testDisallowBrickReuse(t, brickPaths[0], tc)
@@ -156,7 +157,7 @@ func testDisallowBrickReuse(t *testing.T, brickInUse string, tc *testCluster) {
 		Force: true,
 	}
 
-	_, err := client.VolumeCreate(createReq)
+	_, _, err := client.VolumeCreate(createReq)
 	r.NotNil(err)
 }
 
@@ -198,28 +199,31 @@ func testVolumeCreateWithFlags(t *testing.T, tc *testCluster) {
 		Flags: flags,
 	}
 
-	_, err := client.VolumeCreate(createReqBrick)
+	_, _, err := client.VolumeCreate(createReqBrick)
 	r.Nil(err)
 
 	//delete volume
-	r.Nil(client.VolumeDelete(volumeName))
+	_, err = client.VolumeDelete(volumeName)
+	r.Nil(err)
 
 	createReqBrick.Name = volumeName
 	//set reuse-brick flag
 	flags["reuse-bricks"] = true
 	createReqBrick.Flags = flags
 
-	_, err = client.VolumeCreate(createReqBrick)
+	_, _, err = client.VolumeCreate(createReqBrick)
 	r.Nil(err)
 
-	r.Nil(client.VolumeDelete(volumeName))
+	_, err = client.VolumeDelete(volumeName)
+	r.Nil(err)
 
 	//recreate deleted volume
-	_, err = client.VolumeCreate(createReqBrick)
+	_, _, err = client.VolumeCreate(createReqBrick)
 	r.Nil(err)
 
 	//delete volume
-	r.Nil(client.VolumeDelete(volumeName))
+	_, err = client.VolumeDelete(volumeName)
+	r.Nil(err)
 
 }
 
@@ -247,7 +251,7 @@ func testVolumeExpand(t *testing.T, tc *testCluster) {
 	}
 
 	//expand with new brick dir which is not created
-	volinfo, err := client.VolumeExpand(volname, expandReq)
+	volinfo, _, err := client.VolumeExpand(volname, expandReq)
 	r.Nil(err)
 
 	// Two subvolumes are added to the volume created by testVolumeCreate,
@@ -261,18 +265,20 @@ func testVolumeExpand(t *testing.T, tc *testCluster) {
 
 func testVolumeDelete(t *testing.T) {
 	r := require.New(t)
-	r.Nil(client.VolumeDelete(volname))
+	_, err := client.VolumeDelete(volname)
+	r.Nil(err)
 }
 
 func testVolumeStart(t *testing.T) {
 	r := require.New(t)
-	r.Nil(client.VolumeStart(volname, false), "volume start failed")
+	_, err := client.VolumeStart(volname, false)
+	r.Nil(err, "volume start failed")
 }
 
 func testVolumeStop(t *testing.T) {
 	r := require.New(t)
-
-	r.Nil(client.VolumeStop(volname), "volume stop failed")
+	_, err := client.VolumeStop(volname)
+	r.Nil(err, "volume stop failed")
 }
 
 func testVolumeList(t *testing.T) {
@@ -291,7 +297,7 @@ func testVolumeList(t *testing.T) {
 		"value": "gd2test",
 	})
 	for _, filter := range matchingQueries {
-		volumes, err := client.Volumes("", filter)
+		volumes, _, err := client.Volumes("", filter)
 		r.Nil(err)
 		r.Len(volumes, 1)
 	}
@@ -307,12 +313,12 @@ func testVolumeList(t *testing.T) {
 		"value": "gd2tests",
 	})
 	for _, filter := range nonMatchingQueries {
-		volumes, err := client.Volumes("", filter)
+		volumes, _, err := client.Volumes("", filter)
 		r.Nil(err)
 		r.Len(volumes, 0)
 	}
 
-	volumes, err := client.Volumes("")
+	volumes, _, err := client.Volumes("")
 	r.Nil(err)
 	r.Len(volumes, 1)
 }
@@ -320,7 +326,7 @@ func testVolumeList(t *testing.T) {
 func testVolumeInfo(t *testing.T) {
 	r := require.New(t)
 
-	_, err := client.Volumes(volname)
+	_, _, err := client.Volumes(volname)
 	r.Nil(err)
 }
 
@@ -330,7 +336,7 @@ func testVolumeStatus(t *testing.T) {
 	}
 	r := require.New(t)
 
-	_, err := client.VolumeStatus(volname)
+	_, _, err := client.VolumeStatus(volname)
 	r.Nil(err)
 }
 
@@ -361,7 +367,9 @@ func testVolumeStatedump(t *testing.T) {
 	// take statedump
 	var req api.VolStatedumpReq
 	req.Bricks = true
-	r.Nil(client.VolumeStatedump(volname, req))
+
+	_, err = client.VolumeStatedump(volname, req)
+	r.Nil(err)
 	// give it some time to ensure the statedumps are generated
 	time.Sleep(1 * time.Second)
 
@@ -443,43 +451,45 @@ func TestVolumeOptions(t *testing.T) {
 	for _, validKey := range validOpKeys {
 		createReq.Options = map[string]string{validKey: "on"}
 
-		_, err = client.VolumeCreate(createReq)
+		_, _, err = client.VolumeCreate(createReq)
 		r.Nil(err)
 
 		// test volume get on valid keys
-		_, err = client.VolumeGet(volname, validKey)
+		_, _, err = client.VolumeGet(volname, validKey)
 		r.Nil(err)
 
 		var resetOptionReq api.VolOptionResetReq
 		resetOptionReq.Options = append(resetOptionReq.Options, validKey)
 		resetOptionReq.Force = true
-		r.Nil(client.VolumeReset(volname, resetOptionReq))
 
-		err = client.VolumeDelete(volname)
+		_, err = client.VolumeReset(volname, resetOptionReq)
+		r.Nil(err)
+
+		_, err = client.VolumeDelete(volname)
 		r.Nil(err)
 	}
 
 	// invalid option test cases
 	for _, invalidKey := range invalidOpKeys {
 		createReq.Options = map[string]string{}
-		_, err = client.VolumeCreate(createReq)
+		_, _, err = client.VolumeCreate(createReq)
 		r.Nil(err)
 
-		_, err = client.VolumeGet(volname, invalidKey)
+		_, _, err = client.VolumeGet(volname, invalidKey)
 		r.NotNil(err)
 
-		err = client.VolumeDelete(volname)
+		_, err = client.VolumeDelete(volname)
 		r.Nil(err)
 
 		createReq.Options = map[string]string{invalidKey: "on"}
 
-		_, err = client.VolumeCreate(createReq)
+		_, _, err = client.VolumeCreate(createReq)
 		r.NotNil(err)
 	}
 
 	// test options that are settable and not settable
 	createReq.Options = nil
-	_, err = client.VolumeCreate(createReq)
+	_, _, err = client.VolumeCreate(createReq)
 	r.Nil(err)
 	var optionReq api.VolOptionReq
 	// XXX: Setting advanced, as all options are advanced by default
@@ -488,51 +498,58 @@ func TestVolumeOptions(t *testing.T) {
 
 	settableKey := "afr.use-compound-fops"
 	optionReq.Options = map[string]string{settableKey: "on"}
-	r.Nil(client.VolumeSet(volname, optionReq))
+	_, err = client.VolumeSet(volname, optionReq)
+	r.Nil(err)
 
 	var resetOptionReq api.VolOptionResetReq
 	resetOptionReq.Options = []string{"afr.use-compound-fops"}
 	resetOptionReq.Force = true
-	r.Nil(client.VolumeReset(volname, resetOptionReq))
+	_, err = client.VolumeReset(volname, resetOptionReq)
+	r.Nil(err)
 
 	validOpKeys = []string{"io-stats.count-fop-hits", "io-stats.latency-measurement"}
 	for _, validKey := range validOpKeys {
 		optionReq.Options = map[string]string{validKey: "on"}
-		r.Nil(client.VolumeSet(volname, optionReq))
+		_, err = client.VolumeSet(volname, optionReq)
+		r.Nil(err)
 	}
 
 	resetOptionReq.Force = true
 	resetOptionReq.All = true
-	r.Nil(client.VolumeReset(volname, resetOptionReq))
+	_, err = client.VolumeReset(volname, resetOptionReq)
+	r.Nil(err)
 
 	notSettableKey := "afr.consistent-io"
 	optionReq.Options = map[string]string{notSettableKey: "on"}
-	r.NotNil(client.VolumeSet(volname, optionReq))
+	_, err = client.VolumeSet(volname, optionReq)
+	r.NotNil(err)
 
-	r.Nil(client.VolumeDelete(volname))
+	_, err = client.VolumeDelete(volname)
+	r.Nil(err)
 
 	// group option test cases
 	groupOpKeys := []string{"tls"}
 	for _, validKey := range groupOpKeys {
 		createReq.Options = map[string]string{validKey: "on"}
 
-		_, err = client.VolumeCreate(createReq)
+		_, _, err = client.VolumeCreate(createReq)
 		r.Nil(err)
 
 		var resetOptionReq api.VolOptionResetReq
 		resetOptionReq.Options = []string{"tls"}
-		r.Nil(client.VolumeReset(volname, resetOptionReq))
+		_, err = client.VolumeReset(volname, resetOptionReq)
+		r.Nil(err)
 
-		err = client.VolumeDelete(volname)
+		_, err = client.VolumeDelete(volname)
 		r.Nil(err)
 	}
 	for _, validKey := range groupOpKeys {
 		createReq.Options = map[string]string{validKey: "off"}
 
-		_, err = client.VolumeCreate(createReq)
+		_, _, err = client.VolumeCreate(createReq)
 		r.Nil(err)
 
-		err = client.VolumeDelete(volname)
+		_, err = client.VolumeDelete(volname)
 		r.Nil(err)
 	}
 
@@ -548,7 +565,7 @@ func TestVolumeOptions(t *testing.T) {
 		// TODO: Remove this later if the default changes
 		Advanced: true,
 	}
-	err = client.OptionGroupCreate(optionGroupReq)
+	_, err = client.OptionGroupCreate(optionGroupReq)
 	r.NotNil(err)
 
 	optionGroupReq = api.OptionGroupReq{
@@ -563,13 +580,14 @@ func TestVolumeOptions(t *testing.T) {
 		// TODO: Remove this later if the default changes
 		Advanced: true,
 	}
-	err = client.OptionGroupCreate(optionGroupReq)
+	_, err = client.OptionGroupCreate(optionGroupReq)
 	r.Nil(err)
 
-	_, err = client.OptionGroupList()
+	_, _, err = client.OptionGroupList()
 	r.Nil(err)
 
-	r.Nil(client.OptionGroupDelete("profile.test2"))
+	_, err = client.OptionGroupDelete("profile.test2")
+	r.Nil(err)
 
 }
 
@@ -598,10 +616,11 @@ func testDisperse(t *testing.T, tc *testCluster) {
 		Force: true,
 	}
 
-	_, err := client.VolumeCreate(createReq)
+	_, _, err := client.VolumeCreate(createReq)
 	r.Nil(err)
 
-	r.Nil(client.VolumeStart(disperseVolName, true), "disperse volume start failed")
+	_, err = client.VolumeStart(disperseVolName, true)
+	r.Nil(err, "disperse volume start failed")
 }
 
 func testDisperseMount(t *testing.T, tc *testCluster) {
@@ -610,8 +629,10 @@ func testDisperseMount(t *testing.T, tc *testCluster) {
 
 func testDisperseDelete(t *testing.T) {
 	r := require.New(t)
-	r.Nil(client.VolumeStop(disperseVolName), "disperse volume stop failed")
-	r.Nil(client.VolumeDelete(disperseVolName), "disperse volume delete failed")
+	_, err := client.VolumeStop(disperseVolName)
+	r.Nil(err, "disperse volume stop failed")
+	_, err = client.VolumeDelete(disperseVolName)
+	r.Nil(err, "disperse volume delete failed")
 }
 
 func validateVolumeEdit(volinfo api.VolumeGetResp, editMetadataReq api.VolEditReq, resp api.VolumeEditResp) error {
@@ -643,9 +664,9 @@ func testEditVolume(t *testing.T) {
 		},
 		DeleteMetadata: false,
 	}
-	resp, err := client.EditVolume(volname, editMetadataReq)
+	resp, _, err := client.EditVolume(volname, editMetadataReq)
 	r.Nil(err)
-	volinfo, err := client.Volumes(volname)
+	volinfo, _, err := client.Volumes(volname)
 	r.Nil(err)
 	err = validateVolumeEdit(volinfo[0], editMetadataReq, resp)
 	r.Nil(err)
@@ -656,9 +677,9 @@ func testEditVolume(t *testing.T) {
 		},
 		DeleteMetadata: false,
 	}
-	resp, err = client.EditVolume(volname, editMetadataReq)
+	resp, _, err = client.EditVolume(volname, editMetadataReq)
 	r.Nil(err)
-	volinfo, err = client.Volumes(volname)
+	volinfo, _, err = client.Volumes(volname)
 	r.Nil(err)
 	err = validateVolumeEdit(volinfo[0], editMetadataReq, resp)
 	r.Nil(err)
@@ -669,9 +690,9 @@ func testEditVolume(t *testing.T) {
 		},
 		DeleteMetadata: true,
 	}
-	resp, err = client.EditVolume(volname, editMetadataReq)
+	resp, _, err = client.EditVolume(volname, editMetadataReq)
 	r.Nil(err)
-	volinfo, err = client.Volumes(volname)
+	volinfo, _, err = client.Volumes(volname)
 	r.Nil(err)
 	err = validateVolumeEdit(volinfo[0], editMetadataReq, resp)
 	r.Nil(err)

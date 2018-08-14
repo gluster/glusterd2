@@ -38,7 +38,7 @@ func TestAddRemovePeer(t *testing.T) {
 			"owner": "gd2test",
 		},
 	}
-	_, err = client.PeerAdd(peerAddReq)
+	_, _, err = client.PeerAdd(peerAddReq)
 	r.Nil(err)
 
 	// add peer: ask g1 to add g3 as peer
@@ -46,14 +46,14 @@ func TestAddRemovePeer(t *testing.T) {
 		Addresses: []string{g3.PeerAddress},
 	}
 
-	peerinfo, err := client.PeerAdd(peerAddReq)
+	peerinfo, _, err := client.PeerAdd(peerAddReq)
 	r.Nil(err)
 
-	_, err = client.GetPeer(peerinfo.ID.String())
+	_, _, err = client.GetPeer(peerinfo.ID.String())
 	r.Nil(err)
 
 	// list and check you have 3 peers in cluster
-	peers, err := client.Peers()
+	peers, _, err := client.Peers()
 	r.Nil(err)
 	r.Len(peers, 3)
 
@@ -71,7 +71,7 @@ func TestAddRemovePeer(t *testing.T) {
 		"value": "gd2test",
 	})
 	for _, filter := range matchingQueries {
-		peers, err := client.Peers(filter)
+		peers, _, err := client.Peers(filter)
 		r.Nil(err)
 		r.Len(peers, 1)
 	}
@@ -87,12 +87,12 @@ func TestAddRemovePeer(t *testing.T) {
 		"value": "gd2tests",
 	})
 	for _, filter := range nonMatchingQueries {
-		peers, err := client.Peers(filter)
+		peers, _, err := client.Peers(filter)
 		r.Nil(err)
 		r.Len(peers, 0)
 	}
 
 	// remove peer: ask g1 to remove g2 as peer
-	err = client.PeerRemove(g2.PeerID())
+	_, err = client.PeerRemove(g2.PeerID())
 	r.Nil(err)
 }

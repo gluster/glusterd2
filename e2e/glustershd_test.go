@@ -43,16 +43,19 @@ func TestSelfHeal(t *testing.T) {
 		},
 		Force: true,
 	}
-	vol1, err := client.VolumeCreate(reqVol)
+	vol1, _, err := client.VolumeCreate(reqVol)
 	r.Nil(err)
 
-	r.Nil(client.VolumeStart(vol1.Name, false), "volume start failed")
+	_, err = client.VolumeStart(vol1.Name, false)
+	r.Nil(err, "volume start failed")
 
-	_, err = client.SelfHealInfo(vol1.Name)
+	_, _, err = client.SelfHealInfo(vol1.Name)
 	r.Nil(err)
-	_, err = client.SelfHealInfo(vol1.Name, "info-summary")
+
+	_, _, err = client.SelfHealInfo(vol1.Name, "info-summary")
 	r.Nil(err)
-	_, err = client.SelfHealInfo(vol1.Name, "split-brain-info")
+
+	_, _, err = client.SelfHealInfo(vol1.Name, "split-brain-info")
 	r.Nil(err)
 
 	var optionReq api.VolOptionReq
@@ -60,12 +63,19 @@ func TestSelfHeal(t *testing.T) {
 	optionReq.Options = map[string]string{"replicate.self-heal-daemon": "on"}
 	optionReq.Advanced = true
 
-	r.Nil(client.VolumeSet(vol1.Name, optionReq))
-	r.Nil(client.SelfHeal(vol1.Name, "index"))
-	r.Nil(client.SelfHeal(vol1.Name, "full"))
+	_, err = client.VolumeSet(vol1.Name, optionReq)
+	r.Nil(err)
+
+	_, err = client.SelfHeal(vol1.Name, "index")
+	r.Nil(err)
+
+	_, err = client.SelfHeal(vol1.Name, "full")
+	r.Nil(err)
 
 	// Stop Volume
-	r.Nil(client.VolumeStop(vol1.Name), "Volume stop failed")
+	_, err = client.VolumeStop(vol1.Name)
+	r.Nil(err, "Volume stop failed")
 	// delete volume
-	r.Nil(client.VolumeDelete(vol1.Name))
+	_, err = client.VolumeDelete(vol1.Name)
+	r.Nil(err)
 }

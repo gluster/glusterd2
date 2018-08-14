@@ -22,6 +22,10 @@ const (
 )
 
 // Client represents Glusterd2 REST Client
+//
+// Note :- Body of http Response returned by sending request
+// from Glusterd2 REST Client is drained and shouldn't be used.
+// We can use returned http Response to check status code, header.
 type Client struct {
 	baseURL     string
 	username    string
@@ -77,37 +81,37 @@ func (c *Client) setAuthToken(r *http.Request) {
 	return
 }
 
-func (c *Client) post(url string, data interface{}, expectStatusCode int, output interface{}) error {
+func (c *Client) post(url string, data interface{}, expectStatusCode int, output interface{}) (*http.Response, error) {
 	return c.do("POST", url, data, expectStatusCode, output)
 }
 
-func (c *Client) put(url string, data interface{}, expectStatusCode int, output interface{}) error {
+func (c *Client) put(url string, data interface{}, expectStatusCode int, output interface{}) (*http.Response, error) {
 	return c.do("PUT", url, data, expectStatusCode, output)
 }
 
-func (c *Client) get(url string, data interface{}, expectStatusCode int, output interface{}) error {
+func (c *Client) get(url string, data interface{}, expectStatusCode int, output interface{}) (*http.Response, error) {
 	return c.do("GET", url, data, expectStatusCode, output)
 }
 
-func (c *Client) del(url string, data interface{}, expectStatusCode int, output interface{}) error {
+func (c *Client) del(url string, data interface{}, expectStatusCode int, output interface{}) (*http.Response, error) {
 	return c.do("DELETE", url, data, expectStatusCode, output)
 }
 
-func (c *Client) do(method string, url string, input interface{}, expectStatusCode int, output interface{}) error {
+func (c *Client) do(method string, url string, input interface{}, expectStatusCode int, output interface{}) (*http.Response, error) {
 	url = fmt.Sprintf("%s%s", c.baseURL, url)
 
 	var body io.Reader
 	if input != nil {
 		reqBody, marshalErr := json.Marshal(input)
 		if marshalErr != nil {
-			return marshalErr
+			return nil, marshalErr
 		}
 		body = bytes.NewReader(reqBody)
 	}
 
 	req, err := http.NewRequest(method, url, body)
 	if err != nil {
-		return err
+		return nil, err
 	}
 	req.Header.Set("Accept", "application/json")
 	req.Header.Set("Content-Type", "application/json")
@@ -127,7 +131,7 @@ func (c *Client) do(method string, url string, input interface{}, expectStatusCo
 		caCertPool := x509.NewCertPool()
 		if caCert, err := ioutil.ReadFile(c.cacert); err != nil {
 			if !c.insecure {
-				return err
+				return nil, err
 			}
 		} else {
 			caCertPool.AppendCertsFromPEM(caCert)
@@ -145,7 +149,7 @@ func (c *Client) do(method string, url string, input interface{}, expectStatusCo
 
 	resp, err := client.Do(req)
 	if err != nil {
-		return err
+		return resp, err
 	}
 	defer resp.Body.Close()
 
@@ -154,24 +158,24 @@ func (c *Client) do(method string, url string, input interface{}, expectStatusCo
 		// to determine that we got an error response instead of
 		// comparing to what's expected ?
 		c.lastRespErr = resp
-		return newHTTPErrorResponse(resp)
+		return resp, newHTTPErrorResponse(resp)
 	}
 
 	b, err := ioutil.ReadAll(resp.Body)
 	if err != nil {
-		return err
+		return resp, err
 	}
 
 	// If a response struct is specified, unmarshall the json response
 	// body into the response struct provided.
 	if output != nil {
-		return json.Unmarshal(b, output)
+		return resp, json.Unmarshal(b, output)
 	}
 
-	return nil
+	return resp, nil
 }
 
 //Ping checks glusterd2 service status
-func (c *Client) Ping() error {
+func (c *Client) Ping() (*http.Response, error) {
 	return c.get("/ping", nil, http.StatusOK, nil)
 }

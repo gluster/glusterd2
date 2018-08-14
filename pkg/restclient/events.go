@@ -8,7 +8,7 @@ import (
 )
 
 // WebhookAdd registers webhook to listen to Gluster Events
-func (c *Client) WebhookAdd(url string, token string, secret string) error {
+func (c *Client) WebhookAdd(url string, token string, secret string) (*http.Response, error) {
 	req := &eventsapi.Webhook{
 		URL:    url,
 		Token:  token,
@@ -18,7 +18,7 @@ func (c *Client) WebhookAdd(url string, token string, secret string) error {
 }
 
 // WebhookDelete deletes the webhook
-func (c *Client) WebhookDelete(url string) error {
+func (c *Client) WebhookDelete(url string) (*http.Response, error) {
 	req := &eventsapi.WebhookDel{
 		URL: url,
 	}
@@ -27,21 +27,21 @@ func (c *Client) WebhookDelete(url string) error {
 }
 
 // Webhooks returns the list of Webhooks listening to Gluster Events
-func (c *Client) Webhooks() (eventsapi.WebhookList, error) {
+func (c *Client) Webhooks() (eventsapi.WebhookList, *http.Response, error) {
 	var resp eventsapi.WebhookList
-	err := c.get("/v1/events/webhook", nil, http.StatusOK, &resp)
-	return resp, err
+	httpResp, err := c.get("/v1/events/webhook", nil, http.StatusOK, &resp)
+	return resp, httpResp, err
 }
 
 // ListEvents returns the list of Gluster Events
-func (c *Client) ListEvents() ([]*api.Event, error) {
+func (c *Client) ListEvents() ([]*api.Event, *http.Response, error) {
 	var resp []*api.Event
-	err := c.get("/v1/events", nil, http.StatusOK, &resp)
-	return resp, err
+	httpResp, err := c.get("/v1/events", nil, http.StatusOK, &resp)
+	return resp, httpResp, err
 }
 
 // WebhookTest tests connection between peers and specified URL
-func (c *Client) WebhookTest(url string, token string, secret string) error {
+func (c *Client) WebhookTest(url string, token string, secret string) (*http.Response, error) {
 	req := &eventsapi.Webhook{
 		URL:    url,
 		Token:  token,

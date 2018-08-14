@@ -44,7 +44,7 @@ func TestGeorepCreateDelete(t *testing.T) {
 		},
 		Force: true,
 	}
-	vol1, err := client.VolumeCreate(reqVol)
+	vol1, _, err := client.VolumeCreate(reqVol)
 	r.Nil(err)
 
 	volname2 := "testvol2"
@@ -61,7 +61,7 @@ func TestGeorepCreateDelete(t *testing.T) {
 		},
 		Force: true,
 	}
-	vol2, err := client.VolumeCreate(reqVol)
+	vol2, _, err := client.VolumeCreate(reqVol)
 	r.Nil(err)
 
 	reqGeorep := georepapi.GeorepCreateReq{
@@ -72,18 +72,18 @@ func TestGeorepCreateDelete(t *testing.T) {
 		},
 	}
 
-	_, err = client.GeorepCreate(vol1.ID.String(), vol2.ID.String(), reqGeorep)
+	_, _, err = client.GeorepCreate(vol1.ID.String(), vol2.ID.String(), reqGeorep)
 	r.Nil(err)
 
 	// delete geo-rep session
-	err = client.GeorepDelete(vol1.ID.String(), vol2.ID.String(), false)
+	_, err = client.GeorepDelete(vol1.ID.String(), vol2.ID.String(), false)
 	r.Nil(err)
 
 	// delete volume
-	err = client.VolumeDelete(volname)
+	_, err = client.VolumeDelete(volname)
 	r.Nil(err)
 
 	// delete volume
-	err = client.VolumeDelete(volname2)
+	_, err = client.VolumeDelete(volname2)
 	r.Nil(err)
 }

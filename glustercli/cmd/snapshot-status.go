@@ -49,7 +49,7 @@ func snapshotStatusHandler(cmd *cobra.Command) error {
 		snapname = cmd.Flags().Args()[0]
 	}
 
-	snap, err := client.SnapshotStatus(snapname)
+	snap, _, err := client.SnapshotStatus(snapname)
 	if err != nil {
 		return err
 	}

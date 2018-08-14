@@ -27,7 +27,7 @@ func snapshotListHandler(cmd *cobra.Command) error {
 		volname = cmd.Flags().Args()[0]
 	}
 
-	snaps, err = client.SnapshotList(volname)
+	snaps, _, err = client.SnapshotList(volname)
 	if err != nil {
 		return err
 	}

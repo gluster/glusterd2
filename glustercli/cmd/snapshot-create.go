@@ -48,7 +48,7 @@ func snapshotCreateCmdRun(cmd *cobra.Command, args []string) {
 		Description: flagSnapshotCreateDescription,
 	}
 
-	snap, err := client.SnapshotCreate(req)
+	snap, _, err := client.SnapshotCreate(req)
 	if err != nil {
 		if GlobalFlag.Verbose {
 			log.WithError(err).WithFields(

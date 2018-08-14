@@ -88,14 +88,14 @@ func setupCluster(configFiles ...string) (*testCluster, error) {
 			Addresses: []string{gd.PeerAddress},
 		}
 
-		if _, err := client.PeerAdd(peerAddReq); err != nil {
+		if _, _, err := client.PeerAdd(peerAddReq); err != nil {
 			return nil, fmt.Errorf("setupCluster(): Peer add failed with error response %s",
 				err.Error())
 		}
 	}
 
 	// fail if the cluster hasn't been formed properly
-	peers, err := client.Peers()
+	peers, _, err := client.Peers()
 	if err != nil {
 		return nil, err
 	}
