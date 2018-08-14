@@ -88,8 +88,10 @@ func getGroupOptionsFromStore() (map[string]*api.OptionGroup, error) {
 	}
 
 	var groupOptions map[string]*api.OptionGroup
-	if err := json.Unmarshal(resp.Kvs[0].Value, &groupOptions); err != nil {
-		return nil, err
+	if resp.Count > 0 {
+		if err := json.Unmarshal(resp.Kvs[0].Value, &groupOptions); err != nil {
+			return nil, err
+		}
 	}
 
 	return groupOptions, nil
