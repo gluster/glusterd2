@@ -20,7 +20,11 @@ var (
 )
 
 func initRESTClient(hostname, user, secret, cacert string, insecure bool) {
-	client = restclient.New(hostname, user, secret, cacert, insecure)
+	var err error
+	client, err = restclient.New(hostname, user, secret, cacert, insecure)
+	if err != nil {
+		failure("failed to setup client", err, 1)
+	}
 	client.SetTimeout(time.Duration(GlobalFlag.Timeout) * time.Second)
 }
 
@@ -55,6 +59,11 @@ func failure(msg string, err error, errcode int) {
 	w := os.Stderr
 
 	w.WriteString(msg + "\n")
+
+	if client == nil && err != nil {
+		fmt.Fprintln(w, err)
+		os.Exit(errcode)
+	}
 
 	resp := client.LastErrorResponse()
 
