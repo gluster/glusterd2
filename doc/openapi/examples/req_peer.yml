@@ -1,0 +1,11 @@
+---
+add:
+  summary: Add Peer
+  value:
+    addresses: ["node1.example.com"]
+
+edit:
+  summary: Edit Peer
+  value:
+    metadata:
+      - added_date: "2018-07-24"

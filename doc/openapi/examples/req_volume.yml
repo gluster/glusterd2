@@ -1,0 +1,24 @@
+---
+auto:
+  summary: Create Volume with auto provisioned bricks
+  value:
+    name: gv1
+    size: 1000
+    replica: 3
+
+manual:
+  summary: Create Volume with manual provisioned bricks
+  value:
+    name: gv1
+    subvols:
+      - type: replicate
+        replica: 3
+        bricks:
+          - peerid: 0c5bc279-397a-4535-be32-301c16dbbc69
+            path: /exports/bricks/gv1/brick1/brick
+
+          - peerid: 7aafd270-b9b2-40b2-ba0e-7289f7d025c0
+            path: /exports/bricks/gv1/brick2/brick
+
+          - peerid: 57470e13-2f9c-4404-9179-fb2ba38cc1d8
+            path: /exports/bricks/gv1/brick3/brick

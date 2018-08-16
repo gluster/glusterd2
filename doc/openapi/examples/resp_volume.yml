@@ -1,0 +1,129 @@
+---
+started:
+  value:
+    name: gv1
+    snap-list: []
+    replica-count: 3
+    arbiter-count: 0
+    id: 95dd8a65-fc4b-447e-ba5b-8a541df319f2
+    state: Started
+    distribute-count: 1
+    type: Replicate
+    options: {}
+    transport: tcp
+    metadata: {}
+    subvols:
+      - name: subvol-0
+        type: Replicate
+        replica-count: 3
+        arbiter-count: 0
+        bricks:
+          - volume-id: 95dd8a65-fc4b-447e-ba5b-8a541df319f2
+            host: node1.example.com
+            peer-id: 9bf0a19f-0680-438c-a213-ba16252c31da
+            volume-name: gv1
+            path: /exports/bricks/gv1/brick1/brick
+            type: brick
+            id: b5f243c1-5705-4f19-acf0-fea36570b706
+
+          - volume-id: 95dd8a65-fc4b-447e-ba5b-8a541df319f2
+            host: node2.example.com
+            peer-id: ea8a2787-4166-43ec-b5b3-e17fad649bae
+            volume-name: gv1
+            path: /exports/bricks/gv1/brick2/brick
+            type: brick
+            id: e31ec08d-7855-40ad-a071-160e7aede43e
+
+          - volume-id: 95dd8a65-fc4b-447e-ba5b-8a541df319f2
+            host: node3.example.com
+            peer-id: fd3d8424-7bea-4a75-a2a8-14f4bd450568
+            volume-name: gv1
+            path: /exports/bricks/gv1/brick3/brick
+            type: brick
+            id: 58cd6364-4245-414e-b0de-b27e380a73c9
+
+stopped:
+  value:
+    name: gv1
+    snap-list: []
+    replica-count: 3
+    arbiter-count: 0
+    id: 95dd8a65-fc4b-447e-ba5b-8a541df319f2
+    state: Stopped
+    distribute-count: 1
+    type: Replicate
+    options: {}
+    transport: tcp
+    metadata: {}
+    subvols:
+      - name: subvol-0
+        type: Replicate
+        replica-count: 3
+        arbiter-count: 0
+        bricks:
+          - volume-id: 95dd8a65-fc4b-447e-ba5b-8a541df319f2
+            host: node1.example.com
+            peer-id: 9bf0a19f-0680-438c-a213-ba16252c31da
+            volume-name: gv1
+            path: /exports/bricks/gv1/brick1/brick
+            type: brick
+            id: b5f243c1-5705-4f19-acf0-fea36570b706
+
+          - volume-id: 95dd8a65-fc4b-447e-ba5b-8a541df319f2
+            host: node2.example.com
+            peer-id: ea8a2787-4166-43ec-b5b3-e17fad649bae
+            volume-name: gv1
+            path: /exports/bricks/gv1/brick2/brick
+            type: brick
+            id: e31ec08d-7855-40ad-a071-160e7aede43e
+
+          - volume-id: 95dd8a65-fc4b-447e-ba5b-8a541df319f2
+            host: node3.example.com
+            peer-id: fd3d8424-7bea-4a75-a2a8-14f4bd450568
+            volume-name: gv1
+            path: /exports/bricks/gv1/brick3/brick
+            type: brick
+            id: 58cd6364-4245-414e-b0de-b27e380a73c9
+
+created:
+  value:
+    name: gv1
+    snap-list: []
+    replica-count: 3
+    arbiter-count: 0
+    id: 95dd8a65-fc4b-447e-ba5b-8a541df319f2
+    state: Created
+    distribute-count: 1
+    type: Replicate
+    options: {}
+    transport: tcp
+    metadata: {}
+    subvols:
+      - name: subvol-0
+        type: Replicate
+        replica-count: 3
+        arbiter-count: 0
+        bricks:
+          - volume-id: 95dd8a65-fc4b-447e-ba5b-8a541df319f2
+            host: node1.example.com
+            peer-id: 9bf0a19f-0680-438c-a213-ba16252c31da
+            volume-name: gv1
+            path: /exports/bricks/gv1/brick1/brick
+            type: brick
+            id: b5f243c1-5705-4f19-acf0-fea36570b706
+
+          - volume-id: 95dd8a65-fc4b-447e-ba5b-8a541df319f2
+            host: node2.example.com
+            peer-id: ea8a2787-4166-43ec-b5b3-e17fad649bae
+            volume-name: gv1
+            path: /exports/bricks/gv1/brick2/brick
+            type: brick
+            id: e31ec08d-7855-40ad-a071-160e7aede43e
+
+          - volume-id: 95dd8a65-fc4b-447e-ba5b-8a541df319f2
+            host: node3.example.com
+            peer-id: fd3d8424-7bea-4a75-a2a8-14f4bd450568
+            volume-name: gv1
+            path: /exports/bricks/gv1/brick3/brick
+            type: brick
+            id: 58cd6364-4245-414e-b0de-b27e380a73c9

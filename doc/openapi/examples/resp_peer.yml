@@ -1,0 +1,39 @@
+---
+peers:
+  summary: Peers information
+  value:
+    - id: 3203f226-b37f-42da-83fe-0fe8d043d995
+      name: node1.example.com
+      peer-addresses: ["node1.example.com"]
+      client-addresses: ["127.0.0.1:24007","192.168.122.12:24007"]
+      online: true
+      metadata:
+        _zone: 3203f226-b37f-42da-83fe-0fe8d043d995
+
+    - id: a185f11a-630e-4776-995c-ff2cb84dfa91
+      name: node2.example.com
+      peer-addresses: ["node2.example.com"]
+      client-addresses: ["127.0.0.1:24007","192.168.122.14:24007"]
+      online: true
+      metadata:
+        _zone: a185f11a-630e-4776-995c-ff2cb84dfa91
+
+    - id: ef27499e-9793-434d-b922-116ff4a315c7
+      name: node3.example.com
+      peer-addresses: ["node3.example.com"]
+      client-addresses: ["127.0.0.1:24007","192.168.122.16:24007"]
+      online: true
+      metadata:
+        _zone: ef27499e-9793-434d-b922-116ff4a315c7
+
+
+peer:
+  summary: Peer information
+  value:
+    id: 3203f226-b37f-42da-83fe-0fe8d043d995
+    name: node1.example.com
+    peer-addresses: ["node1.example.com"]
+    client-addresses: ["127.0.0.1:24007","192.168.122.12:24007"]
+    online: true
+    metadata:
+      _zone: 3203f226-b37f-42da-83fe-0fe8d043d995
