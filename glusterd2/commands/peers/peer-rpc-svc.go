@@ -53,13 +53,22 @@ func (p *PeerService) Join(ctx context.Context, req *JoinReq) (*JoinRsp, error) 
 
 	// TODO: Ensure no other operations are happening
 
-	peers, _ := peer.GetPeersF()
+	peers, err := peer.GetPeersF()
+	if err != nil {
+		logger.WithError(err).Error("failed to connect to store")
+		return &JoinRsp{"", int32(ErrFailedToConnectToStore)}, nil
+	}
 	if len(peers) != 1 {
 		logger.Info("rejecting join, already part of a cluster")
 		return &JoinRsp{"", int32(ErrAnotherCluster)}, nil
 	}
 
-	volumes, _ := volume.GetVolumes()
+	volumes, err := volume.GetVolumes()
+	if err != nil {
+		logger.WithError(err).Error("failed to connect to store")
+		return &JoinRsp{"", int32(ErrFailedToConnectToStore)}, nil
+	}
+
 	if len(volumes) != 0 {
 		logger.Info("rejecting join, we already have volumes")
 		return &JoinRsp{"", int32(ErrAnotherCluster)}, nil
