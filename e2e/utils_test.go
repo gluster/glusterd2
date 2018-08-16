@@ -75,7 +75,10 @@ func setupCluster(configFiles ...string) (*testCluster, error) {
 	}
 
 	// restclient instance that will be used for peer operations
-	client := initRestclient(tc.gds[0])
+	client, err := initRestclient(tc.gds[0])
+	if err != nil {
+		return tc, err
+	}
 
 	// first gd2 instance spawned shall add other glusterd2 instances as its peers
 	for i, gd := range tc.gds {
@@ -124,7 +127,7 @@ func teardownCluster(tc *testCluster) error {
 	return nil
 }
 
-func initRestclient(gdp *gdProcess) *restclient.Client {
+func initRestclient(gdp *gdProcess) (*restclient.Client, error) {
 	secret := getAuth(gdp.LocalStateDir)
 	return restclient.New("http://"+gdp.ClientAddress, "glustercli", secret, "", false)
 }

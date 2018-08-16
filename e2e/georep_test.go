@@ -28,7 +28,9 @@ func TestGeorepCreateDelete(t *testing.T) {
 		brickPaths = append(brickPaths, brickPath)
 	}
 
-	client := initRestclient(tc.gds[0])
+	client, err := initRestclient(tc.gds[0])
+	r.Nil(err)
+	r.NotNil(client)
 
 	volname := formatVolName(t.Name())
 	reqVol := api.VolCreateReq{

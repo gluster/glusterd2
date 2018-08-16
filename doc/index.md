@@ -3,7 +3,7 @@
 ## User Documentation
 
 * [Quick Start Guide](quick-start-user-guide.md)
-* [REST API Reference](doc/endpoints.md)
+* [REST API Reference](endpoints.md)
 * [Network and firewall configuration](network.md)
 
 ## Developer Documentation
