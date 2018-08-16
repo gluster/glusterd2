@@ -103,8 +103,8 @@ type volumeDetails struct {
 	nodes   []georepapi.GeorepRemoteHostReq
 }
 
-func getVolumeDetails(volname string, rclient *restclient.Client) (*volumeDetails, error) {
-	var c *restclient.Client
+func getVolumeDetails(volname string, rclient restclient.GlusterD2Client) (*volumeDetails, error) {
+	var c restclient.GlusterD2Client
 	var master bool
 
 	if rclient == nil {
@@ -334,7 +334,7 @@ var georepDeleteCmd = &cobra.Command{
 	},
 }
 
-func getRemoteClient(host string) (string, *restclient.Client, error) {
+func getRemoteClient(host string) (string, restclient.GlusterD2Client, error) {
 	// TODO: Handle Remote Cluster Authentication and certificates and URL scheme
 	clienturl := flagGeorepRemoteEndpoints
 

@@ -11,7 +11,7 @@ import (
 )
 
 var (
-	client                       *restclient.Client
+	client                       restclient.GlusterD2Client
 	logWriter                    io.WriteCloser
 	errFailedToConnectToGlusterd = `Failed to connect to glusterd. Please check if
 - Glusterd is running(%s) and reachable from this node.
@@ -20,12 +20,12 @@ var (
 )
 
 func initRESTClient(hostname, user, secret, cacert string, insecure bool) {
-	var err error
-	client, err = restclient.New(hostname, user, secret, cacert, insecure)
+	gd2Client, err := restclient.New(hostname, user, secret, cacert, insecure)
 	if err != nil {
 		failure("failed to setup client", err, 1)
 	}
-	client.SetTimeout(time.Duration(GlobalFlag.Timeout) * time.Second)
+	gd2Client.SetTimeout(time.Duration(GlobalFlag.Timeout) * time.Second)
+	client = gd2Client
 }
 
 func isConnectionRefusedErr(err error) bool {
@@ -54,35 +54,36 @@ func handleGlusterdConnectFailure(msg, endpoints string, err error, errcode int)
 
 func failure(msg string, err error, errcode int) {
 
+	w := os.Stderr
+	exit := func(err error) {
+		if err != nil {
+			fmt.Fprintln(w, err)
+		}
+		os.Exit(errcode)
+	}
+
 	handleGlusterdConnectFailure(msg, GlobalFlag.Endpoints[0], err, errcode)
 
-	w := os.Stderr
+	fmt.Fprintln(w, msg)
 
-	w.WriteString(msg + "\n")
-
-	if client == nil && err != nil {
-		fmt.Fprintln(w, err)
-		os.Exit(errcode)
+	gd2client, ok := client.(*restclient.Client)
+	if client == nil || !ok {
+		exit(err)
 	}
 
-	resp := client.LastErrorResponse()
-
-	if resp == nil && err != nil {
-		fmt.Fprintln(w, err)
-		os.Exit(errcode)
+	resp := gd2client.LastErrorResponse()
+	if resp == nil {
+		exit(err)
 	}
 
-	if err != nil {
-		w.WriteString("\nResponse headers:\n")
-		for k, v := range resp.Header {
-			if strings.HasSuffix(k, "-Id") {
-				w.WriteString(fmt.Sprintf("%s: %s\n", k, v[0]))
+	fmt.Fprintln(w, "\nResponse headers:")
+	for k, vals := range resp.Header {
+		if strings.HasSuffix(k, "-Id") {
+			for _, val := range vals {
+				fmt.Fprintf(w, "%s: %s\n", k, val)
 			}
 		}
-
-		w.WriteString("\nResponse body:\n")
-		w.WriteString(fmt.Sprintf("%s\n", err.Error()))
 	}
-
-	os.Exit(errcode)
+	fmt.Fprintln(w, "\nResponse body:")
+	exit(err)
 }
