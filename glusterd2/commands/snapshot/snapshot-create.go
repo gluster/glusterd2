@@ -248,18 +248,18 @@ func storeSnapshot(c transaction.TxnCtx) error {
 	return nil
 }
 
-func unmarshalSnapCreateRequest(msg *api.SnapCreateReq, r *http.Request) (int, error) {
+func unmarshalSnapCreateRequest(msg *api.SnapCreateReq, r *http.Request) error {
 	if err := restutils.UnmarshalRequest(r, msg); err != nil {
-		return 422, gderrors.ErrJSONParsingFailed
+		return gderrors.ErrJSONParsingFailed
 	}
 
 	if msg.VolName == "" {
-		return http.StatusBadRequest, gderrors.ErrEmptyVolName
+		return gderrors.ErrEmptyVolName
 	}
 	if msg.SnapName == "" {
-		return http.StatusBadRequest, gderrors.ErrEmptySnapName
+		return gderrors.ErrEmptySnapName
 	}
-	return 0, nil
+	return nil
 }
 func updateMntOps(FsType, MntOpts string) string {
 	switch FsType {
@@ -693,10 +693,10 @@ func snapshotCreateHandler(w http.ResponseWriter, r *http.Request) {
 	logger := gdctx.GetReqLogger(ctx)
 	var snapInfo snapshot.Snapinfo
 
-	httpStatus, err := unmarshalSnapCreateRequest(req, r)
+	err := unmarshalSnapCreateRequest(req, r)
 	if err != nil {
 		logger.WithError(err).Error("Failed to unmarshal snaphot create request")
-		restutils.SendHTTPError(ctx, w, httpStatus, err)
+		restutils.SendHTTPError(ctx, w, http.StatusBadRequest, err)
 		return
 	}
 	if req.TimeStamp == true {
@@ -774,7 +774,7 @@ func snapshotCreateHandler(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	txn.Ctx.Logger().WithField("SnapName", req.SnapName).Info("new snapshot created with status ", httpStatus)
+	txn.Ctx.Logger().WithField("SnapName", req.SnapName).Info("new snapshot created")
 	err = txn.Ctx.Get("snapinfo", &snapInfo)
 	if err != nil {
 		logger.WithError(err).Error("failed to get snap volinfo in transaction context")

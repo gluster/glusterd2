@@ -2,6 +2,7 @@ package snapshotcommands
 
 import (
 	"errors"
+	"io"
 	"net/http"
 
 	"github.com/gluster/glusterd2/glusterd2/brick"
@@ -166,7 +167,7 @@ func snapshotActivateHandler(w http.ResponseWriter, r *http.Request) {
 
 	var req api.SnapActivateReq
 	vol = &snapinfo.SnapVolinfo
-	if err := restutils.UnmarshalRequest(r, &req); err != nil {
+	if err := restutils.UnmarshalRequest(r, &req); err != nil && err != io.EOF {
 		restutils.SendHTTPError(ctx, w, http.StatusBadRequest, err)
 		return
 	}
