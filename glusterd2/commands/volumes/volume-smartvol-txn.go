@@ -2,6 +2,7 @@ package volumecommands
 
 import (
 	"os"
+	"strings"
 
 	"github.com/gluster/glusterd2/glusterd2/gdctx"
 	"github.com/gluster/glusterd2/glusterd2/transaction"
@@ -25,9 +26,10 @@ func txnPrepareBricks(c transaction.TxnCtx) error {
 			}
 
 			// Create Mount directory
-			err := os.MkdirAll(b.Mountdir, os.ModeDir|os.ModePerm)
+			mountRoot := strings.TrimSuffix(b.Path, b.Mountdir)
+			err := os.MkdirAll(mountRoot, os.ModeDir|os.ModePerm)
 			if err != nil {
-				c.Logger().WithError(err).WithField("path", b.Mountdir).Error("failed to create brick mount directory")
+				c.Logger().WithError(err).WithField("path", mountRoot).Error("failed to create brick mount directory")
 				return err
 			}
 
@@ -63,11 +65,11 @@ func txnPrepareBricks(c transaction.TxnCtx) error {
 			}
 
 			// Mount the Created FS
-			err = deviceutils.BrickMount(b.DevicePath, b.Mountdir)
+			err = deviceutils.BrickMount(b.DevicePath, mountRoot)
 			if err != nil {
 				c.Logger().WithError(err).WithFields(log.Fields{
 					"dev":  b.DevicePath,
-					"path": b.Mountdir,
+					"path": mountRoot,
 				}).Error("brick mount failed")
 				return err
 			}
@@ -103,9 +105,10 @@ func txnUndoPrepareBricks(c transaction.TxnCtx) error {
 			}
 
 			// UnMount the Brick
-			err := deviceutils.BrickUnmount(b.Mountdir)
+			mountRoot := strings.TrimSuffix(b.Path, b.Mountdir)
+			err := deviceutils.BrickUnmount(mountRoot)
 			if err != nil {
-				c.Logger().WithError(err).WithField("path", b.Mountdir).Error("brick unmount failed")
+				c.Logger().WithError(err).WithField("path", mountRoot).Error("brick unmount failed")
 			}
 
 			// Remove LV
