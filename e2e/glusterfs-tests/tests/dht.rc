@@ -1,0 +1,135 @@
+#!/bin/bash
+
+
+function get_layout()
+{
+        getfattr -n trusted.glusterfs.dht -e hex $1 2>&1 | grep dht | cut -d = -f2
+}
+
+## populates $BRICK1 and $BRICK2 with hashed/cached subvolume. These will be
+## used by get_cached_brick and get_hashed_brick
+
+function file_has_linkfile()
+{
+        k=0
+        l=0
+        while [ $k -lt $BRICK_COUNT ]
+        do
+                stat=$(stat $B0/${V0}$k/$1 2>/dev/null)
+                if [ $? -eq 0 ]
+                then
+                        let l++
+                        let "BRICK${l}=$k"
+
+                fi
+                let k++
+        done
+        return $l
+}
+
+function get_cached_brick()
+{
+        i=1
+        brick=$BRICK1
+        while [ $i -lt 3 ]
+        do
+                test=$(getfattr -n trusted.glusterfs.dht.linkto -e text $B0/${V0}$brick/$1 2>&1)
+                if [ $? -eq 1 ]
+                then
+                        cached=$brick
+                        i=$(( $i+3 ))
+                fi
+                brick=$BRICK1
+                let i++
+        done
+
+        return $cached
+}
+
+function get_hashed_brick()
+{
+        j=1
+        brick=$BRICK1
+        while [ $j -lt 3 ]
+        do
+                test=$(getfattr -n trusted.glusterfs.dht.linkto -e text $B0/${V0}$brick/$1 2>&1)
+                if [ $? -eq 0 ]
+                then
+                        hashed=$brick
+                        j=$(( $j+3 ))
+                fi
+                brick=$BRICK2
+                let j++
+        done
+
+        return $hashed
+}
+
+
+function cluster_rebalance_completed()
+{
+       val=1
+
+       # Rebalance status will be either "failed" or "completed"
+
+       test=$($CLI_1 volume rebalance $V0 status | grep "in progress" 2>&1)
+       if [ $? -ne 0 ]
+       then
+               val=0
+       fi
+
+       echo $val
+       # Do not *return* the value here.  If it's non-zero, that will cause
+       # EXPECT_WITHIN (e.g. in bug-884455.t) to return prematurely, leading to
+       # a spurious test failure.  Nothing else checks the return value anyway
+       # (they all check the output) so there's no need for it to be non-zero
+       # just because grep didn't find what we want.
+}
+
+function rebalance_completed()
+{
+       val=1
+       test=$($CLI volume rebalance $V0 status | grep localhost | grep "completed" 2>&1)
+       if [ $? -eq 0 ]
+       then
+               val=0
+       fi
+
+       echo $val
+       # Do not *return* the value here.  If it's non-zero, that will cause
+       # EXPECT_WITHIN (e.g. in bug-884455.t) to return prematurely, leading to
+       # a spurious test failure.  Nothing else checks the return value anyway
+       # (they all check the output) so there's no need for it to be non-zero
+       # just because grep didn't find what we want.
+}
+
+function remove_brick_completed()
+{
+       val=1
+       test=$(gluster volume remove-brick $V0 $H0:$B0/${V0}2 status | grep localhost | grep "completed" 2>&1)
+       if [ $? -eq 0 ]
+       then
+                val=0
+       fi
+
+       echo $val
+}
+
+function dht_get_linkto_target()
+{
+        local path=$1;
+        echo $(getfattr -e text --only-values --absolute-names -n trusted.glusterfs.dht.linkto $path)
+}
+
+function is_dht_linkfile()
+{
+        local path=$1
+        retval=0
+        local output=$(stat -c %a $path)
+        if [ $output -eq 1000 ]; then
+                 retval=1
+        fi
+
+        echo $retval
+        return $retval
+}

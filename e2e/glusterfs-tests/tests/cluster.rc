@@ -1,0 +1,193 @@
+#!/bin/bash
+
+CLUSTER_PFX="127.1.1"; # ".x" for each glusterd
+CLUSTER_COUNT=1; # Just initial definition
+
+function launch_cluster() {
+    local count=$1;
+
+    CLUSTER_COUNT=$count;
+
+    define_backends $count;
+    define_hosts $count;
+    define_glusterds $count $2;
+    define_clis $count;
+
+    start_glusterds;
+}
+
+
+function define_backends() {
+    local b;
+
+    for i in `seq 1 $count`; do
+        eval "B$i=$B0/$i";
+    done
+
+    for i in `seq 1 $count`; do
+        b="B$i";
+        mkdir -p ${!b}/glusterd;
+        mkdir -p ${!b}/run;
+    done
+}
+
+
+function define_glusterds() {
+    local count=$1;
+    local h;
+    local b;
+    local wopt;
+    local bopt;
+    local popt;
+
+    for i in `seq 1 $count`; do
+        b="B$i";
+        h="H$i";
+        wopt="management.working-directory=${!b}/glusterd";
+        ropt="management.run-directory=${!b}/run/gluster";
+        bopt="management.transport.socket.bind-address=${!h}";
+        popt="--pid-file=${!b}/glusterd.pid";
+        sopt="management.glusterd-sockfile=${!b}/glusterd/gd.sock"
+        #Get the logdir
+        logdir=`gluster --print-logdir`
+        #Fetch the testcases name and prefix the glusterd log with it
+        logfile=`echo ${0##*/}`_glusterd$i.log
+        lopt="--log-file=$logdir/$logfile"
+        if [ "$2" == "-LDEBUG" ]; then
+            eval "glusterd_$i='glusterd -LDEBUG --xlator-option $wopt --xlator-option $bopt --xlator-option $ropt --xlator-option $sopt $lopt $popt'";
+            eval "glusterd$i='glusterd -LDEBUG --xlator-option $wopt --xlator-option $bopt --xlator-option $ropt --xlator-option $sopt $lopt $popt'";
+        else
+            eval "glusterd_$i='glusterd --xlator-option $wopt --xlator-option $bopt --xlator-option $ropt --xlator-option $sopt $lopt $popt'";
+            eval "glusterd$i='glusterd --xlator-option $wopt --xlator-option $bopt --xlator-option $ropt --xlator-option $sopt $lopt $popt'";
+        fi
+    done
+}
+
+function start_glusterd() {
+    local g
+    local index=$1
+
+    g="glusterd_${index}"
+    ${!g}
+}
+
+function start_glusterds() {
+    for i in `seq 1 $CLUSTER_COUNT`; do
+        start_glusterd $i
+    done
+}
+
+
+function kill_glusterd() {
+    local index=$1;
+    local b;
+    local pidfile;
+
+    b="B$index";
+    pidfile="${!b}/glusterd.pid";
+
+    kill `cat $pidfile`;
+}
+
+
+function kill_node() {
+    local index=$1;
+    local h;
+
+    h="H$index";
+
+    terminate_pids $(ps -ef | grep gluster | grep ${!h} | awk '{print $2}')
+    find $B0/$index/glusterd/vols -name '*.pid' | xargs rm -f
+}
+
+
+function define_hosts() {
+    local count=$1;
+
+    for i in `seq 1 $count`; do
+        eval "H_$i=${CLUSTER_PFX}.$i"
+        eval "H$i=${CLUSTER_PFX}.$i";
+        case $OSTYPE in
+        NetBSD)
+                ifconfig lo0 alias ${CLUSTER_PFX}.$i 2>/dev/null
+                ;;
+        *)
+                ;;
+        esac
+    done
+}
+
+
+function define_clis() {
+    local count=$1;
+    local h;
+
+    for i in `seq 1 $count`; do
+        b="B$i";
+        #get the logdir
+        logdir=`gluster --print-logdir`
+        #Fetch the testcases name and prefix the cli log with it
+        logfile=`echo ${0##*/}`_cli$i.log
+        lopt="--log-file=$logdir/$logfile"
+        logfile1=`echo ${0##*/}`_cli_$i.log
+        lopt1="--log-file=$logdir/$logfile1"
+
+
+        eval "CLI_$i='$CLI --glusterd-sock=${!b}/glusterd/gd.sock $lopt'";
+        eval "CLI$i='$CLI --glusterd-sock=${!b}/glusterd/gd.sock $lopt1'";
+    done
+}
+
+function peer_count() {
+    $CLI_1 peer status | grep 'Peer in Cluster (Connected)' | wc -l
+}
+
+function attempt_replace_brick {
+    local cli_no=$1
+    local vol=$2;
+    local src_brick=$3;
+    local dst_brick=$4;
+
+    eval \$CLI_$cli_no volume replace-brick $vol $src_brick $dst_brick commit force;
+    echo $?
+}
+
+function cluster_rebalance_status_field {
+        #The rebalance status can be up to 3 words, (e.g.:'fix-layout in progress'), hence the awk-print $7 thru $9.
+        #But if the status is less than 3 words, it also prints the next field i.e the run_time_in_secs.(e.g.:'completed 3.00').
+        #So we trim the numbers out with  `tr`. Finally remove the trailing white spaces with sed. What we get is one of the
+        #strings in the 'cli_vol_task_status_str' char array of cli-rpc-ops.c
+
+        eval  \$CLI_$1 volume rebalance $2 status | awk '{print $7,$8,$9}' |sed -n 3p |tr -d '[^0-9+\.]'|sed 's/ *$//g'
+}
+
+function cluster_volinfo_field()
+{
+    local vol=$2;
+    local field=$3;
+    eval  \$CLI_$1  volume info $vol | grep "^$field: " | sed 's/.*: //';
+}
+
+function volinfo_field_1()
+{
+    local vol=$1;
+    local field=$2;
+
+    $CLI_1 volume info $vol | grep "^$field: " | sed 's/.*: //';
+}
+
+function volinfo_field_2()
+{
+    local vol=$1;
+    local field=$2;
+
+    $CLI_2 volume info $vol | grep "^$field: " | sed 's/.*: //';
+}
+
+function brick_up_status_1 {
+        local vol=$1
+        local host=$2
+        local brick=$3
+        $CLI_1 volume status $vol $host:$brick --xml | sed -ne 's/.*<status>\([01]\)<\/status>/\1/p'
+}
+
