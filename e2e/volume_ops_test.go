@@ -7,6 +7,7 @@ import (
 	"net"
 	"os"
 	"os/exec"
+	"path"
 	"path/filepath"
 	"strings"
 	"testing"
@@ -67,6 +68,7 @@ func TestVolume(t *testing.T) {
 	t.Run("Disperse", tc.wrap(testDisperse))
 	t.Run("DisperseMount", tc.wrap(testDisperseMount))
 	t.Run("DisperseDelete", testDisperseDelete)
+	t.Run("testShdOnVolumeStartAndStop", tc.wrap(testShdOnVolumeStartAndStop))
 }
 
 func testVolumeCreateWithoutName(t *testing.T, tc *testCluster) {
@@ -681,4 +683,99 @@ func testEditVolume(t *testing.T) {
 	r.Nil(err)
 	err = validateVolumeEdit(volinfo[0], editMetadataReq, resp)
 	r.Nil(err)
+}
+
+func testShdOnVolumeStartAndStop(t *testing.T, tc *testCluster) {
+	r := require.New(t)
+
+	brickDir, err := ioutil.TempDir(baseLocalStateDir, t.Name())
+	r.Nil(err)
+	defer os.RemoveAll(brickDir)
+	//glustershd pid file path
+	pidpath := path.Join(tc.gds[0].Rundir, "glustershd.pid")
+
+	var vol1brickPaths [2]string
+	for i := 1; i <= 2; i++ {
+		brickPath, err := ioutil.TempDir(brickDir, "brick1")
+		r.Nil(err)
+		vol1brickPaths[i-1] = brickPath
+	}
+
+	volname := formatVolName(t.Name())
+	reqVol := api.VolCreateReq{
+		Name: volname,
+		Subvols: []api.SubvolReq{
+			{
+				ReplicaCount: 2,
+				Type:         "replicate",
+				Bricks: []api.BrickReq{
+					{PeerID: tc.gds[0].PeerID(), Path: vol1brickPaths[0]},
+					{PeerID: tc.gds[0].PeerID(), Path: vol1brickPaths[1]},
+				},
+			},
+		},
+		Force: true,
+	}
+	vol1, err := client.VolumeCreate(reqVol)
+	r.Nil(err)
+
+	var optionReq api.VolOptionReq
+	optionReq.Options = map[string]string{"replicate.self-heal-daemon": "on"}
+	optionReq.Advanced = true
+
+	r.Nil(client.VolumeSet(vol1.Name, optionReq))
+
+	//create one more volume to check how glustershd behaves if we have multiple volumes
+	var vol2brickPaths [2]string
+	for i := 1; i <= 2; i++ {
+		brickPath, err := ioutil.TempDir(brickDir, "brick1")
+		r.Nil(err)
+		vol2brickPaths[i-1] = brickPath
+	}
+
+	volname = formatVolName(t.Name() + "2")
+	reqVol = api.VolCreateReq{
+		Name: volname,
+		Subvols: []api.SubvolReq{
+			{
+				ReplicaCount: 2,
+				Type:         "replicate",
+				Bricks: []api.BrickReq{
+					{PeerID: tc.gds[0].PeerID(), Path: vol2brickPaths[0]},
+					{PeerID: tc.gds[0].PeerID(), Path: vol2brickPaths[1]},
+				},
+			},
+		},
+		Force: true,
+	}
+	vol2, err := client.VolumeCreate(reqVol)
+	r.Nil(err)
+
+	r.Nil(client.VolumeSet(vol2.Name, optionReq))
+
+	r.Nil(client.VolumeStart(vol1.Name, false))
+	r.True(isProcessRunning(pidpath), "glustershd is not running")
+
+	//glustershd is already started
+	r.Nil(client.VolumeStart(vol2.Name, false))
+	r.True(isProcessRunning(pidpath), "glustershd is not running")
+
+	//if we stop one volume, glustershd should be running as another
+	//volume is in started state
+	r.Nil(client.VolumeStop(vol1.Name))
+	r.True(isProcessRunning(pidpath), "glustershd is not running")
+
+	//if both the volumes are in the stopped state, glustershd shouldn't be running
+	r.Nil(client.VolumeStop(vol2.Name))
+	r.False(isProcessRunning(pidpath), "glustershd is running")
+
+	//Restart the volume and check glustershd status
+	r.Nil(client.VolumeStart(vol1.Name, false))
+	r.True(isProcessRunning(pidpath), "glustershd is not running")
+
+	r.Nil(client.VolumeStop(vol1.Name))
+	r.False(isProcessRunning(pidpath), "glustershd is running")
+
+	r.Nil(client.VolumeDelete(vol1.Name))
+	r.Nil(client.VolumeDelete(vol2.Name))
 }
