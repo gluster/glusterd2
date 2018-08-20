@@ -218,6 +218,11 @@ var volumeDeleteCmd = &cobra.Command{
 	Args:  cobra.ExactArgs(1),
 	Run: func(cmd *cobra.Command, args []string) {
 		volname := cmd.Flags().Args()[0]
+		if !GlobalFlag.ScriptMode {
+			if ok := PromptConfirm("Are you sure you want to delete volume %s [yes/no]? ", volname); !ok {
+				return
+			}
+		}
 		err := client.VolumeDelete(volname)
 		if err != nil {
 			if GlobalFlag.Verbose {

@@ -2,8 +2,10 @@ package cmd
 
 import (
 	"errors"
+	"fmt"
 	"regexp"
 	"strconv"
+	"strings"
 )
 
 var (
@@ -53,4 +55,21 @@ func sizeToMb(value string) (uint64, error) {
 		size = sizeValue
 	}
 	return size, nil
+}
+
+func readString(prompt string, args ...interface{}) string {
+	var s string
+	fmt.Printf(prompt, args...)
+	fmt.Scanln(&s)
+	return s
+}
+
+// PromptConfirm prompts for confirmation
+func PromptConfirm(prompt string, args ...interface{}) bool {
+	switch strings.ToLower(readString(prompt, args...)) {
+	case "yes", "y":
+		return true
+	default:
+		return false
+	}
 }
