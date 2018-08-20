@@ -3,7 +3,7 @@ package bricksplanner
 import (
 	"errors"
 	"fmt"
-	"path/filepath"
+	"path"
 
 	"github.com/gluster/glusterd2/glusterd2/volume"
 	"github.com/gluster/glusterd2/pkg/api"
@@ -64,13 +64,7 @@ func handleDisperseSubvolReq(req *api.VolCreateReq) error {
 // not available with the layout
 func getBricksLayout(req *api.VolCreateReq) ([]api.SubvolReq, error) {
 	var err error
-	bricksMountRoot := config.GetString("bricksmountroot")
-	if bricksMountRoot == "" {
-		bricksMountRoot, err = filepath.Abs(config.GetString("localstatedir") + "/mounts")
-		if err != nil {
-			return nil, err
-		}
-	}
+	bricksMountRoot := path.Join(config.GetString("rundir"), "/bricks")
 
 	// If Distribute count is zero then automatically decide
 	// the distribute count based on available size in each device
@@ -128,10 +122,10 @@ func getBricksLayout(req *api.VolCreateReq) ([]api.SubvolReq, error) {
 
 			bricks = append(bricks, api.BrickReq{
 				Type:           brickType,
-				Path:           fmt.Sprintf("%s/%s-s%d-b%d/brick", bricksMountRoot, req.Name, i, j),
-				Mountdir:       fmt.Sprintf("%s/%s-s%d-b%d", bricksMountRoot, req.Name, i, j),
-				TpName:         fmt.Sprintf("tp-%s-s%d-b%d", req.Name, i, j),
-				LvName:         fmt.Sprintf("brick-%s-s%d-b%d", req.Name, i, j),
+				Path:           fmt.Sprintf("%s/%s/subvol%d/brick%d/brick", bricksMountRoot, req.Name, i+1, j+1),
+				Mountdir:       "/brick",
+				TpName:         fmt.Sprintf("tp_%s_s%d_b%d", req.Name, i+1, j+1),
+				LvName:         fmt.Sprintf("brick_%s_s%d_b%d", req.Name, i+1, j+1),
 				Size:           eachBrickSize,
 				TpSize:         eachBrickTpSize,
 				TpMetadataSize: deviceutils.GetPoolMetadataSize(eachBrickTpSize),

@@ -248,18 +248,18 @@ func storeSnapshot(c transaction.TxnCtx) error {
 	return nil
 }
 
-func unmarshalSnapCreateRequest(msg *api.SnapCreateReq, r *http.Request) (int, error) {
+func unmarshalSnapCreateRequest(msg *api.SnapCreateReq, r *http.Request) error {
 	if err := restutils.UnmarshalRequest(r, msg); err != nil {
-		return 422, gderrors.ErrJSONParsingFailed
+		return gderrors.ErrJSONParsingFailed
 	}
 
 	if msg.VolName == "" {
-		return http.StatusBadRequest, gderrors.ErrEmptyVolName
+		return gderrors.ErrEmptyVolName
 	}
 	if msg.SnapName == "" {
-		return http.StatusBadRequest, gderrors.ErrEmptySnapName
+		return gderrors.ErrEmptySnapName
 	}
-	return 0, nil
+	return nil
 }
 func updateMntOps(FsType, MntOpts string) string {
 	switch FsType {
@@ -281,46 +281,48 @@ func updateMntOps(FsType, MntOpts string) string {
 func populateSnapBrickMountData(volinfo *volume.Volinfo, snapName string) (map[string]snapshot.BrickMountData, error) {
 	nodeData := make(map[string]snapshot.BrickMountData)
 
-	brickCount := 0
-	for _, b := range volinfo.GetLocalBricks() {
-		brickCount++
-		mountRoot, err := volume.GetBrickMountRoot(b.Path)
-		if err != nil {
-			return nil, err
+	for svIdx, sv := range volinfo.Subvols {
+		for bIdx, b := range sv.Bricks {
+			if !uuid.Equal(b.PeerID, gdctx.MyUUID) {
+				continue
+			}
+
+			mountRoot, err := volume.GetBrickMountRoot(b.Path)
+			if err != nil {
+				return nil, err
+			}
+			mountDir := b.Path[len(mountRoot):]
+			mntInfo, err := volume.GetBrickMountInfo(mountRoot)
+			if err != nil {
+				log.WithError(err).WithField(
+					"brick", b.Path,
+				).Error("Failed to mount information")
+
+				return nil, err
+			}
+
+			vG, err := lvm.GetVgName(mntInfo.FsName)
+			if err != nil {
+
+				log.WithError(err).WithField(
+					"brick", b.Path,
+				).Error("Failed to get vg name")
+
+				return nil, err
+			}
+			devicePath := fmt.Sprintf("/dev/%s/snap_%s_%s_s%d_b%d", vG, snapName, volinfo.Name, svIdx+1, bIdx+1)
+
+			nodeData[b.String()] = snapshot.BrickMountData{
+				MountDir:   mountDir,
+				DevicePath: devicePath,
+				FsType:     mntInfo.MntType,
+				MntOpts:    updateMntOps(mntInfo.MntType, mntInfo.MntOpts),
+				Path:       snapshotBrickCreate(snapName, volinfo.Name, mountDir, svIdx+1, bIdx+1),
+			}
+			// Store the results in transaction context. This will be consumed by
+			// the node that initiated the transaction.
+
 		}
-		mountDir := b.Path[len(mountRoot):]
-		mntInfo, err := volume.GetBrickMountInfo(mountRoot)
-		if err != nil {
-			log.WithError(err).WithField(
-				"brick", b.Path,
-			).Error("Failed to mount information")
-
-			return nil, err
-		}
-
-		vG, err := lvm.GetVgName(mntInfo.FsName)
-		if err != nil {
-
-			log.WithError(err).WithField(
-				"brick", b.Path,
-			).Error("Failed to get vg name")
-
-			return nil, err
-		}
-		devicePath := fmt.Sprintf("/dev/%s/%s_%s_%d", vG, "snap", snapName, brickCount)
-
-		nodeID := strings.Replace(b.ID.String(), "-", "", -1)
-
-		nodeData[b.String()] = snapshot.BrickMountData{
-			MountDir:   mountDir,
-			DevicePath: devicePath,
-			FsType:     mntInfo.MntType,
-			MntOpts:    updateMntOps(mntInfo.MntType, mntInfo.MntOpts),
-			Path:       snapshotBrickCreate(snapName, volinfo.Name, nodeID, mountDir, brickCount),
-		}
-		// Store the results in transaction context. This will be consumed by
-		// the node that initiated the transaction.
-
 	}
 	return nodeData, nil
 }
@@ -623,9 +625,9 @@ func duplicateVolinfo(vol, v *volume.Volinfo) {
 	 */
 	return
 }
-func snapshotBrickCreate(snapName, volName, nodeID, mountDir string, brickCount int) string {
-	snapDirPrefix := config.GetString("rundir") + "/snaps/"
-	brickPath := fmt.Sprintf("%s%s/%s/%s/brick%d%s", snapDirPrefix, volName, nodeID, snapName, brickCount, mountDir)
+func snapshotBrickCreate(snapName, volName, mountDir string, subvolNumber, brickNumber int) string {
+	snapDirPrefix := config.GetString("rundir") + "/snaps"
+	brickPath := fmt.Sprintf("%s/%s/%s/subvol%d/brick%d%s", snapDirPrefix, snapName, volName, subvolNumber, brickNumber, mountDir)
 	return brickPath
 }
 
@@ -693,10 +695,10 @@ func snapshotCreateHandler(w http.ResponseWriter, r *http.Request) {
 	logger := gdctx.GetReqLogger(ctx)
 	var snapInfo snapshot.Snapinfo
 
-	httpStatus, err := unmarshalSnapCreateRequest(req, r)
+	err := unmarshalSnapCreateRequest(req, r)
 	if err != nil {
 		logger.WithError(err).Error("Failed to unmarshal snaphot create request")
-		restutils.SendHTTPError(ctx, w, httpStatus, err)
+		restutils.SendHTTPError(ctx, w, http.StatusBadRequest, err)
 		return
 	}
 	if req.TimeStamp == true {
@@ -774,7 +776,7 @@ func snapshotCreateHandler(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	txn.Ctx.Logger().WithField("SnapName", req.SnapName).Info("new snapshot created with status ", httpStatus)
+	txn.Ctx.Logger().WithField("SnapName", req.SnapName).Info("new snapshot created")
 	err = txn.Ctx.Get("snapinfo", &snapInfo)
 	if err != nil {
 		logger.WithError(err).Error("failed to get snap volinfo in transaction context")

@@ -1,6 +1,8 @@
 package utils
 
 import (
+	"strings"
+
 	"github.com/gluster/glusterd2/glusterd2/volume"
 	"github.com/gluster/glusterd2/pkg/utils"
 
@@ -37,16 +39,17 @@ func MountLocalBricks() error {
 		for _, b := range v.GetLocalBricks() {
 			// Mount all local Bricks if they are auto provisioned
 			if b.MountInfo.DevicePath != "" {
-				if _, exists := mounts[b.MountInfo.Mountdir]; exists {
+				mountRoot := strings.TrimSuffix(b.Path, b.MountInfo.Mountdir)
+				if _, exists := mounts[mountRoot]; exists {
 					continue
 				}
 
-				err := utils.ExecuteCommandRun("mount", "-o", b.MountInfo.MntOpts, b.MountInfo.DevicePath, b.MountInfo.Mountdir)
+				err := utils.ExecuteCommandRun("mount", "-o", b.MountInfo.MntOpts, b.MountInfo.DevicePath, mountRoot)
 				if err != nil {
 					log.WithError(err).WithFields(log.Fields{
 						"volume": v.Name,
 						"dev":    b.MountInfo.DevicePath,
-						"path":   b.MountInfo.Mountdir,
+						"path":   mountRoot,
 					}).Error("brick mount failed")
 				}
 			}
