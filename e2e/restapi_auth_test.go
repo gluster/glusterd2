@@ -22,7 +22,9 @@ func TestRESTAPIAuth(t *testing.T) {
 	secret, err := ioutil.ReadFile(g1.LocalStateDir + "/auth")
 	r.Nil(err)
 
-	client := restclient.New("http://"+g1.ClientAddress, "glustercli", string(secret), "", false)
+	client, err := restclient.New("http://"+g1.ClientAddress, "glustercli", string(secret), "", false)
+	r.Nil(err)
+	r.NotNil(client)
 
 	// Get Peers information, should work if auth works
 	peers, err := client.Peers()

@@ -4,7 +4,6 @@ import (
 	"errors"
 	"fmt"
 	"net/http"
-	"strings"
 
 	"github.com/gluster/glusterd2/glusterd2/gdctx"
 	restutils "github.com/gluster/glusterd2/glusterd2/servers/rest/utils"
@@ -105,42 +104,44 @@ func takeSnapshotClone(c transaction.TxnCtx) error {
 func populateCloneBrickMountData(volinfo *volume.Volinfo, name string) (map[string]snapshot.BrickMountData, error) {
 	nodeData := make(map[string]snapshot.BrickMountData)
 
-	brickCount := 0
-	for _, b := range volinfo.GetLocalBricks() {
-		brickCount++
-		mountRoot, err := volume.GetBrickMountRoot(b.Path)
-		if err != nil {
-			return nil, err
-		}
-		mountDir := b.Path[len(mountRoot):]
-		mntInfo, err := volume.GetBrickMountInfo(mountRoot)
-		if err != nil {
-			log.WithError(err).WithField(
-				"brick", b.Path,
-			).Error("Failed to get mount information")
+	for svIdx, sv := range volinfo.Subvols {
+		for bIdx, b := range sv.Bricks {
+			if !uuid.Equal(b.PeerID, gdctx.MyUUID) {
+				continue
+			}
 
-			return nil, err
-		}
+			mountRoot, err := volume.GetBrickMountRoot(b.Path)
+			if err != nil {
+				return nil, err
+			}
+			mountDir := b.Path[len(mountRoot):]
+			mntInfo, err := volume.GetBrickMountInfo(mountRoot)
+			if err != nil {
+				log.WithError(err).WithField(
+					"brick", b.Path,
+				).Error("Failed to get mount information")
 
-		vG, err := lvm.GetVgName(mntInfo.FsName)
-		if err != nil {
+				return nil, err
+			}
 
-			log.WithError(err).WithField(
-				"brick", b.Path,
-			).Error("Failed to get vg name")
+			vG, err := lvm.GetVgName(mntInfo.FsName)
+			if err != nil {
 
-			return nil, err
-		}
-		devicePath := fmt.Sprintf("/dev/%s/%s_%s_%d", vG, "clone", name, brickCount)
+				log.WithError(err).WithField(
+					"brick", b.Path,
+				).Error("Failed to get vg name")
 
-		nodeID := strings.Replace(b.ID.String(), "-", "", -1)
+				return nil, err
+			}
+			devicePath := fmt.Sprintf("/dev/%s/clone_%s_s%d_b%d", vG, name, svIdx+1, bIdx+1)
 
-		nodeData[b.String()] = snapshot.BrickMountData{
-			MountDir:   mountDir,
-			DevicePath: devicePath,
-			FsType:     mntInfo.MntType,
-			MntOpts:    updateMntOps(mntInfo.MntType, mntInfo.MntOpts),
-			Path:       snapshotCloneBrickCreate(volinfo.Name, name, nodeID, mountDir, brickCount),
+			nodeData[b.String()] = snapshot.BrickMountData{
+				MountDir:   mountDir,
+				DevicePath: devicePath,
+				FsType:     mntInfo.MntType,
+				MntOpts:    updateMntOps(mntInfo.MntType, mntInfo.MntOpts),
+				Path:       snapshotCloneBrickCreate(name, mountDir, svIdx+1, bIdx+1),
+			}
 		}
 	}
 	return nodeData, nil
@@ -256,9 +257,9 @@ func createCloneVolinfo(c transaction.TxnCtx) error {
 	return err
 }
 
-func snapshotCloneBrickCreate(snapName, cloneName, nodeID, mountDir string, brickCount int) string {
-	cloneDirPrefix := config.GetString("rundir") + "/clones/"
-	brickPath := fmt.Sprintf("%s%s/%s/%s/brick%d%s", cloneDirPrefix, snapName, nodeID, cloneName, brickCount, mountDir)
+func snapshotCloneBrickCreate(cloneName, mountDir string, subvolNumber, brickNumber int) string {
+	cloneDirPrefix := config.GetString("rundir") + "/clones"
+	brickPath := fmt.Sprintf("%s/%s/subvol%d/brick%d%s", cloneDirPrefix, cloneName, subvolNumber, brickNumber, mountDir)
 	return brickPath
 }
 
