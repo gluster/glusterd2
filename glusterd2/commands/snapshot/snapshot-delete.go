@@ -174,5 +174,5 @@ func snapshotDeleteHandler(w http.ResponseWriter, r *http.Request) {
 
 	logger.WithField("Snapshot-name", snapname).Info("snapshot deleted")
 
-	restutils.SendHTTPResponse(ctx, w, http.StatusNoContent, "Snapshot Deleted")
+	restutils.SendHTTPResponse(ctx, w, http.StatusNoContent, nil)
 }
