@@ -199,6 +199,13 @@ func volumeCreateHandler(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
+	// Add attributes to the span with info that can be viewed along with traces.
+	// The attributes can also be used to filter traces on the tracing UI.
+	span.AddAttributes(
+		trace.StringAttribute("reqID", txn.Ctx.GetTxnReqID()),
+		trace.StringAttribute("volName", req.Name),
+	)
+
 	if err := txn.Do(); err != nil {
 		status, err := restutils.ErrToStatusCode(err)
 		restutils.SendHTTPError(ctx, w, status, err)

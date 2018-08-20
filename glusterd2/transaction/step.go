@@ -150,9 +150,11 @@ func runStepFuncLocally(origCtx context.Context, stepName string, ctx TxnCtx) er
 	var err error
 
 	if origCtx != nil {
+		_, span := trace.StartSpan(origCtx, stepName)
 		reqID := ctx.GetTxnReqID()
-		spanName := stepName + " ReqID:" + reqID
-		_, span := trace.StartSpan(origCtx, spanName)
+		span.AddAttributes(
+			trace.StringAttribute("reqID", reqID),
+		)
 		defer span.End()
 	}
 

@@ -39,9 +39,11 @@ func (p *txnSvc) RunStep(rpcCtx context.Context, req *TxnStepReq) (*TxnStepResp,
 	logger.Debug("RunStep request received")
 
 	if rpcCtx != nil {
+		_, span := trace.StartSpan(rpcCtx, req.StepFunc)
 		reqID := ctx.GetTxnReqID()
-		spanName := req.StepFunc + " ReqID:" + reqID
-		_, span := trace.StartSpan(rpcCtx, spanName)
+		span.AddAttributes(
+			trace.StringAttribute("reqID", reqID),
+		)
 		defer span.End()
 	}
 
