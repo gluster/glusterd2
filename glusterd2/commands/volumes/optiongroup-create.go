@@ -40,11 +40,12 @@ func optionGroupCreateHandler(w http.ResponseWriter, r *http.Request) {
 	}
 
 	var groupOptions map[string]*api.OptionGroup
-	if err := json.Unmarshal(resp.Kvs[0].Value, &groupOptions); err != nil {
-		restutils.SendHTTPError(ctx, w, http.StatusInternalServerError, err)
-		return
+	if resp.Count > 0 {
+		if err := json.Unmarshal(resp.Kvs[0].Value, &groupOptions); err != nil {
+			restutils.SendHTTPError(ctx, w, http.StatusInternalServerError, err)
+			return
+		}
 	}
-
 	var optionSet []api.VolumeOption
 	for _, option := range req.Options {
 		optionSet = append(optionSet, option)
