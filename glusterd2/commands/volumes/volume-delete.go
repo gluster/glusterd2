@@ -35,15 +35,8 @@ func deleteVolume(c transaction.TxnCtx) error {
 }
 
 func registerVolDeleteStepFuncs() {
-	var sfs = []struct {
-		name string
-		sf   transaction.StepFunc
-	}{
-		{"vol-delete.Store", deleteVolume},
-	}
-	for _, sf := range sfs {
-		transaction.RegisterStepFunc(sf.sf, sf.name)
-	}
+	transaction.RegisterStepFunc(deleteVolume, "vol-delete.Store")
+	transaction.RegisterStepFunc(txnCleanBricks, "vol-delete.CleanBricks")
 }
 
 func volumeDeleteHandler(w http.ResponseWriter, r *http.Request) {
@@ -73,7 +66,18 @@ func volumeDeleteHandler(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
+	bricksAutoProvisioned := false
+	// TODO: Replace this with volinfo.Metadata["ProvisionState"] once available
+	if len(volinfo.Subvols) > 0 && len(volinfo.Subvols[0].Bricks) > 0 {
+		bricksAutoProvisioned = volinfo.Subvols[0].Bricks[0].DevicePath != ""
+	}
+
 	txn.Steps = []*transaction.Step{
+		{
+			DoFunc: "vol-delete.CleanBricks",
+			Nodes:  volinfo.Nodes(),
+			Skip:   !bricksAutoProvisioned,
+		},
 		{
 			DoFunc: "vol-delete.Store",
 			Nodes:  []uuid.UUID{gdctx.MyUUID},
