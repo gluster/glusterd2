@@ -182,15 +182,18 @@ func GetAllBricksInCluster() ([]brick.Brickinfo, error) {
 	return bricks, nil
 }
 
-// AreReplicateVolumesRunning retrieves the volinfo objects from GetVolumes() function
-// and checks if all replicate, Disperse volumes are stopped before
-// stopping the self heal daemon.
-func AreReplicateVolumesRunning() (bool, error) {
+// AreReplicateVolumesRunning checks if all replicate and disperse volumes are stopped.
+// The volume being acted upon is excluded from this check and
+// the volume ID of that volume needs to be volume passed as an argument.
+func AreReplicateVolumesRunning(skipVolID uuid.UUID) (bool, error) {
 	volumes, e := GetVolumes()
 	if e != nil {
 		return false, e
 	}
 	for _, v := range volumes {
+		if uuid.Equal(v.ID, skipVolID) {
+			continue
+		}
 		if (v.Type == Replicate || v.Type == Disperse || v.Type == DistReplicate || v.Type == DistDisperse) && v.State == VolStarted {
 			return true, nil
 		}

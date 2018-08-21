@@ -268,14 +268,17 @@ func volumeCreateCmdRun(cmd *cobra.Command, args []string) {
 	}
 
 	req := api.VolCreateReq{
-		Name:         volname,
-		Subvols:      subvols,
-		Force:        flagCreateForce,
-		Options:      options,
-		Advanced:     flagCreateAdvOpts,
-		Experimental: flagCreateExpOpts,
-		Deprecated:   flagCreateDepOpts,
-		Flags:        flags,
+		Name:    volname,
+		Subvols: subvols,
+		Force:   flagCreateForce,
+		VolOptionReq: api.VolOptionReq{
+			Options:      options,
+			Advanced:     flagCreateAdvOpts,
+			Experimental: flagCreateExpOpts,
+			Deprecated:   flagCreateDepOpts,
+		},
+
+		Flags: flags,
 	}
 
 	// handle thin-arbiter
