@@ -569,6 +569,9 @@ func createSnapinfo(c transaction.TxnCtx) error {
 
 	snapVolinfo.State = volume.VolCreated
 	snapVolinfo.GraphMap = volinfo.GraphMap
+	if snapVolinfo.GraphMap == nil {
+		snapVolinfo.GraphMap = make(map[string]string)
+	}
 	snapVolinfo.ID = uuid.NewRandom()
 	snapVolinfo.Name = req.SnapName
 	snapVolinfo.VolfileID = "snaps/" + req.SnapName
@@ -610,6 +613,11 @@ func duplicateVolinfo(vol, v *volume.Volinfo) {
 	v.DistCount = vol.DistCount
 	v.Type = vol.Type
 
+	v.Metadata = vol.Metadata
+	if v.Metadata == nil {
+		v.Metadata = make(map[string]string)
+	}
+	v.SnapList = []string{}
 	/*
 		v.Checksum = 0
 		v.Version = 0
