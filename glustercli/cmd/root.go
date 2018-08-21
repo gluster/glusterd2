@@ -56,6 +56,7 @@ func addSubCommands(rootCmd *cobra.Command) {
 
 // GlustercliOption will have all global flags set during run time
 type GlustercliOption struct {
+	ScriptMode bool
 	XMLOutput  bool
 	JSONOutput bool
 	Insecure   bool
@@ -72,6 +73,7 @@ type GlustercliOption struct {
 //AddPersistentFlag will initialize the Global Flags of root command.
 func (gOpt *GlustercliOption) AddPersistentFlag(flagSet *pflag.FlagSet) {
 	// Global flags, applicable for all sub commands
+	flagSet.BoolVarP(&gOpt.ScriptMode, "script-mode", "y", false, "running in script mode")
 	flagSet.BoolVarP(&gOpt.XMLOutput, "xml", "", false, "XML Output")
 	flagSet.BoolVarP(&gOpt.JSONOutput, "json", "", false, "JSON Output")
 	flagSet.StringSliceVar(&gOpt.Endpoints, "endpoints", []string{"http://127.0.0.1:24007"}, "glusterd2 endpoints")
