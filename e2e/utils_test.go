@@ -305,3 +305,23 @@ func numberOfLvs(vgname string) (int, error) {
 	}
 	return nlv, err
 }
+
+func mountVolume(server, volfileID, mountPath string) error {
+
+	// Add port later if needed. Right now all mount talks to first
+	// instance of glusterd2 in cluster which listens on default port
+	// 24007
+
+	var buffer bytes.Buffer
+	buffer.WriteString(fmt.Sprintf(" --volfile-server %s", server))
+	buffer.WriteString(fmt.Sprintf(" --volfile-id %s ", volfileID))
+	buffer.WriteString(mountPath)
+
+	args := strings.Fields(buffer.String())
+	cmd := exec.Command("glusterfs", args...)
+	if err := cmd.Start(); err != nil {
+		return err
+	}
+
+	return cmd.Wait()
+}

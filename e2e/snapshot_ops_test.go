@@ -312,12 +312,11 @@ func testRestoredVolumeMount(t *testing.T, tc *testCluster) {
 	defer os.RemoveAll(mntPath)
 
 	host, _, _ := net.SplitHostPort(tc.gds[0].ClientAddress)
-	mntCmd := exec.Command("mount", "-t", "glusterfs", host+":"+snapTestName, mntPath)
-	umntCmd := exec.Command("umount", mntPath)
 
-	err := mntCmd.Run()
+	err := mountVolume(host, snapTestName, mntPath)
 	r.Nil(err, fmt.Sprintf("mount failed: %s", err))
 
+	umntCmd := exec.Command("umount", mntPath)
 	err = umntCmd.Run()
 	r.Nil(err, fmt.Sprintf("unmount failed: %s", err))
 }
@@ -329,12 +328,9 @@ func testSnapshotMount(t *testing.T, tc *testCluster) {
 	defer os.RemoveAll(mntPath)
 
 	host, _, _ := net.SplitHostPort(tc.gds[0].ClientAddress)
+	volID := fmt.Sprintf("/snaps/%s", snapname)
 
-	volID := fmt.Sprintf("%s:/snaps/%s", host, snapname)
-	mntCmd := exec.Command("mount", "-t", "glusterfs", volID, mntPath)
-	umntCmd := exec.Command("umount", mntPath)
-
-	err := mntCmd.Run()
+	err := mountVolume(host, volID, mntPath)
 	r.Nil(err, fmt.Sprintf("mount failed: %s", err))
 
 	newDir := mntPath + "/Dir"
@@ -343,6 +339,7 @@ func testSnapshotMount(t *testing.T, tc *testCluster) {
 		r.Nil(errors.New("snapshot volume is Read Only File System"))
 	}
 
+	umntCmd := exec.Command("umount", mntPath)
 	err = umntCmd.Run()
 	r.Nil(err, fmt.Sprintf("unmount failed: %s", err))
 }
