@@ -42,7 +42,7 @@ func (s *Step) do(origCtx context.Context, ctx TxnCtx) error {
 // undo runs the UndoFunc on the nodes
 func (s *Step) undo(ctx TxnCtx) error {
 	if s.UndoFunc != "" {
-		return runStepFuncOnNodes(nil, s.UndoFunc, ctx, s.Nodes)
+		return runStepFuncOnNodes(context.TODO(), s.UndoFunc, ctx, s.Nodes)
 	}
 	return nil
 }
