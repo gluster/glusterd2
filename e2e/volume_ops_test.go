@@ -390,7 +390,7 @@ func testMountUnmount(t *testing.T, v string, tc *testCluster) {
 	defer os.RemoveAll(mntPath)
 
 	host, _, _ := net.SplitHostPort(tc.gds[0].ClientAddress)
-	mntCmd := exec.Command("mount", "-t", "glusterfs", host+":"+v, mntPath)
+	mntCmd := exec.Command("glusterfs", "--volume-id", v, "--volfile-server", host, mntPath)
 	umntCmd := exec.Command("umount", mntPath)
 
 	err := mntCmd.Run()
