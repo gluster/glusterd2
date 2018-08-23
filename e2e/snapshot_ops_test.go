@@ -312,7 +312,7 @@ func testRestoredVolumeMount(t *testing.T, tc *testCluster) {
 	defer os.RemoveAll(mntPath)
 
 	host, _, _ := net.SplitHostPort(tc.gds[0].ClientAddress)
-	mntCmd := exec.Command("mount", "-t", "glusterfs", host+":"+snapTestName, mntPath)
+	mntCmd := exec.Command("glusterfs", "--volfile-server", host, "--volfile-id", snapTestName, mntPath)
 	umntCmd := exec.Command("umount", mntPath)
 
 	err := mntCmd.Run()
@@ -330,8 +330,7 @@ func testSnapshotMount(t *testing.T, tc *testCluster) {
 
 	host, _, _ := net.SplitHostPort(tc.gds[0].ClientAddress)
 
-	volID := fmt.Sprintf("%s:/snaps/%s", host, snapname)
-	mntCmd := exec.Command("mount", "-t", "glusterfs", volID, mntPath)
+	mntCmd := exec.Command("glusterfs", "--volfile-server", host, "--volfile-id", "/snaps/"+snapname, mntPath)
 	umntCmd := exec.Command("umount", mntPath)
 
 	err := mntCmd.Run()
