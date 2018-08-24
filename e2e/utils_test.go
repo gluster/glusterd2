@@ -2,6 +2,7 @@ package e2e
 
 import (
 	"bytes"
+	"errors"
 	"fmt"
 	"io/ioutil"
 	"os"
@@ -324,4 +325,27 @@ func mountVolume(server, volfileID, mountPath string) error {
 	}
 
 	return cmd.Wait()
+}
+
+// testMount checks if a file can be created and written on the mountpoint
+// path passed.
+func testMount(path string) error {
+	f, err := ioutil.TempFile(path, "testMount")
+	if err != nil {
+		return err
+	}
+	defer os.Remove(f.Name())
+	defer f.Close()
+
+	payload := "glusterIsAwesome"
+	n, err := f.Write([]byte(payload))
+	if err != nil {
+		return err
+	}
+
+	if n != len(payload) {
+		return errors.New("testMount(): f.Write() failed")
+	}
+
+	return nil
 }

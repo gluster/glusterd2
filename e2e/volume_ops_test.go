@@ -394,6 +394,9 @@ func testMountUnmount(t *testing.T, v string, tc *testCluster) {
 	err := mountVolume(host, v, mntPath)
 	r.Nil(err, fmt.Sprintf("mount failed: %s", err))
 
+	err = testMount(mntPath)
+	r.Nil(err)
+
 	umntCmd := exec.Command("umount", mntPath)
 	err = umntCmd.Run()
 	r.Nil(err, fmt.Sprintf("unmount failed: %s", err))
