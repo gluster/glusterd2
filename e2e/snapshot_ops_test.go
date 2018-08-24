@@ -316,6 +316,9 @@ func testRestoredVolumeMount(t *testing.T, tc *testCluster) {
 	err := mountVolume(host, snapTestName, mntPath)
 	r.Nil(err, fmt.Sprintf("mount failed: %s", err))
 
+	err = testMount(mntPath)
+	r.Nil(err)
+
 	umntCmd := exec.Command("umount", mntPath)
 	err = umntCmd.Run()
 	r.Nil(err, fmt.Sprintf("unmount failed: %s", err))
