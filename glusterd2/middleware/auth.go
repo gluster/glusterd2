@@ -31,11 +31,24 @@ func getAuthSecret(issuer string) string {
 	return ""
 }
 
+//isRestAuthRequired return false for few URL which doesn't require authentication
+func isRestAuthRequired(url string) bool {
+	switch url {
+	case "/ping":
+		fallthrough
+	case "/endpoints":
+		return false
+	default:
+		return true
+	}
+
+}
+
 // Auth is a middleware which authenticates HTTP requests
 func Auth(next http.Handler) http.Handler {
 	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		// If Auth disabled Return as is
-		if !gdctx.RESTAPIAuthEnabled {
+		if !gdctx.RESTAPIAuthEnabled || !isRestAuthRequired(r.URL.String()) {
 			next.ServeHTTP(w, r)
 			return
 		}
