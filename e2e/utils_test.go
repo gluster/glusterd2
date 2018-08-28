@@ -2,6 +2,7 @@ package e2e
 
 import (
 	"bytes"
+	"errors"
 	"fmt"
 	"io/ioutil"
 	"os"
@@ -304,4 +305,47 @@ func numberOfLvs(vgname string) (int, error) {
 		nlv, err = strconv.Atoi(strings.Trim(string(out), " \n"))
 	}
 	return nlv, err
+}
+
+func mountVolume(server, volfileID, mountPath string) error {
+
+	// Add port later if needed. Right now all mount talks to first
+	// instance of glusterd2 in cluster which listens on default port
+	// 24007
+
+	var buffer bytes.Buffer
+	buffer.WriteString(fmt.Sprintf(" --volfile-server %s", server))
+	buffer.WriteString(fmt.Sprintf(" --volfile-id %s ", volfileID))
+	buffer.WriteString(mountPath)
+
+	args := strings.Fields(buffer.String())
+	cmd := exec.Command("glusterfs", args...)
+	if err := cmd.Start(); err != nil {
+		return err
+	}
+
+	return cmd.Wait()
+}
+
+// testMount checks if a file can be created and written on the mountpoint
+// path passed.
+func testMount(path string) error {
+	f, err := ioutil.TempFile(path, "testMount")
+	if err != nil {
+		return err
+	}
+	defer os.Remove(f.Name())
+	defer f.Close()
+
+	payload := "glusterIsAwesome"
+	n, err := f.Write([]byte(payload))
+	if err != nil {
+		return err
+	}
+
+	if n != len(payload) {
+		return errors.New("testMount(): f.Write() failed")
+	}
+
+	return nil
 }
