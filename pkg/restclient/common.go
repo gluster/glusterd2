@@ -79,6 +79,14 @@ func WithTimeOut(timeout time.Duration) ClientFunc {
 	}
 }
 
+// WithDebugRoundTripper wraps a debug middleware to http Transport.
+func WithDebugRoundTripper() ClientFunc {
+	return func(client *Client) error {
+		client.httpClient.Transport = newDebugRoundTripper(client.httpClient.Transport)
+		return nil
+	}
+}
+
 // Client represents Glusterd2 REST Client
 type Client struct {
 	baseURL     string
@@ -126,6 +134,7 @@ func New(baseURL, username, password, cacert string, insecure bool) (*Client, er
 		WithUsername(username),
 		WithPassword(password),
 		WithTimeOut(defaultClientTimeout*time.Second),
+		WithDebugRoundTripper(),
 	)
 }
 
