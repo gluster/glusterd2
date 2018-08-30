@@ -168,11 +168,11 @@ func testSnapshotList(t *testing.T) {
 	snaps, err := client.SnapshotList("")
 	r.Nil(err)
 	r.Len(snaps, 1)
-	r.Len(snaps[0].SnapName, 2)
+	r.Len(snaps[0].SnapList, 2)
 
 	snaps, err = client.SnapshotList(snapTestName)
 	r.Nil(err)
-	r.Len(snaps[0].SnapName, 2)
+	r.Len(snaps[0].SnapList, 2)
 
 }
 
@@ -192,8 +192,8 @@ func testSnapshotActivate(t *testing.T) {
 	r.Nil(err)
 
 	for _, snaps := range vols {
-		for _, snapName := range snaps.SnapName {
-			err = client.SnapshotActivate(snapshotActivateReq, snapName)
+		for _, snap := range snaps.SnapList {
+			err = client.SnapshotActivate(snapshotActivateReq, snap.VolInfo.Name)
 			r.Nil(err)
 
 			snapshotActivateReq.Force = true
@@ -207,18 +207,18 @@ func testSnapshotDelete(t *testing.T) {
 
 	vols, err := client.SnapshotList("")
 	r.Nil(err)
-	r.Len(vols[0].SnapName, 1)
+	r.Len(vols[0].SnapList, 1)
 
 	for _, snaps := range vols {
-		for _, snapName := range snaps.SnapName {
-			err = client.SnapshotDelete(snapName)
+		for _, snap := range snaps.SnapList {
+			err = client.SnapshotDelete(snap.VolInfo.Name)
 			r.Nil(err)
 		}
 	}
 
 	vols, err = client.SnapshotList(snapTestName)
 	r.Nil(err)
-	r.Len(vols[0].SnapName, 0)
+	r.Len(vols, 0)
 }
 
 func testSnapshotDeactivate(t *testing.T) {
@@ -227,8 +227,8 @@ func testSnapshotDeactivate(t *testing.T) {
 	r.Nil(err)
 
 	for _, snaps := range vols {
-		for _, snapName := range snaps.SnapName {
-			err = client.SnapshotDeactivate(snapName)
+		for _, snap := range snaps.SnapList {
+			err = client.SnapshotDeactivate(snap.VolInfo.Name)
 			r.Nil(err)
 		}
 	}
@@ -243,7 +243,7 @@ func testSnapshotStatusForceActivate(t *testing.T) {
 	vols, err := client.SnapshotList(snapTestName)
 	r.Nil(err)
 
-	snapName := vols[0].SnapName[0]
+	snapName := vols[0].SnapList[0].VolInfo.Name
 	result, err = client.SnapshotStatus(snapName)
 	r.Nil(err)
 
@@ -284,7 +284,7 @@ func testSnapshotRestore(t *testing.T) {
 	vols, err := client.SnapshotList(snapTestName)
 	r.Nil(err)
 
-	snapName := vols[0].SnapName[0]
+	snapName := vols[0].SnapList[0].VolInfo.Name
 	result, err = client.SnapshotStatus(snapName)
 	r.Nil(err)
 
@@ -297,7 +297,7 @@ func testSnapshotRestore(t *testing.T) {
 
 	snaps, err := client.SnapshotList(snapTestName)
 	r.Nil(err)
-	r.Len(snaps[0].SnapName, 1)
+	r.Len(snaps[0].SnapList, 1)
 
 	err = client.VolumeStart(snapTestName, true)
 	r.Nil(err)
