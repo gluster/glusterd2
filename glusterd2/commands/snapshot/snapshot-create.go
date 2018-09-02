@@ -625,6 +625,9 @@ func duplicateVolinfo(vol, v *volume.Volinfo) {
 	v.Transport = vol.Transport
 	v.DistCount = vol.DistCount
 	v.Type = vol.Type
+	if vol.Capacity != 0 {
+		v.Capacity = vol.Capacity
+	}
 
 	v.Metadata = vol.Metadata
 	if v.Metadata == nil {

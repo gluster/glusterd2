@@ -140,6 +140,10 @@ func newVolinfo(req *api.VolCreateReq) (*volume.Volinfo, error) {
 		volinfo.Options = make(map[string]string)
 	}
 
+	if req.Size != 0 {
+		volinfo.Capacity = req.Size
+	}
+
 	if req.Transport != "" {
 		volinfo.Transport = req.Transport
 	} else {
