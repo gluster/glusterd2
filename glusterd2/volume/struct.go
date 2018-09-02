@@ -96,6 +96,7 @@ type Volinfo struct {
 	GraphMap  map[string]string
 	Metadata  map[string]string
 	SnapList  []string
+	Capacity  uint64
 }
 
 // VolAuth represents username and password used by trusted/internal clients

@@ -293,6 +293,9 @@ func volumeInfoDisplay(vol api.VolumeGetResp) {
 	fmt.Println("Type:", vol.Type)
 	fmt.Println("Volume ID:", vol.ID)
 	fmt.Println("State:", vol.State)
+	if vol.Capacity != 0 {
+		fmt.Println("Capactiy: ", humanReadable(vol.Capacity))
+	}
 	fmt.Println("Transport-type:", vol.Transport)
 	fmt.Println("Options:")
 	for key, value := range vol.Options {

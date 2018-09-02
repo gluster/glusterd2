@@ -204,6 +204,7 @@ func CreateVolumeInfoResp(v *Volinfo) *api.VolumeInfo {
 		Type:      api.VolType(v.Type),
 		Transport: v.Transport,
 		DistCount: v.DistCount,
+		Capacity:  v.Capacity,
 		State:     api.VolState(v.State),
 		Options:   v.Options,
 		Subvols:   CreateSubvolInfo(&v.Subvols),
