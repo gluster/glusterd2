@@ -1,7 +1,39 @@
 #!/bin/bash
 
+TAR="tar"
 GOPATH=$(go env GOPATH)
 GOBINDIR=$GOPATH/bin
+
+install_tools_darwin() {
+  type brew >/dev/null 2>&1
+  if [ $? -eq 0 ]; then
+    echo "brew is already installed"
+  else
+    echo "Installing brew."
+    mkdir homebrew && curl -L https://github.com/Homebrew/brew/tarball/master | tar xz --strip 1 -C homebrew
+  fi
+
+  type gtar >/dev/null 2>&1
+  if [ $? -eq 0 ]; then
+    echo "gnu-tar (gtar) is already installed"
+  else
+    echo "Installing gnu-tar."
+    brew install gnu-tar
+  fi
+
+  TAR="gtar"
+}
+
+bootstrap_platform() {
+  case "$OSTYPE" in
+    solaris*) echo "SOLARIS" ;;
+    darwin*)  echo "OSX" ; install_tools_darwin ;;
+    linux*)   echo "LINUX" ;;
+    bsd*)   echo "BSD" ;;
+    msys*)  echo "WINDOWS" ;;
+    *)  echo "unknown: $OSTYPE" ;;
+  esac
+}
 
 install_dep() {
   DEPVER="v0.5.0"
@@ -35,7 +67,7 @@ install_gometalinter() {
 
   echo "Installing gometalinter. Version: ${LINTER_VER}"
   curl -L -o "$GOBINDIR/$LINTER_TARBALL" $LINTER_URL
-  tar -zxf "$GOBINDIR/$LINTER_TARBALL" --overwrite --strip-components 1 --exclude={COPYING,*.md} -C "$GOBINDIR"
+  $TAR -zxf "$GOBINDIR/$LINTER_TARBALL" --overwrite --strip-components 1 --exclude={COPYING,*.md} -C "$GOBINDIR"
   rm -f "$GOBINDIR/$LINTER_TARBALL"
 }
 
@@ -56,10 +88,11 @@ install_etcd() {
 
   echo "Installing etcd. Version: ${ETCD_VER}"
   curl -L -o "$GOBINDIR/$ETCD_TARBALL" $ETCD_URL
-  tar -zxf "$GOBINDIR/$ETCD_TARBALL" --overwrite --strip-components 1 -C "$GOBINDIR" --wildcards --no-anchored {etcd,etcdctl}
+  $TAR -zxf "$GOBINDIR/$ETCD_TARBALL" --overwrite --strip-components 1 -C "$GOBINDIR" --wildcards --no-anchored {etcd,etcdctl}
   rm -f "$GOBINDIR/$ETCD_TARBALL"
 }
 
+bootstrap_platform
 install_dep
 install_gometalinter
 install_etcd
