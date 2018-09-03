@@ -390,12 +390,14 @@ func testMountUnmount(t *testing.T, v string, tc *testCluster) {
 	defer os.RemoveAll(mntPath)
 
 	host, _, _ := net.SplitHostPort(tc.gds[0].ClientAddress)
-	mntCmd := exec.Command("mount", "-t", "glusterfs", host+":"+v, mntPath)
-	umntCmd := exec.Command("umount", mntPath)
 
-	err := mntCmd.Run()
+	err := mountVolume(host, v, mntPath)
 	r.Nil(err, fmt.Sprintf("mount failed: %s", err))
 
+	err = testMount(mntPath)
+	r.Nil(err)
+
+	umntCmd := exec.Command("umount", mntPath)
 	err = umntCmd.Run()
 	r.Nil(err, fmt.Sprintf("unmount failed: %s", err))
 }
