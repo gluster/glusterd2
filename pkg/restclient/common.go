@@ -22,24 +22,18 @@ const (
 // ClientFunc receives a Client and overrides its members
 type ClientFunc func(*Client) error
 
-// WithTLSConfig overrides http.Client member with a client created
-// using specified TLS configuration.
+// WithTLSConfig applies tls config to underlying http.Client Transport
 func WithTLSConfig(tlsOpts *TLSOptions) ClientFunc {
 	return func(client *Client) error {
 		tlsConfig, err := NewTLSConfig(tlsOpts)
 		if err != nil {
-			return err
+			return fmt.Errorf("failed to create tlsconfig, err: %s", err.Error())
 		}
-		tr := &http.Transport{
-			DisableCompression: true,
-			DisableKeepAlives:  true,
-			TLSClientConfig:    tlsConfig,
+		if transport, ok := client.httpClient.Transport.(*http.Transport); ok {
+			transport.TLSClientConfig = tlsConfig
+			return nil
 		}
-		httpClient := &http.Client{
-			Transport: tr,
-		}
-		client.httpClient = httpClient
-		return nil
+		return fmt.Errorf("failed to apply tlsconfig on Transport : %T", client.httpClient.Transport)
 	}
 }
 
@@ -102,7 +96,7 @@ type Client struct {
 // to send request.
 func NewClientWithOpts(opts ...ClientFunc) (*Client, error) {
 	client := &Client{
-		httpClient: http.DefaultClient,
+		httpClient: defaultHTTPClient(),
 	}
 	for _, fn := range opts {
 		if err := fn(client); err != nil {
@@ -110,6 +104,17 @@ func NewClientWithOpts(opts ...ClientFunc) (*Client, error) {
 		}
 	}
 	return client, nil
+}
+
+func defaultHTTPClient() *http.Client {
+	roundTripper := http.DefaultTransport
+
+	if tr, ok := roundTripper.(*http.Transport); ok {
+		tr.DisableCompression = true
+	}
+	return &http.Client{
+		Transport: roundTripper,
+	}
 }
 
 // New creates new instance of Glusterd2 REST Client
