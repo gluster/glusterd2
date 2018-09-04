@@ -69,6 +69,11 @@ func TestVolume(t *testing.T) {
 	t.Run("DisperseMount", tc.wrap(testDisperseMount))
 	t.Run("DisperseDelete", testDisperseDelete)
 	t.Run("testShdOnVolumeStartAndStop", tc.wrap(testShdOnVolumeStartAndStop))
+
+	// Self Heal Test
+	t.Run("SelfHeal", tc.wrap(testSelfHeal))
+	t.Run("GranularEntryHeal", tc.wrap(testGranularEntryHeal))
+
 }
 
 func testVolumeCreateWithoutName(t *testing.T, tc *testCluster) {
