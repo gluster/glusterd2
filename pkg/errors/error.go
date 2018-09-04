@@ -59,4 +59,6 @@ var (
 	ErrInvalidVolFileTmplNamespace = errors.New("invalid template namespace")
 	ErrInvalidVolFileTmplName      = errors.New("invalid template name")
 	ErrDeviceNameNotFound          = errors.New("device name not found")
+	ErrLabelNotFound               = errors.New("label not found")
+	ErrLabelExists                 = errors.New("label already exists")
 )
