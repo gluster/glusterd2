@@ -43,12 +43,14 @@ func expandValidatePrepare(c transaction.TxnCtx) error {
 		return errors.New("invalid number of bricks")
 	}
 
-	if volinfo.Type == volume.Replicate && req.ReplicaCount != 0 {
-		// TODO: Only considered first sub volume's ReplicaCount
-		if req.ReplicaCount < volinfo.Subvols[0].ReplicaCount {
-			return errors.New("invalid number of bricks")
-		} else if req.ReplicaCount == volinfo.Subvols[0].ReplicaCount {
-			return errors.New("replica count is same")
+	if volinfo.Type == volume.Replicate || volinfo.Type == volume.DistReplicate {
+		if req.ReplicaCount != 0 {
+			// TODO: Only considered first sub volume's ReplicaCount
+			if req.ReplicaCount < volinfo.Subvols[0].ReplicaCount {
+				return errors.New("invalid number of bricks")
+			} else if req.ReplicaCount == volinfo.Subvols[0].ReplicaCount {
+				return errors.New("replica count is same")
+			}
 		}
 	}
 
@@ -198,6 +200,7 @@ func updateVolinfoOnExpand(c transaction.TxnCtx) error {
 				idx = 0
 			}
 			volinfo.Subvols[idx].Bricks = append(volinfo.Subvols[idx].Bricks, b)
+			idx++
 		}
 	} else {
 		// Create new Sub volumes with given bricks
