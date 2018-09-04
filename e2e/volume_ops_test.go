@@ -231,7 +231,7 @@ func testVolumeExpand(t *testing.T, tc *testCluster) {
 	r := require.New(t)
 
 	var brickPaths []string
-	for i := 1; i <= 4; i++ {
+	for i := 1; i <= 11; i++ {
 		brickPaths = append(brickPaths, fmt.Sprintf(fmt.Sprintf(baseLocalStateDir+"/"+t.Name()+"/%d/", i)))
 	}
 
@@ -261,6 +261,77 @@ func testVolumeExpand(t *testing.T, tc *testCluster) {
 	for _, subvol := range volinfo.Subvols {
 		r.Len(subvol.Bricks, 2)
 	}
+
+	createReqBrick := api.VolCreateReq{
+		Name: "TestVolumeExpand",
+		Subvols: []api.SubvolReq{
+			{
+				ReplicaCount: 2,
+				Type:         "replicate",
+				Bricks: []api.BrickReq{
+					{PeerID: tc.gds[0].PeerID(), Path: brickPaths[4]},
+					{PeerID: tc.gds[1].PeerID(), Path: brickPaths[5]},
+				},
+			},
+			{
+				Type:         "replicate",
+				ReplicaCount: 2,
+				Bricks: []api.BrickReq{
+					{PeerID: tc.gds[0].PeerID(), Path: brickPaths[6]},
+					{PeerID: tc.gds[1].PeerID(), Path: brickPaths[7]},
+				},
+			},
+		},
+		Flags: flags,
+	}
+
+	_, err = client.VolumeCreate(createReqBrick)
+	r.Nil(err)
+
+	expandReq = api.VolExpandReq{
+		ReplicaCount: 1,
+		Bricks: []api.BrickReq{
+			{PeerID: tc.gds[0].PeerID(), Path: brickPaths[8]},
+			{PeerID: tc.gds[1].PeerID(), Path: brickPaths[9]},
+			{PeerID: tc.gds[0].PeerID(), Path: brickPaths[10]},
+		},
+		Flags: flags,
+	}
+	volinfo, err = client.VolumeExpand("TestVolumeExpand", expandReq)
+	r.NotNil(err)
+
+	expandReq = api.VolExpandReq{
+		ReplicaCount: 3,
+		Bricks: []api.BrickReq{
+			{PeerID: tc.gds[0].PeerID(), Path: brickPaths[8]},
+			{PeerID: tc.gds[1].PeerID(), Path: brickPaths[9]},
+			{PeerID: tc.gds[0].PeerID(), Path: brickPaths[10]},
+		},
+		Flags: flags,
+	}
+	volinfo, err = client.VolumeExpand("TestVolumeExpand", expandReq)
+	r.NotNil(err)
+
+	expandReq = api.VolExpandReq{
+		ReplicaCount: 3,
+		Bricks: []api.BrickReq{
+			{PeerID: tc.gds[0].PeerID(), Path: brickPaths[8]},
+			{PeerID: tc.gds[1].PeerID(), Path: brickPaths[9]},
+		},
+		Flags: flags,
+	}
+
+	//expand with new brick dir which is not created
+	volinfo, err = client.VolumeExpand("TestVolumeExpand", expandReq)
+	r.Nil(err)
+	r.Len(volinfo.Subvols, 2)
+	r.Equal(volinfo.ReplicaCount, 3)
+	for _, subvol := range volinfo.Subvols {
+		r.Len(subvol.Bricks, 3)
+	}
+
+	//delete volume
+	r.Nil(client.VolumeDelete("TestVolumeExpand"))
 }
 
 func testVolumeDelete(t *testing.T) {
