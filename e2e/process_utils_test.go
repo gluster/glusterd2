@@ -34,17 +34,25 @@ func (tp *testProcess) IsRunning() bool {
 	return true
 }
 
+// https://golang.org/src/os/exec_unix.go
+var errFinished = errors.New("os: process already finished")
+
 // Stop will terminate the associated process. It will attempt a graceful
 // shutdown before killing the process.
 func (tp *testProcess) Stop() error {
 	tp.Cmd.Process.Signal(os.Interrupt) // try shutting down gracefully
-	time.Sleep(500 * time.Millisecond)
+	time.Sleep(2 * time.Second)
 	if tp.IsRunning() {
-		time.Sleep(1 * time.Second)
+		time.Sleep(2 * time.Second)
 	} else {
 		return nil
 	}
-	return tp.Cmd.Process.Kill()
+	if err := tp.Cmd.Process.Kill(); err != nil {
+		if err.Error() != errFinished.Error() {
+			return err
+		}
+	}
+	return nil
 }
 
 type gdProcess struct {
@@ -93,8 +101,12 @@ func (g *gdProcess) PeerID() string {
 
 func (g *gdProcess) IsRestServerUp() bool {
 
+	hc := &http.Client{
+		Timeout: 5 * time.Second,
+	}
+
 	endpoint := fmt.Sprintf("http://%s/v1/peers", g.ClientAddress)
-	resp, err := http.Get(endpoint)
+	resp, err := hc.Get(endpoint)
 	if err != nil {
 		return false
 	}
@@ -162,7 +174,7 @@ func spawnGlusterd(configFilePath string, cleanStart bool) (*gdProcess, error) {
 	}()
 
 	retries := 4
-	waitTime := 2000
+	waitTime := 3000
 	for i := 0; i < retries; i++ {
 		// opposite of exponential backoff
 		time.Sleep(time.Duration(waitTime) * time.Millisecond)
