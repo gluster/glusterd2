@@ -7,6 +7,7 @@ import (
 	"os/exec"
 	"strconv"
 	"strings"
+	"syscall"
 	"time"
 
 	"github.com/gluster/glusterd2/glusterd2/snapshot/lvm"
@@ -91,7 +92,7 @@ func deleteLV(num int, force bool) error {
 		brickPath := fmt.Sprintf("%s_mnt", prefix)
 		vg := fmt.Sprintf("%s_vg_%d", lvmPrefix, i)
 
-		if _, err := exec.Command("umount", "-f", brickPath).Output(); err != nil && !force {
+		if err := syscall.Unmount(brickPath, syscall.MNT_FORCE); err != nil && !force {
 			return err
 		}
 		if err := os.RemoveAll(brickPath); err != nil && !force {
@@ -192,7 +193,7 @@ func Cleanup(baseWorkdir, prefix string, brickCount int) {
 		if strings.HasPrefix(m.MntDir, baseWorkdir) {
 
 			//Remove any dangling mount pounts
-			exec.Command("umount", "-f", "-l", m.MntDir).Output()
+			syscall.Unmount(m.MntDir, syscall.MNT_FORCE|syscall.MNT_DETACH)
 		}
 	}
 

@@ -179,7 +179,7 @@ func cleanupAllBrickMounts(t *testing.T) {
 			}
 
 			testlog(t, fmt.Sprintf("cleanupAllBrickMounts(): umounting %s", parts[2]))
-			err = exec.Command("umount", "--force", "--lazy", parts[2]).Run()
+			syscall.Unmount(parts[2], syscall.MNT_FORCE|syscall.MNT_DETACH)
 			if err != nil {
 				testlog(t, fmt.Sprintf("`umount %s` failed: %s", parts[2], err))
 			}
