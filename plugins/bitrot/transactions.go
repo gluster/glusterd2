@@ -1,6 +1,7 @@
 package bitrot
 
 import (
+	"context"
 	"strconv"
 
 	"github.com/gluster/glusterd2/glusterd2/brick"
@@ -20,7 +21,7 @@ const (
 
 // IsBitrotAffectedNode returns true if there are local bricks of volume on which bitrot is enabled
 func IsBitrotAffectedNode() bool {
-	volumes, e := volume.GetVolumes()
+	volumes, e := volume.GetVolumes(context.TODO())
 	if e != nil {
 		log.WithError(e).Error("Failed to get volumes")
 		return false
