@@ -49,6 +49,7 @@ func snapshotInfoDisplay(snap api.SnapGetResp) {
 	fmt.Println("Origin Volume name:", snap.ParentVolName)
 	fmt.Println("Snap Creation Time:", snap.SnapTime)
 	fmt.Println("Labels:", "To Be Added")
+	fmt.Println("Snapshot Description:", snap.Description)
 	fmt.Println()
 
 	return
