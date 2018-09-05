@@ -1,6 +1,7 @@
 package utils
 
 import (
+	"context"
 	"strings"
 
 	"github.com/gluster/glusterd2/glusterd2/volume"
@@ -11,7 +12,7 @@ import (
 
 // MountLocalBricks mounts bricks of auto provisioned volumes
 func MountLocalBricks() error {
-	volumes, err := volume.GetVolumes()
+	volumes, err := volume.GetVolumes(context.TODO())
 	if err != nil {
 		return err
 	}

@@ -63,7 +63,7 @@ func (p *PeerService) Join(ctx context.Context, req *JoinReq) (*JoinRsp, error) 
 		return &JoinRsp{"", int32(ErrAnotherCluster)}, nil
 	}
 
-	volumes, err := volume.GetVolumes()
+	volumes, err := volume.GetVolumes(context.TODO())
 	if err != nil {
 		logger.WithError(err).Error("failed to connect to store")
 		return &JoinRsp{"", int32(ErrFailedToConnectToStore)}, nil
