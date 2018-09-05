@@ -5,7 +5,6 @@ import (
 	"fmt"
 	"net"
 	"os"
-	"os/exec"
 	"path"
 	"syscall"
 	"testing"
@@ -142,8 +141,8 @@ func testGranularEntryHeal(t *testing.T, tc *testCluster) {
 
 	host, _, _ := net.SplitHostPort(tc.gds[0].ClientAddress)
 	err = mountVolume(host, volname, mntPath)
-	defer exec.Command("umount", "-l", mntPath).Run()
 	r.Nil(err, fmt.Sprintf("mount failed: %s", err))
+	defer syscall.Unmount(mntPath, syscall.MNT_FORCE|syscall.MNT_DETACH)
 
 	getBricksStatus, err := client.BricksStatus(volname)
 	r.Nil(err, fmt.Sprintf("brick status operation failed: %s", err))
@@ -181,8 +180,7 @@ func testGranularEntryHeal(t *testing.T, tc *testCluster) {
 	optionReq.Advanced = true
 	r.NotNil(client.VolumeSet(volname, optionReq))
 
-	umntCmd := exec.Command("umount", mntPath)
-	err = umntCmd.Run()
+	err = syscall.Unmount(mntPath, 0)
 	r.Nil(err)
 
 	// Stop Volume

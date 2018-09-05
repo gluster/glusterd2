@@ -5,7 +5,6 @@ import (
 	"fmt"
 	"net"
 	"os"
-	"os/exec"
 	"syscall"
 	"testing"
 	"time"
@@ -318,8 +317,7 @@ func testRestoredVolumeMount(t *testing.T, tc *testCluster) {
 	err = testMount(mntPath)
 	r.Nil(err)
 
-	umntCmd := exec.Command("umount", mntPath)
-	err = umntCmd.Run()
+	err = syscall.Unmount(mntPath, 0)
 	r.Nil(err, fmt.Sprintf("unmount failed: %s", err))
 }
 
@@ -341,8 +339,7 @@ func testSnapshotMount(t *testing.T, tc *testCluster) {
 		r.Nil(errors.New("snapshot volume is Read Only File System"))
 	}
 
-	umntCmd := exec.Command("umount", mntPath)
-	err = umntCmd.Run()
+	err = syscall.Unmount(mntPath, 0)
 	r.Nil(err, fmt.Sprintf("unmount failed: %s", err))
 }
 
