@@ -290,16 +290,18 @@ func storeVolInfo(c transaction.TxnCtx, key string) error {
 			"key", "volinfo").Debug("Failed to get key from store")
 		return err
 	}
+	err := volgen.VolumeVolfileToStore(&volinfo, volinfo.Name, "client")
+	if err != nil {
+		c.Logger().WithError(err).WithFields(log.Fields{
+			"template": "client",
+			"volfile":  volinfo.Name,
+		}).Error("failed to generate volfile and save to store")
+		return err
+	}
 
 	if err := volume.AddOrUpdateVolumeFunc(&volinfo); err != nil {
 		c.Logger().WithError(err).WithField(
 			"volume", volinfo.Name).Debug("failed to store volume info")
-		return err
-	}
-
-	if err := volgen.Generate(); err != nil {
-		c.Logger().WithError(err).WithField(
-			"volume", volinfo.Name).Debug("failed to generate volfiles")
 		return err
 	}
 
@@ -355,4 +357,46 @@ func isActionStepRequired(opt map[string]string, volinfo *volume.Volinfo) bool {
 	}
 
 	return false
+}
+
+func deleteBrickVolfiles(c transaction.TxnCtx) error {
+	var volinfo volume.Volinfo
+	if err := c.Get("volinfo", &volinfo); err != nil {
+		c.Logger().WithError(err).WithField(
+			"key", "volinfo").Error("Failed to get key from store")
+		return err
+	}
+
+	for _, b := range volinfo.GetLocalBricks() {
+		volfileID := brick.GetVolfileID(volinfo.Name, b.Path)
+		err := volgen.DeleteFile(volfileID)
+		if err != nil {
+			c.Logger().WithError(err).WithFields(log.Fields{
+				"volume":   volinfo.Name,
+				"filename": volfileID,
+			}).Error("failed to delete brick volfile")
+			return err
+		}
+	}
+	return nil
+}
+
+func generateBrickVolfiles(c transaction.TxnCtx) error {
+	var volinfo volume.Volinfo
+	if err := c.Get("volinfo", &volinfo); err != nil {
+		return err
+	}
+
+	for _, b := range volinfo.GetLocalBricks() {
+		volfileID := brick.GetVolfileID(volinfo.Name, b.Path)
+		err := volgen.BrickVolfileToFile(&volinfo, volfileID, "brick", b.PeerID.String(), b.Path)
+		if err != nil {
+			c.Logger().WithError(err).WithFields(log.Fields{
+				"template": "brick",
+				"volfile":  volfileID,
+			}).Error("failed to generate volfile")
+			return err
+		}
+	}
+	return nil
 }
