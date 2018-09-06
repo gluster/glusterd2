@@ -52,6 +52,42 @@ typedef enum {
 #define ZR_VOLUME_MAX_NUM_KEY    4
 #define ZR_OPTION_MAX_ARRAY_SIZE 64
 
+/* snippet from libglusterfs/src/glusterfs.h */
+typedef enum {
+        /* The 'component' (xlator / option) is not yet setting the flag */
+        GF_UNCLASSIFIED = 0,
+
+        /* The 'component' is experimental, should not be recommened
+           in production mode */
+        GF_EXPERIMENTAL,
+
+        /* The 'component' is tech preview, ie, it is 'mostly' working as
+           expected, but can have some of the corner cases, which is not
+           handled. */
+        GF_TECH_PREVIEW,
+
+        /* The 'component' is good to run. Has good enough test and
+           documentation coverage. */
+        GF_MAINTAINED,
+
+        /* The component is:
+           - no more a focus
+           - no more solving a valid use case
+           - no more maintained, no volunteers to maintain
+           - there is 'maintained' or 'tech-preview' feature,
+           which does the same thing, better.
+        */
+        GF_DEPRECATED,
+
+        /* The 'component' is no more 'built'. */
+        GF_OBSOLETE,
+
+        /* The 'component' exist for Documentation purposes.
+           No real usecase */
+        GF_DOCUMENT_PURPOSE,
+} gf_category_t;
+
+
 typedef struct volume_options {
         char                    *key[ZR_VOLUME_MAX_NUM_KEY];
         volume_option_type_t    otype; // 'type' is a keyword in Go
@@ -67,4 +103,5 @@ typedef struct volume_options {
         char                    *tags[ZR_OPTION_MAX_ARRAY_SIZE];
         char                    *setkey;
         opt_level_t             level;
+        gf_category_t           category;
 } volume_option_t;
