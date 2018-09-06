@@ -43,21 +43,22 @@ func snapshotListHandler(cmd *cobra.Command) error {
 		}
 		table.SetHeader([]string{"Name", "Origin Volume"})
 		for _, snap := range snaps {
-			for _, entry := range snap.SnapName {
-				table.Append([]string{entry, snap.ParentName})
+			for _, s := range snap.SnapList {
+				table.Append([]string{s.VolInfo.Name, snap.ParentName})
 			}
 		}
 	} else {
-		if len(snaps[0].SnapName) == 0 {
+		if len(snaps) == 0 {
 			fmt.Printf("There are no snapshots for volume %s\n", snaps[0].ParentName)
 			return nil
 		}
 
 		table.SetHeader([]string{"Name"})
-		for _, entry := range snaps[0].SnapName {
-			table.Append([]string{entry})
+		if len(snaps) > 0 {
+			for _, entry := range snaps[0].SnapList {
+				table.Append([]string{entry.VolInfo.Name})
+			}
 		}
-
 	}
 	table.Render()
 	return err
