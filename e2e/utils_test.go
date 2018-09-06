@@ -350,3 +350,9 @@ func testMount(path string) error {
 
 	return nil
 }
+
+func checkFuseAvailable(t *testing.T) {
+	if _, err := os.Lstat("/dev/fuse"); os.IsNotExist(err) {
+		t.Skip("skipping mount /dev/fuse unavailable")
+	}
+}

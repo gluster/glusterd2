@@ -11,10 +11,10 @@ type SnapInfo struct {
 	SnapTime      string     `json:"snaptime"`
 }
 
-//SnapList contains snapshot name of a volume
+//SnapList contains snapshots information of a volume.
 type SnapList struct {
-	ParentName string   `json:"parentname"`
-	SnapName   []string `json:"snaps"`
+	ParentName string     `json:"parentname"`
+	SnapList   []SnapInfo `json:"snaps"`
 }
 
 //LvsData gives the information provided in lvs command
