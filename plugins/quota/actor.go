@@ -6,6 +6,7 @@ import (
 	"path"
 
 	"github.com/gluster/glusterd2/glusterd2/daemon"
+	"github.com/gluster/glusterd2/glusterd2/volgen"
 	"github.com/gluster/glusterd2/glusterd2/volume"
 	"github.com/gluster/glusterd2/glusterd2/xlator"
 	"github.com/gluster/glusterd2/pkg/errors"
@@ -79,6 +80,10 @@ func (actor *quotadActor) Do(v *volume.Volinfo, key, value string, volOp xlator.
 			logger.Warn("quotad stop failed")
 		} else {
 			logger.Info("quotad stopped for restart")
+		}
+		err = volgen.ClusterVolfileToFile(v, quotadDaemon.VolfileID, "quotad")
+		if err != nil {
+			return err
 		}
 		if err = daemon.Start(quotadDaemon, true, logger); err != nil {
 			logger.WithError(err).Error("quotad start failed")
