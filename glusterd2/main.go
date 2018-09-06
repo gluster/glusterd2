@@ -16,6 +16,7 @@ import (
 	"github.com/gluster/glusterd2/glusterd2/servers"
 	"github.com/gluster/glusterd2/glusterd2/store"
 	gdutils "github.com/gluster/glusterd2/glusterd2/utils"
+	"github.com/gluster/glusterd2/glusterd2/volgen"
 	"github.com/gluster/glusterd2/glusterd2/xlator"
 	"github.com/gluster/glusterd2/pkg/errors"
 	"github.com/gluster/glusterd2/pkg/firewalld"
@@ -125,6 +126,11 @@ func main() {
 	// Create the Opencensus Jaeger exporter
 	if exporter := tracing.InitJaegerExporter(); exporter != nil {
 		defer exporter.Flush()
+	}
+
+	// Load default volfile templates
+	if err := volgen.LoadDefaultTemplates(); err != nil {
+		log.WithError(err).Fatal("Failed to load Volgen templates")
 	}
 
 	// Start all servers (rest, peerrpc, sunrpc) managed by suture supervisor
