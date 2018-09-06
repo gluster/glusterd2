@@ -10,8 +10,10 @@ import (
 	restutils "github.com/gluster/glusterd2/glusterd2/servers/rest/utils"
 	"github.com/gluster/glusterd2/glusterd2/snapshot"
 	"github.com/gluster/glusterd2/glusterd2/transaction"
+	"github.com/gluster/glusterd2/glusterd2/volgen"
 	"github.com/gluster/glusterd2/glusterd2/volume"
 	"github.com/gluster/glusterd2/pkg/api"
+
 	"github.com/gorilla/mux"
 	"github.com/pborman/uuid"
 	log "github.com/sirupsen/logrus"
@@ -35,6 +37,19 @@ func activateSnapshot(c transaction.TxnCtx) error {
 	if err := c.SetNodeResult(gdctx.MyUUID, "brickListToOperate", &brickinfos); err != nil {
 		log.WithError(err).Error("failed to set request in transaction context")
 		return err
+	}
+
+	// Generate local Bricks Volfiles
+	for _, b := range vol.GetLocalBricks() {
+		volfileID := brick.GetVolfileID(vol.Name, b.Path)
+		err := volgen.BrickVolfileToFile(vol, volfileID, "brick", b.PeerID.String(), b.Path)
+		if err != nil {
+			c.Logger().WithError(err).WithFields(log.Fields{
+				"template": "brick",
+				"volfile":  volfileID,
+			}).Error("failed to generate volfile")
+			return err
+		}
 	}
 
 	err = snapshot.ActivateDeactivateFunc(&snapinfo, brickinfos, activate, c.Logger())
