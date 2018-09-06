@@ -68,7 +68,7 @@ func storeSnapshotClone(c transaction.TxnCtx) error {
 		return err
 	}
 
-	if err := volgen.Generate(); err != nil {
+	if err := volgen.VolumeVolfileToStore(&vol, vol.Name, "client"); err != nil {
 		c.Logger().WithError(err).WithField(
 			"volume", vol.Name).Debug("generateVolfiles: failed to generate volfiles")
 		return err

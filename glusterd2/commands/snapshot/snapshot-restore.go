@@ -16,6 +16,7 @@ import (
 
 	"github.com/gorilla/mux"
 	"github.com/pborman/uuid"
+	log "github.com/sirupsen/logrus"
 	"golang.org/x/sys/unix"
 )
 
@@ -108,15 +109,18 @@ func undoSnapStore(c transaction.TxnCtx) error {
 		return err
 	}
 
-	if err := volume.AddOrUpdateVolumeFunc(&volinfo); err != nil {
-		c.Logger().WithError(err).WithField(
-			"volume", volinfo.Name).Debug("failed to store volume info")
+	err := volgen.VolumeVolfileToStore(&volinfo, volinfo.Name, "client")
+	if err != nil {
+		c.Logger().WithError(err).WithFields(log.Fields{
+			"template": "client",
+			"volfile":  volinfo.Name,
+		}).Error("failed to generate volfile and save to store")
 		return err
 	}
 
-	if err := volgen.Generate(); err != nil {
+	if err := volume.AddOrUpdateVolumeFunc(&volinfo); err != nil {
 		c.Logger().WithError(err).WithField(
-			"volume", volinfo.Name).Debug("failed to generate volfiles")
+			"volume", volinfo.Name).Debug("failed to store volume info")
 		return err
 	}
 
@@ -270,12 +274,6 @@ func storeSnapRestore(c transaction.TxnCtx) error {
 		c.Logger().WithError(err).
 			WithField("snapshot", snapshot.GetStorePath(snapInfo)).
 			Warn("failed to delete volfiles of snapshot")
-	}
-
-	if err := volgen.Generate(); err != nil {
-		c.Logger().WithError(err).WithField(
-			"volume", newVolinfo.Name).Debug("failed to generate volfiles")
-		return err
 	}
 
 	return nil
