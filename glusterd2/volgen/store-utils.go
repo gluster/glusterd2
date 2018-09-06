@@ -5,6 +5,7 @@ import (
 	"strings"
 
 	"github.com/gluster/glusterd2/glusterd2/store"
+	"github.com/gluster/glusterd2/glusterd2/volume"
 	"github.com/gluster/glusterd2/pkg/errors"
 
 	"github.com/coreos/etcd/clientv3"
@@ -14,9 +15,25 @@ var (
 	volfilePrefix = "volfiles/"
 )
 
-func save(name string, content string) error {
+// SaveToStore saves the volfile content to etcd store
+func SaveToStore(name string, content string) error {
 	_, err := store.Put(context.TODO(), volfilePrefix+name, content)
 	return err
+}
+
+// VolumeVolfileToStore generates Volume level volfile for the given template name and stores in etcd
+func VolumeVolfileToStore(volinfo *volume.Volinfo, volfileID string, tmplName string) error {
+	tmpl, err := GetTemplateFromVolinfo(volinfo, tmplName)
+	if err != nil {
+		return err
+	}
+
+	volfile, err := VolumeLevelVolfile(tmpl, volinfo)
+	if err != nil {
+		return err
+	}
+
+	return SaveToStore(volfileID, volfile)
 }
 
 // GetVolfiles returns list of all Volfiles
