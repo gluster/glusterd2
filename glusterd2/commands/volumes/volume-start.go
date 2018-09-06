@@ -24,6 +24,10 @@ func startAllBricks(c transaction.TxnCtx) error {
 		return err
 	}
 
+	err := generateBrickVolfiles(c)
+	if err != nil {
+		return err
+	}
 	for _, b := range volinfo.GetLocalBricks() {
 
 		c.Logger().WithFields(log.Fields{
@@ -74,6 +78,8 @@ func registerVolStartStepFuncs() {
 		{"vol-start.XlatorActionUndoVolumeStart", xlatorActionUndoVolumeStart},
 		{"vol-start.UpdateVolinfo", storeVolume},
 		{"vol-start.UpdateVolinfo.Undo", undoStoreVolume},
+		{"vol-start.GenerateBrickVolfile", generateBrickVolfiles},
+		{"vol-start.GenerateBrickVolfile.Undo", deleteBrickVolfiles},
 	}
 	for _, sf := range sfs {
 		transaction.RegisterStepFunc(sf.sf, sf.name)
@@ -115,6 +121,11 @@ func volumeStartHandler(w http.ResponseWriter, r *http.Request) {
 	}
 
 	txn.Steps = []*transaction.Step{
+		{
+			DoFunc:   "vol-start.GenerateBrickVolfile",
+			UndoFunc: "vol-start.GenerateBrickVolfile.Undo",
+			Nodes:    volinfo.Nodes(),
+		},
 		{
 			DoFunc:   "vol-start.StartBricks",
 			UndoFunc: "vol-start.StartBricksUndo",
