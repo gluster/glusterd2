@@ -1,6 +1,7 @@
 package peercommands
 
 import (
+	"context"
 	"net/http"
 
 	"github.com/gluster/glusterd2/glusterd2/events"
@@ -123,7 +124,7 @@ func deletePeerHandler(w http.ResponseWriter, r *http.Request) {
 func bricksExist(id string) (bool, error) {
 	pid := uuid.Parse(id)
 
-	vols, err := volume.GetVolumes()
+	vols, err := volume.GetVolumes(context.TODO())
 	if err != nil {
 		return true, err
 	}

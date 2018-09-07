@@ -1,6 +1,7 @@
 package volume
 
 import (
+	"context"
 	"errors"
 	"os"
 	"path"
@@ -50,7 +51,7 @@ func GetRedundancy(disperse uint) int {
 // isBrickPathAvailable validates whether the brick is consumed by other
 // volume
 func isBrickPathAvailable(peerID uuid.UUID, brickPath string) error {
-	volumes, e := GetVolumes()
+	volumes, e := GetVolumes(context.TODO())
 	if e != nil || volumes == nil {
 		// In case cluster doesn't have any volumes configured yet,
 		// treat this as success
