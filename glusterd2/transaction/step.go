@@ -27,6 +27,7 @@ type Step struct {
 	UndoFunc string
 	Nodes    []uuid.UUID
 	Skip     bool
+	Sync     bool
 }
 
 var (
@@ -136,7 +137,7 @@ func runStepFuncOnNode(origCtx context.Context, stepName string, ctx TxnCtx, nod
 
 	var err error
 	if uuid.Equal(node, gdctx.MyUUID) {
-		err = runStepFuncLocally(origCtx, stepName, ctx)
+		err = RunStepFuncLocally(origCtx, stepName, ctx)
 	} else {
 		// remote node
 		err = runStepOn(origCtx, stepName, node, ctx)
@@ -145,7 +146,8 @@ func runStepFuncOnNode(origCtx context.Context, stepName string, ctx TxnCtx, nod
 	respCh <- stepPeerResp{node, err}
 }
 
-func runStepFuncLocally(origCtx context.Context, stepName string, ctx TxnCtx) error {
+// RunStepFuncLocally runs a step func on local node
+func RunStepFuncLocally(origCtx context.Context, stepName string, ctx TxnCtx) error {
 
 	var err error
 
@@ -163,7 +165,7 @@ func runStepFuncLocally(origCtx context.Context, stepName string, ctx TxnCtx) er
 		if err = stepFunc(ctx); err == nil {
 			// if step function executes successfully, commit the
 			// results to the store
-			err = ctx.commit()
+			err = ctx.Commit()
 		}
 	} else {
 		err = ErrStepFuncNotFound

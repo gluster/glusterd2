@@ -26,7 +26,7 @@ var expTxn = expvar.NewMap("txn")
 // Txn is a set of steps
 type Txn struct {
 	id          uuid.UUID
-	locks       map[string]*concurrency.Mutex
+	locks       Locks
 	reqID       uuid.UUID
 	storePrefix string
 
@@ -49,7 +49,7 @@ func NewTxn(ctx context.Context) *Txn {
 	t.reqID = gdctx.GetReqID(ctx)
 	t.locks = make(map[string]*concurrency.Mutex)
 	t.storePrefix = txnPrefix + t.id.String() + "/"
-	config := &txnCtxConfig{
+	config := &TxnCtxConfig{
 		LogFields: log.Fields{
 			"txnid": t.id.String(),
 			"reqid": t.reqID.String(),
@@ -68,10 +68,16 @@ func NewTxnWithLocks(ctx context.Context, lockIDs ...string) (*Txn, error) {
 	t := NewTxn(ctx)
 
 	for _, id := range lockIDs {
-		if err := t.Lock(id); err != nil {
+		logger := t.Ctx.Logger().WithField("lockID", id)
+		logger.Debug("attempting to obtain lock")
+
+		if err := t.locks.Lock(id); err != nil {
+			logger.WithError(err).Error("failed to obtain lock")
 			t.Done()
 			return nil, err
 		}
+
+		logger.Debug("lock obtained")
 	}
 
 	return t, nil
@@ -125,7 +131,7 @@ func (t *Txn) Do() error {
 	expTxn.Add("initiated_txn_in_progress", 1)
 
 	// commit txn.Ctx.Set()s done in REST handlers to the store
-	if err := t.Ctx.commit(); err != nil {
+	if err := t.Ctx.Commit(); err != nil {
 		return err
 	}
 

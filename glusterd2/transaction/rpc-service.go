@@ -59,7 +59,7 @@ func (p *txnSvc) RunStep(rpcCtx context.Context, req *TxnStepReq) (*TxnStepResp,
 		goto End
 	}
 
-	if err = ctx.commit(); err != nil {
+	if err = ctx.Commit(); err != nil {
 		logger.WithError(err).Error("failed to commit txn context to store")
 	}
 

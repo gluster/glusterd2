@@ -33,29 +33,32 @@ type TxnCtx interface {
 	// Logger returns the Logrus logger associated with the context
 	Logger() log.FieldLogger
 
-	// commit writes all locally cached keys and values into the store using
+	// Commit writes all locally cached keys and values into the store using
 	// a single etcd transaction. This is for internal use by the txn framework
 	// and hence isn't exported.
-	commit() error
+	Commit() error
+
+	// SyncCache synchronizes the locally cached keys and values from the store
+	SyncCache() error
 }
 
 // Tctx represents structure for transaction context
 type Tctx struct {
-	config         *txnCtxConfig // this will be marshalled and sent on wire
+	config         *TxnCtxConfig // this will be marshalled and sent on wire
 	logger         log.FieldLogger
 	readSet        map[string][]byte // cached responses from store
 	readCacheDirty bool
 	writeSet       map[string]string // to be written to store
 }
 
-// txnCtxConfig is marshalled and sent on wire and is used to reconstruct Tctx
+// TxnCtxConfig is marshalled and sent on wire and is used to reconstruct Tctx
 // on receiver's end.
-type txnCtxConfig struct {
+type TxnCtxConfig struct {
 	LogFields   log.Fields
 	StorePrefix string
 }
 
-func newCtx(config *txnCtxConfig) *Tctx {
+func newCtx(config *TxnCtxConfig) *Tctx {
 	return &Tctx{
 		config:         config,
 		logger:         log.StandardLogger().WithFields(config.LogFields),
@@ -63,6 +66,11 @@ func newCtx(config *txnCtxConfig) *Tctx {
 		writeSet:       make(map[string]string),
 		readCacheDirty: true,
 	}
+}
+
+// NewCtx returns a transaction context from given config
+func NewCtx(config *TxnCtxConfig) *Tctx {
+	return newCtx(config)
 }
 
 // Set attaches the given key-value pair to the context.
@@ -86,9 +94,22 @@ func (c *Tctx) Set(key string, value interface{}) error {
 	return nil
 }
 
-// commit writes all locally cached keys and values into the store using
+// SyncCache synchronizes the locally cached keys and values from the store
+func (c *Tctx) SyncCache() error {
+	resp, err := store.Get(context.TODO(), c.config.StorePrefix, clientv3.WithPrefix())
+	if err != nil {
+		return err
+	}
+
+	for _, kv := range resp.Kvs {
+		c.readSet[string(kv.Key)] = kv.Value
+	}
+	return nil
+}
+
+// Commit writes all locally cached keys and values into the store using
 // a single etcd transaction.
-func (c *Tctx) commit() error {
+func (c *Tctx) Commit() error {
 
 	if len(c.writeSet) == 0 {
 		return nil
@@ -120,6 +141,7 @@ func (c *Tctx) commit() error {
 
 	expTxn.Add("txn_ctx_store_commit", 1)
 
+	c.writeSet = make(map[string]string)
 	c.readCacheDirty = true
 
 	return nil
@@ -139,14 +161,9 @@ func (c *Tctx) Get(key string, value interface{}) error {
 
 	// cache all keys and values from the store on the first call to Get
 	if c.readCacheDirty {
-		resp, err := store.Get(context.TODO(), c.config.StorePrefix, clientv3.WithPrefix())
-		if err != nil {
+		if err := c.SyncCache(); err != nil {
 			c.logger.WithError(err).WithField("key", key).Error("failed to get key from transaction context")
 			return err
-		}
-		expTxn.Add("txn_ctx_store_get", 1)
-		for _, kv := range resp.Kvs {
-			c.readSet[string(kv.Key)] = kv.Value
 		}
 		c.readCacheDirty = false
 	}
