@@ -45,9 +45,15 @@ func undoStoreSnapshotClone(c transaction.TxnCtx) error {
 		return err
 	}
 
-	// TODO Delete volfile from etcd properly
-	volume.DeleteVolume(vol.Name)
+	if err := volume.DeleteVolume(vol.Name); err != nil {
+		return err
+	}
 
+	if err := volgen.DeleteVolfiles(vol.VolfileID); err != nil {
+		c.Logger().WithError(err).
+			WithField("volume", vol.Name).
+			Warn("failed to delete volfiles of volume")
+	}
 	return nil
 }
 
@@ -124,17 +130,12 @@ func populateCloneBrickMountData(volinfo *volume.Volinfo, name string) (map[stri
 				return nil, err
 			}
 
-			vG, err := lvm.GetVgName(mntInfo.FsName)
+			suffix := fmt.Sprintf("clone_%s_%s_s%d_b%d", name, volinfo.Name, svIdx+1, bIdx+1)
+
+			devicePath, err := lvm.CreateDevicePath(mntInfo.FsName, suffix)
 			if err != nil {
-
-				log.WithError(err).WithField(
-					"brick", b.Path,
-				).Error("Failed to get vg name")
-
 				return nil, err
 			}
-			devicePath := fmt.Sprintf("/dev/%s/clone_%s_s%d_b%d", vG, name, svIdx+1, bIdx+1)
-
 			nodeData[b.String()] = snapshot.BrickMountData{
 				MountDir:   mountDir,
 				DevicePath: devicePath,
@@ -221,8 +222,7 @@ func createCloneVolinfo(c transaction.TxnCtx) error {
 
 	for _, node := range volinfo.Nodes() {
 		tmp := make(map[string]snapshot.BrickMountData)
-		err := c.GetNodeResult(node, snapshot.NodeDataTxnKey, &tmp)
-		if err != nil {
+		if err := c.GetNodeResult(node, snapshot.NodeDataTxnKey, &tmp); err != nil {
 			return err
 		}
 		for k, v := range tmp {
@@ -243,8 +243,7 @@ func createCloneVolinfo(c transaction.TxnCtx) error {
 	newVol.Name = clonename
 	newVol.VolfileID = clonename
 
-	err = createSnapSubvols(newVol, volinfo, nodeData)
-	if err != nil {
+	if err = createSnapSubvols(newVol, volinfo, nodeData); err != nil {
 		log.WithError(err).WithFields(log.Fields{
 			"snapshot":    snapname,
 			"volume name": clonename,
@@ -349,14 +348,12 @@ func snapshotCloneHandler(w http.ResponseWriter, r *http.Request) {
 			Nodes:    []uuid.UUID{gdctx.MyUUID},
 		},
 	}
-	err = txn.Ctx.Set("snapname", &snapname)
-	if err != nil {
+	if err = txn.Ctx.Set("snapname", &snapname); err != nil {
 		logger.WithError(err).Error("failed to set request in transaction context")
 		restutils.SendHTTPError(ctx, w, http.StatusInternalServerError, err)
 		return
 	}
-	err = txn.Ctx.Set("clonename", &req.CloneName)
-	if err != nil {
+	if err = txn.Ctx.Set("clonename", &req.CloneName); err != nil {
 		logger.WithError(err).Error("failed to set request in transaction context")
 		restutils.SendHTTPError(ctx, w, http.StatusInternalServerError, err)
 		return
@@ -380,11 +377,12 @@ func snapshotCloneHandler(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	resp := createVolumeCreateResp(vol)
+	resp := createSnapshotCloneResp(vol)
 	restutils.SetLocationHeader(r, w, vol.Name)
 	restutils.SendHTTPResponse(ctx, w, http.StatusCreated, resp)
 
 }
-func createVolumeCreateResp(v *volume.Volinfo) *api.VolumeCreateResp {
-	return (*api.VolumeCreateResp)(volume.CreateVolumeInfoResp(v))
+
+func createSnapshotCloneResp(v *volume.Volinfo) *api.SnapshotCloneResp {
+	return (*api.SnapshotCloneResp)(volume.CreateVolumeInfoResp(v))
 }

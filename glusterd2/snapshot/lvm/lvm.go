@@ -1,6 +1,7 @@
 package lvm
 
 import (
+	"errors"
 	"fmt"
 	"os"
 	"os/exec"
@@ -13,7 +14,13 @@ import (
 	"github.com/gluster/glusterd2/pkg/utils"
 
 	"github.com/pborman/uuid"
+	log "github.com/sirupsen/logrus"
 )
+
+//TODO make it configurable with config value
+
+//MaxSizePercentage , above this value snapshot creation won't be allowed
+const MaxSizePercentage = 90.0
 
 //GetBinPath returns binary path of given name, returns null on error
 func GetBinPath(name string) string {
@@ -32,6 +39,9 @@ var (
 	PvCreateCommand = GetBinPath("pvcreate")
 	//VgCreateCommand is path to vgcreate
 	VgCreateCommand = GetBinPath("vgcreate")
+	//VgRemoveCommand is path to vgcreate
+	VgRemoveCommand = GetBinPath("vgremove")
+
 	//LVSCommand is path to lvs
 	LVSCommand = GetBinPath("lvs")
 )
@@ -60,8 +70,8 @@ func CommonPrevalidation(lvmCommand string) error {
 	return nil
 }
 
-//IsThinLV check for lvm compatibility for a path
-func IsThinLV(brickPath string) bool {
+//FsCompatibleCheck check for lvm compatibility for a path
+func FsCompatibleCheck(brickPath string) bool {
 	mountRoot, err := volume.GetBrickMountRoot(brickPath)
 	if err != nil {
 		return false
@@ -84,15 +94,40 @@ func IsThinLV(brickPath string) bool {
 	return true
 }
 
+//SizeCompatibleCheck check for lvm compatibility for a path
+func SizeCompatibleCheck(brickPath string) bool {
+	mountRoot, err := volume.GetBrickMountRoot(brickPath)
+	if err != nil {
+		return false
+	}
+
+	mntInfo, err := volume.GetBrickMountInfo(mountRoot)
+	if err != nil {
+		return false
+	}
+
+	data, err := GetLvsData(mntInfo.FsName)
+	if err != nil {
+		return false
+	}
+
+	thinPool := fmt.Sprintf("/dev/%s/%s", data.VgName, data.PoolLV)
+	thinData, err := GetLvsData(thinPool)
+	if err != nil {
+		return false
+	}
+	if thinData.DataPercentage >= float32(MaxSizePercentage) {
+		return false
+	}
+
+	return true
+}
+
 //MountSnapshotDirectory will mount the snapshot bricks to the given path
 func MountSnapshotDirectory(mountPath string, mountData brick.MountInfo) error {
 	err := utils.ExecuteCommandRun("mount", "-o", mountData.MntOpts, mountData.DevicePath, mountPath)
 	// Use syscall.Mount command to mount the bricks
-	if err != nil {
-		return err
-	}
-
-	return nil
+	return err
 }
 
 //GetVgName creates the device path for lvm snapshot
@@ -116,8 +151,7 @@ func RemoveBrickSnapshot(devicePath string) error {
 func LVSnapshot(originDevice, DevicePath string) error {
 
 	cmd := exec.Command(CreateCommand, "-s", originDevice, "--setactivationskip", "n", "--name", DevicePath)
-	err := cmd.Start()
-	if err != nil {
+	if err := cmd.Start(); err != nil {
 		return err
 	}
 
@@ -133,8 +167,7 @@ func UpdateFsLabel(DevicePath, FsType string) error {
 	switch FsType {
 	case "xfs":
 		label := uuid[:12]
-		err := utils.ExecuteCommandRun("xfs_admin", "-L", label, DevicePath)
-		if err != nil {
+		if err := utils.ExecuteCommandRun("xfs_admin", "-L", label, DevicePath); err != nil {
 			return err
 		}
 	case "ext4":
@@ -143,8 +176,7 @@ func UpdateFsLabel(DevicePath, FsType string) error {
 		fallthrough
 	case "ext2":
 		label := uuid[:16]
-		err := utils.ExecuteCommandRun("tune2fs", "-L", label, DevicePath)
-		if err != nil {
+		if err := utils.ExecuteCommandRun("tune2fs", "-L", label, DevicePath); err != nil {
 			return err
 		}
 	default:
@@ -183,4 +215,22 @@ func GetLvsData(mountDevice string) (LvsData, error) {
 		PoolLV:         strings.TrimSpace(data[3]),
 	}
 	return result, nil
+}
+
+//CreateDevicePath creates device path for new snapshot
+func CreateDevicePath(originDevice, prefix string) (string, error) {
+	vG, err := GetVgName(originDevice)
+	if err != nil {
+		return "", err
+	}
+	devicePath := fmt.Sprintf("/dev/%s/%s", vG, prefix)
+	if _, err = GetLvsData(devicePath); err == nil {
+		//ThinLV already exist
+		errMSG := fmt.Sprintf("Failed to creaite device name %s for device %s. A thinLV with same name exist.", devicePath, originDevice)
+		log.WithError(err).WithField(
+			"deviceName", devicePath,
+		).Error("Failed to create device name. A thinLV with same name exist")
+		return "", errors.New(errMSG)
+	}
+	return devicePath, nil
 }

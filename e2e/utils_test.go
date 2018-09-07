@@ -178,7 +178,8 @@ func cleanupAllBrickMounts(t *testing.T) {
 				continue
 			}
 
-			err = exec.Command("umount", parts[2]).Run()
+			testlog(t, fmt.Sprintf("cleanupAllBrickMounts(): umounting %s", parts[2]))
+			err = exec.Command("umount", "--force", "--lazy", parts[2]).Run()
 			if err != nil {
 				testlog(t, fmt.Sprintf("`umount %s` failed: %s", parts[2], err))
 			}
@@ -348,4 +349,10 @@ func testMount(path string) error {
 	}
 
 	return nil
+}
+
+func checkFuseAvailable(t *testing.T) {
+	if _, err := os.Lstat("/dev/fuse"); os.IsNotExist(err) {
+		t.Skip("skipping mount /dev/fuse unavailable")
+	}
 }

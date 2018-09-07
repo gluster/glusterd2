@@ -8,8 +8,10 @@ import (
 )
 
 const (
-	snapshotDeleteHelpShort = "Delete a Gluster Snapshot"
-	snapshotDeleteHelpLong  = "Delete a Gluster snapshot of the given name."
+	snapshotDeleteHelpShort    = "Delete snapshots"
+	snapshotDeleteHelpLong     = "It deletes a snapshot if a snapshot name is given as an argument. It also takes command all to deletes all snapshots in a cluster or all snapshots of a particular volume"
+	snapshotDeleteAllHelpShort = "Deletes All snapshots"
+	snapshotDeleteAllHelpLong  = "Deletes all snapshots in the cluster. If volume name is not given. If the volume name is given, then it deletes all snapshots of a volume"
 )
 
 var (
@@ -29,8 +31,7 @@ func init() {
 func snapshotDeleteCmdRun(cmd *cobra.Command, args []string) {
 	snapname := args[0]
 
-	err := client.SnapshotDelete(snapname)
-	if err != nil {
+	if err := client.SnapshotDelete(snapname); err != nil {
 		if GlobalFlag.Verbose {
 			log.WithError(err).WithField(
 				"snapshot", snapname).Error("snapshot delete failed")

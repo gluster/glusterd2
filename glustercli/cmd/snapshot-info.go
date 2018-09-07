@@ -47,8 +47,9 @@ func snapshotInfoDisplay(snap api.SnapGetResp) {
 	fmt.Println("Snapshot Volume ID:", vol.ID)
 	fmt.Println("State:", vol.State)
 	fmt.Println("Origin Volume name:", snap.ParentVolName)
-	fmt.Println("Snap Creation Time:", "To Be Added")
+	fmt.Println("Snap Creation Time:", snap.SnapTime)
 	fmt.Println("Labels:", "To Be Added")
+	fmt.Println("Snapshot Description:", snap.Description)
 	fmt.Println()
 
 	return
@@ -69,8 +70,7 @@ func snapshotInfoHandler(cmd *cobra.Command) error {
 }
 
 func snapshotInfoCmdRun(cmd *cobra.Command, args []string) {
-	err := snapshotInfoHandler(cmd)
-	if err != nil {
+	if err := snapshotInfoHandler(cmd); err != nil {
 		if GlobalFlag.Verbose {
 			log.WithError(err).Error("error getting snapshot info")
 		}

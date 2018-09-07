@@ -4,12 +4,14 @@ import (
 	"errors"
 	"fmt"
 	"io/ioutil"
+	"math/rand"
 	"net"
 	"os"
 	"os/exec"
 	"path"
 	"path/filepath"
 	"strings"
+	"syscall"
 	"testing"
 	"time"
 
@@ -69,6 +71,11 @@ func TestVolume(t *testing.T) {
 	t.Run("DisperseMount", tc.wrap(testDisperseMount))
 	t.Run("DisperseDelete", testDisperseDelete)
 	t.Run("testShdOnVolumeStartAndStop", tc.wrap(testShdOnVolumeStartAndStop))
+
+	// Self Heal Test
+	t.Run("SelfHeal", tc.wrap(testSelfHeal))
+	t.Run("GranularEntryHeal", tc.wrap(testGranularEntryHeal))
+
 }
 
 func testVolumeCreateWithoutName(t *testing.T, tc *testCluster) {
@@ -271,6 +278,53 @@ func testVolumeDelete(t *testing.T) {
 func testVolumeStart(t *testing.T) {
 	r := require.New(t)
 	r.Nil(client.VolumeStart(volname, false), "volume start failed")
+
+	bricks, err := client.BricksStatus(volname)
+	for index := range bricks {
+		r.NotZero(bricks[index].Port)
+		r.True(bricks[index].Online)
+	}
+
+	r.Nil(client.VolumeStart(volname, true), "volume force start failed")
+
+	time.Sleep(3 * time.Second)
+
+	bricks, err = client.BricksStatus(volname)
+	for index := range bricks {
+		r.NotZero(bricks[index].Port)
+		r.True(bricks[index].Online)
+	}
+
+	random := rand.New(rand.NewSource(time.Now().UnixNano()))
+	brickIndex := random.Intn(len(bricks))
+	killBrick := bricks[brickIndex].Info.Path
+	process, err := os.FindProcess(bricks[brickIndex].Pid)
+	r.Nil(err, fmt.Sprintf("failed to find brick %s with pid: %d", killBrick, bricks[brickIndex].Pid))
+	err = process.Signal(syscall.Signal(15))
+	r.Nil(err, fmt.Sprintf("failed to kill brick %s with pid: %d", killBrick, bricks[brickIndex].Pid))
+
+	time.Sleep(3 * time.Second)
+
+	bricks, err = client.BricksStatus(volname)
+	for index := range bricks {
+		if bricks[index].Info.Path == killBrick {
+			r.Zero(bricks[index].Port)
+			r.False(bricks[index].Online)
+		}
+	}
+
+	r.Nil(client.VolumeStart(volname, true), "volume force start failed")
+
+	time.Sleep(3 * time.Second)
+
+	bricks, err = client.BricksStatus(volname)
+	for index := range bricks {
+		if bricks[index].Info.Path == killBrick {
+			r.NotZero(bricks[index].Port)
+			r.True(bricks[index].Online)
+		}
+	}
+
 }
 
 func testVolumeStop(t *testing.T) {

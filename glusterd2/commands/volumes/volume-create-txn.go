@@ -106,7 +106,7 @@ func populateSubvols(volinfo *volume.Volinfo, req *api.VolCreateReq) error {
 				return err
 			}
 		}
-		s.Bricks, err = volume.NewBrickEntriesFunc(subvolreq.Bricks, volinfo.Name, volinfo.ID)
+		s.Bricks, err = volume.NewBrickEntriesFunc(subvolreq.Bricks, volinfo.Name, volinfo.VolfileID, volinfo.ID)
 		if err != nil {
 			return err
 		}

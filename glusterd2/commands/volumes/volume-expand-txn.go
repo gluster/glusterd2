@@ -49,7 +49,7 @@ func expandValidatePrepare(c transaction.TxnCtx) error {
 		}
 	}
 
-	newBricks, err := volume.NewBrickEntriesFunc(req.Bricks, volinfo.Name, volinfo.ID)
+	newBricks, err := volume.NewBrickEntriesFunc(req.Bricks, volinfo.Name, volinfo.VolfileID, volinfo.ID)
 	if err != nil {
 		c.Logger().WithError(err).Error("failed to create new brick entries")
 		return err
