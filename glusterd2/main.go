@@ -16,6 +16,8 @@ import (
 	"github.com/gluster/glusterd2/glusterd2/pmap"
 	"github.com/gluster/glusterd2/glusterd2/servers"
 	"github.com/gluster/glusterd2/glusterd2/store"
+	"github.com/gluster/glusterd2/glusterd2/transactionv2"
+	"github.com/gluster/glusterd2/glusterd2/transactionv2/cleanuphandler"
 	gdutils "github.com/gluster/glusterd2/glusterd2/utils"
 	"github.com/gluster/glusterd2/glusterd2/volgen"
 	"github.com/gluster/glusterd2/glusterd2/xlator"
@@ -105,6 +107,8 @@ func main() {
 		log.WithError(err).Fatal("Failed to initialize store (etcd client)")
 	}
 
+	transaction.StartTxnEngine()
+	cleanuphandler.StartCleanupLeader()
 	// Start the events framework after store is up
 	if err := events.Start(); err != nil {
 		log.WithError(err).Fatal("Failed to start internal events framework")
@@ -168,6 +172,8 @@ func main() {
 		case unix.SIGINT:
 			log.Info("Received SIGTERM. Stopping GlusterD")
 			gdctx.IsTerminating = true
+			transaction.StopTxnEngine()
+			cleanuphandler.StopCleanupLeader()
 			super.Stop()
 			events.Stop()
 			store.Close()

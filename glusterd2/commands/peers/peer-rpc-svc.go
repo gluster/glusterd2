@@ -8,10 +8,12 @@ import (
 	"github.com/gluster/glusterd2/glusterd2/peer"
 	"github.com/gluster/glusterd2/glusterd2/servers/peerrpc"
 	"github.com/gluster/glusterd2/glusterd2/store"
+	"github.com/gluster/glusterd2/glusterd2/transactionv2"
+	"github.com/gluster/glusterd2/glusterd2/transactionv2/cleanuphandler"
 	"github.com/gluster/glusterd2/glusterd2/volume"
 	"github.com/gluster/glusterd2/pkg/utils"
-	"github.com/pborman/uuid"
 
+	"github.com/pborman/uuid"
 	log "github.com/sirupsen/logrus"
 	"google.golang.org/grpc"
 )
@@ -169,6 +171,8 @@ func ReconfigureStore(c *StoreConfig) error {
 
 	// Stop events framework
 	events.Stop()
+	transaction.StopTxnEngine()
+	cleanuphandler.StopCleanupLeader()
 
 	// do not delete cluster namespace if this is not a loner node
 	var deleteNamespace bool
@@ -217,7 +221,8 @@ func ReconfigureStore(c *StoreConfig) error {
 
 	// Now that new store is up, start events framework
 	events.Start()
-
+	transaction.StartTxnEngine()
+	cleanuphandler.StartCleanupLeader()
 	return nil
 }
 
