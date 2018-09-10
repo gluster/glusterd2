@@ -4,7 +4,7 @@
 # This script sets up the centos-ci environment and runs the PR tests for GD2.
 
 # if anything fails, we'll abort
-set -e
+# set -e
 
 REQ_GO_VERSION='1.9.4'
 # install Go
@@ -24,7 +24,7 @@ yum -y install git mercurial bzr subversion gcc make
 curl -o /etc/yum.repos.d/glusterfs-nighthly-master.repo http://artifacts.ci.centos.org/gluster/nightly/master.repo
 yum -y install epel-release
 yum -y install glusterfs-server
-yum -y install ShellCheck
+#yum -y install ShellCheck
 
 export GD2SRC=$GOPATH/src/github.com/gluster/glusterd2
 cd "$GD2SRC"
@@ -43,5 +43,16 @@ make gd2conf
 # run tests
 make test TESTOPTIONS=-v
 
-# run functional tests
-make functest
+# run all tests 2 times or till it fails
+for i in {1..2}; do
+        make functest
+        if [ $? -ne 0 ]; then
+            break
+        fi
+        sleep 2
+done
+echo $i
+# dump logs
+if [ $i -ne 2 ]; then
+        for f in `find /tmp/gd2_func_test/ -type f -name "*.log"`; do echo $f; cat $f; done
+fi
