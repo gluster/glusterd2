@@ -1,6 +1,8 @@
 package volgen
 
 import (
+	"context"
+
 	"github.com/gluster/glusterd2/glusterd2/snapshot"
 	"github.com/gluster/glusterd2/glusterd2/volume"
 	"github.com/gluster/glusterd2/pkg/utils"
@@ -131,7 +133,7 @@ func generateBrickLevelVolfiles(clusterinfo []*volume.Volinfo, xopts *map[string
 
 // Generate generates all the volfiles(Cluster/Volume/Brick)
 func Generate() error {
-	clusterinfo, err := volume.GetVolumes()
+	clusterinfo, err := volume.GetVolumes(context.TODO())
 	if err != nil {
 		return err
 	}

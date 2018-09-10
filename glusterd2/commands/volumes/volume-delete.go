@@ -13,6 +13,8 @@ import (
 
 	"github.com/gorilla/mux"
 	"github.com/pborman/uuid"
+
+	"go.opencensus.io/trace"
 )
 
 func deleteVolume(c transaction.TxnCtx) error {
@@ -45,6 +47,9 @@ func volumeDeleteHandler(w http.ResponseWriter, r *http.Request) {
 	ctx := r.Context()
 	logger := gdctx.GetReqLogger(ctx)
 	volname := mux.Vars(r)["volname"]
+
+	ctx, span := trace.StartSpan(ctx, "/volumeDeleteHandler")
+	defer span.End()
 
 	txn, err := transaction.NewTxnWithLocks(ctx, volname)
 	if err != nil {
@@ -95,6 +100,11 @@ func volumeDeleteHandler(w http.ResponseWriter, r *http.Request) {
 		restutils.SendHTTPError(ctx, w, http.StatusInternalServerError, err)
 		return
 	}
+
+	span.AddAttributes(
+		trace.StringAttribute("reqID", txn.Ctx.GetTxnReqID()),
+		trace.StringAttribute("volName", volname),
+	)
 
 	if err := txn.Do(); err != nil {
 		logger.WithError(err).WithField(

@@ -129,7 +129,10 @@ func teardownCluster(tc *testCluster) error {
 }
 
 func initRestclient(gdp *gdProcess) (*restclient.Client, error) {
-	secret := getAuth(gdp.LocalStateDir)
+	secret, err := getAuthSecret(gdp.LocalStateDir)
+	if err != nil {
+		return nil, err
+	}
 	return restclient.New("http://"+gdp.ClientAddress, "glustercli", secret, "", false)
 }
 
@@ -179,7 +182,7 @@ func cleanupAllBrickMounts(t *testing.T) {
 			}
 
 			testlog(t, fmt.Sprintf("cleanupAllBrickMounts(): umounting %s", parts[2]))
-			err = exec.Command("umount", "--force", "--lazy", parts[2]).Run()
+			syscall.Unmount(parts[2], syscall.MNT_FORCE|syscall.MNT_DETACH)
 			if err != nil {
 				testlog(t, fmt.Sprintf("`umount %s` failed: %s", parts[2], err))
 			}
@@ -287,16 +290,20 @@ func testTempDir(t *testing.T, prefix string) string {
 	return d
 }
 
-func getAuth(path string) string {
-	filepath := path + "/auth"
-	if _, err := os.Stat(filepath); !os.IsNotExist(err) {
-		s, err := ioutil.ReadFile(filepath)
-		if err != nil {
-			panic("unable to read auth file")
-		}
-		return string(s)
+func getAuthSecret(localstatedir string) (string, error) {
+	var secret string
+
+	authFile := filepath.Join(localstatedir, "auth")
+	b, err := ioutil.ReadFile(authFile)
+	if err != nil && !os.IsNotExist(err) {
+		return "", err
 	}
-	return ""
+
+	if len(b) > 0 {
+		secret = string(b)
+	}
+
+	return secret, nil
 }
 
 func numberOfLvs(vgname string) (int, error) {
