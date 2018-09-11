@@ -100,7 +100,7 @@ func (g *gdProcess) PeerID() string {
 	return g.uuid
 }
 
-func (g *gdProcess) IsRestServerUp() bool {
+func (g *gdProcess) IsRestServerUp(t *testing.T) bool {
 
 	hc := &http.Client{
 		Timeout: 5 * time.Second,
@@ -109,11 +109,21 @@ func (g *gdProcess) IsRestServerUp() bool {
 	endpoint := fmt.Sprintf("http://%s/v1/peers", g.ClientAddress)
 	resp, err := hc.Get(endpoint)
 	if err != nil {
+		t.Logf("IsRestServerUp(): Get failed: %s", err.Error())
 		return false
 	}
 	defer resp.Body.Close()
 
 	if resp.StatusCode/100 == 5 {
+		var body string
+		b, err := ioutil.ReadAll(resp.Body)
+		if err != nil {
+			t.Logf("IsRestServerUp(): ioutil.ReadAll() failed: %s", err.Error())
+		} else {
+			body = string(b)
+		}
+		t.Logf("IsRestServerUp(): Get failed. StatusCode=%d;Body=%s",
+			resp.StatusCode, body)
 		return false
 	}
 
@@ -183,14 +193,14 @@ func spawnGlusterd(t *testing.T, configFilePath string, cleanStart bool) (*gdPro
 	for i := 0; i < retries; i++ {
 		// opposite of exponential backoff
 		time.Sleep(time.Duration(waitTime) * time.Millisecond)
-		if g.IsRestServerUp() {
+		if g.IsRestServerUp(t) {
 			break
 		}
 		waitTime = waitTime / 2
 	}
 
-	if !g.IsRestServerUp() {
-		return nil, errors.New("timeout: could not query rest server")
+	if !g.IsRestServerUp(t) {
+		return nil, fmt.Errorf("timeout: could not query gd2 (%s) rest server", g.PeerID())
 	}
 
 	return &g, nil
