@@ -43,7 +43,8 @@ func setupCluster(t *testing.T, configFiles ...string) (*testCluster, error) {
 		if cleanupRequired {
 			for _, p := range tc.gds {
 				p.Stop()
-				p.EraseLocalStateDir()
+				// do not erase to allow for debugging
+				// p.EraseLocalStateDir()
 			}
 		}
 	}
