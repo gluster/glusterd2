@@ -2,7 +2,6 @@ package e2e
 
 import (
 	"fmt"
-	"io/ioutil"
 	"syscall"
 	"testing"
 
@@ -250,7 +249,7 @@ func TestSmartVolume(t *testing.T) {
 
 	r := require.New(t)
 
-	tc, err := setupCluster("./config/1.toml", "./config/2.toml", "./config/3.toml")
+	tc, err := setupCluster(t, "./config/1.toml", "./config/2.toml", "./config/3.toml")
 	r.Nil(err)
 	defer teardownCluster(tc)
 
@@ -258,9 +257,7 @@ func TestSmartVolume(t *testing.T) {
 	r.Nil(err)
 	r.NotNil(client)
 
-	devicesDir, err := ioutil.TempDir(baseLocalStateDir, t.Name())
-	r.Nil(err)
-	t.Logf("Using temp dir: %s", devicesDir)
+	devicesDir := testTempDir(t, "devices")
 
 	// Device Setup
 	// Around 150MB will be reserved during pv/vg creation, create device with more size
