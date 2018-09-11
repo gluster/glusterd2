@@ -10,6 +10,7 @@ import (
 	"path"
 	"path/filepath"
 	"syscall"
+	"testing"
 	"time"
 
 	toml "github.com/pelletier/go-toml"
@@ -65,14 +66,14 @@ type gdProcess struct {
 	uuid          string
 }
 
-func (g *gdProcess) updateDirs() {
+func (g *gdProcess) updateDirs(t *testing.T) {
 	g.Rundir = path.Clean(g.Rundir)
 	if !path.IsAbs(g.Rundir) {
-		g.Rundir = path.Join(baseLocalStateDir, g.Rundir)
+		g.Rundir = path.Join(baseLocalStateDir, t.Name(), g.Rundir)
 	}
 	g.LocalStateDir = path.Clean(g.LocalStateDir)
 	if !path.IsAbs(g.LocalStateDir) {
-		g.LocalStateDir = path.Join(baseLocalStateDir, g.LocalStateDir)
+		g.LocalStateDir = path.Join(baseLocalStateDir, t.Name(), g.LocalStateDir)
 	}
 }
 
@@ -119,7 +120,7 @@ func (g *gdProcess) IsRestServerUp() bool {
 	return true
 }
 
-func spawnGlusterd(configFilePath string, cleanStart bool) (*gdProcess, error) {
+func spawnGlusterd(t *testing.T, configFilePath string, cleanStart bool) (*gdProcess, error) {
 
 	fContent, err := ioutil.ReadFile(configFilePath)
 	if err != nil {
@@ -133,13 +134,17 @@ func spawnGlusterd(configFilePath string, cleanStart bool) (*gdProcess, error) {
 
 	// The config files in e2e/config contain relative paths, convert them
 	// to absolute paths.
-	g.updateDirs()
+	g.updateDirs(t)
 
 	if cleanStart {
 		g.EraseLocalStateDir() // cleanup leftovers from previous test
 	}
 
 	if err := os.MkdirAll(path.Join(g.LocalStateDir, "log"), os.ModeDir|os.ModePerm); err != nil {
+		return nil, err
+	}
+
+	if err := os.MkdirAll(g.Rundir, os.ModeDir|os.ModePerm); err != nil {
 		return nil, err
 	}
 

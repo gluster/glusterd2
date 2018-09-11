@@ -34,7 +34,7 @@ func (tc *testCluster) wrap(
 	}
 }
 
-func setupCluster(configFiles ...string) (*testCluster, error) {
+func setupCluster(t *testing.T, configFiles ...string) (*testCluster, error) {
 
 	tc := &testCluster{}
 
@@ -68,7 +68,7 @@ func setupCluster(configFiles ...string) (*testCluster, error) {
 	}
 
 	for _, configFile := range configFiles {
-		g, err := spawnGlusterd(configFile, true)
+		g, err := spawnGlusterd(t, configFile, true)
 		if err != nil {
 			return nil, err
 		}
