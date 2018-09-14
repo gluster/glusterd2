@@ -6,7 +6,6 @@ import (
 	"net"
 	"net/rpc"
 	"path"
-	"strconv"
 	"sync"
 
 	"github.com/gluster/glusterd2/glusterd2/pmap"
@@ -46,26 +45,6 @@ var clientsList = struct {
 	c: make(map[net.Conn]struct{}),
 }
 
-func getPortFromListener(listener net.Listener) int {
-
-	if listener == nil {
-		return 0
-	}
-
-	addr := listener.Addr().String()
-	_, portString, err := net.SplitHostPort(addr)
-	if err != nil {
-		return 0
-	}
-
-	port, err := strconv.Atoi(portString)
-	if err != nil {
-		return 0
-	}
-
-	return port
-}
-
 // NewMuxed returns a SunRPC server configured to listen on a CMux multiplexed connection
 func NewMuxed(m cmux.CMux) *SunRPC {
 
@@ -93,10 +72,8 @@ func NewMuxed(m cmux.CMux) *SunRPC {
 		pmap.NewGfPortmap(),
 	}
 
-	port := getPortFromListener(srv.tcpListener)
-
 	for _, prog := range programsList {
-		err := registerProgram(srv.server, prog, port, false)
+		err := registerProgram(srv.server, prog)
 		if err != nil {
 			log.WithError(err).WithField("program", prog.Name()).Error("could not register SunRPC program")
 			return nil
