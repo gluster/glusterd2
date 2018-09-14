@@ -81,13 +81,13 @@ func (p *Plugin) RestRoutes() route.Routes {
 			HandlerFunc:  georepConfigGetHandler,
 		},
 		route.Route{
-			Name:        "GeoReplicationConfigSet",
-			Method:      "POST",
-			Pattern:     "/geo-replication/{mastervolid}/{remotevolid}/config",
-			Version:     1,
+			Name:         "GeoReplicationConfigSet",
+			Method:       "POST",
+			Pattern:      "/geo-replication/{mastervolid}/{remotevolid}/config",
+			Version:      1,
 			RequestType:  utils.GetTypeString((*georepapi.GeorepOption)(nil)),
 			ResponseType: utils.GetTypeString((*georepapi.GeorepOption)(nil)),
-			HandlerFunc: georepConfigSetHandler,
+			HandlerFunc:  georepConfigSetHandler,
 		},
 		route.Route{
 			Name:        "GeoReplicationConfigReset",
