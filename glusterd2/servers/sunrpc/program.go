@@ -1,7 +1,7 @@
 package sunrpc
 
 import (
-	"net/rpc"
+	"net"
 	"reflect"
 	"strings"
 
@@ -16,9 +16,11 @@ type genericProgram struct {
 	progNum     uint32
 	progVersion uint32
 	procedures  []sunrpc.Procedure
+	conn        net.Conn
 }
 
-func registerProgram(server *rpc.Server, program sunrpc.Program) error {
+// registerProcedures creates procedure number to procedure name mappings for sunrpc codec
+func registerProcedures(program sunrpc.Program) error {
 	logger := log.WithFields(log.Fields{
 		"program": program.Name(),
 		"prognum": program.Number(),
@@ -26,16 +28,6 @@ func registerProgram(server *rpc.Server, program sunrpc.Program) error {
 	})
 
 	logger.Debug("registering sunrpc program")
-
-	// NOTE: This will throw some benign log messages complaining about
-	// signatures of methods in Program interface. rpc.Server.Register()
-	// expects all methods of program to be of the kind:
-	//         func (t *T) MethodName(argType T1, replyType *T2) error
-	// These log entries (INFO) can be ignored.
-	err := server.Register(program)
-	if err != nil {
-		return err
-	}
 
 	// Create procedure number to procedure name mappings for sunrpc codec
 	typeName := reflect.Indirect(reflect.ValueOf(program)).Type().Name()
@@ -48,12 +40,11 @@ func registerProgram(server *rpc.Server, program sunrpc.Program) error {
 		if !strings.HasPrefix(procedure.Name, typeName+".") {
 			procedure.Name = typeName + "." + procedure.Name
 		}
-		err = sunrpc.RegisterProcedure(
+		if err := sunrpc.RegisterProcedure(
 			sunrpc.Procedure{
 				ID:   procedure.ID,
 				Name: procedure.Name,
-			}, true)
-		if err != nil {
+			}, true); err != nil {
 			return err
 		}
 	}
