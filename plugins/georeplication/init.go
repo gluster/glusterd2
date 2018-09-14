@@ -77,7 +77,6 @@ func (p *Plugin) RestRoutes() route.Routes {
 			Method:       "GET",
 			Pattern:      "/geo-replication/{mastervolid}/{remotevolid}/config",
 			Version:      1,
-			RequestType:  utils.GetTypeString((*georepapi.GeorepOption)(nil)),
 			ResponseType: utils.GetTypeString((*georepapi.GeorepOption)(nil)),
 			HandlerFunc:  georepConfigGetHandler,
 		},
@@ -86,6 +85,8 @@ func (p *Plugin) RestRoutes() route.Routes {
 			Method:      "POST",
 			Pattern:     "/geo-replication/{mastervolid}/{remotevolid}/config",
 			Version:     1,
+			RequestType:  utils.GetTypeString((*georepapi.GeorepOption)(nil)),
+			ResponseType: utils.GetTypeString((*georepapi.GeorepOption)(nil)),
 			HandlerFunc: georepConfigSetHandler,
 		},
 		route.Route{
