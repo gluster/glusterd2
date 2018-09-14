@@ -824,6 +824,6 @@ func createSnapInfoResp(snap *snapshot.Snapinfo) *api.SnapInfo {
 		VolInfo:       *vinfo,
 		ParentVolName: snap.ParentVolume,
 		Description:   snap.Description,
-		SnapTime:      (snap.CreatedAt).Format("Mon Jan _2 2006 15:04:05 GMT"),
+		CreatedAt:     snap.CreatedAt,
 	}
 }
