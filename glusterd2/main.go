@@ -163,7 +163,7 @@ func main() {
 			}
 		case unix.SIGUSR1:
 			log.Info("Received SIGUSR1. Dumping statedump")
-			utils.WriteStatedump()
+			utils.WriteStatedump(config.GetString("rundir"))
 		default:
 			continue
 		}
