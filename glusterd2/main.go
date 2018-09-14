@@ -7,6 +7,7 @@ import (
 	"strings"
 	"time"
 
+	"github.com/gluster/glusterd2/glusterd2/commands/snapshot"
 	"github.com/gluster/glusterd2/glusterd2/commands/volumes"
 	"github.com/gluster/glusterd2/glusterd2/daemon"
 	"github.com/gluster/glusterd2/glusterd2/events"
@@ -116,6 +117,11 @@ func main() {
 	// Load the default group option map into the store
 	if err := volumecommands.LoadDefaultGroupOptions(); err != nil {
 		log.WithError(err).Fatal("Failed to load the default group options")
+	}
+
+	// Initialize the default snapshot label into the store
+	if err := snapshotcommands.LoadDefaultLabel(); err != nil {
+		log.WithError(err).Fatal("Failed to load the default label")
 	}
 
 	// If REST API Auth is enabled, Generate Auth file with random secret in localstatedir

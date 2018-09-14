@@ -27,21 +27,6 @@ func init() {
 
 func snapshotInfoDisplay(snap api.SnapGetResp) {
 	vol := &snap.VolInfo
-	/*
-		data := [][]string{
-			{vol.Name, vol.Name},
-			{"Snapshot Volume ID:", fmt.Sprintln(vol.ID)},
-			{"State:", fmt.Sprintln(vol.State)},
-			{"Origin Volume name:", snap.ParentVolName},
-			{"Snap Creation Time:", "To Be Added"},
-			{"Labels:", "To Be Added"},
-		}
-		table := tablewriter.NewWriter(os.Stdout)
-		table.SetAutoMergeCells(true)
-		table.AppendBulk(data)
-		table.Render()
-		//	table.Append([]string{"Snapshot Volume ID:", string(vol.ID)})
-	*/
 	fmt.Println()
 	fmt.Println("Snapshot Name:", vol.Name)
 	fmt.Println("Snapshot Volume ID:", vol.ID)
@@ -51,7 +36,7 @@ func snapshotInfoDisplay(snap api.SnapGetResp) {
 	if vol.Capacity != 0 {
 		fmt.Println("Snapshot Volume Capactiy: ", humanReadable(vol.Capacity))
 	}
-	fmt.Println("Labels:", "To Be Added")
+	fmt.Println("Label:", snap.SnapLabel)
 	fmt.Println("Snapshot Description:", snap.Description)
 	fmt.Println()
 

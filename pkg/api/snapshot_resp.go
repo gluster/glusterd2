@@ -13,6 +13,7 @@ type SnapInfo struct {
 	ParentVolName string     `json:"parentname"`
 	Description   string     `json:"description"`
 	CreatedAt     time.Time  `json:"created-at"`
+	SnapLabel     string     `json:"label"`
 }
 
 //SnapList contains snapshots information of a volume.

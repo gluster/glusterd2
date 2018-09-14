@@ -24,10 +24,6 @@ var (
 
 //Exists check whether a given label exist or not
 func Exists(name string) bool {
-	if name == DefaultLabel.Name {
-		return true
-	}
-
 	resp, e := gdstore.Get(context.TODO(), labelPrefix+name)
 	if e != nil {
 		return false
@@ -44,9 +40,7 @@ func GetLabels() ([]*Info, error) {
 		return nil, e
 	}
 
-	labels := make([]*Info, len(resp.Kvs)+1)
-	labels[0] = &DefaultLabel
-
+	labels := make([]*Info, len(resp.Kvs))
 	for i, kv := range resp.Kvs {
 		var label Info
 
@@ -55,7 +49,7 @@ func GetLabels() ([]*Info, error) {
 			continue
 		}
 
-		labels[i+1] = &label
+		labels[i] = &label
 	}
 
 	return labels, nil
@@ -81,11 +75,6 @@ func AddOrUpdateLabel(labelInfo *Info) error {
 // Info object
 func GetLabel(name string) (*Info, error) {
 	var labelinfo Info
-
-	if name == DefaultLabel.Name {
-		labelinfo = DefaultLabel
-		return &labelinfo, nil
-	}
 
 	resp, e := gdstore.Get(context.TODO(), labelPrefix+name)
 	if e != nil {

@@ -49,11 +49,7 @@ func snapshotBrickDelete(errCh chan error, wg *sync.WaitGroup, snapVol volume.Vo
 	return
 }
 
-func snapshotDelete(c transaction.TxnCtx) error {
-	var snapinfo snapshot.Snapinfo
-	if err := c.Get("snapinfo", &snapinfo); err != nil {
-		return err
-	}
+func snapshotDelete(snapinfo *snapshot.Snapinfo, logger log.FieldLogger) error {
 
 	snapVol := snapinfo.SnapVolinfo
 	var wg sync.WaitGroup
@@ -62,7 +58,7 @@ func snapshotDelete(c transaction.TxnCtx) error {
 
 	for _, b := range snapVol.GetLocalBricks() {
 		wg.Add(1)
-		go snapshotBrickDelete(errCh, &wg, snapVol, b, c.Logger())
+		go snapshotBrickDelete(errCh, &wg, snapVol, b, logger)
 	}
 
 	err := error(nil)
@@ -77,7 +73,15 @@ func snapshotDelete(c transaction.TxnCtx) error {
 	wg.Wait()
 	close(errCh)
 
-	//TODO Delete the volfiles in etcd.
+	return err
+}
+
+func snapshotDeletetxn(c transaction.TxnCtx) error {
+	var snapinfo snapshot.Snapinfo
+	if err := c.Get("snapinfo", &snapinfo); err != nil {
+		return err
+	}
+	err := snapshotDelete(&snapinfo, c.Logger())
 	return err
 }
 
@@ -114,7 +118,7 @@ func registerSnapDeleteStepFuncs() {
 		name string
 		sf   transaction.StepFunc
 	}{
-		{"snap-delete.Commit", snapshotDelete},
+		{"snap-delete.Commit", snapshotDeletetxn},
 		{"snap-delete.Store", snapshotDeleteStore},
 		/*
 			TODO
@@ -143,7 +147,7 @@ func snapshotDeleteHandler(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	txn, err := transaction.NewTxnWithLocks(ctx, snapname, snapinfo.ParentVolume)
+	txn, err := transaction.NewTxnWithLocks(ctx, snapname, snapinfo.ParentVolume, snapinfo.SnapLabel)
 	if err != nil {
 		status, err := restutils.ErrToStatusCode(err)
 		restutils.SendHTTPError(ctx, w, status, err)

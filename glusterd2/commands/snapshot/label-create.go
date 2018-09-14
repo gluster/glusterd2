@@ -17,6 +17,18 @@ import (
 
 const maxSnapCount = 256
 
+//LoadDefaultLabel will store default label into etcd store. If already present then will not do anything
+func LoadDefaultLabel() error {
+	labelInfo := label.DefaultLabel
+
+	if label.ExistsFunc(labelInfo.Name) {
+		return nil
+	}
+
+	err := label.AddOrUpdateLabelFunc(&labelInfo)
+	return err
+}
+
 func validateLabel(info *label.Info) error {
 
 	if info.SnapMaxHardLimit > maxSnapCount {

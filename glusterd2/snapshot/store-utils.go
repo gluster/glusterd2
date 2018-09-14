@@ -6,6 +6,7 @@ import (
 	"errors"
 	"strings"
 
+	"github.com/gluster/glusterd2/glusterd2/snapshot/label"
 	gdstore "github.com/gluster/glusterd2/glusterd2/store"
 	"github.com/gluster/glusterd2/glusterd2/volume"
 
@@ -137,12 +138,25 @@ func DeleteSnapshot(snapInfo *Snapinfo) error {
 		return e
 	}
 
-	//TODO change this when label based snapshots are in.
 	e = errors.New("snap is not found in the volinfo")
 	for key, entry := range vol.SnapList {
 		if strings.Compare(entry, snapInfo.SnapVolinfo.Name) == 0 {
 			vol.SnapList = append(vol.SnapList[:key], vol.SnapList[key+1:]...)
 			e = volume.AddOrUpdateVolumeFunc(vol)
+			break
+		}
+	}
+
+	labelInfo, e := label.GetLabel(snapInfo.SnapLabel)
+	if e != nil {
+		return e
+	}
+
+	e = errors.New("snap is not found in the Label")
+	for key, entry := range labelInfo.SnapList {
+		if strings.Compare(entry, snapInfo.SnapVolinfo.Name) == 0 {
+			labelInfo.SnapList = append(labelInfo.SnapList[:key], labelInfo.SnapList[key+1:]...)
+			e = label.AddOrUpdateLabelFunc(labelInfo)
 			break
 		}
 	}

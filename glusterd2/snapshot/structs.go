@@ -14,4 +14,5 @@ type Snapinfo struct {
 	Description  string
 	OptionChange map[string]string
 	CreatedAt    time.Time
+	SnapLabel    string
 }
