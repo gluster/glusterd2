@@ -229,19 +229,6 @@ func testSmartVolumeDistributeDisperse(t *testing.T) {
 	checkZeroLvs(r)
 }
 
-func testSmartVolumeWithoutName(t *testing.T) {
-	r := require.New(t)
-
-	createReq := api.VolCreateReq{
-		Size: 20,
-	}
-	volinfo, err := client.VolumeCreate(createReq)
-	r.Nil(err)
-
-	r.Nil(client.VolumeDelete(volinfo.Name))
-	checkZeroLvs(r)
-}
-
 // TestSmartVolume creates a volume and starts it, runs further tests on it and
 // finally deletes the volume
 func TestSmartVolume(t *testing.T) {
@@ -281,7 +268,6 @@ func TestSmartVolume(t *testing.T) {
 	t.Run("Smartvol Disperse Volume", testSmartVolumeDisperse)
 	t.Run("Smartvol Distributed-Replicate Volume", testSmartVolumeDistributeReplicate)
 	t.Run("Smartvol Distributed-Disperse Volume", testSmartVolumeDistributeDisperse)
-	t.Run("Smartvol Without Name", testSmartVolumeWithoutName)
 
 	// // Device Cleanup
 	r.Nil(loopDevicesCleanup(t))

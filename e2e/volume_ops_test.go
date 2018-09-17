@@ -46,8 +46,6 @@ func TestVolume(t *testing.T) {
 	r.Nil(err)
 	r.NotNil(client)
 
-	t.Run("CreateWithoutName", tc.wrap(testVolumeCreateWithoutName))
-
 	// Create the volume
 	t.Run("Create", tc.wrap(testVolumeCreate))
 	// Expand the volume
@@ -76,33 +74,6 @@ func TestVolume(t *testing.T) {
 	t.Run("SelfHeal", tc.wrap(testSelfHeal))
 	t.Run("GranularEntryHeal", tc.wrap(testGranularEntryHeal))
 
-}
-
-func testVolumeCreateWithoutName(t *testing.T, tc *testCluster) {
-	r := require.New(t)
-
-	var brickPaths []string
-	for i := 1; i <= 2; i++ {
-		brickPath := testTempDir(t, "brick")
-		brickPaths = append(brickPaths, brickPath)
-	}
-
-	// create 2x2 dist-rep volume
-	createReq := api.VolCreateReq{
-		Subvols: []api.SubvolReq{
-			{
-				Bricks: []api.BrickReq{
-					{PeerID: tc.gds[0].PeerID(), Path: brickPaths[0]},
-					{PeerID: tc.gds[1].PeerID(), Path: brickPaths[1]},
-				},
-			},
-		},
-		Force: true,
-	}
-	volinfo, err := client.VolumeCreate(createReq)
-	r.Nil(err)
-
-	r.Nil(client.VolumeDelete(volinfo.Name))
 }
 
 func testVolumeCreate(t *testing.T, tc *testCluster) {
