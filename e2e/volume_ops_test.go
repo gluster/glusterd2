@@ -354,9 +354,7 @@ func testVolumeInfo(t *testing.T) {
 }
 
 func testVolumeStatus(t *testing.T) {
-	if _, err := os.Lstat("/dev/fuse"); os.IsNotExist(err) {
-		t.Skip("skipping mount /dev/fuse unavailable")
-	}
+	checkFuseAvailable(t)
 	r := require.New(t)
 
 	_, err := client.VolumeStatus(volname)
@@ -406,9 +404,7 @@ func testVolumeMount(t *testing.T, tc *testCluster) {
 }
 
 func testMountUnmount(t *testing.T, v string, tc *testCluster) {
-	if _, err := os.Lstat("/dev/fuse"); os.IsNotExist(err) {
-		t.Skip("skipping mount /dev/fuse unavailable")
-	}
+	checkFuseAvailable(t)
 	r := require.New(t)
 
 	mntPath := testTempDir(t, "mnt")
