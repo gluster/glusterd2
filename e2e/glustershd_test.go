@@ -142,7 +142,8 @@ func testGranularEntryHeal(t *testing.T, tc *testCluster) {
 	host, _, _ := net.SplitHostPort(tc.gds[0].ClientAddress)
 	err = mountVolume(host, volname, mntPath)
 	r.Nil(err, fmt.Sprintf("mount failed: %s", err))
-	defer syscall.Unmount(mntPath, syscall.MNT_FORCE|syscall.MNT_DETACH)
+
+	defer syscall.Unmount(mntPath, syscall.MNT_FORCE)
 
 	getBricksStatus, err := client.BricksStatus(volname)
 	r.Nil(err, fmt.Sprintf("brick status operation failed: %s", err))
