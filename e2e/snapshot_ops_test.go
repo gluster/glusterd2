@@ -314,6 +314,8 @@ func testRestoredVolumeMount(t *testing.T, tc *testCluster) {
 	err := mountVolume(host, snapTestName, mntPath)
 	r.Nil(err, fmt.Sprintf("mount failed: %s", err))
 
+	defer syscall.Unmount(mntPath, syscall.MNT_FORCE)
+
 	err = testMount(mntPath)
 	r.Nil(err)
 
@@ -332,6 +334,8 @@ func testSnapshotMount(t *testing.T, tc *testCluster) {
 
 	err := mountVolume(host, volID, mntPath)
 	r.Nil(err, fmt.Sprintf("mount failed: %s", err))
+
+	defer syscall.Unmount(mntPath, syscall.MNT_FORCE)
 
 	newDir := mntPath + "/Dir"
 	err = syscall.Mkdir(newDir, 0755)
