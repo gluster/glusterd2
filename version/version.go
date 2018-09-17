@@ -14,13 +14,14 @@ var (
 
 // MaxOpVersion and APIVersion supported
 const (
-	MaxOpVersion = 40100
+	MaxOpVersion = 50000
 	APIVersion   = 1
 )
 
 // GlusterdVersion and GitSHA
+// These are set as flags during build time. The current values are just placeholders
 var (
-	GlusterdVersion = "4.1.0"
+	GlusterdVersion = ""
 	GitSHA          = ""
 )
 
