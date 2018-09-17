@@ -24,11 +24,6 @@ var (
 	volumeNameRE = regexp.MustCompile("^[a-zA-Z0-9_-]+$")
 )
 
-// GenerateVolumeName generates volume name as vol_<random-id>
-func GenerateVolumeName() string {
-	return "vol_" + uuid.NewRandom().String()
-}
-
 // IsValidName validates Volume name
 func IsValidName(name string) bool {
 	return volumeNameRE.MatchString(name)
