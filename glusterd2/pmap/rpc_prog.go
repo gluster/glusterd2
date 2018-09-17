@@ -1,7 +1,11 @@
 package pmap
 
 import (
+	"net"
+
 	"github.com/gluster/glusterd2/pkg/sunrpc"
+
+	log "github.com/sirupsen/logrus"
 )
 
 const (
@@ -24,6 +28,7 @@ type GfPortmap struct {
 	progNum     uint32
 	progVersion uint32
 	procedures  []sunrpc.Procedure
+	conn        net.Conn
 }
 
 // NewGfPortmap returns a new instance of GfPortmap type
@@ -65,6 +70,16 @@ func (p *GfPortmap) Version() uint32 {
 // Procedures returns a list of procedures provided by the RPC program
 func (p *GfPortmap) Procedures() []sunrpc.Procedure {
 	return p.procedures
+}
+
+// GetConn returns the underlying net.Conn.
+func (p *GfPortmap) GetConn() net.Conn {
+	return p.conn
+}
+
+// SetConn returns stores the net.Conn instance provided.
+func (p *GfPortmap) SetConn(conn net.Conn) {
+	p.conn = conn
 }
 
 // PortByBrickReq is sent by the glusterfs client
@@ -109,8 +124,17 @@ type SignInRsp struct {
 // SignIn stores the brick and port mapping in registry
 func (p *GfPortmap) SignIn(args *SignInReq, reply *SignInRsp) error {
 
-	// FIXME: Xprt (net.Conn instance) isn't available here yet.
-	// Passing nil for now.
+	var address string
+	if p.GetConn() != nil {
+		address = p.GetConn().RemoteAddr().String()
+	}
+	log.WithFields(log.Fields{
+		"address": address,
+		"brick":   args.Brick,
+		"port":    args.Port,
+	}).Debug("brick signed in")
+
+	// TODO: Store net.Conn instance in pmap
 	registryBind(args.Port, args.Brick, GfPmapPortBrickserver, nil)
 
 	return nil
@@ -132,8 +156,17 @@ type SignOutRsp struct {
 // SignOut removes the brick and port mapping in registry
 func (p *GfPortmap) SignOut(args *SignOutReq, reply *SignOutRsp) error {
 
-	// FIXME: Xprt (net.Conn instance) isn't available here yet.
-	// Passing nil for now.
+	var address string
+	if p.GetConn() != nil {
+		address = p.GetConn().RemoteAddr().String()
+	}
+	log.WithFields(log.Fields{
+		"address": address,
+		"brick":   args.Brick,
+		"port":    args.Port,
+	}).Debug("brick signed out")
+
+	// TODO: Store net.Conn instance in pmap
 	registryRemove(args.Port, args.Brick, GfPmapPortBrickserver, nil)
 
 	return nil
