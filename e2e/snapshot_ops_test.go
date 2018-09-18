@@ -32,12 +32,12 @@ func TestSnapshot(t *testing.T) {
 	snapTestName = t.Name()
 	r := require.New(t)
 
-	prefix := fmt.Sprintf("%s/%s/bricks/", baseLocalStateDir, snapTestName)
+	prefix := testTempDir(t, "bricks")
 	lvmtest.Cleanup(baseLocalStateDir, prefix, brickCount)
 	defer func() {
 		lvmtest.Cleanup(baseLocalStateDir, prefix, brickCount)
 	}()
-	tc, err := setupCluster("./config/1.toml", "./config/2.toml")
+	tc, err := setupCluster(t, "./config/1.toml", "./config/2.toml")
 	r.Nil(err)
 	defer teardownCluster(tc)
 

@@ -10,6 +10,7 @@ import (
 	"path"
 	"path/filepath"
 	"syscall"
+	"testing"
 	"time"
 
 	toml "github.com/pelletier/go-toml"
@@ -65,14 +66,14 @@ type gdProcess struct {
 	uuid          string
 }
 
-func (g *gdProcess) updateDirs() {
+func (g *gdProcess) updateDirs(t *testing.T) {
 	g.Rundir = path.Clean(g.Rundir)
 	if !path.IsAbs(g.Rundir) {
-		g.Rundir = path.Join(baseLocalStateDir, g.Rundir)
+		g.Rundir = path.Join(baseLocalStateDir, t.Name(), g.Rundir)
 	}
 	g.LocalStateDir = path.Clean(g.LocalStateDir)
 	if !path.IsAbs(g.LocalStateDir) {
-		g.LocalStateDir = path.Join(baseLocalStateDir, g.LocalStateDir)
+		g.LocalStateDir = path.Join(baseLocalStateDir, t.Name(), g.LocalStateDir)
 	}
 }
 
@@ -99,7 +100,7 @@ func (g *gdProcess) PeerID() string {
 	return g.uuid
 }
 
-func (g *gdProcess) IsRestServerUp() bool {
+func (g *gdProcess) IsRestServerUp(t *testing.T) bool {
 
 	hc := &http.Client{
 		Timeout: 5 * time.Second,
@@ -108,18 +109,28 @@ func (g *gdProcess) IsRestServerUp() bool {
 	endpoint := fmt.Sprintf("http://%s/v1/peers", g.ClientAddress)
 	resp, err := hc.Get(endpoint)
 	if err != nil {
+		t.Logf("IsRestServerUp(): Get failed: %s", err.Error())
 		return false
 	}
 	defer resp.Body.Close()
 
 	if resp.StatusCode/100 == 5 {
+		var body string
+		b, err := ioutil.ReadAll(resp.Body)
+		if err != nil {
+			t.Logf("IsRestServerUp(): ioutil.ReadAll() failed: %s", err.Error())
+		} else {
+			body = string(b)
+		}
+		t.Logf("IsRestServerUp(): Get failed. StatusCode=%d;Body=%s",
+			resp.StatusCode, body)
 		return false
 	}
 
 	return true
 }
 
-func spawnGlusterd(configFilePath string, cleanStart bool) (*gdProcess, error) {
+func spawnGlusterd(t *testing.T, configFilePath string, cleanStart bool) (*gdProcess, error) {
 
 	fContent, err := ioutil.ReadFile(configFilePath)
 	if err != nil {
@@ -133,13 +144,17 @@ func spawnGlusterd(configFilePath string, cleanStart bool) (*gdProcess, error) {
 
 	// The config files in e2e/config contain relative paths, convert them
 	// to absolute paths.
-	g.updateDirs()
+	g.updateDirs(t)
 
 	if cleanStart {
 		g.EraseLocalStateDir() // cleanup leftovers from previous test
 	}
 
 	if err := os.MkdirAll(path.Join(g.LocalStateDir, "log"), os.ModeDir|os.ModePerm); err != nil {
+		return nil, err
+	}
+
+	if err := os.MkdirAll(g.Rundir, os.ModeDir|os.ModePerm); err != nil {
 		return nil, err
 	}
 
@@ -178,14 +193,14 @@ func spawnGlusterd(configFilePath string, cleanStart bool) (*gdProcess, error) {
 	for i := 0; i < retries; i++ {
 		// opposite of exponential backoff
 		time.Sleep(time.Duration(waitTime) * time.Millisecond)
-		if g.IsRestServerUp() {
+		if g.IsRestServerUp(t) {
 			break
 		}
 		waitTime = waitTime / 2
 	}
 
-	if !g.IsRestServerUp() {
-		return nil, errors.New("timeout: could not query rest server")
+	if !g.IsRestServerUp(t) {
+		return nil, fmt.Errorf("timeout: could not query gd2 (%s) rest server", g.PeerID())
 	}
 
 	return &g, nil

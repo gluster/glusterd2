@@ -13,12 +13,11 @@ import (
 func TestGeorepCreateDelete(t *testing.T) {
 	r := require.New(t)
 
-	tc, err := setupCluster("./config/1.toml", "./config/2.toml")
+	tc, err := setupCluster(t, "./config/1.toml", "./config/2.toml")
 	r.Nil(err)
 	defer teardownCluster(tc)
 
-	brickDir, err := ioutil.TempDir(baseLocalStateDir, t.Name())
-	r.Nil(err)
+	brickDir := testTempDir(t, "bricks")
 	defer os.RemoveAll(brickDir)
 
 	var brickPaths []string

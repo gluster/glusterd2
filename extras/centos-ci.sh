@@ -45,3 +45,7 @@ make test TESTOPTIONS=-v
 
 # run functional tests
 make functest
+
+# tarball the (default) functional test directory
+TIMESTAMP=$(date +%s)
+tar -czf "/tmp/gd2_func_test_${TIMESTAMP}.tar.gz" /tmp/gd2_func_test
