@@ -218,3 +218,27 @@ func CreateVolumeInfoResp(v *Volinfo) *api.VolumeInfo {
 
 	return resp
 }
+
+//IsSnapshotProvisioned will return true if volume is provisioned through snapshot creation
+func (v *Volinfo) IsSnapshotProvisioned() bool {
+	return (v.GetProvisionType().IsSnapshotProvisioned())
+}
+
+//IsAutoProvisioned will return true if volume is automatically provisioned
+func (v *Volinfo) IsAutoProvisioned() bool {
+	return (v.GetProvisionType().IsAutoProvisioned())
+}
+
+//GetProvisionType will return true the type of provision state
+func (v *Volinfo) GetProvisionType() brick.ProvisionType {
+
+	var provisionType brick.ProvisionType
+
+	provisionValue, ok := v.Metadata[brick.ProvisionKey]
+	if !ok {
+		provisionType = brick.ManuallyProvisioned
+	} else {
+		provisionType = brick.ProvisionType(provisionValue)
+	}
+	return provisionType
+}

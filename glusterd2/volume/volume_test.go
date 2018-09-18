@@ -42,7 +42,7 @@ func TestNewBrickEntry(t *testing.T) {
 	bricks := getSampleBricks("/tmp/b1", "/tmp/b2")
 	brickPaths := []string{"/tmp/b1", "/tmp/b2"}
 
-	b, err := NewBrickEntriesFunc(bricks, "volume", "volume", nil)
+	b, err := NewBrickEntriesFunc(bricks, "volume", "volume", nil, "")
 	assert.Nil(t, err)
 	assert.NotNil(t, b)
 	for _, brick := range b {
@@ -54,7 +54,7 @@ func TestNewBrickEntry(t *testing.T) {
 		{PeerID: "", Path: "/tmp/b1"},
 		{PeerID: "", Path: "/tmp/b2"},
 	} //with out IPs
-	_, err = NewBrickEntriesFunc(mockBricks, "volume", "volume", nil)
+	_, err = NewBrickEntriesFunc(mockBricks, "volume", "volume", nil, "")
 	assert.NotNil(t, err)
 
 	//Now mock filepath.Abs()
@@ -62,7 +62,7 @@ func TestNewBrickEntry(t *testing.T) {
 		return "", errors.ErrBrickPathConvertFail
 	}).Restore()
 
-	_, err = NewBrickEntriesFunc(bricks, "volume", "volume", nil)
+	_, err = NewBrickEntriesFunc(bricks, "volume", "volume", nil, "")
 	assert.Equal(t, errors.ErrBrickPathConvertFail, err)
 
 }
