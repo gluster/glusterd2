@@ -33,24 +33,3 @@ func TestPortByBrick(t *testing.T) {
 	err := gfPortMap.PortByBrick(&req, &res)
 	assert.Nil(t, err)
 }
-
-func TestSignInOut(t *testing.T) {
-	inReq := &SignInReq{
-		Brick: "/tmp/brick1",
-		Port:  1000,
-	}
-	inRes := &SignInRsp{}
-	gfPortMap := NewGfPortmap()
-	err := gfPortMap.SignIn(inReq, inRes)
-	assert.Nil(t, err)
-
-	OutReq := &SignOutReq{
-		Brick: "/tmp/brick1",
-		Port:  1000,
-	}
-	OutRes := &SignOutRsp{}
-
-	err = gfPortMap.SignOut(OutReq, OutRes)
-	assert.Nil(t, err)
-
-}

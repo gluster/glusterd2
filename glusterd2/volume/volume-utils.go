@@ -88,7 +88,7 @@ func CheckBricksStatus(volinfo *Volinfo) ([]brick.Brickstatus, error) {
 			if _, err := daemon.GetProcess(pidOnFile); err == nil {
 				s.Online = true
 				s.Pid = pidOnFile
-				s.Port = pmap.RegistrySearch(binfo.Path, pmap.GfPmapPortBrickserver)
+				s.Port, _ = pmap.RegistrySearch(binfo.Path)
 			}
 		}
 

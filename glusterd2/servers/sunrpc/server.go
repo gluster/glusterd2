@@ -89,6 +89,7 @@ func (s *SunRPC) pruneConn() {
 
 		clientsList.Lock()
 		delete(clientsList.c, conn)
+		pmap.ProcessDisconnect(conn)
 		clientsList.Unlock()
 
 		clientCount.Add(-1)

@@ -99,8 +99,9 @@ type PortByBrickRsp struct {
 // PortByBrick will return port number for the brick specified
 func (p *GfPortmap) PortByBrick(args *PortByBrickReq, reply *PortByBrickRsp) error {
 
-	port := RegistrySearch(args.Brick, GfPmapPortBrickserver)
-	if port <= 0 {
+	if port, err := registry.SearchByBrickPath(args.Brick); err != nil {
+		log.WithError(err).WithField("brick",
+			args.Brick).Error("registry.SearchByBrickPath() failed for brick")
 		reply.OpRet = -1
 	} else {
 		reply.Port = port
@@ -125,17 +126,19 @@ type SignInRsp struct {
 func (p *GfPortmap) SignIn(args *SignInReq, reply *SignInRsp) error {
 
 	var address string
-	if p.GetConn() != nil {
-		address = p.GetConn().RemoteAddr().String()
+
+	conn := p.GetConn()
+	if conn != nil {
+		address = conn.RemoteAddr().String()
 	}
+
 	log.WithFields(log.Fields{
 		"address": address,
 		"brick":   args.Brick,
 		"port":    args.Port,
 	}).Debug("brick signed in")
 
-	// TODO: Store net.Conn instance in pmap
-	registryBind(args.Port, args.Brick, GfPmapPortBrickserver, nil)
+	registry.Update(args.Port, args.Brick, conn)
 
 	return nil
 }
@@ -157,17 +160,19 @@ type SignOutRsp struct {
 func (p *GfPortmap) SignOut(args *SignOutReq, reply *SignOutRsp) error {
 
 	var address string
-	if p.GetConn() != nil {
+
+	conn := p.GetConn()
+	if conn != nil {
 		address = p.GetConn().RemoteAddr().String()
 	}
+
 	log.WithFields(log.Fields{
 		"address": address,
 		"brick":   args.Brick,
 		"port":    args.Port,
 	}).Debug("brick signed out")
 
-	// TODO: Store net.Conn instance in pmap
-	registryRemove(args.Port, args.Brick, GfPmapPortBrickserver, nil)
+	registry.Remove(args.Port, args.Brick, conn)
 
 	return nil
 }
