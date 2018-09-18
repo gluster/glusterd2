@@ -77,6 +77,33 @@
       args:
         warn: no
 
+    - name: Create override directory for glusterd2.service
+      file:
+        path: /etc/systemd/system/glusterd2.service.d
+        state: directory
+
+    # This makes systemd pass environment variables set for GD2 by kubernetes
+    - name: Enable PassEnvironment override for glusterd2.service
+      ini_file:
+        path: /etc/systemd/system/glusterd2.service.d/override.conf
+        section: Service
+        option: PassEnvironment
+        # PassEnvironment requires that each variable be mentioned individually
+        # More variables will need to be added here as required
+        value: GD2_ETCDENDPOINTS GD2_CLUSTER_ID GD2_RESTAUTH GD2_CLIENTADDRESS GD2_PEERADDRESS
+
+    - name: Create /etc/sysconfig/glusterd2/
+      file:
+        path: /etc/sysconfig/glusterd2
+        state: directory
+
+    - name: Disable embedded etcd for GD2
+      lineinfile:
+        path: /etc/sysconfig/glusterd2/noembed
+        create: yes
+        line: GD2_NOEMBED=true
+        state: present
+
     # Using direct systemctl here as the way the service/systemd modules work
     # requires dbus, which is not available in the container
     - name: Enable glusterd2.service
@@ -84,4 +111,3 @@
       args:
         warn: no
 
-## TODO: Customize GD2 config to use external etcd
