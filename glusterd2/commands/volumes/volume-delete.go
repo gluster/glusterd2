@@ -72,18 +72,13 @@ func volumeDeleteHandler(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	bricksAutoProvisioned := false
-	// TODO: Replace this with volinfo.Metadata["ProvisionState"] once available
-	if len(volinfo.Subvols) > 0 && len(volinfo.Subvols[0].Bricks) > 0 {
-		bricksAutoProvisioned = volinfo.Subvols[0].Bricks[0].DevicePath != ""
-	}
-
 	if len(volinfo.SnapList) > 0 {
 		errMsg := fmt.Sprintf("Cannot delete Volume %s ,as it has %d snapshots.", volname, len(volinfo.SnapList))
 		restutils.SendHTTPError(ctx, w, http.StatusFailedDependency, errMsg)
 		return
 	}
 
+	bricksAutoProvisioned := volinfo.IsAutoProvisioned() || volinfo.IsSnapshotProvisioned()
 	txn.Steps = []*transaction.Step{
 		{
 			DoFunc: "vol-delete.CleanBricks",

@@ -12,6 +12,9 @@ import (
 //go:generate stringer -type=Type
 type Type uint16
 
+//ProvisionType is the way a brick is provisioned
+type ProvisionType string
+
 const (
 	// Brick represents default type of brick
 	Brick Type = iota
@@ -38,6 +41,7 @@ type Brickinfo struct {
 	VolumeID       uuid.UUID
 	Type           Type
 	Decommissioned bool
+	PType          ProvisionType
 	MountInfo
 }
 
@@ -58,6 +62,33 @@ type Brickstatus struct {
 	MountOpts string
 	Device    string
 	Size      SizeInfo
+}
+
+const (
+	//ProvisionKey is used to set the type of provisioning in volume metadata
+	ProvisionKey string = "_brick-provision-type"
+
+	//ManuallyProvisioned bricks will be provisioned by a user
+	ManuallyProvisioned ProvisionType = ""
+	//AutoProvisioned bricks will be provsioned by device manager from glusterd2
+	AutoProvisioned ProvisionType = "auto"
+	//SnapshotProvisioned bricks will be created by performing a snapshot of a gluster brick
+	SnapshotProvisioned ProvisionType = "snapshot"
+)
+
+//IsManuallyProvisioned will return true if manually provisioned
+func (p ProvisionType) IsManuallyProvisioned() bool {
+	return p == ManuallyProvisioned
+}
+
+//IsAutoProvisioned will return true if auto provisioned
+func (p ProvisionType) IsAutoProvisioned() bool {
+	return p == AutoProvisioned
+}
+
+//IsSnapshotProvisioned will return true if provisioned via snapshot operation
+func (p ProvisionType) IsSnapshotProvisioned() bool {
+	return p == SnapshotProvisioned
 }
 
 func (b *Brickinfo) String() string {
