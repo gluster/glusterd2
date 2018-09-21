@@ -52,6 +52,12 @@ func labelConfigResetHandler(w http.ResponseWriter, r *http.Request) {
 
 	labelname := mux.Vars(r)["labelname"]
 
+	if labelname == (label.DefaultLabel).Name {
+		errMsg := "Default label cannot be edited."
+		restutils.SendHTTPError(ctx, w, http.StatusBadRequest, errMsg)
+		return
+	}
+
 	txn, err := transaction.NewTxnWithLocks(ctx, labelname)
 	if err != nil {
 		status, err := restutils.ErrToStatusCode(err)
@@ -67,13 +73,13 @@ func labelConfigResetHandler(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	labelInfo, err = updateResetLabel(labelInfo, &req)
-	if err != nil {
+	if err := validateLabel(labelInfo); err != nil {
 		restutils.SendHTTPError(ctx, w, http.StatusBadRequest, err)
 		return
 	}
 
-	if err := validateLabel(labelInfo); err != nil {
+	labelInfo, err = updateResetLabel(labelInfo, &req)
+	if err != nil {
 		restutils.SendHTTPError(ctx, w, http.StatusBadRequest, err)
 		return
 	}
@@ -108,5 +114,5 @@ func labelConfigResetHandler(w http.ResponseWriter, r *http.Request) {
 
 	resp := createLabelConfigResp(labelInfo)
 	restutils.SetLocationHeader(r, w, labelInfo.Name)
-	restutils.SendHTTPResponse(ctx, w, http.StatusCreated, resp)
+	restutils.SendHTTPResponse(ctx, w, http.StatusNoContent, resp)
 }

@@ -23,9 +23,8 @@ func init() {
 func labelListHandler(cmd *cobra.Command) error {
 	var infos api.LabelListResp
 	var err error
-	labelname := cmd.Flags().Args()[0]
 
-	infos, err = client.LabelList(labelname)
+	infos, err = client.LabelList()
 	if err != nil {
 		return err
 	}
@@ -48,7 +47,7 @@ func labelListHandler(cmd *cobra.Command) error {
 var labelListCmd = &cobra.Command{
 	Use:   "list",
 	Short: helpLabelListCmd,
-	Args:  cobra.ExactArgs(1),
+	Args:  cobra.NoArgs,
 	Run:   labelListCmdRun,
 }
 

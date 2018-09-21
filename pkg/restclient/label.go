@@ -27,9 +27,9 @@ func (c *Client) LabelReset(req api.LabelResetReq, labelname string) error {
 }
 
 // LabelList returns list of all labels
-func (c *Client) LabelList(labelname string) (api.LabelListResp, error) {
+func (c *Client) LabelList() (api.LabelListResp, error) {
 	var labelinfos api.LabelListResp
-	err := c.get("/v1/snapshots/labels/list", nil, http.StatusOK, &labelinfos)
+	err := c.get("/v1/snapshots/labels/list/all", nil, http.StatusOK, &labelinfos)
 	return labelinfos, err
 }
 

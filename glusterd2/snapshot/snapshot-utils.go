@@ -33,6 +33,8 @@ type BrickMountData struct {
 var (
 	//NodeDataTxnKey is used for storing the status
 	NodeDataTxnKey = "brickmountstatus"
+	//NodeConfigTxnKey is used for storing the config status
+	NodeConfigTxnKey = "snapshotconfigstatus"
 )
 
 func getOnlineOfflineBricks(vol *volume.Volinfo, online bool) ([]brick.Brickinfo, error) {
