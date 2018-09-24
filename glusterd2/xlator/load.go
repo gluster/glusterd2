@@ -137,7 +137,7 @@ func loadXlator(xlPath string) (*Xlator, error) {
 
 	if vfunc, ok := validationFuncs[xl.ID]; ok {
 		log.WithField("xlator",
-			xl.ID).Info("Registered validation function for xlator")
+			xl.ID).Debug("Registered validation function for xlator")
 		xl.Validate = vfunc
 	}
 
