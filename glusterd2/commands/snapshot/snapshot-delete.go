@@ -18,6 +18,7 @@ import (
 
 	"github.com/gorilla/mux"
 	"github.com/pborman/uuid"
+	"go.opencensus.io/trace"
 )
 
 func snapshotBrickDelete(errCh chan error, wg *sync.WaitGroup, snapVol volume.Volinfo, b brick.Brickinfo, logger log.FieldLogger) {
@@ -129,6 +130,9 @@ func registerSnapDeleteStepFuncs() {
 func snapshotDeleteHandler(w http.ResponseWriter, r *http.Request) {
 
 	ctx := r.Context()
+	ctx, span := trace.StartSpan(ctx, "/snapshotDeleteHandler")
+	defer span.End()
+
 	logger := gdctx.GetReqLogger(ctx)
 	snapname := mux.Vars(r)["snapname"]
 	//Fetching snapinfo to get the parent volume name. Parent volume has to be locked
@@ -171,6 +175,12 @@ func snapshotDeleteHandler(w http.ResponseWriter, r *http.Request) {
 		restutils.SendHTTPError(ctx, w, http.StatusInternalServerError, err)
 		return
 	}
+
+	span.AddAttributes(
+		trace.StringAttribute("reqID", txn.Ctx.GetTxnReqID()),
+		trace.StringAttribute("snapName", snapname),
+		trace.StringAttribute("parentVolume", snapinfo.ParentVolume),
+	)
 
 	if err := txn.Do(); err != nil {
 		logger.WithError(err).WithField(
