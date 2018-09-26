@@ -281,6 +281,17 @@ func storeSnapRestore(c transaction.TxnCtx) error {
 	return nil
 }
 
+func cleanParentBricks(c transaction.TxnCtx) error {
+	var volinfo volume.Volinfo
+	if err := c.Get("volinfo", &volinfo); err != nil {
+		c.Logger().WithError(err).WithField(
+			"key", "volinfo").Debug("Failed to get key from store")
+		return err
+	}
+
+	return volume.CleanBricks(&volinfo)
+}
+
 func registerSnapRestoreStepFuncs() {
 	var sfs = []struct {
 		name string
@@ -290,6 +301,7 @@ func registerSnapRestoreStepFuncs() {
 		{"snap-restore.UndoCommit", undoSnapRestore},
 		{"snap-restore.UndoStore", undoSnapStore},
 		{"snap-restore.Store", storeSnapRestore},
+		{"snap-restore.CleanBricks", cleanParentBricks},
 	}
 	for _, sf := range sfs {
 		transaction.RegisterStepFunc(sf.sf, sf.name)
@@ -337,6 +349,7 @@ func snapshotRestoreHandler(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
+	bricksAutoProvisioned := vol.IsAutoProvisioned() || vol.IsSnapshotProvisioned()
 	txn.Steps = []*transaction.Step{
 		{
 			DoFunc:   "snap-restore.Commit",
@@ -347,6 +360,11 @@ func snapshotRestoreHandler(w http.ResponseWriter, r *http.Request) {
 			DoFunc:   "snap-restore.Store",
 			UndoFunc: "snap-restore.UndoStore",
 			Nodes:    []uuid.UUID{gdctx.MyUUID},
+		},
+		{
+			DoFunc: "snap-restore.CleanBricks",
+			Nodes:  vol.Nodes(),
+			Skip:   !bricksAutoProvisioned,
 		},
 	}
 	if err = txn.Ctx.Set("snapname", snapname); err != nil {
