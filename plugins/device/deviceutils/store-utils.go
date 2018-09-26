@@ -4,6 +4,7 @@ import (
 	"encoding/json"
 	"errors"
 
+	"github.com/gluster/glusterd2/glusterd2/gdctx"
 	peer "github.com/gluster/glusterd2/glusterd2/peer"
 	deviceapi "github.com/gluster/glusterd2/plugins/device/api"
 )
@@ -156,4 +157,20 @@ func UpdateDeviceFreeSize(peerid, vgname string) error {
 	}
 
 	return nil
+}
+
+//IsVgExist checks whether the given vg exist in the device list for the local peer
+func IsVgExist(vgname string) bool {
+	peerid := gdctx.MyUUID.String()
+	deviceDetails, err := GetDevices(peerid)
+	if err != nil {
+		return false
+	}
+
+	for _, dev := range deviceDetails {
+		if dev.VgName == vgname {
+			return true
+		}
+	}
+	return false
 }

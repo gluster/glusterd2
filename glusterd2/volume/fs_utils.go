@@ -208,8 +208,7 @@ func IsMountExist(b *brick.Brickinfo, iD uuid.UUID, mtab []*Mntent) bool {
 
 //UmountBrickDirectory does an umount of the path
 func UmountBrickDirectory(path string) error {
-	err := syscall.Unmount(path, syscall.MNT_FORCE)
-	return err
+	return syscall.Unmount(path, syscall.MNT_FORCE)
 }
 
 //MountBrickDirectory creates the directory strcture for bricks
@@ -245,9 +244,8 @@ func MountBrickDirectory(vol *Volinfo, brickinfo *brick.Brickinfo, mtab []*Mnten
 	}
 
 	if err := unix.Setxattr(brickinfo.Path, volumeIDXattrKey, vol.ID, 0); err != nil {
-		log.WithFields(log.Fields{"error": err.Error(),
-			"brickPath": brickinfo.Path,
-			"xattr":     volumeIDXattrKey}).Error("setxattr failed")
+		log.WithError(err).WithFields(log.Fields{"brickPath": brickinfo.Path,
+			"xattr": volumeIDXattrKey}).Error("setxattr failed")
 		return err
 	}
 
@@ -256,9 +254,8 @@ func MountBrickDirectory(vol *Volinfo, brickinfo *brick.Brickinfo, mtab []*Mnten
 
 //MountDirectory will mount the bricks to the given path
 func MountDirectory(mountPath string, mountData brick.MountInfo) error {
-	err := utils.ExecuteCommandRun("mount", "-o", mountData.MntOpts, mountData.DevicePath, mountPath)
 	// Use syscall.Mount command to mount the bricks
-	return err
+	return utils.ExecuteCommandRun("mount", "-o", mountData.MntOpts, mountData.DevicePath, mountPath)
 }
 
 //StopBrick terminate the process and umount the brick directory

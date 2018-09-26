@@ -66,7 +66,7 @@ func TestSnapshot(t *testing.T) {
 	}
 
 	defer func() {
-		client.VolumeStop(snapTestName)
+		err := client.VolumeStop(snapTestName)
 		r.Nil(err)
 	}()
 
@@ -83,6 +83,7 @@ func TestSnapshot(t *testing.T) {
 	t.Run("Deactivate", testSnapshotDeactivate)
 	t.Run("Delete", testSnapshotDelete)
 	t.Run("DeleteClone", testCloneDelete)
+	t.Run("SmartVolume", tc.wrap(testSnapshotOnSmartVol))
 
 	/*
 		TODO:
@@ -376,4 +377,73 @@ func testCloneDelete(t *testing.T) {
 	r.Len(volumes, 1)
 
 	//TODO Test lv device removed or not
+}
+
+func testSnapshotOnSmartVol(t *testing.T, tc *testCluster) {
+	r := require.New(t)
+
+	devicesDir := testTempDir(t, "devices")
+	r.Nil(prepareLoopDevice(devicesDir+"/gluster_dev1.img", "1", "500M"))
+	r.Nil(prepareLoopDevice(devicesDir+"/gluster_dev2.img", "2", "500M"))
+
+	_, err := client.DeviceAdd(tc.gds[0].PeerID(), "/dev/gluster_loop1")
+	r.Nil(err)
+
+	_, err = client.DeviceAdd(tc.gds[1].PeerID(), "/dev/gluster_loop2")
+	r.Nil(err)
+
+	smartvolname := formatVolName(t.Name())
+	// create Replica 2 Volume
+	createReq := api.VolCreateReq{
+		Name:         smartvolname,
+		Size:         200,
+		ReplicaCount: 2,
+	}
+	_, err = client.VolumeCreate(createReq)
+	r.Nil(err)
+
+	r.Nil(client.VolumeStart(smartvolname, true))
+
+	snapshotCreateReq := api.SnapCreateReq{
+		VolName:  smartvolname,
+		SnapName: snapname,
+	}
+	//Create snapshot with name snapname (Previous snaps with same name is already deleted)
+	//This also tests snapshot create with same name after a deletion
+	_, err = client.SnapshotCreate(snapshotCreateReq)
+	r.Nil(err)
+
+	snapshotActivateReq := api.SnapActivateReq{
+		Force: true,
+	}
+	r.Nil(client.SnapshotActivate(snapshotActivateReq, snapname))
+
+	//Creating a clone from the snapshot
+	snapshotCloneReq := api.SnapCloneReq{
+		CloneName: clonename,
+	}
+	_, err = client.SnapshotClone(snapname, snapshotCloneReq)
+	r.Nil(err, "snapshot clone failed")
+
+	r.Nil(client.VolumeStop(smartvolname))
+
+	//Restoring the snapshot to the parent volume
+	//During this process, parent volume thinLV should delete
+	_, err = client.SnapshotRestore(snapname)
+	r.Nil(err)
+
+	r.Nil(client.VolumeStart(smartvolname, true))
+
+	r.Nil(client.VolumeDelete(clonename))
+
+	r.Nil(client.VolumeStop(smartvolname))
+
+	r.Nil(client.VolumeDelete(smartvolname))
+
+	//At this point all snapshot and volumes are deleted.
+	//So the lvcount should be zero
+	checkZeroLvs(r)
+
+	r.Nil(loopDevicesCleanup(t))
+
 }
