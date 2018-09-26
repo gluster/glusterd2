@@ -197,7 +197,7 @@ func txnCleanBricks(c transaction.TxnCtx) error {
 		}
 
 		// Remove Thin Pool if LV count is zero, Thinpool will
-		// more Lvs in case of snapshots and clones
+		// have more LVs in case of snapshots and clones
 		numLvs, err := deviceutils.NumberOfLvs(vgname, tpname)
 		if err != nil {
 			c.Logger().WithError(err).WithFields(log.Fields{

@@ -6,6 +6,7 @@ import (
 	"os/exec"
 	"strconv"
 	"strings"
+	"syscall"
 
 	"github.com/gluster/glusterd2/pkg/utils"
 )
@@ -127,7 +128,7 @@ func BrickMount(dev, mountdir string) error {
 
 // BrickUnmount unmounts the Brick
 func BrickUnmount(mountdir string) error {
-	return utils.ExecuteCommandRun("umount", mountdir)
+	return syscall.Unmount(mountdir, syscall.MNT_FORCE)
 }
 
 // RemoveLV removes Logical Volume

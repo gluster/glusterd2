@@ -12,21 +12,21 @@ func TestAddRemovePeer(t *testing.T) {
 	r := require.New(t)
 
 	// set up a cluster w/o glusterd instances for dependencies
-	tc, err := setupCluster()
+	tc, err := setupCluster(t)
 	r.NoError(err)
 	defer teardownCluster(tc)
 
-	g1, err := spawnGlusterd("./config/1.toml", true)
+	g1, err := spawnGlusterd(t, "./config/1.toml", true)
 	r.Nil(err)
 	defer g1.Stop()
 	r.True(g1.IsRunning())
 
-	g2, err := spawnGlusterd("./config/2.toml", true)
+	g2, err := spawnGlusterd(t, "./config/2.toml", true)
 	r.Nil(err)
 	defer g2.Stop()
 	r.True(g2.IsRunning())
 
-	g3, err := spawnGlusterd("./config/3.toml", true)
+	g3, err := spawnGlusterd(t, "./config/3.toml", true)
 	r.Nil(err)
 	defer g3.Stop()
 	r.True(g3.IsRunning())

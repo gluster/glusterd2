@@ -1,6 +1,7 @@
 package volume
 
 import (
+	"context"
 	"errors"
 	"os"
 	"path"
@@ -22,11 +23,6 @@ import (
 var (
 	volumeNameRE = regexp.MustCompile("^[a-zA-Z0-9_-]+$")
 )
-
-// GenerateVolumeName generates volume name as vol_<random-id>
-func GenerateVolumeName() string {
-	return "vol_" + uuid.NewRandom().String()
-}
 
 // IsValidName validates Volume name
 func IsValidName(name string) bool {
@@ -50,7 +46,7 @@ func GetRedundancy(disperse uint) int {
 // isBrickPathAvailable validates whether the brick is consumed by other
 // volume
 func isBrickPathAvailable(peerID uuid.UUID, brickPath string) error {
-	volumes, e := GetVolumes()
+	volumes, e := GetVolumes(context.TODO())
 	if e != nil || volumes == nil {
 		// In case cluster doesn't have any volumes configured yet,
 		// treat this as success
@@ -92,7 +88,7 @@ func CheckBricksStatus(volinfo *Volinfo) ([]brick.Brickstatus, error) {
 			if _, err := daemon.GetProcess(pidOnFile); err == nil {
 				s.Online = true
 				s.Pid = pidOnFile
-				s.Port = pmap.RegistrySearch(binfo.Path, pmap.GfPmapPortBrickserver)
+				s.Port, _ = pmap.RegistrySearch(binfo.Path)
 			}
 		}
 
@@ -221,4 +217,28 @@ func CreateVolumeInfoResp(v *Volinfo) *api.VolumeInfo {
 	resp.DisperseCount = resp.Subvols[0].DisperseCount
 
 	return resp
+}
+
+//IsSnapshotProvisioned will return true if volume is provisioned through snapshot creation
+func (v *Volinfo) IsSnapshotProvisioned() bool {
+	return (v.GetProvisionType().IsSnapshotProvisioned())
+}
+
+//IsAutoProvisioned will return true if volume is automatically provisioned
+func (v *Volinfo) IsAutoProvisioned() bool {
+	return (v.GetProvisionType().IsAutoProvisioned())
+}
+
+//GetProvisionType will return true the type of provision state
+func (v *Volinfo) GetProvisionType() brick.ProvisionType {
+
+	var provisionType brick.ProvisionType
+
+	provisionValue, ok := v.Metadata[brick.ProvisionKey]
+	if !ok {
+		provisionType = brick.ManuallyProvisioned
+	} else {
+		provisionType = brick.ProvisionType(provisionValue)
+	}
+	return provisionType
 }

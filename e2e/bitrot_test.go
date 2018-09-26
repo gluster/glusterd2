@@ -14,7 +14,7 @@ func TestBitrot(t *testing.T) {
 
 	r := require.New(t)
 
-	tc, err := setupCluster("./config/1.toml", "./config/2.toml")
+	tc, err := setupCluster(t, "./config/1.toml", "./config/2.toml")
 	r.Nil(err)
 	defer teardownCluster(tc)
 

@@ -58,8 +58,18 @@ func (b *Glusterfsd) Args() []string {
 
 	logFile := path.Join(config.GetString("logdir"), "glusterfs", "bricks", fmt.Sprintf("%s.log", brickPathWithoutSlashes))
 
-	brickPort := strconv.Itoa(pmap.AssignPort(0, b.brickinfo.Path))
-
+	portBrickServer, _ := pmap.RegistrySearch(b.brickinfo.Path)
+	var brickPort string
+	if portBrickServer <= 0 {
+		port, err := pmap.AssignPort(b.brickinfo.Path)
+		if err != nil {
+			log.WithError(err).WithField("brick", b.brickinfo.Path).Error("pmap.AssignPort() failed")
+			return nil
+		}
+		brickPort = strconv.Itoa(port)
+	} else {
+		brickPort = strconv.Itoa(portBrickServer)
+	}
 	volFileID := b.brickinfo.VolfileID + "." + gdctx.MyUUID.String() + "." + brickPathWithoutSlashes
 
 	shost, sport, _ := net.SplitHostPort(config.GetString("clientaddress"))

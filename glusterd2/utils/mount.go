@@ -1,6 +1,7 @@
 package utils
 
 import (
+	"context"
 	"strings"
 
 	"github.com/gluster/glusterd2/glusterd2/volume"
@@ -11,7 +12,7 @@ import (
 
 // MountLocalBricks mounts bricks of auto provisioned volumes
 func MountLocalBricks() error {
-	volumes, err := volume.GetVolumes()
+	volumes, err := volume.GetVolumes(context.TODO())
 	if err != nil {
 		return err
 	}
@@ -37,8 +38,9 @@ func MountLocalBricks() error {
 
 	for _, v := range volumes {
 		for _, b := range v.GetLocalBricks() {
-			// Mount all local Bricks if they are auto provisioned
-			if b.MountInfo.DevicePath != "" {
+			// Mount all local bricks if they are auto provisioned or inherited via snapshot creation
+			provisionType := b.PType
+			if provisionType.IsAutoProvisioned() || provisionType.IsSnapshotProvisioned() {
 				mountRoot := strings.TrimSuffix(b.Path, b.MountInfo.Mountdir)
 				if _, exists := mounts[mountRoot]; exists {
 					continue

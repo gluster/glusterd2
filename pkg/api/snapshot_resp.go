@@ -1,6 +1,10 @@
 package api
 
-import "github.com/pborman/uuid"
+import (
+	"time"
+
+	"github.com/pborman/uuid"
+)
 
 // SnapInfo contains static information about the snapshot.
 // Clients should NOT use this struct directly.
@@ -8,13 +12,13 @@ type SnapInfo struct {
 	VolInfo       VolumeInfo `json:"snapinfo"`
 	ParentVolName string     `json:"parentname"`
 	Description   string     `json:"description"`
-	SnapTime      string     `json:"snaptime"`
+	CreatedAt     time.Time  `json:"created-at"`
 }
 
-//SnapList contains snapshot name of a volume
+//SnapList contains snapshots information of a volume.
 type SnapList struct {
-	ParentName string   `json:"parentname"`
-	SnapName   []string `json:"snaps"`
+	ParentName string     `json:"parentname"`
+	SnapList   []SnapInfo `json:"snaps"`
 }
 
 //LvsData gives the information provided in lvs command

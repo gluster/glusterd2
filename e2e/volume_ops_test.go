@@ -4,12 +4,14 @@ import (
 	"errors"
 	"fmt"
 	"io/ioutil"
+	"math/rand"
 	"net"
 	"os"
 	"os/exec"
 	"path"
 	"path/filepath"
 	"strings"
+	"syscall"
 	"testing"
 	"time"
 
@@ -36,15 +38,13 @@ func TestVolume(t *testing.T) {
 
 	r := require.New(t)
 
-	tc, err := setupCluster("./config/1.toml", "./config/2.toml")
+	tc, err := setupCluster(t, "./config/1.toml", "./config/2.toml")
 	r.Nil(err)
 	defer teardownCluster(tc)
 
 	client, err = initRestclient(tc.gds[0])
 	r.Nil(err)
 	r.NotNil(client)
-
-	t.Run("CreateWithoutName", tc.wrap(testVolumeCreateWithoutName))
 
 	// Create the volume
 	t.Run("Create", tc.wrap(testVolumeCreate))
@@ -69,33 +69,11 @@ func TestVolume(t *testing.T) {
 	t.Run("DisperseMount", tc.wrap(testDisperseMount))
 	t.Run("DisperseDelete", testDisperseDelete)
 	t.Run("testShdOnVolumeStartAndStop", tc.wrap(testShdOnVolumeStartAndStop))
-}
 
-func testVolumeCreateWithoutName(t *testing.T, tc *testCluster) {
-	r := require.New(t)
+	// Self Heal Test
+	t.Run("SelfHeal", tc.wrap(testSelfHeal))
+	t.Run("GranularEntryHeal", tc.wrap(testGranularEntryHeal))
 
-	var brickPaths []string
-	for i := 1; i <= 2; i++ {
-		brickPath := testTempDir(t, "brick")
-		brickPaths = append(brickPaths, brickPath)
-	}
-
-	// create 2x2 dist-rep volume
-	createReq := api.VolCreateReq{
-		Subvols: []api.SubvolReq{
-			{
-				Bricks: []api.BrickReq{
-					{PeerID: tc.gds[0].PeerID(), Path: brickPaths[0]},
-					{PeerID: tc.gds[1].PeerID(), Path: brickPaths[1]},
-				},
-			},
-		},
-		Force: true,
-	}
-	volinfo, err := client.VolumeCreate(createReq)
-	r.Nil(err)
-
-	r.Nil(client.VolumeDelete(volinfo.Name))
 }
 
 func testVolumeCreate(t *testing.T, tc *testCluster) {
@@ -342,6 +320,53 @@ func testVolumeDelete(t *testing.T) {
 func testVolumeStart(t *testing.T) {
 	r := require.New(t)
 	r.Nil(client.VolumeStart(volname, false), "volume start failed")
+
+	bricks, err := client.BricksStatus(volname)
+	for index := range bricks {
+		r.NotZero(bricks[index].Port)
+		r.True(bricks[index].Online)
+	}
+
+	r.Nil(client.VolumeStart(volname, true), "volume force start failed")
+
+	time.Sleep(3 * time.Second)
+
+	bricks, err = client.BricksStatus(volname)
+	for index := range bricks {
+		r.NotZero(bricks[index].Port)
+		r.True(bricks[index].Online)
+	}
+
+	random := rand.New(rand.NewSource(time.Now().UnixNano()))
+	brickIndex := random.Intn(len(bricks))
+	killBrick := bricks[brickIndex].Info.Path
+	process, err := os.FindProcess(bricks[brickIndex].Pid)
+	r.Nil(err, fmt.Sprintf("failed to find brick %s with pid: %d", killBrick, bricks[brickIndex].Pid))
+	err = process.Signal(syscall.Signal(15))
+	r.Nil(err, fmt.Sprintf("failed to kill brick %s with pid: %d", killBrick, bricks[brickIndex].Pid))
+
+	time.Sleep(3 * time.Second)
+
+	bricks, err = client.BricksStatus(volname)
+	for index := range bricks {
+		if bricks[index].Info.Path == killBrick {
+			r.Zero(bricks[index].Port)
+			r.False(bricks[index].Online)
+		}
+	}
+
+	r.Nil(client.VolumeStart(volname, true), "volume force start failed")
+
+	time.Sleep(3 * time.Second)
+
+	bricks, err = client.BricksStatus(volname)
+	for index := range bricks {
+		if bricks[index].Info.Path == killBrick {
+			r.NotZero(bricks[index].Port)
+			r.True(bricks[index].Online)
+		}
+	}
+
 }
 
 func testVolumeStop(t *testing.T) {
@@ -400,9 +425,7 @@ func testVolumeInfo(t *testing.T) {
 }
 
 func testVolumeStatus(t *testing.T) {
-	if _, err := os.Lstat("/dev/fuse"); os.IsNotExist(err) {
-		t.Skip("skipping mount /dev/fuse unavailable")
-	}
+	checkFuseAvailable(t)
 	r := require.New(t)
 
 	_, err := client.VolumeStatus(volname)
@@ -452,9 +475,7 @@ func testVolumeMount(t *testing.T, tc *testCluster) {
 }
 
 func testMountUnmount(t *testing.T, v string, tc *testCluster) {
-	if _, err := os.Lstat("/dev/fuse"); os.IsNotExist(err) {
-		t.Skip("skipping mount /dev/fuse unavailable")
-	}
+	checkFuseAvailable(t)
 	r := require.New(t)
 
 	mntPath := testTempDir(t, "mnt")
@@ -465,11 +486,12 @@ func testMountUnmount(t *testing.T, v string, tc *testCluster) {
 	err := mountVolume(host, v, mntPath)
 	r.Nil(err, fmt.Sprintf("mount failed: %s", err))
 
+	defer syscall.Unmount(mntPath, syscall.MNT_FORCE)
+
 	err = testMount(mntPath)
 	r.Nil(err)
 
-	umntCmd := exec.Command("umount", mntPath)
-	err = umntCmd.Run()
+	err = syscall.Unmount(mntPath, 0)
 	r.Nil(err, fmt.Sprintf("unmount failed: %s", err))
 }
 
@@ -484,7 +506,7 @@ func TestVolumeOptions(t *testing.T) {
 
 	r := require.New(t)
 
-	tc, err := setupCluster("./config/1.toml")
+	tc, err := setupCluster(t, "./config/1.toml")
 	r.Nil(err)
 	defer teardownCluster(tc)
 

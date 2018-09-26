@@ -2,7 +2,6 @@ package e2e
 
 import (
 	"fmt"
-	"io/ioutil"
 	"syscall"
 	"testing"
 
@@ -230,19 +229,6 @@ func testSmartVolumeDistributeDisperse(t *testing.T) {
 	checkZeroLvs(r)
 }
 
-func testSmartVolumeWithoutName(t *testing.T) {
-	r := require.New(t)
-
-	createReq := api.VolCreateReq{
-		Size: 20,
-	}
-	volinfo, err := client.VolumeCreate(createReq)
-	r.Nil(err)
-
-	r.Nil(client.VolumeDelete(volinfo.Name))
-	checkZeroLvs(r)
-}
-
 // TestSmartVolume creates a volume and starts it, runs further tests on it and
 // finally deletes the volume
 func TestSmartVolume(t *testing.T) {
@@ -250,7 +236,7 @@ func TestSmartVolume(t *testing.T) {
 
 	r := require.New(t)
 
-	tc, err := setupCluster("./config/1.toml", "./config/2.toml", "./config/3.toml")
+	tc, err := setupCluster(t, "./config/1.toml", "./config/2.toml", "./config/3.toml")
 	r.Nil(err)
 	defer teardownCluster(tc)
 
@@ -258,9 +244,7 @@ func TestSmartVolume(t *testing.T) {
 	r.Nil(err)
 	r.NotNil(client)
 
-	devicesDir, err := ioutil.TempDir(baseLocalStateDir, t.Name())
-	r.Nil(err)
-	t.Logf("Using temp dir: %s", devicesDir)
+	devicesDir := testTempDir(t, "devices")
 
 	// Device Setup
 	// Around 150MB will be reserved during pv/vg creation, create device with more size
@@ -284,7 +268,6 @@ func TestSmartVolume(t *testing.T) {
 	t.Run("Smartvol Disperse Volume", testSmartVolumeDisperse)
 	t.Run("Smartvol Distributed-Replicate Volume", testSmartVolumeDistributeReplicate)
 	t.Run("Smartvol Distributed-Disperse Volume", testSmartVolumeDistributeDisperse)
-	t.Run("Smartvol Without Name", testSmartVolumeWithoutName)
 
 	// // Device Cleanup
 	r.Nil(loopDevicesCleanup(t))

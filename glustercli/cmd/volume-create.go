@@ -16,7 +16,6 @@ const (
 )
 
 var (
-	flagCreateVolumeName              string
 	flagCreateStripeCount             int
 	flagCreateReplicaCount            int
 	flagCreateArbiterCount            int
@@ -42,16 +41,15 @@ var (
 	flagCreateSubvolZoneOverlap     bool
 
 	volumeCreateCmd = &cobra.Command{
-		Use:   "create [--name <volname>] [<brick> [<brick>]...|--size <size>]",
+		Use:   "create <volname> [<brick> [<brick>]...|--size <size>]",
 		Short: volumeCreateHelpShort,
 		Long:  volumeCreateHelpLong,
-		Args:  cobra.MinimumNArgs(0),
+		Args:  cobra.MinimumNArgs(1),
 		Run:   volumeCreateCmdRun,
 	}
 )
 
 func init() {
-	volumeCreateCmd.Flags().StringVar(&flagCreateVolumeName, "name", "", "Volume Name")
 	volumeCreateCmd.Flags().IntVar(&flagCreateStripeCount, "stripe", 0, "Stripe Count")
 	volumeCreateCmd.Flags().IntVar(&flagCreateReplicaCount, "replica", 0, "Replica Count")
 	volumeCreateCmd.Flags().IntVar(&flagCreateArbiterCount, "arbiter", 0, "Arbiter Count")
@@ -93,7 +91,7 @@ func smartVolumeCreate(cmd *cobra.Command, args []string) {
 	}
 
 	req := api.VolCreateReq{
-		Name:                    flagCreateVolumeName,
+		Name:                    args[0],
 		Transport:               flagCreateTransport,
 		Size:                    size,
 		ReplicaCount:            flagCreateReplicaCount,
@@ -116,7 +114,7 @@ func smartVolumeCreate(cmd *cobra.Command, args []string) {
 	if err != nil {
 		if GlobalFlag.Verbose {
 			log.WithError(err).WithField(
-				"volume", flagCreateVolumeName).Error("volume creation failed")
+				"volume", args[0]).Error("volume creation failed")
 		}
 		failure("Volume creation failed", err, 1)
 	}
@@ -130,23 +128,12 @@ func volumeCreateCmdRun(cmd *cobra.Command, args []string) {
 		return
 	}
 
-	if len(args) < 1 {
+	if len(args) < 2 {
 		failure("Bricks not specified", nil, 1)
 	}
 
-	volname := flagCreateVolumeName
-	brickArgs := args
-	if volname == "" {
-		// check if the first arg is volume name or brick:
-		// bricks have host:path or peer-id:path format
-		// volume names don't allow : character
-		if !strings.Contains(args[0], ":") {
-			// old backward compatible style:
-			// glustercli volume create <volname> <bricks...>
-			volname = args[0]
-			brickArgs = args[1:]
-		}
-	}
+	volname := args[0]
+	brickArgs := args[1:]
 
 	bricks, err := bricksAsUUID(brickArgs)
 	if err != nil {

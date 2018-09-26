@@ -17,6 +17,7 @@ import (
 	"github.com/coreos/etcd/clientv3/concurrency"
 	"github.com/coreos/etcd/clientv3/namespace"
 	log "github.com/sirupsen/logrus"
+	"go.opencensus.io/trace"
 )
 
 const (
@@ -192,6 +193,10 @@ func Get(ctx context.Context, key string, opts ...clientv3.OpOption) (*clientv3.
 	if ctx == context.TODO() {
 		ctx, cancel = context.WithTimeout(context.Background(), getTimeout*time.Second)
 		defer cancel()
+	} else {
+		var span *trace.Span
+		ctx, span = trace.StartSpan(ctx, "store.Get")
+		defer span.End()
 	}
 
 	defer storeCounters.Add("get", 1)

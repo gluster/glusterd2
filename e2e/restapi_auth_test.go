@@ -12,7 +12,7 @@ import (
 func TestRESTAPIAuth(t *testing.T) {
 	r := require.New(t)
 
-	tc, err := setupCluster("./config/4.toml")
+	tc, err := setupCluster(t, "./config/4.toml")
 	r.NoError(err)
 	defer teardownCluster(tc)
 

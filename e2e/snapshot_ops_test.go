@@ -5,7 +5,6 @@ import (
 	"fmt"
 	"net"
 	"os"
-	"os/exec"
 	"syscall"
 	"testing"
 	"time"
@@ -33,12 +32,12 @@ func TestSnapshot(t *testing.T) {
 	snapTestName = t.Name()
 	r := require.New(t)
 
-	prefix := fmt.Sprintf("%s/%s/bricks/", baseLocalStateDir, snapTestName)
+	prefix := testTempDir(t, "bricks")
 	lvmtest.Cleanup(baseLocalStateDir, prefix, brickCount)
 	defer func() {
 		lvmtest.Cleanup(baseLocalStateDir, prefix, brickCount)
 	}()
-	tc, err := setupCluster("./config/1.toml", "./config/2.toml")
+	tc, err := setupCluster(t, "./config/1.toml", "./config/2.toml")
 	r.Nil(err)
 	defer teardownCluster(tc)
 
@@ -168,11 +167,11 @@ func testSnapshotList(t *testing.T) {
 	snaps, err := client.SnapshotList("")
 	r.Nil(err)
 	r.Len(snaps, 1)
-	r.Len(snaps[0].SnapName, 2)
+	r.Len(snaps[0].SnapList, 2)
 
 	snaps, err = client.SnapshotList(snapTestName)
 	r.Nil(err)
-	r.Len(snaps[0].SnapName, 2)
+	r.Len(snaps[0].SnapList, 2)
 
 }
 
@@ -192,8 +191,8 @@ func testSnapshotActivate(t *testing.T) {
 	r.Nil(err)
 
 	for _, snaps := range vols {
-		for _, snapName := range snaps.SnapName {
-			err = client.SnapshotActivate(snapshotActivateReq, snapName)
+		for _, snap := range snaps.SnapList {
+			err = client.SnapshotActivate(snapshotActivateReq, snap.VolInfo.Name)
 			r.Nil(err)
 
 			snapshotActivateReq.Force = true
@@ -207,18 +206,18 @@ func testSnapshotDelete(t *testing.T) {
 
 	vols, err := client.SnapshotList("")
 	r.Nil(err)
-	r.Len(vols[0].SnapName, 1)
+	r.Len(vols[0].SnapList, 1)
 
 	for _, snaps := range vols {
-		for _, snapName := range snaps.SnapName {
-			err = client.SnapshotDelete(snapName)
+		for _, snap := range snaps.SnapList {
+			err = client.SnapshotDelete(snap.VolInfo.Name)
 			r.Nil(err)
 		}
 	}
 
 	vols, err = client.SnapshotList(snapTestName)
 	r.Nil(err)
-	r.Len(vols[0].SnapName, 0)
+	r.Len(vols, 0)
 }
 
 func testSnapshotDeactivate(t *testing.T) {
@@ -227,8 +226,8 @@ func testSnapshotDeactivate(t *testing.T) {
 	r.Nil(err)
 
 	for _, snaps := range vols {
-		for _, snapName := range snaps.SnapName {
-			err = client.SnapshotDeactivate(snapName)
+		for _, snap := range snaps.SnapList {
+			err = client.SnapshotDeactivate(snap.VolInfo.Name)
 			r.Nil(err)
 		}
 	}
@@ -243,7 +242,7 @@ func testSnapshotStatusForceActivate(t *testing.T) {
 	vols, err := client.SnapshotList(snapTestName)
 	r.Nil(err)
 
-	snapName := vols[0].SnapName[0]
+	snapName := vols[0].SnapList[0].VolInfo.Name
 	result, err = client.SnapshotStatus(snapName)
 	r.Nil(err)
 
@@ -284,7 +283,7 @@ func testSnapshotRestore(t *testing.T) {
 	vols, err := client.SnapshotList(snapTestName)
 	r.Nil(err)
 
-	snapName := vols[0].SnapName[0]
+	snapName := vols[0].SnapList[0].VolInfo.Name
 	result, err = client.SnapshotStatus(snapName)
 	r.Nil(err)
 
@@ -297,7 +296,7 @@ func testSnapshotRestore(t *testing.T) {
 
 	snaps, err := client.SnapshotList(snapTestName)
 	r.Nil(err)
-	r.Len(snaps[0].SnapName, 1)
+	r.Len(snaps[0].SnapList, 1)
 
 	err = client.VolumeStart(snapTestName, true)
 	r.Nil(err)
@@ -315,11 +314,12 @@ func testRestoredVolumeMount(t *testing.T, tc *testCluster) {
 	err := mountVolume(host, snapTestName, mntPath)
 	r.Nil(err, fmt.Sprintf("mount failed: %s", err))
 
+	defer syscall.Unmount(mntPath, syscall.MNT_FORCE)
+
 	err = testMount(mntPath)
 	r.Nil(err)
 
-	umntCmd := exec.Command("umount", mntPath)
-	err = umntCmd.Run()
+	err = syscall.Unmount(mntPath, 0)
 	r.Nil(err, fmt.Sprintf("unmount failed: %s", err))
 }
 
@@ -335,14 +335,15 @@ func testSnapshotMount(t *testing.T, tc *testCluster) {
 	err := mountVolume(host, volID, mntPath)
 	r.Nil(err, fmt.Sprintf("mount failed: %s", err))
 
+	defer syscall.Unmount(mntPath, syscall.MNT_FORCE)
+
 	newDir := mntPath + "/Dir"
 	err = syscall.Mkdir(newDir, 0755)
 	if err == nil {
 		r.Nil(errors.New("snapshot volume is Read Only File System"))
 	}
 
-	umntCmd := exec.Command("umount", mntPath)
-	err = umntCmd.Run()
+	err = syscall.Unmount(mntPath, 0)
 	r.Nil(err, fmt.Sprintf("unmount failed: %s", err))
 }
 

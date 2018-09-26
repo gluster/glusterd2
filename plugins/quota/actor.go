@@ -1,6 +1,7 @@
 package quota
 
 import (
+	"context"
 	"os"
 	"path"
 
@@ -57,7 +58,7 @@ func (actor *quotadActor) Do(v *volume.Volinfo, key, value string, volOp xlator.
 		return err
 	}
 
-	volumes, err := volume.GetVolumes()
+	volumes, err := volume.GetVolumes(context.TODO())
 	if err != nil {
 		logger.WithError(err).Error("failed to get volumes")
 		return err
