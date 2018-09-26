@@ -630,8 +630,12 @@ func testDisperse(t *testing.T, tc *testCluster) {
 		Force: true,
 	}
 
-	_, err := client.VolumeCreate(createReq)
+	volinfo, err := client.VolumeCreate(createReq)
 	r.Nil(err)
+
+	r.Equal(3, volinfo.DisperseCount)
+	r.Equal(2, volinfo.DisperseDataCount)
+	r.Equal(1, volinfo.DisperseRedundancyCount)
 
 	r.Nil(client.VolumeStart(disperseVolName, true), "disperse volume start failed")
 }
