@@ -98,6 +98,7 @@ type Volinfo struct {
 	SnapList              []string
 	SnapshotReserveFactor float64
 	Capacity              uint64
+	Provisioner           string
 }
 
 // VolAuth represents username and password used by trusted/internal clients
@@ -162,6 +163,8 @@ func NewBrickEntries(bricks []api.BrickReq, volName, volfileID string, volID uui
 		binfo.VolfileID = volfileID
 		binfo.VolumeID = volID
 		binfo.ID = uuid.NewRandom()
+		binfo.Name = b.Name
+		binfo.Device = b.Device
 
 		binfo.PType = ptype
 		if ptype.IsAutoProvisioned() {

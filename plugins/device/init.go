@@ -47,7 +47,7 @@ func (p *Plugin) RestRoutes() route.Routes {
 			Pattern:      "/devices",
 			Version:      1,
 			ResponseType: utils.GetTypeString((*deviceapi.ListDeviceResp)(nil)),
-			HandlerFunc:  listAllDevicesHandler},
+			HandlerFunc:  deviceListHandler},
 	}
 }
 

@@ -1,7 +1,6 @@
 package bricksplanner
 
 import (
-	"encoding/json"
 	"sort"
 	"strings"
 
@@ -10,6 +9,7 @@ import (
 	"github.com/gluster/glusterd2/pkg/api"
 	"github.com/gluster/glusterd2/pkg/utils"
 	deviceapi "github.com/gluster/glusterd2/plugins/device/api"
+	"github.com/gluster/glusterd2/plugins/device/deviceutils"
 )
 
 var subvolPlanners = make(map[string]SubvolPlanner)
@@ -24,8 +24,7 @@ type SubvolPlanner interface {
 
 // Vg represents Virtual Volume Group
 type Vg struct {
-	Name          string
-	DeviceName    string
+	Device        string
 	PeerID        string
 	Zone          string
 	State         string
@@ -71,14 +70,8 @@ func getAvailableVgs(req *api.VolCreateReq) ([]Vg, error) {
 			continue
 		}
 
-		devicesRaw, exists := p.Metadata["_devices"]
-		if !exists {
-			// No device registered for this peer
-			continue
-		}
-
-		var deviceInfo []deviceapi.Info
-		if err := json.Unmarshal([]byte(devicesRaw), &deviceInfo); err != nil {
+		deviceInfo, err := deviceutils.GetDevices(p.ID.String())
+		if err != nil {
 			return nil, err
 		}
 
@@ -89,8 +82,7 @@ func getAvailableVgs(req *api.VolCreateReq) ([]Vg, error) {
 			}
 
 			vgs = append(vgs, Vg{
-				DeviceName:    d.Name,
-				Name:          d.VgName,
+				Device:        d.Device,
 				PeerID:        p.ID.String(),
 				Zone:          peerzone,
 				State:         d.State,

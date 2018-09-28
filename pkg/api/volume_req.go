@@ -2,20 +2,16 @@ package api
 
 // BrickReq represents Brick Request
 type BrickReq struct {
-	Type           string `json:"type"`
-	PeerID         string `json:"peerid"`
-	Path           string `json:"path"`
-	TpMetadataSize uint64 `json:"metadata-size,omitempty"`
-	TpSize         uint64 `json:"thinpool-size,omitempty"`
-	VgName         string `json:"vg-name,omitempty"`
-	TpName         string `json:"thinpool-name,omitempty"`
-	LvName         string `json:"logical-volume,omitempty"`
-	Size           uint64 `json:"size,omitempty"`
-	VgID           string `json:"vg-id,omitempty"`
-	Mountdir       string `json:"mount-dir,omitempty"`
-	DevicePath     string `json:"device-path,omitempty"`
-	MntOpts        string `json:"mnt-opts,omitempty"`
-	FsType         string `json:"fs-type,omitempty"`
+	Type       string `json:"type"`
+	PeerID     string `json:"peerid"`
+	Path       string `json:"path"`
+	Name       string `json:"name,omitempty"`
+	Size       uint64 `json:"size,omitempty"`
+	Mountdir   string `json:"mount-dir,omitempty"`
+	Device     string `json:"device,omitempty"`
+	DevicePath string `json:"device-path,omitempty"`
+	MntOpts    string `json:"mnt-opts,omitempty"`
+	FsType     string `json:"fs-type,omitempty"`
 }
 
 // SubvolReq represents Sub volume Request
@@ -59,6 +55,7 @@ type VolCreateReq struct {
 	ExcludeZones            []string          `json:"exclude-zones,omitempty"`
 	SubvolZonesOverlap      bool              `json:"subvolume-zones-overlap,omitempty"`
 	SubvolType              string            `json:"subvolume-type,omitempty"`
+	Provisioner             string            `json:"provisioner,omitempty"`
 	VolOptionReq
 }
 

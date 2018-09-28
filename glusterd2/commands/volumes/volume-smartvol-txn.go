@@ -1,11 +1,10 @@
 package volumecommands
 
 import (
-	"errors"
-	"os"
 	"strings"
 
 	"github.com/gluster/glusterd2/glusterd2/gdctx"
+	"github.com/gluster/glusterd2/glusterd2/provisioners"
 	"github.com/gluster/glusterd2/glusterd2/transaction"
 	"github.com/gluster/glusterd2/glusterd2/volume"
 	"github.com/gluster/glusterd2/pkg/api"
@@ -21,74 +20,76 @@ func txnPrepareBricks(c transaction.TxnCtx) error {
 		return err
 	}
 
+	var provisioner provisioners.Provisioner
+	var err error
+	if req.Provisioner == "" {
+		provisioner = provisioners.GetDefault()
+	} else {
+		provisioner, err = provisioners.Get(req.Provisioner)
+		if err != nil {
+			c.Logger().WithError(err).WithField("name", req.Provisioner).Error("invalid provisioner")
+			return err
+		}
+	}
+
 	for _, sv := range req.Subvols {
 		for _, b := range sv.Bricks {
 			if b.PeerID != gdctx.MyUUID.String() {
 				continue
 			}
 
-			// Create Mount directory
-			mountRoot := strings.TrimSuffix(b.Path, b.Mountdir)
-			err := os.MkdirAll(mountRoot, os.ModeDir|os.ModePerm)
-			if err != nil {
-				c.Logger().WithError(err).WithField("path", mountRoot).Error("failed to create brick mount directory")
-				return err
-			}
-
-			// Thin Pool Creation
-			err = deviceutils.CreateTP(b.VgName, b.TpName, b.TpSize, b.TpMetadataSize)
+			err := provisioner.CreateBrick(b.Device, b.Name, b.Size, req.SnapshotReserveFactor)
 			if err != nil {
 				c.Logger().WithError(err).WithFields(log.Fields{
-					"vg-name":      b.VgName,
-					"tp-name":      b.TpName,
-					"tp-size":      b.TpSize,
-					"tp-meta-size": b.TpMetadataSize,
-				}).Error("thinpool creation failed")
+					"device":           b.Device,
+					"name":             b.Name,
+					"size":             b.Size,
+					"snapshot-reserve": req.SnapshotReserveFactor,
+				}).Error("brick creation failed")
 				return err
 			}
 
-			// LV Creation
-			err = deviceutils.CreateLV(b.VgName, b.TpName, b.LvName, b.Size)
+			err = provisioner.CreateBrickFS(b.Device, b.Name, "xfs")
 			if err != nil {
 				c.Logger().WithError(err).WithFields(log.Fields{
-					"vg-name": b.VgName,
-					"tp-name": b.TpName,
-					"lv-name": b.LvName,
-					"size":    b.Size,
-				}).Error("lvcreate failed")
-				return err
-			}
-
-			// Make Filesystem
-			err = deviceutils.MakeXfs(b.DevicePath)
-			if err != nil {
-				c.Logger().WithError(err).WithField("dev", b.DevicePath).Error("mkfs.xfs failed")
+					"device": b.Device,
+					"fstype": "xfs",
+				}).Error("create brick filesystem failed")
 				return err
 			}
 
 			// Mount the Created FS
-			err = deviceutils.BrickMount(b.DevicePath, mountRoot)
+			err = provisioner.MountBrick(b.Device, b.Name, b.Path)
 			if err != nil {
 				c.Logger().WithError(err).WithFields(log.Fields{
-					"dev":  b.DevicePath,
-					"path": mountRoot,
+					"device": b.Device,
+					"path":   b.Path,
+					"name":   b.Name,
 				}).Error("brick mount failed")
 				return err
 			}
 
 			// Create a directory in Brick Mount
-			err = os.MkdirAll(b.Path, os.ModeDir|os.ModePerm)
+			err = provisioner.CreateBrickDir(b.Path)
 			if err != nil {
 				c.Logger().WithError(err).WithField(
 					"path", b.Path).Error("failed to create brick directory in mount")
 				return err
 			}
 
-			// Update current Vg free size
-			err = deviceutils.UpdateDeviceFreeSize(gdctx.MyUUID.String(), b.VgName)
+			availableSize, extentSize, err := provisioner.AvailableSize(b.Device)
 			if err != nil {
-				c.Logger().WithError(err).WithField("vg-name", b.VgName).
-					Error("failed to update available size of a device")
+				c.Logger().WithError(err).WithField("device", b.Device).
+					Error("failed to get available size of a device")
+				return err
+			}
+			err = deviceutils.UpdateDeviceFreeSize(gdctx.MyUUID.String(), b.Device, availableSize, extentSize)
+			if err != nil {
+				c.Logger().WithError(err).WithFields(log.Fields{
+					"peerid":        gdctx.MyUUID.String(),
+					"device":        b.Device,
+					"availablesize": availableSize,
+				}).Error("failed to update available size of a device")
 				return err
 			}
 		}
@@ -104,6 +105,18 @@ func txnUndoPrepareBricks(c transaction.TxnCtx) error {
 		return err
 	}
 
+	var provisioner provisioners.Provisioner
+	var err error
+	if req.Provisioner == "" {
+		provisioner = provisioners.GetDefault()
+	} else {
+		provisioner, err = provisioners.Get(req.Provisioner)
+		if err != nil {
+			c.Logger().WithError(err).WithField("name", req.Provisioner).Error("invalid provisioner")
+			return err
+		}
+	}
+
 	for _, sv := range req.Subvols {
 		for _, b := range sv.Bricks {
 
@@ -112,32 +125,34 @@ func txnUndoPrepareBricks(c transaction.TxnCtx) error {
 			}
 
 			// UnMount the Brick
-			mountRoot := strings.TrimSuffix(b.Path, b.Mountdir)
-			err := deviceutils.BrickUnmount(mountRoot)
+			err := provisioner.UnmountBrick(b.Path)
 			if err != nil {
-				c.Logger().WithError(err).WithField("path", mountRoot).Error("brick unmount failed")
+				c.Logger().WithError(err).WithField("path", b.Path).Error("brick unmount failed")
 			}
 
-			// Remove LV
-			err = deviceutils.RemoveLV(b.VgName, b.LvName)
+			// Remove Brick
+			err = provisioner.RemoveBrick(b.Device, b.Name)
 			if err != nil {
 				c.Logger().WithError(err).WithFields(log.Fields{
-					"vg-name": b.VgName,
-					"lv-name": b.LvName,
+					"device": b.Device,
+					"name":   b.Name,
 				}).Error("lv remove failed")
 			}
 
-			// Remove Thin Pool
-			err = deviceutils.RemoveLV(b.VgName, b.TpName)
+			availableSize, extentSize, err := provisioner.AvailableSize(b.Device)
+			if err != nil {
+				c.Logger().WithError(err).WithField("device", b.Device).
+					Error("failed to get available size of a device")
+				return err
+			}
+			err = deviceutils.UpdateDeviceFreeSize(gdctx.MyUUID.String(), b.Device, availableSize, extentSize)
 			if err != nil {
 				c.Logger().WithError(err).WithFields(log.Fields{
-					"vg-name": b.VgName,
-					"tp-name": b.TpName,
-				}).Error("thinpool remove failed")
+					"peerid":        gdctx.MyUUID.String(),
+					"device":        b.Device,
+					"availablesize": availableSize,
+				}).Error("failed to update available size of a device")
 			}
-
-			// Update current Vg free size
-			deviceutils.UpdateDeviceFreeSize(gdctx.MyUUID.String(), b.VgName)
 		}
 	}
 
@@ -152,6 +167,18 @@ func txnCleanBricks(c transaction.TxnCtx) error {
 		return err
 	}
 
+	var provisioner provisioners.Provisioner
+	var err error
+	if volinfo.Provisioner == "" {
+		provisioner = provisioners.GetDefault()
+	} else {
+		provisioner, err = provisioners.Get(volinfo.Provisioner)
+		if err != nil {
+			c.Logger().WithError(err).WithField("name", volinfo.Provisioner).Error("invalid provisioner")
+			return err
+		}
+	}
+
 	for _, b := range volinfo.GetLocalBricks() {
 		// UnMount the Brick if mounted
 		mountRoot := strings.TrimSuffix(b.Path, b.MountInfo.Mountdir)
@@ -163,66 +190,34 @@ func txnCleanBricks(c transaction.TxnCtx) error {
 				return err
 			}
 		} else {
-			err := deviceutils.BrickUnmount(mountRoot)
+			err := provisioner.UnmountBrick(b.Path)
 			if err != nil {
-				c.Logger().WithError(err).WithField("path", mountRoot).
-					Error("brick unmount failed")
+				c.Logger().WithError(err).WithField("path", b.Path).Error("brick unmount failed")
 				return err
 			}
 		}
 
-		parts := strings.Split(b.MountInfo.DevicePath, "/")
-		if len(parts) != 4 {
-			return errors.New("unable to parse device path")
-		}
-		vgname := parts[2]
-		lvname := parts[3]
-		tpname, err := deviceutils.GetThinpoolName(vgname, lvname)
+		err = provisioner.RemoveBrick(b.Device, b.Name)
 		if err != nil {
 			c.Logger().WithError(err).WithFields(log.Fields{
-				"vg-name": vgname,
-				"lv-name": lvname,
-			}).Error("failed to get thinpool name")
-			return err
+				"device": b.Device,
+				"name":   b.Name,
+			}).Error("remove brick failed")
 		}
 
-		// Remove LV
-		err = deviceutils.RemoveLV(vgname, lvname)
+		availableSize, extentSize, err := provisioner.AvailableSize(b.Device)
+		if err != nil {
+			c.Logger().WithError(err).WithField("device", b.Device).
+				Error("failed to get available size of a device")
+			return err
+		}
+		err = deviceutils.UpdateDeviceFreeSize(gdctx.MyUUID.String(), b.Device, availableSize, extentSize)
 		if err != nil {
 			c.Logger().WithError(err).WithFields(log.Fields{
-				"vg-name": vgname,
-				"lv-name": lvname,
-			}).Error("lv remove failed")
-			return err
-		}
-
-		// Remove Thin Pool if LV count is zero, Thinpool will
-		// have more LVs in case of snapshots and clones
-		numLvs, err := deviceutils.NumberOfLvs(vgname, tpname)
-		if err != nil {
-			c.Logger().WithError(err).WithFields(log.Fields{
-				"vg-name": vgname,
-				"tp-name": tpname,
-			}).Error("failed to get number of lvs")
-			return err
-		}
-
-		if numLvs == 0 {
-			err = deviceutils.RemoveLV(vgname, tpname)
-			if err != nil {
-				c.Logger().WithError(err).WithFields(log.Fields{
-					"vg-name": vgname,
-					"tp-name": tpname,
-				}).Error("thinpool remove failed")
-				return err
-			}
-		}
-
-		// Update current Vg free size
-		err = deviceutils.UpdateDeviceFreeSize(gdctx.MyUUID.String(), vgname)
-		if err != nil {
-			c.Logger().WithError(err).WithField("vg-name", vgname).
-				Error("failed to update available size of a device")
+				"peerid":        gdctx.MyUUID.String(),
+				"device":        b.Device,
+				"availablesize": availableSize,
+			}).Error("failed to update available size of a device")
 			return err
 		}
 	}
