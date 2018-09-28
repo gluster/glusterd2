@@ -18,14 +18,12 @@ func TestQuota(t *testing.T) {
 	var brickPaths []string
 	r := require.New(t)
 
-	tc, err := setupCluster("./config/1.toml", "./config/2.toml")
+	tc, err := setupCluster(t, "./config/1.toml", "./config/2.toml")
 	r.Nil(err)
 	defer teardownCluster(tc)
 
-	brickDir, err := ioutil.TempDir(baseLocalStateDir, t.Name())
-	r.Nil(err)
+	brickDir := testTempDir(t, "bricks")
 	defer os.RemoveAll(brickDir)
-	t.Logf("Using temp dir: %s", brickDir)
 
 	volumeName := formatVolName(t.Name())
 
@@ -35,7 +33,9 @@ func TestQuota(t *testing.T) {
 		brickPaths = append(brickPaths, brickPath)
 	}
 
-	client := initRestclient(tc.gds[0])
+	client, err := initRestclient(tc.gds[0])
+	r.Nil(err)
+	r.NotNil(client)
 
 	// create 2x2 dist-rep volume
 	createReq := api.VolCreateReq{

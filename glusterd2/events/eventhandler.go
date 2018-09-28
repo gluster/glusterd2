@@ -182,10 +182,7 @@ func getJWTToken(eventtype, secret string) string {
 func WebhookPublish(webhook *eventsapi.Webhook, e *api.Event) error {
 	message, err := json.Marshal(e)
 	if err != nil {
-		log.WithFields(log.Fields{
-			"name":  e.Name,
-			"error": err.Error(),
-		}).Error("failed to marshal event")
+		log.WithError(err).WithField("name", e.Name).Error("failed to marshal event")
 		return err
 	}
 

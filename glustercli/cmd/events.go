@@ -46,10 +46,7 @@ var eventsWebhookAddCmd = &cobra.Command{
 		err := client.WebhookAdd(url, flagWebhookAddCmdToken, flagWebhookAddCmdSecret)
 		if err != nil {
 			if GlobalFlag.Verbose {
-				log.WithFields(log.Fields{
-					"url":   url,
-					"error": err.Error(),
-				}).Error("failed to add webhook")
+				log.WithError(err).WithField("url", url).Error("failed to add webhook")
 			}
 			failure("Failed to add Webhook", err, 1)
 		}
@@ -66,10 +63,7 @@ var eventsWebhookDeleteCmd = &cobra.Command{
 		err := client.WebhookDelete(url)
 		if err != nil {
 			if GlobalFlag.Verbose {
-				log.WithFields(log.Fields{
-					"url":   url,
-					"error": err.Error(),
-				}).Error("failed to delete webhook")
+				log.WithError(err).WithField("url", url).Error("failed to delete webhook")
 			}
 			failure("Failed to delete Webhook", err, 1)
 		}
@@ -85,9 +79,7 @@ var eventsWebhookListCmd = &cobra.Command{
 		webhooks, err := client.Webhooks()
 		if err != nil {
 			if GlobalFlag.Verbose {
-				log.WithFields(log.Fields{
-					"error": err.Error(),
-				}).Error("failed to get list of Webhooks")
+				log.WithError(err).Error("failed to list webhooks")
 			}
 			failure("Failed to get list of registered Webhooks", err, 1)
 		}

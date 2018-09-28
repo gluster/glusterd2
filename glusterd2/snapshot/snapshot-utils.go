@@ -88,16 +88,15 @@ func MountSnapBrickDirectory(vol *volume.Volinfo, brickinfo *brick.Brickinfo) er
 	*/
 
 	if err := lvm.MountSnapshotDirectory(mountRoot, brickinfo.MountInfo); err != nil {
-		log.WithFields(log.Fields{"error": err.Error(),
+		log.WithError(err).WithFields(log.Fields{
 			"brickPath": brickinfo.String(),
 			"mountRoot": mountRoot}).Error("Failed to mount snapshot directory")
 
 		return err
 	}
 
-	err := unix.Setxattr(brickinfo.Path, volumeIDXattrKey, vol.ID, 0)
-	if err != nil {
-		log.WithFields(log.Fields{"error": err.Error(),
+	if err := unix.Setxattr(brickinfo.Path, volumeIDXattrKey, vol.ID, 0); err != nil {
+		log.WithError(err).WithFields(log.Fields{
 			"brickPath": brickinfo.Path,
 			"xattr":     volumeIDXattrKey}).Error("setxattr failed")
 		return err
@@ -109,6 +108,13 @@ func MountSnapBrickDirectory(vol *volume.Volinfo, brickinfo *brick.Brickinfo) er
 func getOnlineOfflineBricks(vol *volume.Volinfo, online bool) ([]brick.Brickinfo, error) {
 	var brickinfos []brick.Brickinfo
 
+	if vol.State == volume.VolStopped {
+		//If volume is not started, We will assume all bricks are stopped.
+		if online == true {
+			return brickinfos, nil
+		}
+		return vol.GetLocalBricks(), nil
+	}
 	brickStatuses, err := volume.CheckBricksStatus(vol)
 	if err != nil {
 		return brickinfos, err
@@ -169,15 +175,26 @@ func ActivateDeactivateFunc(snapinfo *Snapinfo, b []brick.Brickinfo, activate bo
 	return nil
 }
 
-//CheckBricksCompatability will verify the brickes are lvm compatable
-func CheckBricksCompatability(volinfo *volume.Volinfo) []string {
+//CheckBricksFsCompatability will verify the brickes are compatable
+func CheckBricksFsCompatability(volinfo *volume.Volinfo) []string {
 
 	var paths []string
-	for _, subvol := range volinfo.Subvols {
-		for _, brick := range subvol.Bricks {
-			if lvm.IsThinLV(brick.Path) != true {
-				paths = append(paths, brick.String())
-			}
+	for _, brick := range volinfo.GetLocalBricks() {
+		if lvm.FsCompatibleCheck(brick.Path) != true {
+			paths = append(paths, brick.String())
+		}
+	}
+	return paths
+
+}
+
+//CheckBricksSizeCompatability will verify the device has enough space
+func CheckBricksSizeCompatability(volinfo *volume.Volinfo) []string {
+
+	var paths []string
+	for _, brick := range volinfo.GetLocalBricks() {
+		if lvm.SizeCompatibleCheck(brick.Path) != true {
+			paths = append(paths, brick.String())
 		}
 	}
 	return paths

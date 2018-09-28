@@ -42,7 +42,7 @@ func (s *Step) do(origCtx context.Context, ctx TxnCtx) error {
 // undo runs the UndoFunc on the nodes
 func (s *Step) undo(ctx TxnCtx) error {
 	if s.UndoFunc != "" {
-		return runStepFuncOnNodes(nil, s.UndoFunc, ctx, s.Nodes)
+		return runStepFuncOnNodes(context.TODO(), s.UndoFunc, ctx, s.Nodes)
 	}
 	return nil
 }
@@ -114,9 +114,9 @@ func runStepFuncOnNodes(origCtx context.Context, stepName string, ctx TxnCtx, no
 		peerResp = <-respCh
 		if peerResp.Error != nil {
 			resp.errCount++
-			ctx.Logger().WithFields(log.Fields{
+			ctx.Logger().WithError(peerResp.Error).WithFields(log.Fields{
 				"step": stepName, "node": peerResp.PeerID,
-			}).WithError(peerResp.Error).Error("Step failed on node.")
+			}).Error("Step failed on node.")
 		}
 		resp.Resps = append(resp.Resps, peerResp)
 	}
@@ -150,9 +150,11 @@ func runStepFuncLocally(origCtx context.Context, stepName string, ctx TxnCtx) er
 	var err error
 
 	if origCtx != nil {
+		_, span := trace.StartSpan(origCtx, stepName)
 		reqID := ctx.GetTxnReqID()
-		spanName := stepName + " ReqID:" + reqID
-		_, span := trace.StartSpan(origCtx, spanName)
+		span.AddAttributes(
+			trace.StringAttribute("reqID", reqID),
+		)
 		defer span.End()
 	}
 

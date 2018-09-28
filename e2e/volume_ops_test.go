@@ -4,11 +4,14 @@ import (
 	"errors"
 	"fmt"
 	"io/ioutil"
+	"math/rand"
 	"net"
 	"os"
 	"os/exec"
+	"path"
 	"path/filepath"
 	"strings"
+	"syscall"
 	"testing"
 	"time"
 
@@ -35,13 +38,13 @@ func TestVolume(t *testing.T) {
 
 	r := require.New(t)
 
-	tc, err := setupCluster("./config/1.toml", "./config/2.toml")
+	tc, err := setupCluster(t, "./config/1.toml", "./config/2.toml")
 	r.Nil(err)
 	defer teardownCluster(tc)
 
-	client = initRestclient(tc.gds[0])
-
-	t.Run("CreateWithoutName", tc.wrap(testVolumeCreateWithoutName))
+	client, err = initRestclient(tc.gds[0])
+	r.Nil(err)
+	r.NotNil(client)
 
 	// Create the volume
 	t.Run("Create", tc.wrap(testVolumeCreate))
@@ -65,33 +68,12 @@ func TestVolume(t *testing.T) {
 	t.Run("Disperse", tc.wrap(testDisperse))
 	t.Run("DisperseMount", tc.wrap(testDisperseMount))
 	t.Run("DisperseDelete", testDisperseDelete)
-}
+	t.Run("testShdOnVolumeStartAndStop", tc.wrap(testShdOnVolumeStartAndStop))
 
-func testVolumeCreateWithoutName(t *testing.T, tc *testCluster) {
-	r := require.New(t)
+	// Self Heal Test
+	t.Run("SelfHeal", tc.wrap(testSelfHeal))
+	t.Run("GranularEntryHeal", tc.wrap(testGranularEntryHeal))
 
-	var brickPaths []string
-	for i := 1; i <= 2; i++ {
-		brickPath := testTempDir(t, "brick")
-		brickPaths = append(brickPaths, brickPath)
-	}
-
-	// create 2x2 dist-rep volume
-	createReq := api.VolCreateReq{
-		Subvols: []api.SubvolReq{
-			{
-				Bricks: []api.BrickReq{
-					{PeerID: tc.gds[0].PeerID(), Path: brickPaths[0]},
-					{PeerID: tc.gds[1].PeerID(), Path: brickPaths[1]},
-				},
-			},
-		},
-		Force: true,
-	}
-	volinfo, err := client.VolumeCreate(createReq)
-	r.Nil(err)
-
-	r.Nil(client.VolumeDelete(volinfo.Name))
 }
 
 func testVolumeCreate(t *testing.T, tc *testCluster) {
@@ -267,6 +249,53 @@ func testVolumeDelete(t *testing.T) {
 func testVolumeStart(t *testing.T) {
 	r := require.New(t)
 	r.Nil(client.VolumeStart(volname, false), "volume start failed")
+
+	bricks, err := client.BricksStatus(volname)
+	for index := range bricks {
+		r.NotZero(bricks[index].Port)
+		r.True(bricks[index].Online)
+	}
+
+	r.Nil(client.VolumeStart(volname, true), "volume force start failed")
+
+	time.Sleep(3 * time.Second)
+
+	bricks, err = client.BricksStatus(volname)
+	for index := range bricks {
+		r.NotZero(bricks[index].Port)
+		r.True(bricks[index].Online)
+	}
+
+	random := rand.New(rand.NewSource(time.Now().UnixNano()))
+	brickIndex := random.Intn(len(bricks))
+	killBrick := bricks[brickIndex].Info.Path
+	process, err := os.FindProcess(bricks[brickIndex].Pid)
+	r.Nil(err, fmt.Sprintf("failed to find brick %s with pid: %d", killBrick, bricks[brickIndex].Pid))
+	err = process.Signal(syscall.Signal(15))
+	r.Nil(err, fmt.Sprintf("failed to kill brick %s with pid: %d", killBrick, bricks[brickIndex].Pid))
+
+	time.Sleep(3 * time.Second)
+
+	bricks, err = client.BricksStatus(volname)
+	for index := range bricks {
+		if bricks[index].Info.Path == killBrick {
+			r.Zero(bricks[index].Port)
+			r.False(bricks[index].Online)
+		}
+	}
+
+	r.Nil(client.VolumeStart(volname, true), "volume force start failed")
+
+	time.Sleep(3 * time.Second)
+
+	bricks, err = client.BricksStatus(volname)
+	for index := range bricks {
+		if bricks[index].Info.Path == killBrick {
+			r.NotZero(bricks[index].Port)
+			r.True(bricks[index].Online)
+		}
+	}
+
 }
 
 func testVolumeStop(t *testing.T) {
@@ -325,9 +354,7 @@ func testVolumeInfo(t *testing.T) {
 }
 
 func testVolumeStatus(t *testing.T) {
-	if _, err := os.Lstat("/dev/fuse"); os.IsNotExist(err) {
-		t.Skip("skipping mount /dev/fuse unavailable")
-	}
+	checkFuseAvailable(t)
 	r := require.New(t)
 
 	_, err := client.VolumeStatus(volname)
@@ -377,22 +404,23 @@ func testVolumeMount(t *testing.T, tc *testCluster) {
 }
 
 func testMountUnmount(t *testing.T, v string, tc *testCluster) {
-	if _, err := os.Lstat("/dev/fuse"); os.IsNotExist(err) {
-		t.Skip("skipping mount /dev/fuse unavailable")
-	}
+	checkFuseAvailable(t)
 	r := require.New(t)
 
 	mntPath := testTempDir(t, "mnt")
 	defer os.RemoveAll(mntPath)
 
 	host, _, _ := net.SplitHostPort(tc.gds[0].ClientAddress)
-	mntCmd := exec.Command("mount", "-t", "glusterfs", host+":"+v, mntPath)
-	umntCmd := exec.Command("umount", mntPath)
 
-	err := mntCmd.Run()
+	err := mountVolume(host, v, mntPath)
 	r.Nil(err, fmt.Sprintf("mount failed: %s", err))
 
-	err = umntCmd.Run()
+	defer syscall.Unmount(mntPath, syscall.MNT_FORCE)
+
+	err = testMount(mntPath)
+	r.Nil(err)
+
+	err = syscall.Unmount(mntPath, 0)
 	r.Nil(err, fmt.Sprintf("unmount failed: %s", err))
 }
 
@@ -407,7 +435,7 @@ func TestVolumeOptions(t *testing.T) {
 
 	r := require.New(t)
 
-	tc, err := setupCluster("./config/1.toml")
+	tc, err := setupCluster(t, "./config/1.toml")
 	r.Nil(err)
 	defer teardownCluster(tc)
 
@@ -417,7 +445,9 @@ func TestVolumeOptions(t *testing.T) {
 	brickPath, err := ioutil.TempDir(brickDir, "brick")
 	r.Nil(err)
 
-	client := initRestclient(tc.gds[0])
+	client, err := initRestclient(tc.gds[0])
+	r.Nil(err)
+	r.NotNil(client)
 
 	volname := "testvol"
 	createReq := api.VolCreateReq{
@@ -433,7 +463,9 @@ func TestVolumeOptions(t *testing.T) {
 		Force: true,
 		// XXX: Setting advanced, as all options are advanced by default
 		// TODO: Remove this later if the default changes
-		Advanced: true,
+		VolOptionReq: api.VolOptionReq{
+			Advanced: true,
+		},
 	}
 
 	validOpKeys := []string{"gfproxy.afr.eager-lock", "afr.eager-lock"}
@@ -598,8 +630,12 @@ func testDisperse(t *testing.T, tc *testCluster) {
 		Force: true,
 	}
 
-	_, err := client.VolumeCreate(createReq)
+	volinfo, err := client.VolumeCreate(createReq)
 	r.Nil(err)
+
+	r.Equal(3, volinfo.DisperseCount)
+	r.Equal(2, volinfo.DisperseDataCount)
+	r.Equal(1, volinfo.DisperseRedundancyCount)
 
 	r.Nil(client.VolumeStart(disperseVolName, true), "disperse volume start failed")
 }
@@ -675,4 +711,99 @@ func testEditVolume(t *testing.T) {
 	r.Nil(err)
 	err = validateVolumeEdit(volinfo[0], editMetadataReq, resp)
 	r.Nil(err)
+}
+
+func testShdOnVolumeStartAndStop(t *testing.T, tc *testCluster) {
+	r := require.New(t)
+
+	brickDir, err := ioutil.TempDir(baseLocalStateDir, t.Name())
+	r.Nil(err)
+	defer os.RemoveAll(brickDir)
+	//glustershd pid file path
+	pidpath := path.Join(tc.gds[0].Rundir, "glustershd.pid")
+
+	var vol1brickPaths [2]string
+	for i := 1; i <= 2; i++ {
+		brickPath, err := ioutil.TempDir(brickDir, "brick1")
+		r.Nil(err)
+		vol1brickPaths[i-1] = brickPath
+	}
+
+	volname := formatVolName(t.Name())
+	reqVol := api.VolCreateReq{
+		Name: volname,
+		Subvols: []api.SubvolReq{
+			{
+				ReplicaCount: 2,
+				Type:         "replicate",
+				Bricks: []api.BrickReq{
+					{PeerID: tc.gds[0].PeerID(), Path: vol1brickPaths[0]},
+					{PeerID: tc.gds[0].PeerID(), Path: vol1brickPaths[1]},
+				},
+			},
+		},
+		Force: true,
+	}
+	vol1, err := client.VolumeCreate(reqVol)
+	r.Nil(err)
+
+	var optionReq api.VolOptionReq
+	optionReq.Options = map[string]string{"replicate.self-heal-daemon": "on"}
+	optionReq.Advanced = true
+
+	r.Nil(client.VolumeSet(vol1.Name, optionReq))
+
+	//create one more volume to check how glustershd behaves if we have multiple volumes
+	var vol2brickPaths [2]string
+	for i := 1; i <= 2; i++ {
+		brickPath, err := ioutil.TempDir(brickDir, "brick1")
+		r.Nil(err)
+		vol2brickPaths[i-1] = brickPath
+	}
+
+	volname = formatVolName(t.Name() + "2")
+	reqVol = api.VolCreateReq{
+		Name: volname,
+		Subvols: []api.SubvolReq{
+			{
+				ReplicaCount: 2,
+				Type:         "replicate",
+				Bricks: []api.BrickReq{
+					{PeerID: tc.gds[0].PeerID(), Path: vol2brickPaths[0]},
+					{PeerID: tc.gds[0].PeerID(), Path: vol2brickPaths[1]},
+				},
+			},
+		},
+		Force: true,
+	}
+	vol2, err := client.VolumeCreate(reqVol)
+	r.Nil(err)
+
+	r.Nil(client.VolumeSet(vol2.Name, optionReq))
+
+	r.Nil(client.VolumeStart(vol1.Name, false))
+	r.True(isProcessRunning(pidpath), "glustershd is not running")
+
+	//glustershd is already started
+	r.Nil(client.VolumeStart(vol2.Name, false))
+	r.True(isProcessRunning(pidpath), "glustershd is not running")
+
+	//if we stop one volume, glustershd should be running as another
+	//volume is in started state
+	r.Nil(client.VolumeStop(vol1.Name))
+	r.True(isProcessRunning(pidpath), "glustershd is not running")
+
+	//if both the volumes are in the stopped state, glustershd shouldn't be running
+	r.Nil(client.VolumeStop(vol2.Name))
+	r.False(isProcessRunning(pidpath), "glustershd is running")
+
+	//Restart the volume and check glustershd status
+	r.Nil(client.VolumeStart(vol1.Name, false))
+	r.True(isProcessRunning(pidpath), "glustershd is not running")
+
+	r.Nil(client.VolumeStop(vol1.Name))
+	r.False(isProcessRunning(pidpath), "glustershd is running")
+
+	r.Nil(client.VolumeDelete(vol1.Name))
+	r.Nil(client.VolumeDelete(vol2.Name))
 }

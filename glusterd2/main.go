@@ -12,6 +12,7 @@ import (
 	"github.com/gluster/glusterd2/glusterd2/events"
 	"github.com/gluster/glusterd2/glusterd2/gdctx"
 	"github.com/gluster/glusterd2/glusterd2/peer"
+	"github.com/gluster/glusterd2/glusterd2/pmap"
 	"github.com/gluster/glusterd2/glusterd2/servers"
 	"github.com/gluster/glusterd2/glusterd2/store"
 	gdutils "github.com/gluster/glusterd2/glusterd2/utils"
@@ -96,6 +97,8 @@ func main() {
 		log.WithError(err).Fatal("Failed to load xlator options")
 	}
 
+	pmap.Init()
+
 	// Initialize etcd store (etcd client connection)
 	if err := store.Init(nil); err != nil {
 		log.WithError(err).Fatal("Failed to initialize store (etcd client)")
@@ -163,7 +166,7 @@ func main() {
 			}
 		case unix.SIGUSR1:
 			log.Info("Received SIGUSR1. Dumping statedump")
-			utils.WriteStatedump()
+			utils.WriteStatedump(config.GetString("rundir"))
 		default:
 			continue
 		}

@@ -1,6 +1,7 @@
 package quota
 
 import (
+	"context"
 	"os"
 	"path"
 
@@ -37,7 +38,7 @@ func isQuotadStopRequired(volumes []*volume.Volinfo) bool {
 	return true
 }
 
-func (actor *quotadActor) Do(v *volume.Volinfo, key, value string, logger log.FieldLogger) error {
+func (actor *quotadActor) Do(v *volume.Volinfo, key, value string, volOp xlator.VolumeOpType, logger log.FieldLogger) error {
 	if key != quotaDaemonKey {
 		return nil
 	}
@@ -57,7 +58,7 @@ func (actor *quotadActor) Do(v *volume.Volinfo, key, value string, logger log.Fi
 		return err
 	}
 
-	volumes, err := volume.GetVolumes()
+	volumes, err := volume.GetVolumes(context.TODO())
 	if err != nil {
 		logger.WithError(err).Error("failed to get volumes")
 		return err
@@ -86,7 +87,7 @@ func (actor *quotadActor) Do(v *volume.Volinfo, key, value string, logger log.Fi
 	return err
 }
 
-func (actor *quotadActor) Undo(v *volume.Volinfo, key, value string, logger log.FieldLogger) error {
+func (actor *quotadActor) Undo(v *volume.Volinfo, key, value string, volOp xlator.VolumeOpType, logger log.FieldLogger) error {
 	//nothing needs to be done as of now.
 	return nil
 }

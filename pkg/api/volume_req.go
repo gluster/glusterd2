@@ -41,11 +41,7 @@ type VolCreateReq struct {
 	Name                    string            `json:"name,omitempty"`
 	Transport               string            `json:"transport,omitempty"`
 	Subvols                 []SubvolReq       `json:"subvols"`
-	Options                 map[string]string `json:"options,omitempty"`
 	Force                   bool              `json:"force,omitempty"`
-	Advanced                bool              `json:"advanced,omitempty"`
-	Experimental            bool              `json:"experimental,omitempty"`
-	Deprecated              bool              `json:"deprecated,omitempty"`
 	Metadata                map[string]string `json:"metadata,omitempty"`
 	Flags                   map[string]bool   `json:"flags,omitempty"`
 	Size                    uint64            `json:"size"`
@@ -63,6 +59,7 @@ type VolCreateReq struct {
 	ExcludeZones            []string          `json:"exclude-zones,omitempty"`
 	SubvolZonesOverlap      bool              `json:"subvolume-zones-overlap,omitempty"`
 	SubvolType              string            `json:"subvolume-type,omitempty"`
+	VolOptionReq
 }
 
 // VolOptionReq represents an incoming request to set volume options

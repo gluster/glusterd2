@@ -173,6 +173,7 @@ func createVolumeBrickFromSnap(bricks []brick.Brickinfo, vol *volume.Volinfo) []
 			Type:           b.Type,
 			VolumeID:       vol.ID,
 			VolumeName:     vol.Name,
+			VolfileID:      vol.Name,
 		}
 		newBricks = append(newBricks, newBrick)
 	}
@@ -250,14 +251,20 @@ func storeSnapRestore(c transaction.TxnCtx) error {
 		return err
 	}
 
+	if err := snapshot.DeleteSnapshot(snapInfo); err != nil {
+		c.Logger().WithError(err).WithField(
+			"snapshot", snapVol.Name).Debug("failed to delete snap from store")
+	}
+	if err := volgen.DeleteVolfiles(snapInfo.SnapVolinfo.VolfileID); err != nil {
+		c.Logger().WithError(err).
+			WithField("snapshot", snapshot.GetStorePath(snapInfo)).
+			Warn("failed to delete volfiles of snapshot")
+	}
+
 	if err := volgen.Generate(); err != nil {
 		c.Logger().WithError(err).WithField(
 			"volume", newVolinfo.Name).Debug("failed to generate volfiles")
 		return err
-	}
-	if err := snapshot.DeleteSnapshot(snapInfo); err != nil {
-		c.Logger().WithError(err).WithField(
-			"snapshot", snapVol.Name).Debug("failed to delete snap from store")
 	}
 
 	return nil
@@ -331,28 +338,24 @@ func snapshotRestoreHandler(w http.ResponseWriter, r *http.Request) {
 			Nodes:    []uuid.UUID{gdctx.MyUUID},
 		},
 	}
-	err = txn.Ctx.Set("snapname", snapname)
-	if err != nil {
+	if err = txn.Ctx.Set("snapname", snapname); err != nil {
 		logger.WithError(err).Error("failed to set request in transaction context")
 		restutils.SendHTTPError(ctx, w, http.StatusInternalServerError, err)
 		return
 	}
-	err = txn.Ctx.Set("snapinfo", snapinfo)
-	if err != nil {
-		logger.WithError(err).Error("failed to set request in transaction context")
-		restutils.SendHTTPError(ctx, w, http.StatusInternalServerError, err)
-		return
-	}
-
-	err = txn.Ctx.Set("volinfo", vol)
-	if err != nil {
+	if err = txn.Ctx.Set("snapinfo", snapinfo); err != nil {
 		logger.WithError(err).Error("failed to set request in transaction context")
 		restutils.SendHTTPError(ctx, w, http.StatusInternalServerError, err)
 		return
 	}
 
-	err = txn.Do()
-	if err != nil {
+	if err = txn.Ctx.Set("volinfo", vol); err != nil {
+		logger.WithError(err).Error("failed to set request in transaction context")
+		restutils.SendHTTPError(ctx, w, http.StatusInternalServerError, err)
+		return
+	}
+
+	if err = txn.Do(); err != nil {
 		logger.WithError(err).Error("snapshot restore transaction failed")
 		restutils.SendHTTPError(ctx, w, http.StatusInternalServerError, err)
 		return

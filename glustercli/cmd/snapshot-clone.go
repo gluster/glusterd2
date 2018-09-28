@@ -39,11 +39,11 @@ func snapshotCloneCmdRun(cmd *cobra.Command, args []string) {
 	vol, err := client.SnapshotClone(snapname, req)
 	if err != nil {
 		if GlobalFlag.Verbose {
-			log.WithFields(log.Fields{
-				"clonename": clonename,
-				"snapshot":  snapname,
-				"error":     err.Error(),
-			}).Error("snapshot clone failed")
+			log.WithError(err).WithFields(
+				log.Fields{
+					"clonename": clonename,
+					"snapshot":  snapname,
+				}).Error("snapshot clone failed")
 		}
 		failure("Failed to clone Snapshot", err, 1)
 	}

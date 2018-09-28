@@ -1,9 +1,11 @@
 package volume
 
 import (
+	"context"
 	"errors"
 	"os"
 	"path"
+	"path/filepath"
 	"regexp"
 	"strings"
 	"syscall"
@@ -21,11 +23,6 @@ import (
 var (
 	volumeNameRE = regexp.MustCompile("^[a-zA-Z0-9_-]+$")
 )
-
-// GenerateVolumeName generates volume name as vol_<random-id>
-func GenerateVolumeName() string {
-	return "vol_" + uuid.NewRandom().String()
-}
 
 // IsValidName validates Volume name
 func IsValidName(name string) bool {
@@ -49,7 +46,7 @@ func GetRedundancy(disperse uint) int {
 // isBrickPathAvailable validates whether the brick is consumed by other
 // volume
 func isBrickPathAvailable(peerID uuid.UUID, brickPath string) error {
-	volumes, e := GetVolumes()
+	volumes, e := GetVolumes(context.TODO())
 	if e != nil || volumes == nil {
 		// In case cluster doesn't have any volumes configured yet,
 		// treat this as success
@@ -91,7 +88,7 @@ func CheckBricksStatus(volinfo *Volinfo) ([]brick.Brickstatus, error) {
 			if _, err := daemon.GetProcess(pidOnFile); err == nil {
 				s.Online = true
 				s.Pid = pidOnFile
-				s.Port = pmap.RegistrySearch(binfo.Path, pmap.GfPmapPortBrickserver)
+				s.Port, _ = pmap.RegistrySearch(binfo.Path)
 			}
 		}
 
@@ -146,15 +143,27 @@ func GetBrickMountRoot(brickPath string) (string, error) {
 	return "", errors.New("failed to get mount root")
 }
 
+//IsMountNotFoundError returns true if error matches
+func IsMountNotFoundError(err error) bool {
+	if err != nil {
+		return strings.Contains(err.Error(), "mount point not found")
+	}
+	return false
+}
+
 //GetBrickMountInfo return mount related information
 func GetBrickMountInfo(mountRoot string) (*Mntent, error) {
+	realMountRoot, err := filepath.EvalSymlinks(mountRoot)
+	if err != nil {
+		return nil, err
+	}
 	mtabEntries, err := GetMounts()
 	if err != nil {
 		return nil, err
 	}
 
 	for _, entry := range mtabEntries {
-		if entry.MntDir == mountRoot {
+		if entry.MntDir == mountRoot || entry.MntDir == realMountRoot {
 			return entry, nil
 		}
 	}
@@ -173,12 +182,14 @@ func CreateSubvolInfo(sv *[]Subvol) []api.Subvol {
 		}
 
 		subvols = append(subvols, api.Subvol{
-			Name:          subvol.Name,
-			Type:          api.SubvolType(subvol.Type),
-			Bricks:        blist,
-			ReplicaCount:  subvol.ReplicaCount,
-			ArbiterCount:  subvol.ArbiterCount,
-			DisperseCount: subvol.DisperseCount,
+			Name:                    subvol.Name,
+			Type:                    api.SubvolType(subvol.Type),
+			Bricks:                  blist,
+			ReplicaCount:            subvol.ReplicaCount,
+			ArbiterCount:            subvol.ArbiterCount,
+			DisperseCount:           subvol.DisperseCount,
+			DisperseDataCount:       subvol.DisperseCount - subvol.RedundancyCount,
+			DisperseRedundancyCount: subvol.RedundancyCount,
 		})
 	}
 	return subvols
@@ -206,6 +217,32 @@ func CreateVolumeInfoResp(v *Volinfo) *api.VolumeInfo {
 	resp.ReplicaCount = resp.Subvols[0].ReplicaCount
 	resp.ArbiterCount = resp.Subvols[0].ArbiterCount
 	resp.DisperseCount = resp.Subvols[0].DisperseCount
+	resp.DisperseDataCount = resp.Subvols[0].DisperseDataCount
+	resp.DisperseRedundancyCount = resp.Subvols[0].DisperseRedundancyCount
 
 	return resp
+}
+
+//IsSnapshotProvisioned will return true if volume is provisioned through snapshot creation
+func (v *Volinfo) IsSnapshotProvisioned() bool {
+	return (v.GetProvisionType().IsSnapshotProvisioned())
+}
+
+//IsAutoProvisioned will return true if volume is automatically provisioned
+func (v *Volinfo) IsAutoProvisioned() bool {
+	return (v.GetProvisionType().IsAutoProvisioned())
+}
+
+//GetProvisionType will return true the type of provision state
+func (v *Volinfo) GetProvisionType() brick.ProvisionType {
+
+	var provisionType brick.ProvisionType
+
+	provisionValue, ok := v.Metadata[brick.ProvisionKey]
+	if !ok {
+		provisionType = brick.ManuallyProvisioned
+	} else {
+		provisionType = brick.ProvisionType(provisionValue)
+	}
+	return provisionType
 }

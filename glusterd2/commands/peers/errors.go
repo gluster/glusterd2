@@ -13,6 +13,7 @@ const (
 	ErrUnknownPeer
 	ErrClusterIDUpdateFailed
 	ErrAnotherReqInProgress
+	ErrFailedToConnectToStore
 	ErrMax
 )
 
@@ -26,6 +27,7 @@ func init() {
 	errorStrings[ErrUnknownPeer] = "request received from unknown peer"
 	errorStrings[ErrClusterIDUpdateFailed] = "failed to set and store new cluster ID"
 	errorStrings[ErrAnotherReqInProgress] = "already processing another join/leave request"
+	errorStrings[ErrFailedToConnectToStore] = "failed to connect to store"
 }
 
 func (e Error) String() string {

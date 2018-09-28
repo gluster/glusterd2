@@ -2,7 +2,6 @@ package e2e
 
 import (
 	"fmt"
-	"io/ioutil"
 	"syscall"
 	"testing"
 
@@ -28,6 +27,16 @@ func brickSizeTest(brickpath string, min uint64, max uint64) error {
 	return fmt.Errorf("Unable to get size info of Brick(%s)", brickpath)
 }
 
+func checkZeroLvs(r *require.Assertions) {
+	for i := 1; i < 3; i++ {
+		nlv, err := numberOfLvs(fmt.Sprintf("vg-dev-gluster_loop%d", i))
+		r.Nil(err)
+		if err == nil {
+			r.Equal(0, nlv)
+		}
+	}
+}
+
 func testSmartVolumeDistribute(t *testing.T) {
 	r := require.New(t)
 	smartvolname := formatVolName(t.Name())
@@ -51,6 +60,7 @@ func testSmartVolumeDistribute(t *testing.T) {
 	r.Nil(brickSizeTest(volinfo.Subvols[2].Bricks[0].Path, 16, 21))
 
 	r.Nil(client.VolumeDelete(smartvolname))
+	checkZeroLvs(r)
 }
 
 func testSmartVolumeReplicate2(t *testing.T) {
@@ -73,6 +83,7 @@ func testSmartVolumeReplicate2(t *testing.T) {
 	r.Nil(brickSizeTest(volinfo.Subvols[0].Bricks[1].Path, 16, 21))
 
 	r.Nil(client.VolumeDelete(smartvolname))
+	checkZeroLvs(r)
 }
 
 func testSmartVolumeReplicate3(t *testing.T) {
@@ -96,6 +107,7 @@ func testSmartVolumeReplicate3(t *testing.T) {
 	r.Nil(brickSizeTest(volinfo.Subvols[0].Bricks[2].Path, 16, 21))
 
 	r.Nil(client.VolumeDelete(smartvolname))
+	checkZeroLvs(r)
 }
 
 func testSmartVolumeArbiter(t *testing.T) {
@@ -124,6 +136,7 @@ func testSmartVolumeArbiter(t *testing.T) {
 	r.Nil(brickSizeTest(volinfo.Subvols[0].Bricks[2].Path, 16, 21))
 
 	r.Nil(client.VolumeDelete(smartvolname))
+	checkZeroLvs(r)
 }
 
 func testSmartVolumeDisperse(t *testing.T) {
@@ -149,6 +162,7 @@ func testSmartVolumeDisperse(t *testing.T) {
 	r.Nil(brickSizeTest(volinfo.Subvols[0].Bricks[2].Path, 16, 21))
 
 	r.Nil(client.VolumeDelete(smartvolname))
+	checkZeroLvs(r)
 }
 
 func testSmartVolumeDistributeReplicate(t *testing.T) {
@@ -180,6 +194,7 @@ func testSmartVolumeDistributeReplicate(t *testing.T) {
 	r.Nil(brickSizeTest(volinfo.Subvols[1].Bricks[2].Path, 16, 21))
 
 	r.Nil(client.VolumeDelete(smartvolname))
+	checkZeroLvs(r)
 }
 
 func testSmartVolumeDistributeDisperse(t *testing.T) {
@@ -211,18 +226,7 @@ func testSmartVolumeDistributeDisperse(t *testing.T) {
 	r.Nil(brickSizeTest(volinfo.Subvols[1].Bricks[2].Path, 16, 21))
 
 	r.Nil(client.VolumeDelete(smartvolname))
-}
-
-func testSmartVolumeWithoutName(t *testing.T) {
-	r := require.New(t)
-
-	createReq := api.VolCreateReq{
-		Size: 20,
-	}
-	volinfo, err := client.VolumeCreate(createReq)
-	r.Nil(err)
-
-	r.Nil(client.VolumeDelete(volinfo.Name))
+	checkZeroLvs(r)
 }
 
 // TestSmartVolume creates a volume and starts it, runs further tests on it and
@@ -232,21 +236,21 @@ func TestSmartVolume(t *testing.T) {
 
 	r := require.New(t)
 
-	tc, err := setupCluster("./config/1.toml", "./config/2.toml", "./config/3.toml")
+	tc, err := setupCluster(t, "./config/1.toml", "./config/2.toml", "./config/3.toml")
 	r.Nil(err)
 	defer teardownCluster(tc)
 
-	client = initRestclient(tc.gds[0])
-
-	devicesDir, err := ioutil.TempDir(baseLocalStateDir, t.Name())
+	client, err = initRestclient(tc.gds[0])
 	r.Nil(err)
-	t.Logf("Using temp dir: %s", devicesDir)
+	r.NotNil(client)
+
+	devicesDir := testTempDir(t, "devices")
 
 	// Device Setup
 	// Around 150MB will be reserved during pv/vg creation, create device with more size
-	r.Nil(prepareLoopDevice(devicesDir+"/gluster_dev1.img", "1", "400M"))
-	r.Nil(prepareLoopDevice(devicesDir+"/gluster_dev2.img", "2", "400M"))
-	r.Nil(prepareLoopDevice(devicesDir+"/gluster_dev3.img", "3", "400M"))
+	r.Nil(prepareLoopDevice(devicesDir+"/gluster_dev1.img", "1", "250M"))
+	r.Nil(prepareLoopDevice(devicesDir+"/gluster_dev2.img", "2", "250M"))
+	r.Nil(prepareLoopDevice(devicesDir+"/gluster_dev3.img", "3", "250M"))
 
 	_, err = client.DeviceAdd(tc.gds[0].PeerID(), "/dev/gluster_loop1")
 	r.Nil(err)
@@ -264,7 +268,6 @@ func TestSmartVolume(t *testing.T) {
 	t.Run("Smartvol Disperse Volume", testSmartVolumeDisperse)
 	t.Run("Smartvol Distributed-Replicate Volume", testSmartVolumeDistributeReplicate)
 	t.Run("Smartvol Distributed-Disperse Volume", testSmartVolumeDistributeDisperse)
-	t.Run("Smartvol Without Name", testSmartVolumeWithoutName)
 
 	// // Device Cleanup
 	r.Nil(loopDevicesCleanup(t))

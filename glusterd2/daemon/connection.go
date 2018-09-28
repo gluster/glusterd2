@@ -41,7 +41,7 @@ func GetRPCClient(d Daemon) (*rpc.Client, error) {
 		&net.UnixAddr{Name: d.SocketFile(), Net: "unix"},
 	)
 	if err != nil {
-		log.WithFields(log.Fields{
+		log.WithError(err).WithFields(log.Fields{
 			"socket": d.SocketFile(), "name": d.Name(),
 		}).Error("failed connecting to daemon")
 		return nil, err

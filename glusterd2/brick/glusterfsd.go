@@ -16,7 +16,6 @@ import (
 	"github.com/gluster/glusterd2/glusterd2/gdctx"
 	"github.com/gluster/glusterd2/glusterd2/pmap"
 	"github.com/gluster/glusterd2/pkg/api"
-	"github.com/gluster/glusterd2/pkg/utils"
 	log "github.com/sirupsen/logrus"
 
 	config "github.com/spf13/viper"
@@ -59,9 +58,19 @@ func (b *Glusterfsd) Args() []string {
 
 	logFile := path.Join(config.GetString("logdir"), "glusterfs", "bricks", fmt.Sprintf("%s.log", brickPathWithoutSlashes))
 
-	brickPort := strconv.Itoa(pmap.AssignPort(0, b.brickinfo.Path))
-
-	volFileID := b.brickinfo.VolumeName + "." + gdctx.MyUUID.String() + "." + brickPathWithoutSlashes
+	portBrickServer, _ := pmap.RegistrySearch(b.brickinfo.Path)
+	var brickPort string
+	if portBrickServer <= 0 {
+		port, err := pmap.AssignPort(b.brickinfo.Path)
+		if err != nil {
+			log.WithError(err).WithField("brick", b.brickinfo.Path).Error("pmap.AssignPort() failed")
+			return nil
+		}
+		brickPort = strconv.Itoa(port)
+	} else {
+		brickPort = strconv.Itoa(portBrickServer)
+	}
+	volFileID := b.brickinfo.VolfileID + "." + gdctx.MyUUID.String() + "." + brickPathWithoutSlashes
 
 	shost, sport, _ := net.SplitHostPort(config.GetString("clientaddress"))
 	if shost == "" {
@@ -94,20 +103,17 @@ func (b *Glusterfsd) SocketFile() string {
 		return b.socketfilepath
 	}
 
-	// This looks a little convoluted but just doing what gd1 did...
-
-	// First we form a fake path to the socket file
-	// Example: /var/lib/glusterd/vols/<vol-name>/run/<host-name>-<brick-path>
+	// First we form a key
+	// Example: key = peerid + brick path with '/' replaced by -
 	brickPathWithoutSlashes := strings.Trim(strings.Replace(b.brickinfo.Path, "/", "-", -1), "-")
-	// FIXME: The brick can no longer clean this up on clean shut down
-	fakeSockFileName := fmt.Sprintf("%s-%s", b.brickinfo.PeerID.String(), brickPathWithoutSlashes)
-	volumedir := utils.GetVolumeDir(b.brickinfo.VolumeName)
-	fakeSockFilePath := path.Join(volumedir, "run", fakeSockFileName)
+	key := fmt.Sprintf("%s-%s", b.brickinfo.PeerID.String(), brickPathWithoutSlashes)
 
-	// Then xxhash of the above path shall be the name of socket file.
+	// Then xxhash of the above key shall be the name of socket file.
 	// Example: /var/run/gluster/<xxhash-hash>.socket
 	glusterdSockDir := config.GetString("rundir")
-	b.socketfilepath = fmt.Sprintf("%s/%x.socket", glusterdSockDir, xxhash.Sum64String(fakeSockFilePath))
+	hash := strconv.FormatUint(xxhash.Sum64String(key), 16)
+	b.socketfilepath = path.Join(glusterdSockDir, hash+".socket")
+	// FIXME: The brick can no longer clean this up on clean shut down
 
 	return b.socketfilepath
 }
@@ -236,10 +242,10 @@ func (b Brickinfo) TerminateBrick() error {
 	}
 
 	if err := daemon.DelDaemon(brickDaemon); err != nil {
-		log.WithFields(log.Fields{
+		log.WithError(err).WithFields(log.Fields{
 			"name": brickDaemon.Name(),
 			"id":   brickDaemon.ID(),
-		}).WithError(err).Warn("failed to delete brick entry from store, it may be restarted on GlusterD restart")
+		}).Warn("failed to delete brick entry from store, it may be restarted on GlusterD restart")
 	}
 	return nil
 }

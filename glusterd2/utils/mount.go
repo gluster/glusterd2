@@ -1,6 +1,9 @@
 package utils
 
 import (
+	"context"
+	"strings"
+
 	"github.com/gluster/glusterd2/glusterd2/volume"
 	"github.com/gluster/glusterd2/pkg/utils"
 
@@ -9,7 +12,7 @@ import (
 
 // MountLocalBricks mounts bricks of auto provisioned volumes
 func MountLocalBricks() error {
-	volumes, err := volume.GetVolumes()
+	volumes, err := volume.GetVolumes(context.TODO())
 	if err != nil {
 		return err
 	}
@@ -35,19 +38,20 @@ func MountLocalBricks() error {
 
 	for _, v := range volumes {
 		for _, b := range v.GetLocalBricks() {
-			// Mount all local Bricks if they are auto provisioned
-			if b.MountInfo.DevicePath != "" {
-				if _, exists := mounts[b.MountInfo.Mountdir]; exists {
+			// Mount all local bricks if they are auto provisioned or inherited via snapshot creation
+			provisionType := b.PType
+			if provisionType.IsAutoProvisioned() || provisionType.IsSnapshotProvisioned() {
+				mountRoot := strings.TrimSuffix(b.Path, b.MountInfo.Mountdir)
+				if _, exists := mounts[mountRoot]; exists {
 					continue
 				}
 
-				err := utils.ExecuteCommandRun("mount", "-o", b.MountInfo.MntOpts, b.MountInfo.DevicePath, b.MountInfo.Mountdir)
+				err := utils.ExecuteCommandRun("mount", "-o", b.MountInfo.MntOpts, b.MountInfo.DevicePath, mountRoot)
 				if err != nil {
-					log.WithFields(log.Fields{
-						"error":  err,
+					log.WithError(err).WithFields(log.Fields{
 						"volume": v.Name,
 						"dev":    b.MountInfo.DevicePath,
-						"path":   b.MountInfo.Mountdir,
+						"path":   mountRoot,
 					}).Error("brick mount failed")
 				}
 			}

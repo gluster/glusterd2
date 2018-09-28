@@ -27,6 +27,9 @@ func expandValidatePrepare(c transaction.TxnCtx) error {
 		return err
 	}
 
+	//As of now volume expand doesn't support auto provisioned bricks
+	provisionType := brick.ManuallyProvisioned
+
 	volinfo, err := volume.GetVolume(volname)
 	if err != nil {
 		return err
@@ -49,7 +52,7 @@ func expandValidatePrepare(c transaction.TxnCtx) error {
 		}
 	}
 
-	newBricks, err := volume.NewBrickEntriesFunc(req.Bricks, volinfo.Name, volinfo.ID)
+	newBricks, err := volume.NewBrickEntriesFunc(req.Bricks, volinfo.Name, volinfo.VolfileID, volinfo.ID, provisionType)
 	if err != nil {
 		c.Logger().WithError(err).Error("failed to create new brick entries")
 		return err
@@ -140,8 +143,7 @@ func undoStartBricksOnExpand(c transaction.TxnCtx) error {
 		}).Info("volume expand failed, stopping brick")
 
 		if err := b.StopBrick(c.Logger()); err != nil {
-			c.Logger().WithFields(log.Fields{
-				"error":  err,
+			c.Logger().WithError(err).WithFields(log.Fields{
 				"volume": b.VolumeName,
 				"brick":  b.String(),
 			}).Debug("stopping brick failed")

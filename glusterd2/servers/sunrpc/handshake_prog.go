@@ -3,6 +3,7 @@ package sunrpc
 import (
 	"context"
 	"errors"
+	"net"
 	"strconv"
 	"strings"
 	"syscall"
@@ -73,6 +74,16 @@ func (p *GfHandshake) Procedures() []sunrpc.Procedure {
 	return p.procedures
 }
 
+// GetConn returns the underlying net.Conn.
+func (p *GfHandshake) GetConn() net.Conn {
+	return p.conn
+}
+
+// SetConn returns stores the net.Conn instance provided.
+func (p *GfHandshake) SetConn(conn net.Conn) {
+	p.conn = conn
+}
+
 // GfGetspecReq is sent by glusterfs client and primarily contains volume name.
 // Xdata field is a serialized gluster dict containing op version.
 type GfGetspecReq struct {
@@ -109,17 +120,22 @@ func (p *GfHandshake) ServerGetspec(args *GfGetspecReq, reply *GfGetspecRsp) err
 		log.WithError(err).Error("ServerGetspec(): dict.Unserialize() failed")
 	}
 
+	log.WithFields(log.Fields{
+		"client":     p.GetConn().RemoteAddr().String(),
+		"volfile-id": args.Key,
+	}).Debug("client wants volfile")
+
 	// Get Volfile from store
 	volfileID := strings.TrimPrefix(args.Key, "/")
 	resp, err := store.Get(context.TODO(), volfilePrefix+volfileID)
 	if err != nil {
-		log.WithField("volfile", args.Key).WithError(err).Error("ServerGetspec(): failed to retrive volfile from store")
+		log.WithError(err).WithField("volfile", args.Key).Error("ServerGetspec(): failed to retrive volfile from store")
 		goto Out
 	}
 
 	if resp.Count != 1 {
 		err = errors.New("volfile not found in store")
-		log.WithField("volfile", args.Key).Error(err.Error())
+		log.WithError(err).WithField("volfile", args.Key)
 		goto Out
 	}
 

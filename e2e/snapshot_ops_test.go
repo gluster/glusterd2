@@ -5,7 +5,6 @@ import (
 	"fmt"
 	"net"
 	"os"
-	"os/exec"
 	"syscall"
 	"testing"
 	"time"
@@ -33,16 +32,19 @@ func TestSnapshot(t *testing.T) {
 	snapTestName = t.Name()
 	r := require.New(t)
 
-	prefix := fmt.Sprintf("%s/%s/bricks/", baseLocalStateDir, snapTestName)
+	prefix := testTempDir(t, "bricks")
 	lvmtest.Cleanup(baseLocalStateDir, prefix, brickCount)
 	defer func() {
 		lvmtest.Cleanup(baseLocalStateDir, prefix, brickCount)
 	}()
-	tc, err := setupCluster("./config/1.toml", "./config/2.toml")
+	tc, err := setupCluster(t, "./config/1.toml", "./config/2.toml")
 	r.Nil(err)
 	defer teardownCluster(tc)
 
-	client = initRestclient(tc.gds[0])
+	client, err = initRestclient(tc.gds[0])
+	r.Nil(err)
+	r.NotNil(client)
+
 	brickPaths, err = lvmtest.CreateLvmBricks(prefix, brickCount)
 	r.Nil(err)
 	defer func() {
@@ -77,8 +79,10 @@ func TestSnapshot(t *testing.T) {
 	t.Run("Clone", testSnapshotClone)
 	t.Run("Restore", testSnapshotRestore)
 	t.Run("MountRestoredVolume", tc.wrap(testRestoredVolumeMount))
+	t.Run("Validate", testSnapshotValidation)
 	t.Run("Deactivate", testSnapshotDeactivate)
 	t.Run("Delete", testSnapshotDelete)
+	t.Run("DeleteClone", testCloneDelete)
 
 	/*
 		TODO:
@@ -110,6 +114,10 @@ func volumeCreateOnLvm(volName string, brickPaths []string, client *restclient.C
 				},
 			},
 		},
+		Metadata: map[string]string{
+			"owner": "gd2test",
+		},
+
 		Force: true,
 	}
 	_, err := client.VolumeCreate(createReq)
@@ -151,14 +159,6 @@ func testSnapshotClone(t *testing.T) {
 	volumes, err := client.Volumes("")
 	r.Nil(err)
 	r.Len(volumes, 2)
-
-	r.Nil(client.VolumeStop(clonename), "volume stop failed")
-
-	r.Nil(client.VolumeDelete(clonename))
-
-	volumes, err = client.Volumes("")
-	r.Nil(err)
-	r.Len(volumes, 1)
 }
 
 func testSnapshotList(t *testing.T) {
@@ -166,11 +166,12 @@ func testSnapshotList(t *testing.T) {
 
 	snaps, err := client.SnapshotList("")
 	r.Nil(err)
-	r.Len(snaps[0].SnapName, 2)
+	r.Len(snaps, 1)
+	r.Len(snaps[0].SnapList, 2)
 
 	snaps, err = client.SnapshotList(snapTestName)
 	r.Nil(err)
-	r.Len(snaps[0].SnapName, 2)
+	r.Len(snaps[0].SnapList, 2)
 
 }
 
@@ -190,8 +191,8 @@ func testSnapshotActivate(t *testing.T) {
 	r.Nil(err)
 
 	for _, snaps := range vols {
-		for _, snapName := range snaps.SnapName {
-			err = client.SnapshotActivate(snapshotActivateReq, snapName)
+		for _, snap := range snaps.SnapList {
+			err = client.SnapshotActivate(snapshotActivateReq, snap.VolInfo.Name)
 			r.Nil(err)
 
 			snapshotActivateReq.Force = true
@@ -203,20 +204,20 @@ func testSnapshotActivate(t *testing.T) {
 func testSnapshotDelete(t *testing.T) {
 	r := require.New(t)
 
-	vols, err := client.SnapshotList(snapTestName)
+	vols, err := client.SnapshotList("")
 	r.Nil(err)
-	r.Len(vols[0].SnapName, 1)
+	r.Len(vols[0].SnapList, 1)
 
 	for _, snaps := range vols {
-		for _, snapName := range snaps.SnapName {
-			err = client.SnapshotDelete(snapName)
+		for _, snap := range snaps.SnapList {
+			err = client.SnapshotDelete(snap.VolInfo.Name)
 			r.Nil(err)
 		}
 	}
 
 	vols, err = client.SnapshotList(snapTestName)
 	r.Nil(err)
-	r.Len(vols[0].SnapName, 0)
+	r.Len(vols, 0)
 }
 
 func testSnapshotDeactivate(t *testing.T) {
@@ -225,8 +226,8 @@ func testSnapshotDeactivate(t *testing.T) {
 	r.Nil(err)
 
 	for _, snaps := range vols {
-		for _, snapName := range snaps.SnapName {
-			err = client.SnapshotDeactivate(snapName)
+		for _, snap := range snaps.SnapList {
+			err = client.SnapshotDeactivate(snap.VolInfo.Name)
 			r.Nil(err)
 		}
 	}
@@ -241,7 +242,7 @@ func testSnapshotStatusForceActivate(t *testing.T) {
 	vols, err := client.SnapshotList(snapTestName)
 	r.Nil(err)
 
-	snapName := vols[0].SnapName[0]
+	snapName := vols[0].SnapList[0].VolInfo.Name
 	result, err = client.SnapshotStatus(snapName)
 	r.Nil(err)
 
@@ -282,7 +283,7 @@ func testSnapshotRestore(t *testing.T) {
 	vols, err := client.SnapshotList(snapTestName)
 	r.Nil(err)
 
-	snapName := vols[0].SnapName[0]
+	snapName := vols[0].SnapList[0].VolInfo.Name
 	result, err = client.SnapshotStatus(snapName)
 	r.Nil(err)
 
@@ -295,7 +296,7 @@ func testSnapshotRestore(t *testing.T) {
 
 	snaps, err := client.SnapshotList(snapTestName)
 	r.Nil(err)
-	r.Len(snaps[0].SnapName, 1)
+	r.Len(snaps[0].SnapList, 1)
 
 	err = client.VolumeStart(snapTestName, true)
 	r.Nil(err)
@@ -309,13 +310,16 @@ func testRestoredVolumeMount(t *testing.T, tc *testCluster) {
 	defer os.RemoveAll(mntPath)
 
 	host, _, _ := net.SplitHostPort(tc.gds[0].ClientAddress)
-	mntCmd := exec.Command("mount", "-t", "glusterfs", host+":"+snapTestName, mntPath)
-	umntCmd := exec.Command("umount", mntPath)
 
-	err := mntCmd.Run()
+	err := mountVolume(host, snapTestName, mntPath)
 	r.Nil(err, fmt.Sprintf("mount failed: %s", err))
 
-	err = umntCmd.Run()
+	defer syscall.Unmount(mntPath, syscall.MNT_FORCE)
+
+	err = testMount(mntPath)
+	r.Nil(err)
+
+	err = syscall.Unmount(mntPath, 0)
 	r.Nil(err, fmt.Sprintf("unmount failed: %s", err))
 }
 
@@ -326,13 +330,12 @@ func testSnapshotMount(t *testing.T, tc *testCluster) {
 	defer os.RemoveAll(mntPath)
 
 	host, _, _ := net.SplitHostPort(tc.gds[0].ClientAddress)
+	volID := fmt.Sprintf("/snaps/%s", snapname)
 
-	volID := fmt.Sprintf("%s:/snaps/%s", host, snapname)
-	mntCmd := exec.Command("mount", "-t", "glusterfs", volID, mntPath)
-	umntCmd := exec.Command("umount", mntPath)
-
-	err := mntCmd.Run()
+	err := mountVolume(host, volID, mntPath)
 	r.Nil(err, fmt.Sprintf("mount failed: %s", err))
+
+	defer syscall.Unmount(mntPath, syscall.MNT_FORCE)
 
 	newDir := mntPath + "/Dir"
 	err = syscall.Mkdir(newDir, 0755)
@@ -340,6 +343,35 @@ func testSnapshotMount(t *testing.T, tc *testCluster) {
 		r.Nil(errors.New("snapshot volume is Read Only File System"))
 	}
 
-	err = umntCmd.Run()
+	err = syscall.Unmount(mntPath, 0)
 	r.Nil(err, fmt.Sprintf("unmount failed: %s", err))
+}
+
+func testSnapshotValidation(t *testing.T) {
+	r := require.New(t)
+
+	snapshotCreateReq := api.SnapCreateReq{
+		VolName:   clonename,
+		SnapName:  snapname,
+		TimeStamp: true,
+	}
+	_, err := client.SnapshotCreate(snapshotCreateReq)
+	r.Nil(err, "snapshot create failed")
+
+	r.Nil(client.VolumeStop(clonename), "volume stop failed")
+
+	err = client.VolumeDelete(clonename)
+	r.NotNil(errors.New("Volume delete succeeded when snapshot is existing for the volume"))
+}
+
+func testCloneDelete(t *testing.T) {
+	r := require.New(t)
+
+	r.Nil(client.VolumeDelete(clonename))
+
+	volumes, err := client.Volumes("")
+	r.Nil(err)
+	r.Len(volumes, 1)
+
+	//TODO Test lv device removed or not
 }

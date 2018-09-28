@@ -130,10 +130,7 @@ func GetPeers(filterParams ...map[string]string) ([]*Peer, error) {
 		var p Peer
 
 		if err := json.Unmarshal(kv.Value, &p); err != nil {
-			log.WithFields(log.Fields{
-				"peer":  string(kv.Key),
-				"error": err,
-			}).Error("Failed to unmarshal peer")
+			log.WithError(err).WithField("peer", string(kv.Key)).Error("Failed to unmarshal peer")
 			continue
 		}
 		switch filterType {
@@ -173,10 +170,7 @@ func GetPeerIDs() ([]uuid.UUID, error) {
 	for i, kv := range resp.Kvs {
 		var p Peer
 		if err := json.Unmarshal(kv.Value, &p); err != nil {
-			log.WithFields(log.Fields{
-				"peer":  string(kv.Key),
-				"error": err,
-			}).Error("Failed to unmarshal peer")
+			log.WithError(err).WithField("peer", string(kv.Key)).Error("Failed to unmarshal peer")
 			continue
 		}
 		uuids[i] = p.ID

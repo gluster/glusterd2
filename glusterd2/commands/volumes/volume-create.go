@@ -112,11 +112,6 @@ func volumeCreateHandler(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	// Generate Volume name if not provided
-	if req.Name == "" {
-		req.Name = volume.GenerateVolumeName()
-	}
-
 	if err := validateVolCreateReq(&req); err != nil {
 		restutils.SendHTTPError(ctx, w, http.StatusBadRequest, err)
 		return
@@ -198,6 +193,13 @@ func volumeCreateHandler(w http.ResponseWriter, r *http.Request) {
 		restutils.SendHTTPError(ctx, w, http.StatusInternalServerError, err)
 		return
 	}
+
+	// Add attributes to the span with info that can be viewed along with traces.
+	// The attributes can also be used to filter traces on the tracing UI.
+	span.AddAttributes(
+		trace.StringAttribute("reqID", txn.Ctx.GetTxnReqID()),
+		trace.StringAttribute("volName", req.Name),
+	)
 
 	if err := txn.Do(); err != nil {
 		status, err := restutils.ErrToStatusCode(err)
