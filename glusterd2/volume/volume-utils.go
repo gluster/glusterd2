@@ -182,12 +182,14 @@ func CreateSubvolInfo(sv *[]Subvol) []api.Subvol {
 		}
 
 		subvols = append(subvols, api.Subvol{
-			Name:          subvol.Name,
-			Type:          api.SubvolType(subvol.Type),
-			Bricks:        blist,
-			ReplicaCount:  subvol.ReplicaCount,
-			ArbiterCount:  subvol.ArbiterCount,
-			DisperseCount: subvol.DisperseCount,
+			Name:                    subvol.Name,
+			Type:                    api.SubvolType(subvol.Type),
+			Bricks:                  blist,
+			ReplicaCount:            subvol.ReplicaCount,
+			ArbiterCount:            subvol.ArbiterCount,
+			DisperseCount:           subvol.DisperseCount,
+			DisperseDataCount:       subvol.DisperseCount - subvol.RedundancyCount,
+			DisperseRedundancyCount: subvol.RedundancyCount,
 		})
 	}
 	return subvols
@@ -215,6 +217,8 @@ func CreateVolumeInfoResp(v *Volinfo) *api.VolumeInfo {
 	resp.ReplicaCount = resp.Subvols[0].ReplicaCount
 	resp.ArbiterCount = resp.Subvols[0].ArbiterCount
 	resp.DisperseCount = resp.Subvols[0].DisperseCount
+	resp.DisperseDataCount = resp.Subvols[0].DisperseDataCount
+	resp.DisperseRedundancyCount = resp.Subvols[0].DisperseRedundancyCount
 
 	return resp
 }
