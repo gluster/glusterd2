@@ -14,7 +14,6 @@ import (
 	"github.com/cespare/xxhash"
 	"github.com/gluster/glusterd2/glusterd2/daemon"
 	"github.com/gluster/glusterd2/glusterd2/gdctx"
-	"github.com/gluster/glusterd2/glusterd2/pmap"
 	"github.com/gluster/glusterd2/pkg/api"
 	log "github.com/sirupsen/logrus"
 
@@ -58,18 +57,6 @@ func (b *Glusterfsd) Args() []string {
 
 	logFile := path.Join(config.GetString("logdir"), "glusterfs", "bricks", fmt.Sprintf("%s.log", brickPathWithoutSlashes))
 
-	portBrickServer, _ := pmap.RegistrySearch(b.brickinfo.Path)
-	var brickPort string
-	if portBrickServer <= 0 {
-		port, err := pmap.AssignPort(b.brickinfo.Path)
-		if err != nil {
-			log.WithError(err).WithField("brick", b.brickinfo.Path).Error("pmap.AssignPort() failed")
-			return nil
-		}
-		brickPort = strconv.Itoa(port)
-	} else {
-		brickPort = strconv.Itoa(portBrickServer)
-	}
 	volFileID := b.brickinfo.VolfileID + "." + gdctx.MyUUID.String() + "." + brickPathWithoutSlashes
 
 	shost, sport, _ := net.SplitHostPort(config.GetString("clientaddress"))
@@ -84,14 +71,10 @@ func (b *Glusterfsd) Args() []string {
 	b.args = append(b.args, "-p", b.PidFile())
 	b.args = append(b.args, "-S", b.SocketFile())
 	b.args = append(b.args, "--brick-name", b.brickinfo.Path)
-	b.args = append(b.args, "--brick-port", brickPort)
 	b.args = append(b.args, "-l", logFile)
 	b.args = append(b.args,
 		"--xlator-option",
 		fmt.Sprintf("*-posix.glusterd-uuid=%s", gdctx.MyUUID))
-	b.args = append(b.args,
-		"--xlator-option",
-		fmt.Sprintf("%s-server.transport.socket.listen-port=%s", b.brickinfo.VolumeName, brickPort))
 
 	return b.args
 }
