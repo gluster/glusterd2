@@ -1,135 +1,76 @@
 package pmap
 
 import (
+	"encoding/json"
 	"expvar"
 	"fmt"
 	"net"
 	"sync"
 )
 
-// IANA dynamic and/or private ports range
+// common ephemeral port range across IANA's range (49152 to 65535),
+// linux defaults (32768 to 61000) and BSD defaults (1024 to 5000).
 const (
-	PortMin = 49152
-	PortMax = 65535
+	portMin = 1024
+	portMax = 65535
 )
 
-// PortState represents the type of state of the port
-type PortState int32
-
-// List of states an individual port can be in
-const (
-	PortFree PortState = iota
-	PortForeign
-	PortLeased
-	PortInUse
-)
-
-type portStatus struct {
-	Port   int             `json:"port"`
-	State  PortState       `json:"state"`
-	Bricks map[string]bool `json:"bricks"`
-}
+type brickSet map[string]struct{}
 
 type pmapRegistry struct {
 	sync.RWMutex
-	basePort  int
-	lastAlloc int
-	ports     [PortMax + 1]portStatus
-	bricks    map[string]int   // map from brick path to port number
-	conns     map[net.Conn]int // map from connection to port number
 
-	portLockFds map[int]int
+	// map from brick path to port number
+	// used to serve BrickByPort RPC request sent by clients during mount
+	bricks map[string]int
+
+	// map from connection to port number
+	// used to process disconnections
+	conns map[net.Conn]int
+
+	// map from port number to list of bricks
+	// used to process disconnections
+	Ports map[int]brickSet `json:"ports,omitempty"`
 }
 
-func (r *pmapRegistry) init() {
-	for i := r.basePort; i <= PortMax; i++ {
-		// TODO: There is a race in this check when there are multiple
-		// glusterd2 instances running on the same machine.
-		if isPortFree(i) {
-			r.ports[i].State = PortFree
-		} else {
-			r.ports[i].State = PortForeign
-		}
-		r.ports[i].Port = i
+func (r *pmapRegistry) String() string {
+	b, err := json.Marshal(r)
+	if err != nil {
+		return err.Error()
 	}
-}
-
-// Allocate finds a free port and returns the port number. The
-// allocated free port will be in leased state until the brick
-// process it was leased to sends a SIGN IN request to glusterd2.
-func (r *pmapRegistry) Allocate(brickpath string) (int, error) {
-	r.Lock()
-	defer r.Unlock()
-
-	var port int
-	for p := r.basePort; p <= PortMax; p++ {
-		if r.ports[p].State == PortFree || r.ports[p].State == PortForeign {
-			// check if a port is free holding a lock on the port's "file"
-			if r.TryPortLock(p) {
-				if isPortFree(p) {
-					r.ports[p].State = PortLeased
-					if r.ports[p].Bricks == nil {
-						r.ports[p].Bricks = make(map[string]bool)
-					}
-					r.ports[p].Bricks[brickpath] = false
-					r.bricks[brickpath] = p
-					port = p
-					// keep port file locked if port was
-					// found to be free and we leased it to
-					// a brick process
-					break
-				} else {
-					r.ports[p].State = PortForeign
-					r.PortUnlock(p)
-				}
-			}
-		}
-	}
-
-	if port == 0 {
-		return -1, fmt.Errorf("registry.Allocate(): we ran out of free ports")
-	}
-
-	if port > r.lastAlloc {
-		r.lastAlloc = port
-	}
-
-	return port, nil
+	return string(b)
 }
 
 // Update marks the port used by a brick with a specified state. This
 // is called when a brick signs in.
 func (r *pmapRegistry) Update(port int, brickpath string, conn net.Conn) error {
 
-	if port < 0 || port > PortMax {
+	if port < portMin || port > portMax {
 		return fmt.Errorf("registry.Update(): invalid port %d", port)
 	}
 
 	r.Lock()
 	defer r.Unlock()
 
+	r.bricks[brickpath] = port
+
 	// It's possible that multiple bricks are multiplexed onto a
 	// single conn, the conn passed to this function may not be the
 	// same as before and that can happen. We only store the latest
 	// one.
 	r.conns[conn] = port
-	r.ports[port].State = PortInUse
-	if r.ports[port].Bricks == nil {
-		// can happen on glusterd2 restarts where we only get a SIGN IN
-		r.ports[port].Bricks = make(map[string]bool)
-	}
-	r.ports[port].Bricks[brickpath] = true
-	r.bricks[brickpath] = port
 
-	if r.lastAlloc < port {
-		r.lastAlloc = port
+	if r.Ports[port] == nil {
+		r.Ports[port] = make(map[string]struct{})
 	}
+	r.Ports[port][brickpath] = struct{}{}
 
 	return nil
 }
 
 // SearchByBrickPath returns the port number used by the brick specified
-// by the brick path provided.
+// by the brick path provided. This is called when serving BrickByPort
+// RPC request sent by the client during mount.
 func (r *pmapRegistry) SearchByBrickPath(brickpath string) (int, error) {
 
 	if brickpath == "" {
@@ -168,13 +109,10 @@ func (r *pmapRegistry) RemovePortByConn(conn net.Conn) error {
 
 	delete(r.conns, conn)
 
-	r.ports[port].State = PortFree
-	r.PortUnlock(port)
-
-	for brick := range r.ports[port].Bricks {
+	for brick := range r.Ports[port] {
 		delete(r.bricks, brick)
 	}
-	r.ports[port].Bricks = make(map[string]bool)
+	delete(r.Ports, port)
 
 	return nil
 }
@@ -184,7 +122,7 @@ func (r *pmapRegistry) RemovePortByConn(conn net.Conn) error {
 // during graceful shutdown.
 func (r *pmapRegistry) Remove(port int, brickpath string, conn net.Conn) error {
 
-	if port < 0 || port > PortMax {
+	if port < portMin || port > portMax {
 		return fmt.Errorf("registry.Remove(): invalid port %d", port)
 	}
 
@@ -192,35 +130,28 @@ func (r *pmapRegistry) Remove(port int, brickpath string, conn net.Conn) error {
 	defer r.Unlock()
 
 	delete(r.bricks, brickpath)
-	if _, ok := r.ports[port].Bricks[brickpath]; ok {
-		delete(r.ports[port].Bricks, brickpath)
-	} else {
-		return fmt.Errorf("registry.Remove(): invalid port %d and/or brick %s",
-			port, brickpath)
-	}
+
+	delete(r.Ports[port], brickpath)
 
 	// update connection object even on sign out
 	r.conns[conn] = port
+
 	return nil
 }
 
 var registry *pmapRegistry
 
-// Init initializes the portmap registry. This is to be called when glusterd2
-// server starts,
-func Init() {
+func init() {
 
 	if registry != nil {
 		panic("registry is not nil: this shouldn't happen")
 	}
 
 	registry = &pmapRegistry{
-		basePort:    PortMin,
-		bricks:      make(map[string]int),
-		conns:       make(map[net.Conn]int),
-		portLockFds: make(map[int]int),
+		Ports:  make(map[int]brickSet),
+		bricks: make(map[string]int),
+		conns:  make(map[net.Conn]int),
 	}
-	registry.init()
 
 	expvar.Publish("pmap", registry)
 }
