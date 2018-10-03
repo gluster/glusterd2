@@ -62,12 +62,18 @@ type VolCreateReq struct {
 	VolOptionReq
 }
 
+// VolOptionFlags is set of flags that allow/disallow setting certain kinds
+// of volume options.
+type VolOptionFlags struct {
+	AllowAdvanced     bool `json:"allow-advanced-options,omitempty"`
+	AllowExperimental bool `json:"allow-experimental-options,omitempty"`
+	AllowDeprecated   bool `json:"allow-deprecated-options,omitempty"`
+}
+
 // VolOptionReq represents an incoming request to set volume options
 type VolOptionReq struct {
-	Options      map[string]string `json:"options"`
-	Advanced     bool              `json:"advanced,omitempty"`
-	Experimental bool              `json:"experimental,omitempty"`
-	Deprecated   bool              `json:"deprecated,omitempty"`
+	Options map[string]string `json:"options"`
+	VolOptionFlags
 }
 
 // VolOptionResetReq represents a request to reset volume options
@@ -107,9 +113,7 @@ type OptionGroup struct {
 // OptionGroupReq represents a request to create a new option group
 type OptionGroupReq struct {
 	OptionGroup
-	Advanced     bool `json:"advanced,omitempty"`
-	Experimental bool `json:"experimental,omitempty"`
-	Deprecated   bool `json:"deprecated,omitempty"`
+	VolOptionFlags
 }
 
 // ClientStatedump uniquely identifies a client (only gfapi) connected to

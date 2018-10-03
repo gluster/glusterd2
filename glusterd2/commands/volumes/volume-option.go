@@ -34,7 +34,7 @@ func optionSetValidate(c transaction.TxnCtx) error {
 	// TODO: Validate op versions of the options. Either here or inside
 	// validateOptions.
 
-	if err := validateOptions(options, req.Advanced, req.Experimental, req.Deprecated); err != nil {
+	if err := validateOptions(options, req.VolOptionFlags); err != nil {
 		return fmt.Errorf("validation failed for volume option: %s", err.Error())
 	}
 
