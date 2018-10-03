@@ -16,7 +16,7 @@ func validateOptionSet(req api.OptionGroupReq) error {
 	for _, o := range req.Options {
 		o1[o.Name] = o.OnValue
 	}
-	return validateOptions(o1, req.Advanced, req.Experimental, req.Deprecated)
+	return validateOptions(o1, req.VolOptionFlags)
 }
 
 func optionGroupCreateHandler(w http.ResponseWriter, r *http.Request) {

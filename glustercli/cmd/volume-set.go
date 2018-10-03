@@ -78,10 +78,13 @@ func volumeOptionJSONHandler(cmd *cobra.Command, volname string, options []strin
 	}
 
 	err := client.VolumeSet(volname, api.VolOptionReq{
-		Options:      vopt,
-		Advanced:     flagSetAdv,
-		Experimental: flagSetExp,
-		Deprecated:   flagSetDep,
+		Options: vopt,
+		VolOptionFlags: api.VolOptionFlags{
+			AllowAdvanced:     flagSetAdv,
+			AllowExperimental: flagSetExp,
+			AllowDeprecated:   flagSetDep,
+		},
 	})
+
 	return err
 }

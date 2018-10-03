@@ -57,7 +57,7 @@ func testSelfHeal(t *testing.T, tc *testCluster) {
 	var optionReq api.VolOptionReq
 
 	optionReq.Options = map[string]string{"replicate.self-heal-daemon": "on"}
-	optionReq.Advanced = true
+	optionReq.AllowAdvanced = true
 
 	r.Nil(client.VolumeSet(vol1.Name, optionReq))
 	r.True(isProcessRunning(pidpath), "glustershd is not running")
@@ -69,7 +69,7 @@ func testSelfHeal(t *testing.T, tc *testCluster) {
 	r.Nil(client.VolumeStop(vol1.Name), "Volume stop failed")
 
 	optionReq.Options = map[string]string{"replicate.self-heal-daemon": "off"}
-	optionReq.Advanced = true
+	optionReq.AllowAdvanced = true
 
 	r.Nil(client.VolumeSet(vol1.Name, optionReq))
 	r.False(isProcessRunning(pidpath), "glustershd is still running")
@@ -126,11 +126,11 @@ func testGranularEntryHeal(t *testing.T, tc *testCluster) {
 
 	var optionReq api.VolOptionReq
 	optionReq.Options = map[string]string{"replicate.granular-entry-heal": "enable"}
-	optionReq.Advanced = true
+	optionReq.AllowAdvanced = true
 	r.Nil(client.VolumeSet(volname, optionReq))
 
 	optionReq.Options = map[string]string{"replicate.self-heal-daemon": "off"}
-	optionReq.Advanced = true
+	optionReq.AllowAdvanced = true
 	r.Nil(client.VolumeSet(volname, optionReq))
 	r.False(isProcessRunning(pidpath), "glustershd is still running")
 
@@ -170,7 +170,7 @@ func testGranularEntryHeal(t *testing.T, tc *testCluster) {
 	}
 
 	optionReq.Options = map[string]string{"replicate.granular-entry-heal": "disable"}
-	optionReq.Advanced = true
+	optionReq.AllowAdvanced = true
 	r.Nil(client.VolumeSet(volname, optionReq))
 
 	// Stop Volume
@@ -178,7 +178,7 @@ func testGranularEntryHeal(t *testing.T, tc *testCluster) {
 	r.Nil(client.VolumeStart(volname, false), "volume start failed")
 
 	optionReq.Options = map[string]string{"replicate.granular-entry-heal": "enable"}
-	optionReq.Advanced = true
+	optionReq.AllowAdvanced = true
 	r.NotNil(client.VolumeSet(volname, optionReq))
 
 	err = syscall.Unmount(mntPath, 0)

@@ -29,7 +29,7 @@ const volumeIDXattrKey = "trusted.glusterfs.volume-id"
 
 // validateOptions validates if the options and their values are valid and can
 // be set on a volume.
-func validateOptions(opts map[string]string, adv, exp, dep bool) error {
+func validateOptions(opts map[string]string, flags api.VolOptionFlags) error {
 
 	for k, v := range opts {
 		o, err := xlator.FindOption(k)
@@ -41,13 +41,13 @@ func validateOptions(opts map[string]string, adv, exp, dep bool) error {
 		case !o.IsSettable():
 			return fmt.Errorf("Option %s cannot be set", k)
 
-		case o.IsAdvanced() && !adv:
+		case o.IsAdvanced() && !flags.AllowAdvanced:
 			return fmt.Errorf("Option %s is an advanced option. To set it pass the advanced flag", k)
 
-		case o.IsExperimental() && !exp:
+		case o.IsExperimental() && !flags.AllowExperimental:
 			return fmt.Errorf("Option %s is an experimental option. To set it pass the experimental flag", k)
 
-		case o.IsDeprecated() && !dep:
+		case o.IsDeprecated() && !flags.AllowDeprecated:
 			// TODO: Return deprecation version and alternative option if available
 			return fmt.Errorf("Option %s will be deprecated in future releases. To set it pass the deprecated flag", k)
 		}

@@ -62,9 +62,12 @@ func init() {
 	volumeCreateCmd.Flags().BoolVar(&flagCreateForce, "force", false, "Force")
 	volumeCreateCmd.Flags().StringSliceVar(&flagCreateVolumeOptions, "options", nil,
 		"Volume options in the format option:value,option:value")
-	volumeCreateCmd.Flags().BoolVar(&flagCreateAdvOpts, "advanced", false, "Allow advanced options")
-	volumeCreateCmd.Flags().BoolVar(&flagCreateExpOpts, "experimental", false, "Allow experimental options")
-	volumeCreateCmd.Flags().BoolVar(&flagCreateDepOpts, "deprecated", false, "Allow deprecated options")
+
+	// set volume options during volume create
+	volumeCreateCmd.Flags().BoolVar(&flagCreateAdvOpts, "allow-advanced-options", false, "Allow setting advanced volume options")
+	volumeCreateCmd.Flags().BoolVar(&flagCreateExpOpts, "allow-experimental-options", false, "Allow setting experimental volume options")
+	volumeCreateCmd.Flags().BoolVar(&flagCreateDepOpts, "allow-deprecated-options", false, "Allow setting deprecated volume options")
+
 	volumeCreateCmd.Flags().BoolVar(&flagReuseBricks, "reuse-bricks", false, "Reuse bricks")
 	volumeCreateCmd.Flags().BoolVar(&flagAllowRootDir, "allow-root-dir", false, "Allow root directory")
 	volumeCreateCmd.Flags().BoolVar(&flagAllowMountAsBrick, "allow-mount-as-brick", false, "Allow mount as bricks")
@@ -259,10 +262,12 @@ func volumeCreateCmdRun(cmd *cobra.Command, args []string) {
 		Subvols: subvols,
 		Force:   flagCreateForce,
 		VolOptionReq: api.VolOptionReq{
-			Options:      options,
-			Advanced:     flagCreateAdvOpts,
-			Experimental: flagCreateExpOpts,
-			Deprecated:   flagCreateDepOpts,
+			Options: options,
+			VolOptionFlags: api.VolOptionFlags{
+				AllowAdvanced:     flagCreateAdvOpts,
+				AllowExperimental: flagCreateExpOpts,
+				AllowDeprecated:   flagCreateDepOpts,
+			},
 		},
 
 		Flags: flags,
@@ -304,6 +309,6 @@ func addThinArbiter(req *api.VolCreateReq, thinArbiter string) error {
 	req.Options = map[string]string{
 		"replicate.thin-arbiter": thinArbiter,
 	}
-	req.Advanced = true
+	req.AllowAdvanced = true
 	return nil
 }

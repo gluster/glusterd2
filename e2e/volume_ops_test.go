@@ -532,12 +532,10 @@ func TestVolumeOptions(t *testing.T) {
 			},
 		},
 		Force: true,
-		// XXX: Setting advanced, as all options are advanced by default
-		// TODO: Remove this later if the default changes
-		VolOptionReq: api.VolOptionReq{
-			Advanced: true,
-		},
 	}
+	// XXX: Setting advanced, as all options are advanced by default
+	// TODO: Remove this later if the default changes
+	createReq.AllowAdvanced = true
 
 	validOpKeys := []string{"gfproxy.afr.eager-lock", "afr.eager-lock"}
 	invalidOpKeys := []string{"..eager-lock", "a.b.afr.eager-lock", "afr.non-existent", "eager-lock"}
@@ -587,7 +585,7 @@ func TestVolumeOptions(t *testing.T) {
 	var optionReq api.VolOptionReq
 	// XXX: Setting advanced, as all options are advanced by default
 	// TODO: Remove this later if the default changes
-	optionReq.Advanced = true
+	optionReq.AllowAdvanced = true
 
 	settableKey := "afr.use-compound-fops"
 	optionReq.Options = map[string]string{settableKey: "on"}
@@ -647,10 +645,11 @@ func TestVolumeOptions(t *testing.T) {
 				{Name: "opt3", OnValue: "off"}},
 			Description: "Test profile 2",
 		},
-		// XXX: Setting advanced, as all options are advanced by default
-		// TODO: Remove this later if the default changes
-		Advanced: true,
 	}
+	// XXX: Setting advanced, as all options are advanced by default
+	// TODO: Remove this later if the default changes
+	optionGroupReq.AllowAdvanced = true
+
 	err = client.OptionGroupCreate(optionGroupReq)
 	r.NotNil(err)
 
@@ -662,10 +661,11 @@ func TestVolumeOptions(t *testing.T) {
 			},
 			Description: "Test profile 2",
 		},
-		// XXX: Setting advanced, as all options are advanced by default
-		// TODO: Remove this later if the default changes
-		Advanced: true,
 	}
+	// XXX: Setting advanced, as all options are advanced by default
+	// TODO: Remove this later if the default changes
+	optionGroupReq.AllowAdvanced = true
+
 	err = client.OptionGroupCreate(optionGroupReq)
 	r.Nil(err)
 
@@ -820,7 +820,7 @@ func testShdOnVolumeStartAndStop(t *testing.T, tc *testCluster) {
 
 	var optionReq api.VolOptionReq
 	optionReq.Options = map[string]string{"replicate.self-heal-daemon": "on"}
-	optionReq.Advanced = true
+	optionReq.AllowAdvanced = true
 
 	r.Nil(client.VolumeSet(vol1.Name, optionReq))
 

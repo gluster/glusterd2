@@ -79,7 +79,7 @@ func testQuotaEnable(t *testing.T, tc *testCluster) {
 
 	quotaKey := "quota.enable"
 	var optionReqOff api.VolOptionReq
-	optionReqOff.Advanced = true
+	optionReqOff.AllowAdvanced = true
 
 	optionReqOff.Options = map[string]string{quotaKey: "off"}
 
@@ -91,7 +91,7 @@ func testQuotaEnable(t *testing.T, tc *testCluster) {
 	r.False(isProcessRunning(pidpath))
 
 	var optionReqOn api.VolOptionReq
-	optionReqOn.Advanced = true
+	optionReqOn.AllowAdvanced = true
 
 	// Enable quota
 	quotaKey = "quota.enable"
