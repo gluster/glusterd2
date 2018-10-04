@@ -79,7 +79,7 @@ func testUpdateClusterID(t *testing.T) {
 func testSaveFile(t *testing.T) {
 	resetEnv(t)
 
-	// Storing the randomly initalized ids in a fresh uuidConfig and saving it file
+	// Storing the randomly initialized ids in a fresh uuidConfig and saving it file
 	c1 := newUUIDConfig()
 	peerID := c1.GetString(peerIDKey)
 	clusterID := c1.GetString(clusterIDKey)

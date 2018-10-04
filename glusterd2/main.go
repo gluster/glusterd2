@@ -34,7 +34,7 @@ func main() {
 		log.WithError(err).Fatal("Failed to get and set hostname or IP")
 	}
 
-	// Initalize and parse CLI flags
+	// Initialize and parse CLI flags
 	initFlags()
 
 	if showvers, _ := flag.CommandLine.GetBool("version"); showvers {

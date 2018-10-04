@@ -79,7 +79,7 @@ func (uc *uuidConfig) reload(init bool) error {
 			return err
 		}
 
-		// If initalizing, ignore ENOENT error
+		// If initializing, ignore ENOENT error
 		if !os.IsNotExist(err) {
 			return err
 		}
