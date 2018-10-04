@@ -6,8 +6,10 @@ import (
 	"io"
 	"net"
 	"net/rpc"
+	"os"
 	"path"
 	"sync"
+	"syscall"
 
 	"github.com/gluster/glusterd2/glusterd2/pmap"
 	"github.com/gluster/glusterd2/pkg/sunrpc"
@@ -37,6 +39,7 @@ type SunRPC struct {
 	unixListener  net.Listener
 	unixStopCh    chan struct{}
 	notifyCloseCh chan io.ReadWriteCloser
+	lockFileFd    int
 }
 
 // clientsList is global as it needs to be accessed by RPC procedures
@@ -53,6 +56,23 @@ var clientsList = struct {
 func NewMuxed(m cmux.CMux) *SunRPC {
 
 	f := path.Join(config.GetString("rundir"), gd2SocketFile)
+	gd2LockFile := f + ".lock"
+	fd, err := syscall.Open(gd2LockFile,
+		syscall.O_CREAT|syscall.O_WRONLY|syscall.O_CLOEXEC, 0666)
+	if err != nil {
+		log.WithError(err).WithField("lockfile", gd2LockFile).Fatal("failed to open lock file")
+	}
+
+	err = syscall.Flock(fd, syscall.LOCK_EX|syscall.LOCK_NB)
+	if err != nil {
+		log.WithError(err).WithField("socket", gd2SocketFile).Fatal("failed to get lock")
+	}
+
+	err = os.Remove(f)
+	if err != nil && !os.IsNotExist(err) {
+		log.WithError(err).WithField("socket", gd2SocketFile).Fatal("failed to cleanup socket file")
+	}
+
 	uL, err := net.Listen("unix", f)
 	if err != nil {
 		// FIXME: Remove fatal and bubble up error to main()
@@ -67,6 +87,7 @@ func NewMuxed(m cmux.CMux) *SunRPC {
 		tcpStopCh:     make(chan struct{}),
 		unixStopCh:    make(chan struct{}),
 		notifyCloseCh: make(chan io.ReadWriteCloser, 10),
+		lockFileFd:    fd,
 	}
 
 	for _, prog := range programsList {
@@ -187,4 +208,5 @@ func (s *SunRPC) Stop() {
 
 	// Close UDS listener; cmux should take care of the TCP one.
 	s.unixListener.Close()
+	syscall.Close(s.lockFileFd)
 }
