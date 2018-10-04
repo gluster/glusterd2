@@ -6,7 +6,7 @@ import (
 	"github.com/stretchr/testify/assert"
 )
 
-// TestHumanReadable checks if the funtion returns the right size with unit
+// TestHumanReadable checks if the function returns the right size with unit
 // for the input given in MB
 func TestHumanReadable(t *testing.T) {
 	assert.Equal(t, "20.0 MB", humanReadable(20))
