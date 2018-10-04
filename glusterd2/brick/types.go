@@ -163,9 +163,5 @@ func (b *Brickinfo) Validate(check InitChecks, allLocalBricks []Brickinfo) error
 	}
 
 	// mandatory check that cannot be skipped forcefully
-	if err = isBrickInActiveUse(b.Path, allLocalBricks); err != nil {
-		return err
-	}
-
-	return nil
+	return isBrickInActiveUse(b.Path, allLocalBricks)
 }
