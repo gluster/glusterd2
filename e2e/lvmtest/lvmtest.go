@@ -202,6 +202,10 @@ func Cleanup(baseWorkdir, prefix string, brickCount int) {
 
 	vg := fmt.Sprintf("%s_vg_", lvmPrefix)
 	out, err := exec.Command(lvm.LVSCommand, "--noheadings", "-o", "vg_name").Output()
+	if err != nil {
+		// TODO: log failure here
+		return
+	}
 	for _, entry := range strings.Split(string(out), "\n") {
 		if strings.HasPrefix(entry, vg) {
 			exec.Command(lvm.RemoveCommand, "-f", entry)

@@ -322,6 +322,7 @@ func testVolumeStart(t *testing.T) {
 	r.Nil(client.VolumeStart(volname, false), "volume start failed")
 
 	bricks, err := client.BricksStatus(volname)
+	r.Nil(err)
 	for index := range bricks {
 		r.NotZero(bricks[index].Port)
 		r.True(bricks[index].Online)
@@ -332,6 +333,7 @@ func testVolumeStart(t *testing.T) {
 	time.Sleep(3 * time.Second)
 
 	bricks, err = client.BricksStatus(volname)
+	r.Nil(err)
 	for index := range bricks {
 		r.NotZero(bricks[index].Port)
 		r.True(bricks[index].Online)
@@ -348,6 +350,7 @@ func testVolumeStart(t *testing.T) {
 	time.Sleep(3 * time.Second)
 
 	bricks, err = client.BricksStatus(volname)
+	r.Nil(err)
 	for index := range bricks {
 		if bricks[index].Info.Path == killBrick {
 			r.Zero(bricks[index].Port)
@@ -360,6 +363,7 @@ func testVolumeStart(t *testing.T) {
 	time.Sleep(3 * time.Second)
 
 	bricks, err = client.BricksStatus(volname)
+	r.Nil(err)
 	for index := range bricks {
 		if bricks[index].Info.Path == killBrick {
 			r.NotZero(bricks[index].Port)
@@ -511,6 +515,7 @@ func TestVolumeOptions(t *testing.T) {
 	defer teardownCluster(tc)
 
 	brickDir, err := ioutil.TempDir(baseLocalStateDir, t.Name())
+	r.Nil(err)
 	defer os.RemoveAll(brickDir)
 
 	brickPath, err := ioutil.TempDir(brickDir, "brick")
