@@ -74,13 +74,12 @@ func populateSubvols(volinfo *volume.Volinfo, req *api.VolCreateReq) error {
 		name := fmt.Sprintf("%s-%s-%d", volinfo.Name, strings.ToLower(subvolreq.Type), idx)
 
 		ty := volume.SubvolDistribute
+
 		switch subvolreq.Type {
 		case "replicate":
 			ty = volume.SubvolReplicate
 		case "disperse":
 			ty = volume.SubvolDisperse
-		default:
-			ty = volume.SubvolDistribute
 		}
 
 		s := volume.Subvol{

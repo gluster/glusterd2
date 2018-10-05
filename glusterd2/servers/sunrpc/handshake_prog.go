@@ -113,6 +113,7 @@ func (p *GfHandshake) ServerGetspec(args *GfGetspecReq, reply *GfGetspecRsp) err
 		err      error
 		addrs    []string
 		respDict map[string]string
+		volinfo  *volume.Volinfo
 	)
 
 	_, err = dict.Unserialize(args.Xdata)
@@ -145,7 +146,7 @@ func (p *GfHandshake) ServerGetspec(args *GfGetspecReq, reply *GfGetspecRsp) err
 
 	if (args.Flags & gfGetspecFlagServersList) != 0 {
 
-		volinfo, err := volume.GetVolume(volfileID)
+		volinfo, err = volume.GetVolume(volfileID)
 		if err != nil {
 			log.WithError(err).WithField("volume", volfileID).Warn("failed to get volinfo from store")
 			// Currently there's no easy way to distinguish between

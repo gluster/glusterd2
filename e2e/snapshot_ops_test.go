@@ -247,6 +247,7 @@ func testSnapshotStatusForceActivate(t *testing.T) {
 	r.Nil(err)
 
 	err = daemon.Kill(result.BrickStatus[0].Brick.Pid, true)
+	r.Nil(err)
 	err = client.SnapshotActivate(snapshotActivateReq, snapName)
 	if err == nil {
 		msg := "snapshot activate should have failed"
@@ -288,6 +289,7 @@ func testSnapshotRestore(t *testing.T) {
 	r.Nil(err)
 
 	err = daemon.Kill(result.BrickStatus[0].Brick.Pid, true)
+	r.Nil(err)
 	err = client.VolumeStop(snapTestName)
 	r.Nil(err)
 
@@ -361,7 +363,7 @@ func testSnapshotValidation(t *testing.T) {
 	r.Nil(client.VolumeStop(clonename), "volume stop failed")
 
 	err = client.VolumeDelete(clonename)
-	r.NotNil(errors.New("Volume delete succeeded when snapshot is existing for the volume"))
+	r.NotNil(err, "Volume delete succeeded when snapshot is existing for the volume")
 }
 
 func testCloneDelete(t *testing.T) {

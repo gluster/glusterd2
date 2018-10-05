@@ -89,12 +89,11 @@ func txnSelfHeal(c transaction.TxnCtx) error {
 		return err
 	}
 
-	reqDict := make(map[string]string)
 	req := &brick.GfBrickOpReq{
 		Name: "",
 		Op:   int(brick.OpBrickXlatorOp),
 	}
-	reqDict = selectHxlatorsWithBricks(&volinfo, healType)
+	reqDict := selectHxlatorsWithBricks(&volinfo, healType)
 	req.Input, err = dict.Serialize(reqDict)
 	if err != nil {
 		c.Logger().WithError(err).WithField(
