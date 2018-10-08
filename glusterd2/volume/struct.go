@@ -81,22 +81,23 @@ type Subvol struct {
 
 // Volinfo repesents a volume
 type Volinfo struct {
-	ID        uuid.UUID
-	Name      string
-	VolfileID string
-	Type      VolType
-	Transport string
-	DistCount int
-	Options   map[string]string
-	State     VolState
-	Checksum  uint64
-	Version   uint64
-	Subvols   []Subvol
-	Auth      VolAuth
-	GraphMap  map[string]string
-	Metadata  map[string]string
-	SnapList  []string
-	Capacity  uint64
+	ID                    uuid.UUID
+	Name                  string
+	VolfileID             string
+	Type                  VolType
+	Transport             string
+	DistCount             int
+	Options               map[string]string
+	State                 VolState
+	Checksum              uint64
+	Version               uint64
+	Subvols               []Subvol
+	Auth                  VolAuth
+	GraphMap              map[string]string
+	Metadata              map[string]string
+	SnapList              []string
+	SnapshotReserveFactor float64
+	Capacity              uint64
 }
 
 // VolAuth represents username and password used by trusted/internal clients
