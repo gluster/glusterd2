@@ -48,6 +48,7 @@ type VolCreateReq struct {
 	DistributeCount         int               `json:"distribute,omitempty"`
 	ReplicaCount            int               `json:"replica,omitempty"`
 	ArbiterCount            int               `json:"arbiter,omitempty"`
+	AverageFileSize         uint64            `json:"average-file-size,omitempty"`
 	DisperseCount           int               `json:"disperse,omitempty"`
 	DisperseRedundancyCount int               `json:"disperse-redundancy,omitempty"`
 	DisperseDataCount       int               `json:"disperse-data,omitempty"`
