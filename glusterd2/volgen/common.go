@@ -84,8 +84,8 @@ func SaveToFile(filename string, content string) error {
 }
 
 // DeleteFile deletes the given Volfile
-func DeleteFile(filename string) error {
-	err := os.Remove(filename)
+func DeleteFile(volfileID string) error {
+	err := os.Remove(volfileID + ".vol")
 	if os.IsNotExist(err) {
 		return nil
 	}

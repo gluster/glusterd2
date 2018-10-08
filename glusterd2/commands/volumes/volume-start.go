@@ -24,10 +24,6 @@ func startAllBricks(c transaction.TxnCtx) error {
 		return err
 	}
 
-	err := generateBrickVolfiles(c)
-	if err != nil {
-		return err
-	}
 	for _, b := range volinfo.GetLocalBricks() {
 
 		c.Logger().WithFields(log.Fields{
