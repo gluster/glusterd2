@@ -53,11 +53,6 @@ func barrierActivateDeactivateFunc(volinfo *volume.Volinfo, option string, origi
 				"volume", volinfo.Name).Debug("failed to store volume info")
 			return err
 		}
-		if err = volgen.VolumeVolfileToStore(volinfo, volinfo.Name, "client"); err != nil {
-			log.WithError(err).WithField(
-				"volume", volinfo.Name).Debug("failed to generate volfiles")
-			return err
-		}
 	}
 
 	reqDict := make(map[string]string)

@@ -64,10 +64,20 @@ func rollbackActivateSnapshot(c transaction.TxnCtx) error {
 	if err := c.Get("oldsnapinfo", &snapinfo); err != nil {
 		return err
 	}
+	vol := &snapinfo.SnapVolinfo
 
 	if err := c.GetNodeResult(gdctx.MyUUID, "brickListToOperate", &brickinfos); err != nil {
 		log.WithError(err).Error("failed to set request in transaction context")
 		return err
+	}
+
+	// Remove the local Bricks Volfiles
+	for _, b := range vol.GetLocalBricks() {
+		volfileID := brick.GetVolfileID(vol.Name, b.Path)
+		err := volgen.DeleteFile(volfileID)
+		if err != nil {
+			c.Logger().WithError(err).WithField("volfile", volfileID).Error("failed to delete volfile")
+		}
 	}
 
 	err := snapshot.ActivateDeactivateFunc(&snapinfo, brickinfos, activate, c.Logger())
