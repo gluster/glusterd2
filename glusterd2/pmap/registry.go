@@ -6,6 +6,11 @@ import (
 	"fmt"
 	"net"
 	"sync"
+
+	"github.com/gluster/glusterd2/glusterd2/gdctx"
+	"github.com/gluster/glusterd2/pkg/firewalld"
+
+	log "github.com/sirupsen/logrus"
 )
 
 // common ephemeral port range across IANA's range (49152 to 65535),
@@ -31,6 +36,8 @@ type pmapRegistry struct {
 	// map from port number to list of bricks
 	// used to process disconnections
 	Ports map[int]brickSet `json:"ports,omitempty"`
+
+	notifyFirewalld bool
 }
 
 func (r *pmapRegistry) String() string {
@@ -62,6 +69,14 @@ func (r *pmapRegistry) Update(port int, brickpath string, conn net.Conn) error {
 
 	if r.Ports[port] == nil {
 		r.Ports[port] = make(map[string]struct{})
+
+		// add port to default zone in firewalld
+		if r.notifyFirewalld {
+			if err := firewalld.AddPort("", port, firewalld.ProtoTCP); err != nil {
+				log.WithError(err).WithField("port",
+					port).Warn("firewalld.AddPort() failed")
+			}
+		}
 	}
 	r.Ports[port][brickpath] = struct{}{}
 
@@ -114,6 +129,13 @@ func (r *pmapRegistry) RemovePortByConn(conn net.Conn) error {
 	}
 	delete(r.Ports, port)
 
+	if r.notifyFirewalld && !gdctx.IsTerminating {
+		if err := firewalld.RemovePort("", port, firewalld.ProtoTCP); err != nil {
+			log.WithError(err).WithField("port",
+				port).Warn("firewalld.RemovePort() failed")
+		}
+	}
+
 	return nil
 }
 
@@ -148,9 +170,10 @@ func init() {
 	}
 
 	registry = &pmapRegistry{
-		Ports:  make(map[int]brickSet),
-		bricks: make(map[string]int),
-		conns:  make(map[net.Conn]int),
+		Ports:           make(map[int]brickSet),
+		bricks:          make(map[string]int),
+		conns:           make(map[net.Conn]int),
+		notifyFirewalld: true,
 	}
 
 	expvar.Publish("pmap", registry)
