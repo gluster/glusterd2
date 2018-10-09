@@ -58,4 +58,5 @@ var (
 	ErrInvalidClusterOption        = errors.New("Invalid cluster option key")
 	ErrInvalidVolFileTmplNamespace = errors.New("invalid template namespace")
 	ErrInvalidVolFileTmplName      = errors.New("invalid template name")
+	ErrDeviceNameNotFound          = errors.New("device name not found")
 )

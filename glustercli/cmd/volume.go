@@ -38,8 +38,10 @@ var (
 	flagStopCmdForce bool
 
 	// Expand Command Flags
-	flagExpandCmdReplicaCount int
-	flagExpandCmdForce        bool
+	flagExpandCmdReplicaCount    int
+	flagExpandCmdForce           bool
+	flagExpandCmdDistributeCount int
+	flagExpandCmdSize            string
 
 	// Filter Volume Info/List command flags
 	flagCmdFilterKey   string
@@ -88,7 +90,9 @@ func init() {
 	volumeCmd.AddCommand(volumeListCmd)
 
 	// Volume Expand
-	volumeExpandCmd.Flags().IntVarP(&flagExpandCmdReplicaCount, "replica", "", 0, "Replica Count")
+	volumeExpandCmd.Flags().IntVar(&flagExpandCmdReplicaCount, "replica", 0, "Replica Count")
+	volumeExpandCmd.Flags().IntVar(&flagExpandCmdDistributeCount, "distribute", 0, "Distribute Count")
+	volumeExpandCmd.Flags().StringVar(&flagExpandCmdSize, "size", "", "Size by which volume needs to be expanded.")
 	volumeExpandCmd.Flags().BoolVarP(&flagExpandCmdForce, "force", "f", false, "Force")
 	volumeExpandCmd.Flags().BoolVar(&flagReuseBricks, "reuse-bricks", false, "Reuse Bricks")
 	volumeExpandCmd.Flags().BoolVar(&flagAllowRootDir, "allow-root-dir", false, "Allow Root Directory")
@@ -486,9 +490,9 @@ var volumeSizeCmd = &cobra.Command{
 }
 
 var volumeExpandCmd = &cobra.Command{
-	Use:   "add-brick",
+	Use:   "add-brick <volname> [--size <expansion-size> --distribute <distribute-count>]",
 	Short: helpVolumeExpandCmd,
-	Args:  cobra.MinimumNArgs(2),
+	Args:  cobra.MinimumNArgs(1),
 	Run: func(cmd *cobra.Command, args []string) {
 		volname := cmd.Flags().Args()[0]
 		bricks, err := bricksAsUUID(cmd.Flags().Args()[1:])
@@ -499,17 +503,22 @@ var volumeExpandCmd = &cobra.Command{
 			failure("Error getting brick UUIDs", err, 1)
 		}
 		//set flags
+		size, err := sizeToBytes(flagExpandCmdSize)
+		if err != nil {
+			failure("Invalid Volume Size specified", nil, 1)
+		}
 		flags := make(map[string]bool)
 		flags["reuse-bricks"] = flagReuseBricks
 		flags["allow-root-dir"] = flagAllowRootDir
 		flags["allow-mount-as-brick"] = flagAllowMountAsBrick
 		flags["create-brick-dir"] = flagCreateBrickDir
-
 		vol, err := client.VolumeExpand(volname, api.VolExpandReq{
-			ReplicaCount: flagExpandCmdReplicaCount,
-			Bricks:       bricks, // string of format <UUID>:<path>
-			Force:        flagExpandCmdForce,
-			Flags:        flags,
+			ReplicaCount:    flagExpandCmdReplicaCount,
+			Bricks:          bricks, // string of format <UUID>:<path>
+			Force:           flagExpandCmdForce,
+			Flags:           flags,
+			DistributeCount: flagExpandCmdDistributeCount,
+			Size:            uint64(size),
 		})
 		if err != nil {
 			if GlobalFlag.Verbose {
