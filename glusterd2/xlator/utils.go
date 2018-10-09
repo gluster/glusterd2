@@ -3,7 +3,7 @@ package xlator
 import (
 	"fmt"
 
-	"github.com/gluster/glusterd2/glusterd2/xlator/options"
+	"github.com/gluster/glusterd2/glusterd2/options"
 )
 
 // NotFoundError is returned when an xlator cannot be found in the xlMap

@@ -2,7 +2,7 @@ package cluster
 
 import (
 	"github.com/gluster/glusterd2/glusterd2/gdctx"
-	"github.com/gluster/glusterd2/glusterd2/xlator/options"
+	"github.com/gluster/glusterd2/glusterd2/options"
 
 	"strconv"
 )
