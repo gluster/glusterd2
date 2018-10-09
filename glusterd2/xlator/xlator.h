@@ -1,5 +1,5 @@
 #include <stdint.h>
-#include "options/options.h"
+#include "../options/options.h"
 
 // These definitions are borrowed from libglusterfs/src/xlator.h file in
 // glusterfs source. Maintaining this copy here has very little overhead
