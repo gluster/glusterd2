@@ -92,10 +92,12 @@ type VolOptionResetReq struct {
 "create-brick-dir" : if brick dir is not present, create it
 */
 type VolExpandReq struct {
-	ReplicaCount int             `json:"replica,omitempty"`
-	Bricks       []BrickReq      `json:"bricks"`
-	Force        bool            `json:"force,omitempty"`
-	Flags        map[string]bool `json:"flags,omitempty"`
+	ReplicaCount    int             `json:"replica,omitempty"`
+	Bricks          []BrickReq      `json:"bricks,omitempty"`
+	Force           bool            `json:"force,omitempty"`
+	Flags           map[string]bool `json:"flags,omitempty"`
+	Size            uint64          `json:"size,omitempty"`
+	DistributeCount int             `json:"distribute,omitempty"`
 }
 
 // VolumeOption represents an option that is part of a profile

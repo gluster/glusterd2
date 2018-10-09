@@ -53,7 +53,6 @@ func testSmartVolumeDistribute(t *testing.T) {
 	}
 	volinfo, err := client.VolumeCreate(createReq)
 	r.Nil(err)
-
 	r.Len(volinfo.Subvols, 3)
 	r.Equal("Distribute", volinfo.Type.String())
 	r.Len(volinfo.Subvols[0].Bricks, 1)
@@ -63,6 +62,27 @@ func testSmartVolumeDistribute(t *testing.T) {
 	r.Nil(brickSizeTest(volinfo.Subvols[0].Bricks[0].Path, 16, 21))
 	r.Nil(brickSizeTest(volinfo.Subvols[1].Bricks[0].Path, 16, 21))
 	r.Nil(brickSizeTest(volinfo.Subvols[2].Bricks[0].Path, 16, 21))
+
+	expandReq := api.VolExpandReq{
+		Size:            60 * deviceutils.MiB,
+		DistributeCount: 3,
+	}
+	_, err = client.VolumeExpand(smartvolname, expandReq)
+	r.Nil(err)
+
+	vols, err := client.Volumes(smartvolname)
+	r.Nil(err)
+
+	r.Nil(brickSizeTest(vols[0].Subvols[0].Bricks[0].Path, 37, 41))
+	r.Nil(brickSizeTest(vols[0].Subvols[1].Bricks[0].Path, 37, 41))
+	r.Nil(brickSizeTest(vols[0].Subvols[2].Bricks[0].Path, 37, 41))
+
+	expandReq = api.VolExpandReq{
+		Size:            210 * deviceutils.MiB,
+		DistributeCount: 3,
+	}
+	_, err = client.VolumeExpand(smartvolname, expandReq)
+	r.NotNil(err)
 
 	r.Nil(client.VolumeDelete(smartvolname))
 	checkZeroLvs(r)
@@ -87,6 +107,26 @@ func testSmartVolumeReplicate2(t *testing.T) {
 	r.Nil(brickSizeTest(volinfo.Subvols[0].Bricks[0].Path, 16, 21))
 	r.Nil(brickSizeTest(volinfo.Subvols[0].Bricks[1].Path, 16, 21))
 
+	expandReq := api.VolExpandReq{
+		Size:            30 * deviceutils.MiB,
+		DistributeCount: 1,
+	}
+	_, err = client.VolumeExpand(smartvolname, expandReq)
+	r.Nil(err)
+
+	vols, err := client.Volumes(smartvolname)
+	r.Nil(err)
+
+	r.Nil(brickSizeTest(vols[0].Subvols[0].Bricks[0].Path, 47, 52))
+	r.Nil(brickSizeTest(vols[0].Subvols[0].Bricks[1].Path, 47, 52))
+
+	expandReq = api.VolExpandReq{
+		Size:            200 * deviceutils.MiB,
+		DistributeCount: 1,
+	}
+	_, err = client.VolumeExpand(smartvolname, expandReq)
+	r.NotNil(err)
+
 	r.Nil(client.VolumeDelete(smartvolname))
 	checkZeroLvs(r)
 }
@@ -110,6 +150,27 @@ func testSmartVolumeReplicate3(t *testing.T) {
 	r.Nil(brickSizeTest(volinfo.Subvols[0].Bricks[0].Path, 16, 21))
 	r.Nil(brickSizeTest(volinfo.Subvols[0].Bricks[1].Path, 16, 21))
 	r.Nil(brickSizeTest(volinfo.Subvols[0].Bricks[2].Path, 16, 21))
+
+	expandReq := api.VolExpandReq{
+		Size:            30 * deviceutils.MiB,
+		DistributeCount: 1,
+	}
+	_, err = client.VolumeExpand(smartvolname, expandReq)
+	r.Nil(err)
+
+	vols, err := client.Volumes(smartvolname)
+	r.Nil(err)
+
+	r.Nil(brickSizeTest(vols[0].Subvols[0].Bricks[0].Path, 47, 52))
+	r.Nil(brickSizeTest(vols[0].Subvols[0].Bricks[1].Path, 47, 52))
+	r.Nil(brickSizeTest(vols[0].Subvols[0].Bricks[1].Path, 47, 52))
+
+	expandReq = api.VolExpandReq{
+		Size:            210 * deviceutils.MiB,
+		DistributeCount: 1,
+	}
+	_, err = client.VolumeExpand(smartvolname, expandReq)
+	r.NotNil(err)
 
 	r.Nil(client.VolumeDelete(smartvolname))
 	checkZeroLvs(r)
@@ -165,6 +226,27 @@ func testSmartVolumeDisperse(t *testing.T) {
 	r.Nil(brickSizeTest(volinfo.Subvols[0].Bricks[0].Path, 16, 21))
 	r.Nil(brickSizeTest(volinfo.Subvols[0].Bricks[1].Path, 16, 21))
 	r.Nil(brickSizeTest(volinfo.Subvols[0].Bricks[2].Path, 16, 21))
+
+	expandReq := api.VolExpandReq{
+		Size:            30 * deviceutils.MiB,
+		DistributeCount: 1,
+	}
+	_, err = client.VolumeExpand(smartvolname, expandReq)
+	r.Nil(err)
+
+	vols, err := client.Volumes(smartvolname)
+	r.Nil(err)
+
+	r.Nil(brickSizeTest(vols[0].Subvols[0].Bricks[0].Path, 27, 32))
+	r.Nil(brickSizeTest(vols[0].Subvols[0].Bricks[1].Path, 27, 32))
+	r.Nil(brickSizeTest(vols[0].Subvols[0].Bricks[1].Path, 27, 32))
+
+	expandReq = api.VolExpandReq{
+		Size:            240 * deviceutils.MiB,
+		DistributeCount: 1,
+	}
+	_, err = client.VolumeExpand(smartvolname, expandReq)
+	r.NotNil(err)
 
 	r.Nil(client.VolumeDelete(smartvolname))
 	checkZeroLvs(r)
