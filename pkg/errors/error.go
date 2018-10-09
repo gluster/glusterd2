@@ -41,7 +41,7 @@ var (
 	ErrUnknownValue            = errors.New("unknown value specified")
 	ErrGetFailed               = errors.New("failed to get value from the store")
 	ErrUnmarshallFailed        = errors.New("failed to unmarshall from json")
-	ErrClusterNotFound         = errors.New("cluster instance not found in store")
+	ErrClusterOptionsNotFound  = errors.New("cluster options not found in store")
 	ErrDuplicateBrickPath      = errors.New("duplicate brick entry")
 	ErrRestrictedKeyFound      = errors.New("key names starting with '_' are restricted in metadata field")
 	ErrVolFileNotFound         = errors.New("volume file not found")

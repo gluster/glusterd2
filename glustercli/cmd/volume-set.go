@@ -71,7 +71,7 @@ func volumeOptionJSONHandler(cmd *cobra.Command, volname string, options []strin
 	}
 
 	if volname == "all" {
-		err := client.GlobalOptionSet(api.GlobalOptionReq{
+		err := client.ClusterOptionSet(api.ClusterOptionReq{
 			Options: vopt,
 		})
 		return err
