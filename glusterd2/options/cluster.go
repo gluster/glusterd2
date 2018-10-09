@@ -57,6 +57,28 @@ func GetClusterOptions() (*ClusterOptions, error) {
 	return &c, nil
 }
 
+// GetClusterOption returns the value set for the cluster option specified. If
+// the value is not set for the key, it returns the default value for the
+// option.
+func GetClusterOption(key string) (string, error) {
+	globalopt, found := ClusterOptMap[key]
+	if !found {
+		return "", errors.ErrInvalidClusterOption
+	}
+
+	c, err := GetClusterOptions()
+	if err != nil && err != errors.ErrClusterOptionsNotFound {
+		return "", err
+	}
+
+	result := globalopt.DefaultValue
+	if value, ok := c.Options[key]; ok {
+		result = value
+	}
+
+	return result, nil
+}
+
 // UpdateClusterOptions stores cluster options in store.
 func UpdateClusterOptions(c *ClusterOptions) error {
 	b, err := json.Marshal(c)
