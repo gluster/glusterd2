@@ -10,6 +10,7 @@ import (
 	"github.com/gluster/glusterd2/glusterd2/gdctx"
 	"github.com/gluster/glusterd2/pkg/firewalld"
 
+	"github.com/godbus/dbus"
 	log "github.com/sirupsen/logrus"
 )
 
@@ -37,7 +38,8 @@ type pmapRegistry struct {
 	// used to process disconnections
 	Ports map[int]brickSet `json:"ports,omitempty"`
 
-	notifyFirewalld bool
+	notifyFirewalld   bool
+	firewalldReloadCh chan *dbus.Signal
 }
 
 func (r *pmapRegistry) String() string {
@@ -161,19 +163,45 @@ func (r *pmapRegistry) Remove(port int, brickpath string, conn net.Conn) error {
 	return nil
 }
 
+func (r *pmapRegistry) reconcileFirewalld() {
+	// From dbus.Conn.Signal:
+	// The caller has to make sure that channel is sufficiently buffered;
+	// if a message arrives when a write to channel is not possible, it is
+	// discarded.
+	sigCh := make(chan *dbus.Signal, 10)
+	firewalld.NotifyOnReload(sigCh)
+	for range sigCh {
+		log.Debug("firewalld reloaded, reconciling ports")
+		r.Lock()
+		for port := range r.Ports {
+			if err := firewalld.AddPort("", port, firewalld.ProtoTCP); err != nil {
+				log.WithError(err).WithField("port",
+					port).Warn("firewalld.AddPort() failed")
+			}
+		}
+		r.Unlock()
+	}
+}
+
 var registry *pmapRegistry
 
-func init() {
+// Init initializes the pmap registry
+func Init() {
 
 	if registry != nil {
 		panic("registry is not nil: this shouldn't happen")
 	}
 
 	registry = &pmapRegistry{
-		Ports:           make(map[int]brickSet),
-		bricks:          make(map[string]int),
-		conns:           make(map[net.Conn]int),
-		notifyFirewalld: true,
+		Ports:             make(map[int]brickSet),
+		bricks:            make(map[string]int),
+		conns:             make(map[net.Conn]int),
+		notifyFirewalld:   true,
+		firewalldReloadCh: make(chan *dbus.Signal, 10),
+	}
+
+	if registry.notifyFirewalld {
+		go registry.reconcileFirewalld()
 	}
 
 	expvar.Publish("pmap", registry)

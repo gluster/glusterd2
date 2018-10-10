@@ -12,6 +12,7 @@ import (
 	"github.com/gluster/glusterd2/glusterd2/events"
 	"github.com/gluster/glusterd2/glusterd2/gdctx"
 	"github.com/gluster/glusterd2/glusterd2/peer"
+	"github.com/gluster/glusterd2/glusterd2/pmap"
 	"github.com/gluster/glusterd2/glusterd2/servers"
 	"github.com/gluster/glusterd2/glusterd2/store"
 	gdutils "github.com/gluster/glusterd2/glusterd2/utils"
@@ -135,6 +136,8 @@ func main() {
 	if err := firewalld.Init(); err != nil {
 		log.WithError(err).Warn("firewalld.Init() failed")
 	}
+
+	pmap.Init()
 
 	// Restart previously running daemons
 	daemon.StartAllDaemons()
