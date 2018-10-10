@@ -23,6 +23,7 @@ const (
 
 var (
 	dbusObj   dbus.BusObject
+	dbusConn  *dbus.Conn
 	isRunning bool
 )
 
@@ -60,6 +61,16 @@ func RemovePort(zone string, port int, protocol Protocol) error {
 	return dbusObj.Call(fInterface+".zone.removePort", 0, zone, portStr, string(protocol)).Store(&zone)
 }
 
+// NotifyOnReload will notify on the provided channel whenever firewalld
+// reloads.
+func NotifyOnReload(notify chan<- *dbus.Signal) {
+	if dbusConn == nil {
+		return
+	}
+	dbusConn.BusObject().(*dbus.Object).AddMatchSignal(fInterface, "Reloaded")
+	dbusConn.Signal(notify)
+}
+
 // Init initializes dbus connection and checks if firewalld is running.
 func Init() error {
 
@@ -67,6 +78,7 @@ func Init() error {
 	if err != nil {
 		return err
 	}
+	dbusConn = conn
 
 	// this can never fail
 	dbusObj = conn.Object(fInterface, dbus.ObjectPath(fObjPath))
@@ -76,7 +88,6 @@ func Init() error {
 		conn.Close()
 		return err
 	}
-
 	_ = zone
 	isRunning = true
 
