@@ -5,6 +5,7 @@ import (
 	"bytes"
 	"encoding/json"
 	"errors"
+	"fmt"
 	"net"
 	"path/filepath"
 	"strconv"
@@ -154,8 +155,10 @@ func NewBrickEntries(bricks []api.BrickReq, volName, volfileID string, volID uui
 		switch b.Type {
 		case "arbiter":
 			binfo.Type = brick.Arbiter
-		default:
+		case "", "brick":
 			binfo.Type = brick.Brick
+		default:
+			return nil, fmt.Errorf("%s brick type is not supported", b.Type)
 		}
 
 		binfo.VolumeName = volName

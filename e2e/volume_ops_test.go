@@ -70,6 +70,9 @@ func TestVolume(t *testing.T) {
 	t.Run("DisperseDelete", testDisperseDelete)
 	t.Run("testShdOnVolumeStartAndStop", tc.wrap(testShdOnVolumeStartAndStop))
 
+	//test arbiter volume
+	t.Run("testArbiterVolumeCreate", tc.wrap(testArbiterVolumeCreate))
+
 	// Self Heal Test
 	t.Run("SelfHeal", tc.wrap(testSelfHeal))
 	t.Run("GranularEntryHeal", tc.wrap(testGranularEntryHeal))
@@ -882,4 +885,56 @@ func testShdOnVolumeStartAndStop(t *testing.T, tc *testCluster) {
 
 	r.Nil(client.VolumeDelete(vol1.Name))
 	r.Nil(client.VolumeDelete(vol2.Name))
+}
+
+func testArbiterVolumeCreate(t *testing.T, tc *testCluster) {
+	r := require.New(t)
+
+	var brickPaths []string
+	for i := 1; i <= 3; i++ {
+		brickPath := testTempDir(t, "brick")
+		brickPaths = append(brickPaths, brickPath)
+	}
+	volumeName := formatVolName(t.Name())
+	// create arbiter volume
+	createReq := api.VolCreateReq{
+		Name: volumeName,
+		Subvols: []api.SubvolReq{
+			{
+				ReplicaCount: 2,
+				ArbiterCount: 1,
+				Type:         "replicate",
+				Bricks: []api.BrickReq{
+					{PeerID: tc.gds[0].PeerID(), Path: brickPaths[0]},
+					{PeerID: tc.gds[1].PeerID(), Path: brickPaths[1]},
+					{PeerID: tc.gds[1].PeerID(), Path: brickPaths[2]},
+				},
+			},
+		},
+		Force: true,
+	}
+	//if brick type is not set to arbiter
+	_, err := client.VolumeCreate(createReq)
+	r.NotNil(err)
+
+	//multiple bricks are of type arbiter
+	createReq.Subvols[0].Bricks[1].Type = "arbiter"
+	createReq.Subvols[0].Bricks[0].Type = "arbiter"
+	_, err = client.VolumeCreate(createReq)
+	r.NotNil(err)
+
+	//invalid brick type
+	createReq.Subvols[0].Bricks[0].Type = "replicate"
+	_, err = client.VolumeCreate(createReq)
+	r.NotNil(err)
+
+	createReq.Subvols[0].Bricks[0].Type = "brick"
+	_, err = client.VolumeCreate(createReq)
+	r.Nil(err)
+
+	r.Nil(client.VolumeStart(volumeName, false))
+
+	r.Nil(client.VolumeStop(volumeName))
+
+	r.Nil(client.VolumeDelete(volumeName))
 }
