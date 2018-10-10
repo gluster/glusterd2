@@ -92,7 +92,16 @@ func populateSubvols(volinfo *volume.Volinfo, req *api.VolCreateReq) error {
 			if subvolreq.ReplicaCount != 2 || subvolreq.ArbiterCount != 1 {
 				return errors.New("for arbiter configuration, replica count must be 2 and arbiter count must be 1. The 3rd brick of the replica will be the arbiter")
 			}
-			s.ArbiterCount = 1
+			var abriterBrickCount int
+			for _, b := range subvolreq.Bricks {
+				if b.Type == "arbiter" {
+					abriterBrickCount++
+				}
+			}
+			if abriterBrickCount != subvolreq.ArbiterCount {
+				return errors.New("arbiter count doesn't match with number of arbiter bricks specified")
+			}
+			s.ArbiterCount = subvolreq.ArbiterCount
 		}
 
 		if subvolreq.ReplicaCount == 0 {
