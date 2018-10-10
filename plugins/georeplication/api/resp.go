@@ -82,6 +82,9 @@ type GeorepSession struct {
 	Options     map[string]string  `json:"options"`
 }
 
+// GeorepSessionList represents list of Geo-replication session
+type GeorepSessionList []GeorepSession
+
 // GeorepOption represents Config details
 type GeorepOption struct {
 	Name         string `json:"name"`

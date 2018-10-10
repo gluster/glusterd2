@@ -60,7 +60,7 @@ func (c *Client) GeorepDelete(mastervolid string, slavevolid string, force bool)
 }
 
 // GeorepStatus gets status of Geo-replication sessions
-func (c *Client) GeorepStatus(mastervolid string, slavevolid string) ([]georepapi.GeorepSession, error) {
+func (c *Client) GeorepStatus(mastervolid string, slavevolid string) (georepapi.GeorepSessionList, error) {
 	url := "/v1/geo-replication"
 	allSessions := false
 	var err error
@@ -69,14 +69,14 @@ func (c *Client) GeorepStatus(mastervolid string, slavevolid string) ([]georepap
 		allSessions = true
 		url = fmt.Sprintf("%s/%s/%s", url, mastervolid, slavevolid)
 	}
-	var sessions []georepapi.GeorepSession
+	var sessions georepapi.GeorepSessionList
 	if !allSessions {
 		err = c.get(url, nil, http.StatusOK, &sessions)
 	} else {
 		var session georepapi.GeorepSession
 		err = c.get(url, nil, http.StatusOK, &session)
 		if err == nil {
-			sessions = []georepapi.GeorepSession{session}
+			sessions = georepapi.GeorepSessionList{session}
 		}
 	}
 	return sessions, err

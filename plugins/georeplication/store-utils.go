@@ -65,13 +65,13 @@ func deleteSession(mastervolid string, remotevolid string) error {
 }
 
 // getSessionList gets list of Geo-replication sessions
-func getSessionList() ([]*georepapi.GeorepSession, error) {
+func getSessionList() (*georepapi.GeorepSessionList, error) {
 	resp, e := store.Get(context.TODO(), georepPrefix, clientv3.WithPrefix())
 	if e != nil {
 		return nil, e
 	}
 
-	sessions := make([]*georepapi.GeorepSession, len(resp.Kvs))
+	sessions := make(georepapi.GeorepSessionList, len(resp.Kvs))
 
 	for i, kv := range resp.Kvs {
 		var session georepapi.GeorepSession
@@ -81,10 +81,10 @@ func getSessionList() ([]*georepapi.GeorepSession, error) {
 			continue
 		}
 
-		sessions[i] = &session
+		sessions[i] = session
 	}
 
-	return sessions, nil
+	return &sessions, nil
 }
 
 // addOrUpdateSSHKeys marshals the georep SSH Public keys to add/update
