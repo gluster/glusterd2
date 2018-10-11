@@ -58,7 +58,7 @@ s/^Release:[[:space:]]+.*%\\{\\?dist\\}/Release: $RELEASE%{?dist}/;
 # Replace Source0 with generated archive
 s/^Source0:[[:space:]]+.*-vendor.tar.xz/Source0: $DISTARCHIVE/;
 # Change prep setup line to use correct release
-s/^(%setup -q -n %\\{name\\}-v%\\{version\\}-)(0)/\\1$RELEASE/;
+s/^(%setup -q -n %\\{name\\}-v%\\{gd2version\\}-)(%\\{gd2release\\})/\\1$RELEASE/;
 " $SPEC
 
 ##
