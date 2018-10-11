@@ -1,6 +1,7 @@
 package transaction
 
 import (
+	"context"
 	"encoding/json"
 	"errors"
 
@@ -11,12 +12,11 @@ import (
 	log "github.com/sirupsen/logrus"
 	"go.opencensus.io/plugin/ocgrpc"
 	"go.opencensus.io/trace"
-	netctx "golang.org/x/net/context"
 	"google.golang.org/grpc"
 )
 
 // runStepOn will run the step on the specified node
-func runStepOn(origCtx netctx.Context, step string, node uuid.UUID, c TxnCtx) error {
+func runStepOn(origCtx context.Context, step string, node uuid.UUID, c TxnCtx) error {
 	// TODO: I'm creating connections on demand. This should be changed so that
 	// we have long term connections.
 	p, err := peer.GetPeerF(node.String())
