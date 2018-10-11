@@ -101,7 +101,7 @@ func (p *Plugin) RestRoutes() route.Routes {
 			Method:       "GET",
 			Pattern:      "/geo-replication",
 			Version:      1,
-			ResponseType: utils.GetTypeString((*georepapi.GeorepSession)(nil)),
+			ResponseType: utils.GetTypeString((*georepapi.GeorepSessionList)(nil)),
 			HandlerFunc:  georepStatusListHandler},
 		route.Route{
 			Name:         "GeoReplicationSshKeyGenerate",
