@@ -54,7 +54,8 @@ popd #GD2SRC
 
 pushd "$BUILDDIR"
 
-DISTARCHIVE="glusterd2-$FULL_VERSION-vendor.tar.xz"
+DISTBASE="glusterd2-$FULL_VERSION"
+DISTARCHIVE="$DISTBASE-vendor.tar.xz"
 SPEC=glusterd2.spec
 sed -i -E "
 # Use bundled always
@@ -62,11 +63,11 @@ s/with_bundled 0/with_bundled 1/;
 # Replace version with HEAD version
 s/^Version:[[:space:]]+([0-9]+\\.)*[0-9]+$/Version: $VERSION/;
 # Replace release with proper release
-s/^Release:[[:space:]]+.*%\\{\\?dist\\}/Release: $RELEASE%{?dist}/;
+s/^Release:[[:space:]]+.*%\\{\\?dist\\}/Release: 0.$RELEASE%{?dist}/;
 # Replace Source0 with generated archive
-s/^Source0:[[:space:]]+.*-vendor.tar.xz/Source0: $DISTARCHIVE/;
+s/^Source0:[[:space:]]+.*.tar.xz/Source0: $DISTARCHIVE/;
 # Change prep setup line to use correct release
-s/^(%setup -q -n %\\{name\\}-v%\\{gd2version\\}-)(%\\{gd2release\\})/\\1$RELEASE/;
+s/^%setup -q -n .*$/%setup -q -n $DISTBASE/;
 " $SPEC
 
 ##
