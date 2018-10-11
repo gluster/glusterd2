@@ -1,6 +1,8 @@
 package peercommands
 
 import (
+	"context"
+
 	"github.com/gluster/glusterd2/glusterd2/events"
 	"github.com/gluster/glusterd2/glusterd2/gdctx"
 	"github.com/gluster/glusterd2/glusterd2/peer"
@@ -11,7 +13,6 @@ import (
 	"github.com/pborman/uuid"
 
 	log "github.com/sirupsen/logrus"
-	"golang.org/x/net/context"
 	"google.golang.org/grpc"
 )
 
@@ -39,7 +40,7 @@ func (p *PeerService) Join(ctx context.Context, req *JoinReq) (*JoinRsp, error) 
 		defer mutex.Unlock()
 	} else {
 		logger.Info("rejecting join request, already processing another join/leave request")
-		return &JoinRsp{"", int32(ErrAnotherReqInProgress)}, nil
+		return &JoinRsp{PeerID: "", Err: int32(ErrAnotherReqInProgress)}, nil
 	}
 
 	logger.Info("handling new incoming join cluster request")
@@ -56,22 +57,22 @@ func (p *PeerService) Join(ctx context.Context, req *JoinReq) (*JoinRsp, error) 
 	peers, err := peer.GetPeersF()
 	if err != nil {
 		logger.WithError(err).Error("failed to connect to store")
-		return &JoinRsp{"", int32(ErrFailedToConnectToStore)}, nil
+		return &JoinRsp{PeerID: "", Err: int32(ErrFailedToConnectToStore)}, nil
 	}
 	if len(peers) != 1 {
 		logger.Info("rejecting join, already part of a cluster")
-		return &JoinRsp{"", int32(ErrAnotherCluster)}, nil
+		return &JoinRsp{PeerID: "", Err: int32(ErrAnotherCluster)}, nil
 	}
 
 	volumes, err := volume.GetVolumes(context.TODO())
 	if err != nil {
 		logger.WithError(err).Error("failed to connect to store")
-		return &JoinRsp{"", int32(ErrFailedToConnectToStore)}, nil
+		return &JoinRsp{PeerID: "", Err: int32(ErrFailedToConnectToStore)}, nil
 	}
 
 	if len(volumes) != 0 {
 		logger.Info("rejecting join, we already have volumes")
-		return &JoinRsp{"", int32(ErrAnotherCluster)}, nil
+		return &JoinRsp{PeerID: "", Err: int32(ErrAnotherCluster)}, nil
 	}
 
 	logger.Debug("all checks passed, joining new cluster")
@@ -86,18 +87,18 @@ func (p *PeerService) Join(ctx context.Context, req *JoinReq) (*JoinRsp, error) 
 		}
 	}(gdctx.MyClusterID.String())
 	if err := gdctx.UpdateClusterID(req.ClusterID); err != nil {
-		return &JoinRsp{"", int32(ErrClusterIDUpdateFailed)}, nil
+		return &JoinRsp{PeerID: "", Err: int32(ErrClusterIDUpdateFailed)}, nil
 	}
 
 	if err := ReconfigureStore(req.Config); err != nil {
 		logger.WithError(err).Error("reconfigure store failed, failed to join new cluster")
-		return &JoinRsp{"", int32(ErrStoreReconfigFailed)}, nil
+		return &JoinRsp{PeerID: "", Err: int32(ErrStoreReconfigFailed)}, nil
 	}
 	success = true
 	logger.Debug("reconfigured store to join new cluster")
 
 	logger.Info("joined new cluster")
-	return &JoinRsp{gdctx.MyUUID.String(), int32(ErrNone)}, nil
+	return &JoinRsp{PeerID: gdctx.MyUUID.String(), Err: int32(ErrNone)}, nil
 }
 
 // Leave makes the peer leave its current cluster, and restart as a single node cluster
@@ -108,7 +109,7 @@ func (p *PeerService) Leave(ctx context.Context, req *LeaveReq) (*LeaveRsp, erro
 		defer mutex.Unlock()
 	} else {
 		logger.Info("rejecting leave request, already processing another join/leave request")
-		return &LeaveRsp{int32(ErrAnotherReqInProgress)}, nil
+		return &LeaveRsp{Err: int32(ErrAnotherReqInProgress)}, nil
 	}
 
 	logger.Info("handling incoming leave cluster request")
@@ -124,10 +125,10 @@ func (p *PeerService) Leave(ctx context.Context, req *LeaveReq) (*LeaveRsp, erro
 
 	if p, err := peer.GetPeer(req.PeerID); err != nil {
 		logger.Info("could not verify peer")
-		return &LeaveRsp{int32(ErrUnknownPeer)}, nil
+		return &LeaveRsp{Err: int32(ErrUnknownPeer)}, nil
 	} else if p == nil {
 		logger.Info("rejecting leave, request received from unknown peer")
-		return &LeaveRsp{int32(ErrUnknownPeer)}, nil
+		return &LeaveRsp{Err: int32(ErrUnknownPeer)}, nil
 	}
 	logger.Debug("request received from known peer")
 
@@ -147,16 +148,16 @@ func (p *PeerService) Leave(ctx context.Context, req *LeaveReq) (*LeaveRsp, erro
 		}
 	}(gdctx.MyClusterID.String())
 	if err := gdctx.UpdateClusterID(uuid.New()); err != nil {
-		return &LeaveRsp{int32(ErrClusterIDUpdateFailed)}, nil
+		return &LeaveRsp{Err: int32(ErrClusterIDUpdateFailed)}, nil
 	}
 
 	logger.Debug("reconfiguring store with defaults")
-	if err := ReconfigureStore(&StoreConfig{store.NewConfig().Endpoints}); err != nil {
+	if err := ReconfigureStore(&StoreConfig{Endpoints: store.NewConfig().Endpoints}); err != nil {
 		logger.WithError(err).Warn("failed to reconfigure store with defaults")
 		// XXX: We should probably keep retrying here?
 	}
 	success = true
-	return &LeaveRsp{int32(ErrNone)}, nil
+	return &LeaveRsp{Err: int32(ErrNone)}, nil
 }
 
 // ReconfigureStore reconfigures the store with the given store config, if no
