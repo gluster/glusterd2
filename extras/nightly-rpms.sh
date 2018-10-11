@@ -6,6 +6,14 @@
 
 set -e
 
+YUMDNF=yum
+MOCKARGS=""
+
+if grep -q Fedora /etc/redhat-release; then
+  YUMDNF=dnf
+  MOCKARGS="--dnf"
+fi
+
 ##
 ## Set up build environment
 ##
@@ -15,7 +23,7 @@ BUILDDIR=$PWD/$(mktemp -d nightlyrpmXXXXXX)
 BASEDIR=$(dirname "$0")
 GD2CLONE=$(realpath "$BASEDIR/..")
 
-yum -y install make mock rpm-build golang
+$YUMDNF -y install make mock rpm-build golang
 
 export GOPATH=$BUILDDIR/go
 mkdir -p "$GOPATH"/{bin,pkg,src}
@@ -73,7 +81,7 @@ SRPM=$(rpmbuild --define "_topdir $PWD/rpmbuild" -bs rpmbuild/SPECS/$SPEC | cut 
 
 # Build RPM from SRPM using mock
 mkdir -p "$RESULTDIR"
-/usr/bin/mock -r epel-7-x86_64 --resultdir="$RESULTDIR" --rebuild "$SRPM"
+/usr/bin/mock "$MOCKARGS" -r epel-7-x86_64 --resultdir="$RESULTDIR" --rebuild "$SRPM"
 
 popd #BUILDDIR
 
