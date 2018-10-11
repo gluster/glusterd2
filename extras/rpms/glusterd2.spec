@@ -23,11 +23,11 @@
 
 %global gd2make %{__make} PREFIX=%{_prefix} EXEC_PREFIX=%{_exec_prefix} BINDIR=%{_bindir} SBINDIR=%{_sbindir} DATADIR=%{_datadir} LOCALSTATEDIR=%{_sharedstatedir} LOGDIR=%{_localstatedir}/log SYSCONFDIR=%{_sysconfdir} FASTBUILD=off
 
-%global gd2version 4.1.0
+%global gd2version 4.1.1
 %global gd2release 0
 
 Name: %{repo}
-Version: 4.1.0
+Version: 4.1.1
 Release: 1%{?dist}
 Summary: The GlusterFS management daemon (preview)
 License: GPLv2 or LGPLv3+
@@ -126,6 +126,9 @@ install -D -p -m 0644 %{SOURCE1} %{buildroot}%{_sysconfdir}/logrotate.d/%{name}
 %{_sysconfdir}/bash_completion.d/glustercli.sh
 
 %changelog
+* Thu Oct 11 2018 Kaushal M <kshlmster@gmail.com> - 4.1.1-1
+- Update to v4.1.1
+
 * Fri Jun 15 2018 Kaushal M <kshlmster@gmail.com> - 4.1.0-1
 - Update to v4.1.0
 
