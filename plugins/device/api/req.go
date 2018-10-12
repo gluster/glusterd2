@@ -10,7 +10,8 @@ const (
 
 // AddDeviceReq structure
 type AddDeviceReq struct {
-	Device string `json:"device"`
+	Device      string `json:"device"`
+	Provisioner string `json:"provisioner,omitempty"`
 }
 
 // EditDeviceReq structure

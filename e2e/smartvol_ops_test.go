@@ -29,7 +29,7 @@ func brickSizeTest(brickpath string, min uint64, max uint64) error {
 
 func checkZeroLvs(r *require.Assertions) {
 	for i := 1; i < 3; i++ {
-		nlv, err := numberOfLvs(fmt.Sprintf("vg-dev-gluster_loop%d", i))
+		nlv, err := numberOfLvs(fmt.Sprintf("gluster-dev-gluster_loop%d", i))
 		r.Nil(err)
 		if err == nil {
 			r.Equal(0, nlv)

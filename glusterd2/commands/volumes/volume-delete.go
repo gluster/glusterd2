@@ -78,7 +78,9 @@ func volumeDeleteHandler(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	bricksAutoProvisioned := volinfo.IsAutoProvisioned() || volinfo.IsSnapshotProvisioned()
+	// TODO: Include volinfo.IsSnapshotProvisioned() once
+	// Snapshot integrated with Provisioner interface
+	bricksAutoProvisioned := volinfo.IsAutoProvisioned()
 	txn.Steps = []*transaction.Step{
 		{
 			DoFunc: "vol-delete.CleanBricks",

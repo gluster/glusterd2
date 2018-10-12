@@ -41,6 +41,18 @@ func deviceAddHandler(w http.ResponseWriter, r *http.Request) {
 	}
 	defer txn.Done()
 
+	_, err = deviceutils.GetDevice(peerID, req.Device)
+	if err == nil {
+		logger.WithError(err).WithField("device", req.Device).Error("Device already exists")
+		restutils.SendHTTPError(ctx, w, http.StatusBadRequest, "device already exists")
+		return
+	}
+
+	if err != deviceutils.ErrDeviceNotFound {
+		restutils.SendHTTPError(ctx, w, http.StatusInternalServerError, "failed to get device details from store")
+		return
+	}
+
 	peerInfo, err := peer.GetPeer(peerID)
 	if err != nil {
 		logger.WithError(err).WithField("peerid", peerID).Error("Peer ID not found in store")
@@ -49,19 +61,6 @@ func deviceAddHandler(w http.ResponseWriter, r *http.Request) {
 		} else {
 			restutils.SendHTTPError(ctx, w, http.StatusInternalServerError, "failed to get peer details from store")
 		}
-		return
-	}
-
-	devices, err := deviceutils.GetDevicesFromPeer(peerInfo)
-	if err != nil {
-		logger.WithError(err).WithField("peerid", peerID).Error("Failed to get device from peer")
-		restutils.SendHTTPError(ctx, w, http.StatusInternalServerError, err)
-		return
-	}
-
-	if index := deviceutils.DeviceInList(req.Device, devices); index >= 0 {
-		logger.WithError(err).WithField("device", req.Device).Error("Device already exists")
-		restutils.SendHTTPError(ctx, w, http.StatusBadRequest, "device already exists")
 		return
 	}
 
@@ -87,22 +86,29 @@ func deviceAddHandler(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
+	err = txn.Ctx.Set("provisioner", &req.Provisioner)
+	if err != nil {
+		logger.WithError(err).WithField("key", "provisioner").Error("failed to set key in transaction context")
+		restutils.SendHTTPError(ctx, w, http.StatusInternalServerError, err)
+		return
+	}
+
 	err = txn.Do()
 	if err != nil {
 		logger.WithError(err).Error("Transaction to prepare device failed")
 		restutils.SendHTTPError(ctx, w, http.StatusInternalServerError, "transaction to prepare device failed")
 		return
 	}
-	peerInfo, err = peer.GetPeer(peerID)
+	deviceInfo, err := deviceutils.GetDevice(peerID, req.Device)
 	if err != nil {
-		logger.WithError(err).WithField("peerid", peerID).Error("Failed to get peer from store")
-		restutils.SendHTTPError(ctx, w, http.StatusInternalServerError, "failed to get peer from store")
+		logger.WithError(err).WithField("peerid", peerID).Error("Failed to get device from store")
+		restutils.SendHTTPError(ctx, w, http.StatusInternalServerError, "failed to get device from store")
 		return
 	}
 
 	// FIXME: Change this to http.StatusCreated when we are able to set
 	// location header with a unique URL that points to created device.
-	restutils.SendHTTPResponse(ctx, w, http.StatusOK, peerInfo)
+	restutils.SendHTTPResponse(ctx, w, http.StatusOK, deviceInfo)
 }
 
 func deviceListHandler(w http.ResponseWriter, r *http.Request) {
@@ -110,12 +116,18 @@ func deviceListHandler(w http.ResponseWriter, r *http.Request) {
 	ctx := r.Context()
 	logger := gdctx.GetReqLogger(ctx)
 	peerID := mux.Vars(r)["peerid"]
-	if uuid.Parse(peerID) == nil {
+	if peerID != "" && uuid.Parse(peerID) == nil {
 		restutils.SendHTTPError(ctx, w, http.StatusBadRequest, "invalid peer-id passed in url")
 		return
 	}
 
-	devices, err := deviceutils.GetDevices(peerID)
+	var devices []deviceapi.Info
+	var err error
+	if peerID == "" {
+		devices, err = deviceutils.GetDevices()
+	} else {
+		devices, err = deviceutils.GetDevices(peerID)
+	}
 	if err != nil {
 		logger.WithError(err).WithField("peerid", peerID).Error(
 			"Failed to get devices for peer")
@@ -168,18 +180,4 @@ func deviceEditHandler(w http.ResponseWriter, r *http.Request) {
 	}
 
 	restutils.SendHTTPResponse(ctx, w, http.StatusOK, nil)
-}
-
-func listAllDevicesHandler(w http.ResponseWriter, r *http.Request) {
-
-	ctx := r.Context()
-	logger := gdctx.GetReqLogger(ctx)
-	devices, err := deviceutils.GetDevices()
-	if err != nil {
-		logger.WithError(err).Error(err)
-		restutils.SendHTTPError(ctx, w, http.StatusInternalServerError, err)
-		return
-	}
-
-	restutils.SendHTTPResponse(ctx, w, http.StatusOK, devices)
 }

@@ -7,7 +7,7 @@ import (
 
 	"github.com/gluster/glusterd2/glusterd2/volume"
 	"github.com/gluster/glusterd2/pkg/api"
-	"github.com/gluster/glusterd2/plugins/device/deviceutils"
+	"github.com/gluster/glusterd2/pkg/lvmutils"
 
 	config "github.com/spf13/viper"
 )
@@ -76,7 +76,7 @@ func getBricksLayout(req *api.VolCreateReq) ([]api.SubvolReq, error) {
 
 	// User input will be in MBs, convert to KBs for all
 	// internal usage
-	subvolSize := deviceutils.MbToKb(req.Size)
+	subvolSize := lvmutils.MbToKb(req.Size)
 	if numSubvols > 1 {
 		subvolSize = subvolSize / uint64(numSubvols)
 	}
@@ -118,19 +118,13 @@ func getBricksLayout(req *api.VolCreateReq) ([]api.SubvolReq, error) {
 		for j := 0; j < subvolplanner.BricksCount(); j++ {
 			eachBrickSize := subvolplanner.BrickSize(j)
 			brickType := subvolplanner.BrickType(j)
-			eachBrickTpSize := uint64(float64(eachBrickSize) * req.SnapshotReserveFactor)
 
 			bricks = append(bricks, api.BrickReq{
-				Type:           brickType,
-				Path:           fmt.Sprintf("%s/%s/subvol%d/brick%d/brick", bricksMountRoot, req.Name, i+1, j+1),
-				Mountdir:       "/brick",
-				TpName:         fmt.Sprintf("tp_%s_s%d_b%d", req.Name, i+1, j+1),
-				LvName:         fmt.Sprintf("brick_%s_s%d_b%d", req.Name, i+1, j+1),
-				Size:           eachBrickSize,
-				TpSize:         eachBrickTpSize,
-				TpMetadataSize: deviceutils.GetPoolMetadataSize(eachBrickTpSize),
-				FsType:         "xfs",
-				MntOpts:        "rw,inode64,noatime,nouuid",
+				Type:     brickType,
+				Path:     fmt.Sprintf("%s/%s/subvol%d/brick%d/brick", bricksMountRoot, req.Name, i+1, j+1),
+				Mountdir: "/brick",
+				Name:     fmt.Sprintf("%s_s%d_b%d", req.Name, i+1, j+1),
+				Size:     eachBrickSize,
 			})
 		}
 
@@ -177,14 +171,15 @@ func PlanBricks(req *api.VolCreateReq) error {
 		// with device with expected space available.
 		numBricksAllocated := 0
 		for bidx, b := range sv.Bricks {
-			totalsize := b.TpSize + b.TpMetadataSize
+			tpSize := uint64(float64(b.Size) * req.SnapshotReserveFactor)
+			tpMetadataSize := lvmutils.GetTpMetadataSize(tpSize)
+			totalsize := tpSize + tpMetadataSize
 
 			for _, vg := range availableVgs {
 				_, zoneUsed := zones[vg.Zone]
 				if vg.AvailableSize >= totalsize && !zoneUsed && !vg.Used {
 					subvols[idx].Bricks[bidx].PeerID = vg.PeerID
-					subvols[idx].Bricks[bidx].VgName = vg.Name
-					subvols[idx].Bricks[bidx].DevicePath = "/dev/" + vg.Name + "/" + b.LvName
+					subvols[idx].Bricks[bidx].Device = vg.Device
 
 					zones[vg.Zone] = struct{}{}
 					numBricksAllocated++
@@ -205,14 +200,15 @@ func PlanBricks(req *api.VolCreateReq) error {
 		// but enough space is available in the devices
 		for bidx := numBricksAllocated; bidx < len(sv.Bricks); bidx++ {
 			b := sv.Bricks[bidx]
-			totalsize := b.TpSize + b.TpMetadataSize
+			tpSize := uint64(float64(b.Size) * req.SnapshotReserveFactor)
+			tpMetadataSize := lvmutils.GetTpMetadataSize(tpSize)
+			totalsize := tpSize + tpMetadataSize
 
 			for _, vg := range availableVgs {
 				_, zoneUsed := zones[vg.Zone]
 				if vg.AvailableSize >= totalsize && !zoneUsed {
 					subvols[idx].Bricks[bidx].PeerID = vg.PeerID
-					subvols[idx].Bricks[bidx].VgName = vg.Name
-					subvols[idx].Bricks[bidx].DevicePath = "/dev/" + vg.Name + "/" + b.LvName
+					subvols[idx].Bricks[bidx].Device = vg.Device
 
 					zones[vg.Zone] = struct{}{}
 					numBricksAllocated++

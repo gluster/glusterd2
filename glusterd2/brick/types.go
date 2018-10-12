@@ -33,6 +33,7 @@ type MountInfo struct {
 // Brickinfo is the static information about the brick
 type Brickinfo struct {
 	ID             uuid.UUID
+	Name           string
 	Hostname       string
 	PeerID         uuid.UUID
 	Path           string
@@ -42,6 +43,7 @@ type Brickinfo struct {
 	Type           Type
 	Decommissioned bool
 	PType          ProvisionType
+	Device         string
 	MountInfo
 }
 

@@ -4,6 +4,7 @@ import (
 	"context"
 	"strings"
 
+	"github.com/gluster/glusterd2/glusterd2/provisioners"
 	"github.com/gluster/glusterd2/glusterd2/volume"
 	"github.com/gluster/glusterd2/pkg/utils"
 
@@ -43,6 +44,28 @@ func MountLocalBricks() error {
 			if provisionType.IsAutoProvisioned() || provisionType.IsSnapshotProvisioned() {
 				mountRoot := strings.TrimSuffix(b.Path, b.MountInfo.Mountdir)
 				if _, exists := mounts[mountRoot]; exists {
+					continue
+				}
+
+				if v.Provisioner != "" {
+					provisioner, err := provisioners.Get(v.Provisioner)
+					if err != nil {
+						log.WithError(err).WithFields(log.Fields{
+							"volume":      v.Name,
+							"provisioner": v.Provisioner,
+						}).Error("unable to get provisioner")
+						continue
+					}
+
+					err = provisioner.MountBrick(b.Device, b.Name, b.Path)
+					if err != nil {
+						log.WithError(err).WithFields(log.Fields{
+							"volume": v.Name,
+							"device": b.Device,
+							"name":   b.Name,
+							"path":   b.Path,
+						}).Error("brick mount failed")
+					}
 					continue
 				}
 
