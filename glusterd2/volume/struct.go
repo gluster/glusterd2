@@ -264,7 +264,7 @@ func (v *Volinfo) Peers() []*peer.Peer {
 	return peers
 }
 
-//SubvolTypeToString converts VolType to corresponding string
+//SubvolTypeToString converts SubVolType to corresponding string
 func SubvolTypeToString(subvolType SubvolType) string {
 	switch subvolType {
 	case SubvolReplicate:

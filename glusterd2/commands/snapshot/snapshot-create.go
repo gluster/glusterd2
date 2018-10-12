@@ -491,23 +491,21 @@ func createSnapSubvols(newVolinfo, origVolinfo *volume.Volinfo, nodeData map[str
 		s.ReplicaCount = subvol.ReplicaCount
 		s.Subvols = subvol.Subvols
 		//what is subvol ?
-		{
-			var bricks []api.BrickReq
-			for _, brickinfo := range subvol.Bricks {
-				mountData := nodeData[brickinfo.String()]
-				peerID := brickinfo.PeerID.String()
-				brick := api.BrickReq{
-					PeerID: peerID,
-					Type:   subvolType,
-					Path:   mountData.Path,
-				}
+		var bricks []api.BrickReq
+		for _, brickinfo := range subvol.Bricks {
+			mountData := nodeData[brickinfo.String()]
+			peerID := brickinfo.PeerID.String()
+			brick := api.BrickReq{
+				PeerID: peerID,
+				Type:   brickinfo.BrickTypeToString(),
+				Path:   mountData.Path,
+			}
 
-				bricks = append(bricks, brick)
-			}
-			s.Bricks, err = volume.NewBrickEntriesFunc(bricks, newVolinfo.Name, newVolinfo.VolfileID, newVolinfo.ID, brick.SnapshotProvisioned)
-			if err != nil {
-				return err
-			}
+			bricks = append(bricks, brick)
+		}
+		s.Bricks, err = volume.NewBrickEntriesFunc(bricks, newVolinfo.Name, newVolinfo.VolfileID, newVolinfo.ID, brick.SnapshotProvisioned)
+		if err != nil {
+			return err
 		}
 		for count := 0; count < len(s.Bricks); count++ {
 			key := subvol.Bricks[count].String()

@@ -165,3 +165,13 @@ func (b *Brickinfo) Validate(check InitChecks, allLocalBricks []Brickinfo) error
 	// mandatory check that cannot be skipped forcefully
 	return isBrickInActiveUse(b.Path, allLocalBricks)
 }
+
+//BrickTypeToString converts BrickType to corresponding string
+func (b *Brickinfo) BrickTypeToString() string {
+	switch b.Type {
+	case Arbiter:
+		return "arbiter"
+	default:
+		return "brick"
+	}
+}
