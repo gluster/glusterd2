@@ -117,8 +117,8 @@ func (c *Client) VolumeSet(volname string, req api.VolOptionReq) error {
 	return err
 }
 
-// GlobalOptionSet sets cluster level options
-func (c *Client) GlobalOptionSet(req api.GlobalOptionReq) error {
+// ClusterOptionSet sets cluster level options
+func (c *Client) ClusterOptionSet(req api.ClusterOptionReq) error {
 	url := fmt.Sprintf("/v1/cluster/options")
 	return c.post(url, req, http.StatusOK, nil)
 }
