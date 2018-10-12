@@ -6,6 +6,12 @@ import (
 	"fmt"
 	"net"
 	"sync"
+
+	"github.com/gluster/glusterd2/glusterd2/gdctx"
+	"github.com/gluster/glusterd2/pkg/firewalld"
+
+	"github.com/godbus/dbus"
+	log "github.com/sirupsen/logrus"
 )
 
 // common ephemeral port range across IANA's range (49152 to 65535),
@@ -31,6 +37,9 @@ type pmapRegistry struct {
 	// map from port number to list of bricks
 	// used to process disconnections
 	Ports map[int]brickSet `json:"ports,omitempty"`
+
+	notifyFirewalld   bool
+	firewalldReloadCh chan *dbus.Signal
 }
 
 func (r *pmapRegistry) String() string {
@@ -62,6 +71,14 @@ func (r *pmapRegistry) Update(port int, brickpath string, conn net.Conn) error {
 
 	if r.Ports[port] == nil {
 		r.Ports[port] = make(map[string]struct{})
+
+		// add port to default zone in firewalld
+		if r.notifyFirewalld {
+			if err := firewalld.AddPort("", port, firewalld.ProtoTCP); err != nil {
+				log.WithError(err).WithField("port",
+					port).Warn("firewalld.AddPort() failed")
+			}
+		}
 	}
 	r.Ports[port][brickpath] = struct{}{}
 
@@ -114,6 +131,13 @@ func (r *pmapRegistry) RemovePortByConn(conn net.Conn) error {
 	}
 	delete(r.Ports, port)
 
+	if r.notifyFirewalld && !gdctx.IsTerminating {
+		if err := firewalld.RemovePort("", port, firewalld.ProtoTCP); err != nil {
+			log.WithError(err).WithField("port",
+				port).Warn("firewalld.RemovePort() failed")
+		}
+	}
+
 	return nil
 }
 
@@ -139,18 +163,45 @@ func (r *pmapRegistry) Remove(port int, brickpath string, conn net.Conn) error {
 	return nil
 }
 
+func (r *pmapRegistry) reconcileFirewalld() {
+	// From dbus.Conn.Signal:
+	// The caller has to make sure that channel is sufficiently buffered;
+	// if a message arrives when a write to channel is not possible, it is
+	// discarded.
+	sigCh := make(chan *dbus.Signal, 10)
+	firewalld.NotifyOnReload(sigCh)
+	for range sigCh {
+		log.Debug("firewalld reloaded, reconciling ports")
+		r.Lock()
+		for port := range r.Ports {
+			if err := firewalld.AddPort("", port, firewalld.ProtoTCP); err != nil {
+				log.WithError(err).WithField("port",
+					port).Warn("firewalld.AddPort() failed")
+			}
+		}
+		r.Unlock()
+	}
+}
+
 var registry *pmapRegistry
 
-func init() {
+// Init initializes the pmap registry
+func Init() {
 
 	if registry != nil {
 		panic("registry is not nil: this shouldn't happen")
 	}
 
 	registry = &pmapRegistry{
-		Ports:  make(map[int]brickSet),
-		bricks: make(map[string]int),
-		conns:  make(map[net.Conn]int),
+		Ports:             make(map[int]brickSet),
+		bricks:            make(map[string]int),
+		conns:             make(map[net.Conn]int),
+		notifyFirewalld:   true,
+		firewalldReloadCh: make(chan *dbus.Signal, 10),
+	}
+
+	if registry.notifyFirewalld {
+		go registry.reconcileFirewalld()
 	}
 
 	expvar.Publish("pmap", registry)
