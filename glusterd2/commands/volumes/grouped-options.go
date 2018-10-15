@@ -129,6 +129,28 @@ var defaultGroupOptions = map[string]*api.OptionGroup{
 			{Name: "features.shard", OnValue: "on"},
 			{Name: "user.cifs", OnValue: "off"}},
 		"Enable this profile, if the Gluster Volume is used to store virtual machines"},
+	"profile.db": {"profile.db",
+		[]api.VolumeOption{
+			// enable/disable xlators (depends on volgen support PR #1229)
+			{Name: "open-behind", OnValue: "on"},
+			{Name: "write-behind", OnValue: "off"},
+			{Name: "quick-read", OnValue: "off"},
+			{Name: "read-ahead", OnValue: "off"},
+			{Name: "io-cache", OnValue: "off"},
+			{Name: "readdir-ahead", OnValue: "off"},
+			// as per new volgen, this has been named 'md-cache' instead of its
+			// legacy name 'stat-prefetch'
+			{Name: "md-cache", OnValue: "off"},
+			// FIXME: how should this option be named ? fuse.io-threads ?
+			// https://github.com/gluster/glusterd2/issues/376#issuecomment-424970778
+			{Name: "client-io-threads", OnValue: "on"},
+			// xlator options
+			{Name: "server.event-threads", OnValue: "4"},
+			{Name: "client.event-threads", OnValue: "4"},
+			{Name: "open-behind.read-after-open", OnValue: "on"},
+			{Name: "write-behind.strict-O_DIRECT", OnValue: "on"},
+		},
+		"Enable profile that tunes volume for database workload"},
 	"tls": {"tls",
 		[]api.VolumeOption{
 			{Name: "server.transport.socket.ssl-enabled", OnValue: "on"},
