@@ -158,7 +158,7 @@ func GetMounts() ([]*Mntent, error) {
 
 //IsMountExist return success when mount point already exist
 //If mtab values is given, it does high level validation of mount
-//Else it will skip device verfication and just does xattr validation
+//Else it will skip device verification and just does xattr validation
 func IsMountExist(b *brick.Brickinfo, iD uuid.UUID, mtab []*Mntent) bool {
 
 	if _, err := os.Lstat(b.Path); err != nil {
