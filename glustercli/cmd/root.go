@@ -4,6 +4,7 @@ import (
 	"fmt"
 	"io/ioutil"
 	"os"
+	"strings"
 
 	"github.com/gluster/glusterd2/pkg/logging"
 
@@ -37,7 +38,8 @@ func NewGlustercliCmd() *cobra.Command {
 			opts.Init()
 		},
 	}
-	opts.AddPersistentFlag(rootCmd.PersistentFlags())
+	opts.flagSet = rootCmd.PersistentFlags()
+	opts.AddPersistentFlag(opts.flagSet)
 	addSubCommands(rootCmd)
 	GlobalFlag = opts
 	return rootCmd
@@ -56,6 +58,7 @@ func addSubCommands(rootCmd *cobra.Command) {
 
 // GlustercliOption will have all global flags set during run time
 type GlustercliOption struct {
+	flagSet    *pflag.FlagSet
 	ScriptMode bool
 	XMLOutput  bool
 	JSONOutput bool
@@ -103,6 +106,10 @@ func (gOpt *GlustercliOption) Init() {
 	}
 	//Initialize Secret
 	gOpt.SetSecret()
+
+	// Initialize Endpoints
+	gOpt.SetEndpoints()
+
 	//Initializing Rest Client
 	initRESTClient(gOpt.Endpoints[0], gOpt.User, gOpt.Secret, gOpt.Cacert, gOpt.Insecure)
 
@@ -112,7 +119,7 @@ func (gOpt *GlustercliOption) Init() {
 // Secret is taken in following order of precedence (highest to lowest):
 // --secret
 // --secret-file
-// GLUSTERD2_AUTH_SECRET (environment variable)
+// GD2_AUTH_SECRET (environment variable)
 // --secret-file (default path)
 //
 // NOTE: For simplicity, we don't distinguish between an empty
@@ -133,8 +140,8 @@ func (gOpt *GlustercliOption) SetSecret() {
 		return
 	}
 
-	// GLUSTERD2_AUTH_SECRET
-	if secret := os.Getenv("GLUSTERD2_AUTH_SECRET"); secret != "" {
+	// GD2_AUTH_SECRET
+	if secret := os.Getenv("GD2_AUTH_SECRET"); secret != "" {
 		gOpt.Secret = secret
 		return
 	}
@@ -148,4 +155,22 @@ func (gOpt *GlustercliOption) SetSecret() {
 		}
 	}
 	gOpt.Secret = string(data)
+}
+
+// SetEndpoints will Set the endpoints based on precedence.
+// Endpoints are taken in following order of precedence (highest to lowest):
+// --endpoints
+// GD2_ENDPOINTS (environment variable)
+// (default value)
+func (gOpt *GlustercliOption) SetEndpoints() {
+	// if --endpoints is set
+	if gOpt.flagSet.Changed("endpoints") {
+		return
+	}
+
+	// GD2_ENDPOINTS
+	if endpoint := os.Getenv("GD2_ENDPOINTS"); endpoint != "" {
+		gOpt.Endpoints = strings.Split(endpoint, ",")
+		return
+	}
 }
