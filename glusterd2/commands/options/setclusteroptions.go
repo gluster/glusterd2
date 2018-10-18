@@ -6,8 +6,13 @@ import (
 
 	"github.com/gluster/glusterd2/glusterd2/options"
 	restutils "github.com/gluster/glusterd2/glusterd2/servers/rest/utils"
+	"github.com/gluster/glusterd2/glusterd2/transaction"
 	"github.com/gluster/glusterd2/pkg/api"
 	"github.com/gluster/glusterd2/pkg/errors"
+)
+
+const (
+	lockKey = "clusteroptions"
 )
 
 func setClusterOptionsHandler(w http.ResponseWriter, r *http.Request) {
@@ -19,7 +24,13 @@ func setClusterOptionsHandler(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	// TODO: Take lock here
+	txn, err := transaction.NewTxnWithLocks(ctx, lockKey)
+	if err != nil {
+		status, err := restutils.ErrToStatusCode(err)
+		restutils.SendHTTPError(ctx, w, status, err)
+		return
+	}
+	defer txn.Done()
 
 	c, err := options.GetClusterOptions()
 	if err != nil && err != errors.ErrClusterOptionsNotFound {
@@ -27,13 +38,19 @@ func setClusterOptionsHandler(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	for k, v := range req.Options {
-		if _, found := options.ClusterOptMap[k]; found {
-			// TODO validate the value type for global option
+	if c == nil {
+		c = new(options.ClusterOptions)
+		c.Options = make(map[string]string)
+	}
 
-			if c == nil {
-				c = new(options.ClusterOptions)
-				c.Options = make(map[string]string)
+	for k, v := range req.Options {
+		if opt, found := options.ClusterOptMap[k]; found {
+			if opt.ValidateFunc != nil {
+				if err := opt.ValidateFunc(k, v); err != nil {
+					restutils.SendHTTPError(ctx, w, http.StatusBadRequest,
+						fmt.Sprintf("%s failed validation: %s", k, err))
+					return
+				}
 			}
 			c.Options[k] = v
 		} else {

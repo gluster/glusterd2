@@ -20,17 +20,26 @@ type ClusterOption struct {
 	Key          string
 	DefaultValue string
 	Type         OptionType
+	ValidateFunc validateFunc `json:"-"`
 }
 
+type validateFunc func(string, string) error
+
 // ClusterOptMap contains list of supported cluster-wide options, default values and value types
-var ClusterOptMap = map[string]ClusterOption{
-	"cluster.server-quorum-ratio":    {"cluster.server-quorum-ratio", "51", OptionTypePercent},
-	"cluster.shared-storage":         {"cluster.shared-storage", "disable", OptionTypeBool},
-	"cluster.op-version":             {"cluster.op-version", strconv.Itoa(gdctx.OpVersion), OptionTypeInt},
-	"cluster.max-op-version":         {"cluster.max-op-version", strconv.Itoa(gdctx.OpVersion), OptionTypeInt},
-	"cluster.brick-multiplex":        {"cluster.brick-multiplex", "disable", OptionTypeBool},
-	"cluster.max-bricks-per-process": {"cluster.max-bricks-per-process", "0", OptionTypeInt},
-	"cluster.localtime-logging":      {"cluster.localtime-logging", "disable", OptionTypeBool},
+var ClusterOptMap = map[string]*ClusterOption{
+	"cluster.shared-storage":         {"cluster.shared-storage", "off", OptionTypeBool, nil},
+	"cluster.op-version":             {"cluster.op-version", strconv.Itoa(gdctx.OpVersion), OptionTypeInt, nil},
+	"cluster.max-op-version":         {"cluster.max-op-version", strconv.Itoa(gdctx.OpVersion), OptionTypeInt, nil},
+	"cluster.brick-multiplex":        {"cluster.brick-multiplex", "off", OptionTypeBool, nil},
+	"cluster.max-bricks-per-process": {"cluster.max-bricks-per-process", "0", OptionTypeInt, nil},
+	"cluster.localtime-logging":      {"cluster.localtime-logging", "off", OptionTypeBool, nil},
+}
+
+// RegisterClusterOpValidationFunc registers a validation function for provided
+// cluster option which will be called when the cluster option is being set or
+// unset.
+func RegisterClusterOpValidationFunc(option string, fn validateFunc) {
+	ClusterOptMap[option].ValidateFunc = fn
 }
 
 // ClusterOptions contains cluster-wide attributes
@@ -72,8 +81,10 @@ func GetClusterOption(key string) (string, error) {
 	}
 
 	result := globalopt.DefaultValue
-	if value, ok := c.Options[key]; ok {
-		result = value
+	if c != nil {
+		if value, ok := c.Options[key]; ok {
+			result = value
+		}
 	}
 
 	return result, nil
