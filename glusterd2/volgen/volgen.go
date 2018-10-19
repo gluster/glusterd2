@@ -1,6 +1,7 @@
 package volgen
 
 import (
+	"errors"
 	"strconv"
 	"strings"
 
@@ -8,6 +9,8 @@ import (
 	"github.com/gluster/glusterd2/glusterd2/gdctx"
 	"github.com/gluster/glusterd2/glusterd2/volume"
 	"github.com/gluster/glusterd2/pkg/utils"
+
+	"github.com/pborman/uuid"
 )
 
 // Entry represents one Xlator entry in Volfile
@@ -207,11 +210,52 @@ VolinfoLoop:
 	return volfile.Generate()
 }
 
-func volumegraph(tmpl *Template, volinfo *volume.Volinfo, entry *Entry, varStrData *map[string]string, extraStringMaps *stringMapVolume) error {
+func volumegraph(tmpl *Template, volinfo volume.Volinfo, entry *Entry, varStrData *map[string]string, extraStringMaps *stringMapVolume) error {
 	numSubvols := len(volinfo.Subvols)
+	// thin arbiter support, if thin arbiter is set then add virtual brick
+	// to each sub volume, so that resulting volfile
+	// will include that details
+	thinarbiter, exists := volinfo.Options[thinArbiterOptionName]
+	remotePort := thinArbiterDefaultPort
+
+	if exists && thinarbiter != "" {
+		taParts := strings.Split(thinarbiter, ":")
+		if len(taParts) != 2 && len(taParts) != 3 {
+			return errors.New("invalid thin arbiter brick details")
+		}
+
+		if len(taParts) >= 3 {
+			remotePort = taParts[2]
+		}
+
+		// Slices are sent as reference, updating subvols directly
+		// by index will update the global volinfo
+		// volinfo.Subvols[sidx].Bricks = append(..
+		// Copy the subvols list before updating
+		subvols := volinfo.Subvols
+		volinfo.Subvols = []volume.Subvol{}
+		for sidx, sv := range subvols {
+			volinfo.Subvols = append(volinfo.Subvols, sv)
+			// Add extra virtual brick entry
+			volinfo.Subvols[sidx].Bricks = append(
+				volinfo.Subvols[sidx].Bricks,
+				brick.Brickinfo{
+					ID:         uuid.NewRandom(),
+					Hostname:   taParts[0],
+					Path:       taParts[1],
+					VolumeName: volinfo.Name,
+					VolumeID:   volinfo.ID,
+					Type:       brick.ThinArbiter,
+				},
+			)
+		}
+		// Recreate extraStringMaps after adding thin arbiter virtual brick
+		*extraStringMaps = getExtraStringMaps(&volinfo)
+	}
+
 	// Subvol Xlators list and Brick Xlators
 	for sidx, sv := range volinfo.Subvols {
-		subvolXlators, err := tmpl.EnabledSubvolGraphXlators(volinfo, &sv)
+		subvolXlators, err := tmpl.EnabledSubvolGraphXlators(&volinfo, &sv)
 		if err != nil {
 			return err
 		}
@@ -245,7 +289,7 @@ func volumegraph(tmpl *Template, volinfo *volume.Volinfo, entry *Entry, varStrDa
 		}
 
 		for bidx, b := range sv.Bricks {
-			brickXlators, err := tmpl.EnabledBrickGraphXlators(volinfo, &sv, &b)
+			brickXlators, err := tmpl.EnabledBrickGraphXlators(&volinfo, &sv, &b)
 			if err != nil {
 				return err
 			}
@@ -254,13 +298,23 @@ func volumegraph(tmpl *Template, volinfo *volume.Volinfo, entry *Entry, varStrDa
 				if bxl.OnlyLocalBricks && b.PeerID.String() != gdctx.MyUUID.String() {
 					continue
 				}
-				bentry = bentry.Add(bxl, utils.MergeStringMaps(
+
+				bopts := utils.MergeStringMaps(
 					*varStrData,
 					sv.StringMap(),
 					extraStringMaps.Subvols[sidx].StringMap,
 					b.StringMap(),
 					extraStringMaps.Subvols[sidx].Bricks[bidx].StringMap,
-				)).SetNamePrefix(sv.Name + "-" + strconv.Itoa(bidx))
+				)
+
+				// Add remote port if it is thin arbiter brick
+				if b.Type == brick.ThinArbiter {
+					bopts = utils.MergeStringMaps(
+						bopts,
+						map[string]string{"remote-port": remotePort},
+					)
+				}
+				bentry = bentry.Add(bxl, bopts).SetNamePrefix(sv.Name + "-" + strconv.Itoa(bidx))
 			}
 		}
 	}
@@ -284,7 +338,7 @@ func VolumeLevelVolfile(tmpl *Template, volinfo *volume.Volinfo) (string, error)
 	for _, xl := range xlators {
 		entry = entry.Add(xl, varStrData)
 	}
-	err = volumegraph(tmpl, volinfo, entry, &varStrData, &extraStringMaps)
+	err = volumegraph(tmpl, *volinfo, entry, &varStrData, &extraStringMaps)
 	if err != nil {
 		return "", err
 	}
@@ -330,7 +384,7 @@ func ClusterLevelVolfile(tmpl *Template, clusterinfo []*volume.Volinfo) (string,
 			continue
 		}
 
-		err = volumegraph(tmpl, volinfo, ventry, &varStrData, &extraStringMaps)
+		err = volumegraph(tmpl, *volinfo, ventry, &varStrData, &extraStringMaps)
 		if err != nil {
 			return "", err
 		}
