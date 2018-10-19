@@ -10,13 +10,15 @@ import (
 	"strconv"
 	"strings"
 
+	"github.com/gluster/glusterd2/glusterd2/brick"
 	"github.com/gluster/glusterd2/glusterd2/volume"
 
 	config "github.com/spf13/viper"
 )
 
 const (
-	thinArbiterOptionName = "replicate.thin-arbiter"
+	thinArbiterOptionName  = "replicate.thin-arbiter"
+	thinArbiterDefaultPort = "24007"
 )
 
 var varStrRE = regexp.MustCompile(`\{\{\s*(\S+)\s*\}\}`)
@@ -172,12 +174,6 @@ type stringMapVolume struct {
 func getExtraStringMaps(volinfo *volume.Volinfo) stringMapVolume {
 	data := stringMapVolume{}
 	data.Subvols = make([]stringMapSubvol, len(volinfo.Subvols))
-	thinArbiterEnabled := false
-	thinarbiter, exists := volinfo.Options[thinArbiterOptionName]
-
-	if exists && thinarbiter != "" {
-		thinArbiterEnabled = true
-	}
 
 	var decommissionedBricks []string
 	clientIdx := 0
@@ -197,20 +193,18 @@ func getExtraStringMaps(volinfo *volume.Volinfo) stringMapVolume {
 				)
 			}
 
+			nameFmt := "%s-client-%d"
+			if b.Type == brick.ThinArbiter {
+				nameFmt = "%s-ta-%d"
+			}
+
 			afrPendingXattrs = append(
 				afrPendingXattrs,
-				fmt.Sprintf("%s-client-%d", volinfo.Name, clientIdx),
+				fmt.Sprintf(nameFmt, volinfo.Name, clientIdx),
 			)
 			clientIdx++
 		}
 
-		if thinArbiterEnabled {
-			afrPendingXattrs = append(
-				afrPendingXattrs,
-				fmt.Sprintf("%s-ta-%d", volinfo.Name, clientIdx),
-			)
-			clientIdx++
-		}
 		data.Subvols[sidx].StringMap = map[string]string{
 			"subvol.afr-pending-xattr": strings.Join(afrPendingXattrs, ","),
 		}
