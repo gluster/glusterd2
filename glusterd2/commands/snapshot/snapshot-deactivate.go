@@ -10,6 +10,8 @@ import (
 	"github.com/gluster/glusterd2/glusterd2/transaction"
 	"github.com/gluster/glusterd2/glusterd2/volume"
 	"github.com/gluster/glusterd2/pkg/api"
+	"github.com/gluster/glusterd2/pkg/errors"
+
 	"github.com/gorilla/mux"
 	"github.com/pborman/uuid"
 	log "github.com/sirupsen/logrus"
@@ -111,8 +113,7 @@ func snapshotDeactivateHandler(w http.ResponseWriter, r *http.Request) {
 
 	vol = &snapinfo.SnapVolinfo
 	if vol.State != volume.VolStarted {
-		errMsg := "snapshot is already deactivated"
-		restutils.SendHTTPError(ctx, w, http.StatusBadRequest, errMsg)
+		restutils.SendHTTPError(ctx, w, http.StatusBadRequest, errors.ErrSnapDeactivated)
 		return
 	}
 
