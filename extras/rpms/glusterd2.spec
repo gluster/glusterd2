@@ -25,13 +25,13 @@
 
 %global gd2version 5.0
 # gd2prerel is only used for pre-releases. Comment it out for normal releases
-%global gd2prerel rc1
+#%global gd2prerel rc1
 # gd2tarbase is the base name for the GD2 source tarball
 %global gd2tarbase glusterd2-v%{gd2version}-%{!?gd2prerel:0}%{?gd2prerel}
 
 Name: %{repo}
 Version: %{gd2version}
-Release: 0%{?gd2prerel:.%{gd2prerel}}%{?dist}
+Release: 1%{?gd2prerel:.%{gd2prerel}}%{?dist}
 Summary: The GlusterFS management daemon (preview)
 License: GPLv2 or LGPLv3+
 URL: https://%{provider_prefix}
@@ -56,7 +56,6 @@ BuildRequires: golang(github.com/coreos/etcd/pkg/transport)
 BuildRequires: golang(github.com/coreos/etcd/pkg/types)
 BuildRequires: golang(github.com/coreos/pkg/capnslog)
 BuildRequires: golang(github.com/dgrijalva/jwt-go)
-BuildRequires: golang(github.com/godbus/dbus)
 BuildRequires: golang(github.com/golang/protobuf/proto)
 BuildRequires: golang(github.com/gorilla/handlers)
 BuildRequires: golang(github.com/gorilla/mux)
@@ -81,7 +80,7 @@ Requires: /usr/bin/strings
 %{?systemd_requires}
 
 %description
-The new GlusterFS management framework and daemon, for GlusterFS-4.0.
+The new GlusterFS management framework and daemon, for GlusterFS-5.0.
 
 %prep
 %setup -q -n %{gd2tarbase}
@@ -130,6 +129,9 @@ install -d -m 0755 %{buildroot}%{_sysconfdir}/sysconfig/%{name}
 %config %{_sysconfdir}/sysconfig/%{name}
 
 %changelog
+* Tue Oct 23 2018 Kaushal M <kshlmster@gmail.com> - 5.0-1
+- Update for v5.0-1 GA
+
 * Mon Sep 17 2018 Kaushal M <kshlmster@gmail.com> - 5.0.0-rc0
 - Create /etc/sysconfig/glusterd2
 - Add BuildRequires on golang(go.opencensus.io)
