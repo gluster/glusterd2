@@ -10,6 +10,8 @@ import (
 	"github.com/gluster/glusterd2/glusterd2/transaction"
 	"github.com/gluster/glusterd2/glusterd2/volume"
 	"github.com/gluster/glusterd2/pkg/api"
+	"github.com/gluster/glusterd2/pkg/errors"
+
 	"github.com/gorilla/mux"
 	"github.com/pborman/uuid"
 	log "github.com/sirupsen/logrus"
@@ -42,10 +44,16 @@ func deactivateSnapshot(c transaction.TxnCtx) error {
 	if err = snapshot.ActivateDeactivateFunc(&snapinfo, brickinfos, activate, c.Logger()); err != nil {
 		return err
 	}
+
+	mtab, err := volume.GetMounts()
+	if err != nil {
+		return err
+	}
+
 	for _, b := range vol.GetLocalBricks() {
 		//Remove mount point of offline bricks if it present
-		if snapshot.IsMountExist(b.Path, vol.ID) {
-			snapshot.UmountBrick(b)
+		if volume.IsMountExist(&b, vol.ID, mtab) {
+			volume.UmountBrick(b)
 		}
 	}
 
@@ -105,8 +113,7 @@ func snapshotDeactivateHandler(w http.ResponseWriter, r *http.Request) {
 
 	vol = &snapinfo.SnapVolinfo
 	if vol.State != volume.VolStarted {
-		errMsg := "snapshot is already deactivated"
-		restutils.SendHTTPError(ctx, w, http.StatusBadRequest, errMsg)
+		restutils.SendHTTPError(ctx, w, http.StatusBadRequest, errors.ErrSnapDeactivated)
 		return
 	}
 

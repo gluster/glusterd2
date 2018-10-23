@@ -49,6 +49,7 @@ var (
 	ErrSnapExists              = errors.New("snapshot already exists")
 	ErrSnapNotFound            = errors.New("snapshot not found")
 	ErrSnapNotActivated        = errors.New("snapshot not activated")
+	ErrSnapDeactivated         = errors.New("snapshot is already deactivated")
 	ErrInvalidVolFlags         = errors.New("invalid volume flags")
 	ErrMetadataSizeOutOfBounds = errors.New("metadata size exceeds max allowed size of 4KB")
 	ErrFetchingVolfileContent  = errors.New("unable to fetch volfile content")

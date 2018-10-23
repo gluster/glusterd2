@@ -123,7 +123,7 @@ func getBricksLayout(req *api.VolCreateReq) ([]api.SubvolReq, error) {
 			bricks = append(bricks, api.BrickReq{
 				Type:           brickType,
 				Path:           fmt.Sprintf("%s/%s/subvol%d/brick%d/brick", bricksMountRoot, req.Name, i+1, j+1),
-				Mountdir:       "/brick",
+				BrickDirSuffix: "/brick",
 				TpName:         fmt.Sprintf("tp_%s_s%d_b%d", req.Name, i+1, j+1),
 				LvName:         fmt.Sprintf("brick_%s_s%d_b%d", req.Name, i+1, j+1),
 				Size:           eachBrickSize,

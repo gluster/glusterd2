@@ -18,7 +18,7 @@ const (
 )
 
 var (
-	requiredClaims = []string{"iss", "exp"}
+	requiredClaims = []string{"iss", "exp", "qsh"}
 )
 
 func getAuthSecret(issuer string) string {
