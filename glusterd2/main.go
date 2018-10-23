@@ -139,11 +139,11 @@ func main() {
 
 	pmap.Init()
 
-	// Restart previously running daemons
-	daemon.StartAllDaemons()
-
 	// Mount all Local Bricks
 	gdutils.MountLocalBricks()
+
+	// Restart previously running daemons
+	daemon.StartAllDaemons()
 
 	// Use the main goroutine as signal handling loop
 	sigCh := make(chan os.Signal)

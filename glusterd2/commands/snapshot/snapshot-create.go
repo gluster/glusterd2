@@ -288,7 +288,7 @@ func populateSnapBrickMountData(volinfo *volume.Volinfo, snapName string) (map[s
 			if err != nil {
 				return nil, err
 			}
-			mountDir := b.Path[len(mountRoot):]
+			brickDirSuffix := b.Path[len(mountRoot):]
 			mntInfo, err := volume.GetBrickMountInfo(mountRoot)
 			if err != nil {
 				log.WithError(err).WithField(
@@ -305,11 +305,11 @@ func populateSnapBrickMountData(volinfo *volume.Volinfo, snapName string) (map[s
 			}
 
 			nodeData[b.String()] = snapshot.BrickMountData{
-				MountDir:   mountDir,
-				DevicePath: devicePath,
-				FsType:     mntInfo.MntType,
-				MntOpts:    updateMntOps(mntInfo.MntType, mntInfo.MntOpts),
-				Path:       snapshotBrickCreate(snapName, volinfo.Name, mountDir, svIdx+1, bIdx+1),
+				BrickDirSuffix: brickDirSuffix,
+				DevicePath:     devicePath,
+				FsType:         mntInfo.MntType,
+				MntOpts:        updateMntOps(mntInfo.MntType, mntInfo.MntOpts),
+				Path:           snapshotBrickCreate(snapName, volinfo.Name, brickDirSuffix, svIdx+1, bIdx+1),
 			}
 			// Store the results in transaction context. This will be consumed by
 			// the node that initiated the transaction.
@@ -422,7 +422,7 @@ func brickSnapshot(errCh chan error, wg *sync.WaitGroup, snapBrick, b brick.Bric
 	defer wg.Done()
 
 	mountData := snapBrick.MountInfo
-	length := len(b.Path) - len(mountData.Mountdir)
+	length := len(b.Path) - len(mountData.BrickDirSuffix)
 	mountRoot := b.Path[:length]
 	mntInfo, err := volume.GetBrickMountInfo(mountRoot)
 	if err != nil {
@@ -511,10 +511,10 @@ func createSnapSubvols(newVolinfo, origVolinfo *volume.Volinfo, nodeData map[str
 			key := subvol.Bricks[count].String()
 			data := nodeData[key]
 			s.Bricks[count].MountInfo = brick.MountInfo{
-				Mountdir:   data.MountDir,
-				DevicePath: data.DevicePath,
-				FsType:     data.FsType,
-				MntOpts:    data.MntOpts,
+				BrickDirSuffix: data.BrickDirSuffix,
+				DevicePath:     data.DevicePath,
+				FsType:         data.FsType,
+				MntOpts:        data.MntOpts,
 			}
 
 		}
@@ -647,9 +647,9 @@ func duplicateVolinfo(vol, v *volume.Volinfo) {
 	 */
 	return
 }
-func snapshotBrickCreate(snapName, volName, mountDir string, subvolNumber, brickNumber int) string {
+func snapshotBrickCreate(snapName, volName, brickDirSuffix string, subvolNumber, brickNumber int) string {
 	snapDirPrefix := config.GetString("rundir") + "/snaps"
-	brickPath := fmt.Sprintf("%s/%s/%s/subvol%d/brick%d%s", snapDirPrefix, snapName, volName, subvolNumber, brickNumber, mountDir)
+	brickPath := fmt.Sprintf("%s/%s/%s/subvol%d/brick%d%s", snapDirPrefix, snapName, volName, subvolNumber, brickNumber, brickDirSuffix)
 	return brickPath
 }
 

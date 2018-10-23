@@ -12,7 +12,7 @@ type BrickReq struct {
 	LvName         string `json:"logical-volume,omitempty"`
 	Size           uint64 `json:"size,omitempty"`
 	VgID           string `json:"vg-id,omitempty"`
-	Mountdir       string `json:"mount-dir,omitempty"`
+	BrickDirSuffix string `json:"brick-dir-suffix,omitempty"`
 	DevicePath     string `json:"device-path,omitempty"`
 	MntOpts        string `json:"mnt-opts,omitempty"`
 	FsType         string `json:"fs-type,omitempty"`

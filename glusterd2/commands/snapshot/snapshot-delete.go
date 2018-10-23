@@ -24,7 +24,7 @@ func snapshotBrickDelete(errCh chan error, wg *sync.WaitGroup, snapVol volume.Vo
 	defer wg.Done()
 
 	if snapVol.State == volume.VolStarted {
-		if err := snapshot.StopBrick(b, logger); err != nil {
+		if err := volume.StopBrick(b, logger); err != nil {
 			log.WithError(err).WithField(
 				"brick", b.Path).Warning("Failed to cleanup the brick.Earlier it might have stopped abnormally")
 
@@ -36,7 +36,7 @@ func snapshotBrickDelete(errCh chan error, wg *sync.WaitGroup, snapVol volume.Vo
 		errCh <- err
 		return
 	}
-	mountRoot := strings.TrimSuffix(b.Path, b.MountInfo.Mountdir)
+	mountRoot := strings.TrimSuffix(b.Path, b.MountInfo.BrickDirSuffix)
 	os.RemoveAll(mountRoot)
 	errCh <- nil
 	return

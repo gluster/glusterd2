@@ -62,8 +62,13 @@ func snapRestore(c transaction.TxnCtx) error {
 		}
 	}
 
+	mtab, err := volume.GetMounts()
+	if err != nil {
+		return err
+	}
+
 	for _, b := range offlineBricks {
-		if err := snapshot.MountSnapBrickDirectory(snapVol, &b); err != nil {
+		if err := volume.MountBrickDirectory(snapVol, &b, mtab); err != nil {
 			return err
 		}
 		if err := unix.Setxattr(b.Path, volumeIDXattrKey, []byte(volinfo.ID), unix.XATTR_REPLACE); err != nil {
@@ -76,11 +81,11 @@ func snapRestore(c transaction.TxnCtx) error {
 	return nil
 }
 
-func remountBrick(b brick.Brickinfo, volinfo *volume.Volinfo) error {
-	if err := snapshot.UmountBrick(b); err != nil {
+func remountBrick(b brick.Brickinfo, volinfo *volume.Volinfo, mtab []*volume.Mntent) error {
+	if err := volume.UmountBrick(b); err != nil {
 		return err
 	}
-	err := snapshot.MountSnapBrickDirectory(volinfo, &b)
+	err := volume.MountBrickDirectory(volinfo, &b, mtab)
 	return err
 
 }
@@ -130,9 +135,14 @@ func undoSnapRestore(c transaction.TxnCtx) error {
 	}
 	snapVol := &snapInfo.SnapVolinfo
 
+	mtab, err := volume.GetMounts()
+	if err != nil {
+		return err
+	}
+
 	for _, b := range snapVol.GetLocalBricks() {
 
-		if err := remountBrick(b, snapVol); err != nil {
+		if err := remountBrick(b, snapVol, mtab); err != nil {
 			return err
 		}
 		if snapVol.State == volume.VolStarted {
@@ -149,7 +159,7 @@ func undoSnapRestore(c transaction.TxnCtx) error {
 					//TODO once we have errors.ErrProcessAlreadyStopped
 					//check for other errors
 				}
-				if err := snapshot.UmountBrick(b); err != nil {
+				if err := volume.UmountBrick(b); err != nil {
 					return err
 				}
 			}
@@ -174,6 +184,7 @@ func createVolumeBrickFromSnap(bricks []brick.Brickinfo, vol *volume.Volinfo) []
 			VolumeID:       vol.ID,
 			VolumeName:     vol.Name,
 			VolfileID:      vol.Name,
+			PType:          b.PType,
 		}
 		newBricks = append(newBricks, newBrick)
 	}
@@ -270,6 +281,17 @@ func storeSnapRestore(c transaction.TxnCtx) error {
 	return nil
 }
 
+func cleanParentBricks(c transaction.TxnCtx) error {
+	var volinfo volume.Volinfo
+	if err := c.Get("volinfo", &volinfo); err != nil {
+		c.Logger().WithError(err).WithField(
+			"key", "volinfo").Debug("Failed to get key from store")
+		return err
+	}
+
+	return volume.CleanBricks(&volinfo)
+}
+
 func registerSnapRestoreStepFuncs() {
 	var sfs = []struct {
 		name string
@@ -279,6 +301,7 @@ func registerSnapRestoreStepFuncs() {
 		{"snap-restore.UndoCommit", undoSnapRestore},
 		{"snap-restore.UndoStore", undoSnapStore},
 		{"snap-restore.Store", storeSnapRestore},
+		{"snap-restore.CleanBricks", cleanParentBricks},
 	}
 	for _, sf := range sfs {
 		transaction.RegisterStepFunc(sf.sf, sf.name)
@@ -326,6 +349,7 @@ func snapshotRestoreHandler(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
+	bricksAutoProvisioned := vol.IsAutoProvisioned() || vol.IsSnapshotProvisioned()
 	txn.Steps = []*transaction.Step{
 		{
 			DoFunc:   "snap-restore.Commit",
@@ -336,6 +360,11 @@ func snapshotRestoreHandler(w http.ResponseWriter, r *http.Request) {
 			DoFunc:   "snap-restore.Store",
 			UndoFunc: "snap-restore.UndoStore",
 			Nodes:    []uuid.UUID{gdctx.MyUUID},
+		},
+		{
+			DoFunc: "snap-restore.CleanBricks",
+			Nodes:  vol.Nodes(),
+			Skip:   !bricksAutoProvisioned,
 		},
 	}
 	if err = txn.Ctx.Set("snapname", snapname); err != nil {
