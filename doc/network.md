@@ -36,6 +36,13 @@ Default ports:
 * 2380 for etcd to etcd peer communication
 * 2379 for client traffic
 
+## Firewall configuration
+Only port `24007` should be exposed to external consumers i.e
+* HTTP clients (management ops)
+* Glusterfs clients (I/O)
+
+The ports used by gRPC and etcd should be shielded from external network.
+
 ## NTP/chronyd
 For etcd servers to work reliably, the difference in time between peers in the
 cluster should be less than one second. Please configure the NTP service or
@@ -44,28 +51,3 @@ manually sync the clocks on different machines.
 ## RDMA?
 Glusterd2 will not support access over RDMA because services offered by it are
 not in the I/O path.
-
-## Firewall configuration
-Only port `24007` should be exposed to external consumers i.e
-* HTTP clients (management ops)
-* Glusterfs clients (I/O)
-
-The ports used by gRPC and etcd should be shielded from external network.
-
-**Ports used by bricks:** Unlike glusterd1, glusterd2 will not explicitly
-specify a free port that a brick being spawned will bind on. The brick process
-will bind on a free port provided by the kernel and shall notify glusterd2
-about the port it has bound on. The kernel will pick a free available port
-from the range of ephemeral port range configured on the system. This can
-be configured as follows:
-
-```sh
-sysctl -w net.ipv4.ip_local_port_range="49152 49664"
-```
-
-The above command illustrates configuring ephemeral port range on linux. In
-the above example, as a range of 512 ports has been set as the ephemeral
-port range, firewalld can be configured to allow TCP traffic on this port
-range. This blanket open of port range is not ideal and will be addressed in
-the future by having glusterd2 possibly configure firewalld over dbus or via
-a hook script that will be invoked when a brick signs in.

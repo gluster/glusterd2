@@ -183,14 +183,6 @@
   version = "v1.0.0"
 
 [[projects]]
-  digest = "1:e772845668c277db6fcc8c6fcf31664c74851f6cce4d225be4f4adbee3861057"
-  name = "github.com/godbus/dbus"
-  packages = ["."]
-  pruneopts = ""
-  revision = "a389bdde4dd695d414e47b755e95e72b7826432c"
-  version = "v4.1.0"
-
-[[projects]]
   digest = "1:0a3f6a0c68ab8f3d455f8892295503b179e571b7fefe47cc6c556405d1f83411"
   name = "github.com/gogo/protobuf"
   packages = [
@@ -591,7 +583,7 @@
 
 [[projects]]
   branch = "master"
-  digest = "1:547dcb6aebfb7fb17947660ebb034470c13f4d63d893def190a2f7ba3d09bc38"
+  digest = "1:7a2d59e5fc661ccf4ae7dc301c1a7332ec59b2ee435f78aa3eaa65cacb256370"
   name = "golang.org/x/net"
   packages = [
     "context",
@@ -603,7 +595,7 @@
     "trace",
   ]
   pruneopts = ""
-  revision = "49bb7cea24b1df9410e1712aa6433dae904ff66a"
+  revision = "d0887baf81f4598189d4e12a37c6da86f0bba4d0"
 
 [[projects]]
   branch = "master"
@@ -732,7 +724,6 @@
     "github.com/coreos/pkg/capnslog",
     "github.com/dgrijalva/jwt-go",
     "github.com/ghodss/yaml",
-    "github.com/godbus/dbus",
     "github.com/golang/protobuf/proto",
     "github.com/gorilla/handlers",
     "github.com/gorilla/mux",

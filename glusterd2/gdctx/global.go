@@ -33,7 +33,6 @@ var (
 	HostName           string
 	LocalAuthToken     string
 	RESTAPIAuthEnabled = false
-	IsTerminating      bool
 )
 
 // SetHostnameAndIP will initialize HostIP and HostName global variables

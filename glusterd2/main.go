@@ -18,7 +18,6 @@ import (
 	gdutils "github.com/gluster/glusterd2/glusterd2/utils"
 	"github.com/gluster/glusterd2/glusterd2/xlator"
 	"github.com/gluster/glusterd2/pkg/errors"
-	"github.com/gluster/glusterd2/pkg/firewalld"
 	"github.com/gluster/glusterd2/pkg/logging"
 	"github.com/gluster/glusterd2/pkg/tracing"
 	"github.com/gluster/glusterd2/pkg/utils"
@@ -98,6 +97,8 @@ func main() {
 		log.WithError(err).Fatal("Failed to load xlator options")
 	}
 
+	pmap.Init()
+
 	// Initialize etcd store (etcd client connection)
 	if err := store.Init(nil); err != nil {
 		log.WithError(err).Fatal("Failed to initialize store (etcd client)")
@@ -132,13 +133,6 @@ func main() {
 	super.ServeBackground()
 	super.Add(servers.New())
 
-	// Start dbus connection (optional for notifying firewalld)
-	if err := firewalld.Init(); err != nil {
-		log.WithError(err).Warn("firewalld.Init() failed")
-	}
-
-	pmap.Init()
-
 	// Mount all Local Bricks
 	gdutils.MountLocalBricks()
 
@@ -155,7 +149,6 @@ func main() {
 			fallthrough
 		case unix.SIGINT:
 			log.Info("Received SIGTERM. Stopping GlusterD")
-			gdctx.IsTerminating = true
 			super.Stop()
 			events.Stop()
 			store.Close()
