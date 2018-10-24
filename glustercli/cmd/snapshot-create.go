@@ -29,7 +29,7 @@ var (
 )
 
 func init() {
-	snapshotCreateCmd.Flags().StringVar(&flagSnapshotCreateDescription, "desctription", "", "Description of snapshot")
+	snapshotCreateCmd.Flags().StringVar(&flagSnapshotCreateDescription, "description", "", "Description of snapshot")
 	snapshotCreateCmd.Flags().BoolVar(&flagSnapshotCreateForce, "force", false, "Force")
 	snapshotCreateCmd.Flags().BoolVar(&flagSnapshotCreateTimestamp, "timestamp", false, "Append timestamp with snap name")
 
