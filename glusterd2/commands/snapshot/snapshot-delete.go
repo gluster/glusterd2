@@ -38,6 +38,12 @@ func snapshotBrickDelete(errCh chan error, wg *sync.WaitGroup, snapVol volume.Vo
 	}
 	mountRoot := strings.TrimSuffix(b.Path, b.MountInfo.BrickDirSuffix)
 	os.RemoveAll(mountRoot)
+
+	volfileID := brick.GetVolfileID(snapVol.Name, b.Path)
+	if err := volgen.DeleteFile(volfileID); err != nil {
+		errCh <- err
+	}
+
 	errCh <- nil
 	return
 }
@@ -88,7 +94,8 @@ func snapshotDeleteStore(c transaction.TxnCtx) error {
 	if err := volgen.DeleteVolfiles(snapinfo.SnapVolinfo.VolfileID); err != nil {
 		c.Logger().WithError(err).
 			WithField("snapshot", snapshot.GetStorePath(&snapinfo)).
-			Warn("failed to delete volfiles of snapshot")
+			Error("failed to delete volfiles of snapshot")
+		return err
 	}
 
 	return nil

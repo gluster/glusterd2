@@ -40,16 +40,13 @@ func activateSnapshot(c transaction.TxnCtx) error {
 	}
 
 	// Generate local Bricks Volfiles
-	for _, b := range vol.GetLocalBricks() {
-		volfileID := brick.GetVolfileID(vol.Name, b.Path)
-		err := volgen.BrickVolfileToFile(vol, volfileID, "brick", b.PeerID.String(), b.Path)
-		if err != nil {
-			c.Logger().WithError(err).WithFields(log.Fields{
-				"template": "brick",
-				"volfile":  volfileID,
-			}).Error("failed to generate volfile")
-			return err
-		}
+	err = volgen.GenerateBricksVolfiles(vol, vol.GetLocalBricks())
+	if err != nil {
+		c.Logger().WithError(err).WithFields(log.Fields{
+			"template": "brick",
+			"volume":   vol.Name,
+		}).Error("failed to generate brick volfiles")
+		return err
 	}
 
 	err = snapshot.ActivateDeactivateFunc(&snapinfo, brickinfos, activate, c.Logger())
@@ -72,15 +69,16 @@ func rollbackActivateSnapshot(c transaction.TxnCtx) error {
 	}
 
 	// Remove the local Bricks Volfiles
-	for _, b := range vol.GetLocalBricks() {
-		volfileID := brick.GetVolfileID(vol.Name, b.Path)
-		err := volgen.DeleteFile(volfileID)
-		if err != nil {
-			c.Logger().WithError(err).WithField("volfile", volfileID).Error("failed to delete volfile")
-		}
+	err := volgen.DeleteBricksVolfiles(vol.GetLocalBricks())
+	if err != nil {
+		c.Logger().WithError(err).WithFields(log.Fields{
+			"template": "brick",
+			"volume":   vol.Name,
+		}).Error("failed to delete brick volfiles")
+		return err
 	}
 
-	err := snapshot.ActivateDeactivateFunc(&snapinfo, brickinfos, activate, c.Logger())
+	err = snapshot.ActivateDeactivateFunc(&snapinfo, brickinfos, activate, c.Logger())
 
 	return err
 

@@ -205,7 +205,7 @@ func undoStoreSnapshotOnCreate(c transaction.TxnCtx) error {
 	if err := volgen.DeleteVolfiles(snapInfo.SnapVolinfo.VolfileID); err != nil {
 		c.Logger().WithError(err).
 			WithField("snapshot", snapshot.GetStorePath(&snapInfo)).
-			Warn("failed to delete volfiles of snapshot")
+			Error("failed to delete volfiles of snapshot")
 		return err
 	}
 
@@ -242,7 +242,7 @@ func storeSnapshotCreate(c transaction.TxnCtx) error {
 	}
 	if err := volgen.VolumeVolfileToStore(volinfo, volinfo.VolfileID, "client"); err != nil {
 		c.Logger().WithError(err).WithField(
-			"volume", volinfo.Name).Debug("generateVolfiles: failed to generate volfiles")
+			"volume", volinfo.Name).Error("generateVolfiles: failed to generate volfiles")
 		return err
 	}
 

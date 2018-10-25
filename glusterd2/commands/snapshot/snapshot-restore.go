@@ -109,6 +109,7 @@ func undoSnapStore(c transaction.TxnCtx) error {
 		return err
 	}
 
+	// Regenerate the volfile of original volume
 	err := volgen.VolumeVolfileToStore(&volinfo, volinfo.Name, "client")
 	if err != nil {
 		c.Logger().WithError(err).WithFields(log.Fields{
@@ -118,7 +119,25 @@ func undoSnapStore(c transaction.TxnCtx) error {
 		return err
 	}
 
-	if err := volume.AddOrUpdateVolumeFunc(&volinfo); err != nil {
+	// Regenerate the Volfile of snapshot Volume
+	err = volgen.VolumeVolfileToStore(&snapInfo.SnapVolinfo, snapInfo.SnapVolinfo.Name, "client")
+	if err != nil {
+		c.Logger().WithError(err).WithFields(log.Fields{
+			"template": "client",
+			"volfile":  snapInfo.SnapVolinfo.Name,
+		}).Error("failed to generate snapshot volfile and save to store")
+		return err
+	}
+
+	// Generate brick Volfiles if Snapshot was started earlier
+	if snapInfo.SnapVolinfo.State == volume.VolStarted {
+		err = volgen.GenerateBricksVolfiles(&snapInfo.SnapVolinfo, snapInfo.SnapVolinfo.GetLocalBricks())
+		if err != nil {
+			return err
+		}
+	}
+
+	if err = volume.AddOrUpdateVolumeFunc(&volinfo); err != nil {
 		c.Logger().WithError(err).WithField(
 			"volume", volinfo.Name).Debug("failed to store volume info")
 		return err
@@ -260,20 +279,43 @@ func storeSnapRestore(c transaction.TxnCtx) error {
 
 	newVolinfo := createRestoreVolinfo(snapInfo, vol)
 
+	// Volfile of restored volume
+	err = volgen.VolumeVolfileToStore(&newVolinfo, newVolinfo.Name, "client")
+	if err != nil {
+		c.Logger().WithError(err).WithFields(log.Fields{
+			"template": "client",
+			"volfile":  newVolinfo.Name,
+		}).Error("failed to generate volfile and save to store")
+		return err
+	}
+
 	if err := volume.AddOrUpdateVolumeFunc(&newVolinfo); err != nil {
 		c.Logger().WithError(err).WithField(
-			"volume", newVolinfo.Name).Debug("failed to store volume info")
+			"volume", newVolinfo.Name).Error("failed to store volume info")
 		return err
 	}
 
 	if err := snapshot.DeleteSnapshot(snapInfo); err != nil {
 		c.Logger().WithError(err).WithField(
-			"snapshot", snapVol.Name).Debug("failed to delete snap from store")
+			"snapshot", snapVol.Name).Error("failed to delete snap from store")
+		return err
 	}
-	if err := volgen.DeleteVolfiles(snapInfo.SnapVolinfo.VolfileID); err != nil {
+	if err := volgen.DeleteVolfiles(snapVol.VolfileID); err != nil {
 		c.Logger().WithError(err).
 			WithField("snapshot", snapshot.GetStorePath(snapInfo)).
 			Warn("failed to delete volfiles of snapshot")
+		return err
+	}
+
+	// Delete Snapshot Brick volfiles if Snapvol was in started state
+	if snapVol.State == volume.VolStarted {
+		if err := volgen.DeleteBricksVolfiles(snapVol.GetLocalBricks()); err != nil {
+			c.Logger().WithError(err).WithFields(log.Fields{
+				"template": "brick",
+				"volume":   snapVol.Name,
+			}).Error("failed to delete brick volfiles")
+			return err
+		}
 	}
 
 	return nil

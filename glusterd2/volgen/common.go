@@ -216,3 +216,29 @@ func getExtraStringMaps(volinfo *volume.Volinfo) stringMapVolume {
 
 	return data
 }
+
+// DeleteBricksVolfiles is a utility function to delete
+// all volfiles of local bricks
+func DeleteBricksVolfiles(brickinfos []brick.Brickinfo) error {
+	for _, b := range brickinfos {
+		volfileID := brick.GetVolfileID(b.VolumeName, b.Path)
+		err := DeleteFile(volfileID)
+		if err != nil {
+			return err
+		}
+	}
+	return nil
+}
+
+// GenerateBricksVolfiles generates the volfiles of
+// all local bricks
+func GenerateBricksVolfiles(volinfo *volume.Volinfo, brickinfos []brick.Brickinfo) error {
+	for _, b := range brickinfos {
+		volfileID := brick.GetVolfileID(b.VolumeName, b.Path)
+		err := BrickVolfileToFile(volinfo, volfileID, "brick", b.PeerID.String(), b.Path)
+		if err != nil {
+			return err
+		}
+	}
+	return nil
+}

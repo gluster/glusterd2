@@ -31,7 +31,8 @@ func deleteVolume(c transaction.TxnCtx) error {
 	if err := volgen.DeleteVolfiles(volinfo.Name); err != nil {
 		c.Logger().WithError(err).
 			WithField("volume", volinfo.Name).
-			Warn("failed to delete volfiles of volume")
+			Error("failed to delete volfiles of volume")
+		return err
 	}
 
 	return nil
@@ -40,7 +41,6 @@ func deleteVolume(c transaction.TxnCtx) error {
 func registerVolDeleteStepFuncs() {
 	transaction.RegisterStepFunc(deleteVolume, "vol-delete.Store")
 	transaction.RegisterStepFunc(txnCleanBricks, "vol-delete.CleanBricks")
-	transaction.RegisterStepFunc(deleteBrickVolfiles, "vol-delete.DeleteBrickVolfiles")
 }
 
 func volumeDeleteHandler(w http.ResponseWriter, r *http.Request) {
@@ -89,10 +89,6 @@ func volumeDeleteHandler(w http.ResponseWriter, r *http.Request) {
 		{
 			DoFunc: "vol-delete.Store",
 			Nodes:  []uuid.UUID{gdctx.MyUUID},
-		},
-		{
-			DoFunc: "vol-delete.DeleteBrickVolfiles",
-			Nodes:  volinfo.Nodes(),
 		},
 	}
 

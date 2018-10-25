@@ -8,6 +8,7 @@ import (
 	"github.com/gluster/glusterd2/glusterd2/gdctx"
 	restutils "github.com/gluster/glusterd2/glusterd2/servers/rest/utils"
 	"github.com/gluster/glusterd2/glusterd2/transaction"
+	"github.com/gluster/glusterd2/glusterd2/volgen"
 	"github.com/gluster/glusterd2/glusterd2/volume"
 	"github.com/gluster/glusterd2/pkg/api"
 	"github.com/gluster/glusterd2/pkg/errors"
@@ -24,7 +25,13 @@ func startAllBricks(c transaction.TxnCtx) error {
 		return err
 	}
 
-	for _, b := range volinfo.GetLocalBricks() {
+	brickinfos := volinfo.GetLocalBricks()
+	err := volgen.GenerateBricksVolfiles(&volinfo, brickinfos)
+	if err != nil {
+		return err
+	}
+
+	for _, b := range brickinfos {
 
 		c.Logger().WithFields(log.Fields{
 			"volume": b.VolumeName,
@@ -49,7 +56,13 @@ func stopAllBricks(c transaction.TxnCtx) error {
 		return err
 	}
 
-	for _, b := range volinfo.GetLocalBricks() {
+	brickinfos := volinfo.GetLocalBricks()
+	err := volgen.DeleteBricksVolfiles(brickinfos)
+	if err != nil {
+		return err
+	}
+
+	for _, b := range brickinfos {
 		c.Logger().WithFields(log.Fields{
 			"volume": b.VolumeName,
 			"brick":  b.String(),
@@ -74,8 +87,6 @@ func registerVolStartStepFuncs() {
 		{"vol-start.XlatorActionUndoVolumeStart", xlatorActionUndoVolumeStart},
 		{"vol-start.UpdateVolinfo", storeVolume},
 		{"vol-start.UpdateVolinfo.Undo", undoStoreVolume},
-		{"vol-start.GenerateBrickVolfile", generateBrickVolfiles},
-		{"vol-start.GenerateBrickVolfile.Undo", deleteBrickVolfiles},
 	}
 	for _, sf := range sfs {
 		transaction.RegisterStepFunc(sf.sf, sf.name)
@@ -117,11 +128,6 @@ func volumeStartHandler(w http.ResponseWriter, r *http.Request) {
 	}
 
 	txn.Steps = []*transaction.Step{
-		{
-			DoFunc:   "vol-start.GenerateBrickVolfile",
-			UndoFunc: "vol-start.GenerateBrickVolfile.Undo",
-			Nodes:    volinfo.Nodes(),
-		},
 		{
 			DoFunc:   "vol-start.StartBricks",
 			UndoFunc: "vol-start.StartBricksUndo",
