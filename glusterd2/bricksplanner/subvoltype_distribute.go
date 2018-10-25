@@ -21,7 +21,7 @@ func (s *distributeSubvolPlanner) BrickSize(idx int) uint64 {
 }
 
 func (s *distributeSubvolPlanner) BrickType(idx int) string {
-	return "Brick"
+	return "brick"
 }
 
 func init() {
