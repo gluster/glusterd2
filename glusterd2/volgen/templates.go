@@ -1,10 +1,9 @@
 package volgen
 
 import (
-	"errors"
-
 	"github.com/gluster/glusterd2/glusterd2/brick"
 	"github.com/gluster/glusterd2/glusterd2/volume"
+	gderrors "github.com/gluster/glusterd2/pkg/errors"
 	"github.com/gluster/glusterd2/pkg/utils"
 )
 
@@ -35,12 +34,12 @@ func (tmpl *Template) addEnabledXlator(volinfo *volume.Volinfo, xlist *[]Xlator,
 func GetTemplate(namespace string, name string) (*Template, error) {
 	tmpls, exists := namespaces[namespace]
 	if !exists {
-		return nil, errors.New("invalid template namespace")
+		return nil, gderrors.ErrInvalidVolFileTmplNamespace
 	}
 
 	tmpl, exists := tmpls[name]
 	if !exists {
-		return nil, errors.New("invalid template name")
+		return nil, gderrors.ErrInvalidVolFileTmplName
 	}
 
 	return &tmpl, nil

@@ -287,7 +287,7 @@ func storeVolInfo(c transaction.TxnCtx, key string) error {
 	var volinfo volume.Volinfo
 	if err := c.Get(key, &volinfo); err != nil {
 		c.Logger().WithError(err).WithField(
-			"key", "volinfo").Debug("Failed to get key from store")
+			"key", "volinfo").Debug("failed to get key from store")
 		return err
 	}
 	err := volgen.VolumeVolfileToStore(&volinfo, volinfo.Name, "client")
@@ -359,44 +359,38 @@ func isActionStepRequired(opt map[string]string, volinfo *volume.Volinfo) bool {
 	return false
 }
 
-func deleteBrickVolfiles(c transaction.TxnCtx) error {
+func txnDeleteBrickVolfiles(c transaction.TxnCtx) error {
 	var volinfo volume.Volinfo
 	if err := c.Get("volinfo", &volinfo); err != nil {
 		c.Logger().WithError(err).WithField(
-			"key", "volinfo").Error("Failed to get key from store")
+			"key", "volinfo").Error("failed to get key from store")
 		return err
 	}
 
-	for _, b := range volinfo.GetLocalBricks() {
-		volfileID := brick.GetVolfileID(volinfo.Name, b.Path)
-		err := volgen.DeleteFile(volfileID)
-		if err != nil {
-			c.Logger().WithError(err).WithFields(log.Fields{
-				"volume":   volinfo.Name,
-				"filename": volfileID,
-			}).Error("failed to delete brick volfile")
-			return err
-		}
+	err := volgen.DeleteBricksVolfiles(volinfo.GetLocalBricks())
+	if err != nil {
+		c.Logger().WithError(err).WithFields(log.Fields{
+			"template": "brick",
+			"volume":   volinfo.Name,
+		}).Error("failed to delete brick volfile")
+		return err
 	}
 	return nil
 }
 
-func generateBrickVolfiles(c transaction.TxnCtx) error {
+func txnGenerateBrickVolfiles(c transaction.TxnCtx) error {
 	var volinfo volume.Volinfo
 	if err := c.Get("volinfo", &volinfo); err != nil {
 		return err
 	}
 
-	for _, b := range volinfo.GetLocalBricks() {
-		volfileID := brick.GetVolfileID(volinfo.Name, b.Path)
-		err := volgen.BrickVolfileToFile(&volinfo, volfileID, "brick", b.PeerID.String(), b.Path)
-		if err != nil {
-			c.Logger().WithError(err).WithFields(log.Fields{
-				"template": "brick",
-				"volfile":  volfileID,
-			}).Error("failed to generate volfile")
-			return err
-		}
+	err := volgen.GenerateBricksVolfiles(&volinfo, volinfo.GetLocalBricks())
+	if err != nil {
+		c.Logger().WithError(err).WithFields(log.Fields{
+			"template": "brick",
+			"volume":   volinfo.Name,
+		}).Error("failed to generate volfile")
+		return err
 	}
 	return nil
 }

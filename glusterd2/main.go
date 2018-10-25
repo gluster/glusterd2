@@ -130,7 +130,7 @@ func main() {
 
 	// Load default volfile templates
 	if err := volgen.LoadDefaultTemplates(); err != nil {
-		log.WithError(err).Fatal("Failed to load Volgen templates")
+		log.WithError(err).Fatal("failed to load volgen templates")
 	}
 
 	// Start all servers (rest, peerrpc, sunrpc) managed by suture supervisor

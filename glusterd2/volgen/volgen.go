@@ -15,14 +15,21 @@ import (
 
 // Entry represents one Xlator entry in Volfile
 type Entry struct {
-	Name       string
+	// Name represents the name which will be added
+	// in generated volfile for each xlator section
+	Name string
+	// NamePrefix will be used to set prefix for xlator section
+	// name if Name is not set.
 	NamePrefix string
+	// XlatorData represents the Xlator object with all the
+	// necessory information.
 	XlatorData Xlator
+	// SubEntries represents the child entries to be added
+	// in the generated volfile.
 	SubEntries []Entry
+	// VarStrData represents the extra information which will
+	// be used to replace template variables.
 	VarStrData map[string]string
-	// IgnoreOptions represents list of options which should not be added in the
-	// generated Volfile. For example, bitd and scrubd both uses same xlator, if
-	// scrubber = on, then it becomes scrub daemon else it becomes bitd.
 }
 
 // Volfile represents Gluster Volfile

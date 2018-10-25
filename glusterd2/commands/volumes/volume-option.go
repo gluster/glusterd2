@@ -186,8 +186,8 @@ func registerVolOptionStepFuncs() {
 		{"vol-option.UpdateVolinfo", storeVolume},
 		{"vol-option.UpdateVolinfo.Undo", undoStoreVolume},
 		{"vol-option.NotifyVolfileChange", notifyVolfileChange},
-		{"vol-option.GenerateBrickVolfiles", generateBrickVolfiles},
-		{"vol-option.GenerateBrickvolfiles.Undo", deleteBrickVolfiles},
+		{"vol-option.GenerateBrickVolfiles", txnGenerateBrickVolfiles},
+		{"vol-option.GenerateBrickvolfiles.Undo", txnDeleteBrickVolfiles},
 	}
 	for _, sf := range sfs {
 		transaction.RegisterStepFunc(sf.sf, sf.name)

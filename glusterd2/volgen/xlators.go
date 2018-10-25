@@ -53,8 +53,7 @@ func (xl *Xlator) getOptions(tmplName string, volinfo *volume.Volinfo) (map[stri
 
 	opts := make(map[string]string)
 	// Load default options
-	// FIXME: finding only based on suffix
-	xlid := path.Base(xl.Type)
+	xlid := xl.suffix()
 	xlopts, err := xlator.Find(xlid)
 	if err != nil {
 		return nil, err
@@ -73,14 +72,22 @@ func (xl *Xlator) getOptions(tmplName string, volinfo *volume.Volinfo) (map[stri
 
 		optVal = o.DefaultValue
 
+		// If option set in template
+		v, ok := xl.Options[optKey]
+		if ok {
+			opts[optKey] = v
+		}
+
+		// Volinfo can be nil in case of cluster level
+		if volinfo == nil {
+			opts[optKey] = optVal
+			continue
+		}
+
 		// Special case: Option may be set for any key, iterate
 		// for each key and check if option is set in volinfo
 		// for any of the keys
 		for _, k := range o.Key {
-			// Volinfo can be nil in case of cluster level
-			if volinfo == nil {
-				break
-			}
 			// If option set as <template-name>.<xlid>.<option>
 			// For example: client.io-stats.log-level
 			v, ok := volinfo.Options[tmplName+"."+xlid+"."+k]
@@ -113,9 +120,14 @@ func (xl *Xlator) getOptions(tmplName string, volinfo *volume.Volinfo) (map[stri
 		opts[optKey] = optVal
 	}
 
-	// Load/overwrite from template options
+	// Template options are already substituted in opts. If any
+	// option is set in template which is not part of options table
+	// then add that.(May be virtual option related to enable/disable)
 	for k, v := range xl.Options {
-		opts[k] = v
+		_, ok := opts[k]
+		if !ok {
+			opts[k] = v
+		}
 	}
 
 	// Do not try to substitute from volinfo in case of cluster level

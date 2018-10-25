@@ -40,7 +40,7 @@ func storeSnapinfo(c transaction.TxnCtx, key string) error {
 
 	if err := snapshot.AddOrUpdateSnapFunc(&snapinfo); err != nil {
 		c.Logger().WithError(err).WithField(
-			"snapshot", volinfo.Name).Debug("storeSnapshot: failed to store snapshot info")
+			"snapshot", volinfo.Name).Error("storeSnapshot: failed to store snapshot info")
 		return err
 	}
 
