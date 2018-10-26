@@ -13,18 +13,18 @@ import (
 func brickSizeTest(brickpath string, min uint64, max uint64) error {
 	var fstat syscall.Statfs_t
 	if err := syscall.Statfs(brickpath, &fstat); err != nil {
-		return fmt.Errorf("Unable to get size info of Brick(%s) %v", brickpath, err)
+		return fmt.Errorf("unable to get size info of Brick(%s) %v", brickpath, err)
 	}
 
 	if &fstat != nil {
 		value := uint64((fstat.Blocks * uint64(fstat.Bsize)) / (1024 * 1024))
 		if value < min || value > max {
-			return fmt.Errorf("Brick(%s) size mismatch, Expected: %d-%d, got: %d", brickpath, min, max, value)
+			return fmt.Errorf("Brick(%s) size mismatch, expected: %d-%d, got: %d", brickpath, min, max, value)
 		}
 		return nil
 	}
 
-	return fmt.Errorf("Unable to get size info of Brick(%s)", brickpath)
+	return fmt.Errorf("unable to get size info of Brick(%s)", brickpath)
 }
 
 func checkZeroLvs(r *require.Assertions) {
