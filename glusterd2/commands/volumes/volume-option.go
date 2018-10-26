@@ -17,6 +17,7 @@ import (
 	"github.com/gorilla/mux"
 	"github.com/pborman/uuid"
 	log "github.com/sirupsen/logrus"
+	"go.opencensus.io/trace"
 )
 
 func optionSetValidate(c transaction.TxnCtx) error {
@@ -195,6 +196,8 @@ func registerVolOptionStepFuncs() {
 func volumeOptionsHandler(w http.ResponseWriter, r *http.Request) {
 
 	ctx := r.Context()
+	ctx, span := trace.StartSpan(ctx, "/volumeOptionsHandler")
+	defer span.End()
 	logger := gdctx.GetReqLogger(ctx)
 	volname := mux.Vars(r)["volname"]
 
@@ -261,6 +264,18 @@ func volumeOptionsHandler(w http.ResponseWriter, r *http.Request) {
 		restutils.SendHTTPError(ctx, w, http.StatusInternalServerError, err)
 		return
 	}
+
+	// Add relevant attributes to the span
+	var optionToSet string
+	for option, value := range req.Options {
+		optionToSet += option + "=" + value + ","
+	}
+
+	span.AddAttributes(
+		trace.StringAttribute("reqID", txn.Ctx.GetTxnReqID()),
+		trace.StringAttribute("volName", volname),
+		trace.StringAttribute("optionToSet", optionToSet),
+	)
 
 	if err := txn.Do(); err != nil {
 		logger.WithError(err).Error("volume option transaction failed")
