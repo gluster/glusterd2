@@ -300,7 +300,7 @@ func addThinArbiter(req *api.VolCreateReq, thinArbiter string) error {
 
 	s := strings.Split(thinArbiter, ":")
 	if len(s) != 2 && len(s) != 3 {
-		return fmt.Errorf("Thin arbiter brick must be of the form <host>:<brick> or <host>:<brick>:<port>")
+		return fmt.Errorf("thin arbiter brick must be of the form <host>:<brick> or <host>:<brick>:<port>")
 	}
 
 	// TODO: If required, handle this in a generic way, just like other

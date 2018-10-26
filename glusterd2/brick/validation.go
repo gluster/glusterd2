@@ -122,7 +122,7 @@ func validateBrickWasUsed(brickPath string) error {
 			if err != nil {
 				continue
 			} else if size > 0 {
-				return fmt.Errorf("Xattr %s already present on %s", key, path)
+				return fmt.Errorf("xattr %s already present on %s", key, path)
 			} else {
 				return nil
 			}
@@ -151,7 +151,7 @@ func isBrickInActiveUse(brickPath string, allLocalBricks []Brickinfo) error {
 				brickPath, b.VolumeName, b.VolumeID)
 		}
 		if strings.HasPrefix(brickPath, b.Path) {
-			return fmt.Errorf("Path %s is a subdirectory of another existing brick with path %s belonging to volume (name=%s;id=%s)",
+			return fmt.Errorf("path %s is a subdirectory of another existing brick with path %s belonging to volume (name=%s;id=%s)",
 				brickPath, b.Path, b.VolumeName, b.VolumeID)
 		}
 	}
