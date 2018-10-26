@@ -39,21 +39,21 @@ func validateOptions(opts map[string]string, flags api.VolOptionFlags) error {
 
 		switch {
 		case !o.IsSettable():
-			return fmt.Errorf("Option %s cannot be set", k)
+			return fmt.Errorf("option %s cannot be set", k)
 
 		case o.IsAdvanced() && !flags.AllowAdvanced:
-			return fmt.Errorf("Option %s is an advanced option. To set it pass the advanced flag", k)
+			return fmt.Errorf("option %s is an advanced option. To set it pass the advanced flag", k)
 
 		case o.IsExperimental() && !flags.AllowExperimental:
-			return fmt.Errorf("Option %s is an experimental option. To set it pass the experimental flag", k)
+			return fmt.Errorf("option %s is an experimental option. To set it pass the experimental flag", k)
 
 		case o.IsDeprecated() && !flags.AllowDeprecated:
 			// TODO: Return deprecation version and alternative option if available
-			return fmt.Errorf("Option %s will be deprecated in future releases. To set it pass the deprecated flag", k)
+			return fmt.Errorf("option %s will be deprecated in future releases. To set it pass the deprecated flag", k)
 		}
 
 		if err := o.Validate(v); err != nil {
-			return fmt.Errorf("Failed to validate value(%s) for key(%s): %s", k, v, err.Error())
+			return fmt.Errorf("failed to validate value(%s) for key(%s): %s", k, v, err.Error())
 		}
 		// TODO: Check op-version
 	}
