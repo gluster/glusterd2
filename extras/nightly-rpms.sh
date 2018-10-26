@@ -7,8 +7,7 @@
 set -e
 
 YUMDNF=yum
-MOCKARGS=""
-
+MOCKARGS=
 if grep -q Fedora /etc/redhat-release; then
   YUMDNF=dnf
   MOCKARGS="--dnf"
@@ -82,7 +81,7 @@ SRPM=$(rpmbuild --define "_topdir $PWD/rpmbuild" -bs rpmbuild/SPECS/$SPEC | cut 
 
 # Build RPM from SRPM using mock
 mkdir -p "$RESULTDIR"
-/usr/bin/mock "$MOCKARGS" -r epel-7-x86_64 --resultdir="$RESULTDIR" --rebuild "$SRPM"
+/usr/bin/mock $MOCKARGS -r epel-7-x86_64 --resultdir="$RESULTDIR" --rebuild "$SRPM"
 
 popd #BUILDDIR
 
