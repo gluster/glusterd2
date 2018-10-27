@@ -1,9 +1,11 @@
 package volumecommands
 
 import (
+	"context"
 	"io"
 	"net/http"
 
+	"github.com/gluster/glusterd2/glusterd2/brickmux"
 	"github.com/gluster/glusterd2/glusterd2/events"
 	"github.com/gluster/glusterd2/glusterd2/gdctx"
 	restutils "github.com/gluster/glusterd2/glusterd2/servers/rest/utils"
@@ -32,12 +34,40 @@ func startAllBricks(c transaction.TxnCtx) error {
 		return err
 	}
 
-	for _, b := range brickinfos {
+	bmuxEnabled, err := brickmux.Enabled()
+	if err != nil {
+		return err
+	}
 
+	var allVolumes []*volume.Volinfo
+
+	if bmuxEnabled {
+		volumes, err := volume.GetVolumes(context.TODO())
+		if err != nil {
+			return err
+		}
+		allVolumes = volumes
+	}
+
+	for _, b := range brickinfos {
 		c.Logger().WithFields(log.Fields{
 			"volume": b.VolumeName,
 			"brick":  b.String(),
 		}).Info("Starting brick")
+
+		if bmuxEnabled {
+			err := brickmux.Multiplex(b, &volinfo, allVolumes, c.Logger())
+			switch err {
+			case nil:
+				// successfully multiplexed
+				continue
+			case brickmux.ErrNoCompat:
+				// do nothing, fallback to starting a separate process
+				c.Logger().WithField("brick", b.String()).Warn(err)
+			default:
+				return err
+			}
+		}
 
 		if err := b.StartBrick(c.Logger()); err != nil {
 			if err == errors.ErrProcessAlreadyRunning {

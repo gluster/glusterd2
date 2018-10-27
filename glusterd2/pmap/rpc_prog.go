@@ -114,6 +114,7 @@ func (p *GfPortmap) PortByBrick(args *PortByBrickReq, reply *PortByBrickRsp) err
 type SignInReq struct {
 	Brick string
 	Port  int
+	Pid   int
 }
 
 // SignInRsp is response sent to a SignInReq request
@@ -138,7 +139,9 @@ func (p *GfPortmap) SignIn(args *SignInReq, reply *SignInRsp) error {
 		"port":    args.Port,
 	}).Debug("brick signed in")
 
-	registry.Update(args.Port, args.Brick, conn)
+	// TODO: Add Pid field to SignInReq and pass it here when
+	// https://review.gluster.org/21503 gets in.
+	registry.Update(args.Port, args.Brick, conn, args.Pid)
 
 	return nil
 }

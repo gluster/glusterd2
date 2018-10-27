@@ -21,7 +21,8 @@ const (
 	portMax = 65535
 )
 
-type brickSet map[string]struct{}
+// map from brick path to its PID
+type brickSet map[string]int
 
 type pmapRegistry struct {
 	sync.RWMutex
@@ -52,7 +53,7 @@ func (r *pmapRegistry) String() string {
 
 // Update marks the port used by a brick with a specified state. This
 // is called when a brick signs in.
-func (r *pmapRegistry) Update(port int, brickpath string, conn net.Conn) error {
+func (r *pmapRegistry) Update(port int, brickpath string, conn net.Conn, pid int) error {
 
 	if port < portMin || port > portMax {
 		return fmt.Errorf("registry.Update(): invalid port %d", port)
@@ -67,10 +68,12 @@ func (r *pmapRegistry) Update(port int, brickpath string, conn net.Conn) error {
 	// single conn, the conn passed to this function may not be the
 	// same as before and that can happen. We only store the latest
 	// one.
-	r.conns[conn] = port
+	if conn != nil {
+		r.conns[conn] = port
+	}
 
 	if r.Ports[port] == nil {
-		r.Ports[port] = make(map[string]struct{})
+		r.Ports[port] = make(map[string]int)
 
 		// add port to default zone in firewalld
 		if r.notifyFirewalld {
@@ -80,7 +83,7 @@ func (r *pmapRegistry) Update(port int, brickpath string, conn net.Conn) error {
 			}
 		}
 	}
-	r.Ports[port][brickpath] = struct{}{}
+	r.Ports[port][brickpath] = pid
 
 	return nil
 }
