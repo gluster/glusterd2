@@ -7,6 +7,7 @@ import (
 	"strings"
 	"time"
 
+	"github.com/gluster/glusterd2/glusterd2/brickmux"
 	"github.com/gluster/glusterd2/glusterd2/commands/volumes"
 	"github.com/gluster/glusterd2/glusterd2/daemon"
 	"github.com/gluster/glusterd2/glusterd2/events"
@@ -151,6 +152,11 @@ func main() {
 	// Restart previously running daemons
 	daemon.StartAllDaemons()
 
+	// Reconcile multiplexed bricks
+	if err := brickmux.Reconcile(); err != nil {
+		log.WithError(err).Fatal("bmux.Reconcile() failed")
+	}
+
 	// Use the main goroutine as signal handling loop
 	sigCh := make(chan os.Signal)
 	signal.Notify(sigCh)
@@ -205,6 +211,7 @@ func createDirectories() error {
 		path.Join(config.GetString("hooksdir"), "delete/post"),
 		path.Join(config.GetString("hooksdir"), "add-brick/post"),
 		path.Join(config.GetString("hooksdir"), "remove-brick/post"),
+		path.Join(config.GetString("localstatedir"), "vols"),
 		"/var/run/gluster", // issue #476
 	}
 	for _, dirpath := range dirs {
