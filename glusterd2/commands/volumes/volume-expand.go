@@ -15,6 +15,7 @@ import (
 
 	"github.com/gorilla/mux"
 	"github.com/pborman/uuid"
+	"go.opencensus.io/trace"
 )
 
 func registerVolExpandStepFuncs() {
@@ -54,6 +55,8 @@ func validateVolumeExpandReq(req api.VolExpandReq) error {
 func volumeExpandHandler(w http.ResponseWriter, r *http.Request) {
 
 	ctx := r.Context()
+	ctx, span := trace.StartSpan(ctx, "/volumeExpandHandler")
+	defer span.End()
 	logger := gdctx.GetReqLogger(ctx)
 	volname := mux.Vars(r)["volname"]
 
@@ -151,6 +154,18 @@ func volumeExpandHandler(w http.ResponseWriter, r *http.Request) {
 		restutils.SendHTTPError(ctx, w, http.StatusInternalServerError, err)
 		return
 	}
+
+	// Add relevant attributes to the root span
+	var bricksToAdd string
+	for _, b := range req.Bricks {
+		bricksToAdd += b.PeerID + ":" + b.Path + ","
+	}
+
+	span.AddAttributes(
+		trace.StringAttribute("reqID", txn.Ctx.GetTxnReqID()),
+		trace.StringAttribute("volName", volname),
+		trace.StringAttribute("bricksToAdd", bricksToAdd),
+	)
 
 	if err = txn.Do(); err != nil {
 		logger.WithError(err).WithField("volume-name", volname).Error("volume expand transaction failed")
