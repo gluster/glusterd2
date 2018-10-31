@@ -40,11 +40,15 @@ func (sm *stepManager) shouldRunStep(step *transaction.Step) bool {
 	return false
 }
 
+// runStep synchronises the locally cached keys and values from the store
+// before running the step function on node
 func (sm *stepManager) runStep(ctx context.Context, stepName string, txnCtx transaction.TxnCtx) error {
 	txnCtx.SyncCache()
 	return transaction.RunStepFuncLocally(ctx, stepName, txnCtx)
 }
 
+// isPrevStepsExecutedOnNode reports that all pervious steps
+// have been completed successfully on a given node
 func (sm *stepManager) isPrevStepsExecutedOnNode(ctx context.Context, syncStepIndex int, nodeID uuid.UUID, txnID uuid.UUID, success chan<- struct{}) {
 	txnManager := NewTxnManager(store.Store.Watcher)
 	lastStepWatchChan := txnManager.WatchLastExecutedStep(ctx.Done(), txnID, nodeID)

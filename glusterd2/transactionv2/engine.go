@@ -3,11 +3,12 @@ package transaction
 import (
 	"context"
 	"errors"
-	"github.com/gluster/glusterd2/glusterd2/store"
 	"sync"
 	"time"
 
 	"github.com/gluster/glusterd2/glusterd2/gdctx"
+	"github.com/gluster/glusterd2/glusterd2/store"
+
 	"github.com/pborman/uuid"
 	log "github.com/sirupsen/logrus"
 )
@@ -66,7 +67,7 @@ func (txnEng *Engine) HandleTransaction() {
 			if !ok {
 				return
 			}
-			txn.Ctx.Logger().Debugf("received a pending txn")
+			txn.Ctx.Logger().Info("received a pending txn")
 			go txnEng.Execute(context.Background(), txn)
 		}
 	}
@@ -124,29 +125,34 @@ func (txnEng *Engine) executePendingTxn(ctx context.Context, txn *Txn) error {
 		stopch        = make(chan struct{})
 		txnStatusChan = txnEng.txnManager.WatchTxnStatus(stopch, txn.ID, txnEng.selfNodeID)
 		updateOnce    = &sync.Once{}
+		logger        = txn.Ctx.Logger()
 	)
 	defer close(stopch)
 
-	txn.Ctx.Logger().Infof("transaction started on node")
+	logger.Infof("transaction started on node")
 
 	for i, step := range txn.Steps {
+		logger.WithField("stepname", step.DoFunc).Debug("running step func on node")
+
+		// a synchronized step is executed only after all pervious steps
+		// have been completed successfully by all involved peers.
 		if step.Sync {
-			txn.Ctx.Logger().WithField("stepname", step.DoFunc).Debug("synchronizing txn step")
+			logger.WithField("stepname", step.DoFunc).Debug("synchronizing txn step")
 			if err := txnEng.stepManager.SyncStep(ctx, i, txn); err != nil {
-				txn.Ctx.Logger().WithFields(log.Fields{
+				logger.WithFields(log.Fields{
 					"error":    err,
 					"stepname": step.DoFunc,
 				}).Error("encounter an error in synchronizing txn step")
 				return err
 			}
-			txn.Ctx.Logger().Debug("transaction got synchronized")
+			logger.Debug("transaction got synchronized")
 		}
 
 		if err := txnEng.stepManager.RunStep(ctx, step, txn.Ctx); err != nil {
-			txn.Ctx.Logger().WithFields(log.Fields{
+			logger.WithFields(log.Fields{
 				"error":    err,
 				"stepname": step.DoFunc,
-			}).Error("failed in executing step ")
+			}).Error("failed in executing txn step ")
 			txnEng.txnManager.UpdateLastExecutedStep(i, txn.ID, txnEng.selfNodeID)
 			return err
 		}
@@ -163,6 +169,7 @@ func (txnEng *Engine) executePendingTxn(ctx context.Context, txn *Txn) error {
 		default:
 		}
 
+		logger.WithField("stepname", step.DoFunc).Debug("step func executed successfully on node")
 		txnEng.txnManager.UpdateLastExecutedStep(i, txn.ID, txnEng.selfNodeID)
 		updateOnce.Do(func() {
 			txnEng.txnManager.UpDateTxnStatus(TxnStatus{State: txnRunning, TxnID: txn.ID}, txn.ID, txnEng.selfNodeID)

@@ -2,24 +2,23 @@ package cleanuphandler
 
 import (
 	"context"
+	"fmt"
 	"sync"
 	"time"
 
 	"github.com/gluster/glusterd2/glusterd2/gdctx"
 	"github.com/gluster/glusterd2/glusterd2/store"
-	txn "github.com/gluster/glusterd2/glusterd2/transaction"
 	"github.com/gluster/glusterd2/glusterd2/transactionv2"
 
 	"github.com/coreos/etcd/clientv3"
-	"github.com/pborman/uuid"
+	"github.com/coreos/etcd/clientv3/concurrency"
 	log "github.com/sirupsen/logrus"
 )
 
 const (
-	leaderKey        = "leader"
-	cleanupTimerDur  = time.Second * 5
-	txnMaxAge        = time.Second * 20
-	electionTimerDur = time.Second * 10
+	leaderKey       = "cleanup-leader"
+	cleanupTimerDur = time.Minute * 2
+	txnMaxAge       = time.Second * 20
 )
 
 // CleanupLeader is responsible for performing all cleaning operation
@@ -37,23 +36,45 @@ type CleaupHandlerOptFunc func(handler *CleanupHandler) error
 // by all peers involved in the transaction.
 type CleanupHandler struct {
 	sync.Mutex
-	isLeader    bool
-	locks       txn.Locks
-	selfNodeID  uuid.UUID
-	storeClient *clientv3.Client
-	stopChan    chan struct{}
-	stopOnce    sync.Once
-	txnManager  transaction.TxnManager
+	isLeader   bool
+	stopChan   chan struct{}
+	stopOnce   sync.Once
+	session    *concurrency.Session
+	election   *concurrency.Election
+	txnManager transaction.TxnManager
+}
+
+// WithSession configures a session with given ttl
+func WithSession(client *clientv3.Client, ttl int) CleaupHandlerOptFunc {
+	return func(handler *CleanupHandler) error {
+		session, err := concurrency.NewSession(client, concurrency.WithTTL(ttl))
+		if err != nil {
+			return err
+		}
+		handler.session = session
+		return nil
+	}
+}
+
+// WithElection creates a new election for CleanupHandler.It will use the `defaultSession`
+// if no session has been configured previously.
+func WithElection(defaultSession *concurrency.Session) CleaupHandlerOptFunc {
+	return func(handler *CleanupHandler) error {
+		session := defaultSession
+		if handler.session != nil {
+			session = handler.session
+		}
+		electionKeyPrefix := fmt.Sprintf("gluster-%s/", gdctx.MyClusterID.String()) + leaderKey
+		handler.election = concurrency.NewElection(session, electionKeyPrefix)
+		return nil
+	}
 }
 
 // NewCleanupHandler returns a new CleanupHandler
 func NewCleanupHandler(optFuncs ...CleaupHandlerOptFunc) (*CleanupHandler, error) {
 	cl := &CleanupHandler{
-		storeClient: store.Store.Client,
-		stopChan:    make(chan struct{}),
-		txnManager:  transaction.NewTxnManager(store.Store.Watcher),
-		selfNodeID:  gdctx.MyUUID,
-		locks:       make(txn.Locks),
+		stopChan:   make(chan struct{}),
+		txnManager: transaction.NewTxnManager(store.Store.Watcher),
 	}
 
 	for _, optFunc := range optFuncs {
@@ -85,7 +106,6 @@ func (c *CleanupHandler) HandleStaleTxn() {
 	if isLeader {
 		c.txnManager.TxnGC(txnMaxAge)
 	}
-
 }
 
 // CleanFailedTxn removes all failed txn if rollback is
@@ -100,27 +120,16 @@ func (c *CleanupHandler) CleanFailedTxn() {
 	}
 }
 
-// Stop will stop running the CleanupHandler
-func (c *CleanupHandler) Stop() {
-	log.Info("attempting to stop cleanup handler")
-	c.stopOnce.Do(func() {
-		close(c.stopChan)
-	})
-	c.Lock()
-	defer c.Unlock()
-	isLeader := c.isLeader
-	if isLeader {
-		store.Delete(context.TODO(), leaderKey)
-	}
-	c.locks.UnLock(context.Background())
-}
-
-// StartElecting triggers a new election after every `electionTimerDur`.
+// StartElecting triggers a new election campaign.
 // If it succeeded then it assumes the leader role and returns
 func (c *CleanupHandler) StartElecting() {
 	log.Info("node started to contest for leader election")
 
-	transaction.UntilSuccess(c.IsNodeElected, electionTimerDur, c.stopChan)
+	if err := c.election.Campaign(context.Background(), gdctx.MyUUID.String()); err != nil {
+		log.WithError(err).Error("failed in campaign for cleanup leader election")
+		c.Stop()
+		return
+	}
 
 	log.Info("node got elected as cleanup leader")
 	c.Lock()
@@ -128,36 +137,23 @@ func (c *CleanupHandler) StartElecting() {
 	c.isLeader = true
 }
 
-// IsNodeElected returns whether a node is elected as a leader or not.
-// Leader attempts to set a common key using a transaction that checks
-// if the key already exists. If not, the candidate leader sets the
-// key with a lease and assumes the leader role.
-func (c *CleanupHandler) IsNodeElected() bool {
-	var (
-		leaseID = store.Store.Session.Lease()
-		lockID  = gdctx.MyClusterID.String()
-		logger  = log.WithField("lockID", lockID)
-	)
-
-	if err := c.locks.Lock(lockID); err != nil {
-		logger.WithError(err).Error("error in acquiring lock")
-		return false
-	}
-	defer c.locks.UnLock(context.Background())
-
-	resp, err := store.Txn(context.Background()).
-		If(clientv3.Compare(clientv3.Version(leaderKey), "=", 0)).
-		Then(clientv3.OpPut(leaderKey, c.selfNodeID.String(), clientv3.WithLease(leaseID))).
-		Commit()
-
-	return (err == nil) && resp.Succeeded
+// Stop will stop running the CleanupHandler
+func (c *CleanupHandler) Stop() {
+	log.Info("attempting to stop cleanup handler")
+	c.stopOnce.Do(func() {
+		close(c.stopChan)
+		c.election.Resign(context.Background())
+	})
 }
 
 // StartCleanupLeader starts cleanup leader
 func StartCleanupLeader() {
 	var err error
 
-	CleanupLeader, err = NewCleanupHandler()
+	CleanupLeader, err = NewCleanupHandler(
+		WithSession(store.Store.Client, 60),
+		WithElection(store.Store.Session),
+	)
 
 	if err != nil {
 		log.WithError(err).Errorf("failed in starting cleanup handler")

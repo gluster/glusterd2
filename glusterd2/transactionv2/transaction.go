@@ -44,8 +44,9 @@ type Txn struct {
 	Initiator       uuid.UUID           `json:"initiator"`
 	StartTime       time.Time           `json:"start_time"`
 
-	success chan struct{}
-	error   chan error
+	success   chan struct{}
+	error     chan error
+	succeeded bool
 }
 
 // NewTxn returns an initialized Txn without any steps
@@ -100,7 +101,12 @@ func (t *Txn) releaseLocks() {
 // Done releases any obtained locks and cleans up the transaction namespace
 // Done must be called after a transaction ends
 func (t *Txn) Done() {
-
+	if t.succeeded {
+		t.done()
+		t.releaseLocks()
+		GlobalTxnManager.RemoveTransaction(t.ID)
+		t.Ctx.Logger().Info("txn succeeded on all nodes, txn data cleaned up from store")
+	}
 }
 
 func (t *Txn) done() {
@@ -171,9 +177,7 @@ func (t *Txn) Do() error {
 	select {
 	case <-t.success:
 		close(stop)
-		t.done()
-		GlobalTxnManager.RemoveTransaction(t.ID)
-		t.Ctx.Logger().Info("txn succeeded on all nodes, cleaned up from store")
+		t.succeeded = true
 	case err := <-t.error:
 		t.Ctx.Logger().WithError(err).Error("error in executing txn, marking as failure")
 		close(stop)
