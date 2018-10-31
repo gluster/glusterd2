@@ -71,38 +71,3 @@ func getCallers() (callers string) {
 	}
 	return
 }
-
-// UntilSuccess runs conditionFunc every d duration, until it got succeeded or stop chan is closed
-func UntilSuccess(conditionFunc func() bool, d time.Duration, stop <-chan struct{}) {
-	var (
-		t       *time.Timer
-		timeout bool
-		success bool
-	)
-
-	for {
-		select {
-		case <-stop:
-			return
-		default:
-		}
-
-		func() {
-			defer HandlePanic()
-			success = conditionFunc()
-		}()
-
-		if success {
-			return
-		}
-
-		t = ResetTimer(t, d, timeout)
-
-		select {
-		case <-stop:
-			return
-		case <-t.C:
-			timeout = true
-		}
-	}
-}
