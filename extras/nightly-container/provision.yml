@@ -20,6 +20,7 @@
       with_items:
         - {url: "http://artifacts.ci.centos.org/gluster/nightly/master.repo", path: "/etc/yum.repos.d/glusterfs-nightly.repo"}
         - {url: "http://artifacts.ci.centos.org/gluster/gd2-nightly/gd2-master.repo", path: "/etc/yum.repos.d/glusterd2-nightly.repo"}
+        - {url: "http://artifacts.ci.centos.org/gluster/gluster-prometheus-nightly/gluster-prometheus-master.repo", path: "/etc/yum.repos.d/gluster-prometheus-nightly.repo"}
 
     # Required for correct userspace-rcu versions. The version available from
     # centos-release-gluster does not work ATM with the nightly builds
@@ -37,6 +38,7 @@
         - glusterd2
         - lvm2
         - xfsprogs
+        - gluster-prometheus-exporter
 
     - name: Clean yum cache
       command: yum clean all
@@ -107,7 +109,41 @@
     # Using direct systemctl here as the way the service/systemd modules work
     # requires dbus, which is not available in the container
     - name: Enable glusterd2.service
-      command: systemctl enable glusterd2.service
-      args:
-        warn: no
+      service:
+        name: glusterd2
+        state: started
+        enabled: true
 
+    - name: Configure gluster-exporter to use glusterd2
+      replace:
+        path: /etc/gluster-exporter/gluster-exporter.toml
+        regexp: '^gluster-mgmt\s*=.*'
+        replace: 'gluster-mgmt = "glusterd2"'
+
+    - name: Configure gluster-exporter to use glusterd2 workdir
+      replace:
+        path: /etc/gluster-exporter/gluster-exporter.toml
+        regexp: '^glusterd-dir\s*=.*'
+        replace: 'glusterd-dir = "/var/lib/glusterd2"'
+
+    - name: Create override directory for gluster-exporter.service
+      file:
+        path: /etc/systemd/system/gluster-exporter.service.d
+        state: directory
+
+    # This makes systemd pass environment variables set for
+    # glusterd2/gluster-exporter by kubernetes
+    - name: Enable PassEnvironment override for gluster-exporter.service
+      ini_file:
+        path: /etc/systemd/system/gluster-exporter.service.d/override.conf
+        section: Service
+        option: PassEnvironment
+        # PassEnvironment requires that each variable be mentioned individually
+        # More variables will need to be added here as required
+        value: GD2_ENDPOINTS
+
+    - name: Enable gluster-exporter.service
+      service:
+        name: gluster-exporter
+        state: started
+        enabled: true
