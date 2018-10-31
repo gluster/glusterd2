@@ -46,8 +46,8 @@ func InitFlags() {
 	// Not setting defaults for the options here as the defaults will be returned
 	// by `config` when nothing has been set overwriting anything saved
 	flag.StringSlice(etcdEndpointsOpt, nil, fmt.Sprintf("ETCD endpoints of a remote etcd cluster for the store to connect to. (Defaults to: %s)", elasticetcd.DefaultEndpoint))
-	flag.StringSlice(etcdCURLsOpt, nil, fmt.Sprintf("URLs which etcd server will use for peer to peer communication. (Defaults to: %s)", elasticetcd.DefaultCURL))
-	flag.StringSlice(etcdPURLsOpt, nil, fmt.Sprintf("URLs which etcd server will use to receive etcd client requests. (Defaults to: %s)", elasticetcd.DefaultPURL))
+	flag.StringSlice(etcdCURLsOpt, nil, fmt.Sprintf("URLs which etcd server will use to receive etcd client requests. (Defaults to: %s)", elasticetcd.DefaultCURL))
+	flag.StringSlice(etcdPURLsOpt, nil, fmt.Sprintf("URLs which etcd server will use for peer to peer communication. (Defaults to: %s)", elasticetcd.DefaultPURL))
 
 	flag.String(etcdClientCertFileOpt, "", "identify secure etcd client using this TLS certificate file")
 	flag.String(etcdClientKeyFileOpt, "", "identify secure etcd client using this TLS key file")
