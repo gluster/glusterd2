@@ -34,7 +34,6 @@ func generateBrickVolfile(volfile *Volfile, b *brick.Brickinfo, vol *volume.Voli
 		Add("features/access-control", vol, b).
 		Add("features/bitrot-stub", vol, b).
 		Add("features/changelog", vol, b).
-		Add("features/changetimerecorder", vol, b).
 		Add("features/trash", vol, b)
 
 	if b.Type == brick.Arbiter {
