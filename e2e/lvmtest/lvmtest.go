@@ -14,7 +14,10 @@ import (
 	"github.com/gluster/glusterd2/glusterd2/volume"
 )
 
-const lvmPrefix string = "patchy_snap"
+const (
+	lvmPrefix    string = "patchy_snap"
+	devicePrefix string = "/dev/gluster_loop"
+)
 
 var (
 	xfsFormat    = lvm.GetBinPath("mkfs.xfs")
@@ -53,32 +56,32 @@ func createLV(num int, thinpoolSize, virtualSize string) error {
 	for i := 1; i <= num; i++ {
 		prefix := fmt.Sprintf("%s%d/%s", brickPrefix, i, lvmPrefix)
 		brickPath := fmt.Sprintf("%s_mnt", prefix)
-		devicePath := fmt.Sprintf("%s_loop", prefix)
+		devicePath := devicePrefix + strconv.Itoa(i)
 
 		vg := fmt.Sprintf("%s_vg_%d", lvmPrefix, i)
 		poolPath := fmt.Sprintf("/dev/%s/thinpool", vg)
 		xfsPath := fmt.Sprintf("/dev/%s/brick_lvm", vg)
 
-		if _, err := exec.Command(lvm.PvCreateCommand, devicePath).Output(); err != nil {
+		if err := exec.Command(lvm.PvCreateCommand, devicePath).Run(); err != nil {
 			return err
 		}
 
-		if _, err := exec.Command(lvm.VgCreateCommand, vg, devicePath).Output(); err != nil {
+		if err := exec.Command(lvm.VgCreateCommand, vg, devicePath).Run(); err != nil {
 			return err
 		}
 
-		if _, err := exec.Command(lvm.CreateCommand, "-L", thinpoolSize, "-T", poolPath).Output(); err != nil {
+		if err := exec.Command(lvm.CreateCommand, "-L", thinpoolSize, "-T", poolPath).Run(); err != nil {
 			return err
 		}
 
-		if _, err := exec.Command(lvm.CreateCommand, "-V", virtualSize, "-T", poolPath, "-n", "brick_lvm").Output(); err != nil {
+		if err := exec.Command(lvm.CreateCommand, "-V", virtualSize, "-T", poolPath, "-n", "brick_lvm").Run(); err != nil {
 			return err
 		}
 
-		if _, err := exec.Command(xfsFormat, "-f", xfsPath).Output(); err != nil {
+		if err := exec.Command(xfsFormat, "-f", xfsPath).Run(); err != nil {
 			return err
 		}
-		if _, err := exec.Command("mount", "-t", "xfs", "-o", "nouuid", xfsPath, brickPath).Output(); err != nil {
+		if err := exec.Command("mount", "-t", "xfs", "-o", "nouuid", xfsPath, brickPath).Run(); err != nil {
 			return err
 		}
 
@@ -98,10 +101,10 @@ func deleteLV(num int, force bool) error {
 		if err := os.RemoveAll(brickPath); err != nil && !force {
 			return err
 		}
-		if _, err := exec.Command(lvm.RemoveCommand, "-f", vg).Output(); err != nil && !force {
+		if err := exec.Command(lvm.RemoveCommand, "-f", vg).Run(); err != nil && !force {
 			return err
 		}
-		if _, err := exec.Command(lvm.VgRemoveCommand, "-f", vg).Output(); err != nil && !force {
+		if err := exec.Command(lvm.VgRemoveCommand, "-f", vg).Run(); err != nil && !force {
 			return err
 		}
 
@@ -116,11 +119,15 @@ func deleteVHD(num int, force bool) error {
 	for i := 1; i <= num; i++ {
 		prefix := fmt.Sprintf("%s%d/%s", brickPrefix, i, lvmPrefix)
 		vhdPath := fmt.Sprintf("%s_vhd", prefix)
-		devicePath := fmt.Sprintf("%s_loop", prefix)
-		_, err := exec.Command("losetup", "-d", devicePath).Output()
-		if err != nil && !force {
+		devicePath := devicePrefix + strconv.Itoa(i)
+
+		if err := exec.Command(lvm.PvRemoveCommand, "-f", devicePath).Run(); err != nil && !force {
 			return err
 		}
+		if err := exec.Command("losetup", "-d", devicePath).Run(); err != nil && !force {
+			return err
+		}
+
 		if err := os.RemoveAll(vhdPath); err != nil && !force {
 			return err
 		}
@@ -138,16 +145,16 @@ func createVHD(num int, size string) error {
 	for i := 1; i <= num; i++ {
 		prefix := fmt.Sprintf("%s%d/%s", brickPrefix, i, lvmPrefix)
 		vhdPath := fmt.Sprintf("%s_vhd", prefix)
-		devicePath := fmt.Sprintf("%s_loop", prefix)
+		devicePath := devicePrefix + strconv.Itoa(i)
 		//TODO replace exec command with syscall.Fallocate
-		if _, err := exec.Command(fallocateBin, "-l", size, vhdPath).Output(); err != nil {
+		if err := exec.Command(fallocateBin, "-l", size, vhdPath).Run(); err != nil {
 			return err
 		}
-		if _, err := exec.Command(mknodBin, "-m", "660", devicePath, "b", "7", strconv.Itoa(i+8)).Output(); err != nil {
+		if err := exec.Command(mknodBin, devicePath, "b", "7", strconv.Itoa(i)).Run(); err != nil {
 			return err
 		}
 		loosetupCmd := exec.Command("losetup", devicePath, vhdPath)
-		if _, err := loosetupCmd.Output(); err != nil {
+		if err := loosetupCmd.Run(); err != nil {
 			return err
 		}
 	}
@@ -182,7 +189,7 @@ func CreateLvmBricks(prefix string, num int) ([]string, error) {
 func Cleanup(baseWorkdir, prefix string, brickCount int) {
 
 	brickPrefix = prefix
-	exec.Command("pkill", "gluster").Output()
+	exec.Command("pkill", "gluster").Run()
 	time.Sleep(3 * time.Second)
 
 	mtabEntries, err := volume.GetMounts()
@@ -223,11 +230,12 @@ func CleanupLvmBricks(prefix string, num int) error {
 	if !verifyLVM() {
 		return errors.New("lvm or thinlv is not available on the machine")
 	}
-	if err = deleteVHD(num, false); err != nil {
+
+	if err = deleteLV(num, false); err != nil {
 		return err
 	}
 
-	if err = deleteLV(num, false); err != nil {
+	if err = deleteVHD(num, false); err != nil {
 		return err
 	}
 
