@@ -53,6 +53,8 @@ type GDStore struct {
 
 	ee        *elasticetcd.ElasticEtcd
 	namespace string
+	stop      chan struct{}
+	stopOnce  sync.Once
 }
 
 // Init initializes the GD2 store
@@ -111,7 +113,63 @@ func New(conf *Config) (*GDStore, error) {
 	if err = store.publishLiveness(); err != nil {
 		return nil, err
 	}
+
+	store.stop = make(chan struct{})
+
+	go store.keepSessionLeaseAlive()
 	return store, nil
+}
+
+// keepSessionLeaseAlive keeps session lease alive forever. If etcd goes down
+// and comes up then existing session lease will not be refreshed and expires after
+// lease ttl duration. keepSessionLeaseAlive checks session lease information on a
+// regular interval. It will start refreshing session lease if it is not getting
+// refreshed.
+func (s *GDStore) keepSessionLeaseAlive() {
+	var (
+		ticker         = time.NewTicker(time.Second * 5)
+		printedFailure bool
+	)
+
+	defer ticker.Stop()
+
+	for {
+		select {
+		case <-s.stop:
+			return
+		case <-ticker.C:
+			ctx, cancel := context.WithTimeout(context.Background(), getTimeout*time.Second)
+			leaseTTLResp, err := s.Lease.TimeToLive(ctx, s.Session.Lease())
+			cancel()
+
+			if err != nil && !printedFailure {
+				log.WithError(err).Error("etcd is probably down, restart etcd")
+				printedFailure = true
+			}
+
+			if err != nil || leaseTTLResp.TTL > sessionTTL/3 {
+				continue
+			}
+
+			// session lease ttl is not getting refreshed, keeping alive session lease.
+			log.WithField("leaseID", leaseTTLResp.ID).
+				Debugf("granted session lease will expire in %d sec, etcd might have restarted", leaseTTLResp.TTL)
+
+			keepAliveChan, err := s.Lease.KeepAlive(context.Background(), s.Session.Lease())
+			if err != nil || keepAliveChan == nil {
+				continue
+			}
+
+			log.WithField("leaseID", leaseTTLResp.ID).Debug("keeping session lease alive forever")
+
+			go func() {
+				for range keepAliveChan {
+					// discard messages until keepAliveChan closes
+				}
+			}()
+			printedFailure = false
+		}
+	}
 }
 
 // Close closes the store connections
@@ -125,6 +183,10 @@ func (s *GDStore) Close() {
 	} else {
 		s.closeRemoteStore()
 	}
+
+	s.stopOnce.Do(func() {
+		close(s.stop)
+	})
 }
 
 // Destroy closes the store and deletes the store data dir
@@ -183,7 +245,16 @@ func newNamespacedStore(oc *clientv3.Client, conf *Config) (*GDStore, error) {
 		return nil, err
 	}
 
-	return &GDStore{*conf, kv, lease, watcher, session, oc, nil, namespaceKey}, nil
+	return &GDStore{
+		conf:      *conf,
+		KV:        kv,
+		Lease:     lease,
+		Watcher:   watcher,
+		Session:   session,
+		Client:    oc,
+		ee:        nil,
+		namespace: namespaceKey,
+	}, nil
 }
 
 //Get is a wrapper function that calls clientv3.KV.Get with a default timeout if an empty context is passed
