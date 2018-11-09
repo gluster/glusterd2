@@ -79,7 +79,7 @@ func testSelfHeal(t *testing.T, tc *testCluster) {
 }
 
 func checkForPendingHeals(healInfo *shdapi.BrickHealInfo) error {
-	if *healInfo.EntriesInHealPending != 0 {
+	if *healInfo.EntriesInHealPending != 0 && *healInfo.EntriesInHealPending != -1 {
 		return errors.New("expecting no pending heals, found pending heals")
 	}
 	return nil
