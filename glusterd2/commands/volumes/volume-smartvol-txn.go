@@ -59,7 +59,13 @@ func txnPrepareBricks(c transaction.TxnCtx) error {
 			}
 
 			// Make Filesystem
-			err = deviceutils.MakeXfs(b.DevicePath)
+			mkfsOpts := []string{}
+			if b.Type == "arbiter" {
+				mkfsOpts = []string{"-i", "size=512", "-n", "size=8192", "-i", "maxpct=0"}
+			} else {
+				mkfsOpts = []string{"-i", "size=512", "-n", "size=8192"}
+			}
+			err = deviceutils.MakeXfs(b.DevicePath, mkfsOpts...)
 			if err != nil {
 				c.Logger().WithError(err).WithField("dev", b.DevicePath).Error("mkfs.xfs failed")
 				return err

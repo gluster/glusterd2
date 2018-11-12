@@ -39,6 +39,7 @@ var (
 	flagCreateSnapshotEnabled       bool
 	flagCreateSnapshotReserveFactor float64 = 1
 	flagCreateSubvolZoneOverlap     bool
+	flagAverageFileSize             string
 
 	volumeCreateCmd = &cobra.Command{
 		Use:   "create <volname> [<brick> [<brick>]...|--size <size>]",
@@ -83,6 +84,7 @@ func init() {
 	volumeCreateCmd.Flags().BoolVar(&flagCreateSnapshotEnabled, "enable-snapshot", false, "Enable Volume for Gluster Snapshot")
 	volumeCreateCmd.Flags().Float64Var(&flagCreateSnapshotReserveFactor, "snapshot-reserve-factor", 1, "Snapshot Reserve Factor")
 	volumeCreateCmd.Flags().BoolVar(&flagCreateSubvolZoneOverlap, "subvols-zones-overlap", false, "Brick belonging to other Sub volume can be created in the same zone")
+	volumeCreateCmd.Flags().StringVar(&flagAverageFileSize, "average-file-size", "1M", "Average size of the files")
 
 	volumeCmd.AddCommand(volumeCreateCmd)
 }
@@ -93,12 +95,25 @@ func smartVolumeCreate(cmd *cobra.Command, args []string) {
 		failure("Invalid Volume Size specified", nil, 1)
 	}
 
+	// if average file size is specified for arbiter brick calculation
+	// else default is taken.
+	avgFileSize, err := sizeToMb(flagAverageFileSize)
+	if err != nil {
+		failure("Invalid File Size specified", nil, 1)
+	}
+	// TODO: If the size is less than 1M then the sizeToMb returns zero.
+	// should be fixed when the default unit is reduced to K or bytes.
+	if avgFileSize == 0 {
+		failure("Volume create failed: File Size cannot be zero", nil, 1)
+	}
+
 	req := api.VolCreateReq{
 		Name:                    args[0],
 		Transport:               flagCreateTransport,
 		Size:                    size,
 		ReplicaCount:            flagCreateReplicaCount,
 		ArbiterCount:            flagCreateArbiterCount,
+		AverageFileSize:         avgFileSize,
 		DistributeCount:         flagCreateDistributeCount,
 		DisperseCount:           flagCreateDisperseCount,
 		DisperseDataCount:       flagCreateDisperseDataCount,
