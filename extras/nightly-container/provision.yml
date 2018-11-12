@@ -106,14 +106,6 @@
         line: GD2_NOEMBED=true
         state: present
 
-    # Using direct systemctl here as the way the service/systemd modules work
-    # requires dbus, which is not available in the container
-    - name: Enable glusterd2.service
-      service:
-        name: glusterd2
-        state: started
-        enabled: true
-
     - name: Configure gluster-exporter to use glusterd2
       replace:
         path: /etc/gluster-exporter/gluster-exporter.toml
@@ -142,8 +134,12 @@
         # More variables will need to be added here as required
         value: GD2_ENDPOINTS
 
-    - name: Enable gluster-exporter.service
-      service:
-        name: gluster-exporter
-        state: started
-        enabled: true
+    # Using direct systemctl here as the way the service/systemd modules work
+    # requires dbus, which is not available in the container
+    - name: Enable required services
+      command: systemctl enable {{ item }}
+      args:
+        warn: false
+      loop:
+        - glusterd2.service
+        - gluster-exporter.service
