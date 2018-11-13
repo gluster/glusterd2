@@ -35,9 +35,9 @@ func getPeerServiceClient(address string) (*peerSvcClnt, error) {
 // JoinCluster asks the remote peer to join the current cluster by reconfiguring the store with the given config
 func (pc *peerSvcClnt) JoinCluster(conf *StoreConfig) (*JoinRsp, error) {
 	args := &JoinReq{
-		gdctx.MyUUID.String(),
-		gdctx.MyClusterID.String(),
-		conf,
+		PeerID:    gdctx.MyUUID.String(),
+		ClusterID: gdctx.MyClusterID.String(),
+		Config:    conf,
 	}
 	rsp, err := pc.client.Join(context.TODO(), args)
 	if err != nil {
@@ -52,7 +52,7 @@ func (pc *peerSvcClnt) JoinCluster(conf *StoreConfig) (*JoinRsp, error) {
 
 // LeaveCluster asks the remote peer to leave the current cluster
 func (pc *peerSvcClnt) LeaveCluster() (*LeaveRsp, error) {
-	args := &LeaveReq{gdctx.MyUUID.String()}
+	args := &LeaveReq{PeerID: gdctx.MyUUID.String()}
 
 	rsp, err := pc.client.Leave(context.TODO(), args)
 	if err != nil {

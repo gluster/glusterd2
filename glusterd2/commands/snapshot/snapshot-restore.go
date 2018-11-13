@@ -16,6 +16,7 @@ import (
 
 	"github.com/gorilla/mux"
 	"github.com/pborman/uuid"
+	log "github.com/sirupsen/logrus"
 	"golang.org/x/sys/unix"
 )
 
@@ -62,8 +63,13 @@ func snapRestore(c transaction.TxnCtx) error {
 		}
 	}
 
+	mtab, err := volume.GetMounts()
+	if err != nil {
+		return err
+	}
+
 	for _, b := range offlineBricks {
-		if err := snapshot.MountSnapBrickDirectory(snapVol, &b); err != nil {
+		if err := volume.MountBrickDirectory(snapVol, &b, mtab); err != nil {
 			return err
 		}
 		if err := unix.Setxattr(b.Path, volumeIDXattrKey, []byte(volinfo.ID), unix.XATTR_REPLACE); err != nil {
@@ -76,11 +82,11 @@ func snapRestore(c transaction.TxnCtx) error {
 	return nil
 }
 
-func remountBrick(b brick.Brickinfo, volinfo *volume.Volinfo) error {
-	if err := snapshot.UmountBrick(b); err != nil {
+func remountBrick(b brick.Brickinfo, volinfo *volume.Volinfo, mtab []*volume.Mntent) error {
+	if err := volume.UmountBrick(b); err != nil {
 		return err
 	}
-	err := snapshot.MountSnapBrickDirectory(volinfo, &b)
+	err := volume.MountBrickDirectory(volinfo, &b, mtab)
 	return err
 
 }
@@ -103,15 +109,37 @@ func undoSnapStore(c transaction.TxnCtx) error {
 		return err
 	}
 
-	if err := volume.AddOrUpdateVolumeFunc(&volinfo); err != nil {
-		c.Logger().WithError(err).WithField(
-			"volume", volinfo.Name).Debug("failed to store volume info")
+	// Regenerate the volfile of original volume
+	err := volgen.VolumeVolfileToStore(&volinfo, volinfo.Name, "client")
+	if err != nil {
+		c.Logger().WithError(err).WithFields(log.Fields{
+			"template": "client",
+			"volfile":  volinfo.Name,
+		}).Error("failed to generate volfile and save to store")
 		return err
 	}
 
-	if err := volgen.Generate(); err != nil {
+	// Regenerate the Volfile of snapshot Volume
+	err = volgen.VolumeVolfileToStore(&snapInfo.SnapVolinfo, snapInfo.SnapVolinfo.Name, "client")
+	if err != nil {
+		c.Logger().WithError(err).WithFields(log.Fields{
+			"template": "client",
+			"volfile":  snapInfo.SnapVolinfo.Name,
+		}).Error("failed to generate snapshot volfile and save to store")
+		return err
+	}
+
+	// Generate brick Volfiles if Snapshot was started earlier
+	if snapInfo.SnapVolinfo.State == volume.VolStarted {
+		err = volgen.GenerateBricksVolfiles(&snapInfo.SnapVolinfo, snapInfo.SnapVolinfo.GetLocalBricks())
+		if err != nil {
+			return err
+		}
+	}
+
+	if err = volume.AddOrUpdateVolumeFunc(&volinfo); err != nil {
 		c.Logger().WithError(err).WithField(
-			"volume", volinfo.Name).Debug("failed to generate volfiles")
+			"volume", volinfo.Name).Debug("failed to store volume info")
 		return err
 	}
 
@@ -130,9 +158,14 @@ func undoSnapRestore(c transaction.TxnCtx) error {
 	}
 	snapVol := &snapInfo.SnapVolinfo
 
+	mtab, err := volume.GetMounts()
+	if err != nil {
+		return err
+	}
+
 	for _, b := range snapVol.GetLocalBricks() {
 
-		if err := remountBrick(b, snapVol); err != nil {
+		if err := remountBrick(b, snapVol, mtab); err != nil {
 			return err
 		}
 		if snapVol.State == volume.VolStarted {
@@ -149,7 +182,7 @@ func undoSnapRestore(c transaction.TxnCtx) error {
 					//TODO once we have errors.ErrProcessAlreadyStopped
 					//check for other errors
 				}
-				if err := snapshot.UmountBrick(b); err != nil {
+				if err := volume.UmountBrick(b); err != nil {
 					return err
 				}
 			}
@@ -174,6 +207,7 @@ func createVolumeBrickFromSnap(bricks []brick.Brickinfo, vol *volume.Volinfo) []
 			VolumeID:       vol.ID,
 			VolumeName:     vol.Name,
 			VolfileID:      vol.Name,
+			PType:          b.PType,
 		}
 		newBricks = append(newBricks, newBrick)
 	}
@@ -245,29 +279,57 @@ func storeSnapRestore(c transaction.TxnCtx) error {
 
 	newVolinfo := createRestoreVolinfo(snapInfo, vol)
 
+	// Volfile of restored volume
+	err = volgen.VolumeVolfileToStore(&newVolinfo, newVolinfo.Name, "client")
+	if err != nil {
+		c.Logger().WithError(err).WithFields(log.Fields{
+			"template": "client",
+			"volfile":  newVolinfo.Name,
+		}).Error("failed to generate volfile and save to store")
+		return err
+	}
+
 	if err := volume.AddOrUpdateVolumeFunc(&newVolinfo); err != nil {
 		c.Logger().WithError(err).WithField(
-			"volume", newVolinfo.Name).Debug("failed to store volume info")
+			"volume", newVolinfo.Name).Error("failed to store volume info")
 		return err
 	}
 
 	if err := snapshot.DeleteSnapshot(snapInfo); err != nil {
 		c.Logger().WithError(err).WithField(
-			"snapshot", snapVol.Name).Debug("failed to delete snap from store")
+			"snapshot", snapVol.Name).Error("failed to delete snap from store")
+		return err
 	}
-	if err := volgen.DeleteVolfiles(snapInfo.SnapVolinfo.VolfileID); err != nil {
+	if err := volgen.DeleteVolfiles(snapVol.VolfileID); err != nil {
 		c.Logger().WithError(err).
 			WithField("snapshot", snapshot.GetStorePath(snapInfo)).
 			Warn("failed to delete volfiles of snapshot")
-	}
-
-	if err := volgen.Generate(); err != nil {
-		c.Logger().WithError(err).WithField(
-			"volume", newVolinfo.Name).Debug("failed to generate volfiles")
 		return err
 	}
 
+	// Delete Snapshot Brick volfiles if Snapvol was in started state
+	if snapVol.State == volume.VolStarted {
+		if err := volgen.DeleteBricksVolfiles(snapVol.GetLocalBricks()); err != nil {
+			c.Logger().WithError(err).WithFields(log.Fields{
+				"template": "brick",
+				"volume":   snapVol.Name,
+			}).Error("failed to delete brick volfiles")
+			return err
+		}
+	}
+
 	return nil
+}
+
+func cleanParentBricks(c transaction.TxnCtx) error {
+	var volinfo volume.Volinfo
+	if err := c.Get("volinfo", &volinfo); err != nil {
+		c.Logger().WithError(err).WithField(
+			"key", "volinfo").Debug("Failed to get key from store")
+		return err
+	}
+
+	return volume.CleanBricks(&volinfo)
 }
 
 func registerSnapRestoreStepFuncs() {
@@ -279,6 +341,7 @@ func registerSnapRestoreStepFuncs() {
 		{"snap-restore.UndoCommit", undoSnapRestore},
 		{"snap-restore.UndoStore", undoSnapStore},
 		{"snap-restore.Store", storeSnapRestore},
+		{"snap-restore.CleanBricks", cleanParentBricks},
 	}
 	for _, sf := range sfs {
 		transaction.RegisterStepFunc(sf.sf, sf.name)
@@ -326,6 +389,7 @@ func snapshotRestoreHandler(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
+	bricksAutoProvisioned := vol.IsAutoProvisioned() || vol.IsSnapshotProvisioned()
 	txn.Steps = []*transaction.Step{
 		{
 			DoFunc:   "snap-restore.Commit",
@@ -336,6 +400,11 @@ func snapshotRestoreHandler(w http.ResponseWriter, r *http.Request) {
 			DoFunc:   "snap-restore.Store",
 			UndoFunc: "snap-restore.UndoStore",
 			Nodes:    []uuid.UUID{gdctx.MyUUID},
+		},
+		{
+			DoFunc: "snap-restore.CleanBricks",
+			Nodes:  vol.Nodes(),
+			Skip:   !bricksAutoProvisioned,
 		},
 	}
 	if err = txn.Ctx.Set("snapname", snapname); err != nil {

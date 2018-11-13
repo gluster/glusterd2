@@ -29,7 +29,7 @@ func undoSnapshotClone(c transaction.TxnCtx) error {
 	}
 
 	for _, b := range volinfo.GetLocalBricks() {
-		snapshot.UmountBrick(b)
+		volume.UmountBrick(b)
 		if err := lvm.RemoveBrickSnapshot(b.MountInfo.DevicePath); err != nil {
 			c.Logger().WithError(err).WithField(
 				"brick", b.Path).Debug("Failed to remove snapshotted LVM")
@@ -52,7 +52,8 @@ func undoStoreSnapshotClone(c transaction.TxnCtx) error {
 	if err := volgen.DeleteVolfiles(vol.VolfileID); err != nil {
 		c.Logger().WithError(err).
 			WithField("volume", vol.Name).
-			Warn("failed to delete volfiles of volume")
+			Error("failed to delete volfiles of volume")
+		return err
 	}
 	return nil
 }
@@ -64,13 +65,13 @@ func storeSnapshotClone(c transaction.TxnCtx) error {
 	}
 	if err := volume.AddOrUpdateVolumeFunc(&vol); err != nil {
 		c.Logger().WithError(err).WithField(
-			"volume", vol.Name).Debug("storeVolume: failed to store Volinfo")
+			"volume", vol.Name).Error("storeVolume: failed to store Volinfo")
 		return err
 	}
 
-	if err := volgen.Generate(); err != nil {
+	if err := volgen.VolumeVolfileToStore(&vol, vol.Name, "client"); err != nil {
 		c.Logger().WithError(err).WithField(
-			"volume", vol.Name).Debug("generateVolfiles: failed to generate volfiles")
+			"volume", vol.Name).Error("generateVolfiles: failed to generate volfiles")
 		return err
 	}
 
@@ -98,13 +99,8 @@ func takeSnapshotClone(c transaction.TxnCtx) error {
 		return err
 	}
 
-	for _, b := range newVol.GetLocalBricks() {
-		if err := snapshot.MountSnapBrickDirectory(&newVol, &b); err != nil {
-			return err
-		}
-	}
-	return nil
-
+	err = volume.MountVolumeBricks(&newVol)
+	return err
 }
 
 func populateCloneBrickMountData(volinfo *volume.Volinfo, name string) (map[string]snapshot.BrickMountData, error) {
@@ -120,7 +116,7 @@ func populateCloneBrickMountData(volinfo *volume.Volinfo, name string) (map[stri
 			if err != nil {
 				return nil, err
 			}
-			mountDir := b.Path[len(mountRoot):]
+			brickDirSuffix := b.Path[len(mountRoot):]
 			mntInfo, err := volume.GetBrickMountInfo(mountRoot)
 			if err != nil {
 				log.WithError(err).WithField(
@@ -137,11 +133,11 @@ func populateCloneBrickMountData(volinfo *volume.Volinfo, name string) (map[stri
 				return nil, err
 			}
 			nodeData[b.String()] = snapshot.BrickMountData{
-				MountDir:   mountDir,
-				DevicePath: devicePath,
-				FsType:     mntInfo.MntType,
-				MntOpts:    updateMntOps(mntInfo.MntType, mntInfo.MntOpts),
-				Path:       snapshotCloneBrickCreate(name, mountDir, svIdx+1, bIdx+1),
+				BrickDirSuffix: brickDirSuffix,
+				DevicePath:     devicePath,
+				FsType:         mntInfo.MntType,
+				MntOpts:        updateMntOps(mntInfo.MntType, mntInfo.MntOpts),
+				Path:           snapshotCloneBrickCreate(name, brickDirSuffix, svIdx+1, bIdx+1),
 			}
 		}
 	}
@@ -256,9 +252,9 @@ func createCloneVolinfo(c transaction.TxnCtx) error {
 	return err
 }
 
-func snapshotCloneBrickCreate(cloneName, mountDir string, subvolNumber, brickNumber int) string {
+func snapshotCloneBrickCreate(cloneName, brickDirSuffix string, subvolNumber, brickNumber int) string {
 	cloneDirPrefix := config.GetString("rundir") + "/clones"
-	brickPath := fmt.Sprintf("%s/%s/subvol%d/brick%d%s", cloneDirPrefix, cloneName, subvolNumber, brickNumber, mountDir)
+	brickPath := fmt.Sprintf("%s/%s/subvol%d/brick%d%s", cloneDirPrefix, cloneName, subvolNumber, brickNumber, brickDirSuffix)
 	return brickPath
 }
 

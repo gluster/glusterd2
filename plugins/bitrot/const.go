@@ -2,7 +2,7 @@ package bitrot
 
 const (
 	// keyFeaturesBitrot is the key which enables/disables bitrot-stub
-	keyFeaturesBitrot = "bitrot-stub.bitrot"
+	keyFeaturesBitrot = "features/bit-rot"
 	// keyFeaturesScrub is the key which controls bit-rot.so to be scrubber/bitd
 	keyFeaturesScrub = "bit-rot.scrubber"
 	// keyScrubFrequency is the key for scrubber frequency

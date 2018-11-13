@@ -8,8 +8,11 @@ import (
 	restutils "github.com/gluster/glusterd2/glusterd2/servers/rest/utils"
 	"github.com/gluster/glusterd2/glusterd2/snapshot"
 	"github.com/gluster/glusterd2/glusterd2/transaction"
+	"github.com/gluster/glusterd2/glusterd2/volgen"
 	"github.com/gluster/glusterd2/glusterd2/volume"
 	"github.com/gluster/glusterd2/pkg/api"
+	"github.com/gluster/glusterd2/pkg/errors"
+
 	"github.com/gorilla/mux"
 	"github.com/pborman/uuid"
 	log "github.com/sirupsen/logrus"
@@ -36,16 +39,31 @@ func deactivateSnapshot(c transaction.TxnCtx) error {
 		return err
 	}
 
+	err = volgen.DeleteBricksVolfiles(vol.GetLocalBricks())
+	if err != nil {
+		c.Logger().WithError(err).WithFields(log.Fields{
+			"template": "brick",
+			"volume":   vol.Name,
+		}).Error("failed to delete brick volfiles")
+		return err
+	}
+
 	//TODO Stop other process of snapshot volume
 	//Yet to implement a generic way in glusterd2
 
 	if err = snapshot.ActivateDeactivateFunc(&snapinfo, brickinfos, activate, c.Logger()); err != nil {
 		return err
 	}
+
+	mtab, err := volume.GetMounts()
+	if err != nil {
+		return err
+	}
+
 	for _, b := range vol.GetLocalBricks() {
 		//Remove mount point of offline bricks if it present
-		if snapshot.IsMountExist(b.Path, vol.ID) {
-			snapshot.UmountBrick(b)
+		if volume.IsMountExist(&b, vol.ID, mtab) {
+			volume.UmountBrick(b)
 		}
 	}
 
@@ -61,13 +79,23 @@ func rollbackDeactivateSnapshot(c transaction.TxnCtx) error {
 	if err := c.Get("oldsnapinfo", &snapinfo); err != nil {
 		return err
 	}
+	vol := &snapinfo.SnapVolinfo
 
 	if err := c.GetNodeResult(gdctx.MyUUID, "brickListToOperate", &brickinfos); err != nil {
 		log.WithError(err).Error("failed to set request in transaction context")
 		return err
 	}
 
-	err := snapshot.ActivateDeactivateFunc(&snapinfo, brickinfos, activate, c.Logger())
+	err := volgen.GenerateBricksVolfiles(vol, vol.GetLocalBricks())
+	if err != nil {
+		c.Logger().WithError(err).WithFields(log.Fields{
+			"template": "brick",
+			"volume":   vol.Name,
+		}).Error("failed to generate brick volfiles")
+		return err
+	}
+
+	err = snapshot.ActivateDeactivateFunc(&snapinfo, brickinfos, activate, c.Logger())
 
 	return err
 
@@ -105,8 +133,7 @@ func snapshotDeactivateHandler(w http.ResponseWriter, r *http.Request) {
 
 	vol = &snapinfo.SnapVolinfo
 	if vol.State != volume.VolStarted {
-		errMsg := "snapshot is already deactivated"
-		restutils.SendHTTPError(ctx, w, http.StatusBadRequest, errMsg)
+		restutils.SendHTTPError(ctx, w, http.StatusBadRequest, errors.ErrSnapDeactivated)
 		return
 	}
 

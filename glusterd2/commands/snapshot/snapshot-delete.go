@@ -25,7 +25,7 @@ func snapshotBrickDelete(errCh chan error, wg *sync.WaitGroup, snapVol volume.Vo
 	defer wg.Done()
 
 	if snapVol.State == volume.VolStarted {
-		if err := snapshot.StopBrick(b, logger); err != nil {
+		if err := volume.StopBrick(b, logger); err != nil {
 			log.WithError(err).WithField(
 				"brick", b.Path).Warning("Failed to cleanup the brick.Earlier it might have stopped abnormally")
 
@@ -37,8 +37,14 @@ func snapshotBrickDelete(errCh chan error, wg *sync.WaitGroup, snapVol volume.Vo
 		errCh <- err
 		return
 	}
-	mountRoot := strings.TrimSuffix(b.Path, b.MountInfo.Mountdir)
+	mountRoot := strings.TrimSuffix(b.Path, b.MountInfo.BrickDirSuffix)
 	os.RemoveAll(mountRoot)
+
+	volfileID := brick.GetVolfileID(snapVol.Name, b.Path)
+	if err := volgen.DeleteFile(volfileID); err != nil {
+		errCh <- err
+	}
+
 	errCh <- nil
 	return
 }
@@ -89,14 +95,7 @@ func snapshotDeleteStore(c transaction.TxnCtx) error {
 	if err := volgen.DeleteVolfiles(snapinfo.SnapVolinfo.VolfileID); err != nil {
 		c.Logger().WithError(err).
 			WithField("snapshot", snapshot.GetStorePath(&snapinfo)).
-			Warn("failed to delete volfiles of snapshot")
-	}
-
-	//Snapshot can be deleted even if it is activated, hence regenerating volfiles
-	//Not needed if snapshot is already deactivated
-	if err := volgen.Generate(); err != nil {
-		c.Logger().WithError(err).WithField(
-			"snapshot", snapinfo.SnapVolinfo.Name).Debug("generateVolfiles: failed to generate volfiles")
+			Error("failed to delete volfiles of snapshot")
 		return err
 	}
 

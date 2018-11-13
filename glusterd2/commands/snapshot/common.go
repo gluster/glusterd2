@@ -4,6 +4,8 @@ import (
 	"github.com/gluster/glusterd2/glusterd2/snapshot"
 	"github.com/gluster/glusterd2/glusterd2/transaction"
 	"github.com/gluster/glusterd2/glusterd2/volgen"
+
+	log "github.com/sirupsen/logrus"
 )
 
 // undoStoreSnapshot revert back snapinfo and to generate client volfile
@@ -27,14 +29,18 @@ func storeSnapinfo(c transaction.TxnCtx, key string) error {
 	}
 	volinfo := snapinfo.SnapVolinfo
 
-	if err := snapshot.AddOrUpdateSnapFunc(&snapinfo); err != nil {
-		c.Logger().WithError(err).WithField(
-			"snapshot", volinfo.Name).Debug("storeSnapshot: failed to store snapshot info")
+	err := volgen.VolumeVolfileToStore(&volinfo, volinfo.Name, "client")
+	if err != nil {
+		c.Logger().WithError(err).WithFields(log.Fields{
+			"template": "client",
+			"volfile":  volinfo.Name,
+		}).Error("failed to generate volfile and save to store")
 		return err
 	}
-	if err := volgen.Generate(); err != nil {
+
+	if err := snapshot.AddOrUpdateSnapFunc(&snapinfo); err != nil {
 		c.Logger().WithError(err).WithField(
-			"volume", volinfo.Name).Debug("generateVolfiles: failed to generate volfiles")
+			"snapshot", volinfo.Name).Error("storeSnapshot: failed to store snapshot info")
 		return err
 	}
 

@@ -6,6 +6,7 @@ import (
 	"path"
 
 	"github.com/gluster/glusterd2/glusterd2/daemon"
+	"github.com/gluster/glusterd2/glusterd2/volgen"
 	"github.com/gluster/glusterd2/glusterd2/volume"
 	"github.com/gluster/glusterd2/glusterd2/xlator"
 	gderrors "github.com/gluster/glusterd2/pkg/errors"
@@ -48,7 +49,13 @@ func (actor *shdActor) Do(v *volume.Volinfo, key string, value string, volOp xla
 				return nil
 			}
 		}
-		err := daemon.Start(glustershDaemon, true, logger)
+
+		err = volgen.ClusterVolfileToFile(v, glustershDaemon.VolfileID, "glustershd")
+		if err != nil {
+			return err
+		}
+
+		err = daemon.Start(glustershDaemon, true, logger)
 		if err != nil && err != gderrors.ErrProcessAlreadyRunning {
 			return err
 		}
@@ -82,6 +89,10 @@ func (actor *shdActor) Do(v *volume.Volinfo, key string, value string, volOp xla
 			switch value {
 			case "on":
 				if isHealEnabled(v) {
+					err = volgen.ClusterVolfileToFile(v, glustershDaemon.VolfileID, "glustershd")
+					if err != nil {
+						return err
+					}
 					err = daemon.Start(glustershDaemon, true, logger)
 					if err != nil && err != gderrors.ErrProcessAlreadyRunning {
 						return err
@@ -144,6 +155,10 @@ func (actor *shdActor) Undo(v *volume.Volinfo, key string, value string, volOp x
 		}
 
 	case xlator.VolumeStop:
+		err = volgen.ClusterVolfileToFile(v, glustershDaemon.VolfileID, "glustershd")
+		if err != nil {
+			return err
+		}
 		err = daemon.Start(glustershDaemon, true, logger)
 		if err != nil && err != gderrors.ErrProcessAlreadyRunning {
 			return err
@@ -165,6 +180,10 @@ func (actor *shdActor) Undo(v *volume.Volinfo, key string, value string, volOp x
 			switch value {
 			case "off":
 				if isHealEnabled(v) {
+					err = volgen.ClusterVolfileToFile(v, glustershDaemon.VolfileID, "glustershd")
+					if err != nil {
+						return err
+					}
 					err = daemon.Start(glustershDaemon, true, logger)
 					if err != nil && err != gderrors.ErrProcessAlreadyRunning {
 						return err

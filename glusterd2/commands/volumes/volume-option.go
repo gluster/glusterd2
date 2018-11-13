@@ -5,12 +5,12 @@ import (
 	"net/http"
 
 	"github.com/gluster/glusterd2/glusterd2/gdctx"
+	"github.com/gluster/glusterd2/glusterd2/options"
 	"github.com/gluster/glusterd2/glusterd2/peer"
 	restutils "github.com/gluster/glusterd2/glusterd2/servers/rest/utils"
 	"github.com/gluster/glusterd2/glusterd2/transaction"
 	"github.com/gluster/glusterd2/glusterd2/volume"
 	"github.com/gluster/glusterd2/glusterd2/xlator"
-	"github.com/gluster/glusterd2/glusterd2/xlator/options"
 	"github.com/gluster/glusterd2/pkg/api"
 	"github.com/gluster/glusterd2/pkg/errors"
 
@@ -34,7 +34,7 @@ func optionSetValidate(c transaction.TxnCtx) error {
 	// TODO: Validate op versions of the options. Either here or inside
 	// validateOptions.
 
-	if err := validateOptions(options, req.Advanced, req.Experimental, req.Deprecated); err != nil {
+	if err := validateOptions(options, req.VolOptionFlags); err != nil {
 		return fmt.Errorf("validation failed for volume option: %s", err.Error())
 	}
 
@@ -186,6 +186,8 @@ func registerVolOptionStepFuncs() {
 		{"vol-option.UpdateVolinfo", storeVolume},
 		{"vol-option.UpdateVolinfo.Undo", undoStoreVolume},
 		{"vol-option.NotifyVolfileChange", notifyVolfileChange},
+		{"vol-option.GenerateBrickVolfiles", txnGenerateBrickVolfiles},
+		{"vol-option.GenerateBrickvolfiles.Undo", txnDeleteBrickVolfiles},
 	}
 	for _, sf := range sfs {
 		transaction.RegisterStepFunc(sf.sf, sf.name)
@@ -245,6 +247,11 @@ func volumeOptionsHandler(w http.ResponseWriter, r *http.Request) {
 			UndoFunc: "vol-option.XlatorActionUndoSet",
 			Nodes:    volinfo.Nodes(),
 			Skip:     !isActionStepRequired(req.Options, volinfo),
+		},
+		{
+			DoFunc:   "vol-option.GenerateBrickVolfiles",
+			UndoFunc: "vol-option.GenerateBrickvolfiles.Undo",
+			Nodes:    volinfo.Nodes(),
 		},
 		{
 			DoFunc: "vol-option.NotifyVolfileChange",

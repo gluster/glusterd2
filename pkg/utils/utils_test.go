@@ -37,6 +37,7 @@ func TestParseHostAndBrickPath(t *testing.T) {
 	h, b, e = ParseHostAndBrickPath(brickPath)
 	assert.Nil(t, e)
 	assert.Equal(t, brick, b)
+	assert.Equal(t, h, "abc")
 
 	h, b, e = ParseHostAndBrickPath("invalid brick")
 	assert.NotNil(t, e)

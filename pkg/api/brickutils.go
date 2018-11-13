@@ -16,7 +16,7 @@ func (req *VolCreateReq) Nodes() ([]uuid.UUID, error) {
 				nodesMap[brick.PeerID] = true
 				u := uuid.Parse(brick.PeerID)
 				if u == nil {
-					return nil, fmt.Errorf("Failed to parse peer ID: %s", brick.PeerID)
+					return nil, fmt.Errorf("failed to parse peer ID: %s", brick.PeerID)
 				}
 				nodes = append(nodes, u)
 			}
@@ -34,7 +34,7 @@ func (req *VolExpandReq) Nodes() ([]uuid.UUID, error) {
 			nodesMap[brick.PeerID] = true
 			u := uuid.Parse(brick.PeerID)
 			if u == nil {
-				return nil, fmt.Errorf("Failed to parse peer ID: %s", brick.PeerID)
+				return nil, fmt.Errorf("failed to parse peer ID: %s", brick.PeerID)
 			}
 			nodes = append(nodes, u)
 		}

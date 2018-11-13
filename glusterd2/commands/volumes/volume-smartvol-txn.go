@@ -1,7 +1,6 @@
 package volumecommands
 
 import (
-	"errors"
 	"os"
 	"strings"
 
@@ -28,7 +27,7 @@ func txnPrepareBricks(c transaction.TxnCtx) error {
 			}
 
 			// Create Mount directory
-			mountRoot := strings.TrimSuffix(b.Path, b.Mountdir)
+			mountRoot := strings.TrimSuffix(b.Path, b.BrickDirSuffix)
 			err := os.MkdirAll(mountRoot, os.ModeDir|os.ModePerm)
 			if err != nil {
 				c.Logger().WithError(err).WithField("path", mountRoot).Error("failed to create brick mount directory")
@@ -60,7 +59,13 @@ func txnPrepareBricks(c transaction.TxnCtx) error {
 			}
 
 			// Make Filesystem
-			err = deviceutils.MakeXfs(b.DevicePath)
+			mkfsOpts := []string{}
+			if b.Type == "arbiter" {
+				mkfsOpts = []string{"-i", "size=512", "-n", "size=8192", "-i", "maxpct=0"}
+			} else {
+				mkfsOpts = []string{"-i", "size=512", "-n", "size=8192"}
+			}
+			err = deviceutils.MakeXfs(b.DevicePath, mkfsOpts...)
 			if err != nil {
 				c.Logger().WithError(err).WithField("dev", b.DevicePath).Error("mkfs.xfs failed")
 				return err
@@ -112,7 +117,7 @@ func txnUndoPrepareBricks(c transaction.TxnCtx) error {
 			}
 
 			// UnMount the Brick
-			mountRoot := strings.TrimSuffix(b.Path, b.Mountdir)
+			mountRoot := strings.TrimSuffix(b.Path, b.BrickDirSuffix)
 			err := deviceutils.BrickUnmount(mountRoot)
 			if err != nil {
 				c.Logger().WithError(err).WithField("path", mountRoot).Error("brick unmount failed")
@@ -152,80 +157,5 @@ func txnCleanBricks(c transaction.TxnCtx) error {
 		return err
 	}
 
-	for _, b := range volinfo.GetLocalBricks() {
-		// UnMount the Brick if mounted
-		mountRoot := strings.TrimSuffix(b.Path, b.MountInfo.Mountdir)
-		_, err := volume.GetBrickMountInfo(mountRoot)
-		if err != nil {
-			if !volume.IsMountNotFoundError(err) {
-				c.Logger().WithError(err).WithField("path", mountRoot).
-					Error("unable to get mount info")
-				return err
-			}
-		} else {
-			err := deviceutils.BrickUnmount(mountRoot)
-			if err != nil {
-				c.Logger().WithError(err).WithField("path", mountRoot).
-					Error("brick unmount failed")
-				return err
-			}
-		}
-
-		parts := strings.Split(b.MountInfo.DevicePath, "/")
-		if len(parts) != 4 {
-			return errors.New("unable to parse device path")
-		}
-		vgname := parts[2]
-		lvname := parts[3]
-		tpname, err := deviceutils.GetThinpoolName(vgname, lvname)
-		if err != nil {
-			c.Logger().WithError(err).WithFields(log.Fields{
-				"vg-name": vgname,
-				"lv-name": lvname,
-			}).Error("failed to get thinpool name")
-			return err
-		}
-
-		// Remove LV
-		err = deviceutils.RemoveLV(vgname, lvname)
-		if err != nil {
-			c.Logger().WithError(err).WithFields(log.Fields{
-				"vg-name": vgname,
-				"lv-name": lvname,
-			}).Error("lv remove failed")
-			return err
-		}
-
-		// Remove Thin Pool if LV count is zero, Thinpool will
-		// have more LVs in case of snapshots and clones
-		numLvs, err := deviceutils.NumberOfLvs(vgname, tpname)
-		if err != nil {
-			c.Logger().WithError(err).WithFields(log.Fields{
-				"vg-name": vgname,
-				"tp-name": tpname,
-			}).Error("failed to get number of lvs")
-			return err
-		}
-
-		if numLvs == 0 {
-			err = deviceutils.RemoveLV(vgname, tpname)
-			if err != nil {
-				c.Logger().WithError(err).WithFields(log.Fields{
-					"vg-name": vgname,
-					"tp-name": tpname,
-				}).Error("thinpool remove failed")
-				return err
-			}
-		}
-
-		// Update current Vg free size
-		err = deviceutils.UpdateDeviceFreeSize(gdctx.MyUUID.String(), vgname)
-		if err != nil {
-			c.Logger().WithError(err).WithField("vg-name", vgname).
-				Error("failed to update available size of a device")
-			return err
-		}
-	}
-
-	return nil
+	return volume.CleanBricks(&volinfo)
 }

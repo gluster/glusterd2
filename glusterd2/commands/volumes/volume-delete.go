@@ -31,7 +31,8 @@ func deleteVolume(c transaction.TxnCtx) error {
 	if err := volgen.DeleteVolfiles(volinfo.Name); err != nil {
 		c.Logger().WithError(err).
 			WithField("volume", volinfo.Name).
-			Warn("failed to delete volfiles of volume")
+			Error("failed to delete volfiles of volume")
+		return err
 	}
 
 	return nil

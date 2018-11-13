@@ -406,7 +406,7 @@ var georepStatusCmd = &cobra.Command{
 			failure(errGeorepStatusCommandFailed, err, 1)
 		}
 
-		var sessions []georepapi.GeorepSession
+		var sessions georepapi.GeorepSessionList
 		// If masterVolID or remoteVolID is empty then get status of all and then filter
 		if masterVolID == "" || remoteVolID == "" {
 			allSessions, err := client.GeorepStatus("", "")

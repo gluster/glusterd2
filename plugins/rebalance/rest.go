@@ -105,6 +105,13 @@ func rebalanceStartHandler(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
+	err = txn.Ctx.Set("volinfo", vol)
+	if err != nil {
+		logger.WithError(err).Error("failed to set volinfo in transaction context")
+		restutils.SendHTTPError(ctx, w, http.StatusInternalServerError, err)
+		return
+	}
+
 	err = txn.Ctx.Set("rinfo", rebalinfo)
 	if err != nil {
 		logger.WithError(err).Error("failed to set rebalance info in transaction context")

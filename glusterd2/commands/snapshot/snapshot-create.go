@@ -47,17 +47,11 @@ func barrierActivateDeactivateFunc(volinfo *volume.Volinfo, option string, origi
 	var req brick.GfBrickOpReq
 	var err error
 
+	volinfo.Options["features/barrier"] = option
 	if bytes.Equal(originUUID, gdctx.MyUUID) {
-		volinfo.Options["features.barrier"] = option
 		if err = volume.AddOrUpdateVolumeFunc(volinfo); err != nil {
 			log.WithError(err).WithField(
 				"volume", volinfo.Name).Debug("failed to store volume info")
-			return err
-		}
-
-		if err = volgen.Generate(); err != nil {
-			log.WithError(err).WithField(
-				"volume", volinfo.Name).Debug("failed to generate volfiles")
 			return err
 		}
 	}
@@ -72,6 +66,16 @@ func barrierActivateDeactivateFunc(volinfo *volume.Volinfo, option string, origi
 	}
 
 	for _, b := range volinfo.GetLocalBricks() {
+		volfileID := brick.GetVolfileID(volinfo.Name, b.Path)
+		err := volgen.BrickVolfileToFile(volinfo, volfileID, "brick", b.PeerID.String(), b.Path)
+		if err != nil {
+			log.WithError(err).WithFields(log.Fields{
+				"template": "brick",
+				"volfile":  volfileID,
+			}).Error("failed to generate volfile")
+			return err
+		}
+
 		brickDaemon, err := brick.NewGlusterfsd(b)
 		if err != nil {
 			return err
@@ -202,7 +206,7 @@ func undoStoreSnapshotOnCreate(c transaction.TxnCtx) error {
 	if err := volgen.DeleteVolfiles(snapInfo.SnapVolinfo.VolfileID); err != nil {
 		c.Logger().WithError(err).
 			WithField("snapshot", snapshot.GetStorePath(&snapInfo)).
-			Warn("failed to delete volfiles of snapshot")
+			Error("failed to delete volfiles of snapshot")
 		return err
 	}
 
@@ -237,9 +241,9 @@ func storeSnapshotCreate(c transaction.TxnCtx) error {
 			"volume", volinfo.Name).Debug("storeSnapshot: failed to store snapshot info")
 		return err
 	}
-	if err := volgen.Generate(); err != nil {
+	if err := volgen.VolumeVolfileToStore(volinfo, volinfo.VolfileID, "client"); err != nil {
 		c.Logger().WithError(err).WithField(
-			"volume", volinfo.Name).Debug("generateVolfiles: failed to generate volfiles")
+			"volume", volinfo.Name).Error("generateVolfiles: failed to generate volfiles")
 		return err
 	}
 
@@ -289,7 +293,7 @@ func populateSnapBrickMountData(volinfo *volume.Volinfo, snapName string) (map[s
 			if err != nil {
 				return nil, err
 			}
-			mountDir := b.Path[len(mountRoot):]
+			brickDirSuffix := b.Path[len(mountRoot):]
 			mntInfo, err := volume.GetBrickMountInfo(mountRoot)
 			if err != nil {
 				log.WithError(err).WithField(
@@ -306,11 +310,11 @@ func populateSnapBrickMountData(volinfo *volume.Volinfo, snapName string) (map[s
 			}
 
 			nodeData[b.String()] = snapshot.BrickMountData{
-				MountDir:   mountDir,
-				DevicePath: devicePath,
-				FsType:     mntInfo.MntType,
-				MntOpts:    updateMntOps(mntInfo.MntType, mntInfo.MntOpts),
-				Path:       snapshotBrickCreate(snapName, volinfo.Name, mountDir, svIdx+1, bIdx+1),
+				BrickDirSuffix: brickDirSuffix,
+				DevicePath:     devicePath,
+				FsType:         mntInfo.MntType,
+				MntOpts:        updateMntOps(mntInfo.MntType, mntInfo.MntOpts),
+				Path:           snapshotBrickCreate(snapName, volinfo.Name, brickDirSuffix, svIdx+1, bIdx+1),
 			}
 			// Store the results in transaction context. This will be consumed by
 			// the node that initiated the transaction.
@@ -423,7 +427,7 @@ func brickSnapshot(errCh chan error, wg *sync.WaitGroup, snapBrick, b brick.Bric
 	defer wg.Done()
 
 	mountData := snapBrick.MountInfo
-	length := len(b.Path) - len(mountData.Mountdir)
+	length := len(b.Path) - len(mountData.BrickDirSuffix)
 	mountRoot := b.Path[:length]
 	mntInfo, err := volume.GetBrickMountInfo(mountRoot)
 	if err != nil {
@@ -492,32 +496,30 @@ func createSnapSubvols(newVolinfo, origVolinfo *volume.Volinfo, nodeData map[str
 		s.ReplicaCount = subvol.ReplicaCount
 		s.Subvols = subvol.Subvols
 		//what is subvol ?
-		{
-			var bricks []api.BrickReq
-			for _, brickinfo := range subvol.Bricks {
-				mountData := nodeData[brickinfo.String()]
-				peerID := brickinfo.PeerID.String()
-				brick := api.BrickReq{
-					PeerID: peerID,
-					Type:   subvolType,
-					Path:   mountData.Path,
-				}
+		var bricks []api.BrickReq
+		for _, brickinfo := range subvol.Bricks {
+			mountData := nodeData[brickinfo.String()]
+			peerID := brickinfo.PeerID.String()
+			brick := api.BrickReq{
+				PeerID: peerID,
+				Type:   brickinfo.BrickTypeToString(),
+				Path:   mountData.Path,
+			}
 
-				bricks = append(bricks, brick)
-			}
-			s.Bricks, err = volume.NewBrickEntriesFunc(bricks, newVolinfo.Name, newVolinfo.VolfileID, newVolinfo.ID, brick.SnapshotProvisioned)
-			if err != nil {
-				return err
-			}
+			bricks = append(bricks, brick)
+		}
+		s.Bricks, err = volume.NewBrickEntriesFunc(bricks, newVolinfo.Name, newVolinfo.VolfileID, newVolinfo.ID, brick.SnapshotProvisioned)
+		if err != nil {
+			return err
 		}
 		for count := 0; count < len(s.Bricks); count++ {
 			key := subvol.Bricks[count].String()
 			data := nodeData[key]
 			s.Bricks[count].MountInfo = brick.MountInfo{
-				Mountdir:   data.MountDir,
-				DevicePath: data.DevicePath,
-				FsType:     data.FsType,
-				MntOpts:    data.MntOpts,
+				BrickDirSuffix: data.BrickDirSuffix,
+				DevicePath:     data.DevicePath,
+				FsType:         data.FsType,
+				MntOpts:        data.MntOpts,
 			}
 
 		}
@@ -530,14 +532,14 @@ func createSnapSubvols(newVolinfo, origVolinfo *volume.Volinfo, nodeData map[str
 func createSnapinfo(c transaction.TxnCtx) error {
 	var data txnData
 	ignoreOps := map[string]string{
-		"features.quota":             "off",
-		"features.inode-quota":       "off",
-		"feature.deem-statfs":        "off",
-		"features.quota-deem-statfs": "off",
+		"features/quota":             "off",
+		"features/inode-quota":       "off",
+		"feature/deem-statfs":        "off",
+		"features/quota-deem-statfs": "off",
 		"bitrot-stub.bitrot":         "off",
 		"replicate.self-heal-daemon": "off",
-		"features.read-only":         "on",
-		"features.uss":               "off",
+		"features/read-only":         "on",
+		"features/uss":               "off",
 	}
 
 	nodeData := make(map[string]snapshot.BrickMountData)
@@ -626,6 +628,9 @@ func duplicateVolinfo(vol, v *volume.Volinfo) {
 	v.Transport = vol.Transport
 	v.DistCount = vol.DistCount
 	v.Type = vol.Type
+	if vol.Capacity != 0 {
+		v.Capacity = vol.Capacity
+	}
 
 	v.Metadata = vol.Metadata
 	if v.Metadata == nil {
@@ -647,9 +652,9 @@ func duplicateVolinfo(vol, v *volume.Volinfo) {
 	 */
 	return
 }
-func snapshotBrickCreate(snapName, volName, mountDir string, subvolNumber, brickNumber int) string {
+func snapshotBrickCreate(snapName, volName, brickDirSuffix string, subvolNumber, brickNumber int) string {
 	snapDirPrefix := config.GetString("rundir") + "/snaps"
-	brickPath := fmt.Sprintf("%s/%s/%s/subvol%d/brick%d%s", snapDirPrefix, snapName, volName, subvolNumber, brickNumber, mountDir)
+	brickPath := fmt.Sprintf("%s/%s/%s/subvol%d/brick%d%s", snapDirPrefix, snapName, volName, subvolNumber, brickNumber, brickDirSuffix)
 	return brickPath
 }
 
@@ -674,7 +679,7 @@ func validateOriginNodeSnapCreate(c transaction.TxnCtx) error {
 		return gderrors.ErrVolNotStarted
 	}
 
-	barrierOp := volinfo.Options["features.barrier"]
+	barrierOp := volinfo.Options["features/barrier"]
 	if err := c.Set("barrier-enabled", &barrierOp); err != nil {
 		return err
 	}

@@ -180,7 +180,7 @@ func UpdateFsLabel(DevicePath, FsType string) error {
 			return err
 		}
 	default:
-		return fmt.Errorf("Changing file-system label of %s is not supported as of now", FsType)
+		return fmt.Errorf("changing file-system label of %s is not supported as of now", FsType)
 	}
 	return nil
 }
