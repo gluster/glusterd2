@@ -52,7 +52,8 @@ func undoStoreSnapshotClone(c transaction.TxnCtx) error {
 	if err := volgen.DeleteVolfiles(vol.VolfileID); err != nil {
 		c.Logger().WithError(err).
 			WithField("volume", vol.Name).
-			Warn("failed to delete volfiles of volume")
+			Error("failed to delete volfiles of volume")
+		return err
 	}
 	return nil
 }
@@ -64,13 +65,13 @@ func storeSnapshotClone(c transaction.TxnCtx) error {
 	}
 	if err := volume.AddOrUpdateVolumeFunc(&vol); err != nil {
 		c.Logger().WithError(err).WithField(
-			"volume", vol.Name).Debug("storeVolume: failed to store Volinfo")
+			"volume", vol.Name).Error("storeVolume: failed to store Volinfo")
 		return err
 	}
 
-	if err := volgen.Generate(); err != nil {
+	if err := volgen.VolumeVolfileToStore(&vol, vol.Name, "client"); err != nil {
 		c.Logger().WithError(err).WithField(
-			"volume", vol.Name).Debug("generateVolfiles: failed to generate volfiles")
+			"volume", vol.Name).Error("generateVolfiles: failed to generate volfiles")
 		return err
 	}
 

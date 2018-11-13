@@ -12,15 +12,20 @@ type FileGfID struct {
 
 // BrickHealInfo represents brick details for Heal Info command
 type BrickHealInfo struct {
-	HostID                 string     `xml:"hostUuid,attr" json:"host-id"`
-	Name                   string     `xml:"name" json:"name"`
-	Status                 string     `xml:"status" json:"status"`
-	TotalEntries           *int       `xml:"totalNumberOfEntries" json:"total-entries,omitempty"`
-	EntriesInHealPending   *int       `xml:"numberOfEntriesInHealPending" json:"entries-in-heal-pending,omitempty"`
-	EntriesInSplitBrain    *int       `xml:"numberOfEntriesInSplitBrain" json:"entries-in-split-brain,omitempty"`
-	EntriesPossiblyHealing *int       `xml:"numberOfEntriesPossiblyHealing" json:"entries-possibly-healing,omitempty"`
-	Entries                *int       `xml:"numberOfEntries" json:"entries,omitempty"`
-	Files                  []FileGfID `xml:"file" json:"file-gfid,omitempty"`
+	HostID                    string     `xml:"hostUuid,attr" json:"host-id"`
+	Name                      string     `xml:"name" json:"name"`
+	Status                    string     `xml:"status" json:"status"`
+	TotalEntriesRaw           string     `xml:"totalNumberOfEntries" json:"-"`
+	EntriesInHealPendingRaw   string     `xml:"numberOfEntriesInHealPending" json:"-"`
+	EntriesInSplitBrainRaw    string     `xml:"numberOfEntriesInSplitBrain" json:"-"`
+	EntriesPossiblyHealingRaw string     `xml:"numberOfEntriesPossiblyHealing" json:"-"`
+	EntriesRaw                string     `xml:"numberOfEntries" json:"-"`
+	TotalEntries              *int64     `json:"total-entries,omitempty"`
+	EntriesInHealPending      *int64     `json:"entries-in-heal-pending,omitempty"`
+	EntriesInSplitBrain       *int64     `json:"entries-in-split-brain,omitempty"`
+	EntriesPossiblyHealing    *int64     `json:"entries-possibly-healing,omitempty"`
+	Entries                   *int64     `json:"entries,omitempty"`
+	Files                     []FileGfID `xml:"file" json:"file-gfid,omitempty"`
 }
 
 // HealInfo represents structure of stdout while running glfsheal binary

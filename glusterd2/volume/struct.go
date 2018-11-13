@@ -126,6 +126,16 @@ func (v *Volinfo) StringMap() map[string]string {
 	return m
 }
 
+// StringMap returns a map[string]string representation of Subvol
+func (sv *Subvol) StringMap() map[string]string {
+	m := make(map[string]string)
+
+	m["subvol.type"] = strings.ToLower(sv.Type.String())
+	m["subvol.name"] = sv.Name
+
+	return m
+}
+
 // NewBrickEntries creates the brick list
 func NewBrickEntries(bricks []api.BrickReq, volName, volfileID string, volID uuid.UUID, ptype brick.ProvisionType) ([]brick.Brickinfo, error) {
 	var brickInfos []brick.Brickinfo

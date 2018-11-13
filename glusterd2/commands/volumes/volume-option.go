@@ -187,6 +187,8 @@ func registerVolOptionStepFuncs() {
 		{"vol-option.UpdateVolinfo", storeVolume},
 		{"vol-option.UpdateVolinfo.Undo", undoStoreVolume},
 		{"vol-option.NotifyVolfileChange", notifyVolfileChange},
+		{"vol-option.GenerateBrickVolfiles", txnGenerateBrickVolfiles},
+		{"vol-option.GenerateBrickvolfiles.Undo", txnDeleteBrickVolfiles},
 	}
 	for _, sf := range sfs {
 		transaction.RegisterStepFunc(sf.sf, sf.name)
@@ -248,6 +250,11 @@ func volumeOptionsHandler(w http.ResponseWriter, r *http.Request) {
 			UndoFunc: "vol-option.XlatorActionUndoSet",
 			Nodes:    volinfo.Nodes(),
 			Skip:     !isActionStepRequired(req.Options, volinfo),
+		},
+		{
+			DoFunc:   "vol-option.GenerateBrickVolfiles",
+			UndoFunc: "vol-option.GenerateBrickvolfiles.Undo",
+			Nodes:    volinfo.Nodes(),
 		},
 		{
 			DoFunc: "vol-option.NotifyVolfileChange",

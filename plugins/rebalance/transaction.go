@@ -8,6 +8,8 @@ import (
 	"github.com/gluster/glusterd2/glusterd2/gdctx"
 	"github.com/gluster/glusterd2/glusterd2/servers/sunrpc/dict"
 	"github.com/gluster/glusterd2/glusterd2/transaction"
+	"github.com/gluster/glusterd2/glusterd2/volgen"
+	"github.com/gluster/glusterd2/glusterd2/volume"
 	rebalanceapi "github.com/gluster/glusterd2/plugins/rebalance/api"
 
 	log "github.com/sirupsen/logrus"
@@ -32,8 +34,22 @@ func txnRebalanceStart(c transaction.TxnCtx) error {
 		return err
 	}
 
+	var volinfo volume.Volinfo
+	err = c.Get("volinfo", &volinfo)
+	if err != nil {
+		c.Logger().WithError(err).WithField(
+			"key", "volinfo").Error("failed to get key from store")
+		return err
+	}
+
 	rebalanceProcess, err := NewRebalanceProcess(rinfo)
 	if err != nil {
+		return err
+	}
+	err = volgen.VolumeVolfileToFile(&volinfo, rebalanceProcess.VolfileID, "rebalance")
+	if err != nil {
+		c.Logger().WithError(err).WithField(
+			"volfile", rebalanceProcess.VolfileID).Error("failed to generate volfile")
 		return err
 	}
 

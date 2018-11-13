@@ -3,7 +3,10 @@ package sunrpc
 import (
 	"context"
 	"errors"
+	"io/ioutil"
 	"net"
+	"os"
+	"path"
 	"strconv"
 	"strings"
 	"syscall"
@@ -15,6 +18,7 @@ import (
 	"github.com/gluster/glusterd2/plugins/rebalance"
 
 	log "github.com/sirupsen/logrus"
+	config "github.com/spf13/viper"
 )
 
 const (
@@ -128,19 +132,36 @@ func (p *GfHandshake) ServerGetspec(args *GfGetspecReq, reply *GfGetspecRsp) err
 
 	// Get Volfile from store
 	volfileID := strings.TrimPrefix(args.Key, "/")
-	resp, err := store.Get(context.TODO(), volfilePrefix+volfileID)
-	if err != nil {
-		log.WithError(err).WithField("volfile", args.Key).Error("ServerGetspec(): failed to retrive volfile from store")
+	volfile := path.Join(config.GetString("localstatedir"), "volfiles", volfileID+".vol")
+	content, err := ioutil.ReadFile(volfile)
+	if err != nil && !os.IsNotExist(err) {
+		log.WithError(err).WithField(
+			"volfile", volfile,
+		).Error("ServerGetspec(): failed to read volfile")
 		goto Out
 	}
 
-	if resp.Count != 1 {
-		err = errors.New("volfile not found in store")
-		log.WithError(err).WithField("volfile", args.Key)
-		goto Out
+	// If Volfile not available in volfiles directory
+	// fetch from etcd store
+	if os.IsNotExist(err) {
+		// Reset error due to Volfile not exists
+		err = nil
+
+		resp, err := store.Get(context.TODO(), volfilePrefix+volfileID)
+		if err != nil {
+			log.WithError(err).WithField("volfile", args.Key).Error("ServerGetspec(): failed to retrive volfile from store")
+			goto Out
+		}
+
+		if resp.Count != 1 {
+			err = errors.New("volfile not found in store")
+			log.WithError(err).WithField("volfile", args.Key)
+			goto Out
+		}
+		content = resp.Kvs[0].Value
 	}
 
-	reply.Spec = string(resp.Kvs[0].Value)
+	reply.Spec = string(content)
 	reply.OpRet = len(reply.Spec)
 	reply.OpErrno = 0
 
