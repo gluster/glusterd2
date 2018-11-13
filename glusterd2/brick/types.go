@@ -20,6 +20,8 @@ const (
 	Brick Type = iota
 	// Arbiter represents Arbiter brick type
 	Arbiter
+	// ThinArbiter represents thin arbiter brick type
+	ThinArbiter
 )
 
 //MountInfo is used to store mount related information of a volume
