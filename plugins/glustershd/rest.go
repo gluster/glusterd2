@@ -7,6 +7,7 @@ import (
 	"net/http"
 	"os/exec"
 	"path"
+	"strconv"
 	"strings"
 
 	"github.com/gluster/glusterd2/glusterd2/gdctx"
@@ -61,6 +62,64 @@ func getHealInfo(volname string, option string) (string, error) {
 	options = append(options, option, "xml", "glusterd-sock", glusterdSockpath)
 
 	return runGlfshealBin(volname, options)
+}
+
+func convertToInt(value string) (int64, error) {
+	if value == "-" {
+		return -1, nil
+	}
+	intVal, err := strconv.ParseInt(value, 10, 64)
+	if err != nil {
+		return -1, err
+	}
+	return intVal, nil
+}
+
+func filterHealInfo(healInfo glustershdapi.HealInfo) (glustershdapi.HealInfo, error) {
+	var err error
+	for i := range healInfo.Bricks {
+		if healInfo.Bricks[i].TotalEntriesRaw != "" {
+			healInfo.Bricks[i].TotalEntries = new(int64)
+			*healInfo.Bricks[i].TotalEntries, err = convertToInt(healInfo.Bricks[i].TotalEntriesRaw)
+			if err != nil {
+				return healInfo, err
+			}
+		}
+
+		if healInfo.Bricks[i].EntriesInHealPendingRaw != "" {
+			healInfo.Bricks[i].EntriesInHealPending = new(int64)
+			*healInfo.Bricks[i].EntriesInHealPending, err = convertToInt(healInfo.Bricks[i].EntriesInHealPendingRaw)
+			if err != nil {
+				return healInfo, err
+			}
+		}
+
+		if healInfo.Bricks[i].EntriesInSplitBrainRaw != "" {
+			healInfo.Bricks[i].EntriesInSplitBrain = new(int64)
+			*healInfo.Bricks[i].EntriesInSplitBrain, err = convertToInt(healInfo.Bricks[i].EntriesInSplitBrainRaw)
+			if err != nil {
+				return healInfo, err
+			}
+		}
+
+		if healInfo.Bricks[i].EntriesPossiblyHealingRaw != "" {
+			healInfo.Bricks[i].EntriesPossiblyHealing = new(int64)
+			*healInfo.Bricks[i].EntriesPossiblyHealing, err = convertToInt(healInfo.Bricks[i].EntriesPossiblyHealingRaw)
+			if err != nil {
+				return healInfo, err
+			}
+		}
+
+		if healInfo.Bricks[i].EntriesRaw != "" {
+			healInfo.Bricks[i].Entries = new(int64)
+			*healInfo.Bricks[i].Entries, err = convertToInt(healInfo.Bricks[i].EntriesRaw)
+			if err != nil {
+				return healInfo, err
+			}
+		}
+	}
+
+	return healInfo, nil
 }
 
 func selfhealInfoHandler(w http.ResponseWriter, r *http.Request) {
@@ -125,6 +184,11 @@ func selfhealInfoHandler(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
+	info, err = filterHealInfo(info)
+	if err != nil {
+		restutils.SendHTTPError(ctx, w, http.StatusInternalServerError, err)
+		return
+	}
 	restutils.SendHTTPResponse(ctx, w, http.StatusOK, &info.Bricks)
 
 }

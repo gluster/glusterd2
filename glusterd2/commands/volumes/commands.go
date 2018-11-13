@@ -137,12 +137,6 @@ func (c *Command) Routes() route.Routes {
 			RequestType: utils.GetTypeString((*api.VolStatedumpReq)(nil)),
 			HandlerFunc: volumeStatedumpHandler},
 		route.Route{
-			Name:        "VolfilesGenerate",
-			Method:      "POST",
-			Pattern:     "/volfiles",
-			Version:     1,
-			HandlerFunc: volfilesGenerateHandler},
-		route.Route{
 			Name:        "VolfilesGet",
 			Method:      "GET",
 			Pattern:     "/volfiles",

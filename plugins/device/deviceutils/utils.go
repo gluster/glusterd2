@@ -81,7 +81,10 @@ func GetPoolMetadataSize(poolsize uint64) uint64 {
 	metadataSize := uint64(float64(poolsize) * 0.005)
 	if metadataSize > GbToKb(maxMetadataSizeGb) {
 		metadataSize = GbToKb(maxMetadataSizeGb)
+	} else if metadataSize == 0 {
+		metadataSize = 64
 	}
+
 	return metadataSize
 }
 
@@ -108,12 +111,11 @@ func CreateLV(vgname, tpname, lvname string, lvsize uint64) error {
 }
 
 // MakeXfs creates XFS filesystem
-func MakeXfs(dev string) error {
+func MakeXfs(dev string, mkfsOpts ...string) error {
+	mkfsOpts = append([]string{dev}, mkfsOpts...)
 	// TODO: Adjust -d su=<>,sw=<> based on RAID/JBOD
 	return utils.ExecuteCommandRun("mkfs.xfs",
-		"-i", "size=512",
-		"-n", "size=8192",
-		dev,
+		mkfsOpts...,
 	)
 }
 

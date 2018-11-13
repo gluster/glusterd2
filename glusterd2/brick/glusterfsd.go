@@ -24,6 +24,15 @@ const (
 	glusterfsdBin = "glusterfsd"
 )
 
+func brickPathWithoutSlashes(brickPath string) string {
+	return strings.Trim(strings.Replace(brickPath, "/", "-", -1), "-")
+}
+
+// GetVolfileID returns Volfile ID of glusterfsd process
+func GetVolfileID(volname string, brickPath string) string {
+	return volname + "." + gdctx.MyUUID.String() + "." + brickPathWithoutSlashes(brickPath)
+}
+
 // Glusterfsd type represents information about the brick daemon
 type Glusterfsd struct {
 	// Externally consumable using methods of Glusterfsd interface
@@ -53,11 +62,9 @@ func (b *Glusterfsd) Args() []string {
 		return b.args
 	}
 
-	brickPathWithoutSlashes := strings.Trim(strings.Replace(b.brickinfo.Path, "/", "-", -1), "-")
+	logFile := path.Join(config.GetString("logdir"), "glusterfs", "bricks", fmt.Sprintf("%s.log", brickPathWithoutSlashes(b.brickinfo.Path)))
 
-	logFile := path.Join(config.GetString("logdir"), "glusterfs", "bricks", fmt.Sprintf("%s.log", brickPathWithoutSlashes))
-
-	volFileID := b.brickinfo.VolfileID + "." + gdctx.MyUUID.String() + "." + brickPathWithoutSlashes
+	volfileID := GetVolfileID(b.brickinfo.VolumeName, b.brickinfo.Path)
 
 	shost, sport, _ := net.SplitHostPort(config.GetString("clientaddress"))
 	if shost == "" {
@@ -67,7 +74,7 @@ func (b *Glusterfsd) Args() []string {
 	b.args = []string{}
 	b.args = append(b.args, "--volfile-server", shost)
 	b.args = append(b.args, "--volfile-server-port", sport)
-	b.args = append(b.args, "--volfile-id", volFileID)
+	b.args = append(b.args, "--volfile-id", volfileID)
 	b.args = append(b.args, "-p", b.PidFile())
 	b.args = append(b.args, "-S", b.SocketFile())
 	b.args = append(b.args, "--brick-name", b.brickinfo.Path)
@@ -88,8 +95,7 @@ func (b *Glusterfsd) SocketFile() string {
 
 	// First we form a key
 	// Example: key = peerid + brick path with '/' replaced by -
-	brickPathWithoutSlashes := strings.Trim(strings.Replace(b.brickinfo.Path, "/", "-", -1), "-")
-	key := fmt.Sprintf("%s-%s", b.brickinfo.PeerID.String(), brickPathWithoutSlashes)
+	key := fmt.Sprintf("%s-%s", b.brickinfo.PeerID.String(), brickPathWithoutSlashes(b.brickinfo.Path))
 
 	// Then xxhash of the above key shall be the name of socket file.
 	// Example: /var/run/gluster/<xxhash-hash>.socket
@@ -108,9 +114,8 @@ func (b *Glusterfsd) PidFile() string {
 		return b.pidfilepath
 	}
 
-	brickPathWithoutSlashes := strings.Trim(strings.Replace(b.brickinfo.Path, "/", "-", -1), "-")
 	// FIXME: The brick can no longer clean this up on clean shut down
-	pidfilename := fmt.Sprintf("%s-%s.pid", b.brickinfo.PeerID.String(), brickPathWithoutSlashes)
+	pidfilename := fmt.Sprintf("%s-%s.pid", b.brickinfo.PeerID.String(), brickPathWithoutSlashes(b.brickinfo.Path))
 	b.pidfilepath = path.Join(config.GetString("rundir"), pidfilename)
 
 	return b.pidfilepath

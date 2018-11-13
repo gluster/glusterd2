@@ -31,7 +31,6 @@ VolumeList | GET | /volumes | [](https://godoc.org/github.com/gluster/glusterd2/
 VolumeStart | POST | /volumes/{volname}/start | [VolumeStartReq](https://godoc.org/github.com/gluster/glusterd2/pkg/api#VolumeStartReq) | [VolumeStartResp](https://godoc.org/github.com/gluster/glusterd2/pkg/api#VolumeStartResp)
 VolumeStop | POST | /volumes/{volname}/stop | [](https://godoc.org/github.com/gluster/glusterd2/pkg/api#) | [VolumeStopResp](https://godoc.org/github.com/gluster/glusterd2/pkg/api#VolumeStopResp)
 Statedump | POST | /volumes/{volname}/statedump | [VolStatedumpReq](https://godoc.org/github.com/gluster/glusterd2/pkg/api#VolStatedumpReq) | [](https://godoc.org/github.com/gluster/glusterd2/pkg/api#)
-VolfilesGenerate | POST | /volfiles | [](https://godoc.org/github.com/gluster/glusterd2/pkg/api#) | [](https://godoc.org/github.com/gluster/glusterd2/pkg/api#)
 VolfilesGet | GET | /volfiles | [](https://godoc.org/github.com/gluster/glusterd2/pkg/api#) | [](https://godoc.org/github.com/gluster/glusterd2/pkg/api#)
 VolfilesGet | GET | /volfiles/{volfileid:.*} | [](https://godoc.org/github.com/gluster/glusterd2/pkg/api#) | [](https://godoc.org/github.com/gluster/glusterd2/pkg/api#)
 EditVolume | POST | /volumes/{volname}/edit | [VolEditReq](https://godoc.org/github.com/gluster/glusterd2/pkg/api#VolEditReq) | [VolumeEditResp](https://godoc.org/github.com/gluster/glusterd2/pkg/api#VolumeEditResp)

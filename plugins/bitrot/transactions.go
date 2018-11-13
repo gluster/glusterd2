@@ -9,6 +9,7 @@ import (
 	"github.com/gluster/glusterd2/glusterd2/gdctx"
 	"github.com/gluster/glusterd2/glusterd2/servers/sunrpc/dict"
 	"github.com/gluster/glusterd2/glusterd2/transaction"
+	"github.com/gluster/glusterd2/glusterd2/volgen"
 	"github.com/gluster/glusterd2/glusterd2/volume"
 	"github.com/gluster/glusterd2/pkg/errors"
 	bitrotapi "github.com/gluster/glusterd2/plugins/bitrot/api"
@@ -20,13 +21,17 @@ const (
 )
 
 // IsBitrotAffectedNode returns true if there are local bricks of volume on which bitrot is enabled
-func IsBitrotAffectedNode() bool {
+func IsBitrotAffectedNode(volinfo *volume.Volinfo) bool {
 	volumes, e := volume.GetVolumes(context.TODO())
 	if e != nil {
 		log.WithError(e).Error("Failed to get volumes")
 		return false
 	}
 	for _, v := range volumes {
+		// Consider temporary volinfo for current Volume
+		if v.Name == volinfo.Name {
+			v = volinfo
+		}
 		val, exists := v.Options[keyFeaturesBitrot]
 		if exists && val == "off" || v.State != volume.VolStarted {
 			continue
@@ -39,10 +44,10 @@ func IsBitrotAffectedNode() bool {
 }
 
 // ManageBitd manages the bitrot daemon bitd. It stops or stops/starts the daemon based on disable or enable respectively.
-func ManageBitd(bitrotDaemon *Bitd, logger log.FieldLogger) error {
+func ManageBitd(bitrotDaemon *Bitd, logger log.FieldLogger, volinfo *volume.Volinfo) error {
 
 	// Should the bitd and scrubber untouched on this node
-	if !IsBitrotAffectedNode() {
+	if !IsBitrotAffectedNode(volinfo) {
 		// This condition is for disable
 		// TODO: Need to ignore errors where process is already running.
 		if err := daemon.Stop(bitrotDaemon, true, logger); err != errors.ErrPidFileNotFound {
@@ -55,6 +60,10 @@ func ManageBitd(bitrotDaemon *Bitd, logger log.FieldLogger) error {
 		errors.ErrPidFileNotFound {
 		return err
 	}
+	err := volgen.ClusterVolfileToFile(volinfo, bitrotDaemon.VolfileID, "bitd")
+	if err != nil {
+		return err
+	}
 	if err := daemon.Start(bitrotDaemon, true, logger); err != errors.ErrProcessAlreadyRunning {
 		return err
 	}
@@ -62,13 +71,13 @@ func ManageBitd(bitrotDaemon *Bitd, logger log.FieldLogger) error {
 }
 
 // ManageScrubd manages the scrubber daemon. It stops or stops/starts the daemon based on disable or enable respectively.
-func ManageScrubd(logger log.FieldLogger) error {
+func ManageScrubd(logger log.FieldLogger, volinfo *volume.Volinfo) error {
 	scrubDaemon, err := newScrubd()
 	if err != nil {
 		return err
 	}
 
-	if !IsBitrotAffectedNode() {
+	if !IsBitrotAffectedNode(volinfo) {
 		// This condition is for disable
 		// TODO: Need to ignore errors where process is already running.
 		if err = daemon.Stop(scrubDaemon, true, logger); err != errors.ErrPidFileNotFound {
@@ -80,6 +89,11 @@ func ManageScrubd(logger log.FieldLogger) error {
 	if err = daemon.Stop(scrubDaemon, true, logger); err != errors.ErrPidFileNotFound {
 		return err
 	}
+
+	err = volgen.ClusterVolfileToFile(volinfo, scrubDaemon.VolfileID, "scrubd")
+	if err != nil {
+		return err
+	}
 	if err = daemon.Start(scrubDaemon, true, logger); err != errors.ErrProcessAlreadyRunning {
 		return err
 	}
@@ -88,17 +102,24 @@ func ManageScrubd(logger log.FieldLogger) error {
 }
 
 func txnBitrotEnableDisable(c transaction.TxnCtx) error {
+	var volinfo volume.Volinfo
+	if err := c.Get("volinfo", &volinfo); err != nil {
+		c.Logger().WithError(err).WithField(
+			"key", "volinfo").Error("failed to get value for key from context")
+		return err
+	}
+
 	bitrotDaemon, err := newBitd()
 	if err != nil {
 		return err
 	}
 
 	// Manange bitd and scrub daemons
-	if err = ManageBitd(bitrotDaemon, c.Logger()); err != nil {
+	if err = ManageBitd(bitrotDaemon, c.Logger(), &volinfo); err != nil {
 		goto Err
 	}
 
-	if err = ManageScrubd(c.Logger()); err != nil {
+	if err = ManageScrubd(c.Logger(), &volinfo); err != nil {
 		goto Err
 	}
 

@@ -8,6 +8,7 @@ import (
 	restutils "github.com/gluster/glusterd2/glusterd2/servers/rest/utils"
 	"github.com/gluster/glusterd2/glusterd2/snapshot"
 	"github.com/gluster/glusterd2/glusterd2/transaction"
+	"github.com/gluster/glusterd2/glusterd2/volgen"
 	"github.com/gluster/glusterd2/glusterd2/volume"
 	"github.com/gluster/glusterd2/pkg/api"
 	"github.com/gluster/glusterd2/pkg/errors"
@@ -35,6 +36,15 @@ func deactivateSnapshot(c transaction.TxnCtx) error {
 	//Storing the value to do the rollback
 	if err := c.SetNodeResult(gdctx.MyUUID, "brickListToOperate", &brickinfos); err != nil {
 		log.WithError(err).Error("failed to set request in transaction context")
+		return err
+	}
+
+	err = volgen.DeleteBricksVolfiles(vol.GetLocalBricks())
+	if err != nil {
+		c.Logger().WithError(err).WithFields(log.Fields{
+			"template": "brick",
+			"volume":   vol.Name,
+		}).Error("failed to delete brick volfiles")
 		return err
 	}
 
@@ -69,13 +79,23 @@ func rollbackDeactivateSnapshot(c transaction.TxnCtx) error {
 	if err := c.Get("oldsnapinfo", &snapinfo); err != nil {
 		return err
 	}
+	vol := &snapinfo.SnapVolinfo
 
 	if err := c.GetNodeResult(gdctx.MyUUID, "brickListToOperate", &brickinfos); err != nil {
 		log.WithError(err).Error("failed to set request in transaction context")
 		return err
 	}
 
-	err := snapshot.ActivateDeactivateFunc(&snapinfo, brickinfos, activate, c.Logger())
+	err := volgen.GenerateBricksVolfiles(vol, vol.GetLocalBricks())
+	if err != nil {
+		c.Logger().WithError(err).WithFields(log.Fields{
+			"template": "brick",
+			"volume":   vol.Name,
+		}).Error("failed to generate brick volfiles")
+		return err
+	}
+
+	err = snapshot.ActivateDeactivateFunc(&snapinfo, brickinfos, activate, c.Logger())
 
 	return err
 
