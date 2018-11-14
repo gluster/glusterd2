@@ -160,6 +160,7 @@ func (t *Txn) Do() error {
 	t.Ctx.Logger().Debug("Starting transaction")
 
 	go t.waitForCompletion(stop)
+	defer close(stop)
 
 	GlobalTxnManager.UpDateTxnStatus(TxnStatus{State: txnPending, TxnID: t.ID}, t.ID, t.Nodes...)
 
@@ -174,23 +175,20 @@ func (t *Txn) Do() error {
 	}
 	t.Ctx.Logger().Debug("waiting for txn to be cleaned up")
 
-	select {
-	case <-t.success:
-		close(stop)
-		t.succeeded = true
-	case err := <-t.error:
+	failureAction := func(err error) {
 		t.Ctx.Logger().WithError(err).Error("error in executing txn, marking as failure")
-		close(stop)
 		txnStatus := TxnStatus{State: txnFailed, TxnID: t.ID, Reason: err.Error()}
 		GlobalTxnManager.UpDateTxnStatus(txnStatus, t.ID, t.Nodes...)
+	}
+
+	select {
+	case <-t.success:
+		t.succeeded = true
+	case err := <-t.error:
+		failureAction(err)
 		return err
 	case <-timer.C:
-		t.Ctx.Logger().Error("time out in cleaning txn, marking as failure")
-		close(stop)
-		for _, nodeID := range t.Nodes {
-			txnStatus := TxnStatus{State: txnFailed, TxnID: t.ID, Reason: "txn timed out"}
-			GlobalTxnManager.UpDateTxnStatus(txnStatus, t.ID, nodeID)
-		}
+		failureAction(errTxnTimeout)
 		return errTxnTimeout
 	}
 
