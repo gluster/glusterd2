@@ -116,60 +116,65 @@ func New(conf *Config) (*GDStore, error) {
 
 	store.stop = make(chan struct{})
 
-	go store.keepSessionLeaseAlive()
+	go store.keepSessionAlive()
 	return store, nil
 }
 
-// keepSessionLeaseAlive keeps session lease alive forever. If etcd goes down
-// and comes up then existing session lease will not be refreshed and expires after
-// lease ttl duration. keepSessionLeaseAlive checks session lease information on a
-// regular interval. It will start refreshing session lease if it is not getting
-// refreshed.
-func (s *GDStore) keepSessionLeaseAlive() {
+// keepSessionAlive configures a new session for GDStore if existing
+// session lease expires, or no longer being refreshed. It checks
+// session lease information and store endpoint health on a regular interval.
+// A session lease will get expire in many situations like if there is a
+// reconnection with etcd server.
+func (s *GDStore) keepSessionAlive() {
 	var (
 		ticker         = time.NewTicker(time.Second * 5)
 		printedFailure bool
 	)
-
 	defer ticker.Stop()
-
 	for {
 		select {
 		case <-s.stop:
 			return
 		case <-ticker.C:
-			ctx, cancel := context.WithTimeout(context.Background(), getTimeout*time.Second)
-			leaseTTLResp, err := s.Lease.TimeToLive(ctx, s.Session.Lease())
-			cancel()
-
-			if err != nil && !printedFailure {
-				log.WithError(err).Error("etcd is probably down, restart etcd")
-				printedFailure = true
+			// check if lease is orphaned, expires, or no longer being refreshed.
+			<-s.Session.Done()
+			if !printedFailure {
+				log.WithField("leaseID", s.Session.Lease()).Debug("granted session lease has been expired")
 			}
 
-			if err != nil || leaseTTLResp.TTL > sessionTTL/3 {
-				continue
-			}
-
-			// session lease ttl is not getting refreshed, keeping alive session lease.
-			log.WithField("leaseID", leaseTTLResp.ID).
-				Debugf("granted session lease will expire in %d sec, etcd might have restarted", leaseTTLResp.TTL)
-
-			keepAliveChan, err := s.Lease.KeepAlive(context.Background(), s.Session.Lease())
-			if err != nil || keepAliveChan == nil {
-				continue
-			}
-
-			log.WithField("leaseID", leaseTTLResp.ID).Debug("keeping session lease alive forever")
-
-			go func() {
-				for range keepAliveChan {
-					// discard messages until keepAliveChan closes
+			if !s.isStorehealthy() {
+				if !printedFailure {
+					log.Warn("etcd server is not reachable from this node, " +
+						"make sure network connection is active and etcd is running")
+					printedFailure = true
 				}
-			}()
+				continue
+			}
+
+			log.Debug("reconnection to etcd server has been detected")
+
+			// create a new session for GDStore
+			session, err := concurrency.NewSession(s.Client, concurrency.WithTTL(sessionTTL))
+			if err != nil {
+				log.WithError(err).Error("failed to create an etcd session")
+				continue
+			}
+			s.Session = session
+			log.Debug("new etcd session created successfully")
+			s.publishLiveness()
 			printedFailure = false
 		}
 	}
+}
+
+// isStorehealthy checks if store is reachable from the node.
+// Get a random key.If we get the response without an error,
+// the endpoint is healthy.
+func (s *GDStore) isStorehealthy() bool {
+	ctx, cancel := context.WithTimeout(context.Background(), getTimeout*time.Second)
+	defer cancel()
+	_, err := s.Get(ctx, "health")
+	return err == nil
 }
 
 // Close closes the store connections
