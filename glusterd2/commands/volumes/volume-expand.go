@@ -27,6 +27,8 @@ func registerVolExpandStepFuncs() {
 		{"vol-expand.ValidateBricks", validateBricks},
 		{"vol-expand.InitBricks", initBricks},
 		{"vol-expand.UndoInitBricks", undoInitBricks},
+		{"vol-expand.GenerateBrickVolfiles", txnGenerateBrickVolfiles},
+		{"vol-expand.GenerateBrickVolfiles.Undo", txnDeleteBrickVolfiles},
 		{"vol-expand.StartBrick", startBricksOnExpand},
 		{"vol-expand.UndoStartBrick", undoStartBricksOnExpand},
 		{"vol-expand.UpdateVolinfo", updateVolinfoOnExpand},
@@ -133,6 +135,12 @@ func volumeExpandHandler(w http.ResponseWriter, r *http.Request) {
 		{
 			DoFunc: "vol-expand.UpdateVolinfo",
 			Nodes:  []uuid.UUID{gdctx.MyUUID},
+		},
+		{
+			DoFunc:   "vol-expand.GenerateBrickVolfiles",
+			UndoFunc: "vol-expand.GenerateBrickVolfiles.Undo",
+			Nodes:    nodes,
+			Skip:     (volinfo.State != volume.VolStarted),
 		},
 		{
 			DoFunc:   "vol-expand.StartBrick",
