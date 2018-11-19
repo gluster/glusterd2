@@ -74,9 +74,8 @@ func getBricksLayout(req *api.VolCreateReq) ([]api.SubvolReq, error) {
 		numSubvols = req.DistributeCount
 	}
 
-	// User input will be in MBs, convert to KBs for all
-	// internal usage
-	subvolSize := deviceutils.MbToKb(req.Size)
+	// User input will be in Bytes
+	subvolSize := req.Size
 	if numSubvols > 1 {
 		subvolSize = subvolSize / uint64(numSubvols)
 	}

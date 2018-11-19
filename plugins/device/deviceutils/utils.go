@@ -11,9 +11,21 @@ import (
 	"github.com/gluster/glusterd2/pkg/utils"
 )
 
+// constants to convert respective size into bytes.
 const (
-	maxMetadataSizeGb = 16
-	chunkSize         = "1280k"
+	KB  = 1000
+	KiB = 1024
+	MB  = 1000 * KB
+	MiB = 1024 * KiB
+	GB  = 1000 * MB
+	GiB = 1024 * MiB
+	TB  = 1000 * GB
+	TiB = 1024 * GiB
+)
+
+const (
+	maxMetadataSize = 16 * GiB
+	chunkSize       = "1280k"
 )
 
 //CreatePV is used to create physical volume.
@@ -34,16 +46,6 @@ func RemoveVG(vgName string) error {
 //RemovePV is used to remove physical volume
 func RemovePV(device string) error {
 	return utils.ExecuteCommandRun("pvremove", device)
-}
-
-// MbToKb converts Value from Mb to Kb
-func MbToKb(value uint64) uint64 {
-	return value * 1024
-}
-
-// GbToKb converts Value from Gb to Kb
-func GbToKb(value uint64) uint64 {
-	return value * 1024 * 1024
 }
 
 // GetVgAvailableSize gets available size of given Vg
@@ -69,6 +71,7 @@ func GetVgAvailableSize(vgname string) (uint64, uint64, error) {
 	if err != nil {
 		return 0, 0, err
 	}
+	extentSize = extentSize * KB
 
 	return extentSize * freeExtents, extentSize, nil
 }
@@ -76,13 +79,16 @@ func GetVgAvailableSize(vgname string) (uint64, uint64, error) {
 // GetPoolMetadataSize calculates the thin pool metadata size based on the given thin pool size
 func GetPoolMetadataSize(poolsize uint64) uint64 {
 	// https://access.redhat.com/documentation/en-us/red_hat_gluster_storage/3.3/html-single/administration_guide/#Brick_Configuration
-	// Minimum metadata size required is 0.5% and Max upto 16GB
+	// Minimum metadata size required is 0.5% and Max upto 16GB ~ 17179869184 Bytes
 
 	metadataSize := uint64(float64(poolsize) * 0.005)
-	if metadataSize > GbToKb(maxMetadataSizeGb) {
-		metadataSize = GbToKb(maxMetadataSizeGb)
-	} else if metadataSize == 0 {
-		metadataSize = 64
+	rem := metadataSize % 512
+	if rem > 0 {
+		metadataSize += (512 - rem)
+	}
+
+	if metadataSize > maxMetadataSize {
+		metadataSize = maxMetadataSize
 	}
 
 	return metadataSize
@@ -93,8 +99,8 @@ func CreateTP(vgname, tpname string, tpsize, metasize uint64) error {
 	// TODO: Chunksize adjust based on RAID/JBOD
 	return utils.ExecuteCommandRun("lvcreate",
 		"--thin", vgname+"/"+tpname,
-		"--size", fmt.Sprintf("%dK", tpsize),
-		"--poolmetadatasize", fmt.Sprintf("%dK", metasize),
+		"--size", fmt.Sprintf("%dB", tpsize),
+		"--poolmetadatasize", fmt.Sprintf("%dB", metasize),
 		"-c", chunkSize,
 		"--zero", "n",
 	)
@@ -103,7 +109,7 @@ func CreateTP(vgname, tpname string, tpsize, metasize uint64) error {
 // CreateLV creates LVM Logical Volume
 func CreateLV(vgname, tpname, lvname string, lvsize uint64) error {
 	return utils.ExecuteCommandRun("lvcreate",
-		"--virtualsize", fmt.Sprintf("%dK", lvsize),
+		"--virtualsize", fmt.Sprintf("%dB", lvsize),
 		"--thin",
 		"--name", lvname,
 		vgname+"/"+tpname,
