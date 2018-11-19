@@ -90,21 +90,16 @@ func init() {
 }
 
 func smartVolumeCreate(cmd *cobra.Command, args []string) {
-	size, err := sizeToMb(flagCreateVolumeSize)
+	size, err := sizeToBytes(flagCreateVolumeSize)
 	if err != nil {
 		failure("Invalid Volume Size specified", nil, 1)
 	}
 
 	// if average file size is specified for arbiter brick calculation
 	// else default is taken.
-	avgFileSize, err := sizeToMb(flagAverageFileSize)
+	avgFileSize, err := sizeToBytes(flagAverageFileSize)
 	if err != nil {
 		failure("Invalid File Size specified", nil, 1)
-	}
-	// TODO: If the size is less than 1M then the sizeToMb returns zero.
-	// should be fixed when the default unit is reduced to K or bytes.
-	if avgFileSize == 0 {
-		failure("Volume create failed: File Size cannot be zero", nil, 1)
 	}
 
 	req := api.VolCreateReq{

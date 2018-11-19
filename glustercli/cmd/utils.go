@@ -7,6 +7,8 @@ import (
 	"regexp"
 	"strconv"
 	"strings"
+
+	"github.com/gluster/glusterd2/plugins/device/deviceutils"
 )
 
 var (
@@ -27,7 +29,7 @@ func formatPID(pid int) string {
 	return strconv.Itoa(pid)
 }
 
-func sizeToMb(value string) (uint64, error) {
+func sizeToBytes(value string) (uint64, error) {
 	sizeParts := validSizeFormat.FindStringSubmatch(value)
 	if len(sizeParts) == 0 {
 		return 0, errors.New("invalid size format")
@@ -46,12 +48,18 @@ func sizeToMb(value string) (uint64, error) {
 
 	var size uint64
 	switch sizeUnit {
-	case "K":
-		size = sizeValue / 1024
-	case "G":
-		size = sizeValue * 1024
-	case "T":
-		size = sizeValue * 1024 * 1024
+	case "K", "KiB":
+		size = sizeValue * deviceutils.KiB
+	case "KB":
+		size = sizeValue * deviceutils.KB
+	case "G", "GiB":
+		size = sizeValue * deviceutils.GiB
+	case "GB":
+		size = sizeValue * deviceutils.GB
+	case "T", "TiB":
+		size = sizeValue * deviceutils.TiB
+	case "TB":
+		size = sizeValue * deviceutils.TB
 	default:
 		size = sizeValue
 	}

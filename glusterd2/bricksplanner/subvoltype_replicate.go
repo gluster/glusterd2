@@ -6,7 +6,7 @@ import (
 )
 
 // defaultLeastArbiterSize is the size (in KB) the arbiter brick will be assigned to if the brick size is less than 100M.
-const defaultLeastArbiterSize = 100000
+const defaultLeastArbiterSize = 100 * deviceutils.MiB
 
 type replicaSubvolPlanner struct {
 	subvolSize       uint64
@@ -21,12 +21,10 @@ func (s *replicaSubvolPlanner) Init(req *api.VolCreateReq, subvolSize uint64) {
 	s.replicaCount = req.ReplicaCount
 	s.arbiterCount = req.ArbiterCount
 	s.brickSize = s.subvolSize
-	// TODO: the size is calculated in KB, should be changed as per the default.
-	// default avgFileSize needs to be changed from 1M to 64K as well.
-	// Now we are receiving 1M as default from cli so having it as 1M here as well,
-	var avgFileSize uint64 = 1024
+
+	var avgFileSize uint64 = 64 * deviceutils.KiB
 	if req.AverageFileSize != 0 {
-		avgFileSize = deviceutils.MbToKb(req.AverageFileSize)
+		avgFileSize = req.AverageFileSize
 	}
 	arbiterSize := uint64((4.0) * (float64(subvolSize) / float64(avgFileSize)))
 	// Assigning arbiter brick size to be bricksize if its lesser than 100M
