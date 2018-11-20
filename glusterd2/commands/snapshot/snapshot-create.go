@@ -35,6 +35,7 @@ import (
 	"github.com/pborman/uuid"
 	log "github.com/sirupsen/logrus"
 	config "github.com/spf13/viper"
+	"go.opencensus.io/trace"
 )
 
 type txnData struct {
@@ -719,6 +720,9 @@ func registerSnapCreateStepFuncs() {
 
 func snapshotCreateHandler(w http.ResponseWriter, r *http.Request) {
 	ctx := r.Context()
+	ctx, span := trace.StartSpan(ctx, "/snapshotCreateHandler")
+	defer span.End()
+
 	logger := gdctx.GetReqLogger(ctx)
 	var snapInfo snapshot.Snapinfo
 	var data txnData
@@ -797,6 +801,12 @@ func snapshotCreateHandler(w http.ResponseWriter, r *http.Request) {
 			Nodes:    []uuid.UUID{gdctx.MyUUID},
 		},
 	}
+
+	span.AddAttributes(
+		trace.StringAttribute("reqID", txn.Ctx.GetTxnReqID()),
+		trace.StringAttribute("volName", req.VolName),
+		trace.StringAttribute("snapName", req.SnapName),
+	)
 
 	if err = txn.Do(); err != nil {
 		logger.WithError(err).Error("snapshot create transaction failed")

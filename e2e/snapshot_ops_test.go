@@ -403,7 +403,7 @@ func testSnapshotOnSmartVol(t *testing.T, tc *testCluster) {
 	// create Replica 2 Volume
 	createReq := api.VolCreateReq{
 		Name:         smartvolname,
-		Size:         200,
+		Size:         209715200,
 		ReplicaCount: 2,
 	}
 	_, err = client.VolumeCreate(createReq)

@@ -6,6 +6,7 @@ import (
 	"testing"
 
 	"github.com/gluster/glusterd2/pkg/api"
+	"github.com/gluster/glusterd2/plugins/device/deviceutils"
 
 	"github.com/stretchr/testify/require"
 )
@@ -47,7 +48,7 @@ func testSmartVolumeDistribute(t *testing.T) {
 	// create Distribute 3 Volume
 	createReq := api.VolCreateReq{
 		Name:            smartvolname,
-		Size:            60,
+		Size:            60 * deviceutils.MiB,
 		DistributeCount: 3,
 	}
 	volinfo, err := client.VolumeCreate(createReq)
@@ -73,7 +74,7 @@ func testSmartVolumeReplicate2(t *testing.T) {
 	// create Replica 2 Volume
 	createReq := api.VolCreateReq{
 		Name:         smartvolname,
-		Size:         20,
+		Size:         20 * deviceutils.MiB,
 		ReplicaCount: 2,
 	}
 	volinfo, err := client.VolumeCreate(createReq)
@@ -97,7 +98,7 @@ func testSmartVolumeReplicate3(t *testing.T) {
 	// create Replica 3 Volume
 	createReq := api.VolCreateReq{
 		Name:         smartvolname,
-		Size:         20,
+		Size:         20 * deviceutils.MiB,
 		ReplicaCount: 3,
 	}
 	volinfo, err := client.VolumeCreate(createReq)
@@ -121,7 +122,7 @@ func testSmartVolumeArbiter(t *testing.T) {
 	// create Replica 3 Arbiter Volume
 	createReq := api.VolCreateReq{
 		Name:         smartvolname,
-		Size:         20,
+		Size:         20 * deviceutils.MiB,
 		ReplicaCount: 2,
 		ArbiterCount: 1,
 	}
@@ -151,7 +152,7 @@ func testSmartVolumeDisperse(t *testing.T) {
 	// create Disperse Volume
 	createReq := api.VolCreateReq{
 		Name:          smartvolname,
-		Size:          40,
+		Size:          40 * deviceutils.MiB,
 		DisperseCount: 3,
 	}
 	volinfo, err := client.VolumeCreate(createReq)
@@ -177,7 +178,7 @@ func testSmartVolumeDistributeReplicate(t *testing.T) {
 	// create Distribute Replicate(2x3) Volume
 	createReq := api.VolCreateReq{
 		Name:               smartvolname,
-		Size:               40,
+		Size:               40 * deviceutils.MiB,
 		DistributeCount:    2,
 		ReplicaCount:       3,
 		SubvolZonesOverlap: true,
@@ -209,7 +210,7 @@ func testSmartVolumeDistributeDisperse(t *testing.T) {
 	// create Distribute Disperse(2x3) Volume
 	createReq := api.VolCreateReq{
 		Name:               smartvolname,
-		Size:               80,
+		Size:               80 * deviceutils.MiB,
 		DistributeCount:    2,
 		DisperseCount:      3,
 		SubvolZonesOverlap: true,
