@@ -101,12 +101,13 @@ func (t *Txn) releaseLocks() {
 // Done releases any obtained locks and cleans up the transaction namespace
 // Done must be called after a transaction ends
 func (t *Txn) Done() {
-	if t.succeeded {
-		t.done()
-		t.releaseLocks()
-		GlobalTxnManager.RemoveTransaction(t.ID)
-		t.Ctx.Logger().Info("txn succeeded on all nodes, txn data cleaned up from store")
+	if !t.succeeded {
+		return
 	}
+	t.done()
+	t.releaseLocks()
+	GlobalTxnManager.RemoveTransaction(t.ID)
+	t.Ctx.Logger().Info("txn succeeded on all nodes, txn data cleaned up from store")
 }
 
 func (t *Txn) done() {

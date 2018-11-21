@@ -153,10 +153,14 @@ func CreateLockFuncs(key string) (LockUnlockFunc, LockUnlockFunc) {
 type Locks map[string]*concurrency.Mutex
 
 func (l Locks) lock(lockID string) error {
+	var logger = log.WithField("lockID", lockID)
+
 	// Ensure that no prior lock exists for the given lockID in this transaction
 	if _, ok := l[lockID]; ok {
 		return ErrLockExists
 	}
+
+	logger.Debug("attempting to obtain lock")
 
 	key := lockPrefix + lockID
 	locker := concurrency.NewMutex(store.Store.Session, key)
@@ -167,14 +171,17 @@ func (l Locks) lock(lockID string) error {
 	err := locker.Lock(ctx)
 	switch err {
 	case nil:
+		logger.Debug("lock obtained")
 		// Attach lock to the transaction
 		l[lockID] = locker
 
 	case context.DeadlineExceeded:
+		logger.Debug("timeout: failed to obtain lock")
 		// Propagate this all the way back to the client as a HTTP 409 response
 		err = ErrLockTimeout
 
 	default:
+		logger.WithError(err).Error("failed to obtain lock")
 	}
 
 	return err
