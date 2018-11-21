@@ -33,9 +33,12 @@ func TestSnapshot(t *testing.T) {
 	r := require.New(t)
 
 	prefix := testTempDir(t, "bricks")
+
+	loopDevicesCleanup(t)
 	lvmtest.Cleanup(baseLocalStateDir, prefix, brickCount)
 	defer func() {
-		lvmtest.Cleanup(baseLocalStateDir, prefix, brickCount)
+		lvmtest.Cleanup(baseLocalStateDir, prefix, brickCount+2)
+		loopDevicesCleanup(t)
 	}()
 	tc, err := setupCluster(t, "./config/1.toml", "./config/2.toml")
 	r.Nil(err)
@@ -383,20 +386,24 @@ func testSnapshotOnSmartVol(t *testing.T, tc *testCluster) {
 	r := require.New(t)
 
 	devicesDir := testTempDir(t, "devices")
-	r.Nil(prepareLoopDevice(devicesDir+"/gluster_dev1.img", "1", "500M"))
-	r.Nil(prepareLoopDevice(devicesDir+"/gluster_dev2.img", "2", "500M"))
+	// brickCount+1
+	r.Nil(prepareLoopDevice(devicesDir+"/gluster_dev1.img", "5", "500M"))
+	// brickCount+2
+	r.Nil(prepareLoopDevice(devicesDir+"/gluster_dev2.img", "6", "500M"))
 
-	_, err := client.DeviceAdd(tc.gds[0].PeerID(), "/dev/gluster_loop1")
+	// brickCount+1
+	_, err := client.DeviceAdd(tc.gds[0].PeerID(), "/dev/gluster_loop5")
 	r.Nil(err)
 
-	_, err = client.DeviceAdd(tc.gds[1].PeerID(), "/dev/gluster_loop2")
+	// brickCount+2
+	_, err = client.DeviceAdd(tc.gds[1].PeerID(), "/dev/gluster_loop6")
 	r.Nil(err)
 
 	smartvolname := formatVolName(t.Name())
 	// create Replica 2 Volume
 	createReq := api.VolCreateReq{
 		Name:         smartvolname,
-		Size:         200,
+		Size:         209715200,
 		ReplicaCount: 2,
 	}
 	_, err = client.VolumeCreate(createReq)
@@ -442,8 +449,6 @@ func testSnapshotOnSmartVol(t *testing.T, tc *testCluster) {
 
 	//At this point all snapshot and volumes are deleted.
 	//So the lvcount should be zero
-	checkZeroLvs(r)
-
-	r.Nil(loopDevicesCleanup(t))
-
+	//This has to be the last test
+	checkZeroLvsWithRange(r, 5, 6)
 }

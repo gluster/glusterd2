@@ -14,14 +14,15 @@ import (
 	"github.com/gluster/glusterd2/glusterd2/volume"
 	"github.com/gluster/glusterd2/pkg/api"
 	gderrors "github.com/gluster/glusterd2/pkg/errors"
+	"github.com/gluster/glusterd2/plugins/device/deviceutils"
 
 	"github.com/pborman/uuid"
 	"go.opencensus.io/trace"
 )
 
 const (
-	maxMetadataSizeLimit = 4096
-	minVolumeSize        = 20
+	maxMetadataSizeLimit = 4 * deviceutils.KiB
+	minVolumeSize        = 20 * deviceutils.MiB
 )
 
 func applyDefaults(req *api.VolCreateReq) {

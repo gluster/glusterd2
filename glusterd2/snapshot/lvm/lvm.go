@@ -39,8 +39,10 @@ var (
 	PvCreateCommand = GetBinPath("pvcreate")
 	//VgCreateCommand is path to vgcreate
 	VgCreateCommand = GetBinPath("vgcreate")
-	//VgRemoveCommand is path to vgcreate
+	//VgRemoveCommand is path to vgremove
 	VgRemoveCommand = GetBinPath("vgremove")
+	//PvRemoveCommand is path to pvremove
+	PvRemoveCommand = GetBinPath("pvremove")
 
 	//LVSCommand is path to lvs
 	LVSCommand = GetBinPath("lvs")

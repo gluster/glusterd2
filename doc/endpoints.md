@@ -34,6 +34,7 @@ Statedump | POST | /volumes/{volname}/statedump | [VolStatedumpReq](https://godo
 VolfilesGet | GET | /volfiles | [](https://godoc.org/github.com/gluster/glusterd2/pkg/api#) | [](https://godoc.org/github.com/gluster/glusterd2/pkg/api#)
 VolfilesGet | GET | /volfiles/{volfileid:.*} | [](https://godoc.org/github.com/gluster/glusterd2/pkg/api#) | [](https://godoc.org/github.com/gluster/glusterd2/pkg/api#)
 EditVolume | POST | /volumes/{volname}/edit | [VolEditReq](https://godoc.org/github.com/gluster/glusterd2/pkg/api#VolEditReq) | [VolumeEditResp](https://godoc.org/github.com/gluster/glusterd2/pkg/api#VolumeEditResp)
+ProfileVolume | GET | /volumes/{volname}/profile/{option} | [](https://godoc.org/github.com/gluster/glusterd2/pkg/api#) | [BrickProfileInfo](https://godoc.org/github.com/gluster/glusterd2/pkg/api#BrickProfileInfo)
 SnapshotCreate | POST | /snapshots | [SnapCreateReq](https://godoc.org/github.com/gluster/glusterd2/pkg/api#SnapCreateReq) | [SnapCreateResp](https://godoc.org/github.com/gluster/glusterd2/pkg/api#SnapCreateResp)
 SnapshotActivate | POST | /snapshots/{snapname}/activate | [SnapActivateReq](https://godoc.org/github.com/gluster/glusterd2/pkg/api#SnapActivateReq) | [SnapshotActivateResp](https://godoc.org/github.com/gluster/glusterd2/pkg/api#SnapshotActivateResp)
 SnapshotDeactivate | POST | /snapshots/{snapname}/deactivate | [](https://godoc.org/github.com/gluster/glusterd2/pkg/api#) | [SnapshotDeactivateResp](https://godoc.org/github.com/gluster/glusterd2/pkg/api#SnapshotDeactivateResp)
