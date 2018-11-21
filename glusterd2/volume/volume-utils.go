@@ -16,6 +16,7 @@ import (
 	"github.com/gluster/glusterd2/glusterd2/pmap"
 	"github.com/gluster/glusterd2/pkg/api"
 	gderrors "github.com/gluster/glusterd2/pkg/errors"
+	"github.com/gluster/glusterd2/pkg/lvmutils"
 	"github.com/gluster/glusterd2/plugins/device/deviceutils"
 
 	"github.com/pborman/uuid"
@@ -263,7 +264,7 @@ func CleanBricks(volinfo *Volinfo) error {
 				return err
 			}
 		} else {
-			err := deviceutils.BrickUnmount(mountRoot)
+			err := lvmutils.UnmountLV(mountRoot)
 			if err != nil {
 				log.WithError(err).WithField("path", mountRoot).
 					Error("brick unmount failed")
@@ -277,7 +278,7 @@ func CleanBricks(volinfo *Volinfo) error {
 		}
 		vgname := parts[2]
 		lvname := parts[3]
-		tpname, err := deviceutils.GetThinpoolName(vgname, lvname)
+		tpname, err := lvmutils.GetThinpoolName(vgname, lvname)
 		if err != nil {
 			log.WithError(err).WithFields(log.Fields{
 				"vg-name": vgname,
@@ -287,7 +288,7 @@ func CleanBricks(volinfo *Volinfo) error {
 		}
 
 		// Remove LV
-		err = deviceutils.RemoveLV(vgname, lvname)
+		err = lvmutils.RemoveLV(vgname, lvname)
 		if err != nil {
 			log.WithError(err).WithFields(log.Fields{
 				"vg-name": vgname,
@@ -302,7 +303,7 @@ func CleanBricks(volinfo *Volinfo) error {
 
 		// Remove Thin Pool if LV count is zero, Thinpool will
 		// have more LVs in case of snapshots and clones
-		numLvs, err := deviceutils.NumberOfLvs(vgname, tpname)
+		numLvs, err := lvmutils.NumberOfLvs(vgname, tpname)
 		if err != nil {
 			log.WithError(err).WithFields(log.Fields{
 				"vg-name": vgname,
@@ -312,7 +313,7 @@ func CleanBricks(volinfo *Volinfo) error {
 		}
 
 		if numLvs == 0 {
-			err = deviceutils.RemoveLV(vgname, tpname)
+			err = lvmutils.RemoveLV(vgname, tpname)
 			if err != nil {
 				log.WithError(err).WithFields(log.Fields{
 					"vg-name": vgname,

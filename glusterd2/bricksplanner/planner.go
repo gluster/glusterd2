@@ -7,7 +7,7 @@ import (
 
 	"github.com/gluster/glusterd2/glusterd2/volume"
 	"github.com/gluster/glusterd2/pkg/api"
-	"github.com/gluster/glusterd2/plugins/device/deviceutils"
+	"github.com/gluster/glusterd2/pkg/lvmutils"
 
 	config "github.com/spf13/viper"
 )
@@ -127,7 +127,7 @@ func getBricksLayout(req *api.VolCreateReq) ([]api.SubvolReq, error) {
 				LvName:         fmt.Sprintf("brick_%s_s%d_b%d", req.Name, i+1, j+1),
 				Size:           eachBrickSize,
 				TpSize:         eachBrickTpSize,
-				TpMetadataSize: deviceutils.GetPoolMetadataSize(eachBrickTpSize),
+				TpMetadataSize: lvmutils.GetPoolMetadataSize(eachBrickTpSize),
 				FsType:         "xfs",
 				MntOpts:        "rw,inode64,noatime,nouuid",
 			})

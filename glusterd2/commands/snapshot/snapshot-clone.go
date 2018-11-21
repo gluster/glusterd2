@@ -8,12 +8,12 @@ import (
 	"github.com/gluster/glusterd2/glusterd2/gdctx"
 	restutils "github.com/gluster/glusterd2/glusterd2/servers/rest/utils"
 	"github.com/gluster/glusterd2/glusterd2/snapshot"
-	"github.com/gluster/glusterd2/glusterd2/snapshot/lvm"
 	"github.com/gluster/glusterd2/glusterd2/transaction"
 	"github.com/gluster/glusterd2/glusterd2/volgen"
 	"github.com/gluster/glusterd2/glusterd2/volume"
 	"github.com/gluster/glusterd2/pkg/api"
 	gderrors "github.com/gluster/glusterd2/pkg/errors"
+	"github.com/gluster/glusterd2/pkg/lvmutils"
 
 	"github.com/gorilla/mux"
 	"github.com/pborman/uuid"
@@ -30,7 +30,7 @@ func undoSnapshotClone(c transaction.TxnCtx) error {
 
 	for _, b := range volinfo.GetLocalBricks() {
 		volume.UmountBrick(b)
-		if err := lvm.RemoveBrickSnapshot(b.MountInfo.DevicePath); err != nil {
+		if err := lvmutils.RemoveLVSnapshot(b.MountInfo.DevicePath); err != nil {
 			c.Logger().WithError(err).WithField(
 				"brick", b.Path).Debug("Failed to remove snapshotted LVM")
 			return err
@@ -128,8 +128,11 @@ func populateCloneBrickMountData(volinfo *volume.Volinfo, name string) (map[stri
 
 			suffix := fmt.Sprintf("clone_%s_%s_s%d_b%d", name, volinfo.Name, svIdx+1, bIdx+1)
 
-			devicePath, err := lvm.CreateDevicePath(mntInfo.FsName, suffix)
+			devicePath, err := lvmutils.CreateDevicePath(mntInfo.FsName, suffix)
 			if err != nil {
+				log.WithError(err).WithField(
+					"deviceName", devicePath,
+				).Error("Failed to create device name. A thinLV with same name exist")
 				return nil, err
 			}
 			nodeData[b.String()] = snapshot.BrickMountData{
@@ -152,9 +155,9 @@ func validateSnapClone(c transaction.TxnCtx) error {
 		nodeData            map[string]snapshot.BrickMountData
 	)
 
-	if err = lvm.CommonPrevalidation(lvm.CreateCommand); err != nil {
+	if err = lvmutils.CommonPrevalidation(lvmutils.CreateCommand); err != nil {
 		log.WithError(err).WithField(
-			"command", lvm.CreateCommand,
+			"command", lvmutils.CreateCommand,
 		).Error("Failed to find lvm packages")
 		return err
 	}

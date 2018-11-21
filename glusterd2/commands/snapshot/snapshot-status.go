@@ -7,11 +7,11 @@ import (
 	"github.com/gluster/glusterd2/glusterd2/gdctx"
 	restutils "github.com/gluster/glusterd2/glusterd2/servers/rest/utils"
 	"github.com/gluster/glusterd2/glusterd2/snapshot"
-	"github.com/gluster/glusterd2/glusterd2/snapshot/lvm"
 	"github.com/gluster/glusterd2/glusterd2/transaction"
 	"github.com/gluster/glusterd2/glusterd2/volume"
 	"github.com/gluster/glusterd2/pkg/api"
 	"github.com/gluster/glusterd2/pkg/errors"
+	"github.com/gluster/glusterd2/pkg/lvmutils"
 
 	"github.com/gorilla/mux"
 )
@@ -37,9 +37,9 @@ func createSnapshotStatusResp(brickStatuses []brick.Brickstatus) []*api.SnapBric
 		}
 
 		if status.Online {
-			lvs, err := lvm.GetLvsData(status.Device)
+			lvs, err := lvmutils.GetLvsData(status.Device)
 			if err == nil {
-				s.LvData = lvm.CreateLvsResp(lvs)
+				s.LvData = lvmutils.CreateLvsResp(lvs)
 			}
 		}
 		statusesRsp = append(statusesRsp, &s)

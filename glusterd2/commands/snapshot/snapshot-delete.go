@@ -10,10 +10,10 @@ import (
 	"github.com/gluster/glusterd2/glusterd2/gdctx"
 	restutils "github.com/gluster/glusterd2/glusterd2/servers/rest/utils"
 	"github.com/gluster/glusterd2/glusterd2/snapshot"
-	"github.com/gluster/glusterd2/glusterd2/snapshot/lvm"
 	"github.com/gluster/glusterd2/glusterd2/transaction"
 	"github.com/gluster/glusterd2/glusterd2/volgen"
 	"github.com/gluster/glusterd2/glusterd2/volume"
+	"github.com/gluster/glusterd2/pkg/lvmutils"
 	log "github.com/sirupsen/logrus"
 
 	"github.com/gorilla/mux"
@@ -31,7 +31,7 @@ func snapshotBrickDelete(errCh chan error, wg *sync.WaitGroup, snapVol volume.Vo
 
 		}
 	}
-	if err := lvm.RemoveBrickSnapshot(b.MountInfo.DevicePath); err != nil {
+	if err := lvmutils.RemoveLVSnapshot(b.MountInfo.DevicePath); err != nil {
 		log.WithError(err).WithField(
 			"brick", b.Path).Debug("Failed to remove snapshotted LVM")
 		errCh <- err

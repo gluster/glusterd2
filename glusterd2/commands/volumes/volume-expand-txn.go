@@ -10,6 +10,7 @@ import (
 	"github.com/gluster/glusterd2/glusterd2/transaction"
 	"github.com/gluster/glusterd2/glusterd2/volume"
 	"github.com/gluster/glusterd2/pkg/api"
+	"github.com/gluster/glusterd2/pkg/lvmutils"
 	"github.com/gluster/glusterd2/plugins/device/deviceutils"
 
 	"github.com/pborman/uuid"
@@ -293,18 +294,18 @@ func expandLocalBricks(volinfo *volume.Volinfo, expansionTpSizePerBrick uint64, 
 				totalExpansionSizePerBrick := expansionTpSizePerBrick + expansionMetadataSizePerBrick
 
 				// extend thinpool
-				err := deviceutils.ExtendThinpool(expansionTpSizePerBrick, vgName, tpName)
+				err := lvmutils.ExtendThinpool(expansionTpSizePerBrick, vgName, tpName)
 				if err != nil {
 					return err
 				}
 				// extend metadata pool
-				err = deviceutils.ExtendMetadataPool(expansionMetadataSizePerBrick, vgName, tpName)
+				err = lvmutils.ExtendMetadataPool(expansionMetadataSizePerBrick, vgName, tpName)
 				if err != nil {
 					return err
 				}
 
 				// extend lv
-				err = deviceutils.ExtendLV(totalExpansionSizePerBrick, vgName, lvName)
+				err = lvmutils.ExtendLV(totalExpansionSizePerBrick, vgName, lvName)
 				if err != nil {
 					return err
 				}

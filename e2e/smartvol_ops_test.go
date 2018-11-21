@@ -6,7 +6,7 @@ import (
 	"testing"
 
 	"github.com/gluster/glusterd2/pkg/api"
-	"github.com/gluster/glusterd2/plugins/device/deviceutils"
+	gutils "github.com/gluster/glusterd2/pkg/utils"
 
 	"github.com/stretchr/testify/require"
 )
@@ -48,7 +48,7 @@ func testSmartVolumeDistribute(t *testing.T) {
 	// create Distribute 3 Volume
 	createReq := api.VolCreateReq{
 		Name:            smartvolname,
-		Size:            60 * deviceutils.MiB,
+		Size:            60 * gutils.MiB,
 		DistributeCount: 3,
 	}
 	volinfo, err := client.VolumeCreate(createReq)
@@ -64,7 +64,7 @@ func testSmartVolumeDistribute(t *testing.T) {
 	r.Nil(brickSizeTest(volinfo.Subvols[2].Bricks[0].Path, 16, 21))
 
 	expandReq := api.VolExpandReq{
-		Size:            60 * deviceutils.MiB,
+		Size:            60 * gutils.MiB,
 		DistributeCount: 3,
 	}
 	_, err = client.VolumeExpand(smartvolname, expandReq)
@@ -78,7 +78,7 @@ func testSmartVolumeDistribute(t *testing.T) {
 	r.Nil(brickSizeTest(vols[0].Subvols[2].Bricks[0].Path, 37, 41))
 
 	expandReq = api.VolExpandReq{
-		Size:            210 * deviceutils.MiB,
+		Size:            210 * gutils.MiB,
 		DistributeCount: 3,
 	}
 	_, err = client.VolumeExpand(smartvolname, expandReq)
@@ -94,7 +94,7 @@ func testSmartVolumeReplicate2(t *testing.T) {
 	// create Replica 2 Volume
 	createReq := api.VolCreateReq{
 		Name:         smartvolname,
-		Size:         20 * deviceutils.MiB,
+		Size:         20 * gutils.MiB,
 		ReplicaCount: 2,
 	}
 	volinfo, err := client.VolumeCreate(createReq)
@@ -108,7 +108,7 @@ func testSmartVolumeReplicate2(t *testing.T) {
 	r.Nil(brickSizeTest(volinfo.Subvols[0].Bricks[1].Path, 16, 21))
 
 	expandReq := api.VolExpandReq{
-		Size:            30 * deviceutils.MiB,
+		Size:            30 * gutils.MiB,
 		DistributeCount: 1,
 	}
 	_, err = client.VolumeExpand(smartvolname, expandReq)
@@ -121,7 +121,7 @@ func testSmartVolumeReplicate2(t *testing.T) {
 	r.Nil(brickSizeTest(vols[0].Subvols[0].Bricks[1].Path, 47, 52))
 
 	expandReq = api.VolExpandReq{
-		Size:            200 * deviceutils.MiB,
+		Size:            200 * gutils.MiB,
 		DistributeCount: 1,
 	}
 	_, err = client.VolumeExpand(smartvolname, expandReq)
@@ -138,7 +138,7 @@ func testSmartVolumeReplicate3(t *testing.T) {
 	// create Replica 3 Volume
 	createReq := api.VolCreateReq{
 		Name:         smartvolname,
-		Size:         20 * deviceutils.MiB,
+		Size:         20 * gutils.MiB,
 		ReplicaCount: 3,
 	}
 	volinfo, err := client.VolumeCreate(createReq)
@@ -152,7 +152,7 @@ func testSmartVolumeReplicate3(t *testing.T) {
 	r.Nil(brickSizeTest(volinfo.Subvols[0].Bricks[2].Path, 16, 21))
 
 	expandReq := api.VolExpandReq{
-		Size:            30 * deviceutils.MiB,
+		Size:            30 * gutils.MiB,
 		DistributeCount: 1,
 	}
 	_, err = client.VolumeExpand(smartvolname, expandReq)
@@ -166,7 +166,7 @@ func testSmartVolumeReplicate3(t *testing.T) {
 	r.Nil(brickSizeTest(vols[0].Subvols[0].Bricks[1].Path, 47, 52))
 
 	expandReq = api.VolExpandReq{
-		Size:            210 * deviceutils.MiB,
+		Size:            210 * gutils.MiB,
 		DistributeCount: 1,
 	}
 	_, err = client.VolumeExpand(smartvolname, expandReq)
@@ -183,7 +183,7 @@ func testSmartVolumeArbiter(t *testing.T) {
 	// create Replica 3 Arbiter Volume
 	createReq := api.VolCreateReq{
 		Name:         smartvolname,
-		Size:         20 * deviceutils.MiB,
+		Size:         20 * gutils.MiB,
 		ReplicaCount: 2,
 		ArbiterCount: 1,
 	}
@@ -213,7 +213,7 @@ func testSmartVolumeDisperse(t *testing.T) {
 	// create Disperse Volume
 	createReq := api.VolCreateReq{
 		Name:          smartvolname,
-		Size:          40 * deviceutils.MiB,
+		Size:          40 * gutils.MiB,
 		DisperseCount: 3,
 	}
 	volinfo, err := client.VolumeCreate(createReq)
@@ -228,7 +228,7 @@ func testSmartVolumeDisperse(t *testing.T) {
 	r.Nil(brickSizeTest(volinfo.Subvols[0].Bricks[2].Path, 16, 21))
 
 	expandReq := api.VolExpandReq{
-		Size:            30 * deviceutils.MiB,
+		Size:            30 * gutils.MiB,
 		DistributeCount: 1,
 	}
 	_, err = client.VolumeExpand(smartvolname, expandReq)
@@ -242,7 +242,7 @@ func testSmartVolumeDisperse(t *testing.T) {
 	r.Nil(brickSizeTest(vols[0].Subvols[0].Bricks[1].Path, 27, 32))
 
 	expandReq = api.VolExpandReq{
-		Size:            240 * deviceutils.MiB,
+		Size:            240 * gutils.MiB,
 		DistributeCount: 1,
 	}
 	_, err = client.VolumeExpand(smartvolname, expandReq)
@@ -260,7 +260,7 @@ func testSmartVolumeDistributeReplicate(t *testing.T) {
 	// create Distribute Replicate(2x3) Volume
 	createReq := api.VolCreateReq{
 		Name:               smartvolname,
-		Size:               40 * deviceutils.MiB,
+		Size:               40 * gutils.MiB,
 		DistributeCount:    2,
 		ReplicaCount:       3,
 		SubvolZonesOverlap: true,
@@ -292,7 +292,7 @@ func testSmartVolumeDistributeDisperse(t *testing.T) {
 	// create Distribute Disperse(2x3) Volume
 	createReq := api.VolCreateReq{
 		Name:               smartvolname,
-		Size:               80 * deviceutils.MiB,
+		Size:               80 * gutils.MiB,
 		DistributeCount:    2,
 		DisperseCount:      3,
 		SubvolZonesOverlap: true,

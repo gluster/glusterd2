@@ -3,14 +3,13 @@ package deviceutils
 import (
 	"encoding/json"
 	"errors"
-	"fmt"
 	"strings"
 
 	"github.com/gluster/glusterd2/glusterd2/brick"
 	"github.com/gluster/glusterd2/glusterd2/gdctx"
 	peer "github.com/gluster/glusterd2/glusterd2/peer"
 	gderrors "github.com/gluster/glusterd2/pkg/errors"
-	"github.com/gluster/glusterd2/pkg/utils"
+	"github.com/gluster/glusterd2/pkg/lvmutils"
 	deviceapi "github.com/gluster/glusterd2/plugins/device/api"
 )
 
@@ -141,7 +140,7 @@ func UpdateDeviceFreeSize(peerid, vgname string) error {
 
 	for idx, dev := range deviceDetails {
 		if dev.VgName == vgname {
-			availableSize, extentSize, err := GetVgAvailableSize(vgname)
+			availableSize, extentSize, err := lvmutils.GetVgAvailableSize(vgname)
 			if err != nil {
 				return err
 			}
@@ -228,25 +227,4 @@ func CheckForAvailableVgSize(expansionSize uint64, bricksInfo []brick.Brickinfo)
 	}
 
 	return brickVgMapping, true, nil
-}
-
-// ExtendLV extends the lv by the size specified, used for intelligent volume expand
-func ExtendLV(totalExpansionSizePerBrick uint64, vgName string, lvName string) error {
-	err := utils.ExecuteCommandRun("lvresize", "--resizefs", "--size", fmt.Sprintf("+%dB", totalExpansionSizePerBrick), fmt.Sprintf("/dev/%s/%s", vgName, lvName))
-	return err
-}
-
-// ExtendMetadataPool extends the metadata pool by the size specified, used for intelligent volume expand
-func ExtendMetadataPool(expansionMetadataSizePerBrick uint64, vgName string, tpName string) error {
-	if expansionMetadataSizePerBrick < 1 {
-		expansionMetadataSizePerBrick = 512
-	}
-	err := utils.ExecuteCommandRun("lvextend", "--poolmetadatasize", fmt.Sprintf("+%dB", expansionMetadataSizePerBrick), fmt.Sprintf("/dev/%s/%s", vgName, tpName))
-	return err
-}
-
-// ExtendThinpool extends the thinpool by the size specified, used for intelligent volume expand
-func ExtendThinpool(expansionTpSizePerBrick uint64, vgName string, tpName string) error {
-	err := utils.ExecuteCommandRun("lvextend", fmt.Sprintf("-L+%dB", expansionTpSizePerBrick), fmt.Sprintf("/dev/%s/%s", vgName, tpName))
-	return err
 }

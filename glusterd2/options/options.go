@@ -6,7 +6,7 @@ import (
 	"strconv"
 	"strings"
 
-	"github.com/gluster/glusterd2/plugins/device/deviceutils"
+	gutils "github.com/gluster/glusterd2/pkg/utils"
 
 	validate "github.com/asaskevich/govalidator"
 )
@@ -349,11 +349,11 @@ func ValidateSizeList(o *Option, val string) error {
 			}
 			switch size {
 			case "KB", "kb":
-				sizeinbytes = v * deviceutils.KiB
+				sizeinbytes = v * gutils.KiB
 			case "MB", "mb":
-				sizeinbytes = v * deviceutils.MiB
+				sizeinbytes = v * gutils.MiB
 			case "GB", "gb":
-				sizeinbytes = v * deviceutils.GiB
+				sizeinbytes = v * gutils.GiB
 			}
 			if sizeinbytes%512 != 0 {
 				return ErrInvalidArg

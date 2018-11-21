@@ -19,6 +19,18 @@ import (
 	log "github.com/sirupsen/logrus"
 )
 
+// constants to convert respective size into bytes.
+const (
+	KB  = 1000
+	KiB = 1024
+	MB  = 1000 * KB
+	MiB = 1024 * KiB
+	GB  = 1000 * MB
+	GiB = 1024 * MiB
+	TB  = 1000 * GB
+	TiB = 1024 * GiB
+)
+
 // IsLocalAddress checks whether a given host/IP is local
 // Does lookup only after string matching IP addresses
 func IsLocalAddress(address string) (bool, error) {

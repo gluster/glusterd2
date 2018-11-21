@@ -8,7 +8,7 @@ import (
 	"strconv"
 	"strings"
 
-	"github.com/gluster/glusterd2/plugins/device/deviceutils"
+	"github.com/gluster/glusterd2/pkg/utils"
 )
 
 var (
@@ -49,17 +49,17 @@ func sizeToBytes(value string) (uint64, error) {
 	var size uint64
 	switch sizeUnit {
 	case "K", "KiB":
-		size = sizeValue * deviceutils.KiB
+		size = sizeValue * utils.KiB
 	case "KB":
-		size = sizeValue * deviceutils.KB
+		size = sizeValue * utils.KB
 	case "G", "GiB":
-		size = sizeValue * deviceutils.GiB
+		size = sizeValue * utils.GiB
 	case "GB":
-		size = sizeValue * deviceutils.GB
+		size = sizeValue * utils.GB
 	case "T", "TiB":
-		size = sizeValue * deviceutils.TiB
+		size = sizeValue * utils.TiB
 	case "TB":
-		size = sizeValue * deviceutils.TB
+		size = sizeValue * utils.TB
 	default:
 		size = sizeValue
 	}
