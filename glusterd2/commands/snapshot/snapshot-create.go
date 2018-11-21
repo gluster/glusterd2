@@ -24,13 +24,14 @@ import (
 	restutils "github.com/gluster/glusterd2/glusterd2/servers/rest/utils"
 	"github.com/gluster/glusterd2/glusterd2/servers/sunrpc/dict"
 	"github.com/gluster/glusterd2/glusterd2/snapshot"
-	"github.com/gluster/glusterd2/glusterd2/snapshot/lvm"
 	"github.com/gluster/glusterd2/glusterd2/transaction"
 	"github.com/gluster/glusterd2/glusterd2/volgen"
 	"github.com/gluster/glusterd2/glusterd2/volume"
 	"github.com/gluster/glusterd2/glusterd2/xlator"
 	"github.com/gluster/glusterd2/pkg/api"
 	gderrors "github.com/gluster/glusterd2/pkg/errors"
+	"github.com/gluster/glusterd2/pkg/fsutils"
+	"github.com/gluster/glusterd2/pkg/lvmutils"
 
 	"github.com/pborman/uuid"
 	log "github.com/sirupsen/logrus"
@@ -179,7 +180,7 @@ func undoBrickSnapshots(c transaction.TxnCtx) error {
 
 	snapVol := snapInfo.SnapVolinfo
 	for _, b := range snapVol.GetLocalBricks() {
-		if err := lvm.RemoveBrickSnapshot(b.MountInfo.DevicePath); err != nil {
+		if err := lvmutils.RemoveLVSnapshot(b.MountInfo.DevicePath); err != nil {
 			c.Logger().WithError(err).WithField(
 				"brick", b.Path).Debug("Failed to remove snapshotted LVM")
 			return err
@@ -304,8 +305,11 @@ func populateSnapBrickMountData(volinfo *volume.Volinfo, snapName string) (map[s
 			}
 
 			suffix := fmt.Sprintf("snap_%s_%s_s%d_b%d", snapName, volinfo.Name, svIdx+1, bIdx+1)
-			devicePath, err := lvm.CreateDevicePath(mntInfo.FsName, suffix)
+			devicePath, err := lvmutils.CreateDevicePath(mntInfo.FsName, suffix)
 			if err != nil {
+				log.WithError(err).WithField(
+					"deviceName", devicePath,
+				).Error("Failed to create device name. A thinLV with same name exist")
 				return nil, err
 			}
 
@@ -342,9 +346,9 @@ func validateSnapCreate(c transaction.TxnCtx) error {
 	if err != nil {
 		return err
 	}
-	if err = lvm.CommonPrevalidation(lvm.CreateCommand); err != nil {
+	if err = lvmutils.CommonPrevalidation(lvmutils.CreateCommand); err != nil {
 		log.WithError(err).WithField(
-			"command", lvm.CreateCommand,
+			"command", lvmutils.CreateCommand,
 		).Error("Failed to find lvm packages")
 		return err
 	}
@@ -441,7 +445,7 @@ func brickSnapshot(errCh chan error, wg *sync.WaitGroup, snapBrick, b brick.Bric
 		"Path":        b.Path,
 	}).Debug("Running snapshot create command")
 
-	if err := lvm.LVSnapshot(mntInfo.FsName, mountData.DevicePath); err != nil {
+	if err := lvmutils.LVSnapshot(mntInfo.FsName, mountData.DevicePath); err != nil {
 		log.WithError(err).WithFields(log.Fields{
 			"mountDevice": mntInfo.FsName,
 			"devicePath":  mountData.DevicePath,
@@ -451,7 +455,7 @@ func brickSnapshot(errCh chan error, wg *sync.WaitGroup, snapBrick, b brick.Bric
 		return
 	}
 
-	if err = lvm.UpdateFsLabel(mountData.DevicePath, mountData.FsType); err != nil {
+	if err = fsutils.UpdateFsLabel(mountData.DevicePath, mountData.FsType); err != nil {
 		log.WithError(err).WithFields(log.Fields{
 			"FsType": mountData.FsType,
 			"Path":   b.Path,

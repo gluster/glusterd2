@@ -12,6 +12,7 @@ import (
 	"github.com/gluster/glusterd2/glusterd2/volume"
 	"github.com/gluster/glusterd2/pkg/api"
 	"github.com/gluster/glusterd2/pkg/errors"
+	"github.com/gluster/glusterd2/pkg/lvmutils"
 	"github.com/gluster/glusterd2/plugins/device/deviceutils"
 
 	"github.com/gorilla/mux"
@@ -132,7 +133,7 @@ func volumeExpandHandler(w http.ResponseWriter, r *http.Request) {
 			expansionSizePerBrick = expansionSizePerSubvol / uint64(volinfo.Subvols[0].DisperseCount-volinfo.Subvols[0].RedundancyCount)
 		}
 		expansionTpSizePerBrick = uint64(float64(expansionSizePerBrick) * volinfo.SnapshotReserveFactor)
-		expansionMetadataSizePerBrick = deviceutils.GetPoolMetadataSize(expansionTpSizePerBrick)
+		expansionMetadataSizePerBrick = lvmutils.GetPoolMetadataSize(expansionTpSizePerBrick)
 		totalExpansionSizePerBrick := expansionTpSizePerBrick + expansionMetadataSizePerBrick
 		bricksInfo := volinfo.GetBricks()
 		brickVgMapping, ok, err = deviceutils.CheckForAvailableVgSize(totalExpansionSizePerBrick, bricksInfo)

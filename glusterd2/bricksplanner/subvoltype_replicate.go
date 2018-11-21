@@ -2,11 +2,11 @@ package bricksplanner
 
 import (
 	"github.com/gluster/glusterd2/pkg/api"
-	"github.com/gluster/glusterd2/plugins/device/deviceutils"
+	"github.com/gluster/glusterd2/pkg/utils"
 )
 
 // defaultLeastArbiterSize is the size (in KB) the arbiter brick will be assigned to if the brick size is less than 100M.
-const defaultLeastArbiterSize = 100 * deviceutils.MiB
+const defaultLeastArbiterSize = 100 * utils.MiB
 
 type replicaSubvolPlanner struct {
 	subvolSize       uint64
@@ -22,7 +22,7 @@ func (s *replicaSubvolPlanner) Init(req *api.VolCreateReq, subvolSize uint64) {
 	s.arbiterCount = req.ArbiterCount
 	s.brickSize = s.subvolSize
 
-	var avgFileSize uint64 = 64 * deviceutils.KiB
+	var avgFileSize uint64 = 64 * utils.KiB
 	if req.AverageFileSize != 0 {
 		avgFileSize = req.AverageFileSize
 	}

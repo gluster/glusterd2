@@ -3,9 +3,9 @@ package snapshot
 import (
 	"github.com/gluster/glusterd2/glusterd2/brick"
 	"github.com/gluster/glusterd2/glusterd2/gdctx"
-	"github.com/gluster/glusterd2/glusterd2/snapshot/lvm"
 	"github.com/gluster/glusterd2/glusterd2/volume"
 	gderrors "github.com/gluster/glusterd2/pkg/errors"
+	"github.com/gluster/glusterd2/pkg/lvmutils"
 
 	"github.com/pborman/uuid"
 	log "github.com/sirupsen/logrus"
@@ -114,9 +114,16 @@ func CheckBricksFsCompatability(volinfo *volume.Volinfo) []string {
 
 	var paths []string
 	for _, brick := range volinfo.GetLocalBricks() {
-		if lvm.FsCompatibleCheck(brick.Path) != true {
-			paths = append(paths, brick.String())
+		mountRoot, err := volume.GetBrickMountRoot(brick.Path)
+		if err == nil {
+			mntInfo, err := volume.GetBrickMountInfo(mountRoot)
+			if err == nil {
+				if lvmutils.FsCompatibleCheck(mntInfo.FsName) {
+					continue
+				}
+			}
 		}
+		paths = append(paths, brick.String())
 	}
 	return paths
 
@@ -127,9 +134,16 @@ func CheckBricksSizeCompatability(volinfo *volume.Volinfo) []string {
 
 	var paths []string
 	for _, brick := range volinfo.GetLocalBricks() {
-		if lvm.SizeCompatibleCheck(brick.Path) != true {
-			paths = append(paths, brick.String())
+		mountRoot, err := volume.GetBrickMountRoot(brick.Path)
+		if err == nil {
+			mntInfo, err := volume.GetBrickMountInfo(mountRoot)
+			if err == nil {
+				if lvmutils.SizeCompatibleCheck(mntInfo.FsName) {
+					continue
+				}
+			}
 		}
+		paths = append(paths, brick.String())
 	}
 	return paths
 

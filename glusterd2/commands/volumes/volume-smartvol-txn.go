@@ -8,6 +8,8 @@ import (
 	"github.com/gluster/glusterd2/glusterd2/transaction"
 	"github.com/gluster/glusterd2/glusterd2/volume"
 	"github.com/gluster/glusterd2/pkg/api"
+	"github.com/gluster/glusterd2/pkg/fsutils"
+	"github.com/gluster/glusterd2/pkg/lvmutils"
 	"github.com/gluster/glusterd2/plugins/device/deviceutils"
 
 	log "github.com/sirupsen/logrus"
@@ -35,7 +37,7 @@ func txnPrepareBricks(c transaction.TxnCtx) error {
 			}
 
 			// Thin Pool Creation
-			err = deviceutils.CreateTP(b.VgName, b.TpName, b.TpSize, b.TpMetadataSize)
+			err = lvmutils.CreateTP(b.VgName, b.TpName, b.TpSize, b.TpMetadataSize)
 			if err != nil {
 				c.Logger().WithError(err).WithFields(log.Fields{
 					"vg-name":      b.VgName,
@@ -47,7 +49,7 @@ func txnPrepareBricks(c transaction.TxnCtx) error {
 			}
 
 			// LV Creation
-			err = deviceutils.CreateLV(b.VgName, b.TpName, b.LvName, b.Size)
+			err = lvmutils.CreateLV(b.VgName, b.TpName, b.LvName, b.Size)
 			if err != nil {
 				c.Logger().WithError(err).WithFields(log.Fields{
 					"vg-name": b.VgName,
@@ -65,14 +67,14 @@ func txnPrepareBricks(c transaction.TxnCtx) error {
 			} else {
 				mkfsOpts = []string{"-i", "size=512", "-n", "size=8192"}
 			}
-			err = deviceutils.MakeXfs(b.DevicePath, mkfsOpts...)
+			err = fsutils.MakeXfs(b.DevicePath, mkfsOpts...)
 			if err != nil {
 				c.Logger().WithError(err).WithField("dev", b.DevicePath).Error("mkfs.xfs failed")
 				return err
 			}
 
 			// Mount the Created FS
-			err = deviceutils.BrickMount(b.DevicePath, mountRoot)
+			err = lvmutils.MountLV(b.DevicePath, mountRoot, b.MntOpts)
 			if err != nil {
 				c.Logger().WithError(err).WithFields(log.Fields{
 					"dev":  b.DevicePath,
@@ -118,13 +120,13 @@ func txnUndoPrepareBricks(c transaction.TxnCtx) error {
 
 			// UnMount the Brick
 			mountRoot := strings.TrimSuffix(b.Path, b.BrickDirSuffix)
-			err := deviceutils.BrickUnmount(mountRoot)
+			err := lvmutils.UnmountLV(mountRoot)
 			if err != nil {
 				c.Logger().WithError(err).WithField("path", mountRoot).Error("brick unmount failed")
 			}
 
 			// Remove LV
-			err = deviceutils.RemoveLV(b.VgName, b.LvName)
+			err = lvmutils.RemoveLV(b.VgName, b.LvName)
 			if err != nil {
 				c.Logger().WithError(err).WithFields(log.Fields{
 					"vg-name": b.VgName,
@@ -133,7 +135,7 @@ func txnUndoPrepareBricks(c transaction.TxnCtx) error {
 			}
 
 			// Remove Thin Pool
-			err = deviceutils.RemoveLV(b.VgName, b.TpName)
+			err = lvmutils.RemoveLV(b.VgName, b.TpName)
 			if err != nil {
 				c.Logger().WithError(err).WithFields(log.Fields{
 					"vg-name": b.VgName,

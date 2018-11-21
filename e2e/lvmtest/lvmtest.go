@@ -10,8 +10,8 @@ import (
 	"syscall"
 	"time"
 
-	"github.com/gluster/glusterd2/glusterd2/snapshot/lvm"
 	"github.com/gluster/glusterd2/glusterd2/volume"
+	"github.com/gluster/glusterd2/pkg/lvmutils"
 )
 
 const (
@@ -20,14 +20,14 @@ const (
 )
 
 var (
-	xfsFormat    = lvm.GetBinPath("mkfs.xfs")
-	fallocateBin = lvm.GetBinPath("fallocate")
-	mknodBin     = lvm.GetBinPath("mknod")
+	xfsFormat    = lvmutils.GetBinPath("mkfs.xfs")
+	fallocateBin = lvmutils.GetBinPath("fallocate")
+	mknodBin     = lvmutils.GetBinPath("mknod")
 	brickPrefix  string
 )
 
 func verifyLVM() bool {
-	out, err := exec.Command(lvm.CreateCommand, "--help").Output()
+	out, err := exec.Command(lvmutils.CreateCommand, "--help").Output()
 	if err != nil {
 		return false
 	}
@@ -62,19 +62,19 @@ func createLV(num int, thinpoolSize, virtualSize string) error {
 		poolPath := fmt.Sprintf("/dev/%s/thinpool", vg)
 		xfsPath := fmt.Sprintf("/dev/%s/brick_lvm", vg)
 
-		if err := exec.Command(lvm.PvCreateCommand, devicePath).Run(); err != nil {
+		if err := exec.Command(lvmutils.PvCreateCommand, devicePath).Run(); err != nil {
 			return err
 		}
 
-		if err := exec.Command(lvm.VgCreateCommand, vg, devicePath).Run(); err != nil {
+		if err := exec.Command(lvmutils.VgCreateCommand, vg, devicePath).Run(); err != nil {
 			return err
 		}
 
-		if err := exec.Command(lvm.CreateCommand, "-L", thinpoolSize, "-T", poolPath).Run(); err != nil {
+		if err := exec.Command(lvmutils.CreateCommand, "-L", thinpoolSize, "-T", poolPath).Run(); err != nil {
 			return err
 		}
 
-		if err := exec.Command(lvm.CreateCommand, "-V", virtualSize, "-T", poolPath, "-n", "brick_lvm").Run(); err != nil {
+		if err := exec.Command(lvmutils.CreateCommand, "-V", virtualSize, "-T", poolPath, "-n", "brick_lvm").Run(); err != nil {
 			return err
 		}
 
@@ -101,10 +101,10 @@ func deleteLV(num int, force bool) error {
 		if err := os.RemoveAll(brickPath); err != nil && !force {
 			return err
 		}
-		if err := exec.Command(lvm.RemoveCommand, "-f", vg).Run(); err != nil && !force {
+		if err := exec.Command(lvmutils.RemoveCommand, "-f", vg).Run(); err != nil && !force {
 			return err
 		}
-		if err := exec.Command(lvm.VgRemoveCommand, "-f", vg).Run(); err != nil && !force {
+		if err := exec.Command(lvmutils.VgRemoveCommand, "-f", vg).Run(); err != nil && !force {
 			return err
 		}
 
@@ -121,7 +121,7 @@ func deleteVHD(num int, force bool) error {
 		vhdPath := fmt.Sprintf("%s_vhd", prefix)
 		devicePath := devicePrefix + strconv.Itoa(i)
 
-		if err := exec.Command(lvm.PvRemoveCommand, "-f", devicePath).Run(); err != nil && !force {
+		if err := exec.Command(lvmutils.PvRemoveCommand, "-f", devicePath).Run(); err != nil && !force {
 			return err
 		}
 		if err := exec.Command("losetup", "-d", devicePath).Run(); err != nil && !force {
@@ -208,15 +208,15 @@ func Cleanup(baseWorkdir, prefix string, brickCount int) {
 	deleteVHD(brickCount, true)
 
 	vg := fmt.Sprintf("%s_vg_", lvmPrefix)
-	out, err := exec.Command(lvm.LVSCommand, "--noheadings", "-o", "vg_name").Output()
+	out, err := exec.Command(lvmutils.LVSCommand, "--noheadings", "-o", "vg_name").Output()
 	if err != nil {
 		// TODO: log failure here
 		return
 	}
 	for _, entry := range strings.Split(string(out), "\n") {
 		if strings.HasPrefix(entry, vg) {
-			exec.Command(lvm.RemoveCommand, "-f", entry)
-			exec.Command(lvm.VgRemoveCommand, "-f", entry)
+			exec.Command(lvmutils.RemoveCommand, "-f", entry)
+			exec.Command(lvmutils.VgRemoveCommand, "-f", entry)
 		}
 	}
 	os.RemoveAll(brickPrefix)
