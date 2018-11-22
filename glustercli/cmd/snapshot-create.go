@@ -18,6 +18,7 @@ var (
 	flagSnapshotCreateForce       bool
 	flagSnapshotCreateTimestamp   bool
 	flagSnapshotCreateDescription string
+	flagSnapshotCreateLabel       string
 
 	snapshotCreateCmd = &cobra.Command{
 		Use:   "create <snapname> <volname>",
@@ -32,6 +33,7 @@ func init() {
 	snapshotCreateCmd.Flags().StringVar(&flagSnapshotCreateDescription, "description", "", "Description of snapshot")
 	snapshotCreateCmd.Flags().BoolVar(&flagSnapshotCreateForce, "force", false, "Force")
 	snapshotCreateCmd.Flags().BoolVar(&flagSnapshotCreateTimestamp, "timestamp", false, "Append timestamp with snap name")
+	snapshotCreateCmd.Flags().StringVar(&flagSnapshotCreateLabel, "label", "defaultLabel", "Label name for the snapshot")
 
 	snapshotCmd.AddCommand(snapshotCreateCmd)
 }
@@ -46,6 +48,7 @@ func snapshotCreateCmdRun(cmd *cobra.Command, args []string) {
 		Force:       flagSnapshotCreateForce,
 		TimeStamp:   flagSnapshotCreateTimestamp,
 		Description: flagSnapshotCreateDescription,
+		SnapLabel:   flagSnapshotCreateLabel,
 	}
 
 	snap, err := client.SnapshotCreate(req)

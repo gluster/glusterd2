@@ -360,7 +360,7 @@ func snapshotRestoreHandler(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	txn, err := transaction.NewTxnWithLocks(ctx, snapname, snapinfo.ParentVolume)
+	txn, err := transaction.NewTxnWithLocks(ctx, snapname, snapinfo.ParentVolume, snapinfo.SnapLabel)
 	if err != nil {
 		status, err := restutils.ErrToStatusCode(err)
 		restutils.SendHTTPError(ctx, w, status, err)

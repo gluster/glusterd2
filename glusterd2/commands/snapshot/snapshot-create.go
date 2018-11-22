@@ -24,6 +24,7 @@ import (
 	restutils "github.com/gluster/glusterd2/glusterd2/servers/rest/utils"
 	"github.com/gluster/glusterd2/glusterd2/servers/sunrpc/dict"
 	"github.com/gluster/glusterd2/glusterd2/snapshot"
+	"github.com/gluster/glusterd2/glusterd2/snapshot/label"
 	"github.com/gluster/glusterd2/glusterd2/snapshot/lvm"
 	"github.com/gluster/glusterd2/glusterd2/transaction"
 	"github.com/gluster/glusterd2/glusterd2/volgen"
@@ -39,8 +40,15 @@ import (
 )
 
 type txnData struct {
-	Req       api.SnapCreateReq
-	CreatedAt time.Time
+	Req        api.SnapCreateReq
+	CreatedAt  time.Time
+	AutoDelete bool
+	Victim     snapshot.Snapinfo
+}
+
+type configTxnData struct {
+	AutoDeleteStatus bool
+	ActivateStatus   bool
 }
 
 func barrierActivateDeactivateFunc(volinfo *volume.Volinfo, option string, originUUID uuid.UUID) error {
@@ -210,22 +218,58 @@ func undoStoreSnapshotOnCreate(c transaction.TxnCtx) error {
 		return err
 	}
 
+	//As of now rollbacking for deleted snapshot is not implemented
+
 	return nil
 }
 
 // storeSnapshot uses to store the volinfo and to generate client volfile
 func storeSnapshotCreate(c transaction.TxnCtx) error {
 
-	var snapInfo snapshot.Snapinfo
+	var (
+		snapInfo   snapshot.Snapinfo
+		configData configTxnData
+		data       txnData
+	)
+
+	AutoDeleteStatus := false
+	ActivateStatus := false
+
 	if err := c.Get("snapinfo", &snapInfo); err != nil {
 		return err
 	}
 	volinfo := &snapInfo.SnapVolinfo
 
+	if err := c.Get("data", &data); err != nil {
+		return err
+	}
+
+	labelInfo, err := label.GetLabel(snapInfo.SnapLabel)
+	if err != nil {
+		c.Logger().WithError(err).WithField(
+			"label", snapInfo.SnapLabel).Debug("getLabel: failed to fetch label from store")
+		return err
+	}
+	if labelInfo.ActivateOnCreate || data.AutoDelete {
+		AutoDeleteStatus = false
+		ActivateStatus = false
+		for _, node := range volinfo.Nodes() {
+			if err := c.GetNodeResult(node, snapshot.NodeConfigTxnKey, &configData); err != nil {
+				return err
+			}
+			if !configData.ActivateStatus {
+				ActivateStatus = false
+			}
+			if !configData.AutoDeleteStatus {
+				AutoDeleteStatus = false
+			}
+		}
+	}
+
 	vol, err := volume.GetVolume(snapInfo.ParentVolume)
 	if err != nil {
 		c.Logger().WithError(err).WithField(
-			"volume", snapInfo.ParentVolume).Debug("storeVolume: failed to fetch Volinfo from store")
+			"volume", snapInfo.ParentVolume).Debug("getVolume: failed to fetch Volinfo from store")
 		return err
 	}
 
@@ -236,6 +280,30 @@ func storeSnapshotCreate(c transaction.TxnCtx) error {
 		return err
 	}
 
+	if AutoDeleteStatus {
+		victimVol := data.Victim.SnapVolinfo
+		if err := snapshot.DeleteSnapshot(&data.Victim); err != nil {
+			return err
+		}
+
+		if err := volgen.DeleteVolfiles(victimVol.VolfileID); err != nil {
+			c.Logger().WithError(err).
+				WithField("snapshot", snapshot.GetStorePath(&data.Victim)).
+				Warn("failed to delete volfiles of snapshot")
+			return err
+		}
+	}
+
+	labelInfo.SnapList = append(labelInfo.SnapList, volinfo.Name)
+	if err := label.AddOrUpdateLabelFunc(labelInfo); err != nil {
+		c.Logger().WithError(err).WithField(
+			"label", labelInfo.Name).Debug("storeLabel: failed to store Label")
+		return err
+	}
+
+	if ActivateStatus {
+		volinfo.State = volume.VolStarted
+	}
 	if err := snapshot.AddOrUpdateSnapFunc(&snapInfo); err != nil {
 		c.Logger().WithError(err).WithField(
 			"volume", volinfo.Name).Debug("storeSnapshot: failed to store snapshot info")
@@ -246,6 +314,75 @@ func storeSnapshotCreate(c transaction.TxnCtx) error {
 			"volume", volinfo.Name).Error("generateVolfiles: failed to generate volfiles")
 		return err
 	}
+
+	return nil
+}
+
+func activateOnCreateSnapshot(snapinfo *snapshot.Snapinfo, logger log.FieldLogger) error {
+
+	vol := &snapinfo.SnapVolinfo
+
+	brickinfos, err := snapshot.GetOfflineBricks(vol)
+	if err != nil {
+		logger.WithError(err).Error("failed to get offline Bricks")
+		return err
+	}
+
+	err = snapshot.ActivateDeactivateFunc(snapinfo, brickinfos, true, logger)
+	return err
+}
+
+func snapshotLabelActions(c transaction.TxnCtx) error {
+
+	var (
+		snapInfo   snapshot.Snapinfo
+		data       txnData
+		configData configTxnData
+	)
+
+	if err := c.Get("snapinfo", &snapInfo); err != nil {
+		return err
+	}
+
+	if err := c.Get("data", &data); err != nil {
+		return err
+	}
+
+	labelInfo, err := label.GetLabel(snapInfo.SnapLabel)
+	if err != nil {
+		return err
+	}
+
+	configData.ActivateStatus = false
+	configData.AutoDeleteStatus = false
+	if labelInfo.ActivateOnCreate {
+		// Generate local Bricks Volfiles
+		vol := &snapInfo.SnapVolinfo
+		err = volgen.GenerateBricksVolfiles(vol, vol.GetLocalBricks())
+		if err != nil {
+			c.Logger().WithError(err).WithFields(log.Fields{
+				"template": "brick",
+				"volume":   vol.Name,
+			}).Error("failed to generate brick volfiles")
+			return err
+		}
+
+		if err := activateOnCreateSnapshot(&snapInfo, c.Logger()); err != nil {
+			c.Logger().WithError(err).WithField(
+				"snapshot", snapInfo.SnapVolinfo.Name).Debug("Failed to activate the snapshot")
+		} else {
+			configData.ActivateStatus = true
+		}
+	}
+	if data.AutoDelete {
+		if err := snapshotDelete(&data.Victim, c.Logger()); err != nil {
+			c.Logger().WithError(err).WithField(
+				"snapshot", snapInfo.SnapVolinfo.Name).Debug("Failed to delete the snapshot")
+		} else {
+			configData.AutoDeleteStatus = true
+		}
+	}
+	c.SetNodeResult(gdctx.MyUUID, snapshot.NodeConfigTxnKey, &configData)
 
 	return nil
 }
@@ -611,6 +748,7 @@ func createSnapinfo(c transaction.TxnCtx) error {
 
 	snapInfo.Description = req.Description
 	snapInfo.ParentVolume = req.VolName
+	snapInfo.SnapLabel = req.SnapLabel
 	/*
 		Snapshot time would be a good addition ?
 	*/
@@ -656,6 +794,39 @@ func snapshotBrickCreate(snapName, volName, brickDirSuffix string, subvolNumber,
 	snapDirPrefix := config.GetString("rundir") + "/snaps"
 	brickPath := fmt.Sprintf("%s/%s/%s/subvol%d/brick%d%s", snapDirPrefix, snapName, volName, subvolNumber, brickNumber, brickDirSuffix)
 	return brickPath
+}
+
+func validateSnapLimits(info *label.Info, data *txnData) error {
+
+	if uint64(len(info.SnapList)) >= info.SnapMaxHardLimit {
+
+		err := fmt.Errorf("Maximum Hard Limit reached for label %s", info.Name)
+		msg := fmt.Sprintf("The number of existing snaps has reached the effective maximum limit of %v for the label (%s). Please delete few snapshots before taking further snapshots.", info.SnapMaxHardLimit, info.Name)
+
+		log.WithError(err).WithField("label", info.Name).Error(msg)
+		return err
+	}
+
+	if uint64(len(info.SnapList)+1) >= info.SnapMaxSoftLimit {
+		if info.AutoDelete {
+			//victim is the oldest snap name in the label list
+			victim, err := snapshot.GetSnapshot(info.SnapList[0])
+			if err != nil {
+				log.WithError(err).WithField("label", info.Name).Errorf("Unable to retrieve snapinfo from store for snapshot %s, which is scheduled to delete", info.SnapList[0])
+				return err
+			}
+			data.AutoDelete = true
+			data.Victim = *victim
+
+		} else {
+
+			msg := fmt.Sprintf("The number of snapshots will reach the effective maximum soft limit of %v for the label (%s). Please consider deleting older snapshots.", info.SnapMaxSoftLimit, info.Name)
+
+			log.WithField("volume", info.Name).Warn(msg)
+		}
+	}
+
+	return nil
 }
 
 func validateOriginNodeSnapCreate(c transaction.TxnCtx) error {
@@ -712,6 +883,7 @@ func registerSnapCreateStepFuncs() {
 		{"snap-create.DeactivateBarrier", deactivateBarrier},
 		{"snap-create.StoreSnapshot", storeSnapshotCreate},
 		{"snap-create.UndoStoreSnapshotOnCreate", undoStoreSnapshotOnCreate},
+		{"snap-create.LabelConfig", snapshotLabelActions},
 	}
 	for _, sf := range sfs {
 		transaction.RegisterStepFunc(sf.sf, sf.name)
@@ -719,13 +891,16 @@ func registerSnapCreateStepFuncs() {
 }
 
 func snapshotCreateHandler(w http.ResponseWriter, r *http.Request) {
+	var (
+		data      txnData
+		labelInfo *label.Info
+	)
+
 	ctx := r.Context()
 	ctx, span := trace.StartSpan(ctx, "/snapshotCreateHandler")
 	defer span.End()
 
 	logger := gdctx.GetReqLogger(ctx)
-	var snapInfo snapshot.Snapinfo
-	var data txnData
 	req := &data.Req
 
 	err := unmarshalSnapCreateRequest(req, r)
@@ -743,14 +918,30 @@ func snapshotCreateHandler(w http.ResponseWriter, r *http.Request) {
 		restutils.SendHTTPError(ctx, w, http.StatusBadRequest, gderrors.ErrInvalidSnapName)
 		return
 	}
+	if req.SnapLabel == "" {
+		labelInfo = &label.DefaultLabel
+		req.SnapLabel = labelInfo.Name
+	}
 
-	txn, err := transaction.NewTxnWithLocks(ctx, req.VolName, req.SnapName)
+	txn, err := transaction.NewTxnWithLocks(ctx, req.VolName, req.SnapName, req.SnapLabel)
 	if err != nil {
 		status, err := restutils.ErrToStatusCode(err)
 		restutils.SendHTTPError(ctx, w, status, err)
 		return
 	}
 	defer txn.Done()
+
+	labelInfo, err = label.GetLabel(req.SnapLabel)
+	if err != nil {
+		status, err := restutils.ErrToStatusCode(err)
+		restutils.SendHTTPError(ctx, w, status, err)
+		return
+	}
+
+	if err := validateSnapLimits(labelInfo, &data); err != nil {
+		restutils.SendHTTPError(ctx, w, http.StatusUnprocessableEntity, err)
+		return
+	}
 
 	if err = txn.Ctx.Set("data", data); err != nil {
 		logger.WithError(err).Error("failed to set request in transaction context")
@@ -769,6 +960,27 @@ func snapshotCreateHandler(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
+	if data.AutoDelete {
+		//If victim is selected as part of auto-delete then
+		//we need to take additional lock on snapshot name
+		//Lock on parent volume only requires if victim is for another volume
+
+		victim := &data.Victim
+		if req.VolName != victim.ParentVolume {
+			if err := txn.Lock(victim.ParentVolume); err != nil {
+				status, err := restutils.ErrToStatusCode(err)
+				restutils.SendHTTPError(ctx, w, status, err)
+				return
+			}
+		}
+		if err := txn.Lock(victim.SnapVolinfo.Name); err != nil {
+			status, err := restutils.ErrToStatusCode(err)
+			restutils.SendHTTPError(ctx, w, status, err)
+			return
+		}
+	}
+
+	startLabelAction := labelInfo.ActivateOnCreate || data.AutoDelete
 	txn.Nodes = vol.Nodes()
 	txn.Steps = []*transaction.Step{
 		{
@@ -796,6 +1008,11 @@ func snapshotCreateHandler(w http.ResponseWriter, r *http.Request) {
 		},
 
 		{
+			DoFunc: "snap-create.LabelConfig",
+			Nodes:  txn.Nodes,
+			Skip:   !startLabelAction,
+		},
+		{
 			DoFunc:   "snap-create.StoreSnapshot",
 			UndoFunc: "snap-create.UndoStoreSnapshotOnCreate",
 			Nodes:    []uuid.UUID{gdctx.MyUUID},
@@ -817,13 +1034,14 @@ func snapshotCreateHandler(w http.ResponseWriter, r *http.Request) {
 
 	txn.Ctx.Logger().WithField("SnapName", req.SnapName).Info("new snapshot created")
 
-	if err = txn.Ctx.Get("snapinfo", &snapInfo); err != nil {
-		logger.WithError(err).Error("failed to get snap volinfo in transaction context")
-		restutils.SendHTTPError(ctx, w, http.StatusInternalServerError, err)
+	snapInfo, err := snapshot.GetSnapshot(req.SnapName)
+	if err != nil {
+		status, err := restutils.ErrToStatusCode(err)
+		restutils.SendHTTPError(ctx, w, status, err)
 		return
 	}
 
-	resp := createSnapCreateResp(&snapInfo)
+	resp := createSnapCreateResp(snapInfo)
 	restutils.SetLocationHeader(r, w, snapInfo.SnapVolinfo.Name)
 	restutils.SendHTTPResponse(ctx, w, http.StatusCreated, resp)
 }
@@ -841,5 +1059,6 @@ func createSnapInfoResp(snap *snapshot.Snapinfo) *api.SnapInfo {
 		ParentVolName: snap.ParentVolume,
 		Description:   snap.Description,
 		CreatedAt:     snap.CreatedAt,
+		SnapLabel:     snap.SnapLabel,
 	}
 }

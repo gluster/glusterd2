@@ -7,6 +7,7 @@ type SnapCreateReq struct {
 	TimeStamp   bool   `json:"timestamp,omitempty"`
 	Description string `json:"description,omitempty"`
 	Force       bool   `json:"force,omitempty"`
+	SnapLabel   string `json:"label"`
 }
 
 //SnapActivateReq represents a request to activate a snapshot

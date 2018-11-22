@@ -1,10 +1,7 @@
 package snapshotcommands
 
 import (
-	"net/http"
-
 	"github.com/gluster/glusterd2/glusterd2/servers/rest/route"
-	restutils "github.com/gluster/glusterd2/glusterd2/servers/rest/utils"
 	"github.com/gluster/glusterd2/pkg/api"
 	"github.com/gluster/glusterd2/pkg/utils"
 )
@@ -81,39 +78,50 @@ func (c *Command) Routes() route.Routes {
 			Version:     1,
 			HandlerFunc: snapshotDeleteHandler},
 		route.Route{
-			Name:        "SnapshotConfigGet",
-			Method:      "GET",
-			Pattern:     "/snapshots/config",
-			Version:     1,
-			HandlerFunc: snapshotConfigGetHandler},
+			Name:         "LabelCreate",
+			Method:       "POST",
+			Pattern:      "/snapshots/labels/create",
+			Version:      1,
+			RequestType:  utils.GetTypeString((*api.LabelCreateReq)(nil)),
+			ResponseType: utils.GetTypeString((*api.LabelCreateResp)(nil)),
+			HandlerFunc:  labelCreateHandler},
 		route.Route{
-			Name:        "SnapshotConfigSet",
-			Method:      "POST",
-			Pattern:     "/snapshots/config",
-			Version:     1,
-			HandlerFunc: snapshotConfigSetHandler},
+			Name:         "LabelInfo",
+			Method:       "GET",
+			Pattern:      "/snapshots/labels/{labelname}",
+			Version:      1,
+			ResponseType: utils.GetTypeString((*api.LabelGetResp)(nil)),
+			HandlerFunc:  labelInfoHandler},
 		route.Route{
-			Name:        "SnapshotConfigReset",
+			Name:         "LabelListAll",
+			Method:       "GET",
+			Pattern:      "/snapshots/labels/list/all",
+			Version:      1,
+			ResponseType: utils.GetTypeString((*api.LabelListResp)(nil)),
+			HandlerFunc:  labelListHandler},
+		route.Route{
+			Name:        "LabelDelete",
 			Method:      "DELETE",
-			Pattern:     "/snapshots/config",
+			Pattern:     "/snapshots/labels/{labelname}",
 			Version:     1,
-			HandlerFunc: snapshotConfigResetHandler},
+			HandlerFunc: labelDeleteHandler},
+		route.Route{
+			Name:         "LabelConfigSet",
+			Method:       "POST",
+			Pattern:      "/snapshots/labels/{labelname}/config",
+			Version:      1,
+			RequestType:  utils.GetTypeString((*api.LabelSetReq)(nil)),
+			ResponseType: utils.GetTypeString((*api.LabelConfigResp)(nil)),
+			HandlerFunc:  labelConfigSetHandler},
+		route.Route{
+			Name:         "LabelConfigReset",
+			Method:       "DELETE",
+			Pattern:      "/snapshots/labels/{labelname}/config",
+			Version:      1,
+			RequestType:  utils.GetTypeString((*api.LabelResetReq)(nil)),
+			ResponseType: utils.GetTypeString((*api.LabelConfigResp)(nil)),
+			HandlerFunc:  labelConfigResetHandler},
 	}
-}
-
-func snapshotConfigGetHandler(w http.ResponseWriter, r *http.Request) {
-	ctx := r.Context()
-	restutils.SendHTTPResponse(ctx, w, http.StatusNotImplemented, "Snapshot Config Get")
-}
-
-func snapshotConfigSetHandler(w http.ResponseWriter, r *http.Request) {
-	ctx := r.Context()
-	restutils.SendHTTPResponse(ctx, w, http.StatusNotImplemented, "Snapshot Config Set")
-}
-
-func snapshotConfigResetHandler(w http.ResponseWriter, r *http.Request) {
-	ctx := r.Context()
-	restutils.SendHTTPResponse(ctx, w, http.StatusNotImplemented, "Snapshot Config Reset")
 }
 
 // RegisterStepFuncs registers transaction step functions with
@@ -126,5 +134,9 @@ func (c *Command) RegisterStepFuncs() {
 	registerSnapshotStatusStepFuncs()
 	registerSnapRestoreStepFuncs()
 	registerSnapCloneStepFuncs()
+	registerLabelCreateStepFuncs()
+	registerLabelDeleteStepFuncs()
+	registerLabelConfigSetStepFuncs()
+	registerLabelConfigResetStepFuncs()
 	return
 }

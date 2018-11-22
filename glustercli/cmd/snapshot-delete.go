@@ -3,8 +3,6 @@ package cmd
 import (
 	"fmt"
 
-	"github.com/gluster/glusterd2/pkg/api"
-
 	log "github.com/sirupsen/logrus"
 	"github.com/spf13/cobra"
 )
@@ -27,11 +25,13 @@ var (
 )
 
 var (
-	snapshotDeleteAllCmd = &cobra.Command{
-		Use:   "all [volname]",
+	flagSnapshotDeleteAllVolume string
+	flagSnapshotDeleteAllLabel  string
+	snapshotDeleteAllCmd        = &cobra.Command{
+		Use:   "all",
 		Short: snapshotDeleteAllHelpShort,
 		Long:  snapshotDeleteAllHelpLong,
-		Args:  cobra.MaximumNArgs(1),
+		Args:  cobra.MaximumNArgs(0),
 		Run:   snapshotDeleteAllCmdRun,
 	}
 )
@@ -39,6 +39,8 @@ var (
 func init() {
 	snapshotCmd.AddCommand(snapshotDeleteCmd)
 	snapshotDeleteCmd.AddCommand(snapshotDeleteAllCmd)
+	snapshotDeleteAllCmd.Flags().StringVar(&flagSnapshotDeleteAllVolume, "volume", "", "Deletes all snapshots of a given volume")
+	snapshotDeleteAllCmd.Flags().StringVar(&flagSnapshotDeleteAllLabel, "label", "", "Deletes all snapshots attached to the label")
 }
 
 func snapshotDelete(snapname string) error {
@@ -60,21 +62,40 @@ func snapshotDeleteCmdRun(cmd *cobra.Command, args []string) {
 	}
 }
 
+func deleteAllSnapshots(snapList []string) {
+	for _, snap := range snapList {
+		if err := snapshotDelete(snap); err != nil {
+			fmt.Printf("Failed to delete snapshot %s \n", snap)
+		}
+	}
+}
+
 func snapshotDeleteAllCmdRun(cmd *cobra.Command, args []string) {
-	var snaps api.SnapListResp
 	var err error
-	volname := ""
-	if len(args) > 0 {
-		volname = args[0]
+	volname := flagSnapshotDeleteAllVolume
+	labelname := flagSnapshotDeleteAllLabel
+
+	if labelname != "" {
+		info, err := client.LabelInfo(labelname)
+		if err != nil {
+			failure("Failed to get all snapshots", err, 1)
+		}
+		fmt.Printf("Deleting All snapshots of label %s \n", labelname)
+		deleteAllSnapshots(info.SnapList)
+		if volname != "" {
+			//If volume falg has not given then we are done with
+			//delete all.
+			return
+		}
 	}
 
-	snaps, err = client.SnapshotList(volname)
+	snaps, err := client.SnapshotList(volname)
 	if err != nil {
 		failure("Failed to get all snapshots", err, 1)
 	}
 
 	if len(snaps) == 0 {
-		fmt.Printf("There are no snapshots to delete \n")
+		fmt.Printf("There are no more snapshots to delete \n")
 		return
 	}
 
