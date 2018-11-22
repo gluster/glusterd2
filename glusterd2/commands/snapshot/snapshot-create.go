@@ -501,9 +501,13 @@ func createSnapSubvols(newVolinfo, origVolinfo *volume.Volinfo, nodeData map[str
 			mountData := nodeData[brickinfo.String()]
 			peerID := brickinfo.PeerID.String()
 			brick := api.BrickReq{
-				PeerID: peerID,
-				Type:   brickinfo.BrickTypeToString(),
-				Path:   mountData.Path,
+				PeerID:         peerID,
+				Type:           brickinfo.BrickTypeToString(),
+				Path:           mountData.Path,
+				BrickDirSuffix: mountData.BrickDirSuffix,
+				DevicePath:     mountData.DevicePath,
+				FsType:         mountData.FsType,
+				MntOpts:        mountData.MntOpts,
 			}
 
 			bricks = append(bricks, brick)
@@ -511,17 +515,6 @@ func createSnapSubvols(newVolinfo, origVolinfo *volume.Volinfo, nodeData map[str
 		s.Bricks, err = volume.NewBrickEntriesFunc(bricks, newVolinfo.Name, newVolinfo.VolfileID, newVolinfo.ID, brick.SnapshotProvisioned)
 		if err != nil {
 			return err
-		}
-		for count := 0; count < len(s.Bricks); count++ {
-			key := subvol.Bricks[count].String()
-			data := nodeData[key]
-			s.Bricks[count].MountInfo = brick.MountInfo{
-				BrickDirSuffix: data.BrickDirSuffix,
-				DevicePath:     data.DevicePath,
-				FsType:         data.FsType,
-				MntOpts:        data.MntOpts,
-			}
-
 		}
 		newVolinfo.Subvols = append(newVolinfo.Subvols, s)
 

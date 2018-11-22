@@ -177,7 +177,7 @@ func NewBrickEntries(bricks []api.BrickReq, volName, volfileID string, volID uui
 		binfo.ID = uuid.NewRandom()
 
 		binfo.PType = ptype
-		if ptype.IsAutoProvisioned() {
+		if ptype.IsAutoProvisioned() || ptype.IsSnapshotProvisioned() {
 			// Auto provisioned bricks
 			binfo.MountInfo = brick.MountInfo{
 				BrickDirSuffix: b.BrickDirSuffix,
