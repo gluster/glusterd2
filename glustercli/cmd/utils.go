@@ -66,33 +66,29 @@ func sizeToBytes(value string) (uint64, error) {
 	return size, nil
 }
 
-// logn is used to find the unit size the given MB belongs to.
-// 1024 MB will return 1
-// 1048576 MB will return 2 and so on
+// logn is used to find the unit size the given bytes belongs to.
+// 1024 will return 1
+// 1048576 will return 2 and so on
 func logn(n, b float64) float64 {
 	return math.Log(n) / math.Log(b)
 }
 
-// humanReadable converts size given in MB into a more human readable unit
+// humanReadable converts size given in bytes into a more human readable unit
 //
-// humanReadable(1024) returns 1.0 GB
-// humanReadable(1536) returns 1.5 GB
-// humanReadable(1048576) returns 1.0 TB
+// humanReadable(1024) returns 1.0 KiB
+// humanReadable(1536) returns 1.5 KiB
+// humanReadable(1048576) returns 1.0 MiB
 func humanReadable(value uint64) string {
-	units := []string{"MB", "GB", "TB", "PB", "EB"}
-	// If less than 1024MB we return it as such
+	units := []string{"B", "KiB", "MiB", "GiB", "TiB", "PiB", "EiB"}
+
+	// If less than 1024 we return it as such
 	if value < 1024 {
-		return fmt.Sprintf("%.1f MB", float64(value))
+		return fmt.Sprintf("%.1f B", float64(value))
 	}
 	e := math.Floor(logn(float64(value), 1024))
 	suffix := units[int(e)]
 	size := math.Floor(float64(value)/math.Pow(1024, e)*10+0.5) / 10
-	f := "%.0f %s"
-	if size < 10 {
-		f = "%.1f %s"
-	}
-
-	return fmt.Sprintf(f, size, suffix)
+	return fmt.Sprintf("%.1f %s", size, suffix)
 }
 
 func readString(prompt string, args ...interface{}) string {
