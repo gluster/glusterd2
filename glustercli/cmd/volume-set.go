@@ -52,11 +52,9 @@ func volumeSetCmdRun(cmd *cobra.Command, args []string) {
 	volname := args[0]
 	options := args[1:]
 	if err := volumeOptionJSONHandler(cmd, volname, options); err != nil {
-		if verbose {
-			log.WithFields(log.Fields{
-				"volume": volname,
-				"error":  err.Error(),
-			}).Error("volume option set failed")
+		if GlobalFlag.Verbose {
+			log.WithError(err).WithField(
+				"volume", volname).Error("volume option set failed")
 		}
 		failure("Volume option set failed", err, 1)
 	} else {
@@ -73,17 +71,20 @@ func volumeOptionJSONHandler(cmd *cobra.Command, volname string, options []strin
 	}
 
 	if volname == "all" {
-		err := client.GlobalOptionSet(api.GlobalOptionReq{
+		err := client.ClusterOptionSet(api.ClusterOptionReq{
 			Options: vopt,
 		})
 		return err
 	}
 
 	err := client.VolumeSet(volname, api.VolOptionReq{
-		Options:      vopt,
-		Advanced:     flagSetAdv,
-		Experimental: flagSetExp,
-		Deprecated:   flagSetDep,
+		Options: vopt,
+		VolOptionFlags: api.VolOptionFlags{
+			AllowAdvanced:     flagSetAdv,
+			AllowExperimental: flagSetExp,
+			AllowDeprecated:   flagSetDep,
+		},
 	})
+
 	return err
 }

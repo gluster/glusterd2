@@ -1,7 +1,6 @@
 package e2e
 
 import (
-	"io/ioutil"
 	"os"
 	"testing"
 
@@ -14,19 +13,20 @@ func TestRestart(t *testing.T) {
 	r := require.New(t)
 
 	// set up a cluster w/o glusterd instances for dependencies
-	tc, err := setupCluster()
+	tc, err := setupCluster(t)
 	r.NoError(err)
 	defer teardownCluster(tc)
 
-	gd, err := spawnGlusterd("./config/1.toml", true)
+	gd, err := spawnGlusterd(t, "./config/1.toml", true)
 	r.Nil(err)
 	r.True(gd.IsRunning())
 
-	dir, err := ioutil.TempDir(baseLocalStateDir, t.Name())
-	r.Nil(err)
-	defer os.RemoveAll(dir)
+	brickPath := testTempDir(t, "brick")
+	defer os.RemoveAll(brickPath)
 
-	client := initRestclient(gd)
+	client, err := initRestclient(gd)
+	r.Nil(err)
+	r.NotNil(client)
 
 	createReq := api.VolCreateReq{
 		Name: formatVolName(t.Name()),
@@ -34,7 +34,7 @@ func TestRestart(t *testing.T) {
 			{
 				Type: "distribute",
 				Bricks: []api.BrickReq{
-					{PeerID: gd.PeerID(), Path: dir},
+					{PeerID: gd.PeerID(), Path: brickPath},
 				},
 			},
 		},
@@ -47,7 +47,7 @@ func TestRestart(t *testing.T) {
 
 	r.Nil(gd.Stop())
 
-	gd, err = spawnGlusterd("./config/1.toml", false)
+	gd, err = spawnGlusterd(t, "./config/1.toml", false)
 	r.Nil(err)
 	r.True(gd.IsRunning())
 
@@ -57,7 +57,10 @@ func TestRestart(t *testing.T) {
 }
 
 func getVols(gd *gdProcess, r *require.Assertions) api.VolumeListResp {
-	client := initRestclient(gd)
+	client, err := initRestclient(gd)
+	r.Nil(err)
+	r.NotNil(client)
+
 	volname := ""
 	vols, err := client.Volumes(volname)
 	r.Nil(err)

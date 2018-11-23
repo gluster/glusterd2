@@ -4,7 +4,7 @@
 
 [[constraint]]
   name = "github.com/coreos/etcd"
-  version = "3.2.9"
+  version = "3.3.8"
 
 [[constraint]]
   name = "github.com/coreos/pkg"
@@ -16,7 +16,7 @@
 
 [[constraint]]
   name = "github.com/golang/protobuf"
-  version = "~1.0.0"
+  version = "~1.1.0"
 
 [[constraint]]
   name = "github.com/gorilla/handlers"
@@ -75,16 +75,12 @@
   version = "~2.0.0"
 
 [[constraint]]
-  name = "golang.org/x/net"
-  branch = "master"
-
-[[constraint]]
   name = "golang.org/x/sys"
   branch = "master"
 
 [[constraint]]
   name = "google.golang.org/grpc"
-  version = "^1.0.4"
+  version = "^1.13.0"
 
 [[constraint]]
   name = "github.com/asaskevich/govalidator"
@@ -93,3 +89,7 @@
 [[constraint]]
   name = "go.opencensus.io"
   version = "0.11.0"
+
+[[constraint]]
+  name = "github.com/godbus/dbus"
+  version = "4.1.0"

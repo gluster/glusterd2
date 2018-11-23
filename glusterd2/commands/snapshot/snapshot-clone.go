@@ -4,17 +4,16 @@ import (
 	"errors"
 	"fmt"
 	"net/http"
-	"strings"
 
 	"github.com/gluster/glusterd2/glusterd2/gdctx"
 	restutils "github.com/gluster/glusterd2/glusterd2/servers/rest/utils"
 	"github.com/gluster/glusterd2/glusterd2/snapshot"
-	"github.com/gluster/glusterd2/glusterd2/snapshot/lvm"
 	"github.com/gluster/glusterd2/glusterd2/transaction"
 	"github.com/gluster/glusterd2/glusterd2/volgen"
 	"github.com/gluster/glusterd2/glusterd2/volume"
 	"github.com/gluster/glusterd2/pkg/api"
 	gderrors "github.com/gluster/glusterd2/pkg/errors"
+	"github.com/gluster/glusterd2/pkg/lvmutils"
 
 	"github.com/gorilla/mux"
 	"github.com/pborman/uuid"
@@ -30,8 +29,8 @@ func undoSnapshotClone(c transaction.TxnCtx) error {
 	}
 
 	for _, b := range volinfo.GetLocalBricks() {
-		snapshot.UmountBrick(b)
-		if err := lvm.RemoveBrickSnapshot(b.MountInfo.DevicePath); err != nil {
+		volume.UmountBrick(b)
+		if err := lvmutils.RemoveLVSnapshot(b.MountInfo.DevicePath); err != nil {
 			c.Logger().WithError(err).WithField(
 				"brick", b.Path).Debug("Failed to remove snapshotted LVM")
 			return err
@@ -46,9 +45,16 @@ func undoStoreSnapshotClone(c transaction.TxnCtx) error {
 		return err
 	}
 
-	// TODO Delete volfile from etcd properly
-	volume.DeleteVolume(vol.Name)
+	if err := volume.DeleteVolume(vol.Name); err != nil {
+		return err
+	}
 
+	if err := volgen.DeleteVolfiles(vol.VolfileID); err != nil {
+		c.Logger().WithError(err).
+			WithField("volume", vol.Name).
+			Error("failed to delete volfiles of volume")
+		return err
+	}
 	return nil
 }
 
@@ -59,13 +65,13 @@ func storeSnapshotClone(c transaction.TxnCtx) error {
 	}
 	if err := volume.AddOrUpdateVolumeFunc(&vol); err != nil {
 		c.Logger().WithError(err).WithField(
-			"volume", vol.Name).Debug("storeVolume: failed to store Volinfo")
+			"volume", vol.Name).Error("storeVolume: failed to store Volinfo")
 		return err
 	}
 
-	if err := volgen.Generate(); err != nil {
+	if err := volgen.VolumeVolfileToStore(&vol, vol.Name, "client"); err != nil {
 		c.Logger().WithError(err).WithField(
-			"volume", vol.Name).Debug("generateVolfiles: failed to generate volfiles")
+			"volume", vol.Name).Error("generateVolfiles: failed to generate volfiles")
 		return err
 	}
 
@@ -93,54 +99,49 @@ func takeSnapshotClone(c transaction.TxnCtx) error {
 		return err
 	}
 
-	for _, b := range newVol.GetLocalBricks() {
-		if err := snapshot.MountSnapBrickDirectory(&newVol, &b); err != nil {
-			return err
-		}
-	}
-	return nil
-
+	err = volume.MountVolumeBricks(&newVol)
+	return err
 }
 
 func populateCloneBrickMountData(volinfo *volume.Volinfo, name string) (map[string]snapshot.BrickMountData, error) {
 	nodeData := make(map[string]snapshot.BrickMountData)
 
-	brickCount := 0
-	for _, b := range volinfo.GetLocalBricks() {
-		brickCount++
-		mountRoot, err := volume.GetBrickMountRoot(b.Path)
-		if err != nil {
-			return nil, err
-		}
-		mountDir := b.Path[len(mountRoot):]
-		mntInfo, err := volume.GetBrickMountInfo(mountRoot)
-		if err != nil {
-			log.WithError(err).WithField(
-				"brick", b.Path,
-			).Error("Failed to get mount information")
+	for svIdx, sv := range volinfo.Subvols {
+		for bIdx, b := range sv.Bricks {
+			if !uuid.Equal(b.PeerID, gdctx.MyUUID) {
+				continue
+			}
 
-			return nil, err
-		}
+			mountRoot, err := volume.GetBrickMountRoot(b.Path)
+			if err != nil {
+				return nil, err
+			}
+			brickDirSuffix := b.Path[len(mountRoot):]
+			mntInfo, err := volume.GetBrickMountInfo(mountRoot)
+			if err != nil {
+				log.WithError(err).WithField(
+					"brick", b.Path,
+				).Error("Failed to get mount information")
 
-		vG, err := lvm.GetVgName(mntInfo.FsName)
-		if err != nil {
+				return nil, err
+			}
 
-			log.WithError(err).WithField(
-				"brick", b.Path,
-			).Error("Failed to get vg name")
+			suffix := fmt.Sprintf("clone_%s_%s_s%d_b%d", name, volinfo.Name, svIdx+1, bIdx+1)
 
-			return nil, err
-		}
-		devicePath := fmt.Sprintf("/dev/%s/%s_%s_%d", vG, "clone", name, brickCount)
-
-		nodeID := strings.Replace(b.ID.String(), "-", "", -1)
-
-		nodeData[b.String()] = snapshot.BrickMountData{
-			MountDir:   mountDir,
-			DevicePath: devicePath,
-			FsType:     mntInfo.MntType,
-			MntOpts:    updateMntOps(mntInfo.MntType, mntInfo.MntOpts),
-			Path:       snapshotCloneBrickCreate(volinfo.Name, name, nodeID, mountDir, brickCount),
+			devicePath, err := lvmutils.CreateDevicePath(mntInfo.FsName, suffix)
+			if err != nil {
+				log.WithError(err).WithField(
+					"deviceName", devicePath,
+				).Error("Failed to create device name. A thinLV with same name exist")
+				return nil, err
+			}
+			nodeData[b.String()] = snapshot.BrickMountData{
+				BrickDirSuffix: brickDirSuffix,
+				DevicePath:     devicePath,
+				FsType:         mntInfo.MntType,
+				MntOpts:        updateMntOps(mntInfo.MntType, mntInfo.MntOpts),
+				Path:           snapshotCloneBrickCreate(name, brickDirSuffix, svIdx+1, bIdx+1),
+			}
 		}
 	}
 	return nodeData, nil
@@ -154,9 +155,9 @@ func validateSnapClone(c transaction.TxnCtx) error {
 		nodeData            map[string]snapshot.BrickMountData
 	)
 
-	if err = lvm.CommonPrevalidation(lvm.CreateCommand); err != nil {
+	if err = lvmutils.CommonPrevalidation(lvmutils.CreateCommand); err != nil {
 		log.WithError(err).WithField(
-			"command", lvm.CreateCommand,
+			"command", lvmutils.CreateCommand,
 		).Error("Failed to find lvm packages")
 		return err
 	}
@@ -220,8 +221,7 @@ func createCloneVolinfo(c transaction.TxnCtx) error {
 
 	for _, node := range volinfo.Nodes() {
 		tmp := make(map[string]snapshot.BrickMountData)
-		err := c.GetNodeResult(node, snapshot.NodeDataTxnKey, &tmp)
-		if err != nil {
+		if err := c.GetNodeResult(node, snapshot.NodeDataTxnKey, &tmp); err != nil {
 			return err
 		}
 		for k, v := range tmp {
@@ -242,9 +242,8 @@ func createCloneVolinfo(c transaction.TxnCtx) error {
 	newVol.Name = clonename
 	newVol.VolfileID = clonename
 
-	err = createSnapSubvols(newVol, volinfo, nodeData)
-	if err != nil {
-		log.WithFields(log.Fields{
+	if err = createSnapSubvols(newVol, volinfo, nodeData); err != nil {
+		log.WithError(err).WithFields(log.Fields{
 			"snapshot":    snapname,
 			"volume name": clonename,
 		}).Error("Failed to create clone volinfo")
@@ -256,9 +255,9 @@ func createCloneVolinfo(c transaction.TxnCtx) error {
 	return err
 }
 
-func snapshotCloneBrickCreate(snapName, cloneName, nodeID, mountDir string, brickCount int) string {
-	cloneDirPrefix := config.GetString("rundir") + "/clones/"
-	brickPath := fmt.Sprintf("%s%s/%s/%s/brick%d%s", cloneDirPrefix, snapName, nodeID, cloneName, brickCount, mountDir)
+func snapshotCloneBrickCreate(cloneName, brickDirSuffix string, subvolNumber, brickNumber int) string {
+	cloneDirPrefix := config.GetString("rundir") + "/clones"
+	brickPath := fmt.Sprintf("%s/%s/subvol%d/brick%d%s", cloneDirPrefix, cloneName, subvolNumber, brickNumber, brickDirSuffix)
 	return brickPath
 }
 
@@ -286,7 +285,7 @@ func snapshotCloneHandler(w http.ResponseWriter, r *http.Request) {
 
 	snapname := mux.Vars(r)["snapname"]
 	if snapname == "" {
-		restutils.SendHTTPError(ctx, w, http.StatusUnprocessableEntity, errors.New("Snapshot name should not be empty"))
+		restutils.SendHTTPError(ctx, w, http.StatusBadRequest, errors.New("Snapshot name should not be empty"))
 		return
 	}
 
@@ -296,7 +295,7 @@ func snapshotCloneHandler(w http.ResponseWriter, r *http.Request) {
 	}
 
 	if !volume.IsValidName(req.CloneName) {
-		restutils.SendHTTPError(ctx, w, http.StatusUnprocessableEntity, gderrors.ErrInvalidVolName)
+		restutils.SendHTTPError(ctx, w, http.StatusBadRequest, gderrors.ErrInvalidVolName)
 		return
 	}
 
@@ -348,14 +347,12 @@ func snapshotCloneHandler(w http.ResponseWriter, r *http.Request) {
 			Nodes:    []uuid.UUID{gdctx.MyUUID},
 		},
 	}
-	err = txn.Ctx.Set("snapname", &snapname)
-	if err != nil {
+	if err = txn.Ctx.Set("snapname", &snapname); err != nil {
 		logger.WithError(err).Error("failed to set request in transaction context")
 		restutils.SendHTTPError(ctx, w, http.StatusInternalServerError, err)
 		return
 	}
-	err = txn.Ctx.Set("clonename", &req.CloneName)
-	if err != nil {
+	if err = txn.Ctx.Set("clonename", &req.CloneName); err != nil {
 		logger.WithError(err).Error("failed to set request in transaction context")
 		restutils.SendHTTPError(ctx, w, http.StatusInternalServerError, err)
 		return
@@ -379,10 +376,12 @@ func snapshotCloneHandler(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	resp := createVolumeCreateResp(vol)
+	resp := createSnapshotCloneResp(vol)
+	restutils.SetLocationHeader(r, w, vol.Name)
 	restutils.SendHTTPResponse(ctx, w, http.StatusCreated, resp)
 
 }
-func createVolumeCreateResp(v *volume.Volinfo) *api.VolumeCreateResp {
-	return (*api.VolumeCreateResp)(volume.CreateVolumeInfoResp(v))
+
+func createSnapshotCloneResp(v *volume.Volinfo) *api.SnapshotCloneResp {
+	return (*api.SnapshotCloneResp)(volume.CreateVolumeInfoResp(v))
 }

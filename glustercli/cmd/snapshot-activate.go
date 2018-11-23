@@ -36,13 +36,9 @@ func snapshotActivateCmdRun(cmd *cobra.Command, args []string) {
 	req := api.SnapActivateReq{
 		Force: flagSnapshotActivateCmdForce,
 	}
-	err := client.SnapshotActivate(req, snapname)
-	if err != nil {
-		if verbose {
-			log.WithFields(log.Fields{
-				"snapshot": snapname,
-				"error":    err.Error(),
-			}).Error("snapshot activation failed")
+	if err := client.SnapshotActivate(req, snapname); err != nil {
+		if GlobalFlag.Verbose {
+			log.WithError(err).WithField("snapshot", snapname).Error("snapshot activation failed")
 		}
 		failure("snapshot activation failed", err, 1)
 	}

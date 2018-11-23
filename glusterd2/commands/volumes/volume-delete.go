@@ -1,6 +1,7 @@
 package volumecommands
 
 import (
+	"fmt"
 	"net/http"
 
 	"github.com/gluster/glusterd2/glusterd2/events"
@@ -12,6 +13,8 @@ import (
 
 	"github.com/gorilla/mux"
 	"github.com/pborman/uuid"
+
+	"go.opencensus.io/trace"
 )
 
 func deleteVolume(c transaction.TxnCtx) error {
@@ -28,22 +31,16 @@ func deleteVolume(c transaction.TxnCtx) error {
 	if err := volgen.DeleteVolfiles(volinfo.Name); err != nil {
 		c.Logger().WithError(err).
 			WithField("volume", volinfo.Name).
-			Warn("failed to delete volfiles of volume")
+			Error("failed to delete volfiles of volume")
+		return err
 	}
 
 	return nil
 }
 
 func registerVolDeleteStepFuncs() {
-	var sfs = []struct {
-		name string
-		sf   transaction.StepFunc
-	}{
-		{"vol-delete.Store", deleteVolume},
-	}
-	for _, sf := range sfs {
-		transaction.RegisterStepFunc(sf.sf, sf.name)
-	}
+	transaction.RegisterStepFunc(deleteVolume, "vol-delete.Store")
+	transaction.RegisterStepFunc(txnCleanBricks, "vol-delete.CleanBricks")
 }
 
 func volumeDeleteHandler(w http.ResponseWriter, r *http.Request) {
@@ -51,6 +48,9 @@ func volumeDeleteHandler(w http.ResponseWriter, r *http.Request) {
 	ctx := r.Context()
 	logger := gdctx.GetReqLogger(ctx)
 	volname := mux.Vars(r)["volname"]
+
+	ctx, span := trace.StartSpan(ctx, "/volumeDeleteHandler")
+	defer span.End()
 
 	txn, err := transaction.NewTxnWithLocks(ctx, volname)
 	if err != nil {
@@ -73,7 +73,19 @@ func volumeDeleteHandler(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
+	if len(volinfo.SnapList) > 0 {
+		errMsg := fmt.Sprintf("Cannot delete Volume %s ,as it has %d snapshots.", volname, len(volinfo.SnapList))
+		restutils.SendHTTPError(ctx, w, http.StatusFailedDependency, errMsg)
+		return
+	}
+
+	bricksAutoProvisioned := volinfo.IsAutoProvisioned() || volinfo.IsSnapshotProvisioned()
 	txn.Steps = []*transaction.Step{
+		{
+			DoFunc: "vol-delete.CleanBricks",
+			Nodes:  volinfo.Nodes(),
+			Skip:   !bricksAutoProvisioned,
+		},
 		{
 			DoFunc: "vol-delete.Store",
 			Nodes:  []uuid.UUID{gdctx.MyUUID},
@@ -84,6 +96,11 @@ func volumeDeleteHandler(w http.ResponseWriter, r *http.Request) {
 		restutils.SendHTTPError(ctx, w, http.StatusInternalServerError, err)
 		return
 	}
+
+	span.AddAttributes(
+		trace.StringAttribute("reqID", txn.Ctx.GetTxnReqID()),
+		trace.StringAttribute("volName", volname),
+	)
 
 	if err := txn.Do(); err != nil {
 		logger.WithError(err).WithField(

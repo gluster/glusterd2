@@ -48,10 +48,7 @@ func GetSnapshots() ([]*Snapinfo, error) {
 		var snap Snapinfo
 
 		if err := json.Unmarshal(kv.Value, &snap); err != nil {
-			log.WithFields(log.Fields{
-				"snapshot": string(kv.Key),
-				"error":    err,
-			}).Error("Failed to unmarshal snapshot")
+			log.WithError(err).WithField("snapshot", string(kv.Key)).Error("Failed to unmarshal snapshot")
 			continue
 		}
 
@@ -59,6 +56,21 @@ func GetSnapshots() ([]*Snapinfo, error) {
 	}
 
 	return snaps, nil
+}
+
+//GetActivatedSnapshotVolumes return the volfile for all activated snapshots
+func GetActivatedSnapshotVolumes() ([]*volume.Volinfo, error) {
+	var vols []*volume.Volinfo
+	resp, err := GetSnapshots()
+	if err != nil {
+		return vols, err
+	}
+	for _, snap := range resp {
+		if snap.SnapVolinfo.State == volume.VolStarted {
+			vols = append(vols, &snap.SnapVolinfo)
+		}
+	}
+	return vols, nil
 }
 
 //GetSnapshotVolumes return the volfile for all snapshots

@@ -2,12 +2,14 @@ package sunrpc
 
 import (
 	"expvar"
+	"fmt"
 	"io"
 	"net"
 	"net/rpc"
+	"os"
 	"path"
-	"strconv"
 	"sync"
+	"syscall"
 
 	"github.com/gluster/glusterd2/glusterd2/pmap"
 	"github.com/gluster/glusterd2/pkg/sunrpc"
@@ -24,17 +26,21 @@ var (
 	clientCount = expvar.NewInt("sunrpc_clients_connected")
 )
 
+var programsList = []sunrpc.Program{
+	newGfHandshake(),
+	newGfDump(),
+	pmap.NewGfPortmap(),
+}
+
 // SunRPC implements a suture service
 type SunRPC struct {
-	server        *rpc.Server
 	tcpListener   net.Listener
 	tcpStopCh     chan struct{}
 	unixListener  net.Listener
 	unixStopCh    chan struct{}
 	notifyCloseCh chan io.ReadWriteCloser
+	lockFileFd    int
 }
-
-var programsList []sunrpc.Program
 
 // clientsList is global as it needs to be accessed by RPC procedures
 // that notify connected clients.
@@ -46,30 +52,27 @@ var clientsList = struct {
 	c: make(map[net.Conn]struct{}),
 }
 
-func getPortFromListener(listener net.Listener) int {
-
-	if listener == nil {
-		return 0
-	}
-
-	addr := listener.Addr().String()
-	_, portString, err := net.SplitHostPort(addr)
-	if err != nil {
-		return 0
-	}
-
-	port, err := strconv.Atoi(portString)
-	if err != nil {
-		return 0
-	}
-
-	return port
-}
-
 // NewMuxed returns a SunRPC server configured to listen on a CMux multiplexed connection
 func NewMuxed(m cmux.CMux) *SunRPC {
 
 	f := path.Join(config.GetString("rundir"), gd2SocketFile)
+	gd2LockFile := f + ".lock"
+	fd, err := syscall.Open(gd2LockFile,
+		syscall.O_CREAT|syscall.O_WRONLY|syscall.O_CLOEXEC, 0666)
+	if err != nil {
+		log.WithError(err).WithField("lockfile", gd2LockFile).Fatal("failed to open lock file")
+	}
+
+	err = syscall.Flock(fd, syscall.LOCK_EX|syscall.LOCK_NB)
+	if err != nil {
+		log.WithError(err).WithField("socket", gd2SocketFile).Fatal("failed to get lock")
+	}
+
+	err = os.Remove(f)
+	if err != nil && !os.IsNotExist(err) {
+		log.WithError(err).WithField("socket", gd2SocketFile).Fatal("failed to cleanup socket file")
+	}
+
 	uL, err := net.Listen("unix", f)
 	if err != nil {
 		// FIXME: Remove fatal and bubble up error to main()
@@ -79,24 +82,16 @@ func NewMuxed(m cmux.CMux) *SunRPC {
 	uL.(*net.UnixListener).SetUnlinkOnClose(true)
 
 	srv := &SunRPC{
-		server:        rpc.NewServer(),
 		tcpListener:   m.Match(sunrpc.CmuxMatcher()),
 		unixListener:  uL,
 		tcpStopCh:     make(chan struct{}),
 		unixStopCh:    make(chan struct{}),
 		notifyCloseCh: make(chan io.ReadWriteCloser, 10),
+		lockFileFd:    fd,
 	}
-
-	programsList = []sunrpc.Program{
-		newGfHandshake(),
-		newGfDump(),
-		pmap.NewGfPortmap(),
-	}
-
-	port := getPortFromListener(srv.tcpListener)
 
 	for _, prog := range programsList {
-		err := registerProgram(srv.server, prog, port, false)
+		err := registerProcedures(prog)
 		if err != nil {
 			log.WithError(err).WithField("program", prog.Name()).Error("could not register SunRPC program")
 			return nil
@@ -115,6 +110,7 @@ func (s *SunRPC) pruneConn() {
 
 		clientsList.Lock()
 		delete(clientsList.c, conn)
+		pmap.ProcessDisconnect(conn)
 		clientsList.Unlock()
 
 		clientCount.Add(-1)
@@ -155,14 +151,34 @@ func (s *SunRPC) acceptLoop(stopCh chan struct{}, l net.Listener, wg *sync.WaitG
 		if err != nil {
 			continue
 		}
+
 		logger.WithField("address", conn.RemoteAddr().String()).Info("client connected")
 		clientCount.Add(1)
 		clientsList.Lock()
 		clientsList.c[conn] = struct{}{}
 		clientsList.Unlock()
 
+		// Create one rpc.Server instance per client. This is a
+		// workaround to allow RPC programs to access underlying
+		// net.Conn object and has minimal overhead. See:
+		// https://groups.google.com/d/msg/golang-nuts/Gt-1ikXovCA/aK8r9MAftDQJ
+		server := rpc.NewServer()
+
+		for _, p := range programsList {
+			if v, ok := p.(Conn); ok {
+				v.SetConn(conn)
+			}
+			// server.Register() throws some benign but very
+			// annoying log messages complaining about signatures
+			// of methods. These logs can be safely ignored. See:
+			// https://github.com/golang/go/issues/19957
+			if err := server.Register(p); err != nil {
+				panic(fmt.Sprintf("rpc.Register failed: %s", err.Error()))
+			}
+		}
+
 		session := sunrpc.NewServerCodec(conn, s.notifyCloseCh)
-		go s.server.ServeCodec(session)
+		go server.ServeCodec(session)
 		sessions = append(sessions, session)
 	}
 }
@@ -192,4 +208,5 @@ func (s *SunRPC) Stop() {
 
 	// Close UDS listener; cmux should take care of the TCP one.
 	s.unixListener.Close()
+	syscall.Close(s.lockFileFd)
 }

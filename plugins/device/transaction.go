@@ -4,6 +4,7 @@ import (
 	"strings"
 
 	"github.com/gluster/glusterd2/glusterd2/transaction"
+	"github.com/gluster/glusterd2/pkg/lvmutils"
 	deviceapi "github.com/gluster/glusterd2/plugins/device/api"
 	"github.com/gluster/glusterd2/plugins/device/deviceutils"
 )
@@ -23,16 +24,16 @@ func txnPrepareDevice(c transaction.TxnCtx) error {
 
 	var deviceInfo deviceapi.Info
 
-	err := deviceutils.CreatePV(device)
+	err := lvmutils.CreatePV(device)
 	if err != nil {
 		c.Logger().WithError(err).WithField("device", device).Error("Failed to create physical volume")
 		return err
 	}
 	vgName := strings.Replace("vg"+device, "/", "-", -1)
-	err = deviceutils.CreateVG(device, vgName)
+	err = lvmutils.CreateVG(device, vgName)
 	if err != nil {
 		c.Logger().WithError(err).WithField("device", device).Error("Failed to create volume group")
-		errPV := deviceutils.RemovePV(device)
+		errPV := lvmutils.RemovePV(device)
 		if errPV != nil {
 			c.Logger().WithError(err).WithField("device", device).Error("Failed to remove physical volume")
 		}
@@ -40,7 +41,7 @@ func txnPrepareDevice(c transaction.TxnCtx) error {
 	}
 	c.Logger().WithField("device", device).Info("Device setup successful, setting device status to 'Enabled'")
 
-	availableSize, extentSize, err := deviceutils.GetVgAvailableSize(vgName)
+	availableSize, extentSize, err := lvmutils.GetVgAvailableSize(vgName)
 	if err != nil {
 		return err
 	}

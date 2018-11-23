@@ -117,8 +117,8 @@ func (c *Client) VolumeSet(volname string, req api.VolOptionReq) error {
 	return err
 }
 
-// GlobalOptionSet sets cluster level options
-func (c *Client) GlobalOptionSet(req api.GlobalOptionReq) error {
+// ClusterOptionSet sets cluster level options
+func (c *Client) ClusterOptionSet(req api.ClusterOptionReq) error {
 	url := fmt.Sprintf("/v1/cluster/options")
 	return c.post(url, req, http.StatusOK, nil)
 }
@@ -153,7 +153,7 @@ func (c *Client) VolumeStatedump(volname string, req api.VolStatedumpReq) error 
 
 // OptionGroupCreate creates a new option group
 func (c *Client) OptionGroupCreate(req api.OptionGroupReq) error {
-	return c.post("/v1/volumes/options-group", req, http.StatusCreated, nil)
+	return c.post("/v1/volumes/options-group", req, http.StatusOK, nil)
 }
 
 // OptionGroupList returns a list of all option groups
@@ -182,4 +182,12 @@ func (c *Client) EditVolume(volname string, req api.VolEditReq) (api.VolumeEditR
 func (c *Client) VolumeReset(volname string, req api.VolOptionResetReq) error {
 	url := fmt.Sprintf("/v1/volumes/%s/options", volname)
 	return c.del(url, req, http.StatusOK, nil)
+}
+
+//VolumeProfileInfo retrieves the stats about different file operations performed on a volume
+func (c *Client) VolumeProfileInfo(volname string, option string) ([]api.BrickProfileInfo, error) {
+	var volumeProfileInfo []api.BrickProfileInfo
+	url := fmt.Sprintf("/v1/volumes/%s/profile/%s", volname, option)
+	err := c.get(url, nil, http.StatusOK, &volumeProfileInfo)
+	return volumeProfileInfo, err
 }

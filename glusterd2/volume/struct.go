@@ -5,6 +5,7 @@ import (
 	"bytes"
 	"encoding/json"
 	"errors"
+	"fmt"
 	"net"
 	"path/filepath"
 	"strconv"
@@ -81,21 +82,23 @@ type Subvol struct {
 
 // Volinfo repesents a volume
 type Volinfo struct {
-	ID        uuid.UUID
-	Name      string
-	VolfileID string
-	Type      VolType
-	Transport string
-	DistCount int
-	Options   map[string]string
-	State     VolState
-	Checksum  uint64
-	Version   uint64
-	Subvols   []Subvol
-	Auth      VolAuth
-	GraphMap  map[string]string
-	Metadata  map[string]string
-	SnapList  []string
+	ID                    uuid.UUID
+	Name                  string
+	VolfileID             string
+	Type                  VolType
+	Transport             string
+	DistCount             int
+	Options               map[string]string
+	State                 VolState
+	Checksum              uint64
+	Version               uint64
+	Subvols               []Subvol
+	Auth                  VolAuth
+	GraphMap              map[string]string
+	Metadata              map[string]string
+	SnapList              []string
+	SnapshotReserveFactor float64
+	Capacity              uint64
 }
 
 // VolAuth represents username and password used by trusted/internal clients
@@ -123,8 +126,18 @@ func (v *Volinfo) StringMap() map[string]string {
 	return m
 }
 
+// StringMap returns a map[string]string representation of Subvol
+func (sv *Subvol) StringMap() map[string]string {
+	m := make(map[string]string)
+
+	m["subvol.type"] = strings.ToLower(sv.Type.String())
+	m["subvol.name"] = sv.Name
+
+	return m
+}
+
 // NewBrickEntries creates the brick list
-func NewBrickEntries(bricks []api.BrickReq, volName string, volID uuid.UUID) ([]brick.Brickinfo, error) {
+func NewBrickEntries(bricks []api.BrickReq, volName, volfileID string, volID uuid.UUID, ptype brick.ProvisionType) ([]brick.Brickinfo, error) {
 	var brickInfos []brick.Brickinfo
 	var binfo brick.Brickinfo
 
@@ -152,21 +165,25 @@ func NewBrickEntries(bricks []api.BrickReq, volName string, volID uuid.UUID) ([]
 		switch b.Type {
 		case "arbiter":
 			binfo.Type = brick.Arbiter
-		default:
+		case "", "brick":
 			binfo.Type = brick.Brick
+		default:
+			return nil, fmt.Errorf("%s brick type is not supported", b.Type)
 		}
 
 		binfo.VolumeName = volName
+		binfo.VolfileID = volfileID
 		binfo.VolumeID = volID
 		binfo.ID = uuid.NewRandom()
 
-		// Auto provisioned bricks
-		if b.VgName != "" && b.LvName != "" {
+		binfo.PType = ptype
+		if ptype.IsAutoProvisioned() || ptype.IsSnapshotProvisioned() {
+			// Auto provisioned bricks
 			binfo.MountInfo = brick.MountInfo{
-				Mountdir:   b.Mountdir,
-				DevicePath: b.DevicePath,
-				FsType:     b.FsType,
-				MntOpts:    b.MntOpts,
+				BrickDirSuffix: b.BrickDirSuffix,
+				DevicePath:     b.DevicePath,
+				FsType:         b.FsType,
+				MntOpts:        b.MntOpts,
 			}
 		}
 
@@ -260,7 +277,7 @@ func (v *Volinfo) Peers() []*peer.Peer {
 	return peers
 }
 
-//SubvolTypeToString converts VolType to corresponding string
+//SubvolTypeToString converts SubVolType to corresponding string
 func SubvolTypeToString(subvolType SubvolType) string {
 	switch subvolType {
 	case SubvolReplicate:

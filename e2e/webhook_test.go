@@ -20,11 +20,13 @@ func TestWebhook(t *testing.T) {
 
 	r := require.New(t)
 
-	tc, err := setupCluster("./config/1.toml", "./config/2.toml")
+	tc, err := setupCluster(t, "./config/1.toml", "./config/2.toml")
 	r.Nil(err)
 	defer teardownCluster(tc)
 
-	client = initRestclient(tc.gds[0])
+	client, err = initRestclient(tc.gds[0])
+	r.Nil(err)
+	r.NotNil(client)
 
 	t.Run("Register-webhook", tc.wrap(testAddWebhook))
 	t.Run("List-webhook", testGetWebhook)

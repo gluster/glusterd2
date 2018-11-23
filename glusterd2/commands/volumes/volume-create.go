@@ -14,14 +14,15 @@ import (
 	"github.com/gluster/glusterd2/glusterd2/volume"
 	"github.com/gluster/glusterd2/pkg/api"
 	gderrors "github.com/gluster/glusterd2/pkg/errors"
+	gutils "github.com/gluster/glusterd2/pkg/utils"
 
 	"github.com/pborman/uuid"
 	"go.opencensus.io/trace"
 )
 
 const (
-	maxMetadataSizeLimit = 4096
-	minVolumeSize        = 20
+	maxMetadataSizeLimit = 4 * gutils.KiB
+	minVolumeSize        = 20 * gutils.MiB
 )
 
 func applyDefaults(req *api.VolCreateReq) {
@@ -112,11 +113,6 @@ func volumeCreateHandler(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	// Generate Volume name if not provided
-	if req.Name == "" {
-		req.Name = volume.GenerateVolumeName()
-	}
-
 	if err := validateVolCreateReq(&req); err != nil {
 		restutils.SendHTTPError(ctx, w, http.StatusBadRequest, err)
 		return
@@ -148,7 +144,7 @@ func volumeCreateHandler(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	if err := validateOptions(req.Options, req.Advanced, req.Experimental, req.Deprecated); err != nil {
+	if err := validateOptions(req.Options, req.VolOptionFlags); err != nil {
 		restutils.SendHTTPError(ctx, w, http.StatusBadRequest, err)
 		return
 	}
@@ -199,6 +195,13 @@ func volumeCreateHandler(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
+	// Add attributes to the span with info that can be viewed along with traces.
+	// The attributes can also be used to filter traces on the tracing UI.
+	span.AddAttributes(
+		trace.StringAttribute("reqID", txn.Ctx.GetTxnReqID()),
+		trace.StringAttribute("volName", req.Name),
+	)
+
 	if err := txn.Do(); err != nil {
 		status, err := restutils.ErrToStatusCode(err)
 		restutils.SendHTTPError(ctx, w, status, err)
@@ -218,6 +221,7 @@ func volumeCreateHandler(w http.ResponseWriter, r *http.Request) {
 	events.Broadcast(volume.NewEvent(volume.EventVolumeCreated, volinfo))
 
 	resp := createVolumeCreateResp(volinfo)
+	restutils.SetLocationHeader(r, w, volinfo.Name)
 	restutils.SendHTTPResponse(ctx, w, http.StatusCreated, resp)
 }
 

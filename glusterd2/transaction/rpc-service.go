@@ -1,13 +1,14 @@
 package transaction
 
 import (
+	"context"
 	"encoding/json"
 	"errors"
 
 	"github.com/gluster/glusterd2/glusterd2/servers/peerrpc"
 
 	log "github.com/sirupsen/logrus"
-	"golang.org/x/net/context"
+	"go.opencensus.io/trace"
 	"google.golang.org/grpc"
 )
 
@@ -36,6 +37,15 @@ func (p *txnSvc) RunStep(rpcCtx context.Context, req *TxnStepReq) (*TxnStepResp,
 
 	logger = ctx.Logger().WithField("stepfunc", req.StepFunc)
 	logger.Debug("RunStep request received")
+
+	if rpcCtx != nil {
+		_, span := trace.StartSpan(rpcCtx, req.StepFunc)
+		reqID := ctx.GetTxnReqID()
+		span.AddAttributes(
+			trace.StringAttribute("reqID", reqID),
+		)
+		defer span.End()
+	}
 
 	f, ok = getStepFunc(req.StepFunc)
 	if !ok {

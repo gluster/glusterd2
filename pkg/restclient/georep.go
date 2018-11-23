@@ -11,7 +11,7 @@ import (
 func (c *Client) GeorepCreate(mastervolid string, slavevolid string, req georepapi.GeorepCreateReq) (georepapi.GeorepSession, error) {
 	var session georepapi.GeorepSession
 	url := fmt.Sprintf("/v1/geo-replication/%s/%s", mastervolid, slavevolid)
-	err := c.post(url, req, http.StatusCreated, &session)
+	err := c.post(url, req, http.StatusOK, &session)
 	return session, err
 }
 
@@ -60,7 +60,7 @@ func (c *Client) GeorepDelete(mastervolid string, slavevolid string, force bool)
 }
 
 // GeorepStatus gets status of Geo-replication sessions
-func (c *Client) GeorepStatus(mastervolid string, slavevolid string) ([]georepapi.GeorepSession, error) {
+func (c *Client) GeorepStatus(mastervolid string, slavevolid string) (georepapi.GeorepSessionList, error) {
 	url := "/v1/geo-replication"
 	allSessions := false
 	var err error
@@ -69,14 +69,14 @@ func (c *Client) GeorepStatus(mastervolid string, slavevolid string) ([]georepap
 		allSessions = true
 		url = fmt.Sprintf("%s/%s/%s", url, mastervolid, slavevolid)
 	}
-	var sessions []georepapi.GeorepSession
+	var sessions georepapi.GeorepSessionList
 	if !allSessions {
 		err = c.get(url, nil, http.StatusOK, &sessions)
 	} else {
 		var session georepapi.GeorepSession
 		err = c.get(url, nil, http.StatusOK, &session)
 		if err == nil {
-			sessions = []georepapi.GeorepSession{session}
+			sessions = georepapi.GeorepSessionList{session}
 		}
 	}
 	return sessions, err
@@ -86,7 +86,7 @@ func (c *Client) GeorepStatus(mastervolid string, slavevolid string) ([]georepap
 func (c *Client) GeorepSSHKeysGenerate(volname string) ([]georepapi.GeorepSSHPublicKey, error) {
 	url := "/v1/ssh-key/" + volname + "/generate"
 	var sshkeys []georepapi.GeorepSSHPublicKey
-	err := c.post(url, nil, http.StatusCreated, &sshkeys)
+	err := c.post(url, nil, http.StatusOK, &sshkeys)
 	return sshkeys, err
 }
 
@@ -101,7 +101,7 @@ func (c *Client) GeorepSSHKeys(volname string) ([]georepapi.GeorepSSHPublicKey, 
 // GeorepSSHKeysPush pushes SSH public keys to all Volume nodes
 func (c *Client) GeorepSSHKeysPush(volname string, sshkeys []georepapi.GeorepSSHPublicKey) error {
 	url := "/v1/ssh-key/" + volname + "/push"
-	return c.post(url, sshkeys, http.StatusCreated, nil)
+	return c.post(url, sshkeys, http.StatusOK, nil)
 }
 
 // GeorepGet gets Geo-replication options

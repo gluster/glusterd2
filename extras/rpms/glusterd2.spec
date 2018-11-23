@@ -23,20 +23,19 @@
 
 %global gd2make %{__make} PREFIX=%{_prefix} EXEC_PREFIX=%{_exec_prefix} BINDIR=%{_bindir} SBINDIR=%{_sbindir} DATADIR=%{_datadir} LOCALSTATEDIR=%{_sharedstatedir} LOGDIR=%{_localstatedir}/log SYSCONFDIR=%{_sysconfdir} FASTBUILD=off
 
-%global gd2version 4.1.0
-%global gd2release 0
+%global gd2version 5.0
+# gd2prerel is only used for pre-releases. Comment it out for normal releases
+%global gd2prerel rc1
+# gd2tarbase is the base name for the GD2 source tarball
+%global gd2tarbase glusterd2-v%{gd2version}-%{!?gd2prerel:0}%{?gd2prerel}
 
 Name: %{repo}
-Version: 4.1.0
-Release: 1%{?dist}
+Version: %{gd2version}
+Release: 0%{?gd2prerel:.%{gd2prerel}}%{?dist}
 Summary: The GlusterFS management daemon (preview)
 License: GPLv2 or LGPLv3+
 URL: https://%{provider_prefix}
-%if 0%{?with_bundled}
-Source0: https://%{provider_prefix}/releases/download/v%{version}/%{name}-v%{gd2version}-%{gd2release}-vendor.tar.xz
-%else
-Source0: https://%{provider_prefix}/releases/download/v%{version}/%{name}-v%{gd2version}-%{gd2release}.tar.xz
-%endif
+Source0: https://%{provider_prefix}/releases/download/v%{gd2version}%{?gd2prerel:-%{gd2prerel}}/%{gd2tarbase}%{?with_bundled:-vendor}.tar.xz
 Source1: glusterd2-logrotate
 
 ExclusiveArch: %{go_arches}
@@ -57,6 +56,7 @@ BuildRequires: golang(github.com/coreos/etcd/pkg/transport)
 BuildRequires: golang(github.com/coreos/etcd/pkg/types)
 BuildRequires: golang(github.com/coreos/pkg/capnslog)
 BuildRequires: golang(github.com/dgrijalva/jwt-go)
+BuildRequires: golang(github.com/godbus/dbus)
 BuildRequires: golang(github.com/golang/protobuf/proto)
 BuildRequires: golang(github.com/gorilla/handlers)
 BuildRequires: golang(github.com/gorilla/mux)
@@ -73,9 +73,10 @@ BuildRequires: golang(github.com/thejerf/suture)
 BuildRequires: golang(golang.org/x/net/context)
 BuildRequires: golang(golang.org/x/sys/unix)
 BuildRequires: golang(google.golang.org/grpc)
+BuildRequires: golang(go.opencensus.io)
 %endif
 
-Requires: glusterfs-server >= 4.1.0
+Requires: glusterfs-server >= 5.0
 Requires: /usr/bin/strings
 %{?systemd_requires}
 
@@ -83,7 +84,7 @@ Requires: /usr/bin/strings
 The new GlusterFS management framework and daemon, for GlusterFS-4.0.
 
 %prep
-%setup -q -n %{name}-v%{version}-0
+%setup -q -n %{gd2tarbase}
 
 %build
 export GOPATH=$(pwd):%{gopath}
@@ -108,6 +109,8 @@ install -d -m 0755 %{buildroot}%{_sharedstatedir}/%{name}
 install -d -m 0755 %{buildroot}%{_localstatedir}/log/%{name}
 # Install logrotate config
 install -D -p -m 0644 %{SOURCE1} %{buildroot}%{_sysconfdir}/logrotate.d/%{name}
+# Setup sysconfig dir
+install -d -m 0755 %{buildroot}%{_sysconfdir}/sysconfig/%{name}
 
 %post
 %systemd_post %{name}.service
@@ -124,8 +127,14 @@ install -D -p -m 0644 %{SOURCE1} %{buildroot}%{_sysconfdir}/logrotate.d/%{name}
 %dir %{_localstatedir}/log/%{name}
 %config(noreplace) %{_sysconfdir}/logrotate.d/%{name}
 %{_sysconfdir}/bash_completion.d/glustercli.sh
+%config %{_sysconfdir}/sysconfig/%{name}
 
 %changelog
+* Mon Sep 17 2018 Kaushal M <kshlmster@gmail.com> - 5.0.0-rc0
+- Create /etc/sysconfig/glusterd2
+- Add BuildRequires on golang(go.opencensus.io)
+- Update for v5.0.0-rc0
+
 * Fri Jun 15 2018 Kaushal M <kshlmster@gmail.com> - 4.1.0-1
 - Update to v4.1.0
 

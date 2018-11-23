@@ -13,6 +13,7 @@ import (
 
 	"github.com/gorilla/mux"
 	"github.com/pborman/uuid"
+	log "github.com/sirupsen/logrus"
 )
 
 func editPeer(w http.ResponseWriter, r *http.Request) {
@@ -34,7 +35,7 @@ func editPeer(w http.ResponseWriter, r *http.Request) {
 
 	for key := range req.Metadata {
 		if strings.HasPrefix(key, "_") {
-			logger.WithField("metadata-key", key).Error(gderrors.ErrRestrictedKeyFound)
+			logger.WithError(gderrors.ErrRestrictedKeyFound).WithField("metadata-key", key)
 			restutils.SendHTTPError(ctx, w, http.StatusBadRequest, gderrors.ErrRestrictedKeyFound)
 			return
 		}
@@ -56,7 +57,8 @@ func editPeer(w http.ResponseWriter, r *http.Request) {
 	}
 	err = txn.Ctx.Set("peerid", peerID)
 	if err != nil {
-		logger.WithError(err).WithField("key", "peerid").WithField("value", peerID).Error("Failed to set key in transaction context")
+		logger.WithError(err).WithFields(
+			log.Fields{"key": "peerid", "value": peerID}).Error("Failed to set key in transaction context")
 		restutils.SendHTTPError(ctx, w, http.StatusInternalServerError, err)
 		return
 	}
@@ -79,7 +81,7 @@ func editPeer(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 	resp := createPeerEditResp(&peerInfo)
-	restutils.SendHTTPResponse(ctx, w, http.StatusCreated, resp)
+	restutils.SendHTTPResponse(ctx, w, http.StatusOK, resp)
 
 }
 

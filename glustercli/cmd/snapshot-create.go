@@ -29,7 +29,7 @@ var (
 )
 
 func init() {
-	snapshotCreateCmd.Flags().StringVar(&flagSnapshotCreateDescription, "desctription", "", "Description of snapshot")
+	snapshotCreateCmd.Flags().StringVar(&flagSnapshotCreateDescription, "description", "", "Description of snapshot")
 	snapshotCreateCmd.Flags().BoolVar(&flagSnapshotCreateForce, "force", false, "Force")
 	snapshotCreateCmd.Flags().BoolVar(&flagSnapshotCreateTimestamp, "timestamp", false, "Append timestamp with snap name")
 
@@ -50,12 +50,12 @@ func snapshotCreateCmdRun(cmd *cobra.Command, args []string) {
 
 	snap, err := client.SnapshotCreate(req)
 	if err != nil {
-		if verbose {
-			log.WithFields(log.Fields{
-				"volume":   volname,
-				"snapshot": snapname,
-				"error":    err.Error(),
-			}).Error("snapshot creation failed")
+		if GlobalFlag.Verbose {
+			log.WithError(err).WithFields(
+				log.Fields{
+					"volume":   volname,
+					"snapshot": snapname,
+				}).Error("snapshot creation failed")
 		}
 		failure("Snapshot creation failed", err, 1)
 	}

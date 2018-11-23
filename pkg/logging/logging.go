@@ -3,6 +3,7 @@ package logging
 
 import (
 	"io"
+	"io/ioutil"
 	stdlog "log"
 	"os"
 	"path"
@@ -43,7 +44,11 @@ func openLogFile(filepath string) (io.WriteCloser, error) {
 
 func setLogOutput(w io.Writer) {
 	log.SetOutput(w)
-	stdlog.SetOutput(log.StandardLogger().Writer())
+
+	// turn off standard library logging
+	// see https://github.com/golang/go/issues/19957
+	stdlog.SetFlags(0)
+	stdlog.SetOutput(ioutil.Discard)
 }
 
 // Init initializes the default logrus logger

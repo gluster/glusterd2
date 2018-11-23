@@ -2,6 +2,7 @@ package e2e
 
 import (
 	"bytes"
+	"errors"
 	"fmt"
 	"io/ioutil"
 	"os"
@@ -33,7 +34,7 @@ func (tc *testCluster) wrap(
 	}
 }
 
-func setupCluster(configFiles ...string) (*testCluster, error) {
+func setupCluster(t *testing.T, configFiles ...string) (*testCluster, error) {
 
 	tc := &testCluster{}
 
@@ -42,7 +43,8 @@ func setupCluster(configFiles ...string) (*testCluster, error) {
 		if cleanupRequired {
 			for _, p := range tc.gds {
 				p.Stop()
-				p.EraseLocalStateDir()
+				// do not erase to allow for debugging
+				// p.EraseLocalStateDir()
 			}
 		}
 	}
@@ -67,7 +69,7 @@ func setupCluster(configFiles ...string) (*testCluster, error) {
 	}
 
 	for _, configFile := range configFiles {
-		g, err := spawnGlusterd(configFile, true)
+		g, err := spawnGlusterd(t, configFile, true)
 		if err != nil {
 			return nil, err
 		}
@@ -75,7 +77,10 @@ func setupCluster(configFiles ...string) (*testCluster, error) {
 	}
 
 	// restclient instance that will be used for peer operations
-	client := initRestclient(tc.gds[0])
+	client, err := initRestclient(tc.gds[0])
+	if err != nil {
+		return tc, err
+	}
 
 	// first gd2 instance spawned shall add other glusterd2 instances as its peers
 	for i, gd := range tc.gds {
@@ -124,8 +129,11 @@ func teardownCluster(tc *testCluster) error {
 	return nil
 }
 
-func initRestclient(gdp *gdProcess) *restclient.Client {
-	secret := getAuth(gdp.LocalStateDir)
+func initRestclient(gdp *gdProcess) (*restclient.Client, error) {
+	secret, err := getAuthSecret(gdp.LocalStateDir)
+	if err != nil {
+		return nil, err
+	}
 	return restclient.New("http://"+gdp.ClientAddress, "glustercli", secret, "", false)
 }
 
@@ -174,7 +182,8 @@ func cleanupAllBrickMounts(t *testing.T) {
 				continue
 			}
 
-			err = exec.Command("umount", parts[2]).Run()
+			testlog(t, fmt.Sprintf("cleanupAllBrickMounts(): umounting %s", parts[2]))
+			syscall.Unmount(parts[2], syscall.MNT_FORCE|syscall.MNT_DETACH)
 			if err != nil {
 				testlog(t, fmt.Sprintf("`umount %s` failed: %s", parts[2], err))
 			}
@@ -282,14 +291,76 @@ func testTempDir(t *testing.T, prefix string) string {
 	return d
 }
 
-func getAuth(path string) string {
-	filepath := path + "/auth"
-	if _, err := os.Stat(filepath); !os.IsNotExist(err) {
-		s, err := ioutil.ReadFile(filepath)
-		if err != nil {
-			panic("unable to read auth file")
-		}
-		return string(s)
+func getAuthSecret(localstatedir string) (string, error) {
+	var secret string
+
+	authFile := filepath.Join(localstatedir, "auth")
+	b, err := ioutil.ReadFile(authFile)
+	if err != nil && !os.IsNotExist(err) {
+		return "", err
 	}
-	return ""
+
+	if len(b) > 0 {
+		secret = string(b)
+	}
+
+	return secret, nil
+}
+
+func numberOfLvs(vgname string) (int, error) {
+	nlv := 0
+	out, err := exec.Command("vgs", vgname, "--no-headings", "-o", "lv_count").Output()
+	if err == nil {
+		nlv, err = strconv.Atoi(strings.Trim(string(out), " \n"))
+	}
+	return nlv, err
+}
+
+func mountVolume(server, volfileID, mountPath string) error {
+
+	// Add port later if needed. Right now all mount talks to first
+	// instance of glusterd2 in cluster which listens on default port
+	// 24007
+
+	var buffer bytes.Buffer
+	buffer.WriteString(fmt.Sprintf(" --volfile-server %s", server))
+	buffer.WriteString(fmt.Sprintf(" --volfile-id %s ", volfileID))
+	buffer.WriteString(mountPath)
+
+	args := strings.Fields(buffer.String())
+	cmd := exec.Command("glusterfs", args...)
+	if err := cmd.Start(); err != nil {
+		return err
+	}
+
+	return cmd.Wait()
+}
+
+// testMount checks if a file can be created and written on the mountpoint
+// path passed.
+func testMount(path string) error {
+	f, err := ioutil.TempFile(path, "testMount")
+	if err != nil {
+		return err
+	}
+	defer os.Remove(f.Name())
+	defer f.Close()
+
+	payload := "glusterIsAwesome"
+	n, err := f.Write([]byte(payload))
+	if err != nil {
+		return err
+	}
+
+	if n != len(payload) {
+		return errors.New("testMount(): f.Write() failed")
+	}
+
+	return nil
+}
+
+func checkFuseAvailable(t *testing.T) {
+	if _, err := os.Lstat("/dev/fuse"); os.IsNotExist(err) {
+		t.Skip("skipping mount /dev/fuse unavailable")
+	}
 }

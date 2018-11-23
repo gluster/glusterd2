@@ -2,7 +2,10 @@ package utils
 
 import (
 	"bytes"
+	"crypto/sha256"
+	"encoding/hex"
 	"net"
+	"net/http"
 	"os"
 	"os/exec"
 	"reflect"
@@ -14,6 +17,18 @@ import (
 
 	"github.com/gluster/glusterd2/pkg/errors"
 	log "github.com/sirupsen/logrus"
+)
+
+// constants to convert respective size into bytes.
+const (
+	KB  = 1000
+	KiB = 1024
+	MB  = 1000 * KB
+	MiB = 1024 * KiB
+	GB  = 1000 * MB
+	GiB = 1024 * MiB
+	TB  = 1000 * GB
+	TiB = 1024 * GiB
 )
 
 // IsLocalAddress checks whether a given host/IP is local
@@ -67,7 +82,7 @@ func IsLocalAddress(address string) (bool, error) {
 func ParseHostAndBrickPath(brickPath string) (string, string, error) {
 	i := strings.LastIndex(brickPath, ":")
 	if i == -1 {
-		log.WithField("brick", brickPath).Error(errors.ErrInvalidBrickPath.Error())
+		log.WithError(errors.ErrInvalidBrickPath).WithField("brick", brickPath)
 		return "", "", errors.ErrInvalidBrickPath
 	}
 	hostname := brickPath[0:i]
@@ -219,4 +234,14 @@ func ExecuteCommandRun(cmdName string, arg ...string) error {
 	cmd.Stderr = &stderr
 
 	return execStderrCombined(cmd.Run(), &stderr)
+}
+
+//GenerateQsh generate the hash string to avoid URL tampering
+func GenerateQsh(r *http.Request) string {
+	// qsh URL tampering prevention.
+	//more info https://developer.atlassian.com/cloud/bitbucket/query-string-hash
+	claim := r.Method + "&" + r.URL.Path
+	hash := sha256.New()
+	hash.Write([]byte(claim))
+	return hex.EncodeToString(hash.Sum(nil))
 }

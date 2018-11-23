@@ -14,11 +14,13 @@ func TestBitrot(t *testing.T) {
 
 	r := require.New(t)
 
-	tc, err := setupCluster("./config/1.toml", "./config/2.toml")
+	tc, err := setupCluster(t, "./config/1.toml", "./config/2.toml")
 	r.Nil(err)
 	defer teardownCluster(tc)
 
-	client = initRestclient(tc.gds[0])
+	client, err = initRestclient(tc.gds[0])
+	r.Nil(err)
+	r.NotNil(client)
 
 	// test Bitrot on dist-rep volume
 	t.Run("Replica-volume", tc.wrap(testBitrotOnReplicaVolume))

@@ -16,7 +16,7 @@ import (
 	"strings"
 	"unsafe"
 
-	"github.com/gluster/glusterd2/glusterd2/xlator/options"
+	"github.com/gluster/glusterd2/glusterd2/options"
 	"github.com/gluster/glusterd2/pkg/utils"
 
 	log "github.com/sirupsen/logrus"
@@ -137,7 +137,7 @@ func loadXlator(xlPath string) (*Xlator, error) {
 
 	if vfunc, ok := validationFuncs[xl.ID]; ok {
 		log.WithField("xlator",
-			xl.ID).Info("Registered validation function for xlator")
+			xl.ID).Debug("Registered validation function for xlator")
 		xl.Validate = vfunc
 	}
 
@@ -172,7 +172,7 @@ func loadAllXlators() (map[string]*Xlator, error) {
 
 	xlatorsDir := getXlatorsDir()
 	if xlatorsDir == "" {
-		return nil, fmt.Errorf("No xlators dir found")
+		return nil, fmt.Errorf("no xlators dir found")
 	}
 	log.WithField("xlatordir", xlatorsDir).Debug("Xlators dir found")
 

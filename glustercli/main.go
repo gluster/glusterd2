@@ -11,7 +11,7 @@ func main() {
 	// Migrate old format Args into new Format. Modifies os.Args[]
 	argsMigrate()
 
-	if err := cmd.RootCmd.Execute(); err != nil {
+	if err := cmd.NewGlustercliCmd().Execute(); err != nil {
 		fmt.Println(err)
 		os.Exit(1)
 	}

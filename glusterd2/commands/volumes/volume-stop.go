@@ -9,6 +9,7 @@ import (
 	"github.com/gluster/glusterd2/glusterd2/gdctx"
 	restutils "github.com/gluster/glusterd2/glusterd2/servers/rest/utils"
 	"github.com/gluster/glusterd2/glusterd2/transaction"
+	"github.com/gluster/glusterd2/glusterd2/volgen"
 	"github.com/gluster/glusterd2/glusterd2/volume"
 	"github.com/gluster/glusterd2/pkg/api"
 	"github.com/gluster/glusterd2/pkg/errors"
@@ -16,6 +17,7 @@ import (
 	"github.com/gorilla/mux"
 	"github.com/pborman/uuid"
 	log "github.com/sirupsen/logrus"
+	"go.opencensus.io/trace"
 )
 
 func stopBricks(c transaction.TxnCtx) error {
@@ -25,7 +27,13 @@ func stopBricks(c transaction.TxnCtx) error {
 		return err
 	}
 
-	for _, b := range volinfo.GetLocalBricks() {
+	brickinfos := volinfo.GetLocalBricks()
+	err := volgen.DeleteBricksVolfiles(brickinfos)
+	if err != nil {
+		return err
+	}
+
+	for _, b := range brickinfos {
 		brickDaemon, err := brick.NewGlusterfsd(b)
 		if err != nil {
 			return err
@@ -57,10 +65,10 @@ func stopBricks(c transaction.TxnCtx) error {
 
 		// On graceful shutdown of brick, daemon.Stop() isn't called.
 		if err := daemon.DelDaemon(brickDaemon); err != nil {
-			log.WithFields(log.Fields{
+			log.WithError(err).WithFields(log.Fields{
 				"name": brickDaemon.Name(),
 				"id":   brickDaemon.ID(),
-			}).WithError(err).Warn("failed to delete brick entry from store, it may be restarted on GlusterD restart")
+			}).Warn("failed to delete brick entry from store, it may be restarted on GlusterD restart")
 		}
 	}
 
@@ -68,14 +76,28 @@ func stopBricks(c transaction.TxnCtx) error {
 }
 
 func registerVolStopStepFuncs() {
-	transaction.RegisterStepFunc(stopBricks, "vol-stop.StopBricks")
-	transaction.RegisterStepFunc(storeVolume, "vol-stop.UpdateVolinfo")
-	transaction.RegisterStepFunc(undoStoreVolume, "vol-stop.UpdateVolinfo.Undo")
+	var sfs = []struct {
+		name string
+		sf   transaction.StepFunc
+	}{
+		{"vol-stop.StopBricks", stopBricks},
+		{"vol-stop.XlatorActionDoVolumeStop", xlatorActionDoVolumeStop},
+		{"vol-stop.XlatorActionUndoVOlumeStop", xlatorActionUndoVolumeStop},
+		{"vol-stop.UpdateVolinfo", storeVolume},
+		{"vol-stop.UpdateVolinfo.Undo", undoStoreVolume},
+	}
+	for _, sf := range sfs {
+		transaction.RegisterStepFunc(sf.sf, sf.name)
+	}
+
 }
 
 func volumeStopHandler(w http.ResponseWriter, r *http.Request) {
 
 	ctx := r.Context()
+	ctx, span := trace.StartSpan(ctx, "/volumeStopHandler")
+	defer span.End()
+
 	logger := gdctx.GetReqLogger(ctx)
 	volname := mux.Vars(r)["volname"]
 
@@ -109,6 +131,11 @@ func volumeStopHandler(w http.ResponseWriter, r *http.Request) {
 			UndoFunc: "vol-stop.UpdateVolinfo.Undo",
 			Nodes:    []uuid.UUID{gdctx.MyUUID},
 		},
+		{
+			DoFunc:   "vol-stop.XlatorActionDoVolumeStop",
+			UndoFunc: "vol-stop.XlatorActionUndoVolumeStop",
+			Nodes:    volinfo.Nodes(),
+		},
 	}
 
 	if err := txn.Ctx.Set("oldvolinfo", volinfo); err != nil {
@@ -122,6 +149,11 @@ func volumeStopHandler(w http.ResponseWriter, r *http.Request) {
 		restutils.SendHTTPError(ctx, w, http.StatusInternalServerError, err)
 		return
 	}
+
+	span.AddAttributes(
+		trace.StringAttribute("reqID", txn.Ctx.GetTxnReqID()),
+		trace.StringAttribute("volName", volname),
+	)
 
 	if err := txn.Do(); err != nil {
 		logger.WithError(err).WithField(

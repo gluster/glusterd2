@@ -1,6 +1,7 @@
 package peercommands
 
 import (
+	"context"
 	"net/http"
 
 	"github.com/gluster/glusterd2/glusterd2/events"
@@ -88,8 +89,8 @@ func deletePeerHandler(w http.ResponseWriter, r *http.Request) {
 	// potentially still send commands to the cluster
 	rsp, err := client.LeaveCluster()
 	if err != nil {
-		logger.WithError(err).Error("sending Leave request failed")
-		restutils.SendHTTPError(ctx, w, http.StatusInternalServerError, "failed to send leave cluster request")
+		logger.WithError(err).Error("client.LeaveCluster() failed")
+		restutils.SendHTTPError(ctx, w, http.StatusInternalServerError, err)
 		return
 	} else if Error(rsp.Err) != ErrNone {
 		err = Error(rsp.Err)
@@ -123,7 +124,7 @@ func deletePeerHandler(w http.ResponseWriter, r *http.Request) {
 func bricksExist(id string) (bool, error) {
 	pid := uuid.Parse(id)
 
-	vols, err := volume.GetVolumes()
+	vols, err := volume.GetVolumes(context.TODO())
 	if err != nil {
 		return true, err
 	}

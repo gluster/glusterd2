@@ -6,6 +6,7 @@ import (
 	"expvar"
 	"net"
 	"path"
+	"strings"
 
 	"github.com/gluster/glusterd2/glusterd2/gdctx"
 	"github.com/gluster/glusterd2/glusterd2/store"
@@ -32,13 +33,13 @@ var (
 	// defaultPathPrefix is set by LDFLAGS
 	defaultPathPrefix = ""
 
-	defaultlocalstatedir = defaultPathPrefix + "/var/lib/glusterd2"
-	defaultlogdir        = defaultPathPrefix + "/var/log/glusterd2"
-	defaultrundir        = defaultPathPrefix + "/var/run/glusterd2"
+	defaultlocalstatedir = path.Join(defaultPathPrefix, "/var/lib/glusterd2")
+	defaultlogdir        = path.Join(defaultPathPrefix, "/var/log/glusterd2")
+	defaultrundir        = path.Join(defaultPathPrefix, "/var/run/glusterd2")
 )
 
-// parseFlags sets up the flags and parses them, this needs to be called before any other operation
-func parseFlags() {
+// initFlags sets up the flags and parses them, this needs to be called before any other operation
+func initFlags() {
 	flag.String("localstatedir", defaultlocalstatedir, "Directory to store local state information.")
 	flag.String("rundir", defaultrundir, "Directory to store runtime data.")
 	flag.String("config", "", "Configuration file for GlusterD.")
@@ -117,7 +118,25 @@ func dumpConfigToLog() {
 	l.Debug("running with configuration")
 }
 
-func initConfig(confFile string) error {
+// initConfig intializes GD2 configuration from various sources.
+// The order of preference is,
+// - explicitly set configs using config.Set
+// - flags, if set
+// - environment variables
+// - config file
+// - defaults set using config.SetDefault
+// - flag defaults
+func initConfig() error {
+	// Use config given by flags
+	config.BindPFlags(flag.CommandLine)
+
+	// Allow config values from environment environment variables.
+	// All options settable from the command line are available to be set this way.
+	// The environment variable should be in uppercase, prefixed with "GD2" and have "-" replaced by "_" to be used.
+	config.SetEnvPrefix("GD2")
+	config.SetEnvKeyReplacer(strings.NewReplacer("-", "_"))
+	config.AutomaticEnv()
+
 	// Read in configuration from file
 	// If a config file is not given try to read from default paths
 	// If a config file was given, read in configration from that file.
@@ -126,19 +145,27 @@ func initConfig(confFile string) error {
 	// Limit config to toml only to avoid confusion with multiple config types
 	config.SetConfigType("toml")
 
-	// If custom configuration is passed
+	confFile := config.GetString("config")
+	// If custom configuration is passed use it, if not try to use defaults
 	if confFile != "" {
 		config.SetConfigFile(confFile)
-		if err := config.MergeInConfig(); err != nil {
+	} else {
+		config.AddConfigPath(path.Join(defaultPathPrefix, "/etc/glusterd2"))
+		config.SetConfigName("glusterd2")
+	}
+	if err := config.ReadInConfig(); err != nil {
+		// Ignore error if config file is not found, error out otherwise
+		if _, ok := err.(config.ConfigFileNotFoundError); ok {
 			log.WithError(err).
-				WithField("file", confFile).
-				Error("failed to read config file")
+				WithField("file", config.ConfigFileUsed()).
+				Warn("failed to load config from file")
+		} else {
+			log.WithError(err).
+				WithField("file", config.ConfigFileUsed()).
+				Error("failed to load config from file")
 			return err
 		}
 	}
-
-	// Use config given by flags
-	config.BindPFlags(flag.CommandLine)
 
 	// Finally initialize missing config with defaults
 	err := setDefaults()

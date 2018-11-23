@@ -9,22 +9,6 @@ import (
 	"github.com/gorilla/mux"
 )
 
-func volfilesGenerateHandler(w http.ResponseWriter, r *http.Request) {
-	ctx := r.Context()
-
-	err := volgen.Generate()
-	if err != nil {
-		restutils.SendHTTPError(ctx, w, http.StatusInternalServerError, "unable to generate volfiles")
-		return
-	}
-	volfiles, err := volgen.GetVolfiles()
-	if err != nil {
-		restutils.SendHTTPError(ctx, w, http.StatusInternalServerError, "unable to get list of volfiles")
-		return
-	}
-	restutils.SendHTTPResponse(ctx, w, http.StatusOK, volfiles)
-}
-
 func volfilesListHandler(w http.ResponseWriter, r *http.Request) {
 	ctx := r.Context()
 

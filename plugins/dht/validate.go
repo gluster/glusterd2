@@ -16,7 +16,7 @@ func validateOptions(v *volume.Volinfo, key, value string) error {
 			if v, ok := v.Options["features.cache-invalidation"]; ok && v == "on" {
 				return nil
 			}
-			return fmt.Errorf("Enable \"features.cache-invalidation\" before enabling %s", key)
+			return fmt.Errorf("enable \"features.cache-invalidation\" before enabling %s", key)
 		}
 	}
 	return nil

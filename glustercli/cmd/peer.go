@@ -39,8 +39,6 @@ func init() {
 	peerListCmd.Flags().StringVar(&flagCmdFilterKey, "key", "", "Filter by metadata key")
 	peerListCmd.Flags().StringVar(&flagCmdFilterValue, "value", "", "Filter by metadata value")
 	peerCmd.AddCommand(peerListCmd)
-
-	RootCmd.AddCommand(peerCmd)
 }
 
 var peerCmd = &cobra.Command{
@@ -59,11 +57,8 @@ var peerAddCmd = &cobra.Command{
 		}
 		peer, err := client.PeerAdd(peerAddReq)
 		if err != nil {
-			if verbose {
-				log.WithFields(log.Fields{
-					"host":  hostname,
-					"error": err.Error(),
-				}).Error("peer add failed")
+			if GlobalFlag.Verbose {
+				log.WithError(err).WithField("host", hostname).Error("peer add failed")
 			}
 			failure("Peer add failed", err, 1)
 		}
@@ -89,11 +84,8 @@ var peerRemoveCmd = &cobra.Command{
 			err = client.PeerRemove(peerID)
 		}
 		if err != nil {
-			if verbose {
-				log.WithFields(log.Fields{
-					"peerID": peerID,
-					"error":  err.Error(),
-				}).Error("peer remove failed")
+			if GlobalFlag.Verbose {
+				log.WithError(err).WithField("peerID", peerID).Error("peer remove failed")
 			}
 			failure("Peer remove failed", err, 1)
 		}
@@ -116,10 +108,8 @@ func peerStatusHandler(cmd *cobra.Command) {
 		})
 	}
 	if err != nil {
-		if verbose {
-			log.WithFields(log.Fields{
-				"error": err.Error(),
-			}).Error("peer status failed")
+		if GlobalFlag.Verbose {
+			log.WithError(err).Error("peer status failed")
 		}
 		failure("Failed to get Peers list", err, 1)
 	}

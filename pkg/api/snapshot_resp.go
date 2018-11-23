@@ -1,6 +1,10 @@
 package api
 
-import "github.com/pborman/uuid"
+import (
+	"time"
+
+	"github.com/pborman/uuid"
+)
 
 // SnapInfo contains static information about the snapshot.
 // Clients should NOT use this struct directly.
@@ -8,12 +12,13 @@ type SnapInfo struct {
 	VolInfo       VolumeInfo `json:"snapinfo"`
 	ParentVolName string     `json:"parentname"`
 	Description   string     `json:"description"`
+	CreatedAt     time.Time  `json:"created-at"`
 }
 
-//SnapList contains snapshot name of a volume
+//SnapList contains snapshots information of a volume.
 type SnapList struct {
-	ParentName string   `json:"parentname"`
-	SnapName   []string `json:"snaps"`
+	ParentName string     `json:"parentname"`
+	SnapList   []SnapInfo `json:"snaps"`
 }
 
 //LvsData gives the information provided in lvs command
@@ -46,3 +51,13 @@ type SnapGetResp SnapInfo
 
 // SnapListResp is the response sent for a snapsht list request.
 type SnapListResp []SnapList
+
+// SnapshotActivateResp is the response sent for a snapshot activate request.
+type SnapshotActivateResp SnapInfo
+
+// SnapshotDeactivateResp is the response sent for a snapshot deactivate request.
+type SnapshotDeactivateResp SnapInfo
+
+// SnapshotCloneResp is the response sent for a snapshot clone request.
+// Snapshot clone will create a regular volume
+type SnapshotCloneResp VolumeInfo

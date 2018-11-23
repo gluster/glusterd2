@@ -1,18 +1,23 @@
 package volume
 
 import (
+	"context"
 	"errors"
 	"os"
 	"path"
+	"path/filepath"
 	"regexp"
 	"strings"
 	"syscall"
 
 	"github.com/gluster/glusterd2/glusterd2/brick"
 	"github.com/gluster/glusterd2/glusterd2/daemon"
+	"github.com/gluster/glusterd2/glusterd2/gdctx"
 	"github.com/gluster/glusterd2/glusterd2/pmap"
 	"github.com/gluster/glusterd2/pkg/api"
 	gderrors "github.com/gluster/glusterd2/pkg/errors"
+	"github.com/gluster/glusterd2/pkg/lvmutils"
+	"github.com/gluster/glusterd2/plugins/device/deviceutils"
 
 	"github.com/pborman/uuid"
 	log "github.com/sirupsen/logrus"
@@ -21,11 +26,6 @@ import (
 var (
 	volumeNameRE = regexp.MustCompile("^[a-zA-Z0-9_-]+$")
 )
-
-// GenerateVolumeName generates volume name as vol_<random-id>
-func GenerateVolumeName() string {
-	return "vol_" + uuid.NewRandom().String()
-}
 
 // IsValidName validates Volume name
 func IsValidName(name string) bool {
@@ -49,7 +49,7 @@ func GetRedundancy(disperse uint) int {
 // isBrickPathAvailable validates whether the brick is consumed by other
 // volume
 func isBrickPathAvailable(peerID uuid.UUID, brickPath string) error {
-	volumes, e := GetVolumes()
+	volumes, e := GetVolumes(context.TODO())
 	if e != nil || volumes == nil {
 		// In case cluster doesn't have any volumes configured yet,
 		// treat this as success
@@ -91,7 +91,7 @@ func CheckBricksStatus(volinfo *Volinfo) ([]brick.Brickstatus, error) {
 			if _, err := daemon.GetProcess(pidOnFile); err == nil {
 				s.Online = true
 				s.Pid = pidOnFile
-				s.Port = pmap.RegistrySearch(binfo.Path, pmap.GfPmapPortBrickserver)
+				s.Port, _ = pmap.RegistrySearch(binfo.Path)
 			}
 		}
 
@@ -146,15 +146,27 @@ func GetBrickMountRoot(brickPath string) (string, error) {
 	return "", errors.New("failed to get mount root")
 }
 
+//IsMountNotFoundError returns true if error matches
+func IsMountNotFoundError(err error) bool {
+	if err != nil {
+		return strings.Contains(err.Error(), "mount point not found")
+	}
+	return false
+}
+
 //GetBrickMountInfo return mount related information
 func GetBrickMountInfo(mountRoot string) (*Mntent, error) {
+	realMountRoot, err := filepath.EvalSymlinks(mountRoot)
+	if err != nil {
+		return nil, err
+	}
 	mtabEntries, err := GetMounts()
 	if err != nil {
 		return nil, err
 	}
 
 	for _, entry := range mtabEntries {
-		if entry.MntDir == mountRoot {
+		if entry.MntDir == mountRoot || entry.MntDir == realMountRoot {
 			return entry, nil
 		}
 	}
@@ -173,12 +185,14 @@ func CreateSubvolInfo(sv *[]Subvol) []api.Subvol {
 		}
 
 		subvols = append(subvols, api.Subvol{
-			Name:          subvol.Name,
-			Type:          api.SubvolType(subvol.Type),
-			Bricks:        blist,
-			ReplicaCount:  subvol.ReplicaCount,
-			ArbiterCount:  subvol.ArbiterCount,
-			DisperseCount: subvol.DisperseCount,
+			Name:                    subvol.Name,
+			Type:                    api.SubvolType(subvol.Type),
+			Bricks:                  blist,
+			ReplicaCount:            subvol.ReplicaCount,
+			ArbiterCount:            subvol.ArbiterCount,
+			DisperseCount:           subvol.DisperseCount,
+			DisperseDataCount:       subvol.DisperseCount - subvol.RedundancyCount,
+			DisperseRedundancyCount: subvol.RedundancyCount,
 		})
 	}
 	return subvols
@@ -193,6 +207,7 @@ func CreateVolumeInfoResp(v *Volinfo) *api.VolumeInfo {
 		Type:      api.VolType(v.Type),
 		Transport: v.Transport,
 		DistCount: v.DistCount,
+		Capacity:  v.Capacity,
 		State:     api.VolState(v.State),
 		Options:   v.Options,
 		Subvols:   CreateSubvolInfo(&v.Subvols),
@@ -206,6 +221,115 @@ func CreateVolumeInfoResp(v *Volinfo) *api.VolumeInfo {
 	resp.ReplicaCount = resp.Subvols[0].ReplicaCount
 	resp.ArbiterCount = resp.Subvols[0].ArbiterCount
 	resp.DisperseCount = resp.Subvols[0].DisperseCount
+	resp.DisperseDataCount = resp.Subvols[0].DisperseDataCount
+	resp.DisperseRedundancyCount = resp.Subvols[0].DisperseRedundancyCount
 
 	return resp
+}
+
+//IsSnapshotProvisioned will return true if volume is provisioned through snapshot creation
+func (v *Volinfo) IsSnapshotProvisioned() bool {
+	return (v.GetProvisionType().IsSnapshotProvisioned())
+}
+
+//IsAutoProvisioned will return true if volume is automatically provisioned
+func (v *Volinfo) IsAutoProvisioned() bool {
+	return (v.GetProvisionType().IsAutoProvisioned())
+}
+
+//GetProvisionType will return true the type of provision state
+func (v *Volinfo) GetProvisionType() brick.ProvisionType {
+
+	var provisionType brick.ProvisionType
+
+	provisionValue, ok := v.Metadata[brick.ProvisionKey]
+	if !ok {
+		provisionType = brick.ManuallyProvisioned
+	} else {
+		provisionType = brick.ProvisionType(provisionValue)
+	}
+	return provisionType
+}
+
+//CleanBricks will Unmount the bricks and delete lv, thinpool
+func CleanBricks(volinfo *Volinfo) error {
+	for _, b := range volinfo.GetLocalBricks() {
+		// UnMount the Brick if mounted
+		mountRoot := strings.TrimSuffix(b.Path, b.MountInfo.BrickDirSuffix)
+		_, err := GetBrickMountInfo(mountRoot)
+		if err != nil {
+			if !IsMountNotFoundError(err) {
+				log.WithError(err).WithField("path", mountRoot).
+					Error("unable to get mount info")
+				return err
+			}
+		} else {
+			err := lvmutils.UnmountLV(mountRoot)
+			if err != nil {
+				log.WithError(err).WithField("path", mountRoot).
+					Error("brick unmount failed")
+				return err
+			}
+		}
+
+		parts := strings.Split(b.MountInfo.DevicePath, "/")
+		if len(parts) != 4 {
+			return errors.New("unable to parse device path")
+		}
+		vgname := parts[2]
+		lvname := parts[3]
+		tpname, err := lvmutils.GetThinpoolName(vgname, lvname)
+		if err != nil {
+			log.WithError(err).WithFields(log.Fields{
+				"vg-name": vgname,
+				"lv-name": lvname,
+			}).Error("failed to get thinpool name")
+			return err
+		}
+
+		// Remove LV
+		err = lvmutils.RemoveLV(vgname, lvname)
+		if err != nil {
+			log.WithError(err).WithFields(log.Fields{
+				"vg-name": vgname,
+				"lv-name": lvname,
+			}).Error("lv remove failed")
+			return err
+		}
+
+		if !deviceutils.IsVgExist(vgname) {
+			continue
+		}
+
+		// Remove Thin Pool if LV count is zero, Thinpool will
+		// have more LVs in case of snapshots and clones
+		numLvs, err := lvmutils.NumberOfLvs(vgname, tpname)
+		if err != nil {
+			log.WithError(err).WithFields(log.Fields{
+				"vg-name": vgname,
+				"tp-name": tpname,
+			}).Error("failed to get number of lvs")
+			return err
+		}
+
+		if numLvs == 0 {
+			err = lvmutils.RemoveLV(vgname, tpname)
+			if err != nil {
+				log.WithError(err).WithFields(log.Fields{
+					"vg-name": vgname,
+					"tp-name": tpname,
+				}).Error("thinpool remove failed")
+				return err
+			}
+		}
+
+		// Update current Vg free size
+		err = deviceutils.UpdateDeviceFreeSize(gdctx.MyUUID.String(), vgname)
+		if err != nil {
+			log.WithError(err).WithField("vg-name", vgname).
+				Error("failed to update available size of a device")
+			return err
+		}
+	}
+	return nil
 }

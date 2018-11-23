@@ -10,34 +10,41 @@ import (
 	"github.com/gluster/glusterd2/glusterd2/gdctx"
 	restutils "github.com/gluster/glusterd2/glusterd2/servers/rest/utils"
 	"github.com/gluster/glusterd2/glusterd2/snapshot"
-	"github.com/gluster/glusterd2/glusterd2/snapshot/lvm"
 	"github.com/gluster/glusterd2/glusterd2/transaction"
 	"github.com/gluster/glusterd2/glusterd2/volgen"
 	"github.com/gluster/glusterd2/glusterd2/volume"
+	"github.com/gluster/glusterd2/pkg/lvmutils"
 	log "github.com/sirupsen/logrus"
 
 	"github.com/gorilla/mux"
 	"github.com/pborman/uuid"
+	"go.opencensus.io/trace"
 )
 
 func snapshotBrickDelete(errCh chan error, wg *sync.WaitGroup, snapVol volume.Volinfo, b brick.Brickinfo, logger log.FieldLogger) {
 	defer wg.Done()
 
 	if snapVol.State == volume.VolStarted {
-		if err := snapshot.StopBrick(b, logger); err != nil {
+		if err := volume.StopBrick(b, logger); err != nil {
 			log.WithError(err).WithField(
 				"brick", b.Path).Warning("Failed to cleanup the brick.Earlier it might have stopped abnormally")
 
 		}
 	}
-	if err := lvm.RemoveBrickSnapshot(b.MountInfo.DevicePath); err != nil {
+	if err := lvmutils.RemoveLVSnapshot(b.MountInfo.DevicePath); err != nil {
 		log.WithError(err).WithField(
 			"brick", b.Path).Debug("Failed to remove snapshotted LVM")
 		errCh <- err
 		return
 	}
-	mountRoot := strings.TrimSuffix(b.Path, b.MountInfo.Mountdir)
+	mountRoot := strings.TrimSuffix(b.Path, b.MountInfo.BrickDirSuffix)
 	os.RemoveAll(mountRoot)
+
+	volfileID := brick.GetVolfileID(snapVol.Name, b.Path)
+	if err := volgen.DeleteFile(volfileID); err != nil {
+		errCh <- err
+	}
+
 	errCh <- nil
 	return
 }
@@ -88,7 +95,8 @@ func snapshotDeleteStore(c transaction.TxnCtx) error {
 	if err := volgen.DeleteVolfiles(snapinfo.SnapVolinfo.VolfileID); err != nil {
 		c.Logger().WithError(err).
 			WithField("snapshot", snapshot.GetStorePath(&snapinfo)).
-			Warn("failed to delete volfiles of snapshot")
+			Error("failed to delete volfiles of snapshot")
+		return err
 	}
 
 	return nil
@@ -122,6 +130,9 @@ func registerSnapDeleteStepFuncs() {
 func snapshotDeleteHandler(w http.ResponseWriter, r *http.Request) {
 
 	ctx := r.Context()
+	ctx, span := trace.StartSpan(ctx, "/snapshotDeleteHandler")
+	defer span.End()
+
 	logger := gdctx.GetReqLogger(ctx)
 	snapname := mux.Vars(r)["snapname"]
 	//Fetching snapinfo to get the parent volume name. Parent volume has to be locked
@@ -165,6 +176,12 @@ func snapshotDeleteHandler(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
+	span.AddAttributes(
+		trace.StringAttribute("reqID", txn.Ctx.GetTxnReqID()),
+		trace.StringAttribute("snapName", snapname),
+		trace.StringAttribute("parentVolume", snapinfo.ParentVolume),
+	)
+
 	if err := txn.Do(); err != nil {
 		logger.WithError(err).WithField(
 			"snapname", snapname).Error("transaction to delete snapshot failed")
@@ -174,5 +191,5 @@ func snapshotDeleteHandler(w http.ResponseWriter, r *http.Request) {
 
 	logger.WithField("Snapshot-name", snapname).Info("snapshot deleted")
 
-	restutils.SendHTTPResponse(ctx, w, http.StatusNoContent, "Snapshot Deleted")
+	restutils.SendHTTPResponse(ctx, w, http.StatusNoContent, nil)
 }

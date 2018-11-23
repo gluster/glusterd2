@@ -10,13 +10,13 @@ import (
 
 	"github.com/gluster/glusterd2/glusterd2/brick"
 	"github.com/gluster/glusterd2/glusterd2/gdctx"
+	"github.com/gluster/glusterd2/glusterd2/options"
 	"github.com/gluster/glusterd2/glusterd2/servers/sunrpc"
 	"github.com/gluster/glusterd2/glusterd2/store"
 	"github.com/gluster/glusterd2/glusterd2/transaction"
 	"github.com/gluster/glusterd2/glusterd2/volgen"
 	"github.com/gluster/glusterd2/glusterd2/volume"
 	"github.com/gluster/glusterd2/glusterd2/xlator"
-	"github.com/gluster/glusterd2/glusterd2/xlator/options"
 	"github.com/gluster/glusterd2/pkg/api"
 	gderrors "github.com/gluster/glusterd2/pkg/errors"
 
@@ -29,7 +29,7 @@ const volumeIDXattrKey = "trusted.glusterfs.volume-id"
 
 // validateOptions validates if the options and their values are valid and can
 // be set on a volume.
-func validateOptions(opts map[string]string, adv, exp, dep bool) error {
+func validateOptions(opts map[string]string, flags api.VolOptionFlags) error {
 
 	for k, v := range opts {
 		o, err := xlator.FindOption(k)
@@ -39,21 +39,21 @@ func validateOptions(opts map[string]string, adv, exp, dep bool) error {
 
 		switch {
 		case !o.IsSettable():
-			return fmt.Errorf("Option %s cannot be set", k)
+			return fmt.Errorf("option %s cannot be set", k)
 
-		case o.IsAdvanced() && !adv:
-			return fmt.Errorf("Option %s is an advanced option. To set it pass the advanced flag", k)
+		case o.IsAdvanced() && !flags.AllowAdvanced:
+			return fmt.Errorf("option %s is an advanced option. To set it pass the advanced flag", k)
 
-		case o.IsExperimental() && !exp:
-			return fmt.Errorf("Option %s is an experimental option. To set it pass the experimental flag", k)
+		case o.IsExperimental() && !flags.AllowExperimental:
+			return fmt.Errorf("option %s is an experimental option. To set it pass the experimental flag", k)
 
-		case o.IsDeprecated() && !dep:
+		case o.IsDeprecated() && !flags.AllowDeprecated:
 			// TODO: Return deprecation version and alternative option if available
-			return fmt.Errorf("Option %s will be deprecated in future releases. To set it pass the deprecated flag", k)
+			return fmt.Errorf("option %s will be deprecated in future releases. To set it pass the deprecated flag", k)
 		}
 
 		if err := o.Validate(v); err != nil {
-			return fmt.Errorf("Failed to validate value(%s) for key(%s): %s", k, v, err.Error())
+			return fmt.Errorf("failed to validate value(%s) for key(%s): %s", k, v, err.Error())
 		}
 		// TODO: Check op-version
 	}
@@ -80,14 +80,27 @@ func validateXlatorOptions(opts map[string]string, volinfo *volume.Volinfo) erro
 	return nil
 }
 
-func expandGroupOptions(opts map[string]string) (map[string]string, error) {
+func getGroupOptionsFromStore() (map[string]*api.OptionGroup, error) {
+
 	resp, err := store.Get(context.TODO(), "groupoptions")
 	if err != nil {
 		return nil, err
 	}
 
 	var groupOptions map[string]*api.OptionGroup
-	if err := json.Unmarshal(resp.Kvs[0].Value, &groupOptions); err != nil {
+	if resp.Count > 0 {
+		if err := json.Unmarshal(resp.Kvs[0].Value, &groupOptions); err != nil {
+			return nil, err
+		}
+	}
+
+	return groupOptions, nil
+}
+
+func expandGroupOptions(opts map[string]string) (map[string]string, error) {
+
+	groupOptions, err := getGroupOptionsFromStore()
+	if err != nil {
 		return nil, err
 	}
 
@@ -113,6 +126,28 @@ func expandGroupOptions(opts map[string]string) (map[string]string, error) {
 			}
 		}
 	}
+
+	return options, nil
+}
+
+func expandGroupOptionsReset(reqOpts []string) ([]string, error) {
+
+	groupOptions, err := getGroupOptionsFromStore()
+	if err != nil {
+		return nil, err
+	}
+
+	var options []string
+	for _, reqOpt := range reqOpts {
+		if optionSet, ok := groupOptions[reqOpt]; ok {
+			for _, option := range optionSet.Options {
+				options = append(options, option.Name)
+			}
+		} else {
+			options = append(options, reqOpt)
+		}
+	}
+
 	return options, nil
 }
 
@@ -252,19 +287,21 @@ func storeVolInfo(c transaction.TxnCtx, key string) error {
 	var volinfo volume.Volinfo
 	if err := c.Get(key, &volinfo); err != nil {
 		c.Logger().WithError(err).WithField(
-			"key", "volinfo").Debug("Failed to get key from store")
+			"key", "volinfo").Debug("failed to get key from store")
+		return err
+	}
+	err := volgen.VolumeVolfileToStore(&volinfo, volinfo.Name, "client")
+	if err != nil {
+		c.Logger().WithError(err).WithFields(log.Fields{
+			"template": "client",
+			"volfile":  volinfo.Name,
+		}).Error("failed to generate volfile and save to store")
 		return err
 	}
 
 	if err := volume.AddOrUpdateVolumeFunc(&volinfo); err != nil {
 		c.Logger().WithError(err).WithField(
 			"volume", volinfo.Name).Debug("failed to store volume info")
-		return err
-	}
-
-	if err := volgen.Generate(); err != nil {
-		c.Logger().WithError(err).WithField(
-			"volume", volinfo.Name).Debug("failed to generate volfiles")
 		return err
 	}
 
@@ -320,4 +357,40 @@ func isActionStepRequired(opt map[string]string, volinfo *volume.Volinfo) bool {
 	}
 
 	return false
+}
+
+func txnDeleteBrickVolfiles(c transaction.TxnCtx) error {
+	var volinfo volume.Volinfo
+	if err := c.Get("volinfo", &volinfo); err != nil {
+		c.Logger().WithError(err).WithField(
+			"key", "volinfo").Error("failed to get key from store")
+		return err
+	}
+
+	err := volgen.DeleteBricksVolfiles(volinfo.GetLocalBricks())
+	if err != nil {
+		c.Logger().WithError(err).WithFields(log.Fields{
+			"template": "brick",
+			"volume":   volinfo.Name,
+		}).Error("failed to delete brick volfile")
+		return err
+	}
+	return nil
+}
+
+func txnGenerateBrickVolfiles(c transaction.TxnCtx) error {
+	var volinfo volume.Volinfo
+	if err := c.Get("volinfo", &volinfo); err != nil {
+		return err
+	}
+
+	err := volgen.GenerateBricksVolfiles(&volinfo, volinfo.GetLocalBricks())
+	if err != nil {
+		c.Logger().WithError(err).WithFields(log.Fields{
+			"template": "brick",
+			"volume":   volinfo.Name,
+		}).Error("failed to generate volfile")
+		return err
+	}
+	return nil
 }

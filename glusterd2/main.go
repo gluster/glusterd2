@@ -12,11 +12,14 @@ import (
 	"github.com/gluster/glusterd2/glusterd2/events"
 	"github.com/gluster/glusterd2/glusterd2/gdctx"
 	"github.com/gluster/glusterd2/glusterd2/peer"
+	"github.com/gluster/glusterd2/glusterd2/pmap"
 	"github.com/gluster/glusterd2/glusterd2/servers"
 	"github.com/gluster/glusterd2/glusterd2/store"
 	gdutils "github.com/gluster/glusterd2/glusterd2/utils"
+	"github.com/gluster/glusterd2/glusterd2/volgen"
 	"github.com/gluster/glusterd2/glusterd2/xlator"
 	"github.com/gluster/glusterd2/pkg/errors"
+	"github.com/gluster/glusterd2/pkg/firewalld"
 	"github.com/gluster/glusterd2/pkg/logging"
 	"github.com/gluster/glusterd2/pkg/tracing"
 	"github.com/gluster/glusterd2/pkg/utils"
@@ -34,8 +37,8 @@ func main() {
 		log.WithError(err).Fatal("Failed to get and set hostname or IP")
 	}
 
-	// Parse command-line arguments
-	parseFlags()
+	// Initialize and parse CLI flags
+	initFlags()
 
 	if showvers, _ := flag.CommandLine.GetBool("version"); showvers {
 		version.DumpVersionInfo()
@@ -50,9 +53,8 @@ func main() {
 		log.WithError(err).Fatal("Failed to initialize logging")
 	}
 
-	// Read config file
-	confFile, _ := flag.CommandLine.GetString("config")
-	if err := initConfig(confFile); err != nil {
+	// Initialize GD2 config
+	if err := initConfig(); err != nil {
 		log.WithError(err).Fatal("Failed to initialize config")
 	}
 
@@ -126,16 +128,28 @@ func main() {
 		defer exporter.Flush()
 	}
 
+	// Load default volfile templates
+	if err := volgen.LoadDefaultTemplates(); err != nil {
+		log.WithError(err).Fatal("failed to load volgen templates")
+	}
+
 	// Start all servers (rest, peerrpc, sunrpc) managed by suture supervisor
 	super := initGD2Supervisor()
 	super.ServeBackground()
 	super.Add(servers.New())
 
-	// Restart previously running daemons
-	daemon.StartAllDaemons()
+	// Start dbus connection (optional for notifying firewalld)
+	if err := firewalld.Init(); err != nil {
+		log.WithError(err).Warn("firewalld.Init() failed")
+	}
+
+	pmap.Init()
 
 	// Mount all Local Bricks
 	gdutils.MountLocalBricks()
+
+	// Restart previously running daemons
+	daemon.StartAllDaemons()
 
 	// Use the main goroutine as signal handling loop
 	sigCh := make(chan os.Signal)
@@ -147,6 +161,7 @@ func main() {
 			fallthrough
 		case unix.SIGINT:
 			log.Info("Received SIGTERM. Stopping GlusterD")
+			gdctx.IsTerminating = true
 			super.Stop()
 			events.Stop()
 			store.Close()
@@ -164,7 +179,7 @@ func main() {
 			}
 		case unix.SIGUSR1:
 			log.Info("Received SIGUSR1. Dumping statedump")
-			utils.WriteStatedump()
+			utils.WriteStatedump(config.GetString("rundir"))
 		default:
 			continue
 		}

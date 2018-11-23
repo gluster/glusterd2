@@ -3,6 +3,10 @@ package sunrpc
 import (
 	"context"
 	"errors"
+	"io/ioutil"
+	"net"
+	"os"
+	"path"
 	"strconv"
 	"strings"
 	"syscall"
@@ -14,6 +18,7 @@ import (
 	"github.com/gluster/glusterd2/plugins/rebalance"
 
 	log "github.com/sirupsen/logrus"
+	config "github.com/spf13/viper"
 )
 
 const (
@@ -73,6 +78,16 @@ func (p *GfHandshake) Procedures() []sunrpc.Procedure {
 	return p.procedures
 }
 
+// GetConn returns the underlying net.Conn.
+func (p *GfHandshake) GetConn() net.Conn {
+	return p.conn
+}
+
+// SetConn returns stores the net.Conn instance provided.
+func (p *GfHandshake) SetConn(conn net.Conn) {
+	p.conn = conn
+}
+
 // GfGetspecReq is sent by glusterfs client and primarily contains volume name.
 // Xdata field is a serialized gluster dict containing op version.
 type GfGetspecReq struct {
@@ -102,6 +117,7 @@ func (p *GfHandshake) ServerGetspec(args *GfGetspecReq, reply *GfGetspecRsp) err
 		err      error
 		addrs    []string
 		respDict map[string]string
+		volinfo  *volume.Volinfo
 	)
 
 	_, err = dict.Unserialize(args.Xdata)
@@ -109,27 +125,49 @@ func (p *GfHandshake) ServerGetspec(args *GfGetspecReq, reply *GfGetspecRsp) err
 		log.WithError(err).Error("ServerGetspec(): dict.Unserialize() failed")
 	}
 
+	log.WithFields(log.Fields{
+		"client":     p.GetConn().RemoteAddr().String(),
+		"volfile-id": args.Key,
+	}).Debug("client wants volfile")
+
 	// Get Volfile from store
 	volfileID := strings.TrimPrefix(args.Key, "/")
-	resp, err := store.Get(context.TODO(), volfilePrefix+volfileID)
-	if err != nil {
-		log.WithField("volfile", args.Key).WithError(err).Error("ServerGetspec(): failed to retrive volfile from store")
+	volfile := path.Join(config.GetString("localstatedir"), "volfiles", volfileID+".vol")
+	content, err := ioutil.ReadFile(volfile)
+	if err != nil && !os.IsNotExist(err) {
+		log.WithError(err).WithField(
+			"volfile", volfile,
+		).Error("ServerGetspec(): failed to read volfile")
 		goto Out
 	}
 
-	if resp.Count != 1 {
-		err = errors.New("volfile not found in store")
-		log.WithField("volfile", args.Key).Error(err.Error())
-		goto Out
+	// If Volfile not available in volfiles directory
+	// fetch from etcd store
+	if os.IsNotExist(err) {
+		// Reset error due to Volfile not exists
+		err = nil
+
+		resp, err := store.Get(context.TODO(), volfilePrefix+volfileID)
+		if err != nil {
+			log.WithError(err).WithField("volfile", args.Key).Error("ServerGetspec(): failed to retrive volfile from store")
+			goto Out
+		}
+
+		if resp.Count != 1 {
+			err = errors.New("volfile not found in store")
+			log.WithError(err).WithField("volfile", args.Key)
+			goto Out
+		}
+		content = resp.Kvs[0].Value
 	}
 
-	reply.Spec = string(resp.Kvs[0].Value)
+	reply.Spec = string(content)
 	reply.OpRet = len(reply.Spec)
 	reply.OpErrno = 0
 
 	if (args.Flags & gfGetspecFlagServersList) != 0 {
 
-		volinfo, err := volume.GetVolume(volfileID)
+		volinfo, err = volume.GetVolume(volfileID)
 		if err != nil {
 			log.WithError(err).WithField("volume", volfileID).Warn("failed to get volinfo from store")
 			// Currently there's no easy way to distinguish between

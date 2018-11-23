@@ -11,6 +11,7 @@ import (
 	"github.com/coreos/etcd/clientv3"
 	"github.com/pborman/uuid"
 	log "github.com/sirupsen/logrus"
+	"go.opencensus.io/trace"
 )
 
 const (
@@ -90,10 +91,7 @@ func GetVolumesList() (map[string]uuid.UUID, error) {
 		var vol Volinfo
 
 		if err := json.Unmarshal(kv.Value, &vol); err != nil {
-			log.WithFields(log.Fields{
-				"volume": string(kv.Key),
-				"error":  err,
-			}).Error("Failed to unmarshal volume")
+			log.WithError(err).WithField("volume", string(kv.Key)).Error("Failed to unmarshal volume")
 			continue
 		}
 
@@ -119,8 +117,14 @@ func getFilterType(filterParams map[string]string) metadataFilter {
 
 //GetVolumes retrives the json objects from the store and converts them into
 //respective volinfo objects
-func GetVolumes(filterParams ...map[string]string) ([]*Volinfo, error) {
-	resp, e := store.Get(context.TODO(), volumePrefix, clientv3.WithPrefix())
+func GetVolumes(ctx context.Context, filterParams ...map[string]string) ([]*Volinfo, error) {
+	if ctx != context.TODO() {
+		var span *trace.Span
+		ctx, span = trace.StartSpan(ctx, "volume.GetVolumes")
+		defer span.End()
+	}
+
+	resp, e := store.Get(ctx, volumePrefix, clientv3.WithPrefix())
 	if e != nil {
 		return nil, e
 	}
@@ -138,10 +142,7 @@ func GetVolumes(filterParams ...map[string]string) ([]*Volinfo, error) {
 		var vol Volinfo
 
 		if err := json.Unmarshal(kv.Value, &vol); err != nil {
-			log.WithFields(log.Fields{
-				"volume": string(kv.Key),
-				"error":  err,
-			}).Error("Failed to unmarshal volume")
+			log.WithError(err).WithField("volume", string(kv.Key)).Error("Failed to unmarshal volume")
 			continue
 		}
 		switch filterType {
@@ -175,7 +176,7 @@ func GetVolumes(filterParams ...map[string]string) ([]*Volinfo, error) {
 // belong to different volumes.
 func GetAllBricksInCluster() ([]brick.Brickinfo, error) {
 
-	volumes, err := GetVolumes()
+	volumes, err := GetVolumes(context.TODO())
 	if err != nil {
 		return nil, err
 	}
@@ -188,15 +189,18 @@ func GetAllBricksInCluster() ([]brick.Brickinfo, error) {
 	return bricks, nil
 }
 
-// AreReplicateVolumesRunning retrieves the volinfo objects from GetVolumes() function
-// and checks if all replicate, Disperse volumes are stopped before
-// stopping the self heal daemon.
-func AreReplicateVolumesRunning() (bool, error) {
-	volumes, e := GetVolumes()
+// AreReplicateVolumesRunning checks if all replicate and disperse volumes are stopped.
+// The volume being acted upon is excluded from this check and
+// the volume ID of that volume needs to be volume passed as an argument.
+func AreReplicateVolumesRunning(skipVolID uuid.UUID) (bool, error) {
+	volumes, e := GetVolumes(context.TODO())
 	if e != nil {
 		return false, e
 	}
 	for _, v := range volumes {
+		if uuid.Equal(v.ID, skipVolID) {
+			continue
+		}
 		if (v.Type == Replicate || v.Type == Disperse || v.Type == DistReplicate || v.Type == DistDisperse) && v.State == VolStarted {
 			return true, nil
 		}

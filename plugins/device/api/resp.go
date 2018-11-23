@@ -11,7 +11,7 @@ type Info struct {
 	VgName        string `json:"vg-name"`
 	AvailableSize uint64 `json:"available-size"`
 	ExtentSize    uint64 `json:"extent-size"`
-	Used          bool   `json:"used"`
+	Used          bool   `json:"device-used"`
 	PeerID        string `json:"peer-id"`
 }
 

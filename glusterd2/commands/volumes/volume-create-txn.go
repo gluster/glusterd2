@@ -60,6 +60,8 @@ func voltypeFromSubvols(req *api.VolCreateReq) volume.VolType {
 
 func populateSubvols(volinfo *volume.Volinfo, req *api.VolCreateReq) error {
 	var err error
+	provisionType := volinfo.GetProvisionType()
+
 	for idx, subvolreq := range req.Subvols {
 		if subvolreq.ReplicaCount == 0 && subvolreq.Type == "replicate" {
 			return errors.New("replica count not specified")
@@ -72,13 +74,12 @@ func populateSubvols(volinfo *volume.Volinfo, req *api.VolCreateReq) error {
 		name := fmt.Sprintf("%s-%s-%d", volinfo.Name, strings.ToLower(subvolreq.Type), idx)
 
 		ty := volume.SubvolDistribute
+
 		switch subvolreq.Type {
 		case "replicate":
 			ty = volume.SubvolReplicate
 		case "disperse":
 			ty = volume.SubvolDisperse
-		default:
-			ty = volume.SubvolDistribute
 		}
 
 		s := volume.Subvol{
@@ -91,7 +92,16 @@ func populateSubvols(volinfo *volume.Volinfo, req *api.VolCreateReq) error {
 			if subvolreq.ReplicaCount != 2 || subvolreq.ArbiterCount != 1 {
 				return errors.New("for arbiter configuration, replica count must be 2 and arbiter count must be 1. The 3rd brick of the replica will be the arbiter")
 			}
-			s.ArbiterCount = 1
+			var abriterBrickCount int
+			for _, b := range subvolreq.Bricks {
+				if b.Type == "arbiter" {
+					abriterBrickCount++
+				}
+			}
+			if abriterBrickCount != subvolreq.ArbiterCount {
+				return errors.New("arbiter count doesn't match with number of arbiter bricks specified")
+			}
+			s.ArbiterCount = subvolreq.ArbiterCount
 		}
 
 		if subvolreq.ReplicaCount == 0 {
@@ -106,7 +116,7 @@ func populateSubvols(volinfo *volume.Volinfo, req *api.VolCreateReq) error {
 				return err
 			}
 		}
-		s.Bricks, err = volume.NewBrickEntriesFunc(subvolreq.Bricks, volinfo.Name, volinfo.ID)
+		s.Bricks, err = volume.NewBrickEntriesFunc(subvolreq.Bricks, volinfo.Name, volinfo.VolfileID, volinfo.ID, provisionType)
 		if err != nil {
 			return err
 		}
@@ -119,13 +129,14 @@ func populateSubvols(volinfo *volume.Volinfo, req *api.VolCreateReq) error {
 func newVolinfo(req *api.VolCreateReq) (*volume.Volinfo, error) {
 
 	volinfo := &volume.Volinfo{
-		ID:        uuid.NewRandom(),
-		Name:      req.Name,
-		VolfileID: req.Name,
-		State:     volume.VolCreated,
-		Type:      voltypeFromSubvols(req),
-		DistCount: len(req.Subvols),
-		SnapList:  []string{},
+		ID:                    uuid.NewRandom(),
+		Name:                  req.Name,
+		VolfileID:             req.Name,
+		State:                 volume.VolCreated,
+		Type:                  voltypeFromSubvols(req),
+		DistCount:             len(req.Subvols),
+		SnapList:              []string{},
+		SnapshotReserveFactor: req.SnapshotReserveFactor,
 		Auth: volume.VolAuth{
 			Username: uuid.NewRandom().String(),
 			Password: uuid.NewRandom().String(),
@@ -138,20 +149,31 @@ func newVolinfo(req *api.VolCreateReq) (*volume.Volinfo, error) {
 		volinfo.Options = make(map[string]string)
 	}
 
+	if req.Size != 0 {
+		volinfo.Capacity = req.Size
+	}
+
 	if req.Transport != "" {
 		volinfo.Transport = req.Transport
 	} else {
 		volinfo.Transport = "tcp"
 	}
 
-	if err := populateSubvols(volinfo, req); err != nil {
-		return nil, err
-	}
-
 	if req.Metadata != nil {
 		volinfo.Metadata = req.Metadata
 	} else {
 		volinfo.Metadata = make(map[string]string)
+	}
+
+	if req.Size > 0 {
+		//AutoProvisioned volume
+		volinfo.Metadata[brick.ProvisionKey] = string(brick.AutoProvisioned)
+	} else {
+		volinfo.Metadata[brick.ProvisionKey] = string(brick.ManuallyProvisioned)
+	}
+
+	if err := populateSubvols(volinfo, req); err != nil {
+		return nil, err
 	}
 
 	return volinfo, nil

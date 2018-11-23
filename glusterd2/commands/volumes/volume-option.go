@@ -5,18 +5,19 @@ import (
 	"net/http"
 
 	"github.com/gluster/glusterd2/glusterd2/gdctx"
+	"github.com/gluster/glusterd2/glusterd2/options"
 	"github.com/gluster/glusterd2/glusterd2/peer"
 	restutils "github.com/gluster/glusterd2/glusterd2/servers/rest/utils"
 	"github.com/gluster/glusterd2/glusterd2/transaction"
 	"github.com/gluster/glusterd2/glusterd2/volume"
 	"github.com/gluster/glusterd2/glusterd2/xlator"
-	"github.com/gluster/glusterd2/glusterd2/xlator/options"
 	"github.com/gluster/glusterd2/pkg/api"
 	"github.com/gluster/glusterd2/pkg/errors"
 
 	"github.com/gorilla/mux"
 	"github.com/pborman/uuid"
 	log "github.com/sirupsen/logrus"
+	"go.opencensus.io/trace"
 )
 
 func optionSetValidate(c transaction.TxnCtx) error {
@@ -34,7 +35,7 @@ func optionSetValidate(c transaction.TxnCtx) error {
 	// TODO: Validate op versions of the options. Either here or inside
 	// validateOptions.
 
-	if err := validateOptions(options, req.Advanced, req.Experimental, req.Deprecated); err != nil {
+	if err := validateOptions(options, req.VolOptionFlags); err != nil {
 		return fmt.Errorf("validation failed for volume option: %s", err.Error())
 	}
 
@@ -62,37 +63,58 @@ func optionSetValidate(c transaction.TxnCtx) error {
 }
 
 type txnOpType uint8
-type volumeOpType uint8
 
 const (
 	txnDo txnOpType = iota
 	txnUndo
-	volumeSet volumeOpType = iota
-	volumeReset
 )
 
 func xlatorActionDoSet(c transaction.TxnCtx) error {
-	return xlatorAction(c, txnDo, volumeSet)
+	return xlatorAction(c, txnDo, xlator.VolumeSet)
 }
 
 func xlatorActionUndoSet(c transaction.TxnCtx) error {
-	return xlatorAction(c, txnUndo, volumeSet)
+	return xlatorAction(c, txnUndo, xlator.VolumeSet)
 }
 
 func xlatorActionDoReset(c transaction.TxnCtx) error {
-	return xlatorAction(c, txnDo, volumeReset)
+	return xlatorAction(c, txnDo, xlator.VolumeReset)
 }
 
 func xlatorActionUndoReset(c transaction.TxnCtx) error {
-	return xlatorAction(c, txnUndo, volumeReset)
+	return xlatorAction(c, txnUndo, xlator.VolumeReset)
+}
+
+func xlatorActionDoVolumeStart(c transaction.TxnCtx) error {
+	return xlatorAction(c, txnDo, xlator.VolumeStart)
+}
+
+func xlatorActionUndoVolumeStart(c transaction.TxnCtx) error {
+	return xlatorAction(c, txnUndo, xlator.VolumeStart)
+}
+
+func xlatorActionDoVolumeStop(c transaction.TxnCtx) error {
+	return xlatorAction(c, txnDo, xlator.VolumeStop)
+}
+
+func xlatorActionUndoVolumeStop(c transaction.TxnCtx) error {
+	return xlatorAction(c, txnUndo, xlator.VolumeStop)
 }
 
 // This function can be reused when volume reset operation is implemented.
 // However, volume reset can be also be treated logically as volume set but
 // with the value set to default value.
-func xlatorAction(c transaction.TxnCtx, txnOp txnOpType, volOp volumeOpType) error {
+func xlatorAction(c transaction.TxnCtx, txnOp txnOpType, volOp xlator.VolumeOpType) error {
+
+	var volinfo volume.Volinfo
+	if err := c.Get("volinfo", &volinfo); err != nil {
+		return err
+	}
+
 	reqOptions := make(map[string]string)
-	if volOp == volumeSet {
+	var fn func(*volume.Volinfo, string, string, xlator.VolumeOpType, log.FieldLogger) error
+	switch volOp {
+	case xlator.VolumeSet:
 		var req api.VolOptionReq
 		if err := c.Get("req", &req); err != nil {
 			return err
@@ -100,7 +122,7 @@ func xlatorAction(c transaction.TxnCtx, txnOp txnOpType, volOp volumeOpType) err
 		for key, value := range req.Options {
 			reqOptions[key] = value
 		}
-	} else {
+	case xlator.VolumeReset:
 		var req api.VolOptionResetReq
 		if err := c.Get("req", &req); err != nil {
 			return err
@@ -113,13 +135,23 @@ func xlatorAction(c transaction.TxnCtx, txnOp txnOpType, volOp volumeOpType) err
 			reqOptions[key] = op.DefaultValue
 		}
 
-	}
-	var volinfo volume.Volinfo
-	if err := c.Get("volinfo", &volinfo); err != nil {
-		return err
-	}
+	case xlator.VolumeStart:
+		fallthrough
 
-	var fn func(*volume.Volinfo, string, string, log.FieldLogger) error
+	case xlator.VolumeStop:
+		for _, actor := range xlator.GetOptActors() {
+			if txnOp == txnDo {
+				fn = actor.Do
+			} else {
+				fn = actor.Undo
+			}
+			if err := fn(&volinfo, "", "", volOp, c.Logger()); err != nil {
+				return err
+			}
+		}
+		return nil
+	}
+	//The code below applies only for xlator.VolumeSet and xlator.VolumeReset operations.
 	for k, v := range reqOptions {
 		_, xl, key, err := options.SplitKey(k)
 		if err != nil {
@@ -135,7 +167,7 @@ func xlatorAction(c transaction.TxnCtx, txnOp txnOpType, volOp volumeOpType) err
 			} else {
 				fn = xltr.Actor.Undo
 			}
-			if err := fn(&volinfo, key, v, c.Logger()); err != nil {
+			if err := fn(&volinfo, key, v, volOp, c.Logger()); err != nil {
 				return err
 			}
 		}
@@ -155,6 +187,8 @@ func registerVolOptionStepFuncs() {
 		{"vol-option.UpdateVolinfo", storeVolume},
 		{"vol-option.UpdateVolinfo.Undo", undoStoreVolume},
 		{"vol-option.NotifyVolfileChange", notifyVolfileChange},
+		{"vol-option.GenerateBrickVolfiles", txnGenerateBrickVolfiles},
+		{"vol-option.GenerateBrickvolfiles.Undo", txnDeleteBrickVolfiles},
 	}
 	for _, sf := range sfs {
 		transaction.RegisterStepFunc(sf.sf, sf.name)
@@ -164,6 +198,8 @@ func registerVolOptionStepFuncs() {
 func volumeOptionsHandler(w http.ResponseWriter, r *http.Request) {
 
 	ctx := r.Context()
+	ctx, span := trace.StartSpan(ctx, "/volumeOptionsHandler")
+	defer span.End()
 	logger := gdctx.GetReqLogger(ctx)
 	volname := mux.Vars(r)["volname"]
 
@@ -216,6 +252,11 @@ func volumeOptionsHandler(w http.ResponseWriter, r *http.Request) {
 			Skip:     !isActionStepRequired(req.Options, volinfo),
 		},
 		{
+			DoFunc:   "vol-option.GenerateBrickVolfiles",
+			UndoFunc: "vol-option.GenerateBrickvolfiles.Undo",
+			Nodes:    volinfo.Nodes(),
+		},
+		{
 			DoFunc: "vol-option.NotifyVolfileChange",
 			Nodes:  allNodes,
 		},
@@ -230,6 +271,18 @@ func volumeOptionsHandler(w http.ResponseWriter, r *http.Request) {
 		restutils.SendHTTPError(ctx, w, http.StatusInternalServerError, err)
 		return
 	}
+
+	// Add relevant attributes to the span
+	var optionToSet string
+	for option, value := range req.Options {
+		optionToSet += option + "=" + value + ","
+	}
+
+	span.AddAttributes(
+		trace.StringAttribute("reqID", txn.Ctx.GetTxnReqID()),
+		trace.StringAttribute("volName", volname),
+		trace.StringAttribute("optionToSet", optionToSet),
+	)
 
 	if err := txn.Do(); err != nil {
 		logger.WithError(err).Error("volume option transaction failed")

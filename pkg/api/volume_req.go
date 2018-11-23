@@ -12,7 +12,7 @@ type BrickReq struct {
 	LvName         string `json:"logical-volume,omitempty"`
 	Size           uint64 `json:"size,omitempty"`
 	VgID           string `json:"vg-id,omitempty"`
-	Mountdir       string `json:"mount-dir,omitempty"`
+	BrickDirSuffix string `json:"brick-dir-suffix,omitempty"`
 	DevicePath     string `json:"device-path,omitempty"`
 	MntOpts        string `json:"mnt-opts,omitempty"`
 	FsType         string `json:"fs-type,omitempty"`
@@ -41,17 +41,14 @@ type VolCreateReq struct {
 	Name                    string            `json:"name,omitempty"`
 	Transport               string            `json:"transport,omitempty"`
 	Subvols                 []SubvolReq       `json:"subvols"`
-	Options                 map[string]string `json:"options,omitempty"`
 	Force                   bool              `json:"force,omitempty"`
-	Advanced                bool              `json:"advanced,omitempty"`
-	Experimental            bool              `json:"experimental,omitempty"`
-	Deprecated              bool              `json:"deprecated,omitempty"`
 	Metadata                map[string]string `json:"metadata,omitempty"`
 	Flags                   map[string]bool   `json:"flags,omitempty"`
 	Size                    uint64            `json:"size"`
 	DistributeCount         int               `json:"distribute,omitempty"`
 	ReplicaCount            int               `json:"replica,omitempty"`
 	ArbiterCount            int               `json:"arbiter,omitempty"`
+	AverageFileSize         uint64            `json:"average-file-size,omitempty"`
 	DisperseCount           int               `json:"disperse,omitempty"`
 	DisperseRedundancyCount int               `json:"disperse-redundancy,omitempty"`
 	DisperseDataCount       int               `json:"disperse-data,omitempty"`
@@ -63,14 +60,21 @@ type VolCreateReq struct {
 	ExcludeZones            []string          `json:"exclude-zones,omitempty"`
 	SubvolZonesOverlap      bool              `json:"subvolume-zones-overlap,omitempty"`
 	SubvolType              string            `json:"subvolume-type,omitempty"`
+	VolOptionReq
+}
+
+// VolOptionFlags is set of flags that allow/disallow setting certain kinds
+// of volume options.
+type VolOptionFlags struct {
+	AllowAdvanced     bool `json:"allow-advanced-options,omitempty"`
+	AllowExperimental bool `json:"allow-experimental-options,omitempty"`
+	AllowDeprecated   bool `json:"allow-deprecated-options,omitempty"`
 }
 
 // VolOptionReq represents an incoming request to set volume options
 type VolOptionReq struct {
-	Options      map[string]string `json:"options"`
-	Advanced     bool              `json:"advanced,omitempty"`
-	Experimental bool              `json:"experimental,omitempty"`
-	Deprecated   bool              `json:"deprecated,omitempty"`
+	Options map[string]string `json:"options"`
+	VolOptionFlags
 }
 
 // VolOptionResetReq represents a request to reset volume options
@@ -88,10 +92,12 @@ type VolOptionResetReq struct {
 "create-brick-dir" : if brick dir is not present, create it
 */
 type VolExpandReq struct {
-	ReplicaCount int             `json:"replica,omitempty"`
-	Bricks       []BrickReq      `json:"bricks"`
-	Force        bool            `json:"force,omitempty"`
-	Flags        map[string]bool `json:"flags,omitempty"`
+	ReplicaCount    int             `json:"replica,omitempty"`
+	Bricks          []BrickReq      `json:"bricks,omitempty"`
+	Force           bool            `json:"force,omitempty"`
+	Flags           map[string]bool `json:"flags,omitempty"`
+	Size            uint64          `json:"size,omitempty"`
+	DistributeCount int             `json:"distribute,omitempty"`
 }
 
 // VolumeOption represents an option that is part of a profile
@@ -110,9 +116,7 @@ type OptionGroup struct {
 // OptionGroupReq represents a request to create a new option group
 type OptionGroupReq struct {
 	OptionGroup
-	Advanced     bool `json:"advanced,omitempty"`
-	Experimental bool `json:"experimental,omitempty"`
-	Deprecated   bool `json:"deprecated,omitempty"`
+	VolOptionFlags
 }
 
 // ClientStatedump uniquely identifies a client (only gfapi) connected to
