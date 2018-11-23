@@ -14,6 +14,7 @@ import (
 	"time"
 
 	"github.com/gluster/glusterd2/glusterd2/brick"
+	gderrors "github.com/gluster/glusterd2/pkg/errors"
 	"github.com/gluster/glusterd2/pkg/utils"
 
 	"github.com/pborman/uuid"
@@ -285,15 +286,20 @@ func UmountBrick(b brick.Brickinfo) error {
 }
 
 //MountVolumeBricks will mount local bricks of a volume
-func MountVolumeBricks(volinfo *Volinfo) error {
+func MountVolumeBricks(volinfo *Volinfo, skipError bool) error {
 	mtab, err := GetMounts()
 	if err != nil {
 		return err
 	}
 
 	for _, b := range volinfo.GetLocalBricks() {
-		if err := MountBrickDirectory(volinfo, &b, mtab); err != nil {
-			return err
+		err := MountBrickDirectory(volinfo, &b, mtab)
+		if err != nil {
+			log.WithError(err).WithFields(log.Fields{"brickPath": b.Path}).Error(gderrors.ErrBrickMountFailed)
+			if !skipError {
+				return err
+			}
+			continue
 		}
 	}
 	return nil

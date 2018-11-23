@@ -5,6 +5,9 @@ import (
 
 	"github.com/gluster/glusterd2/glusterd2/snapshot"
 	"github.com/gluster/glusterd2/glusterd2/volume"
+	"github.com/gluster/glusterd2/pkg/errors"
+
+	log "github.com/sirupsen/logrus"
 )
 
 // MountLocalBricks mounts bricks of auto provisioned volumes
@@ -25,8 +28,9 @@ func MountLocalBricks() error {
 	}
 
 	for _, v := range volumes {
-		if err := volume.MountVolumeBricks(v); err != nil {
-			return err
+		if err := volume.MountVolumeBricks(v, true); err != nil {
+			log.WithError(err).Error(errors.ErrVolumeBricksMountFailed)
+			continue
 		}
 	}
 
