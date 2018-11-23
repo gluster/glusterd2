@@ -110,7 +110,7 @@ func main() {
 
 	// Create the Opencensus Jaeger exporter
 	if exporter := tracing.InitJaegerExporter(); exporter != nil {
-		defer exporter.Flush()
+		defer tracing.Flush()
 	}
 
 	// Load default volfile templates
