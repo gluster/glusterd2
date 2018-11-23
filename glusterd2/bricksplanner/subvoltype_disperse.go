@@ -29,7 +29,7 @@ func (s *disperseSubvolPlanner) BrickSize(idx int) uint64 {
 }
 
 func (s *disperseSubvolPlanner) BrickType(idx int) string {
-	return "Brick"
+	return "brick"
 }
 
 func init() {

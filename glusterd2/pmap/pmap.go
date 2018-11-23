@@ -1,13 +1,8 @@
 package pmap
 
-import "net"
-
-// AssignPort assigns an available port to brick specified by the brick path
-// and returns the port number allocated. Returns error if it cannot allocate
-// a free port.
-func AssignPort(brickpath string) (int, error) {
-	return registry.Allocate(brickpath)
-}
+import (
+	"net"
+)
 
 // RegistrySearch searches for a brick path in the pmap registry and
 // returns the port assigned to it.

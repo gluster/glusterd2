@@ -21,7 +21,7 @@ type Scrubd struct {
 	args           []string
 	pidfilepath    string
 	binarypath     string
-	volfileID      string
+	VolfileID      string
 	logfile        string
 	socketfilepath string
 }
@@ -69,7 +69,7 @@ func newScrubd() (*Scrubd, error) {
 	if e = os.MkdirAll(pidFileDir, os.ModeDir|os.ModePerm); e != nil {
 		return nil, e
 	}
-	shost, _, e := net.SplitHostPort(config.GetString("clientaddress"))
+	shost, sport, e := net.SplitHostPort(config.GetString("clientaddress"))
 	if e != nil {
 		return nil, e
 	}
@@ -79,7 +79,7 @@ func newScrubd() (*Scrubd, error) {
 
 	s := &Scrubd{
 		binarypath:  binarypath,
-		volfileID:   gdctx.MyUUID.String() + "-gluster/scrub",
+		VolfileID:   gdctx.MyUUID.String() + "-gluster/scrub",
 		logfile:     path.Join(config.GetString("logdir"), "glusterfs", "scrub.log"),
 		pidfilepath: fmt.Sprintf("%s/scrub.pid", pidFileDir),
 	}
@@ -87,7 +87,8 @@ func newScrubd() (*Scrubd, error) {
 	s.socketfilepath = s.SocketFile()
 	s.args = []string{}
 	s.args = append(s.args, "-s", shost)
-	s.args = append(s.args, "--volfile-id", s.volfileID)
+	s.args = append(s.args, "--volfile-server-port", sport)
+	s.args = append(s.args, "--volfile-id", s.VolfileID)
 	s.args = append(s.args, "-p", s.pidfilepath)
 	s.args = append(s.args, "-l", s.logfile)
 	s.args = append(s.args, "-S", s.socketfilepath)

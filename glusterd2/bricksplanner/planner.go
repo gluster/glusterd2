@@ -7,7 +7,7 @@ import (
 
 	"github.com/gluster/glusterd2/glusterd2/volume"
 	"github.com/gluster/glusterd2/pkg/api"
-	"github.com/gluster/glusterd2/plugins/device/deviceutils"
+	"github.com/gluster/glusterd2/pkg/lvmutils"
 
 	config "github.com/spf13/viper"
 )
@@ -74,9 +74,8 @@ func getBricksLayout(req *api.VolCreateReq) ([]api.SubvolReq, error) {
 		numSubvols = req.DistributeCount
 	}
 
-	// User input will be in MBs, convert to KBs for all
-	// internal usage
-	subvolSize := deviceutils.MbToKb(req.Size)
+	// User input will be in Bytes
+	subvolSize := req.Size
 	if numSubvols > 1 {
 		subvolSize = subvolSize / uint64(numSubvols)
 	}
@@ -123,12 +122,12 @@ func getBricksLayout(req *api.VolCreateReq) ([]api.SubvolReq, error) {
 			bricks = append(bricks, api.BrickReq{
 				Type:           brickType,
 				Path:           fmt.Sprintf("%s/%s/subvol%d/brick%d/brick", bricksMountRoot, req.Name, i+1, j+1),
-				Mountdir:       "/brick",
+				BrickDirSuffix: "/brick",
 				TpName:         fmt.Sprintf("tp_%s_s%d_b%d", req.Name, i+1, j+1),
 				LvName:         fmt.Sprintf("brick_%s_s%d_b%d", req.Name, i+1, j+1),
 				Size:           eachBrickSize,
 				TpSize:         eachBrickTpSize,
-				TpMetadataSize: deviceutils.GetPoolMetadataSize(eachBrickTpSize),
+				TpMetadataSize: lvmutils.GetPoolMetadataSize(eachBrickTpSize),
 				FsType:         "xfs",
 				MntOpts:        "rw,inode64,noatime,nouuid",
 			})

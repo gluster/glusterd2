@@ -5,18 +5,19 @@ import (
 	"net/http"
 
 	"github.com/gluster/glusterd2/glusterd2/gdctx"
+	"github.com/gluster/glusterd2/glusterd2/options"
 	"github.com/gluster/glusterd2/glusterd2/peer"
 	restutils "github.com/gluster/glusterd2/glusterd2/servers/rest/utils"
 	"github.com/gluster/glusterd2/glusterd2/transaction"
 	"github.com/gluster/glusterd2/glusterd2/volume"
 	"github.com/gluster/glusterd2/glusterd2/xlator"
-	"github.com/gluster/glusterd2/glusterd2/xlator/options"
 	"github.com/gluster/glusterd2/pkg/api"
 	"github.com/gluster/glusterd2/pkg/errors"
 
 	"github.com/gorilla/mux"
 	"github.com/pborman/uuid"
 	log "github.com/sirupsen/logrus"
+	"go.opencensus.io/trace"
 )
 
 func optionSetValidate(c transaction.TxnCtx) error {
@@ -34,7 +35,7 @@ func optionSetValidate(c transaction.TxnCtx) error {
 	// TODO: Validate op versions of the options. Either here or inside
 	// validateOptions.
 
-	if err := validateOptions(options, req.Advanced, req.Experimental, req.Deprecated); err != nil {
+	if err := validateOptions(options, req.VolOptionFlags); err != nil {
 		return fmt.Errorf("validation failed for volume option: %s", err.Error())
 	}
 
@@ -186,6 +187,8 @@ func registerVolOptionStepFuncs() {
 		{"vol-option.UpdateVolinfo", storeVolume},
 		{"vol-option.UpdateVolinfo.Undo", undoStoreVolume},
 		{"vol-option.NotifyVolfileChange", notifyVolfileChange},
+		{"vol-option.GenerateBrickVolfiles", txnGenerateBrickVolfiles},
+		{"vol-option.GenerateBrickvolfiles.Undo", txnDeleteBrickVolfiles},
 	}
 	for _, sf := range sfs {
 		transaction.RegisterStepFunc(sf.sf, sf.name)
@@ -195,6 +198,8 @@ func registerVolOptionStepFuncs() {
 func volumeOptionsHandler(w http.ResponseWriter, r *http.Request) {
 
 	ctx := r.Context()
+	ctx, span := trace.StartSpan(ctx, "/volumeOptionsHandler")
+	defer span.End()
 	logger := gdctx.GetReqLogger(ctx)
 	volname := mux.Vars(r)["volname"]
 
@@ -247,6 +252,11 @@ func volumeOptionsHandler(w http.ResponseWriter, r *http.Request) {
 			Skip:     !isActionStepRequired(req.Options, volinfo),
 		},
 		{
+			DoFunc:   "vol-option.GenerateBrickVolfiles",
+			UndoFunc: "vol-option.GenerateBrickvolfiles.Undo",
+			Nodes:    volinfo.Nodes(),
+		},
+		{
 			DoFunc: "vol-option.NotifyVolfileChange",
 			Nodes:  allNodes,
 		},
@@ -261,6 +271,18 @@ func volumeOptionsHandler(w http.ResponseWriter, r *http.Request) {
 		restutils.SendHTTPError(ctx, w, http.StatusInternalServerError, err)
 		return
 	}
+
+	// Add relevant attributes to the span
+	var optionToSet string
+	for option, value := range req.Options {
+		optionToSet += option + "=" + value + ","
+	}
+
+	span.AddAttributes(
+		trace.StringAttribute("reqID", txn.Ctx.GetTxnReqID()),
+		trace.StringAttribute("volName", volname),
+		trace.StringAttribute("optionToSet", optionToSet),
+	)
 
 	if err := txn.Do(); err != nil {
 		logger.WithError(err).Error("volume option transaction failed")

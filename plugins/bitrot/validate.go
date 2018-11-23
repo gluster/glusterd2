@@ -33,7 +33,7 @@ func validateOptions(v *volume.Volinfo, key string, value string) error {
 			return nil
 		}
 		return fmt.Errorf(
-			"Invalid value specified for option '%s'. Possible values: {%s}",
+			"invalid value specified for option '%s'. Possible values: {%s}",
 			key, strings.Join(acceptedFrequencyValues, ", "))
 	case "scrub-state":
 		acceptedScrubStateValues := []string{"pause", "resume"}
@@ -41,7 +41,7 @@ func validateOptions(v *volume.Volinfo, key string, value string) error {
 			return nil
 		}
 		return fmt.Errorf(
-			"invalid value specified for option '%s'. possible values: {%s}",
+			"invalid value specified for option '%s'. Possible values: {%s}",
 			key, strings.Join(acceptedScrubStateValues, ", "))
 
 	}

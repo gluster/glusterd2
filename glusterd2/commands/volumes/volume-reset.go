@@ -140,6 +140,11 @@ func volumeResetHandler(w http.ResponseWriter, r *http.Request) {
 			Nodes:    []uuid.UUID{gdctx.MyUUID},
 		},
 		{
+			DoFunc:   "vol-option.GenerateBrickVolfiles",
+			UndoFunc: "vol-option.GenerateBrickvolfiles.Undo",
+			Nodes:    volinfo.Nodes(),
+		},
+		{
 			DoFunc: "vol-option.NotifyVolfileChange",
 			Nodes:  allNodes,
 		},

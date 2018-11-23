@@ -44,7 +44,7 @@ func volumeListHandler(w http.ResponseWriter, r *http.Request) {
 }
 
 func createVolumeListResp(ctx context.Context, volumes []*volume.Volinfo) *api.VolumeListResp {
-	ctx, span := trace.StartSpan(ctx, "createVolumeListResp")
+	_, span := trace.StartSpan(ctx, "createVolumeListResp")
 	defer span.End()
 
 	var resp = make(api.VolumeListResp, len(volumes))

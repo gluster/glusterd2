@@ -14,14 +14,15 @@ import (
 	"github.com/gluster/glusterd2/glusterd2/volume"
 	"github.com/gluster/glusterd2/pkg/api"
 	gderrors "github.com/gluster/glusterd2/pkg/errors"
+	gutils "github.com/gluster/glusterd2/pkg/utils"
 
 	"github.com/pborman/uuid"
 	"go.opencensus.io/trace"
 )
 
 const (
-	maxMetadataSizeLimit = 4096
-	minVolumeSize        = 20
+	maxMetadataSizeLimit = 4 * gutils.KiB
+	minVolumeSize        = 20 * gutils.MiB
 )
 
 func applyDefaults(req *api.VolCreateReq) {
@@ -143,7 +144,7 @@ func volumeCreateHandler(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	if err := validateOptions(req.Options, req.Advanced, req.Experimental, req.Deprecated); err != nil {
+	if err := validateOptions(req.Options, req.VolOptionFlags); err != nil {
 		restutils.SendHTTPError(ctx, w, http.StatusBadRequest, err)
 		return
 	}

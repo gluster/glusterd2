@@ -1,6 +1,7 @@
 package transaction
 
 import (
+	"context"
 	"encoding/json"
 	"errors"
 
@@ -8,7 +9,6 @@ import (
 
 	log "github.com/sirupsen/logrus"
 	"go.opencensus.io/trace"
-	"golang.org/x/net/context"
 	"google.golang.org/grpc"
 )
 

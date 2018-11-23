@@ -53,6 +53,8 @@ type GDStore struct {
 
 	ee        *elasticetcd.ElasticEtcd
 	namespace string
+	stop      chan struct{}
+	stopOnce  sync.Once
 }
 
 // Init initializes the GD2 store
@@ -111,7 +113,68 @@ func New(conf *Config) (*GDStore, error) {
 	if err = store.publishLiveness(); err != nil {
 		return nil, err
 	}
+
+	store.stop = make(chan struct{})
+
+	go store.keepSessionAlive()
 	return store, nil
+}
+
+// keepSessionAlive configures a new session for GDStore if existing
+// session lease expires, or no longer being refreshed. It checks
+// session lease information and store endpoint health on a regular interval.
+// A session lease will get expire in many situations like if there is a
+// reconnection with etcd server.
+func (s *GDStore) keepSessionAlive() {
+	var (
+		ticker         = time.NewTicker(time.Second * 5)
+		printedFailure bool
+	)
+	defer ticker.Stop()
+	for {
+		select {
+		case <-s.stop:
+			return
+		case <-ticker.C:
+			// check if lease is orphaned, expires, or no longer being refreshed.
+			<-s.Session.Done()
+			if !printedFailure {
+				log.WithField("leaseID", s.Session.Lease()).Debug("granted session lease has been expired")
+			}
+
+			if !s.isStorehealthy() {
+				if !printedFailure {
+					log.Warn("etcd server is not reachable from this node, " +
+						"make sure network connection is active and etcd is running")
+					printedFailure = true
+				}
+				continue
+			}
+
+			log.Debug("reconnection to etcd server has been detected")
+
+			// create a new session for GDStore
+			session, err := concurrency.NewSession(s.Client, concurrency.WithTTL(sessionTTL))
+			if err != nil {
+				log.WithError(err).Error("failed to create an etcd session")
+				continue
+			}
+			s.Session = session
+			log.Debug("new etcd session created successfully")
+			s.publishLiveness()
+			printedFailure = false
+		}
+	}
+}
+
+// isStorehealthy checks if store is reachable from the node.
+// Get a random key.If we get the response without an error,
+// the endpoint is healthy.
+func (s *GDStore) isStorehealthy() bool {
+	ctx, cancel := context.WithTimeout(context.Background(), getTimeout*time.Second)
+	defer cancel()
+	_, err := s.Get(ctx, "health")
+	return err == nil
 }
 
 // Close closes the store connections
@@ -125,6 +188,10 @@ func (s *GDStore) Close() {
 	} else {
 		s.closeRemoteStore()
 	}
+
+	s.stopOnce.Do(func() {
+		close(s.stop)
+	})
 }
 
 // Destroy closes the store and deletes the store data dir
@@ -183,7 +250,16 @@ func newNamespacedStore(oc *clientv3.Client, conf *Config) (*GDStore, error) {
 		return nil, err
 	}
 
-	return &GDStore{*conf, kv, lease, watcher, session, oc, nil, namespaceKey}, nil
+	return &GDStore{
+		conf:      *conf,
+		KV:        kv,
+		Lease:     lease,
+		Watcher:   watcher,
+		Session:   session,
+		Client:    oc,
+		ee:        nil,
+		namespace: namespaceKey,
+	}, nil
 }
 
 //Get is a wrapper function that calls clientv3.KV.Get with a default timeout if an empty context is passed

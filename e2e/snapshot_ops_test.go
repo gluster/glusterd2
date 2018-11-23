@@ -33,9 +33,12 @@ func TestSnapshot(t *testing.T) {
 	r := require.New(t)
 
 	prefix := testTempDir(t, "bricks")
+
+	loopDevicesCleanup(t)
 	lvmtest.Cleanup(baseLocalStateDir, prefix, brickCount)
 	defer func() {
-		lvmtest.Cleanup(baseLocalStateDir, prefix, brickCount)
+		lvmtest.Cleanup(baseLocalStateDir, prefix, brickCount+2)
+		loopDevicesCleanup(t)
 	}()
 	tc, err := setupCluster(t, "./config/1.toml", "./config/2.toml")
 	r.Nil(err)
@@ -66,7 +69,7 @@ func TestSnapshot(t *testing.T) {
 	}
 
 	defer func() {
-		client.VolumeStop(snapTestName)
+		err := client.VolumeStop(snapTestName)
 		r.Nil(err)
 	}()
 
@@ -83,6 +86,7 @@ func TestSnapshot(t *testing.T) {
 	t.Run("Deactivate", testSnapshotDeactivate)
 	t.Run("Delete", testSnapshotDelete)
 	t.Run("DeleteClone", testCloneDelete)
+	t.Run("SmartVolume", tc.wrap(testSnapshotOnSmartVol))
 
 	/*
 		TODO:
@@ -247,6 +251,7 @@ func testSnapshotStatusForceActivate(t *testing.T) {
 	r.Nil(err)
 
 	err = daemon.Kill(result.BrickStatus[0].Brick.Pid, true)
+	r.Nil(err)
 	err = client.SnapshotActivate(snapshotActivateReq, snapName)
 	if err == nil {
 		msg := "snapshot activate should have failed"
@@ -288,6 +293,7 @@ func testSnapshotRestore(t *testing.T) {
 	r.Nil(err)
 
 	err = daemon.Kill(result.BrickStatus[0].Brick.Pid, true)
+	r.Nil(err)
 	err = client.VolumeStop(snapTestName)
 	r.Nil(err)
 
@@ -361,7 +367,7 @@ func testSnapshotValidation(t *testing.T) {
 	r.Nil(client.VolumeStop(clonename), "volume stop failed")
 
 	err = client.VolumeDelete(clonename)
-	r.NotNil(errors.New("Volume delete succeeded when snapshot is existing for the volume"))
+	r.NotNil(err, "Volume delete succeeded when snapshot is existing for the volume")
 }
 
 func testCloneDelete(t *testing.T) {
@@ -374,4 +380,75 @@ func testCloneDelete(t *testing.T) {
 	r.Len(volumes, 1)
 
 	//TODO Test lv device removed or not
+}
+
+func testSnapshotOnSmartVol(t *testing.T, tc *testCluster) {
+	r := require.New(t)
+
+	devicesDir := testTempDir(t, "devices")
+	// brickCount+1
+	r.Nil(prepareLoopDevice(devicesDir+"/gluster_dev1.img", "5", "500M"))
+	// brickCount+2
+	r.Nil(prepareLoopDevice(devicesDir+"/gluster_dev2.img", "6", "500M"))
+
+	// brickCount+1
+	_, err := client.DeviceAdd(tc.gds[0].PeerID(), "/dev/gluster_loop5")
+	r.Nil(err)
+
+	// brickCount+2
+	_, err = client.DeviceAdd(tc.gds[1].PeerID(), "/dev/gluster_loop6")
+	r.Nil(err)
+
+	smartvolname := formatVolName(t.Name())
+	// create Replica 2 Volume
+	createReq := api.VolCreateReq{
+		Name:         smartvolname,
+		Size:         209715200,
+		ReplicaCount: 2,
+	}
+	_, err = client.VolumeCreate(createReq)
+	r.Nil(err)
+
+	r.Nil(client.VolumeStart(smartvolname, true))
+
+	snapshotCreateReq := api.SnapCreateReq{
+		VolName:  smartvolname,
+		SnapName: snapname,
+	}
+	//Create snapshot with name snapname (Previous snaps with same name is already deleted)
+	//This also tests snapshot create with same name after a deletion
+	_, err = client.SnapshotCreate(snapshotCreateReq)
+	r.Nil(err)
+
+	snapshotActivateReq := api.SnapActivateReq{
+		Force: true,
+	}
+	r.Nil(client.SnapshotActivate(snapshotActivateReq, snapname))
+
+	//Creating a clone from the snapshot
+	snapshotCloneReq := api.SnapCloneReq{
+		CloneName: clonename,
+	}
+	_, err = client.SnapshotClone(snapname, snapshotCloneReq)
+	r.Nil(err, "snapshot clone failed")
+
+	r.Nil(client.VolumeStop(smartvolname))
+
+	//Restoring the snapshot to the parent volume
+	//During this process, parent volume thinLV should delete
+	_, err = client.SnapshotRestore(snapname)
+	r.Nil(err)
+
+	r.Nil(client.VolumeStart(smartvolname, true))
+
+	r.Nil(client.VolumeDelete(clonename))
+
+	r.Nil(client.VolumeStop(smartvolname))
+
+	r.Nil(client.VolumeDelete(smartvolname))
+
+	//At this point all snapshot and volumes are deleted.
+	//So the lvcount should be zero
+	//This has to be the last test
+	checkZeroLvsWithRange(r, 5, 6)
 }

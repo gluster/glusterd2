@@ -1,5 +1,5 @@
-// Package globalcommands implements the commands to get and set cluster level options
-package globalcommands
+// Package optionscommands implements the commands to get and set cluster level options
+package optionscommands
 
 import (
 	"github.com/gluster/glusterd2/glusterd2/servers/rest/route"
@@ -13,18 +13,18 @@ type Command struct {
 func (c *Command) Routes() route.Routes {
 	return route.Routes{
 		route.Route{
-			Name:        "SetGlobalOptions",
+			Name:        "SetClusterOptions",
 			Method:      "POST",
 			Pattern:     "/cluster/options",
 			Version:     1,
-			HandlerFunc: setGlobalOptionsHandler,
+			HandlerFunc: setClusterOptionsHandler,
 		},
 		route.Route{
-			Name:        "GetGlobalOptions",
+			Name:        "GetClusterOptions",
 			Method:      "GET",
 			Pattern:     "/cluster/options",
 			Version:     1,
-			HandlerFunc: getGlobalOptionsHandler,
+			HandlerFunc: getClusterOptionsHandler,
 		},
 	}
 }

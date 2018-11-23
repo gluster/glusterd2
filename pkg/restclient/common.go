@@ -9,6 +9,7 @@ import (
 	"net/http"
 	"time"
 
+	"github.com/gluster/glusterd2/pkg/api"
 	"github.com/gluster/glusterd2/pkg/utils"
 
 	"github.com/dgrijalva/jwt-go"
@@ -251,4 +252,11 @@ func (c *Client) buildRequest(method string, url string, input interface{}) (*ht
 //Ping checks glusterd2 service status
 func (c *Client) Ping() error {
 	return c.get("/ping", nil, http.StatusOK, nil)
+}
+
+//Version returns the glusterd2 version
+func (c *Client) Version() (api.VersionResp, error) {
+	var resp api.VersionResp
+	err := c.get("/version", nil, http.StatusOK, &resp)
+	return resp, err
 }

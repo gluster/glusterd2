@@ -4,7 +4,7 @@ import (
 	"fmt"
 	"runtime/debug"
 
-	"github.com/gluster/glusterd2/glusterd2/xlator/options"
+	"github.com/gluster/glusterd2/glusterd2/options"
 
 	log "github.com/sirupsen/logrus"
 )

@@ -10,6 +10,8 @@ import (
 	"github.com/gluster/glusterd2/glusterd2/transaction"
 	"github.com/gluster/glusterd2/glusterd2/volume"
 	"github.com/gluster/glusterd2/pkg/api"
+	"github.com/gluster/glusterd2/pkg/lvmutils"
+	"github.com/gluster/glusterd2/plugins/device/deviceutils"
 
 	"github.com/pborman/uuid"
 	log "github.com/sirupsen/logrus"
@@ -43,12 +45,14 @@ func expandValidatePrepare(c transaction.TxnCtx) error {
 		return errors.New("invalid number of bricks")
 	}
 
-	if volinfo.Type == volume.Replicate && req.ReplicaCount != 0 {
-		// TODO: Only considered first sub volume's ReplicaCount
-		if req.ReplicaCount < volinfo.Subvols[0].ReplicaCount {
-			return errors.New("invalid number of bricks")
-		} else if req.ReplicaCount == volinfo.Subvols[0].ReplicaCount {
-			return errors.New("replica count is same")
+	if volinfo.Type == volume.Replicate || volinfo.Type == volume.DistReplicate {
+		if req.ReplicaCount != 0 {
+			// TODO: Only considered first sub volume's ReplicaCount
+			if req.ReplicaCount < volinfo.Subvols[0].ReplicaCount {
+				return errors.New("invalid number of bricks")
+			} else if req.ReplicaCount == volinfo.Subvols[0].ReplicaCount {
+				return errors.New("replica count is same")
+			}
 		}
 	}
 
@@ -198,6 +202,7 @@ func updateVolinfoOnExpand(c transaction.TxnCtx) error {
 				idx = 0
 			}
 			volinfo.Subvols[idx].Bricks = append(volinfo.Subvols[idx].Bricks, b)
+			idx++
 		}
 	} else {
 		// Create new Sub volumes with given bricks
@@ -233,5 +238,85 @@ func updateVolinfoOnExpand(c transaction.TxnCtx) error {
 		return err
 	}
 
+	return nil
+}
+
+func resizeLVM(c transaction.TxnCtx) error {
+	var req api.VolExpandReq
+	if err := c.Get("req", &req); err != nil {
+		return err
+	}
+
+	var volname string
+	if err := c.Get("volname", &volname); err != nil {
+		return err
+	}
+
+	volinfo, err := volume.GetVolume(volname)
+	if err != nil {
+		return err
+	}
+
+	var expansionTpSizePerBrick uint64
+	if err := c.Get("expansionTpSizePerBrick", &expansionTpSizePerBrick); err != nil {
+		return err
+	}
+
+	var expansionMetadataSizePerBrick uint64
+	if err := c.Get("expansionMetadataSizePerBrick", &expansionMetadataSizePerBrick); err != nil {
+		return err
+	}
+
+	var brickVgMapping map[string]string
+	if err := c.Get("brickVgMapping", &brickVgMapping); err != nil {
+		return err
+	}
+
+	if err := expandLocalBricks(volinfo, expansionTpSizePerBrick, expansionMetadataSizePerBrick, brickVgMapping); err != nil {
+		return err
+	}
+
+	// Update new volume size in bytes.
+	volinfo.Capacity = volinfo.Capacity + req.Size
+	// update new volinfo in txn ctx
+	return c.Set("volinfo", volinfo)
+
+}
+
+// expandLocalBricks expands the local bricks by extending thinpool, metadata pool and lvm for each brick on current node.
+func expandLocalBricks(volinfo *volume.Volinfo, expansionTpSizePerBrick uint64, expansionMetadataSizePerBrick uint64, brickVgMapping map[string]string) error {
+	for i, sv := range volinfo.Subvols {
+		for j, b := range sv.Bricks {
+			if uuid.Equal(b.PeerID, gdctx.MyUUID) {
+				tpName := fmt.Sprintf("tp_%s_s%d_b%d", volinfo.Name, i+1, j+1)
+				lvName := fmt.Sprintf("brick_%s_s%d_b%d", volinfo.Name, i+1, j+1)
+				vgName := brickVgMapping[b.Path]
+				totalExpansionSizePerBrick := expansionTpSizePerBrick + expansionMetadataSizePerBrick
+
+				// extend thinpool
+				err := lvmutils.ExtendThinpool(expansionTpSizePerBrick, vgName, tpName)
+				if err != nil {
+					return err
+				}
+				// extend metadata pool
+				err = lvmutils.ExtendMetadataPool(expansionMetadataSizePerBrick, vgName, tpName)
+				if err != nil {
+					return err
+				}
+
+				// extend lv
+				err = lvmutils.ExtendLV(totalExpansionSizePerBrick, vgName, lvName)
+				if err != nil {
+					return err
+				}
+
+				// Update current Vg free size
+				err = deviceutils.UpdateDeviceFreeSize(gdctx.MyUUID.String(), vgName)
+				if err != nil {
+					return err
+				}
+			}
+		}
+	}
 	return nil
 }

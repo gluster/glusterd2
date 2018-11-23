@@ -75,10 +75,6 @@
   version = "~2.0.0"
 
 [[constraint]]
-  name = "golang.org/x/net"
-  branch = "master"
-
-[[constraint]]
   name = "golang.org/x/sys"
   branch = "master"
 
@@ -93,3 +89,7 @@
 [[constraint]]
   name = "go.opencensus.io"
   version = "0.11.0"
+
+[[constraint]]
+  name = "github.com/godbus/dbus"
+  version = "4.1.0"

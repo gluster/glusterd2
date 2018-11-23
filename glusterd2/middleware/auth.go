@@ -18,7 +18,7 @@ const (
 )
 
 var (
-	requiredClaims = []string{"iss", "exp"}
+	requiredClaims = []string{"iss", "exp", "qsh"}
 )
 
 func getAuthSecret(issuer string) string {
@@ -71,24 +71,24 @@ func Auth(next http.Handler) http.Handler {
 		token, err := jwt.Parse(authHeaderParts[1], func(token *jwt.Token) (interface{}, error) {
 			claims, ok := token.Claims.(jwt.MapClaims)
 			if !ok {
-				return nil, fmt.Errorf("Unable to parse Token claims")
+				return nil, fmt.Errorf("unable to parse Token claims")
 			}
 
 			// Error if required claims are not sent by Client
 			for _, claimName := range requiredClaims {
 				if _, claimOk := claims[claimName]; !claimOk {
-					return nil, fmt.Errorf("Token missing %s Claim", claimName)
+					return nil, fmt.Errorf("token missing %s Claim", claimName)
 				}
 			}
 
 			// Validate the JWT Signing Algo
 			if _, tokenOk := token.Method.(*jwt.SigningMethodHMAC); !tokenOk {
-				return nil, fmt.Errorf("Unexpected signing method: %v", token.Header["alg"])
+				return nil, fmt.Errorf("unexpected signing method: %v", token.Header["alg"])
 			}
 
 			secret := getAuthSecret(claims["iss"].(string))
 			if secret == "" {
-				return nil, fmt.Errorf("Invalid App ID: %s", claims["iss"])
+				return nil, fmt.Errorf("invalid App ID: %s", claims["iss"])
 			}
 			// Check qsh claim
 			if claims["qsh"] != utils.GenerateQsh(r) {

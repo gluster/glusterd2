@@ -20,14 +20,16 @@ const (
 	Brick Type = iota
 	// Arbiter represents Arbiter brick type
 	Arbiter
+	// ThinArbiter represents thin arbiter brick type
+	ThinArbiter
 )
 
 //MountInfo is used to store mount related information of a volume
 type MountInfo struct {
-	Mountdir   string
-	DevicePath string
-	FsType     string
-	MntOpts    string
+	BrickDirSuffix string
+	DevicePath     string
+	FsType         string
+	MntOpts        string
 }
 
 // Brickinfo is the static information about the brick
@@ -163,9 +165,15 @@ func (b *Brickinfo) Validate(check InitChecks, allLocalBricks []Brickinfo) error
 	}
 
 	// mandatory check that cannot be skipped forcefully
-	if err = isBrickInActiveUse(b.Path, allLocalBricks); err != nil {
-		return err
-	}
+	return isBrickInActiveUse(b.Path, allLocalBricks)
+}
 
-	return nil
+//BrickTypeToString converts BrickType to corresponding string
+func (b *Brickinfo) BrickTypeToString() string {
+	switch b.Type {
+	case Arbiter:
+		return "arbiter"
+	default:
+		return "brick"
+	}
 }

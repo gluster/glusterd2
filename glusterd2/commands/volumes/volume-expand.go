@@ -12,9 +12,12 @@ import (
 	"github.com/gluster/glusterd2/glusterd2/volume"
 	"github.com/gluster/glusterd2/pkg/api"
 	"github.com/gluster/glusterd2/pkg/errors"
+	"github.com/gluster/glusterd2/pkg/lvmutils"
+	"github.com/gluster/glusterd2/plugins/device/deviceutils"
 
 	"github.com/gorilla/mux"
 	"github.com/pborman/uuid"
+	"go.opencensus.io/trace"
 )
 
 func registerVolExpandStepFuncs() {
@@ -26,10 +29,13 @@ func registerVolExpandStepFuncs() {
 		{"vol-expand.ValidateBricks", validateBricks},
 		{"vol-expand.InitBricks", initBricks},
 		{"vol-expand.UndoInitBricks", undoInitBricks},
+		{"vol-expand.GenerateBrickVolfiles", txnGenerateBrickVolfiles},
+		{"vol-expand.GenerateBrickVolfiles.Undo", txnDeleteBrickVolfiles},
 		{"vol-expand.StartBrick", startBricksOnExpand},
 		{"vol-expand.UndoStartBrick", undoStartBricksOnExpand},
 		{"vol-expand.UpdateVolinfo", updateVolinfoOnExpand},
 		{"vol-expand.NotifyClients", notifyVolfileChange},
+		{"vol-expand.LvmResize", resizeLVM},
 	}
 	for _, sf := range sfs {
 		transaction.RegisterStepFunc(sf.sf, sf.name)
@@ -51,9 +57,19 @@ func validateVolumeExpandReq(req api.VolExpandReq) error {
 
 }
 
+// checkForLvmResize returns true if lvm resize is needed instead of adding new bricks or subvols
+func checkForLvmResize(req api.VolExpandReq, volinfo *volume.Volinfo) bool {
+	if req.DistributeCount == len(volinfo.Subvols) && req.Size != 0 {
+		return true
+	}
+	return false
+}
+
 func volumeExpandHandler(w http.ResponseWriter, r *http.Request) {
 
 	ctx := r.Context()
+	ctx, span := trace.StartSpan(ctx, "/volumeExpandHandler")
+	defer span.End()
 	logger := gdctx.GetReqLogger(ctx)
 	volname := mux.Vars(r)["volname"]
 
@@ -82,18 +98,55 @@ func volumeExpandHandler(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	for index := range volinfo.Subvols {
-		for _, brick := range volinfo.Subvols[index].Bricks {
+	var expansionSizePerBrick uint64
+	var expansionTpSizePerBrick uint64
+	var expansionMetadataSizePerBrick uint64
+	var brickVgMapping map[string]string
+	var ok bool
+	lvmResizeOp := checkForLvmResize(req, volinfo)
+	// continue normal volume expand by adding new bricks or subvols
+	if !lvmResizeOp {
+		for index := range volinfo.Subvols {
+			for _, brick := range volinfo.Subvols[index].Bricks {
 
-			for _, b := range req.Bricks {
+				for _, b := range req.Bricks {
 
-				if brick.PeerID.String() == b.PeerID && brick.Path == filepath.Clean(b.Path) {
-					restutils.SendHTTPError(ctx, w, http.StatusBadRequest, errors.ErrDuplicateBrickPath)
-					return
+					if brick.PeerID.String() == b.PeerID && brick.Path == filepath.Clean(b.Path) {
+						restutils.SendHTTPError(ctx, w, http.StatusBadRequest, errors.ErrDuplicateBrickPath)
+						return
+					}
 				}
-			}
 
+			}
 		}
+	} else {
+		// lvmResize is needed
+		switch volinfo.Type {
+		case volume.Distribute:
+			expansionSizePerSubvol := req.Size / uint64(len(volinfo.Subvols))
+			expansionSizePerBrick = expansionSizePerSubvol
+		case volume.Replicate, volume.DistReplicate:
+			expansionSizePerSubvol := req.Size / uint64(len(volinfo.Subvols))
+			expansionSizePerBrick = expansionSizePerSubvol
+		case volume.Disperse, volume.DistDisperse:
+			expansionSizePerSubvol := req.Size / uint64(len(volinfo.Subvols))
+			expansionSizePerBrick = expansionSizePerSubvol / uint64(volinfo.Subvols[0].DisperseCount-volinfo.Subvols[0].RedundancyCount)
+		}
+		expansionTpSizePerBrick = uint64(float64(expansionSizePerBrick) * volinfo.SnapshotReserveFactor)
+		expansionMetadataSizePerBrick = lvmutils.GetPoolMetadataSize(expansionTpSizePerBrick)
+		totalExpansionSizePerBrick := expansionTpSizePerBrick + expansionMetadataSizePerBrick
+		bricksInfo := volinfo.GetBricks()
+		brickVgMapping, ok, err = deviceutils.CheckForAvailableVgSize(totalExpansionSizePerBrick, bricksInfo)
+		if !ok && err == nil {
+			restutils.SendHTTPError(ctx, w, http.StatusBadRequest, "Space not sufficient on device")
+			return
+		}
+
+		if err != nil {
+			restutils.SendHTTPError(ctx, w, http.StatusInternalServerError, err)
+			return
+		}
+
 	}
 
 	nodes, err := req.Nodes()
@@ -117,28 +170,51 @@ func volumeExpandHandler(w http.ResponseWriter, r *http.Request) {
 		{
 			DoFunc: "vol-expand.ValidateAndPrepare",
 			Nodes:  []uuid.UUID{gdctx.MyUUID},
+			Skip:   lvmResizeOp,
 		},
 		{
 			DoFunc: "vol-expand.ValidateBricks",
 			Nodes:  nodes,
+			Skip:   lvmResizeOp,
 		},
 		{
 			DoFunc:   "vol-expand.InitBricks",
 			UndoFunc: "vol-expand.UndoInitBricks",
 			Nodes:    nodes,
+			Skip:     lvmResizeOp,
+		},
+		{
+			DoFunc: "vol-expand.LvmResize",
+			Nodes:  volinfo.Nodes(),
+			Skip:   !lvmResizeOp,
+		},
+		{
+			DoFunc:   "vol-create.StoreVolume",
+			UndoFunc: "vol-create.UndoStoreVolume",
+			Nodes:    []uuid.UUID{gdctx.MyUUID},
+			Skip:     !lvmResizeOp,
 		},
 		{
 			DoFunc: "vol-expand.UpdateVolinfo",
 			Nodes:  []uuid.UUID{gdctx.MyUUID},
+			Skip:   lvmResizeOp,
+		},
+		{
+			DoFunc:   "vol-expand.GenerateBrickVolfiles",
+			UndoFunc: "vol-expand.GenerateBrickVolfiles.Undo",
+			Nodes:    nodes,
+			Skip:     (volinfo.State != volume.VolStarted),
 		},
 		{
 			DoFunc:   "vol-expand.StartBrick",
 			Nodes:    nodes,
 			UndoFunc: "vol-expand.UndoStartBrick",
+			Skip:     lvmResizeOp,
 		},
 		{
 			DoFunc: "vol-expand.NotifyClients",
 			Nodes:  allNodes,
+			Skip:   lvmResizeOp,
 		},
 	}
 
@@ -151,6 +227,33 @@ func volumeExpandHandler(w http.ResponseWriter, r *http.Request) {
 		restutils.SendHTTPError(ctx, w, http.StatusInternalServerError, err)
 		return
 	}
+
+	if err := txn.Ctx.Set("expansionTpSizePerBrick", expansionTpSizePerBrick); err != nil {
+		restutils.SendHTTPError(ctx, w, http.StatusInternalServerError, err)
+		return
+	}
+
+	if err := txn.Ctx.Set("expansionMetadataSizePerBrick", expansionMetadataSizePerBrick); err != nil {
+		restutils.SendHTTPError(ctx, w, http.StatusInternalServerError, err)
+		return
+	}
+
+	if err := txn.Ctx.Set("brickVgMapping", brickVgMapping); err != nil {
+		restutils.SendHTTPError(ctx, w, http.StatusInternalServerError, err)
+		return
+	}
+
+	// Add relevant attributes to the root span
+	var bricksToAdd string
+	for _, b := range req.Bricks {
+		bricksToAdd += b.PeerID + ":" + b.Path + ","
+	}
+
+	span.AddAttributes(
+		trace.StringAttribute("reqID", txn.Ctx.GetTxnReqID()),
+		trace.StringAttribute("volName", volname),
+		trace.StringAttribute("bricksToAdd", bricksToAdd),
+	)
 
 	if err = txn.Do(); err != nil {
 		logger.WithError(err).WithField("volume-name", volname).Error("volume expand transaction failed")
