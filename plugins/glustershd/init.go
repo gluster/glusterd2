@@ -39,6 +39,13 @@ func (p *Plugin) RestRoutes() route.Routes {
 			Pattern:     "/volumes/{volname}/heal",
 			Version:     1,
 			HandlerFunc: selfHealHandler},
+		route.Route{
+			Name:        "Split-Brain-Operations",
+			Method:      "POST",
+			Pattern:     "/volumes/{volname}/split-brain/{operation}",
+			Version:     1,
+			RequestType: utils.GetTypeString(([]glustershdapi.SplitBrainReq)(nil)),
+			HandlerFunc: splitBrainOperationHandler},
 	}
 }
 

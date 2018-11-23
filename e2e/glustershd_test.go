@@ -189,3 +189,149 @@ func testGranularEntryHeal(t *testing.T, tc *testCluster) {
 	// delete volume
 	r.Nil(client.VolumeDelete(volname))
 }
+
+func testSplitBrainOperation(t *testing.T, tc *testCluster) {
+	r := require.New(t)
+
+	var brickPaths []string
+	for i := 1; i <= 2; i++ {
+		brickPath := testTempDir(t, "brick")
+		brickPaths = append(brickPaths, brickPath)
+	}
+
+	volname := formatVolName(t.Name())
+
+	// create 2x2 dist-rep volume
+	createReq := api.VolCreateReq{
+		Name: volname,
+		Subvols: []api.SubvolReq{
+			{
+				ReplicaCount: 2,
+				Type:         "replicate",
+				Bricks: []api.BrickReq{
+					{PeerID: tc.gds[0].PeerID(), Path: brickPaths[0]},
+					{PeerID: tc.gds[0].PeerID(), Path: brickPaths[1]},
+				},
+			},
+		},
+		Force: true,
+	}
+	_, err := client.VolumeCreate(createReq)
+	r.Nil(err)
+
+	r.Nil(client.VolumeStart(volname, false), "volume start failed")
+
+	var optionReq api.VolOptionReq
+	pidpath := path.Join(tc.gds[0].Rundir, "glustershd.pid")
+	optionReq.Options = map[string]string{"replicate.self-heal-daemon": "off"}
+	optionReq.AllowAdvanced = true
+	r.Nil(client.VolumeSet(volname, optionReq))
+	r.False(isProcessRunning(pidpath), "glustershd is still running")
+
+	if _, err := os.Lstat("/dev/fuse"); os.IsNotExist(err) {
+		t.Skip("skipping mount /dev/fuse unavailable")
+	}
+
+	mntPath := testTempDir(t, "mnt")
+	defer os.RemoveAll(mntPath)
+
+	host, _, _ := net.SplitHostPort(tc.gds[0].ClientAddress)
+	err = mountVolume(host, volname, mntPath)
+	r.Nil(err, fmt.Sprintf("mount failed: %s", err))
+	defer syscall.Unmount(mntPath, syscall.MNT_FORCE|syscall.MNT_DETACH)
+
+	f, err := os.Create(mntPath + "/file1.txt")
+	r.Nil(err, fmt.Sprintf("file creation failed: %s", err))
+	f.Close()
+
+	var prevKilledBrick string
+	getBricksStatus, err := client.BricksStatus(volname)
+	r.Nil(err, fmt.Sprintf("brick status operation failed: %s", err))
+
+	for brick := range getBricksStatus {
+		if getBricksStatus[brick].Info.PeerID.String() == tc.gds[0].PeerID() {
+			prevKilledBrick = getBricksStatus[brick].Info.Path
+			process, err := os.FindProcess(getBricksStatus[brick].Pid)
+			r.Nil(err, fmt.Sprintf("failed to find bricks pid: %s", err))
+			err = process.Signal(syscall.Signal(15))
+			r.Nil(err, fmt.Sprintf("failed to kill bricks: %s", err))
+			break
+		}
+	}
+
+	f1, err := os.OpenFile(mntPath+"/file1.txt", os.O_RDWR, 0777)
+	r.Nil(err, fmt.Sprintf("failed to open file: %s", err))
+	_, err = f1.WriteString("hello")
+	r.Nil(err, fmt.Sprintf("failed to write to file: %s", err))
+	f1.Sync()
+	defer f1.Close()
+
+	err = syscall.Unmount(mntPath, syscall.MNT_FORCE|syscall.MNT_DETACH)
+	r.Nil(err)
+
+	// Stop Volume
+	r.Nil(client.VolumeStop(volname), "Volume stop failed")
+	// Start Volume
+	r.Nil(client.VolumeStart(volname, false), "Volume start failed")
+
+	err = mountVolume(host, volname, mntPath)
+	r.Nil(err, fmt.Sprintf("mount failed: %s", err))
+	defer syscall.Unmount(mntPath, syscall.MNT_FORCE|syscall.MNT_DETACH)
+
+	getBricksStatus, err = client.BricksStatus(volname)
+	r.Nil(err, fmt.Sprintf("brick status operation failed: %s", err))
+
+	for brick := range getBricksStatus {
+		if getBricksStatus[brick].Info.PeerID.String() == tc.gds[0].PeerID() && getBricksStatus[brick].Info.Path != prevKilledBrick {
+			process, err := os.FindProcess(getBricksStatus[brick].Pid)
+			r.Nil(err, fmt.Sprintf("failed to find bricks pid: %s", err))
+			err = process.Signal(syscall.Signal(15))
+			r.Nil(err, fmt.Sprintf("failed to kill bricks: %s", err))
+			break
+		}
+	}
+
+	f2, err := os.OpenFile(mntPath+"/file1.txt", os.O_RDWR, 0777)
+	r.Nil(err, fmt.Sprintf("failed to open file: %s", err))
+	_, err = f2.WriteString("hey")
+	r.Nil(err, fmt.Sprintf("failed to write to file: %s", err))
+	f2.Sync()
+	defer f2.Close()
+
+	// Stop Volume
+	r.Nil(client.VolumeStop(volname), "Volume stop failed")
+	// Start Volume
+	r.Nil(client.VolumeStart(volname, false), "Volume start failed")
+
+	healInfo, err := client.SelfHealInfo(volname, "info-summary")
+	r.Nil(err)
+
+	r.Equal(*healInfo[0].EntriesInSplitBrain, int64(1))
+
+	var req shdapi.SplitBrainReq
+
+	req.FileName = ""
+	err = client.SelfHealSplitBrain(volname, "latest-mtime", req)
+	r.NotNil(err)
+
+	req.FileName = "file1.txt"
+	err = client.SelfHealSplitBrain(volname, "latest-mtime", req)
+	r.NotNil(err)
+
+	req.FileName = "/file1.txt"
+	err = client.SelfHealSplitBrain(volname, "latest-mtime", req)
+	r.Nil(err)
+
+	healInfo, err = client.SelfHealInfo(volname, "info-summary")
+	r.Nil(err)
+
+	r.Equal(*healInfo[0].EntriesInSplitBrain, int64(0))
+
+	err = syscall.Unmount(mntPath, syscall.MNT_FORCE|syscall.MNT_DETACH)
+	r.Nil(err)
+
+	// Stop Volume
+	r.Nil(client.VolumeStop(volname), "Volume stop failed")
+	// delete volume
+	r.Nil(client.VolumeDelete(volname))
+}
