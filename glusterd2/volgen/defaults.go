@@ -103,9 +103,6 @@ func init() {
 			{
 				Type:     "debug/io-stats",
 				NameTmpl: "{{ volume.name }}",
-				Options: map[string]string{
-					"log-level": "DEBUG",
-				},
 			},
 			{
 				Type:           "features/read-only",
