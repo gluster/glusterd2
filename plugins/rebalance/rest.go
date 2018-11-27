@@ -1,6 +1,7 @@
 package rebalance
 
 import (
+	"io"
 	"net/http"
 
 	"github.com/gluster/glusterd2/glusterd2/gdctx"
@@ -39,7 +40,7 @@ func rebalanceStartHandler(w http.ResponseWriter, r *http.Request) {
 
 	//  Unmarshal Request to check for fix-layout and start force
 	err := restutils.UnmarshalRequest(r, &req)
-	if err != nil {
+	if err != nil && err != io.EOF {
 		restutils.SendHTTPError(ctx, w, http.StatusBadRequest, err)
 		return
 	}
