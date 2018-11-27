@@ -24,6 +24,7 @@ const (
 	defaultpeeraddress   = ":24008"
 	defaultclientaddress = ":24007"
 	defaultloglevel      = "debug"
+	defaultprofiling     = false
 )
 
 var (
@@ -47,6 +48,7 @@ func initFlags() {
 	flag.String(logging.DirFlag, defaultlogdir, logging.DirHelp)
 	flag.String(logging.FileFlag, defaultlogfile, logging.FileHelp)
 	flag.String(logging.LevelFlag, defaultloglevel, logging.LevelHelp)
+	flag.Bool("profiling", defaultprofiling, "Enable go profiling to collect profile data.")
 
 	// TODO: Change default to false (disabled) in future.
 	flag.Bool("statedump", true, "Enable /statedump endpoint for metrics.")
