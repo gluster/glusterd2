@@ -11,6 +11,7 @@ import (
 	"strings"
 
 	"github.com/gluster/glusterd2/glusterd2/gdctx"
+	"github.com/gluster/glusterd2/glusterd2/peer"
 	restutils "github.com/gluster/glusterd2/glusterd2/servers/rest/utils"
 	"github.com/gluster/glusterd2/glusterd2/transaction"
 	"github.com/gluster/glusterd2/glusterd2/volume"
@@ -18,6 +19,7 @@ import (
 	glustershdapi "github.com/gluster/glusterd2/plugins/glustershd/api"
 
 	"github.com/gorilla/mux"
+	"github.com/pborman/uuid"
 	config "github.com/spf13/viper"
 )
 
@@ -263,5 +265,98 @@ func selfHealHandler(w http.ResponseWriter, r *http.Request) {
 		restutils.SendHTTPError(ctx, w, status, err)
 		return
 	}
+	restutils.SendHTTPResponse(ctx, w, http.StatusOK, nil)
+}
+
+func splitBrainOperationHandler(w http.ResponseWriter, r *http.Request) {
+	// Collect inputs from URL
+	volname := mux.Vars(r)["volname"]
+	operation := mux.Vars(r)["operation"]
+
+	ctx := r.Context()
+	logger := gdctx.GetReqLogger(ctx)
+
+	var req glustershdapi.SplitBrainReq
+	if err := restutils.UnmarshalRequest(r, &req); err != nil {
+		restutils.SendHTTPError(ctx, w, http.StatusBadRequest, gderrors.ErrJSONParsingFailed)
+		return
+	}
+
+	// check if hostname is in form of uuid, if yes, convert uuid to respective ip addr
+	if uuid.Parse(req.HostName) != nil {
+		peers, err := peer.GetPeer(req.HostName)
+		if err != nil {
+			restutils.SendHTTPError(ctx, w, http.StatusInternalServerError, gderrors.ErrPeerNotFound)
+			return
+		}
+		req.HostName = strings.Split(peers.PeerAddresses[0], ":")[0]
+	}
+
+	// Validate volume existence
+	volinfo, err := volume.GetVolume(volname)
+	if err != nil {
+		status, err := restutils.ErrToStatusCode(err)
+		restutils.SendHTTPError(ctx, w, status, err)
+		return
+	}
+
+	// Validate volume type
+	if !isVolReplicate(volinfo.Type) {
+		restutils.SendHTTPError(ctx, w, http.StatusBadRequest, gderrors.ErrVolTypeNotInReplicateOrDisperse)
+		return
+	}
+
+	// Check if volume is started
+	if volinfo.State != volume.VolStarted {
+		restutils.SendHTTPError(ctx, w, http.StatusBadRequest, gderrors.ErrVolNotStarted)
+		return
+	}
+
+	var options []string
+	glusterdSockpath := path.Join(config.GetString("rundir"), "glusterd2.socket")
+	switch operation {
+	case "latest-mtime":
+		fallthrough
+	case "bigger-file":
+		if req.FileName == "" {
+			restutils.SendHTTPError(ctx, w, http.StatusBadRequest, gderrors.ErrFilenameNotFound)
+			return
+		}
+		if !strings.HasPrefix(req.FileName, "/") {
+			restutils.SendHTTPError(ctx, w, http.StatusBadRequest, gderrors.ErrInvalidFilenameFormat)
+			return
+		}
+		options = append(options, operation, req.FileName, "glusterd-sock", glusterdSockpath)
+
+	case "source-brick":
+		if req.HostName == "" || req.BrickName == "" {
+			restutils.SendHTTPError(ctx, w, http.StatusBadRequest, gderrors.ErrHostOrBrickNotFound)
+			return
+		}
+		if err := volume.CheckBrickExistence(volinfo, req.HostName, req.BrickName); err != nil {
+			restutils.SendHTTPError(ctx, w, http.StatusBadRequest, err)
+			return
+		}
+		brickPath := fmt.Sprintf("%s:%s", req.HostName, req.BrickName)
+		if req.FileName != "" {
+			if !strings.HasPrefix(req.FileName, "/") {
+				restutils.SendHTTPError(ctx, w, http.StatusBadRequest, gderrors.ErrInvalidFilenameFormat)
+				return
+			}
+			options = append(options, operation, brickPath, req.FileName, "glusterd-sock", glusterdSockpath)
+		} else {
+			options = append(options, operation, brickPath, "glusterd-sock", glusterdSockpath)
+		}
+	default:
+		restutils.SendHTTPError(ctx, w, http.StatusBadRequest, gderrors.ErrInvalidSplitBrainOp)
+		return
+	}
+	_, err = runGlfshealBin(volname, options)
+	if err != nil {
+		logger.WithError(err).Error("failed to run glfsheal binary")
+		restutils.SendHTTPError(ctx, w, http.StatusInternalServerError, err)
+		return
+	}
+
 	restutils.SendHTTPResponse(ctx, w, http.StatusOK, nil)
 }
