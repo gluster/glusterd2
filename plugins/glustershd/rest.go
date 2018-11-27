@@ -61,7 +61,7 @@ func runGlfshealBin(volname string, args []string) (string, error) {
 func getHealInfo(volname string, option string) (string, error) {
 	var options []string
 	glusterdSockpath := path.Join(config.GetString("rundir"), "glusterd2.socket")
-	options = append(options, option, "xml", "glusterd-sock", glusterdSockpath)
+	options = append(options, option, "--xml", "glusterd-sock", glusterdSockpath)
 
 	return runGlfshealBin(volname, options)
 }
