@@ -490,7 +490,7 @@ var volumeSizeCmd = &cobra.Command{
 }
 
 var volumeExpandCmd = &cobra.Command{
-	Use:   "add-brick <volname> [--size <expansion-size> --distribute <distribute-count>]",
+	Use:   "add-brick <volname> [<brick> [<brick>]...|--size <expansion-size>]",
 	Short: helpVolumeExpandCmd,
 	Args:  cobra.MinimumNArgs(1),
 	Run: func(cmd *cobra.Command, args []string) {
@@ -503,9 +503,12 @@ var volumeExpandCmd = &cobra.Command{
 			failure("Error getting brick UUIDs", err, 1)
 		}
 		//set flags
-		size, err := sizeToBytes(flagExpandCmdSize)
-		if err != nil {
-			failure("Invalid Volume Size specified", nil, 1)
+		var size uint64
+		if flagExpandCmdSize != "" {
+			size, err = sizeToBytes(flagExpandCmdSize)
+			if err != nil {
+				failure("Invalid Volume Size specified", nil, 1)
+			}
 		}
 		flags := make(map[string]bool)
 		flags["reuse-bricks"] = flagReuseBricks
