@@ -95,7 +95,7 @@ func (gOpt *GlustercliOption) AddPersistentFlag(flagSet *pflag.FlagSet) {
 	// SSL/TLS options
 	flagSet.StringVarP(&gOpt.Cacert, "cacert", "", "", "Path to CA certificate")
 	flagSet.BoolVarP(&gOpt.Insecure, "insecure", "", false,
-		"Accepts any certificate presented by the server and any host name in that certificate.")
+		"Skip server certificate validation")
 }
 
 //Init will initialize logging, secret and rest client
