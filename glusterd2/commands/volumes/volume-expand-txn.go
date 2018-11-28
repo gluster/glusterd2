@@ -41,7 +41,7 @@ func expandValidatePrepare(c transaction.TxnCtx) error {
 	if req.ReplicaCount == 0 {
 		newReplicaCount = volinfo.Subvols[0].ReplicaCount
 	}
-	if (len(req.Bricks)+len(volinfo.GetBricks()))%newReplicaCount != 0 {
+	if (len(req.Bricks)+len(volinfo.GetBricks()))%(newReplicaCount+volinfo.Subvols[0].ArbiterCount) != 0 {
 		return errors.New("invalid number of bricks")
 	}
 
@@ -207,13 +207,30 @@ func updateVolinfoOnExpand(c transaction.TxnCtx) error {
 	} else {
 		// Create new Sub volumes with given bricks
 		subvolIdx := len(volinfo.Subvols)
-		for i := 0; i < len(newBricks)/newReplicaCount; i++ {
-			idx := i * newReplicaCount
+		bricksCount := newReplicaCount + volinfo.Subvols[0].ArbiterCount
+		numSubvols := len(newBricks) / bricksCount
+		for i := 0; i < numSubvols; i++ {
+			idx := i * bricksCount
+			brks := newBricks[idx : idx+bricksCount]
+			// If Arbiter count is set then make sure one brick is set
+			// as arbiter brick
+			if volinfo.Subvols[0].ArbiterCount > 0 {
+				arbiterTypeSet := false
+				for _, b := range brks {
+					if b.Type == brick.Arbiter {
+						arbiterTypeSet = true
+						break
+					}
+				}
+				if !arbiterTypeSet {
+					brks[len(brks)-1].Type = brick.Arbiter
+				}
+			}
 			volinfo.Subvols = append(volinfo.Subvols, volume.Subvol{
 				ID:     uuid.NewRandom(),
 				Name:   fmt.Sprintf("%s-%s-%d", volinfo.Name, strings.ToLower(volinfo.Subvols[0].Type.String()), subvolIdx),
 				Type:   volinfo.Subvols[0].Type,
-				Bricks: newBricks[idx : idx+newReplicaCount],
+				Bricks: brks,
 			})
 			subvolIdx = subvolIdx + 1
 		}

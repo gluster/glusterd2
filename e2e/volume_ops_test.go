@@ -216,7 +216,7 @@ func testVolumeExpand(t *testing.T, tc *testCluster) {
 	r := require.New(t)
 
 	var brickPaths []string
-	for i := 1; i <= 11; i++ {
+	for i := 1; i <= 20; i++ {
 		brickPaths = append(brickPaths, fmt.Sprintf(fmt.Sprintf(baseLocalStateDir+"/"+t.Name()+"/%d/", i)))
 	}
 
@@ -317,6 +317,56 @@ func testVolumeExpand(t *testing.T, tc *testCluster) {
 
 	//delete volume
 	r.Nil(client.VolumeDelete("TestVolumeExpand"))
+
+	req := api.VolCreateReq{
+		Name: "TestVolumeExpandArbiter",
+		Subvols: []api.SubvolReq{
+			{
+				ReplicaCount: 2,
+				ArbiterCount: 1,
+				Type:         "replicate",
+				Bricks: []api.BrickReq{
+					{PeerID: tc.gds[0].PeerID(), Path: brickPaths[11]},
+					{PeerID: tc.gds[1].PeerID(), Path: brickPaths[12]},
+					{PeerID: tc.gds[1].PeerID(), Path: brickPaths[13], Type: "arbiter"},
+				},
+			},
+			{
+				Type:         "replicate",
+				ReplicaCount: 2,
+				ArbiterCount: 1,
+				Bricks: []api.BrickReq{
+					{PeerID: tc.gds[0].PeerID(), Path: brickPaths[14]},
+					{PeerID: tc.gds[1].PeerID(), Path: brickPaths[15]},
+					{PeerID: tc.gds[1].PeerID(), Path: brickPaths[16], Type: "arbiter"},
+				},
+			},
+		},
+		Flags: flags,
+	}
+
+	_, err = client.VolumeCreate(req)
+	r.Nil(err)
+
+	expandReq = api.VolExpandReq{
+		Bricks: []api.BrickReq{
+			{PeerID: tc.gds[0].PeerID(), Path: brickPaths[17]},
+			{PeerID: tc.gds[1].PeerID(), Path: brickPaths[18]},
+			{PeerID: tc.gds[1].PeerID(), Path: brickPaths[19]},
+		},
+		Flags: flags,
+	}
+	volinfo, err = client.VolumeExpand("TestVolumeExpandArbiter", expandReq)
+	r.Nil(err)
+	r.Len(volinfo.Subvols, 3)
+	r.Equal(volinfo.ReplicaCount, 2)
+	r.Equal(volinfo.ArbiterCount, 1)
+	for _, subvol := range volinfo.Subvols {
+		r.Len(subvol.Bricks, 3)
+		r.Equal(subvol.Bricks[len(subvol.Bricks)-1].Type.String(), "Arbiter")
+	}
+
+	r.Nil(client.VolumeDelete("TestVolumeExpandArbiter"))
 }
 
 func testVolumeDelete(t *testing.T) {
