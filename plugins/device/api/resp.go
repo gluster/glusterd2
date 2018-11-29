@@ -1,22 +1,28 @@
 package api
 
 import (
-	"github.com/gluster/glusterd2/pkg/api"
+	"strings"
+
+	"github.com/pborman/uuid"
 )
 
 // Info represents structure in which devices are to be store in Peer Metadata
 type Info struct {
-	Name          string `json:"name"`
-	State         string `json:"state"`
-	VgName        string `json:"vg-name"`
-	AvailableSize uint64 `json:"available-size"`
-	ExtentSize    uint64 `json:"extent-size"`
-	Used          bool   `json:"device-used"`
-	PeerID        string `json:"peer-id"`
+	Device        string    `json:"device"`
+	State         string    `json:"state"`
+	AvailableSize uint64    `json:"available-size"`
+	ExtentSize    uint64    `json:"extent-size"`
+	Used          bool      `json:"device-used"`
+	PeerID        uuid.UUID `json:"peer-id"`
+}
+
+// VgName returns name for LVM Vg
+func (info *Info) VgName() string {
+	return "gluster" + strings.Replace(info.Device, "/", "-", -1)
 }
 
 // AddDeviceResp is the success response sent to a AddDeviceReq request
-type AddDeviceResp api.Peer
+type AddDeviceResp Info
 
 // ListDeviceResp is the success response sent to a ListDevice request
 type ListDeviceResp []Info

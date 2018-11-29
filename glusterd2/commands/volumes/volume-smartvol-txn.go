@@ -92,7 +92,7 @@ func txnPrepareBricks(c transaction.TxnCtx) error {
 			}
 
 			// Update current Vg free size
-			err = deviceutils.UpdateDeviceFreeSize(gdctx.MyUUID.String(), b.VgName)
+			err = deviceutils.UpdateDeviceFreeSize(gdctx.MyUUID.String(), b.RootDevice)
 			if err != nil {
 				c.Logger().WithError(err).WithField("vg-name", b.VgName).
 					Error("failed to update available size of a device")
@@ -144,7 +144,7 @@ func txnUndoPrepareBricks(c transaction.TxnCtx) error {
 			}
 
 			// Update current Vg free size
-			deviceutils.UpdateDeviceFreeSize(gdctx.MyUUID.String(), b.VgName)
+			deviceutils.UpdateDeviceFreeSize(gdctx.MyUUID.String(), b.RootDevice)
 		}
 	}
 

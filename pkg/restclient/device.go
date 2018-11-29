@@ -10,18 +10,25 @@ import (
 
 // DeviceAdd registers device
 func (c *Client) DeviceAdd(peerid, device string) (deviceapi.AddDeviceResp, error) {
-	var peerinfo deviceapi.AddDeviceResp
+	var deviceinfo deviceapi.AddDeviceResp
 	req := deviceapi.AddDeviceReq{
 		Device: device,
 	}
-	err := c.post("/v1/devices/"+peerid, req, http.StatusOK, &peerinfo)
-	return peerinfo, err
+	err := c.post("/v1/devices/"+peerid, req, http.StatusCreated, &deviceinfo)
+	return deviceinfo, err
 }
 
 // DeviceList lists the devices
-func (c *Client) DeviceList(peerid string) ([]deviceapi.Info, error) {
+func (c *Client) DeviceList(peerid, device string) ([]deviceapi.Info, error) {
 	var deviceList deviceapi.ListDeviceResp
-	url := fmt.Sprintf("/v1/devices/%s", peerid)
+	url := "/v1/devices"
+	if peerid != "" {
+		url = fmt.Sprintf("%s/%s", url, peerid)
+		if device != "" {
+			url = fmt.Sprintf("%s/%s", url, strings.TrimPrefix(device, "/"))
+		}
+	}
+
 	err := c.get(url, nil, http.StatusOK, &deviceList)
 	return deviceList, err
 }
