@@ -180,8 +180,8 @@ func IsVgExist(vgname string) bool {
 }
 
 // getDeviceAvailableSize gets the device size and vgName using device Path
-func getDeviceAvailableSize(devicePath string) (string, uint64, error) {
-	devices, err := GetDevices()
+func getDeviceAvailableSize(peerid, devicePath string) (string, uint64, error) {
+	devices, err := GetDevices(peerid)
 	if err != nil {
 		return "", 0, err
 	}
@@ -216,7 +216,7 @@ func CheckForAvailableVgSize(expansionSize uint64, bricksInfo []brick.Brickinfo)
 	// Check in the map prepared in last step by looking through devices names and device available size of bricks from current node.
 	for _, b := range bricksInfo {
 		// retrieve device available size by device Name and return the vgName and available device Size.
-		vgName, deviceSize, err := getDeviceAvailableSize(b.MountInfo.DevicePath)
+		vgName, deviceSize, err := getDeviceAvailableSize(b.PeerID.String(), b.MountInfo.DevicePath)
 		if err != nil {
 			return map[string]string{}, false, err
 		}
