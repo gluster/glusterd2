@@ -175,6 +175,8 @@ func NewBrickEntries(bricks []api.BrickReq, volName, volfileID string, volID uui
 		binfo.VolfileID = volfileID
 		binfo.VolumeID = volID
 		binfo.ID = uuid.NewRandom()
+		binfo.VgName = b.VgName
+		binfo.RootDevice = b.RootDevice
 
 		binfo.PType = ptype
 		if ptype.IsAutoProvisioned() || ptype.IsSnapshotProvisioned() {

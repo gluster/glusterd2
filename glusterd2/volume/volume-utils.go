@@ -324,7 +324,7 @@ func CleanBricks(volinfo *Volinfo) error {
 		}
 
 		// Update current Vg free size
-		err = deviceutils.UpdateDeviceFreeSize(gdctx.MyUUID.String(), vgname)
+		err = deviceutils.UpdateDeviceFreeSizeByVg(gdctx.MyUUID.String(), vgname)
 		if err != nil {
 			log.WithError(err).WithField("vg-name", vgname).
 				Error("failed to update available size of a device")

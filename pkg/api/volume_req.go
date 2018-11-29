@@ -8,6 +8,7 @@ type BrickReq struct {
 	TpMetadataSize uint64 `json:"metadata-size,omitempty"`
 	TpSize         uint64 `json:"thinpool-size,omitempty"`
 	VgName         string `json:"vg-name,omitempty"`
+	RootDevice     string `json:"root-device,omitempty"`
 	TpName         string `json:"thinpool-name,omitempty"`
 	LvName         string `json:"logical-volume,omitempty"`
 	Size           uint64 `json:"size,omitempty"`

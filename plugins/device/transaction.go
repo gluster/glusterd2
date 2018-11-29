@@ -1,16 +1,16 @@
 package device
 
 import (
-	"strings"
-
 	"github.com/gluster/glusterd2/glusterd2/transaction"
 	"github.com/gluster/glusterd2/pkg/lvmutils"
 	deviceapi "github.com/gluster/glusterd2/plugins/device/api"
 	"github.com/gluster/glusterd2/plugins/device/deviceutils"
+
+	"github.com/pborman/uuid"
 )
 
 func txnPrepareDevice(c transaction.TxnCtx) error {
-	var peerID string
+	var peerID uuid.UUID
 	if err := c.Get("peerid", &peerID); err != nil {
 		c.Logger().WithError(err).WithField("key", "peerid").Error("Failed to get key from transaction context")
 		return err
@@ -22,15 +22,14 @@ func txnPrepareDevice(c transaction.TxnCtx) error {
 		return err
 	}
 
-	var deviceInfo deviceapi.Info
+	deviceInfo := deviceapi.Info{Device: device}
 
 	err := lvmutils.CreatePV(device)
 	if err != nil {
 		c.Logger().WithError(err).WithField("device", device).Error("Failed to create physical volume")
 		return err
 	}
-	vgName := strings.Replace("vg"+device, "/", "-", -1)
-	err = lvmutils.CreateVG(device, vgName)
+	err = lvmutils.CreateVG(device, deviceInfo.VgName())
 	if err != nil {
 		c.Logger().WithError(err).WithField("device", device).Error("Failed to create volume group")
 		errPV := lvmutils.RemovePV(device)
@@ -41,20 +40,19 @@ func txnPrepareDevice(c transaction.TxnCtx) error {
 	}
 	c.Logger().WithField("device", device).Info("Device setup successful, setting device status to 'Enabled'")
 
-	availableSize, extentSize, err := lvmutils.GetVgAvailableSize(vgName)
+	availableSize, extentSize, err := lvmutils.GetVgAvailableSize(deviceInfo.VgName())
 	if err != nil {
 		return err
 	}
 	deviceInfo = deviceapi.Info{
-		Name:          device,
+		Device:        device,
 		State:         deviceapi.DeviceEnabled,
 		AvailableSize: availableSize,
 		ExtentSize:    extentSize,
 		PeerID:        peerID,
-		VgName:        vgName,
 	}
 
-	err = deviceutils.AddDevice(deviceInfo)
+	err = deviceutils.AddOrUpdateDevice(deviceInfo)
 	if err != nil {
 		c.Logger().WithError(err).WithField("peerid", peerID).Error("Couldn't add deviceinfo to store")
 		return err

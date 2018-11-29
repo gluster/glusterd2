@@ -307,28 +307,27 @@ func expandLocalBricks(volinfo *volume.Volinfo, expansionTpSizePerBrick uint64, 
 			if uuid.Equal(b.PeerID, gdctx.MyUUID) {
 				tpName := fmt.Sprintf("tp_%s_s%d_b%d", volinfo.Name, i+1, j+1)
 				lvName := fmt.Sprintf("brick_%s_s%d_b%d", volinfo.Name, i+1, j+1)
-				vgName := brickVgMapping[b.Path]
 				totalExpansionSizePerBrick := expansionTpSizePerBrick + expansionMetadataSizePerBrick
 
 				// extend thinpool
-				err := lvmutils.ExtendThinpool(expansionTpSizePerBrick, vgName, tpName)
+				err := lvmutils.ExtendThinpool(expansionTpSizePerBrick, b.VgName, tpName)
 				if err != nil {
 					return err
 				}
 				// extend metadata pool
-				err = lvmutils.ExtendMetadataPool(expansionMetadataSizePerBrick, vgName, tpName)
+				err = lvmutils.ExtendMetadataPool(expansionMetadataSizePerBrick, b.VgName, tpName)
 				if err != nil {
 					return err
 				}
 
 				// extend lv
-				err = lvmutils.ExtendLV(totalExpansionSizePerBrick, vgName, lvName)
+				err = lvmutils.ExtendLV(totalExpansionSizePerBrick, b.VgName, lvName)
 				if err != nil {
 					return err
 				}
 
 				// Update current Vg free size
-				err = deviceutils.UpdateDeviceFreeSize(gdctx.MyUUID.String(), vgName)
+				err = deviceutils.UpdateDeviceFreeSize(gdctx.MyUUID.String(), b.RootDevice)
 				if err != nil {
 					return err
 				}

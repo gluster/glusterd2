@@ -66,4 +66,5 @@ var (
 	ErrInvalidFilenameFormat           = errors.New("filename should be an absolute path in volume, should start with / notation")
 	ErrHostOrBrickNotFound             = errors.New("please specify hostname and brick path to resolve split-brain")
 	ErrVolTypeNotInReplicateOrDisperse = errors.New("invalid operation: the volume is not a replicate or disperse volume")
+	ErrDeviceNotFound                  = errors.New("device does not exist in the given peer")
 )
