@@ -129,10 +129,6 @@ func registerVolStartStepFuncs() {
 func volumeStartHandler(w http.ResponseWriter, r *http.Request) {
 
 	ctx := r.Context()
-	ctx, span := trace.StartSpan(ctx, "/volumeStartHandler")
-	defer span.End()
-
-	logger := gdctx.GetReqLogger(ctx)
 	volname := mux.Vars(r)["volname"]
 	var req api.VolumeStartReq
 
@@ -142,24 +138,39 @@ func volumeStartHandler(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
+	volinfo, status, err := StartVolume(ctx, volname, req)
+	if err != nil {
+		restutils.SendHTTPError(ctx, w, status, err)
+		return
+	}
+
+	events.Broadcast(volume.NewEvent(volume.EventVolumeStarted, volinfo))
+
+	resp := createVolumeStartResp(volinfo)
+	restutils.SendHTTPResponse(ctx, w, http.StatusOK, resp)
+}
+
+// StartVolume starts a volume
+func StartVolume(ctx context.Context, volname string, req api.VolumeStartReq) (volInfo *volume.Volinfo, status int, err error) {
+	logger := gdctx.GetReqLogger(ctx)
+	ctx, span := trace.StartSpan(ctx, "/volumeStartHandler")
+	defer span.End()
+
 	txn, err := transactionv2.NewTxnWithLocks(ctx, volname)
 	if err != nil {
 		status, err := restutils.ErrToStatusCode(err)
-		restutils.SendHTTPError(ctx, w, status, err)
-		return
+		return nil, status, err
 	}
 	defer txn.Done()
 
 	volinfo, err := volume.GetVolume(volname)
 	if err != nil {
 		status, err := restutils.ErrToStatusCode(err)
-		restutils.SendHTTPError(ctx, w, status, err)
-		return
+		return nil, status, err
 	}
 
 	if volinfo.State == volume.VolStarted && !req.ForceStartBricks {
-		restutils.SendHTTPError(ctx, w, http.StatusBadRequest, errors.ErrVolAlreadyStarted)
-		return
+		return nil, http.StatusBadRequest, errors.ErrVolAlreadyStarted
 	}
 
 	txn.Steps = []*transaction.Step{
@@ -182,15 +193,13 @@ func volumeStartHandler(w http.ResponseWriter, r *http.Request) {
 	}
 
 	if err := txn.Ctx.Set("oldvolinfo", volinfo); err != nil {
-		restutils.SendHTTPError(ctx, w, http.StatusInternalServerError, err)
-		return
+		return nil, http.StatusInternalServerError, err
 	}
 
 	volinfo.State = volume.VolStarted
 
 	if err := txn.Ctx.Set("volinfo", volinfo); err != nil {
-		restutils.SendHTTPError(ctx, w, http.StatusInternalServerError, err)
-		return
+		return nil, http.StatusInternalServerError, err
 	}
 
 	span.AddAttributes(
@@ -201,14 +210,10 @@ func volumeStartHandler(w http.ResponseWriter, r *http.Request) {
 	if err := txn.Do(); err != nil {
 		logger.WithError(err).WithField(
 			"volume", volname).Error("transaction to start volume failed")
-		restutils.SendHTTPError(ctx, w, http.StatusInternalServerError, err)
-		return
+		return nil, http.StatusInternalServerError, err
 	}
 
-	events.Broadcast(volume.NewEvent(volume.EventVolumeStarted, volinfo))
-
-	resp := createVolumeStartResp(volinfo)
-	restutils.SendHTTPResponse(ctx, w, http.StatusOK, resp)
+	return volinfo, http.StatusOK, nil
 }
 
 func createVolumeStartResp(v *volume.Volinfo) *api.VolumeStartResp {
