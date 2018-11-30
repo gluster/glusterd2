@@ -48,6 +48,9 @@ func TestGeorepCreateDelete(t *testing.T) {
 	vol1, err := client.VolumeCreate(reqVol)
 	r.Nil(err)
 
+	err = client.VolumeStart(vol1.Name, false)
+	r.Nil(err)
+
 	volname2 := "testvol2"
 	reqVol = api.VolCreateReq{
 		Name: volname2,
@@ -73,11 +76,68 @@ func TestGeorepCreateDelete(t *testing.T) {
 		},
 	}
 
-	_, err = client.GeorepCreate(vol1.ID.String(), vol2.ID.String(), reqGeorep)
+	masterVolID := vol1.ID.String()
+	remoteVolID := vol2.ID.String()
+
+	_, err = client.GeorepCreate(masterVolID, remoteVolID, reqGeorep)
+	r.Nil(err)
+
+	//generate ssh keys
+	_, err = client.GeorepSSHKeysGenerate(volname)
+	r.Nil(err)
+
+	//get ssh keys
+	sshKeys, err := client.GeorepSSHKeys(volname)
+	r.Nil(err)
+
+	//push ssh keys
+	err = client.GeorepSSHKeysPush(volname, sshKeys)
+	r.Nil(err)
+
+	//start geo-rep session
+	_, err = client.GeorepStart(masterVolID, remoteVolID, false)
+	r.Nil(err)
+
+	//set geo-rep options
+	opt := make(map[string]string)
+	opt["gluster-log-level"] = "INFO"
+	opt["changelog-log-level"] = "ERROR"
+	err = client.GeorepSet(masterVolID, remoteVolID, opt)
+	r.Nil(err)
+
+	//get geo-rep options
+	_, err = client.GeorepGet(masterVolID, remoteVolID)
+	r.Nil(err)
+
+	//reset geo-rep options
+	err = client.GeorepReset(masterVolID, remoteVolID, []string{"gluster-log-level", "changelog-log-level"})
+	r.Nil(err)
+	//pause geo-rep session
+	_, err = client.GeorepPause(masterVolID, remoteVolID, false)
+	r.Nil(err)
+
+	//resume geo-rep session
+	_, err = client.GeorepResume(masterVolID, remoteVolID, false)
+	r.Nil(err)
+
+	//stop geo-rep session
+	_, err = client.GeorepStop(masterVolID, remoteVolID, false)
+	r.Nil(err)
+
+	//get status of geo-rep session
+	_, err = client.GeorepStatus(masterVolID, remoteVolID)
+	r.Nil(err)
+
+	//gets status of geo-rep sessions
+	_, err = client.GeorepStatus("", "")
 	r.Nil(err)
 
 	// delete geo-rep session
-	err = client.GeorepDelete(vol1.ID.String(), vol2.ID.String(), false)
+	err = client.GeorepDelete(masterVolID, remoteVolID, false)
+	r.Nil(err)
+
+	// stop volume
+	err = client.VolumeStop(volname)
 	r.Nil(err)
 
 	// delete volume

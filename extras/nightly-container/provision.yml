@@ -35,6 +35,7 @@
         state: present
       with_items:
         - glusterfs-server
+        - glusterfs-geo-replication
         - glusterd2
         - lvm2
         - xfsprogs

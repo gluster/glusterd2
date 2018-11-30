@@ -174,6 +174,12 @@ func georepCreateHandler(w http.ResponseWriter, r *http.Request) {
 	// Workaround till {{ volume.id }} added to the marker options table
 	vol.Options["marker.volume-uuid"] = vol.ID.String()
 
+	// Workaround till {{ workdir }} added to the marker options table
+	vol.Options["marker.timestamp-file"] = path.Join(
+		config.GetString("localstatedir"),
+		"{{ volume.name }}.marker.tstamp",
+	)
+
 	//save volume information for transaction failure scenario
 	if err := txn.Ctx.Set("oldvolinfo", oldvolinfo); err != nil {
 		logger.WithError(err).Error("failed to set oldvolinfo in transaction context")
@@ -610,7 +616,7 @@ func checkConfig(name string, value string) error {
 	if value != "" {
 		args = append(args, "--value", value)
 	}
-	return utils.ExecuteCommandRun(gsyncdCommand, args...)
+	return utils.ExecuteCommandRun(getGsyncdCommand(), args...)
 }
 
 func georepConfigGetHandler(w http.ResponseWriter, r *http.Request) {
@@ -646,7 +652,7 @@ func georepConfigGetHandler(w http.ResponseWriter, r *http.Request) {
 		"--show-defaults",
 		"--json",
 	}
-	out, err := utils.ExecuteCommandOutput(gsyncdCommand, args...)
+	out, err := utils.ExecuteCommandOutput(getGsyncdCommand(), args...)
 	if err != nil {
 		logger.WithError(err).WithFields(log.Fields{
 			"mastervolid": masterid,

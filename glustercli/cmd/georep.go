@@ -3,9 +3,11 @@ package cmd
 import (
 	"errors"
 	"fmt"
+	"io/ioutil"
 	"net/url"
 	"os"
 	"strings"
+	"time"
 
 	"github.com/gluster/glusterd2/pkg/restclient"
 	georepapi "github.com/gluster/glusterd2/plugins/georeplication/api"
@@ -54,12 +56,24 @@ var (
 	flagGeorepCmdForce        bool
 	flagGeorepShowAllConfig   bool
 	flagGeorepRemoteEndpoints string
+	flagRemoteUser            string
+	flagRemoteSecret          string
+	flagRemoteSecretFile      string
+	flagRemoteCacert          string
+	flagRemoteInsecure        bool
 )
 
 func init() {
 	// Geo-rep Create
 	georepCreateCmd.Flags().StringVar(&flagGeorepRemoteEndpoints, "remote-endpoints", "", "remote glusterd2 endpoints")
 	georepCreateCmd.Flags().BoolVarP(&flagGeorepCmdForce, "force", "f", false, "Force")
+	georepCreateCmd.Flags().StringVar(&flagRemoteUser, "remote-user", "glustercli", "Username for authentication")
+	georepCreateCmd.Flags().StringVar(&flagRemoteSecret, "remote-secret", "", "Password for authentication")
+	georepCreateCmd.Flags().StringVar(&flagRemoteSecretFile, "remote-secret-file", "", "Path to file which contains the secret for authentication")
+	georepCreateCmd.Flags().StringVar(&flagRemoteCacert, "remote-cacert", "", "Path to CA certificate")
+	georepCreateCmd.Flags().BoolVar(&flagRemoteInsecure, "remote-insecure", false,
+		"Skip remote server certificate validation")
+
 	georepCmd.AddCommand(georepCreateCmd)
 
 	// Geo-rep Start
@@ -335,7 +349,6 @@ var georepDeleteCmd = &cobra.Command{
 }
 
 func getRemoteClient(host string) (string, *restclient.Client, error) {
-	// TODO: Handle Remote Cluster Authentication and certificates and URL scheme
 	clienturl := flagGeorepRemoteEndpoints
 
 	if flagGeorepRemoteEndpoints != "" {
@@ -346,8 +359,49 @@ func getRemoteClient(host string) (string, *restclient.Client, error) {
 	} else {
 		clienturl = fmt.Sprintf("%s://%s:%d", geoRepHTTPScheme, host, geoRepGlusterdPort)
 	}
-	client, err := restclient.New(clienturl, "", "", "", true)
-	return clienturl, client, err
+
+	remoteSecret := ""
+	// Secret is taken in following order of precedence (highest to lowest):
+	// --remote-secret
+	// --remote-secret-file
+	// GD2_REMOTE_AUTH_SECRET (environment variable)
+	// Secret set for Master cluster itself
+	// Default secret
+
+	// Remote Cluster secret --remote-secret
+	if flagRemoteSecret != "" {
+		remoteSecret = flagRemoteSecret
+	}
+
+	// Remote Cluster's secret file --remote-secret-file
+	if flagRemoteSecretFile != "" && remoteSecret == "" {
+		data, err := ioutil.ReadFile(flagRemoteSecretFile)
+		if err != nil {
+			failure(fmt.Sprintf("failed to read remote secret file %s", flagRemoteSecretFile),
+				err, 1)
+		}
+		remoteSecret = string(data)
+	}
+
+	// GD2_REMOTE_AUTH_SECRET
+	if remoteSecret == "" {
+		remoteSecret = os.Getenv("GD2_REMOTE_AUTH_SECRET")
+	}
+
+	// Below option of local cluster is used because --remote-* options
+	// are not specified and Remote volume may exists in same cluster where
+	// Master Volume exists
+	if remoteSecret == "" {
+		remoteSecret = GlobalFlag.Secret
+	}
+
+	client, err := restclient.New(clienturl, flagRemoteUser, remoteSecret, flagRemoteCacert, flagRemoteInsecure)
+	if err != nil {
+		failure("failed to setup remote client", err, 1)
+	}
+	client.SetTimeout(time.Duration(GlobalFlag.Timeout) * time.Second)
+
+	return clienturl, client, nil
 }
 
 func getVolIDs(pargs []string) (string, string, error) {

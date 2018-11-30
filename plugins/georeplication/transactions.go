@@ -166,7 +166,7 @@ func txnGeorepStatus(c transaction.TxnCtx) error {
 		}
 		args := gsyncd.statusArgs(w.Path)
 
-		out, err := utils.ExecuteCommandOutput(gsyncdCommand, args...)
+		out, err := utils.ExecuteCommandOutput(getGsyncdCommand(), args...)
 		if err != nil {
 			return err
 		}
@@ -415,7 +415,7 @@ func txnSSHKeysPush(c transaction.TxnCtx) error {
 		return err
 	}
 
-	sshCmdGsyncdPrefix := "command=\"" + gsyncdCommand + "\"  "
+	sshCmdGsyncdPrefix := "command=\"" + getGsyncdCommand() + "\"  "
 	sshCmdTarPrefix := "command=\"tar ${SSH_ORIGINAL_COMMAND#* }\"  "
 	authorizedKeysFile := "/root/.ssh/authorized_keys"
 
