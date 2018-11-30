@@ -1,6 +1,7 @@
 package volumecommands
 
 import (
+	"context"
 	"errors"
 	"net/http"
 	"path/filepath"
@@ -102,9 +103,6 @@ func registerVolCreateStepFuncs() {
 func volumeCreateHandler(w http.ResponseWriter, r *http.Request) {
 
 	ctx := r.Context()
-	ctx, span := trace.StartSpan(ctx, "/volumeCreateHandler")
-	defer span.End()
-
 	logger := gdctx.GetReqLogger(ctx)
 	var err error
 
@@ -114,45 +112,68 @@ func volumeCreateHandler(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	if err := validateVolCreateReq(&req); err != nil {
-		restutils.SendHTTPError(ctx, w, http.StatusBadRequest, err)
+	if status, err := CreateVolume(ctx, req); err != nil {
+		restutils.SendHTTPError(ctx, w, status, err)
 		return
 	}
 
-	if containsReservedGroupProfile(req.Options) {
-		restutils.SendHTTPError(ctx, w, http.StatusBadRequest, gderrors.ErrReservedGroupProfile)
+	volinfo, err := volume.GetVolume(req.Name)
+	if err != nil {
+		// FIXME: If volume was created successfully in the txn above and
+		// then the store goes down by the time we reach here, what do
+		// we return to the client ?
+		restutils.SendHTTPError(ctx, w, http.StatusInternalServerError, err)
 		return
+	}
+
+	logger.WithField("volume-name", volinfo.Name).Info("new volume created")
+	events.Broadcast(volume.NewEvent(volume.EventVolumeCreated, volinfo))
+
+	resp := createVolumeCreateResp(volinfo)
+	restutils.SetLocationHeader(r, w, volinfo.Name)
+	restutils.SendHTTPResponse(ctx, w, http.StatusCreated, resp)
+}
+
+func createVolumeCreateResp(v *volume.Volinfo) *api.VolumeCreateResp {
+	return (*api.VolumeCreateResp)(volume.CreateVolumeInfoResp(v))
+}
+
+// CreateVolume creates a volume
+func CreateVolume(ctx context.Context, req api.VolCreateReq) (status int, err error) {
+	ctx, span := trace.StartSpan(ctx, "/volumeCreateHandler")
+	defer span.End()
+
+	if err := validateVolCreateReq(&req); err != nil {
+		return http.StatusBadRequest, err
+	}
+
+	if containsReservedGroupProfile(req.Options) {
+		return http.StatusBadRequest, gderrors.ErrReservedGroupProfile
 	}
 
 	if req.Size > 0 {
 		applyDefaults(&req)
 
 		if req.SnapshotReserveFactor < 1 {
-			restutils.SendHTTPError(ctx, w, http.StatusBadRequest,
-				errors.New("invalid snapshot reserve factor"))
-			return
+			return http.StatusBadRequest, errors.New("invalid snapshot reserve factor")
 		}
 
 		if err := bricksplanner.PlanBricks(&req); err != nil {
-			restutils.SendHTTPError(ctx, w, http.StatusInternalServerError, err)
-			return
+			return http.StatusInternalServerError, err
 		}
 	} else {
 		if err := checkDupBrickEntryVolCreate(req); err != nil {
-			restutils.SendHTTPError(ctx, w, http.StatusBadRequest, err)
-			return
+			return http.StatusBadRequest, err
 		}
 	}
 
 	req.Options, err = expandGroupOptions(req.Options)
 	if err != nil {
-		restutils.SendHTTPError(ctx, w, http.StatusInternalServerError, err)
-		return
+		return http.StatusInternalServerError, err
 	}
 
 	if err := validateOptions(req.Options, req.VolOptionFlags); err != nil {
-		restutils.SendHTTPError(ctx, w, http.StatusBadRequest, err)
-		return
+		return http.StatusBadRequest, err
 	}
 
 	// Include default Volume Options profile
@@ -171,21 +192,17 @@ func volumeCreateHandler(w http.ResponseWriter, r *http.Request) {
 
 	nodes, err := req.Nodes()
 	if err != nil {
-		restutils.SendHTTPError(ctx, w, http.StatusBadRequest, err)
-		return
+		return http.StatusBadRequest, err
 	}
 
 	txn, err := transactionv2.NewTxnWithLocks(ctx, req.Name)
 	if err != nil {
-		status, err := restutils.ErrToStatusCode(err)
-		restutils.SendHTTPError(ctx, w, status, err)
-		return
+		return restutils.ErrToStatusCode(err)
 	}
 	defer txn.Done()
 
 	if volume.Exists(req.Name) {
-		restutils.SendHTTPError(ctx, w, http.StatusBadRequest, gderrors.ErrVolExists)
-		return
+		return http.StatusBadRequest, gderrors.ErrVolExists
 	}
 
 	txn.Steps = []*transaction.Step{
@@ -219,8 +236,7 @@ func volumeCreateHandler(w http.ResponseWriter, r *http.Request) {
 	}
 
 	if err := txn.Ctx.Set("req", &req); err != nil {
-		restutils.SendHTTPError(ctx, w, http.StatusInternalServerError, err)
-		return
+		return http.StatusInternalServerError, err
 	}
 
 	// Add attributes to the span with info that can be viewed along with traces.
@@ -231,28 +247,8 @@ func volumeCreateHandler(w http.ResponseWriter, r *http.Request) {
 	)
 
 	if err := txn.Do(); err != nil {
-		status, err := restutils.ErrToStatusCode(err)
-		restutils.SendHTTPError(ctx, w, status, err)
-		return
+		return restutils.ErrToStatusCode(err)
 	}
 
-	volinfo, err := volume.GetVolume(req.Name)
-	if err != nil {
-		// FIXME: If volume was created successfully in the txn above and
-		// then the store goes down by the time we reach here, what do
-		// we return to the client ?
-		restutils.SendHTTPError(ctx, w, http.StatusInternalServerError, err)
-		return
-	}
-
-	logger.WithField("volume-name", volinfo.Name).Info("new volume created")
-	events.Broadcast(volume.NewEvent(volume.EventVolumeCreated, volinfo))
-
-	resp := createVolumeCreateResp(volinfo)
-	restutils.SetLocationHeader(r, w, volinfo.Name)
-	restutils.SendHTTPResponse(ctx, w, http.StatusCreated, resp)
-}
-
-func createVolumeCreateResp(v *volume.Volinfo) *api.VolumeCreateResp {
-	return (*api.VolumeCreateResp)(volume.CreateVolumeInfoResp(v))
+	return http.StatusCreated, nil
 }
