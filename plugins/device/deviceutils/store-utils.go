@@ -58,16 +58,19 @@ func GetDevicesFromPeer(peerInfo *peer.Peer) ([]deviceapi.Info, error) {
 }
 
 // SetDeviceState sets device state and updates device state in etcd
-func SetDeviceState(peerID, deviceName, deviceState string) error {
+func SetDeviceState(peerID, device, deviceState string) error {
 
 	devices, err := GetDevices(peerID)
 	if err != nil {
 		return err
 	}
 
-	index := DeviceInList(deviceName, devices)
+	index := DeviceInList(device, devices)
 	if index < 0 {
 		return errors.New("device does not exist in the given peer")
+	}
+	if devices[index].State == deviceState {
+		return nil
 	}
 	devices[index].State = deviceState
 	return updateDevices(peerID, devices)

@@ -37,7 +37,7 @@ func (p *Plugin) RestRoutes() route.Routes {
 		route.Route{
 			Name:        "DeviceEdit",
 			Method:      "POST",
-			Pattern:     "/devices/{peerid}",
+			Pattern:     "/devices/{peerid}/{device:.*}",
 			Version:     1,
 			RequestType: utils.GetTypeString((*deviceapi.EditDeviceReq)(nil)),
 			HandlerFunc: deviceEditHandler},
