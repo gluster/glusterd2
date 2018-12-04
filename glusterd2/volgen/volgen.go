@@ -21,6 +21,9 @@ type Entry struct {
 	// NamePrefix will be used to set prefix for xlator section
 	// name if Name is not set.
 	NamePrefix string
+	// NameSuffix will be used to set suffix for xlator section
+	// name if Name is not set.
+	NameSuffix string
 	// XlatorData represents the Xlator object with all the
 	// necessory information.
 	XlatorData Xlator
@@ -57,6 +60,12 @@ func (e *Entry) SetNamePrefix(name string) *Entry {
 	return e
 }
 
+// SetNameSuffix sets name prefix
+func (e *Entry) SetNameSuffix(name string) *Entry {
+	e.NameSuffix = name
+	return e
+}
+
 // Generate generates Volfile content
 func (v *Volfile) Generate() (string, error) {
 	return v.RootEntry.Generate()
@@ -80,18 +89,18 @@ func setNameAndType(entry *Entry) error {
 	if entry.Name == "" {
 		// If Xlator name template is not specified, construct the xlator
 		// graph name as <volume-name>-<xlator-suffix>
-		prefix := entry.NamePrefix
-		if prefix != "" {
-			prefix = prefix + "-"
-		}
+		entry.Name = entry.NamePrefix
 
 		if entry.NamePrefix == "" {
 			volname, exists := entry.VarStrData["volume.name"]
 			if exists {
-				prefix = volname + "-"
+				entry.Name = volname + "-" + entry.XlatorData.suffix()
 			}
 		}
-		entry.Name = prefix + entry.XlatorData.suffix()
+
+		if entry.NameSuffix != "" {
+			entry.Name = entry.Name + "-" + entry.NameSuffix
+		}
 	}
 	return nil
 }
@@ -279,14 +288,19 @@ func volumegraph(tmpl *Template, volinfo volume.Volinfo, entry *Entry, varStrDat
 		// cluster/distribute graph again. Directly assign
 		// brick entries to main cluster/distribute itself
 		sentry := entry
+		svname := ""
 		if sv.Type != volume.SubvolDistribute || (sv.Type == volume.SubvolDistribute && numSubvols > 1) {
 			for _, sxl := range subvolXlators {
 				if !sxl.OnlyLocalBricks || (sxl.OnlyLocalBricks && numberOfLocalBricks > 0) {
+					svname = sxl.suffix() + "-" + strconv.Itoa(sidx)
 					sentry = sentry.Add(sxl, utils.MergeStringMaps(
 						*varStrData,
 						sv.StringMap(),
 						extraStringMaps.Subvols[sidx].StringMap,
-					)).SetNamePrefix(sv.Name)
+					)).SetNamePrefix(volinfo.Name).SetNameSuffix(svname)
+
+					// Set name for future use while adding brick entries
+					svname = volinfo.Name + "-" + svname
 				}
 			}
 		}
@@ -321,7 +335,8 @@ func volumegraph(tmpl *Template, volinfo volume.Volinfo, entry *Entry, varStrDat
 						map[string]string{"remote-port": remotePort},
 					)
 				}
-				bentry = bentry.Add(bxl, bopts).SetNamePrefix(sv.Name + "-" + strconv.Itoa(bidx))
+				bentry = bentry.Add(bxl, bopts).SetNamePrefix(svname).
+					SetNameSuffix(bxl.suffix() + "-" + strconv.Itoa(bidx))
 			}
 		}
 	}
