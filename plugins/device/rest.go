@@ -137,6 +137,15 @@ func deviceEditHandler(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
+	device := mux.Vars(r)["device"]
+	if device == "" {
+		restutils.SendHTTPError(ctx, w, http.StatusBadRequest, "device not provided in URL")
+		return
+	}
+
+	// Adding prefix (/) to device
+	device = "/" + device
+
 	req := new(deviceapi.EditDeviceReq)
 	if err := restutils.UnmarshalRequest(r, req); err != nil {
 		logger.WithError(err).Error("Failed to unmarshal request")
@@ -151,7 +160,7 @@ func deviceEditHandler(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	txn, err := transaction.NewTxnWithLocks(ctx, peerID)
+	txn, err := transaction.NewTxnWithLocks(ctx, peerID+device)
 	if err != nil {
 		status, err := restutils.ErrToStatusCode(err)
 		restutils.SendHTTPError(ctx, w, status, err)
@@ -159,7 +168,7 @@ func deviceEditHandler(w http.ResponseWriter, r *http.Request) {
 	}
 	defer txn.Done()
 
-	err = deviceutils.SetDeviceState(peerID, req.DeviceName, req.State)
+	err = deviceutils.SetDeviceState(peerID, device, req.State)
 	if err != nil {
 		logger.WithError(err).WithField("peerid", peerID).Error("Failed to update device state in store")
 		status, err := restutils.ErrToStatusCode(err)
