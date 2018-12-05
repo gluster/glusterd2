@@ -9,7 +9,6 @@ import (
 	restutils "github.com/gluster/glusterd2/glusterd2/servers/rest/utils"
 	"github.com/gluster/glusterd2/glusterd2/snapshot"
 	"github.com/gluster/glusterd2/glusterd2/transaction"
-	"github.com/gluster/glusterd2/glusterd2/volgen"
 	"github.com/gluster/glusterd2/glusterd2/volume"
 	"github.com/gluster/glusterd2/pkg/api"
 	gderrors "github.com/gluster/glusterd2/pkg/errors"
@@ -49,12 +48,6 @@ func undoStoreSnapshotClone(c transaction.TxnCtx) error {
 		return err
 	}
 
-	if err := volgen.DeleteVolfiles(vol.VolfileID); err != nil {
-		c.Logger().WithError(err).
-			WithField("volume", vol.Name).
-			Error("failed to delete volfiles of volume")
-		return err
-	}
 	return nil
 }
 
@@ -66,12 +59,6 @@ func storeSnapshotClone(c transaction.TxnCtx) error {
 	if err := volume.AddOrUpdateVolumeFunc(&vol); err != nil {
 		c.Logger().WithError(err).WithField(
 			"volume", vol.Name).Error("storeVolume: failed to store Volinfo")
-		return err
-	}
-
-	if err := volgen.VolumeVolfileToStore(&vol, vol.Name, "client"); err != nil {
-		c.Logger().WithError(err).WithField(
-			"volume", vol.Name).Error("generateVolfiles: failed to generate volfiles")
 		return err
 	}
 
