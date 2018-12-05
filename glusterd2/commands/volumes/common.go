@@ -290,14 +290,6 @@ func storeVolInfo(c transaction.TxnCtx, key string) error {
 			"key", "volinfo").Debug("failed to get key from store")
 		return err
 	}
-	err := volgen.VolumeVolfileToStore(&volinfo, volinfo.Name, "client")
-	if err != nil {
-		c.Logger().WithError(err).WithFields(log.Fields{
-			"template": "client",
-			"volfile":  volinfo.Name,
-		}).Error("failed to generate volfile and save to store")
-		return err
-	}
 
 	if err := volume.AddOrUpdateVolumeFunc(&volinfo); err != nil {
 		c.Logger().WithError(err).WithField(
