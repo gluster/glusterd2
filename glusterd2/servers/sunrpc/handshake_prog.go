@@ -1,7 +1,6 @@
 package sunrpc
 
 import (
-	"context"
 	"errors"
 	"io/ioutil"
 	"net"
@@ -12,7 +11,8 @@ import (
 	"syscall"
 
 	"github.com/gluster/glusterd2/glusterd2/servers/sunrpc/dict"
-	"github.com/gluster/glusterd2/glusterd2/store"
+	"github.com/gluster/glusterd2/glusterd2/snapshot"
+	"github.com/gluster/glusterd2/glusterd2/volgen"
 	"github.com/gluster/glusterd2/glusterd2/volume"
 	"github.com/gluster/glusterd2/pkg/sunrpc"
 	"github.com/gluster/glusterd2/plugins/rebalance"
@@ -140,6 +140,7 @@ func (p *GfHandshake) ServerGetspec(args *GfGetspecReq, reply *GfGetspecRsp) err
 		).Error("ServerGetspec(): failed to read volfile")
 		goto Out
 	}
+	reply.Spec = string(content)
 
 	// If Volfile not available in volfiles directory
 	// fetch from etcd store
@@ -147,34 +148,58 @@ func (p *GfHandshake) ServerGetspec(args *GfGetspecReq, reply *GfGetspecRsp) err
 		// Reset error due to Volfile not exists
 		err = nil
 
-		resp, err := store.Get(context.TODO(), volfilePrefix+volfileID)
+		if strings.HasPrefix(volfileID, "snaps/") {
+			snapname := strings.Replace(volfileID, "snaps/", "", -1)
+			snapvol, err := snapshot.GetSnapshot(snapname)
+			if err != nil {
+				log.WithError(err).WithField(
+					"volfile", volfileID,
+				).Error("failed to get snapshot info")
+				goto Out
+			}
+			volinfo = &snapvol.SnapVolinfo
+		} else {
+			volinfo, err = volume.GetVolume(volfileID)
+			if err != nil {
+				log.WithError(err).WithField(
+					"volfile", volfileID,
+				).Error("failed to get volume info")
+				goto Out
+			}
+		}
+
+		tmpl, err := volgen.GetTemplateFromVolinfo(volinfo, "client")
 		if err != nil {
-			log.WithError(err).WithField("volfile", args.Key).Error("ServerGetspec(): failed to retrive volfile from store")
+			log.WithError(err).WithField(
+				"volfile", volfileID,
+			).Error("failed to get client volfile template")
 			goto Out
 		}
 
-		if resp.Count != 1 {
-			err = errors.New("volfile not found in store")
-			log.WithError(err).WithField("volfile", args.Key)
+		reply.Spec, err = volgen.VolumeLevelVolfile(tmpl, volinfo)
+		if err != nil {
+			log.WithError(err).WithField(
+				"volfile", volfileID,
+			).Error("failed to generate client volfile")
 			goto Out
 		}
-		content = resp.Kvs[0].Value
 	}
 
-	reply.Spec = string(content)
 	reply.OpRet = len(reply.Spec)
 	reply.OpErrno = 0
 
 	if (args.Flags & gfGetspecFlagServersList) != 0 {
 
-		volinfo, err = volume.GetVolume(volfileID)
-		if err != nil {
-			log.WithError(err).WithField("volume", volfileID).Warn("failed to get volinfo from store")
-			// Currently there's no easy way to distinguish between
-			// a GETSPEC request from client vs request from daemon
-			// such as self-heal as self-heal is also a client.
-			err = nil
-			goto Out
+		if volinfo == nil {
+			volinfo, err = volume.GetVolume(volfileID)
+			if err != nil {
+				log.WithError(err).WithField("volume", volfileID).Warn("failed to get volinfo from store")
+				// Currently there's no easy way to distinguish between
+				// a GETSPEC request from client vs request from daemon
+				// such as self-heal as self-heal is also a client.
+				err = nil
+				goto Out
+			}
 		}
 
 		// We can return list of all peers too. That'll be correct

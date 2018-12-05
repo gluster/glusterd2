@@ -8,7 +8,6 @@ import (
 	"github.com/gluster/glusterd2/glusterd2/gdctx"
 	restutils "github.com/gluster/glusterd2/glusterd2/servers/rest/utils"
 	"github.com/gluster/glusterd2/glusterd2/transaction"
-	"github.com/gluster/glusterd2/glusterd2/volgen"
 	"github.com/gluster/glusterd2/glusterd2/volume"
 
 	"github.com/gorilla/mux"
@@ -25,13 +24,6 @@ func deleteVolume(c transaction.TxnCtx) error {
 	}
 
 	if err := volume.DeleteVolume(volinfo.Name); err != nil {
-		return err
-	}
-
-	if err := volgen.DeleteVolfiles(volinfo.Name); err != nil {
-		c.Logger().WithError(err).
-			WithField("volume", volinfo.Name).
-			Error("failed to delete volfiles of volume")
 		return err
 	}
 
