@@ -132,17 +132,10 @@ func (s *SunRPC) acceptLoop(stopCh chan struct{}, l net.Listener, wg *sync.WaitG
 		"transport": ltype})
 	logger.WithField("address", l.Addr().String()).Info("started server")
 
-	sessions := make([]rpc.ServerCodec, 50)
 	for {
 		select {
 		case <-stopCh:
 			logger.Debug("stopped accepting new connections")
-			logger.Debug("closing client connections")
-			for _, c := range sessions {
-				if c != nil {
-					c.Close()
-				}
-			}
 			return
 		default:
 		}
@@ -177,9 +170,26 @@ func (s *SunRPC) acceptLoop(stopCh chan struct{}, l net.Listener, wg *sync.WaitG
 			}
 		}
 
+		// For each session, start two goroutines:
+		//   1) Run the rpc server, and when the server terminates, close sessionCh to terminate goroutine#2
+		//   2) Wait on sessionCh and stopCh, close the session and return if either comes. session.Close should
+		//      terminate #1
 		session := sunrpc.NewServerCodec(conn, s.notifyCloseCh)
-		go server.ServeCodec(session)
-		sessions = append(sessions, session)
+		sessionCh := make(chan struct{})
+		go func() {
+			defer close(sessionCh)
+			server.ServeCodec(session)
+		}()
+		go func() {
+			select {
+			case <-stopCh:
+				session.Close()
+				return
+			case <-sessionCh:
+				session.Close()
+				return
+			}
+		}()
 	}
 }
 
