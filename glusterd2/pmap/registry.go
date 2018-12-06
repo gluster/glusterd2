@@ -107,6 +107,22 @@ func (r *pmapRegistry) SearchByBrickPath(brickpath string) (int, error) {
 	return -1, fmt.Errorf("SearchByBrickPath: port for brick %s not found", brickpath)
 }
 
+// NumOfBricksOnPort returns number of bricks attached to a port. Called during
+// brick multiplexing when there is a max-brick-per-process constraint
+func (r *pmapRegistry) NumOfBricksOnPort(port int) (int, error) {
+	if port < portMin || port > portMax {
+		return -1, fmt.Errorf("registry.NumOfBricksOnPort: invalid port %d", port)
+	}
+
+	r.RLock()
+	defer r.RUnlock()
+	if bricks, ok := r.Ports[port]; ok {
+		return len(bricks), nil
+	}
+
+	return -1, fmt.Errorf("NumOfBricksOnPort: port %d not found in registry", port)
+}
+
 // RemoveByConn deletes port map entry by brick process's TCP connection.
 // There will be only one TCP connection per brick process, regardless of
 // number of bricks in the process.

@@ -31,7 +31,7 @@ var ClusterOptMap = map[string]*ClusterOption{
 	"cluster.op-version":             {"cluster.op-version", strconv.Itoa(gdctx.OpVersion), OptionTypeInt, nil},
 	"cluster.max-op-version":         {"cluster.max-op-version", strconv.Itoa(gdctx.OpVersion), OptionTypeInt, nil},
 	"cluster.brick-multiplex":        {"cluster.brick-multiplex", "off", OptionTypeBool, nil},
-	"cluster.max-bricks-per-process": {"cluster.max-bricks-per-process", "0", OptionTypeInt, nil},
+	"cluster.max-bricks-per-process": {"cluster.max-bricks-per-process", "250", OptionTypeInt, nil},
 	"cluster.localtime-logging":      {"cluster.localtime-logging", "off", OptionTypeBool, nil},
 }
 
