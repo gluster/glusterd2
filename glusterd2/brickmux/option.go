@@ -45,13 +45,18 @@ func getMaxBricksPerProcess() (int, error) {
 
 // validateOption validates brick mux options
 func validateOption(option, value string) error {
+	if option == "cluster.brick-multiplex" {
+		_, err := options.StringToBoolean(value)
+		if err != nil {
+			return err
+		}
+	}
 	if option == "cluster.max-bricks-per-process" {
 		_, err := strconv.Atoi(value)
 		if err != nil {
 			return errors.ErrInvalidIntValue
 		}
 	}
-
 	return nil
 }
 

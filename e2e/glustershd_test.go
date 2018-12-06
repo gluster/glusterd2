@@ -30,7 +30,7 @@ func testSelfHeal(t *testing.T, tc *testCluster) {
 	//glustershd pid file path
 	pidpath := path.Join(tc.gds[0].Rundir, "glustershd.pid")
 
-	for i := 1; i <= 2; i++ {
+	for i := 1; i <= 4; i++ {
 		brickPath := testTempDir(t, "brick")
 		brickPaths = append(brickPaths, brickPath)
 	}
@@ -39,11 +39,12 @@ func testSelfHeal(t *testing.T, tc *testCluster) {
 		Name: volname,
 		Subvols: []api.SubvolReq{
 			{
-				ReplicaCount: 2,
+				ReplicaCount: 3,
 				Type:         "replicate",
 				Bricks: []api.BrickReq{
 					{PeerID: tc.gds[0].PeerID(), Path: brickPaths[0]},
-					{PeerID: tc.gds[0].PeerID(), Path: brickPaths[1]},
+					{PeerID: tc.gds[1].PeerID(), Path: brickPaths[1]},
+					{PeerID: tc.gds[2].PeerID(), Path: brickPaths[2]},
 				},
 			},
 		},
@@ -72,14 +73,6 @@ func testSelfHeal(t *testing.T, tc *testCluster) {
 	getBricksStatus, err := client.BricksStatus(volname)
 	r.Nil(err, fmt.Sprintf("brick status operation failed: %s", err))
 	count := 0
-	for brick := range getBricksStatus {
-		if getBricksStatus[brick].Info.PeerID.String() == tc.gds[0].PeerID() {
-			count++
-		}
-	}
-
-	r.Equal(count, 2)
-
 	for brick := range getBricksStatus {
 		if getBricksStatus[brick].Info.PeerID.String() == tc.gds[0].PeerID() {
 			process, err := os.FindProcess(getBricksStatus[brick].Pid)
