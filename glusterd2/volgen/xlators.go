@@ -13,19 +13,33 @@ func (xl *Xlator) isEnabled(volinfo *volume.Volinfo, tmplName string) bool {
 	// If Volinfo.Options can contains xlator, check for xlator
 	// existence in the following order: FullName, Name and Suffix
 	// For example changelog can be enabled using
-	// `brick.features.changelog` or `features.changelog`
-	// or `changelog`
+	// `brick.features/changelog.changelog` or `features/changelog.changelog`
+	// or `changelog.changelog`
 	// volinfo can be nil in case of cluster level graphs
 	if volinfo != nil {
-		value, exists := volinfo.Options[xl.fullName(tmplName)]
+		sfx := "." + xl.suffix()
+		value, exists := volinfo.Options[xl.fullName(tmplName)+sfx]
+
+		if !exists {
+			value, exists = volinfo.Options[xl.fullName(tmplName)]
+		}
+
+		if !exists {
+			value, exists = volinfo.Options[xl.name()+sfx]
+		}
 
 		if !exists {
 			value, exists = volinfo.Options[xl.name()]
 		}
 
 		if !exists {
-			value, exists = volinfo.Options[xl.suffix()]
+			value, exists = volinfo.Options[xl.suffix()+sfx]
 		}
+
+		if !exists {
+			value, exists = volinfo.Options[xl.name()]
+		}
+
 		if exists {
 			return boolify(value)
 		}
