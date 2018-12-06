@@ -124,6 +124,8 @@ func (c *serverCodec) WriteResponse(resp *rpc.Response, result interface{}) erro
 }
 
 func (c *serverCodec) Close() error {
+	// Do not leak the read-buffer
+	c.recordReader = nil
 	if c.closed {
 		return nil
 	}
