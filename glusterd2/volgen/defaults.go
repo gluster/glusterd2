@@ -6,6 +6,8 @@ import (
 	"os"
 	"path"
 
+	"github.com/gluster/glusterd2/pkg/utils"
+
 	config "github.com/spf13/viper"
 )
 
@@ -45,8 +47,8 @@ func LoadDefaultTemplates() error {
 func init() {
 	tmpls := make(map[string]Template)
 	// default brick template
-	tmpls["brick"] = Template{
-		Name:  "brick",
+	tmpls[utils.BrickVolfile] = Template{
+		Name:  utils.BrickVolfile,
 		Level: VolfileLevelBrick,
 		Xlators: []Xlator{
 			{
@@ -96,8 +98,8 @@ func init() {
 	}
 
 	// default client template
-	tmpls["client"] = Template{
-		Name:  "fuse",
+	tmpls[utils.ClientVolfile] = Template{
+		Name:  utils.ClientVolfile,
 		Level: VolfileLevelVolume,
 		Xlators: []Xlator{
 			{
@@ -131,8 +133,8 @@ func init() {
 	}
 
 	// default rebalance template
-	tmpls["rebalance"] = Template{
-		Name:  "rebalance",
+	tmpls[utils.RebalanceVolfile] = Template{
+		Name:  utils.RebalanceVolfile,
 		Level: VolfileLevelVolume,
 		Xlators: []Xlator{
 			{
@@ -167,8 +169,8 @@ func init() {
 	}
 
 	// default glustershd template
-	tmpls["glustershd"] = Template{
-		Name:  "glustershd",
+	tmpls[utils.SelfHealVolfile] = Template{
+		Name:  utils.SelfHealVolfile,
 		Level: VolfileLevelCluster,
 		Xlators: []Xlator{
 			{
@@ -192,8 +194,8 @@ func init() {
 		},
 	}
 
-	tmpls["bitd"] = Template{
-		Name:  "bitd",
+	tmpls[utils.BitdVolfile] = Template{
+		Name:  utils.BitdVolfile,
 		Level: VolfileLevelCluster,
 		Xlators: []Xlator{
 			{
@@ -224,8 +226,8 @@ func init() {
 		},
 	}
 
-	tmpls["scrubd"] = Template{
-		Name:  "scrubd",
+	tmpls[utils.ScrubdVolfile] = Template{
+		Name:  utils.ScrubdVolfile,
 		Level: VolfileLevelCluster,
 		Xlators: []Xlator{
 			{

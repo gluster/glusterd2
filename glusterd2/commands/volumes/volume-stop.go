@@ -2,8 +2,10 @@ package volumecommands
 
 import (
 	"net/http"
+	"os"
 
 	"github.com/gluster/glusterd2/glusterd2/brick"
+	"github.com/gluster/glusterd2/glusterd2/brickmux"
 	"github.com/gluster/glusterd2/glusterd2/daemon"
 	"github.com/gluster/glusterd2/glusterd2/events"
 	"github.com/gluster/glusterd2/glusterd2/gdctx"
@@ -33,10 +35,27 @@ func stopBricks(c transaction.TxnCtx) error {
 		return err
 	}
 
+	bmuxEnabled, err := brickmux.Enabled()
+	if err != nil {
+		return err
+	}
+
 	for _, b := range brickinfos {
 		brickDaemon, err := brick.NewGlusterfsd(b)
 		if err != nil {
 			return err
+		}
+
+		if bmuxEnabled && !brickmux.IsLastBrickInProc(b) {
+			c.Logger().WithFields(log.Fields{
+				"volume": volinfo.Name, "brick": b.String()}).Info("Calling demultiplex for the brick")
+			if err := brickmux.Demultiplex(b); err != nil {
+				return err
+			}
+			c.Logger().WithFields(log.Fields{
+				"volume": volinfo.Name, "brick": b.String()}).Info("deleting brick daemon from store")
+			daemon.DelDaemon(brickDaemon)
+			continue
 		}
 
 		c.Logger().WithFields(log.Fields{
@@ -70,6 +89,9 @@ func stopBricks(c transaction.TxnCtx) error {
 				"id":   brickDaemon.ID(),
 			}).Warn("failed to delete brick entry from store, it may be restarted on GlusterD restart")
 		}
+
+		os.Remove(brickDaemon.PidFile())
+		os.Remove(brickDaemon.SocketFile())
 	}
 
 	return nil

@@ -7,6 +7,7 @@ import (
 
 	"github.com/gluster/glusterd2/pkg/api"
 	gutils "github.com/gluster/glusterd2/pkg/utils"
+	deviceapi "github.com/gluster/glusterd2/plugins/device/api"
 
 	"github.com/stretchr/testify/require"
 )
@@ -34,7 +35,7 @@ func checkZeroLvs(r *require.Assertions) {
 
 func checkZeroLvsWithRange(r *require.Assertions, start, end int) {
 	for i := start; i <= end; i++ {
-		nlv, err := numberOfLvs(fmt.Sprintf("vg-dev-gluster_loop%d", i))
+		nlv, err := numberOfLvs(fmt.Sprintf("gluster-dev-gluster_loop%d", i))
 		r.Nil(err)
 		if err == nil {
 			r.Equal(0, nlv)
@@ -316,6 +317,77 @@ func testSmartVolumeDistributeDisperse(t *testing.T) {
 	checkZeroLvs(r)
 }
 
+func editDevice(t *testing.T) {
+	r := require.New(t)
+	peerList, err := client.Peers()
+	r.Nil(err)
+
+	var deviceList []deviceapi.Info
+	var peerID string
+	for _, peer := range peerList {
+		deviceList, err = client.DeviceList(peer.ID.String(), "")
+		if len(deviceList) > 0 {
+			peerID = peer.ID.String()
+			break
+		}
+	}
+
+	device := deviceList[0]
+	if device.State == "enabled" {
+		err = client.DeviceEdit(peerID, device.Device, "disabled")
+		r.Nil(err)
+	} else if device.State == "disabled" {
+		err = client.DeviceEdit(peerID, device.Device, "enabled")
+		r.Nil(err)
+	}
+	newDeviceList, err := client.DeviceList(peerID, "")
+	r.Nil(err)
+	for _, newDevice := range newDeviceList {
+		if newDevice.Device == device.Device {
+			r.NotEqual(newDevice.State, device.State)
+		}
+	}
+
+	for _, peer := range peerList {
+		deviceList, err := client.DeviceList(peer.ID.String(), "")
+		r.Nil(err)
+		for _, device := range deviceList {
+			if device.State == "enabled" {
+				err = client.DeviceEdit(peer.ID.String(), device.Device, "disabled")
+				r.Nil(err)
+			}
+		}
+	}
+	smartvolname := formatVolName(t.Name())
+
+	// create Distribute Replicate(2x3) Volume
+	createReq := api.VolCreateReq{
+		Name:               smartvolname,
+		Size:               40 * gutils.MiB,
+		DistributeCount:    2,
+		ReplicaCount:       3,
+		SubvolZonesOverlap: true,
+	}
+	_, err = client.VolumeCreate(createReq)
+	r.NotNil(err)
+
+	for _, peer := range peerList {
+		deviceList, err := client.DeviceList(peer.ID.String(), "")
+		r.Nil(err)
+		for _, device := range deviceList {
+			if device.State == "disabled" {
+				err = client.DeviceEdit(peer.ID.String(), device.Device, "enabled")
+				r.Nil(err)
+			}
+		}
+	}
+
+	_, err = client.VolumeCreate(createReq)
+	r.Nil(err)
+
+	r.Nil(client.VolumeDelete(smartvolname))
+}
+
 // TestSmartVolume creates a volume and starts it, runs further tests on it and
 // finally deletes the volume
 func TestSmartVolume(t *testing.T) {
@@ -341,12 +413,21 @@ func TestSmartVolume(t *testing.T) {
 
 	_, err = client.DeviceAdd(tc.gds[0].PeerID(), "/dev/gluster_loop1")
 	r.Nil(err)
+	dev, err := client.DeviceList(tc.gds[0].PeerID(), "/dev/gluster_loop1")
+	r.Nil(err)
+	r.Equal(dev[0].Device, "/dev/gluster_loop1")
 
 	_, err = client.DeviceAdd(tc.gds[1].PeerID(), "/dev/gluster_loop2")
 	r.Nil(err)
+	dev, err = client.DeviceList(tc.gds[1].PeerID(), "/dev/gluster_loop2")
+	r.Nil(err)
+	r.Equal(dev[0].Device, "/dev/gluster_loop2")
 
 	_, err = client.DeviceAdd(tc.gds[2].PeerID(), "/dev/gluster_loop3")
 	r.Nil(err)
+	dev, err = client.DeviceList(tc.gds[2].PeerID(), "/dev/gluster_loop3")
+	r.Nil(err)
+	r.Equal(dev[0].Device, "/dev/gluster_loop3")
 
 	t.Run("Smartvol Distributed Volume", testSmartVolumeDistribute)
 	t.Run("Smartvol Replicate 2 Volume", testSmartVolumeReplicate2)
@@ -355,6 +436,7 @@ func TestSmartVolume(t *testing.T) {
 	t.Run("Smartvol Disperse Volume", testSmartVolumeDisperse)
 	t.Run("Smartvol Distributed-Replicate Volume", testSmartVolumeDistributeReplicate)
 	t.Run("Smartvol Distributed-Disperse Volume", testSmartVolumeDistributeDisperse)
+	t.Run("Edit device", editDevice)
 
 	// // Device Cleanup
 	r.Nil(loopDevicesCleanup(t))

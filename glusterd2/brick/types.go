@@ -44,6 +44,8 @@ type Brickinfo struct {
 	Type           Type
 	Decommissioned bool
 	PType          ProvisionType
+	VgName         string
+	RootDevice     string
 	MountInfo
 }
 

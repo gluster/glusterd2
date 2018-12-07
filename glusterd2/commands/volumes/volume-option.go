@@ -153,10 +153,7 @@ func xlatorAction(c transaction.TxnCtx, txnOp txnOpType, volOp xlator.VolumeOpTy
 	}
 	//The code below applies only for xlator.VolumeSet and xlator.VolumeReset operations.
 	for k, v := range reqOptions {
-		_, xl, key, err := options.SplitKey(k)
-		if err != nil {
-			return err
-		}
+		_, xl, key := options.SplitKey(k)
 		xltr, err := xlator.Find(xl)
 		if err != nil {
 			return err

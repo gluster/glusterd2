@@ -92,13 +92,6 @@ func snapshotDeleteStore(c transaction.TxnCtx) error {
 		return err
 	}
 
-	if err := volgen.DeleteVolfiles(snapinfo.SnapVolinfo.VolfileID); err != nil {
-		c.Logger().WithError(err).
-			WithField("snapshot", snapshot.GetStorePath(&snapinfo)).
-			Error("failed to delete volfiles of snapshot")
-		return err
-	}
-
 	return nil
 }
 

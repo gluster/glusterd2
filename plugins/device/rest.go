@@ -3,6 +3,7 @@ package device
 import (
 	"fmt"
 	"net/http"
+	"strings"
 
 	"github.com/gluster/glusterd2/glusterd2/gdctx"
 	"github.com/gluster/glusterd2/glusterd2/peer"
@@ -41,6 +42,18 @@ func deviceAddHandler(w http.ResponseWriter, r *http.Request) {
 	}
 	defer txn.Done()
 
+	_, err = deviceutils.GetDevice(peerID, req.Device)
+	if err == nil {
+		logger.WithError(err).WithField("device", req.Device).Error("Device already exists")
+		restutils.SendHTTPError(ctx, w, http.StatusBadRequest, "device already exists")
+		return
+	}
+
+	if err != errors.ErrDeviceNotFound {
+		restutils.SendHTTPError(ctx, w, http.StatusInternalServerError, err)
+		return
+	}
+
 	peerInfo, err := peer.GetPeer(peerID)
 	if err != nil {
 		logger.WithError(err).WithField("peerid", peerID).Error("Peer ID not found in store")
@@ -49,19 +62,6 @@ func deviceAddHandler(w http.ResponseWriter, r *http.Request) {
 		} else {
 			restutils.SendHTTPError(ctx, w, http.StatusInternalServerError, "failed to get peer details from store")
 		}
-		return
-	}
-
-	devices, err := deviceutils.GetDevicesFromPeer(peerInfo)
-	if err != nil {
-		logger.WithError(err).WithField("peerid", peerID).Error("Failed to get device from peer")
-		restutils.SendHTTPError(ctx, w, http.StatusInternalServerError, err)
-		return
-	}
-
-	if index := deviceutils.DeviceInList(req.Device, devices); index >= 0 {
-		logger.WithError(err).WithField("device", req.Device).Error("Device already exists")
-		restutils.SendHTTPError(ctx, w, http.StatusBadRequest, "device already exists")
 		return
 	}
 
@@ -93,16 +93,15 @@ func deviceAddHandler(w http.ResponseWriter, r *http.Request) {
 		restutils.SendHTTPError(ctx, w, http.StatusInternalServerError, "transaction to prepare device failed")
 		return
 	}
-	peerInfo, err = peer.GetPeer(peerID)
+	deviceInfo, err := deviceutils.GetDevice(peerID, req.Device)
 	if err != nil {
-		logger.WithError(err).WithField("peerid", peerID).Error("Failed to get peer from store")
-		restutils.SendHTTPError(ctx, w, http.StatusInternalServerError, "failed to get peer from store")
+		logger.WithError(err).WithField("peerid", peerID).Error("Failed to get device from store")
+		restutils.SendHTTPError(ctx, w, http.StatusInternalServerError, "failed to get device from store")
 		return
 	}
 
-	// FIXME: Change this to http.StatusCreated when we are able to set
-	// location header with a unique URL that points to created device.
-	restutils.SendHTTPResponse(ctx, w, http.StatusOK, peerInfo)
+	restutils.SetLocationHeader(r, w, strings.TrimLeft(deviceInfo.Device, "/"))
+	restutils.SendHTTPResponse(ctx, w, http.StatusCreated, deviceInfo)
 }
 
 func deviceListHandler(w http.ResponseWriter, r *http.Request) {
@@ -110,12 +109,29 @@ func deviceListHandler(w http.ResponseWriter, r *http.Request) {
 	ctx := r.Context()
 	logger := gdctx.GetReqLogger(ctx)
 	peerID := mux.Vars(r)["peerid"]
-	if uuid.Parse(peerID) == nil {
+	if peerID != "" && uuid.Parse(peerID) == nil {
 		restutils.SendHTTPError(ctx, w, http.StatusBadRequest, "invalid peer-id passed in url")
 		return
 	}
 
-	devices, err := deviceutils.GetDevices(peerID)
+	devName := mux.Vars(r)["device"]
+	devName = "/" + devName
+
+	var err error
+	var devices []deviceapi.Info
+	if peerID == "" {
+		devices, err = deviceutils.GetDevices()
+	} else {
+		if devName != "/" {
+			var dev *deviceapi.Info
+			dev, err = deviceutils.GetDevice(peerID, devName)
+			if err == nil {
+				devices = []deviceapi.Info{*dev}
+			}
+		} else {
+			devices, err = deviceutils.GetDevices(peerID)
+		}
+	}
 	if err != nil {
 		logger.WithError(err).WithField("peerid", peerID).Error(
 			"Failed to get devices for peer")
@@ -137,6 +153,15 @@ func deviceEditHandler(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
+	device := mux.Vars(r)["device"]
+	if device == "" {
+		restutils.SendHTTPError(ctx, w, http.StatusBadRequest, "device not provided in URL")
+		return
+	}
+
+	// Adding prefix (/) to device
+	device = "/" + device
+
 	req := new(deviceapi.EditDeviceReq)
 	if err := restutils.UnmarshalRequest(r, req); err != nil {
 		logger.WithError(err).Error("Failed to unmarshal request")
@@ -151,7 +176,7 @@ func deviceEditHandler(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	txn, err := transaction.NewTxnWithLocks(ctx, peerID)
+	txn, err := transaction.NewTxnWithLocks(ctx, peerID+device)
 	if err != nil {
 		status, err := restutils.ErrToStatusCode(err)
 		restutils.SendHTTPError(ctx, w, status, err)
@@ -159,7 +184,7 @@ func deviceEditHandler(w http.ResponseWriter, r *http.Request) {
 	}
 	defer txn.Done()
 
-	err = deviceutils.SetDeviceState(peerID, req.DeviceName, req.State)
+	err = deviceutils.SetDeviceState(peerID, device, req.State)
 	if err != nil {
 		logger.WithError(err).WithField("peerid", peerID).Error("Failed to update device state in store")
 		status, err := restutils.ErrToStatusCode(err)
@@ -168,18 +193,4 @@ func deviceEditHandler(w http.ResponseWriter, r *http.Request) {
 	}
 
 	restutils.SendHTTPResponse(ctx, w, http.StatusOK, nil)
-}
-
-func listAllDevicesHandler(w http.ResponseWriter, r *http.Request) {
-
-	ctx := r.Context()
-	logger := gdctx.GetReqLogger(ctx)
-	devices, err := deviceutils.GetDevices()
-	if err != nil {
-		logger.WithError(err).Error(err)
-		restutils.SendHTTPError(ctx, w, http.StatusInternalServerError, err)
-		return
-	}
-
-	restutils.SendHTTPResponse(ctx, w, http.StatusOK, devices)
 }

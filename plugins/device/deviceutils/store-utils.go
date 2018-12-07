@@ -1,125 +1,96 @@
 package deviceutils
 
 import (
+	"context"
 	"encoding/json"
-	"errors"
-	"strings"
 
 	"github.com/gluster/glusterd2/glusterd2/brick"
 	"github.com/gluster/glusterd2/glusterd2/gdctx"
-	peer "github.com/gluster/glusterd2/glusterd2/peer"
+	"github.com/gluster/glusterd2/glusterd2/store"
 	gderrors "github.com/gluster/glusterd2/pkg/errors"
 	"github.com/gluster/glusterd2/pkg/lvmutils"
 	deviceapi "github.com/gluster/glusterd2/plugins/device/api"
+
+	"github.com/coreos/etcd/clientv3"
+)
+
+const (
+	devicePrefix string = "devices/"
 )
 
 // GetDevices returns devices of specified peer/peers from the store
 // if no peers are specified, it returns devices of all peers
 func GetDevices(peerIds ...string) ([]deviceapi.Info, error) {
-
-	var peers []*peer.Peer
+	var devices []deviceapi.Info
 	var err error
+	var resp *clientv3.GetResponse
+
 	if len(peerIds) > 0 {
 		for _, peerID := range peerIds {
-			var peerInfo *peer.Peer
-			peerInfo, err = peer.GetPeer(peerID)
+			resp, err = store.Get(context.TODO(), devicePrefix+peerID+"/", clientv3.WithPrefix())
 			if err != nil {
 				return nil, err
 			}
-			peers = append(peers, peerInfo)
 		}
 	} else {
-		peers, err = peer.GetPeers()
+		resp, err = store.Get(context.TODO(), devicePrefix, clientv3.WithPrefix())
 		if err != nil {
 			return nil, err
 		}
 	}
-	var devices []deviceapi.Info
-	for _, peerInfo := range peers {
-		deviceInfo, err := GetDevicesFromPeer(peerInfo)
-		if err != nil {
+	for _, kv := range resp.Kvs {
+		var dev deviceapi.Info
+
+		if err = json.Unmarshal(kv.Value, &dev); err != nil {
 			return nil, err
 		}
-		devices = append(devices, deviceInfo...)
+		devices = append(devices, dev)
 	}
 	return devices, nil
 }
 
-// GetDevicesFromPeer returns devices from peer object.
-func GetDevicesFromPeer(peerInfo *peer.Peer) ([]deviceapi.Info, error) {
+// GetDevice returns device of specified peer and device name
+func GetDevice(peerID, deviceName string) (*deviceapi.Info, error) {
+	var device deviceapi.Info
+	var err error
 
-	var deviceInfo []deviceapi.Info
-	if _, exists := peerInfo.Metadata["_devices"]; exists {
-		if err := json.Unmarshal([]byte(peerInfo.Metadata["_devices"]), &deviceInfo); err != nil {
-			return nil, err
-		}
+	resp, err := store.Get(context.TODO(), devicePrefix+peerID+"/"+deviceName)
+	if err != nil {
+		return nil, err
 	}
-	return deviceInfo, nil
+
+	if resp.Count != 1 {
+		return nil, gderrors.ErrDeviceNotFound
+	}
+
+	if err = json.Unmarshal(resp.Kvs[0].Value, &device); err != nil {
+		return nil, err
+	}
+
+	return &device, nil
 }
 
 // SetDeviceState sets device state and updates device state in etcd
 func SetDeviceState(peerID, deviceName, deviceState string) error {
-
-	devices, err := GetDevices(peerID)
+	dev, err := GetDevice(peerID, deviceName)
 	if err != nil {
 		return err
 	}
 
-	index := DeviceInList(deviceName, devices)
-	if index < 0 {
-		return errors.New("device does not exist in the given peer")
-	}
-	devices[index].State = deviceState
-	return updateDevices(peerID, devices)
+	dev.State = deviceState
+	return AddOrUpdateDevice(*dev)
 }
 
-func updateDevices(peerID string, devices []deviceapi.Info) error {
-	peerInfo, err := peer.GetPeer(peerID)
+// AddOrUpdateDevice adds device to peerinfo
+func AddOrUpdateDevice(device deviceapi.Info) error {
+	json, err := json.Marshal(device)
 	if err != nil {
 		return err
-	}
-	deviceJSON, err := json.Marshal(devices)
-	if err != nil {
-		return err
-	}
-	peerInfo.Metadata["_devices"] = string(deviceJSON)
-	return peer.AddOrUpdatePeer(peerInfo)
-}
-
-// DeviceInList returns index of device if device is present in list else returns -1.
-func DeviceInList(reqDevice string, devices []deviceapi.Info) int {
-	for index, key := range devices {
-		if reqDevice == key.Name {
-			return index
-		}
-	}
-	return -1
-}
-
-// AddDevice adds device to peerinfo
-func AddDevice(device deviceapi.Info) error {
-	deviceDetails, err := GetDevices(device.PeerID)
-	if err != nil {
-		return err
-	}
-	peerInfo, err := peer.GetPeer(device.PeerID)
-	if err != nil {
-		return err
-	}
-	var devices []deviceapi.Info
-	if deviceDetails != nil {
-		devices = append(deviceDetails, device)
-	} else {
-		devices = append(devices, device)
 	}
 
-	deviceJSON, err := json.Marshal(devices)
-	if err != nil {
-		return err
-	}
-	peerInfo.Metadata["_devices"] = string(deviceJSON)
-	err = peer.AddOrUpdatePeer(peerInfo)
-	if err != nil {
+	storeKey := device.PeerID.String() + "/" + device.Device
+
+	if _, err := store.Put(context.TODO(), devicePrefix+storeKey, string(json)); err != nil {
 		return err
 	}
 
@@ -127,71 +98,65 @@ func AddDevice(device deviceapi.Info) error {
 }
 
 // UpdateDeviceFreeSize updates the actual available size of VG
-func UpdateDeviceFreeSize(peerid, vgname string) error {
-	deviceDetails, err := GetDevices(peerid)
+func UpdateDeviceFreeSize(peerID, device string) error {
+	dev, err := GetDevice(peerID, device)
 	if err != nil {
 		return err
 	}
 
-	peerInfo, err := peer.GetPeer(peerid)
+	availableSize, extentSize, err := lvmutils.GetVgAvailableSize(dev.VgName())
+	if err != nil {
+		return err
+	}
+	dev.AvailableSize = availableSize
+	dev.ExtentSize = extentSize
+	return AddOrUpdateDevice(*dev)
+}
+
+// UpdateDeviceFreeSizeByVg updates the actual available size of VG
+func UpdateDeviceFreeSizeByVg(peerID, vgname string) error {
+	devs, err := GetDevices(peerID)
 	if err != nil {
 		return err
 	}
 
-	for idx, dev := range deviceDetails {
-		if dev.VgName == vgname {
+	for _, dev := range devs {
+		if dev.VgName() == vgname {
 			availableSize, extentSize, err := lvmutils.GetVgAvailableSize(vgname)
 			if err != nil {
 				return err
 			}
-			deviceDetails[idx].AvailableSize = availableSize
-			deviceDetails[idx].ExtentSize = extentSize
+			dev.AvailableSize = availableSize
+			dev.ExtentSize = extentSize
+			return AddOrUpdateDevice(dev)
 		}
 	}
-
-	deviceJSON, err := json.Marshal(deviceDetails)
-	if err != nil {
-		return err
-	}
-
-	peerInfo.Metadata["_devices"] = string(deviceJSON)
-	err = peer.AddOrUpdatePeer(peerInfo)
-	if err != nil {
-		return err
-	}
-
-	return nil
+	return gderrors.ErrDeviceNotFound
 }
 
 //IsVgExist checks whether the given vg exist in the device list for the local peer
 func IsVgExist(vgname string) bool {
-	peerid := gdctx.MyUUID.String()
-	deviceDetails, err := GetDevices(peerid)
+	peerID := gdctx.MyUUID.String()
+	deviceDetails, err := GetDevices(peerID)
 	if err != nil {
 		return false
 	}
 
 	for _, dev := range deviceDetails {
-		if dev.VgName == vgname {
+		if dev.VgName() == vgname {
 			return true
 		}
 	}
 	return false
 }
 
-// getDeviceAvailableSize gets the device size and vgName using device Path
-func getDeviceAvailableSize(peerid, devicePath string) (string, uint64, error) {
-	devices, err := GetDevices(peerid)
+// GetDeviceAvailableSize gets the device size and vgName using device Path
+func GetDeviceAvailableSize(peerID, device string) (uint64, error) {
+	dev, err := GetDevice(peerID, device)
 	if err != nil {
-		return "", 0, err
+		return 0, err
 	}
-	deviceVgName := strings.Split(devicePath, "/")[2]
-	for _, d := range devices {
-		if d.VgName == deviceVgName {
-			return d.VgName, d.AvailableSize, nil
-		}
-	}
-	return "", 0, gderrors.ErrDeviceNameNotFound
+	return dev.AvailableSize, nil
 }
 
 // CheckForAvailableVgSize prepares a brickName to vgName mapping in order to use while expanding lvm.
@@ -216,14 +181,14 @@ func CheckForAvailableVgSize(expansionSize uint64, bricksInfo []brick.Brickinfo)
 	// Check in the map prepared in last step by looking through devices names and device available size of bricks from current node.
 	for _, b := range bricksInfo {
 		// retrieve device available size by device Name and return the vgName and available device Size.
-		vgName, deviceSize, err := getDeviceAvailableSize(b.PeerID.String(), b.MountInfo.DevicePath)
+		deviceSize, err := GetDeviceAvailableSize(b.PeerID.String(), b.RootDevice)
 		if err != nil {
 			return map[string]string{}, false, err
 		}
 		if requiredDeviceSizeMap[b.MountInfo.DevicePath] > deviceSize {
 			return map[string]string{}, false, nil
 		}
-		brickVgMapping[b.Path] = vgName
+		brickVgMapping[b.Path] = b.VgName
 	}
 
 	return brickVgMapping, true, nil

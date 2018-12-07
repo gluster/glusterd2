@@ -183,6 +183,7 @@ func PlanBricks(req *api.VolCreateReq) error {
 				if vg.AvailableSize >= totalsize && !zoneUsed && !vg.Used {
 					subvols[idx].Bricks[bidx].PeerID = vg.PeerID
 					subvols[idx].Bricks[bidx].VgName = vg.Name
+					subvols[idx].Bricks[bidx].RootDevice = vg.Device
 					subvols[idx].Bricks[bidx].DevicePath = "/dev/" + vg.Name + "/" + b.LvName
 
 					zones[vg.Zone] = struct{}{}
@@ -211,6 +212,7 @@ func PlanBricks(req *api.VolCreateReq) error {
 				if vg.AvailableSize >= totalsize && !zoneUsed {
 					subvols[idx].Bricks[bidx].PeerID = vg.PeerID
 					subvols[idx].Bricks[bidx].VgName = vg.Name
+					subvols[idx].Bricks[bidx].RootDevice = vg.Device
 					subvols[idx].Bricks[bidx].DevicePath = "/dev/" + vg.Name + "/" + b.LvName
 
 					zones[vg.Zone] = struct{}{}

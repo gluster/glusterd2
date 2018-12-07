@@ -28,7 +28,14 @@ func (p *Plugin) RestRoutes() route.Routes {
 			ResponseType: utils.GetTypeString((*deviceapi.AddDeviceResp)(nil)),
 			HandlerFunc:  deviceAddHandler},
 		route.Route{
-			Name:         "DeviceList",
+			Name:         "DeviceInfo",
+			Method:       "GET",
+			Pattern:      "/devices/{peerid}/{device:.*}",
+			Version:      1,
+			ResponseType: utils.GetTypeString((*deviceapi.ListDeviceResp)(nil)),
+			HandlerFunc:  deviceListHandler},
+		route.Route{
+			Name:         "DevicesInPeer",
 			Method:       "GET",
 			Pattern:      "/devices/{peerid}",
 			Version:      1,
@@ -37,17 +44,17 @@ func (p *Plugin) RestRoutes() route.Routes {
 		route.Route{
 			Name:        "DeviceEdit",
 			Method:      "POST",
-			Pattern:     "/devices/{peerid}",
+			Pattern:     "/devices/{peerid}/{device:.*}",
 			Version:     1,
 			RequestType: utils.GetTypeString((*deviceapi.EditDeviceReq)(nil)),
 			HandlerFunc: deviceEditHandler},
 		route.Route{
-			Name:         "DeviceListAll",
+			Name:         "DevicesList",
 			Method:       "GET",
 			Pattern:      "/devices",
 			Version:      1,
 			ResponseType: utils.GetTypeString((*deviceapi.ListDeviceResp)(nil)),
-			HandlerFunc:  listAllDevicesHandler},
+			HandlerFunc:  deviceListHandler},
 	}
 }
 

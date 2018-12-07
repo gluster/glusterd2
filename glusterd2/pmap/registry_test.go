@@ -23,7 +23,7 @@ func TestRegistry(t *testing.T) {
 
 	// test sign in path
 	for i := basePort; i <= (basePort + 100); i++ {
-		err := r.Update(i, fmt.Sprintf("/tmp/brick%d", i), nil)
+		err := r.Update(i, fmt.Sprintf("/tmp/brick%d", i), nil, 0)
 		assert.NoError(err)
 	}
 
@@ -31,10 +31,10 @@ func TestRegistry(t *testing.T) {
 		assert.NotZero(v)
 	}
 
-	err := r.Update(math.MaxInt32, "some_brick", nil)
+	err := r.Update(math.MaxInt32, "some_brick", nil, 0)
 	assert.Error(err)
 
-	err = r.Update(-1, "some_brick", nil)
+	err = r.Update(-1, "some_brick", nil, 0)
 	assert.Error(err)
 
 	// test port search
