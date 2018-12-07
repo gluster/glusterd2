@@ -15,6 +15,13 @@ import (
 	"github.com/stretchr/testify/require"
 )
 
+func checkForPendingHeals(healInfo *shdapi.BrickHealInfo) error {
+	if *healInfo.EntriesInHealPending != 0 && *healInfo.EntriesInHealPending != -1 {
+		return errors.New("expecting no pending heals, found pending heals")
+	}
+	return nil
+}
+
 func testSelfHeal(t *testing.T, tc *testCluster) {
 	r := require.New(t)
 
@@ -47,12 +54,73 @@ func testSelfHeal(t *testing.T, tc *testCluster) {
 
 	r.Nil(client.VolumeStart(vol1.Name, false), "volume start failed")
 
+	checkFuseAvailable(t)
+
+	mntPath := testTempDir(t, "mnt")
+	defer os.RemoveAll(mntPath)
+
+	host, _, _ := net.SplitHostPort(tc.gds[0].ClientAddress)
+	err = mountVolume(host, volname, mntPath)
+	r.Nil(err, fmt.Sprintf("mount failed: %s", err))
+
+	defer syscall.Unmount(mntPath, syscall.MNT_FORCE)
+
+	f, err := os.Create(mntPath + "/file1.txt")
+	r.Nil(err, fmt.Sprintf("file creation failed: %s", err))
+	f.Close()
+
+	getBricksStatus, err := client.BricksStatus(volname)
+	r.Nil(err, fmt.Sprintf("brick status operation failed: %s", err))
+	count := 0
+	for brick := range getBricksStatus {
+		if getBricksStatus[brick].Info.PeerID.String() == tc.gds[0].PeerID() {
+			count++
+		}
+	}
+
+	r.Equal(count, 2)
+
+	for brick := range getBricksStatus {
+		if getBricksStatus[brick].Info.PeerID.String() == tc.gds[0].PeerID() {
+			process, err := os.FindProcess(getBricksStatus[brick].Pid)
+			r.Nil(err, fmt.Sprintf("failed to find bricks pid: %s", err))
+			err = process.Signal(syscall.Signal(15))
+			r.Nil(err, fmt.Sprintf("failed to kill bricks: %s", err))
+			break
+		}
+	}
+
+	f1, err := os.OpenFile(mntPath+"/file1.txt", os.O_WRONLY, 0222)
+	r.Nil(err, fmt.Sprintf("failed to open file: %s", err))
+	_, err = f1.WriteString("hello")
+	r.Nil(err, fmt.Sprintf("failed to write to file: %s", err))
+	f1.Sync()
+	defer f1.Close()
+
 	_, err = client.SelfHealInfo(vol1.Name)
-	r.Nil(err)
-	_, err = client.SelfHealInfo(vol1.Name, "info-summary")
 	r.Nil(err)
 	_, err = client.SelfHealInfo(vol1.Name, "split-brain-info")
 	r.Nil(err)
+	healInfo, err := client.SelfHealInfo(vol1.Name, "info-summary")
+	r.Nil(err)
+
+	count = 0
+	for node := range healInfo {
+		if healInfo[node].Status == "Connected" {
+			count++
+		}
+	}
+
+	r.Equal(count, 1)
+
+	for node := range healInfo {
+		if healInfo[node].Status == "Connected" {
+			r.NotNil(checkForPendingHeals(&healInfo[node]))
+		}
+	}
+
+	r.Nil(client.VolumeStop(vol1.Name), "Volume stop failed")
+	r.Nil(client.VolumeStart(vol1.Name, false), "volume start failed")
 
 	var optionReq api.VolOptionReq
 
@@ -63,6 +131,25 @@ func testSelfHeal(t *testing.T, tc *testCluster) {
 	r.True(isProcessRunning(pidpath), "glustershd is not running")
 
 	r.Nil(client.SelfHeal(vol1.Name, "index"))
+
+	healInfo, err = client.SelfHealInfo(vol1.Name, "info-summary")
+	r.Nil(err)
+
+	count = 0
+	for node := range healInfo {
+		if healInfo[node].Status == "Connected" {
+			count++
+		}
+	}
+
+	r.Equal(count, 2)
+
+	for node := range healInfo {
+		if healInfo[node].Status == "Connected" {
+			r.Nil(checkForPendingHeals(&healInfo[node]))
+		}
+	}
+
 	r.Nil(client.SelfHeal(vol1.Name, "full"))
 
 	// Stop Volume
@@ -76,13 +163,6 @@ func testSelfHeal(t *testing.T, tc *testCluster) {
 
 	// delete volume
 	r.Nil(client.VolumeDelete(vol1.Name))
-}
-
-func checkForPendingHeals(healInfo *shdapi.BrickHealInfo) error {
-	if *healInfo.EntriesInHealPending != 0 && *healInfo.EntriesInHealPending != -1 {
-		return errors.New("expecting no pending heals, found pending heals")
-	}
-	return nil
 }
 
 func testGranularEntryHeal(t *testing.T, tc *testCluster) {

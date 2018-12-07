@@ -67,4 +67,6 @@ var (
 	ErrHostOrBrickNotFound             = errors.New("please specify hostname and brick path to resolve split-brain")
 	ErrVolTypeNotInReplicateOrDisperse = errors.New("invalid operation: the volume is not a replicate or disperse volume")
 	ErrDeviceNotFound                  = errors.New("device does not exist in the given peer")
+	ErrVolumeBricksMountFailed         = errors.New("failed to get mount point entries for the volume bricks")
+	ErrBrickMountFailed                = errors.New("failed to mount brick")
 )

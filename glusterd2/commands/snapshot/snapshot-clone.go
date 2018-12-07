@@ -86,7 +86,7 @@ func takeSnapshotClone(c transaction.TxnCtx) error {
 		return err
 	}
 
-	err = volume.MountVolumeBricks(&newVol)
+	err = volume.MountVolumeBricks(&newVol, false)
 	return err
 }
 
