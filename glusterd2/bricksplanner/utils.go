@@ -1,12 +1,16 @@
 package bricksplanner
 
 import (
+	"fmt"
 	"sort"
 	"strings"
 
+	"github.com/gluster/glusterd2/glusterd2/brick"
 	"github.com/gluster/glusterd2/glusterd2/peer"
 	"github.com/gluster/glusterd2/glusterd2/store"
+	"github.com/gluster/glusterd2/glusterd2/volume"
 	"github.com/gluster/glusterd2/pkg/api"
+	"github.com/gluster/glusterd2/pkg/lvmutils"
 	"github.com/gluster/glusterd2/pkg/utils"
 	deviceapi "github.com/gluster/glusterd2/plugins/device/api"
 	"github.com/gluster/glusterd2/plugins/device/deviceutils"
@@ -33,7 +37,8 @@ type Vg struct {
 	Used          bool
 }
 
-func getAvailableVgs(req *api.VolCreateReq) ([]Vg, error) {
+// GetAvailableVgs returns VG list that can be used to create bricks
+func GetAvailableVgs(req *api.VolCreateReq) ([]Vg, error) {
 	var vgs []Vg
 	peers, err := peer.GetPeers()
 	if err != nil {
@@ -104,4 +109,35 @@ func getAvailableVgs(req *api.VolCreateReq) ([]Vg, error) {
 	sort.Slice(vgs, func(i, j int) bool { return vgs[i].AvailableSize > vgs[j].AvailableSize })
 
 	return vgs, nil
+}
+
+// GetNewBrick creates a new brick request for the new brick.
+func GetNewBrick(availableVgs []Vg, brickInfo brick.Brickstatus, vol *volume.Volinfo, subVolIndex, brickIndex int) api.BrickReq {
+	var newBrick api.BrickReq
+	brickSize := brickInfo.Size.Capacity
+	lvName := fmt.Sprintf("brick_%s_s%d_b%d", vol.Name, subVolIndex, brickIndex)
+	brickTpSize := uint64(float64(brickSize) * vol.SnapshotReserveFactor)
+	for _, vg := range availableVgs {
+		if vg.AvailableSize >= brickTpSize {
+			newBrick = api.BrickReq{
+				Type:           "brick",
+				Path:           brickInfo.Info.Path,
+				BrickDirSuffix: "/brick",
+				TpName:         fmt.Sprintf("tp_%s_s%d_b%d", vol.Name, subVolIndex, brickIndex),
+				LvName:         lvName,
+				Size:           brickSize,
+				TpSize:         brickTpSize,
+				TpMetadataSize: lvmutils.GetPoolMetadataSize(brickTpSize),
+				FsType:         "xfs",
+				MntOpts:        "rw,inode64,noatime,nouuid",
+				PeerID:         vg.PeerID,
+				VgName:         vg.Name,
+				DevicePath:     "/dev/" + vg.Name + "/" + lvName,
+				RootDevice:     vg.Device,
+			}
+			vg.Used = true
+			break
+		}
+	}
+	return newBrick
 }

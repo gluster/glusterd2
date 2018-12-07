@@ -24,81 +24,91 @@ func txnPrepareBricks(c transaction.TxnCtx) error {
 
 	for _, sv := range req.Subvols {
 		for _, b := range sv.Bricks {
-			if b.PeerID != gdctx.MyUUID.String() {
-				continue
-			}
-
-			// Create Mount directory
-			mountRoot := strings.TrimSuffix(b.Path, b.BrickDirSuffix)
-			err := os.MkdirAll(mountRoot, os.ModeDir|os.ModePerm)
+			err := PrepareBrick(b, c)
 			if err != nil {
-				c.Logger().WithError(err).WithField("path", mountRoot).Error("failed to create brick mount directory")
-				return err
-			}
-
-			// Thin Pool Creation
-			err = lvmutils.CreateTP(b.VgName, b.TpName, b.TpSize, b.TpMetadataSize)
-			if err != nil {
-				c.Logger().WithError(err).WithFields(log.Fields{
-					"vg-name":      b.VgName,
-					"tp-name":      b.TpName,
-					"tp-size":      b.TpSize,
-					"tp-meta-size": b.TpMetadataSize,
-				}).Error("thinpool creation failed")
-				return err
-			}
-
-			// LV Creation
-			err = lvmutils.CreateLV(b.VgName, b.TpName, b.LvName, b.Size)
-			if err != nil {
-				c.Logger().WithError(err).WithFields(log.Fields{
-					"vg-name": b.VgName,
-					"tp-name": b.TpName,
-					"lv-name": b.LvName,
-					"size":    b.Size,
-				}).Error("lvcreate failed")
-				return err
-			}
-
-			// Make Filesystem
-			mkfsOpts := []string{}
-			if b.Type == "arbiter" {
-				mkfsOpts = []string{"-i", "size=512", "-n", "size=8192", "-i", "maxpct=0"}
-			} else {
-				mkfsOpts = []string{"-i", "size=512", "-n", "size=8192"}
-			}
-			err = fsutils.MakeXfs(b.DevicePath, mkfsOpts...)
-			if err != nil {
-				c.Logger().WithError(err).WithField("dev", b.DevicePath).Error("mkfs.xfs failed")
-				return err
-			}
-
-			// Mount the Created FS
-			err = lvmutils.MountLV(b.DevicePath, mountRoot, b.MntOpts)
-			if err != nil {
-				c.Logger().WithError(err).WithFields(log.Fields{
-					"dev":  b.DevicePath,
-					"path": mountRoot,
-				}).Error("brick mount failed")
-				return err
-			}
-
-			// Create a directory in Brick Mount
-			err = os.MkdirAll(b.Path, os.ModeDir|os.ModePerm)
-			if err != nil {
-				c.Logger().WithError(err).WithField(
-					"path", b.Path).Error("failed to create brick directory in mount")
-				return err
-			}
-
-			// Update current Vg free size
-			err = deviceutils.UpdateDeviceFreeSize(gdctx.MyUUID.String(), b.RootDevice)
-			if err != nil {
-				c.Logger().WithError(err).WithField("vg-name", b.VgName).
-					Error("failed to update available size of a device")
 				return err
 			}
 		}
+	}
+
+	return nil
+}
+
+// PrepareBrick prepares(Creates thin pool, creates LV, mounts etc.) a single brick
+func PrepareBrick(b api.BrickReq, c transaction.TxnCtx) error {
+	if b.PeerID != gdctx.MyUUID.String() {
+		return nil
+	}
+
+	// Create Mount directory
+	mountRoot := strings.TrimSuffix(b.Path, b.BrickDirSuffix)
+	err := os.MkdirAll(mountRoot, os.ModeDir|os.ModePerm)
+	if err != nil {
+		c.Logger().WithError(err).WithField("path", mountRoot).Error("failed to create brick mount directory")
+		return err
+	}
+
+	// Thin Pool Creation
+	err = lvmutils.CreateTP(b.VgName, b.TpName, b.TpSize, b.TpMetadataSize)
+	if err != nil {
+		c.Logger().WithError(err).WithFields(log.Fields{
+			"vg-name":      b.VgName,
+			"tp-name":      b.TpName,
+			"tp-size":      b.TpSize,
+			"tp-meta-size": b.TpMetadataSize,
+		}).Error("thinpool creation failed")
+		return err
+	}
+
+	// LV Creation
+	err = lvmutils.CreateLV(b.VgName, b.TpName, b.LvName, b.Size)
+	if err != nil {
+		c.Logger().WithError(err).WithFields(log.Fields{
+			"vg-name": b.VgName,
+			"tp-name": b.TpName,
+			"lv-name": b.LvName,
+			"size":    b.Size,
+		}).Error("lvcreate failed")
+		return err
+	}
+
+	// Make Filesystem
+	mkfsOpts := []string{}
+	if b.Type == "arbiter" {
+		mkfsOpts = []string{"-i", "size=512", "-n", "size=8192", "-i", "maxpct=0"}
+	} else {
+		mkfsOpts = []string{"-i", "size=512", "-n", "size=8192"}
+	}
+	err = fsutils.MakeXfs(b.DevicePath, mkfsOpts...)
+	if err != nil {
+		c.Logger().WithError(err).WithField("dev", b.DevicePath).Error("mkfs.xfs failed")
+		return err
+	}
+
+	// Mount the Created FS
+	err = lvmutils.MountLV(b.DevicePath, mountRoot, b.MntOpts)
+	if err != nil {
+		c.Logger().WithError(err).WithFields(log.Fields{
+			"dev":  b.DevicePath,
+			"path": mountRoot,
+		}).Error("brick mount failed")
+		return err
+	}
+
+	// Create a directory in Brick Mount
+	err = os.MkdirAll(b.Path, os.ModeDir|os.ModePerm)
+	if err != nil {
+		c.Logger().WithError(err).WithField(
+			"path", b.Path).Error("failed to create brick directory in mount")
+		return err
+	}
+
+	// Update current Vg free size
+	err = deviceutils.UpdateDeviceFreeSize(gdctx.MyUUID.String(), b.RootDevice)
+	if err != nil {
+		c.Logger().WithError(err).WithField("vg-name", b.VgName).
+			Error("failed to update available size of a device")
+		return err
 	}
 
 	return nil

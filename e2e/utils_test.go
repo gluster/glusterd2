@@ -198,7 +198,7 @@ func cleanupAllGlusterVgs(t *testing.T) {
 		vgs := strings.Split(string(out), "\n")
 		for _, vg := range vgs {
 			vg = strings.Trim(vg, " ")
-			if strings.HasPrefix(vg, "vg-dev-gluster") {
+			if strings.HasPrefix(vg, "gluster-dev-gluster") {
 				err = exec.Command("vgremove", "-f", vg).Run()
 				if err != nil {
 					testlog(t, fmt.Sprintf("`vgremove -f %s` failed: %s", vg, err))

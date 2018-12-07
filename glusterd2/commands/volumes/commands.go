@@ -137,6 +137,14 @@ func (c *Command) Routes() route.Routes {
 			RequestType: utils.GetTypeString((*api.VolStatedumpReq)(nil)),
 			HandlerFunc: volumeStatedumpHandler},
 		route.Route{
+			Name:         "ReplaceBrick",
+			Method:       "POST",
+			Pattern:      "/volumes/{volname}/replacebrick",
+			Version:      1,
+			RequestType:  utils.GetTypeString((*api.ReplaceBrickReq)(nil)),
+			ResponseType: utils.GetTypeString((*api.ReplaceBrickResp)(nil)),
+			HandlerFunc:  replaceBrickHandler},
+		route.Route{
 			Name:         "EditVolume",
 			Method:       "POST",
 			Pattern:      "/volumes/{volname}/edit",
@@ -165,5 +173,6 @@ func (c *Command) RegisterStepFuncs() {
 	registerVolOptionStepFuncs()
 	registerVolOptionResetStepFuncs()
 	registerVolStatedumpFuncs()
+	registerReplaceBrickStepFuncs()
 	registerVolProfileStepFuncs()
 }

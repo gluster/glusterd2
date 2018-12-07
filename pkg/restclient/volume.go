@@ -145,6 +145,14 @@ func (c *Client) VolumeExpand(volname string, req api.VolExpandReq) (api.VolumeE
 	return vol, err
 }
 
+// ReplaceBrick replaces the old brick in volume with a new one
+func (c *Client) ReplaceBrick(volname string, req api.ReplaceBrickReq) (api.ReplaceBrickResp, error) {
+	var resp api.ReplaceBrickResp
+	url := fmt.Sprintf("/v1/volumes/%s/replacebrick", volname)
+	err := c.post(url, req, http.StatusOK, &resp)
+	return resp, err
+}
+
 // VolumeStatedump takes statedump of various daemons
 func (c *Client) VolumeStatedump(volname string, req api.VolStatedumpReq) error {
 	url := fmt.Sprintf("/v1/volumes/%s/statedump", volname)

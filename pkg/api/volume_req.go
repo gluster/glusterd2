@@ -39,7 +39,7 @@ type SubvolReq struct {
 "create-brick-dir" : if brick dir is not present, create it
 */
 type VolCreateReq struct {
-	Name                    string            `json:"name,omitempty"`
+	Name                    string            `json:"name"`
 	Transport               string            `json:"transport,omitempty"`
 	Subvols                 []SubvolReq       `json:"subvols"`
 	Force                   bool              `json:"force,omitempty"`
@@ -139,6 +139,19 @@ type VolStatedumpReq struct {
 type VolEditReq struct {
 	Metadata       map[string]string `json:"metadata"`
 	DeleteMetadata bool              `json:"delete-metadata"`
+}
+
+// ReplaceBrickReq represents replace brick request
+type ReplaceBrickReq struct {
+	SrcPeerID          string          `json:"src-peerid"`
+	SrcBrickPath       string          `json:"src-brickpath"`
+	LimitPeers         []string        `json:"limit-peers,omitempty"`
+	LimitZones         []string        `json:"limit-zones,omitempty"`
+	ExcludePeers       []string        `json:"exclude-peers,omitempty"`
+	ExcludeZones       []string        `json:"exclude-zones,omitempty"`
+	SubvolZonesOverlap bool            `json:"subvolume-zones-overlap,omitempty"`
+	Force              bool            `json:"force,omitempty"`
+	Flags              map[string]bool `json:"flags,omitempty"`
 }
 
 // VolumeStartReq represents a request to start volume

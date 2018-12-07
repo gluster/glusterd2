@@ -206,7 +206,7 @@ func validateBricks(c transaction.TxnCtx) error {
 	return nil
 }
 
-// This txn step is used in volume create and in volume expand
+// This txn step is used in volume create, replace brick and in volume expand
 func initBricks(c transaction.TxnCtx) error {
 
 	var err error

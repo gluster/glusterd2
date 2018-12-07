@@ -78,43 +78,51 @@ func CheckBricksStatus(volinfo *Volinfo) ([]brick.Brickstatus, error) {
 	}
 
 	for _, binfo := range volinfo.GetLocalBricks() {
-		brickDaemon, err := brick.NewGlusterfsd(binfo)
+		brickStatus, err := BrickStatus(binfo, mtabEntries)
 		if err != nil {
 			return brickStatuses, err
 		}
-
-		s := brick.Brickstatus{
-			Info: binfo,
-		}
-
-		if pidOnFile, err := daemon.ReadPidFromFile(brickDaemon.PidFile()); err == nil {
-			if _, err := daemon.GetProcess(pidOnFile); err == nil {
-				s.Online = true
-				s.Pid = pidOnFile
-				s.Port, _ = pmap.RegistrySearch(binfo.Path)
-			}
-		}
-
-		var fstat syscall.Statfs_t
-		if err := syscall.Statfs(binfo.Path, &fstat); err != nil {
-			log.WithError(err).WithField("path",
-				binfo.Path).Error("syscall.Statfs() failed")
-		} else {
-			s.Size = *(brick.CreateSizeInfo(&fstat))
-		}
-
-		for _, m := range mtabEntries {
-			if strings.HasPrefix(binfo.Path, m.MntDir) {
-				s.MountOpts = m.MntOpts
-				s.Device = m.FsName
-				s.FS = m.MntType
-			}
-		}
-
-		brickStatuses = append(brickStatuses, s)
+		brickStatuses = append(brickStatuses, brickStatus)
 	}
 
 	return brickStatuses, nil
+}
+
+// BrickStatus gives brick status of one brick.
+func BrickStatus(binfo brick.Brickinfo, mtabEntries []*Mntent) (brick.Brickstatus, error) {
+	brickDaemon, err := brick.NewGlusterfsd(binfo)
+	if err != nil {
+		return brick.Brickstatus{}, err
+	}
+
+	s := brick.Brickstatus{
+		Info: binfo,
+	}
+
+	if pidOnFile, err := daemon.ReadPidFromFile(brickDaemon.PidFile()); err == nil {
+		if _, err := daemon.GetProcess(pidOnFile); err == nil {
+			s.Online = true
+			s.Pid = pidOnFile
+			s.Port, _ = pmap.RegistrySearch(binfo.Path)
+		}
+	}
+
+	var fstat syscall.Statfs_t
+	if err := syscall.Statfs(binfo.Path, &fstat); err != nil {
+		log.WithError(err).WithField("path",
+			binfo.Path).Error("syscall.Statfs() failed")
+	} else {
+		s.Size = *(brick.CreateSizeInfo(&fstat))
+	}
+
+	for _, m := range mtabEntries {
+		if strings.HasPrefix(binfo.Path, m.MntDir) {
+			s.MountOpts = m.MntOpts
+			s.Device = m.FsName
+			s.FS = m.MntType
+		}
+	}
+	return s, nil
 }
 
 //GetBrickMountRoot return root of a brick mount
