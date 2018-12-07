@@ -63,10 +63,7 @@ func validateOptions(opts map[string]string, flags api.VolOptionFlags) error {
 
 func validateXlatorOptions(opts map[string]string, volinfo *volume.Volinfo) error {
 	for k, v := range opts {
-		_, xl, key, err := options.SplitKey(k)
-		if err != nil {
-			return err
-		}
+		_, xl, key := options.SplitKey(k)
 		xltr, err := xlator.Find(xl)
 		if err != nil {
 			return err
@@ -209,7 +206,7 @@ func validateBricks(c transaction.TxnCtx) error {
 	return nil
 }
 
-// This txn step is used in volume create and in volume expand
+// This txn step is used in volume create, replace brick and in volume expand
 func initBricks(c transaction.TxnCtx) error {
 
 	var err error
@@ -339,10 +336,7 @@ func isActionStepRequired(opt map[string]string, volinfo *volume.Volinfo) bool {
 		return false
 	}
 	for k := range opt {
-		_, xl, _, err := options.SplitKey(k)
-		if err != nil {
-			continue
-		}
+		_, xl, _ := options.SplitKey(k)
 		if xltr, err := xlator.Find(xl); err == nil && xltr.Actor != nil {
 			return true
 		}

@@ -105,6 +105,9 @@ Note - Cannot use query parameters if volname is also supplied.
 */
 type VolumeGetResp VolumeInfo
 
+// ReplaceBrickResp represents replace brick response
+type ReplaceBrickResp VolumeInfo
+
 // VolumeExpandResp is the response sent for a volume expand request.
 type VolumeExpandResp VolumeInfo
 

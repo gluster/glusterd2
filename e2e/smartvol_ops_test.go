@@ -9,6 +9,7 @@ import (
 	gutils "github.com/gluster/glusterd2/pkg/utils"
 	deviceapi "github.com/gluster/glusterd2/plugins/device/api"
 
+	"github.com/pborman/uuid"
 	"github.com/stretchr/testify/require"
 )
 
@@ -41,6 +42,95 @@ func checkZeroLvsWithRange(r *require.Assertions, start, end int) {
 			r.Equal(0, nlv)
 		}
 	}
+}
+
+func getPeerIDs(subvols []api.Subvol) []uuid.UUID {
+	peers := make([]uuid.UUID, 0)
+	for _, subvol := range subvols {
+		for _, brick := range subvol.Bricks {
+			peers = append(peers, brick.PeerID)
+		}
+	}
+	return peers
+}
+
+// Replace brick test
+func testReplaceBrick(t *testing.T) {
+	r := require.New(t)
+	smartvolname := formatVolName(t.Name())
+	// create Distribute 3 Volume
+	createReq := api.VolCreateReq{
+		Name:            smartvolname,
+		Size:            60 * gutils.MiB,
+		DistributeCount: 2,
+	}
+
+	// Create distribute volume
+	volinfo, err := client.VolumeCreate(createReq)
+	r.Nil(err)
+
+	r.Len(volinfo.Subvols, 2)
+	r.Equal("Distribute", volinfo.Type.String())
+	r.Len(volinfo.Subvols[0].Bricks, 1)
+	r.Len(volinfo.Subvols[1].Bricks, 1)
+
+	// Start volume
+	err = client.VolumeStart(smartvolname, true)
+	r.Nil(err)
+
+	oldBrickPath := volinfo.Subvols[0].Bricks[0].Path
+	oldBrickPeerID := volinfo.Subvols[0].Bricks[0].PeerID
+
+	replaceBrickReq := api.ReplaceBrickReq{
+		SrcPeerID:    oldBrickPeerID.String(),
+		SrcBrickPath: oldBrickPath,
+		Force:        true,
+	}
+
+	volInfo, err := client.ReplaceBrick(smartvolname, replaceBrickReq)
+	r.Nil(err)
+	r.NotEqual(volInfo.Subvols[0].Bricks[0].PeerID.String(), oldBrickPeerID)
+
+	err = client.VolumeStop(smartvolname)
+	r.Nil(err)
+	r.Nil(client.VolumeDelete(smartvolname))
+
+	g4, err := spawnGlusterd(t, "./config/4.toml", true)
+	r.Nil(err)
+	defer g4.Stop()
+	r.True(g4.IsRunning())
+
+	peerAddReq := api.PeerAddReq{
+		Addresses: []string{g4.PeerAddress},
+		Metadata: map[string]string{
+			"owner": "gd4test",
+		},
+	}
+	peerinfo, err := client.PeerAdd(peerAddReq)
+	r.Nil(err)
+
+	volinfo, err = client.VolumeCreate(createReq)
+	r.Nil(err)
+
+	oldBrickPath = volinfo.Subvols[0].Bricks[0].Path
+	oldBrickPeerID = volinfo.Subvols[0].Bricks[0].PeerID
+	excludePeer := []string{peerinfo.ID.String()}
+	replaceBrickReq = api.ReplaceBrickReq{
+		SrcPeerID:    oldBrickPeerID.String(),
+		SrcBrickPath: oldBrickPath,
+		ExcludePeers: excludePeer,
+		Force:        true,
+	}
+
+	_, err = client.ReplaceBrick(smartvolname, replaceBrickReq)
+	r.Nil(err)
+
+	r.NotEqual(peerinfo.ID, oldBrickPeerID)
+	err = client.VolumeStop(smartvolname)
+	r.Nil(err)
+	err = (client.VolumeDelete(smartvolname))
+	r.Nil(err)
+
 }
 
 func testSmartVolumeDistribute(t *testing.T) {
@@ -436,6 +526,7 @@ func TestSmartVolume(t *testing.T) {
 	t.Run("Smartvol Disperse Volume", testSmartVolumeDisperse)
 	t.Run("Smartvol Distributed-Replicate Volume", testSmartVolumeDistributeReplicate)
 	t.Run("Smartvol Distributed-Disperse Volume", testSmartVolumeDistributeDisperse)
+	t.Run("Replace Brick", testReplaceBrick)
 	t.Run("Edit device", editDevice)
 
 	// // Device Cleanup

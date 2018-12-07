@@ -80,10 +80,6 @@ func getBricksLayout(req *api.VolCreateReq) ([]api.SubvolReq, error) {
 		subvolSize = subvolSize / uint64(numSubvols)
 	}
 
-	if req.SnapshotReserveFactor < 1 {
-		return nil, errors.New("invalid Snapshot Reserve Factor")
-	}
-
 	// Default Subvol Type
 	req.SubvolType = "distribute"
 
@@ -147,7 +143,7 @@ func getBricksLayout(req *api.VolCreateReq) ([]api.SubvolReq, error) {
 
 // PlanBricks creates the brick layout with chosen device and size information
 func PlanBricks(req *api.VolCreateReq) error {
-	availableVgs, err := getAvailableVgs(req)
+	availableVgs, err := GetAvailableVgs(req)
 	if err != nil {
 		return err
 	}
