@@ -118,6 +118,11 @@ func volumeCreateHandler(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
+	if containsReservedGroupProfile(req.Options) {
+		restutils.SendHTTPError(ctx, w, http.StatusBadRequest, gderrors.ErrReservedGroupProfile)
+		return
+	}
+
 	if req.Size > 0 {
 		applyDefaults(&req)
 
@@ -147,6 +152,20 @@ func volumeCreateHandler(w http.ResponseWriter, r *http.Request) {
 	if err := validateOptions(req.Options, req.VolOptionFlags); err != nil {
 		restutils.SendHTTPError(ctx, w, http.StatusBadRequest, err)
 		return
+	}
+
+	// Include default Volume Options profile
+	if len(req.Subvols) > 0 {
+		groupProfile, exists := defaultGroupOptions["profile.default."+req.Subvols[0].Type]
+		if exists {
+			for _, opt := range groupProfile.Options {
+				// Apply default option only if not overridden in volume create request
+				_, exists = req.Options[opt.Name]
+				if !exists {
+					req.Options[opt.Name] = opt.OnValue
+				}
+			}
+		}
 	}
 
 	nodes, err := req.Nodes()

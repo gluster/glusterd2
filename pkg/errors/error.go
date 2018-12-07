@@ -69,4 +69,5 @@ var (
 	ErrDeviceNotFound                  = errors.New("device does not exist in the given peer")
 	ErrVolumeBricksMountFailed         = errors.New("failed to get mount point entries for the volume bricks")
 	ErrBrickMountFailed                = errors.New("failed to mount brick")
+	ErrReservedGroupProfile            = errors.New("reserved group profile")
 )

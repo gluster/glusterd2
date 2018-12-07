@@ -5,8 +5,11 @@ import (
 	"encoding/json"
 	"errors"
 	"fmt"
+	"io/ioutil"
 	"os"
+	"path"
 	"path/filepath"
+	"strings"
 
 	"github.com/gluster/glusterd2/glusterd2/brick"
 	"github.com/gluster/glusterd2/glusterd2/gdctx"
@@ -22,6 +25,7 @@ import (
 
 	"github.com/pborman/uuid"
 	log "github.com/sirupsen/logrus"
+	config "github.com/spf13/viper"
 	"golang.org/x/sys/unix"
 )
 
@@ -302,8 +306,43 @@ func undoStoreVolume(c transaction.TxnCtx) error {
 	return storeVolInfo(c, "oldvolinfo")
 }
 
-// LoadDefaultGroupOptions loads the default group option map into the store
-func LoadDefaultGroupOptions() error {
+func loadDefaultGroupOptions() error {
+	defaultProfilesPath := path.Join(config.GetString("localstatedir"), "templates", "profiles.json")
+	// If directory not exists, create the directory and then generate default templates
+	_, err := os.Stat(defaultProfilesPath)
+	if os.IsNotExist(err) {
+		content, err := json.MarshalIndent(defaultGroupOptions, "", "    ")
+		if err != nil {
+			return err
+		}
+
+		err = os.MkdirAll(path.Dir(defaultProfilesPath), os.ModeDir|os.ModePerm)
+		if err != nil {
+			return err
+		}
+		return ioutil.WriteFile(defaultProfilesPath, content, 0640)
+	} else if err == nil {
+		content, err := ioutil.ReadFile(defaultProfilesPath)
+		if err != nil {
+			return err
+		}
+		var grpOpts map[string]*api.OptionGroup
+		err = json.Unmarshal(content, &grpOpts)
+		if err != nil {
+			return err
+		}
+		defaultGroupOptions = grpOpts
+		return nil
+	}
+	return err
+}
+
+// InitDefaultGroupOptions loads the default group option map into the store
+func InitDefaultGroupOptions() error {
+	err := loadDefaultGroupOptions()
+	if err != nil {
+		return err
+	}
 	groupOptions, err := json.Marshal(defaultGroupOptions)
 	if err != nil {
 		return err
@@ -379,4 +418,24 @@ func txnGenerateBrickVolfiles(c transaction.TxnCtx) error {
 		return err
 	}
 	return nil
+}
+
+func containsReservedGroupProfile(opts interface{}) bool {
+	pfx := "profile.default."
+	switch value := opts.(type) {
+	case map[string]string:
+		for k := range value {
+			if strings.HasPrefix(k, pfx) {
+				return true
+			}
+		}
+	case []string:
+		for _, v := range value {
+			if strings.HasPrefix(v, pfx) {
+				return true
+			}
+		}
+	}
+
+	return false
 }
