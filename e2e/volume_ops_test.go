@@ -599,7 +599,7 @@ func TestVolumeOptions(t *testing.T) {
 	// TODO: Remove this later if the default changes
 	createReq.AllowAdvanced = true
 
-	validOpKeys := []string{"gfproxy.afr.eager-lock", "afr.eager-lock"}
+	validOpKeys := []string{"gfproxy.replicate.eager-lock", "replicate.eager-lock"}
 	invalidOpKeys := []string{"..eager-lock", "a.b.afr.eager-lock", "afr.non-existent", "eager-lock"}
 
 	// valid option test cases
@@ -649,12 +649,12 @@ func TestVolumeOptions(t *testing.T) {
 	// TODO: Remove this later if the default changes
 	optionReq.AllowAdvanced = true
 
-	settableKey := "afr.use-compound-fops"
+	settableKey := "replicate.use-compound-fops"
 	optionReq.Options = map[string]string{settableKey: "on"}
 	r.Nil(client.VolumeSet(volname, optionReq))
 
 	var resetOptionReq api.VolOptionResetReq
-	resetOptionReq.Options = []string{"afr.use-compound-fops"}
+	resetOptionReq.Options = []string{"replicate.use-compound-fops"}
 	resetOptionReq.Force = true
 	r.Nil(client.VolumeReset(volname, resetOptionReq))
 
@@ -668,7 +668,7 @@ func TestVolumeOptions(t *testing.T) {
 	resetOptionReq.All = true
 	r.Nil(client.VolumeReset(volname, resetOptionReq))
 
-	notSettableKey := "afr.consistent-io"
+	notSettableKey := "replicate.consistent-io"
 	optionReq.Options = map[string]string{notSettableKey: "on"}
 	r.NotNil(client.VolumeSet(volname, optionReq))
 
@@ -718,8 +718,8 @@ func TestVolumeOptions(t *testing.T) {
 	optionGroupReq = api.OptionGroupReq{
 		OptionGroup: api.OptionGroup{
 			Name: "profile.test2",
-			Options: []api.VolumeOption{{Name: "afr.eager-lock", OnValue: "on"},
-				{Name: "gfproxy.afr.eager-lock", OnValue: "on"},
+			Options: []api.VolumeOption{{Name: "replicate.eager-lock", OnValue: "on"},
+				{Name: "gfproxy.replicate.eager-lock", OnValue: "on"},
 			},
 			Description: "Test profile 2",
 		},
