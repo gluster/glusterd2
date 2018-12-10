@@ -87,7 +87,7 @@ func Init(logdir string, logFileName string, logLevel string, verboseLogEntry bo
 		logFile, err := openLogFile(logFilePath)
 		if err != nil {
 			setLogOutput(os.Stderr)
-			log.WithError(err).Debug("Failed to open log file %s", logFilePath)
+			log.WithError(err).Debug("Failed to open log file ", logFilePath)
 			return err
 		}
 		setLogOutput(logFile)
