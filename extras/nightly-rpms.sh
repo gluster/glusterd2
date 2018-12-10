@@ -6,12 +6,16 @@
 
 set -e
 
-YUMDNF=yum
-MOCKARGS=
 if grep -q Fedora /etc/redhat-release; then
   YUMDNF=dnf
   MOCKARGS="--dnf"
+else
+  YUMDNF=yum
+  MOCKARGS=
+  yum install -y epel-release
 fi
+
+$YUMDNF -y install make mock rpm-build golang
 
 ##
 ## Set up build environment
@@ -22,7 +26,6 @@ BUILDDIR=$PWD/$(mktemp -d nightlyrpmXXXXXX)
 BASEDIR=$(dirname "$0")
 GD2CLONE=$(realpath "$BASEDIR/..")
 
-$YUMDNF -y install make mock rpm-build golang
 
 export GOPATH=$BUILDDIR/go
 mkdir -p "$GOPATH"/{bin,pkg,src}
