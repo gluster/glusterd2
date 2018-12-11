@@ -32,7 +32,7 @@ GIT_SHA=${GIT_SHA:-$(git rev-parse --short HEAD || echo "undefined")}
 GIT_SHA_FULL=${GIT_SHA_FULL:-$(git rev-parse HEAD || echo "undefined")}
 
 LDFLAGS="-X ${REPO_PATH}/version.GlusterdVersion=${VERSION} -X ${REPO_PATH}/version.GitSHA=${GIT_SHA}"
-LDFLAGS+=" -B 0x${GIT_SHA_FULL}"
+LDFLAGS+=" -B 0x$(head -c20 /dev/urandom|od -An -tx1|tr -d ' \n')"
 
 if [ "$BIN" == "glusterd2" ]; then
     LDFLAGS+=" -X main.defaultPathPrefix=${BASE_PREFIX}"
