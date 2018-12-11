@@ -78,6 +78,8 @@ func bitrotEnableHandler(w http.ResponseWriter, r *http.Request) {
 			// Required because bitrot-stub should be enabled on brick side
 			DoFunc: "vol-option.NotifyVolfileChange",
 			Nodes:  txn.Nodes,
+			// Volinfo needs to be updated before sending notifications
+			Sync: true,
 		},
 		{
 			DoFunc: "bitrot-enable.Commit",

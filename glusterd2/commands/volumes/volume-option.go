@@ -241,6 +241,7 @@ func volumeOptionsHandler(w http.ResponseWriter, r *http.Request) {
 			DoFunc:   "vol-option.UpdateVolinfo",
 			UndoFunc: "vol-option.UpdateVolinfo.Undo",
 			Nodes:    []uuid.UUID{gdctx.MyUUID},
+			Sync:     true,
 		},
 		{
 			DoFunc:   "vol-option.XlatorActionDoSet",

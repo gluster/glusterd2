@@ -177,8 +177,9 @@ func volumeCreateHandler(w http.ResponseWriter, r *http.Request) {
 		},
 		{
 			DoFunc: "vol-create.ValidateBricks",
-			Sync:   true,
 			Nodes:  nodes,
+			// Need to wait for volinfo to be created first
+			Sync: true,
 		},
 		{
 			DoFunc:   "vol-create.InitBricks",
@@ -189,6 +190,7 @@ func volumeCreateHandler(w http.ResponseWriter, r *http.Request) {
 			DoFunc:   "vol-create.StoreVolume",
 			UndoFunc: "vol-create.UndoStoreVolume",
 			Nodes:    []uuid.UUID{gdctx.MyUUID},
+			Sync:     true,
 		},
 	}
 

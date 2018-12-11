@@ -763,6 +763,7 @@ func snapshotCreateHandler(w http.ResponseWriter, r *http.Request) {
 		{
 			DoFunc: "snap-create.CreateSnapinfo",
 			Nodes:  []uuid.UUID{gdctx.MyUUID},
+			Sync:   true,
 		},
 		{
 			DoFunc:   "snap-create.ActivateBarrier",
@@ -774,6 +775,8 @@ func snapshotCreateHandler(w http.ResponseWriter, r *http.Request) {
 			DoFunc:   "snap-create.TakeBrickSnapshots",
 			UndoFunc: "snap-create.UndoBrickSnapshots",
 			Nodes:    txn.Nodes,
+			// All bricks need to be barriered before taking a snapshot
+			Sync: true,
 		},
 		{
 			DoFunc: "snap-create.DeactivateBarrier",
@@ -784,6 +787,7 @@ func snapshotCreateHandler(w http.ResponseWriter, r *http.Request) {
 			DoFunc:   "snap-create.StoreSnapshot",
 			UndoFunc: "snap-create.UndoStoreSnapshotOnCreate",
 			Nodes:    []uuid.UUID{gdctx.MyUUID},
+			Sync:     true,
 		},
 	}
 

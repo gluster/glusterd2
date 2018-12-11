@@ -138,11 +138,13 @@ func volumeResetHandler(w http.ResponseWriter, r *http.Request) {
 			DoFunc:   "vol-option.UpdateVolinfo",
 			UndoFunc: "vol-option.UpdateVolinfo.Undo",
 			Nodes:    []uuid.UUID{gdctx.MyUUID},
+			Sync:     true,
 		},
 		{
 			DoFunc:   "vol-option.GenerateBrickVolfiles",
 			UndoFunc: "vol-option.GenerateBrickvolfiles.Undo",
 			Nodes:    volinfo.Nodes(),
+			Sync:     true,
 		},
 		{
 			DoFunc: "vol-option.NotifyVolfileChange",

@@ -161,6 +161,7 @@ func snapshotDeleteHandler(w http.ResponseWriter, r *http.Request) {
 		{
 			DoFunc: "snap-delete.Store",
 			Nodes:  []uuid.UUID{gdctx.MyUUID},
+			Sync:   true,
 		},
 	}
 
