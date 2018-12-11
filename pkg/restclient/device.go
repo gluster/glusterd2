@@ -43,3 +43,10 @@ func (c *Client) DeviceEdit(peerid, device, state string) error {
 	err := c.post(url, req, http.StatusOK, nil)
 	return err
 }
+
+// DeviceDelete removes devices
+func (c *Client) DeviceDelete(peerid, device string) error {
+	device = strings.TrimLeft(device, "/")
+	url := fmt.Sprintf("/v1/devices/%s/%s", peerid, device)
+	return c.del(url, nil, http.StatusNoContent, nil)
+}

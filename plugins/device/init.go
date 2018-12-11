@@ -54,7 +54,14 @@ func (p *Plugin) RestRoutes() route.Routes {
 			Pattern:      "/devices",
 			Version:      1,
 			ResponseType: utils.GetTypeString((*deviceapi.ListDeviceResp)(nil)),
-			HandlerFunc:  deviceListHandler},
+			HandlerFunc:  listAllDevicesHandler},
+		route.Route{
+			Name:        "DeviceDelete",
+			Method:      "DELETE",
+			Pattern:     "/devices/{peerid}/{device:.*}",
+			Version:     1,
+			HandlerFunc: deviceDeleteHandler,
+		},
 	}
 }
 
@@ -62,4 +69,5 @@ func (p *Plugin) RestRoutes() route.Routes {
 // Glusterd Transaction framework
 func (p *Plugin) RegisterStepFuncs() {
 	transaction.RegisterStepFunc(txnPrepareDevice, "prepare-device")
+	transaction.RegisterStepFunc(txnDeleteDevice, "delete-device")
 }

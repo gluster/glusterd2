@@ -1,6 +1,8 @@
 package device
 
 import (
+	"errors"
+
 	"github.com/gluster/glusterd2/glusterd2/transaction"
 	"github.com/gluster/glusterd2/pkg/lvmutils"
 	deviceapi "github.com/gluster/glusterd2/plugins/device/api"
@@ -55,6 +57,57 @@ func txnPrepareDevice(c transaction.TxnCtx) error {
 	err = deviceutils.AddOrUpdateDevice(deviceInfo)
 	if err != nil {
 		c.Logger().WithError(err).WithField("peerid", peerID).Error("Couldn't add deviceinfo to store")
+		return err
+	}
+	return nil
+}
+
+func txnDeleteDevice(c transaction.TxnCtx) error {
+	var peerID string
+	if err := c.Get("peerid", &peerID); err != nil {
+		return err
+	}
+
+	var deviceName string
+	if err := c.Get("device", &deviceName); err != nil {
+		return err
+	}
+
+	devices, err := deviceutils.GetDevices(peerID)
+	if err != nil {
+		return err
+	}
+
+	if len(devices) == 0 {
+		return errors.New("No devices added in the given peer")
+	}
+
+	vgName := ""
+	for _, device := range devices {
+		if device.Device == deviceName {
+			vgName = device.VgName()
+		}
+	}
+
+	if vgName == "" {
+		return errors.New("No device found with given device name")
+	}
+
+	// Remove VG
+	if err := lvmutils.RemoveVG(vgName); err != nil {
+		c.Logger().WithError(err).WithField("device", deviceName).Error("Failed to remove volume group")
+		return err
+	}
+
+	//Remove PV
+	if err := lvmutils.RemovePV(deviceName); err != nil {
+		c.Logger().WithError(err).WithField("device", deviceName).Error("Failed to remove physical volume")
+		return err
+	}
+
+	err = deviceutils.DeleteDevice(peerID, deviceName)
+	if err != nil {
+		c.Logger().WithError(err).WithField("peerid", peerID).Error("Failed to remove device")
 		return err
 	}
 	return nil
