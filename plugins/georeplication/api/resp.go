@@ -1,4 +1,4 @@
-package georeplication
+package api
 
 import (
 	"github.com/pborman/uuid"
@@ -81,6 +81,9 @@ type GeorepSession struct {
 	Workers     []GeorepWorker     `json:"workers"`
 	Options     map[string]string  `json:"options"`
 }
+
+// GeorepSessionList represents list of Geo-replication session
+type GeorepSessionList []GeorepSession
 
 // GeorepOption represents Config details
 type GeorepOption struct {

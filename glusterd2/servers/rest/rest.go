@@ -19,6 +19,7 @@ import (
 	"github.com/justinas/alice"
 	log "github.com/sirupsen/logrus"
 	config "github.com/spf13/viper"
+	"go.opencensus.io/plugin/ochttp"
 )
 
 const (
@@ -68,13 +69,13 @@ func NewMuxed(m cmux.CMux) *GDRest {
 	keyfile := config.GetString("key-file")
 
 	if certfile != "" && keyfile != "" {
-		if l, err := tlsListener(m.Match(tlsmatcher.TLS12), certfile, keyfile); err != nil {
+		if l, err := tlsListener(m.Match(tlsmatcher.TLS12, tlsmatcher.TLS11, tlsmatcher.TLS10), certfile, keyfile); err != nil {
 			// TODO: Don't use Fatal(), bubble up error till main()
 			// NOTE: Methods of suture.Service interface do not return error
-			log.WithFields(log.Fields{
+			log.WithError(err).WithFields(log.Fields{
 				"cert-file": certfile,
 				"key-file":  keyfile,
-			}).WithError(err).Fatal("Failed to create SSL/TLS listener")
+			}).Fatal("Failed to create SSL/TLS listener")
 		} else {
 			rest.listener = l
 		}
@@ -84,14 +85,17 @@ func NewMuxed(m cmux.CMux) *GDRest {
 
 	rest.registerRoutes()
 
-	// Chain of ordered middlewares.
-	rest.server.Handler = alice.New(
-		middleware.Recover,
-		middleware.Expvar,
-		middleware.ReqIDGenerator,
-		middleware.LogRequest,
-		middleware.Auth,
-	).Then(rest.Routes)
+	// Set Handler to opencensus HTTP handler to enable tracing
+	// Set chain of ordered middlewares
+	rest.server.Handler = &ochttp.Handler{
+		Handler: alice.New(
+			middleware.Recover,
+			middleware.Expvar,
+			middleware.ReqIDGenerator,
+			middleware.LogRequest,
+			middleware.Auth,
+		).Then(rest.Routes),
+	}
 
 	return rest
 }

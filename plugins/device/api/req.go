@@ -1,4 +1,4 @@
-package device
+package api
 
 const (
 	// DeviceEnabled represents enabled
@@ -15,6 +15,5 @@ type AddDeviceReq struct {
 
 // EditDeviceReq structure
 type EditDeviceReq struct {
-	DeviceName string `json:"device-name"`
-	State      string `json:"state"`
+	State string `json:"state"`
 }

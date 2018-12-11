@@ -13,6 +13,8 @@ import (
 	"github.com/coreos/etcd/clientv3/concurrency"
 	"github.com/pborman/uuid"
 	log "github.com/sirupsen/logrus"
+	"google.golang.org/grpc"
+	"google.golang.org/grpc/codes"
 )
 
 const (
@@ -35,7 +37,8 @@ type Txn struct {
 	// Nodes is the union of the all the TxnStep.Nodes and is implicitly
 	// set in Txn.Do(). This list is used to determine liveness of the
 	// nodes before running the transaction steps.
-	Nodes []uuid.UUID
+	Nodes   []uuid.UUID
+	OrigCtx context.Context
 }
 
 // NewTxn returns an initialized Txn without any steps
@@ -55,6 +58,7 @@ func NewTxn(ctx context.Context) *Txn {
 	}
 	t.Ctx = newCtx(config)
 
+	t.OrigCtx = ctx
 	t.Ctx.Logger().Debug("new transaction created")
 	return t
 }
@@ -130,7 +134,10 @@ func (t *Txn) Do() error {
 			continue
 		}
 
-		if err := s.do(t.Ctx); err != nil {
+		if err := s.do(t.OrigCtx, t.Ctx); err != nil {
+			if t.DontCheckAlive && isNodeUnreachable(err) {
+				continue
+			}
 			expTxn.Add("initiated_txn_failure", 1)
 			if !t.DisableRollback {
 				t.Ctx.Logger().WithError(err).Error("Transaction failed, rolling back changes")
@@ -142,6 +149,18 @@ func (t *Txn) Do() error {
 
 	expTxn.Add("initiated_txn_success", 1)
 	return nil
+}
+
+func isNodeUnreachable(err error) bool {
+	unreachable := true
+	if s, ok := err.(*stepResp); ok {
+		for _, e := range s.Resps {
+			if grpc.Code(e.Error) != codes.Unavailable {
+				unreachable = false
+			}
+		}
+	}
+	return unreachable
 }
 
 // undo undoes a transaction and will be automatically called by Perform if any step fails.

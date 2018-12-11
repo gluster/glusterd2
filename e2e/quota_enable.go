@@ -18,14 +18,12 @@ func TestQuota(t *testing.T) {
 	var brickPaths []string
 	r := require.New(t)
 
-	gds, err := setupCluster("./config/1.toml", "./config/2.toml")
+	tc, err := setupCluster(t, "./config/1.toml", "./config/2.toml")
 	r.Nil(err)
-	defer teardownCluster(gds)
+	defer teardownCluster(tc)
 
-	brickDir, err := ioutil.TempDir(baseLocalStateDir, t.Name())
-	r.Nil(err)
+	brickDir := testTempDir(t, "bricks")
 	defer os.RemoveAll(brickDir)
-	t.Logf("Using temp dir: %s", brickDir)
 
 	volumeName := formatVolName(t.Name())
 
@@ -35,7 +33,9 @@ func TestQuota(t *testing.T) {
 		brickPaths = append(brickPaths, brickPath)
 	}
 
-	client := initRestclient(gds[0])
+	client, err := initRestclient(tc.gds[0])
+	r.Nil(err)
+	r.NotNil(client)
 
 	// create 2x2 dist-rep volume
 	createReq := api.VolCreateReq{
@@ -45,16 +45,16 @@ func TestQuota(t *testing.T) {
 				ReplicaCount: 2,
 				Type:         "replicate",
 				Bricks: []api.BrickReq{
-					{PeerID: gds[0].PeerID(), Path: brickPaths[0]},
-					{PeerID: gds[1].PeerID(), Path: brickPaths[1]},
+					{PeerID: tc.gds[0].PeerID(), Path: brickPaths[0]},
+					{PeerID: tc.gds[1].PeerID(), Path: brickPaths[1]},
 				},
 			},
 			{
 				Type:         "replicate",
 				ReplicaCount: 2,
 				Bricks: []api.BrickReq{
-					{PeerID: gds[0].PeerID(), Path: brickPaths[2]},
-					{PeerID: gds[1].PeerID(), Path: brickPaths[3]},
+					{PeerID: tc.gds[0].PeerID(), Path: brickPaths[2]},
+					{PeerID: tc.gds[1].PeerID(), Path: brickPaths[3]},
 				},
 			},
 		},
@@ -65,21 +65,21 @@ func TestQuota(t *testing.T) {
 	r.Nil(err)
 
 	// test Quota on dist-rep volume
-	t.Run("Quota-enable", testQuotaEnable)
+	t.Run("Quota-enable", tc.wrap(testQuotaEnable))
 
 	r.Nil(client.VolumeDelete(volumeName))
 }
 
-func testQuotaEnable(t *testing.T) {
+func testQuotaEnable(t *testing.T, tc *testCluster) {
 	var err error
 	r := require.New(t)
 
 	// form the pidfile path
-	pidpath := path.Join(gds[0].Rundir, "quotad.pid")
+	pidpath := path.Join(tc.gds[0].Rundir, "quotad.pid")
 
 	quotaKey := "quota.enable"
 	var optionReqOff api.VolOptionReq
-	optionReqOff.Advanced = true
+	optionReqOff.AllowAdvanced = true
 
 	optionReqOff.Options = map[string]string{quotaKey: "off"}
 
@@ -91,7 +91,7 @@ func testQuotaEnable(t *testing.T) {
 	r.False(isProcessRunning(pidpath))
 
 	var optionReqOn api.VolOptionReq
-	optionReqOn.Advanced = true
+	optionReqOn.AllowAdvanced = true
 
 	// Enable quota
 	quotaKey = "quota.enable"

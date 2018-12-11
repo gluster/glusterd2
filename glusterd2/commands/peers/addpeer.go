@@ -73,7 +73,7 @@ func addPeerHandler(w http.ResponseWriter, r *http.Request) {
 	defer client.conn.Close()
 	logger = logger.WithField("peer", remotePeerAddress)
 
-	newconfig := &StoreConfig{store.Store.Endpoints()}
+	newconfig := &StoreConfig{Endpoints: store.Store.Endpoints()}
 	logger.WithField("endpoints", newconfig.Endpoints).Debug("asking new peer to join cluster with given endpoints")
 
 	// Ask the peer to join the cluster
@@ -128,6 +128,7 @@ func addPeerHandler(w http.ResponseWriter, r *http.Request) {
 	}
 
 	resp := createPeerAddResp(newpeer)
+	restutils.SetLocationHeader(r, w, newpeer.ID.String())
 	restutils.SendHTTPResponse(ctx, w, http.StatusCreated, resp)
 
 	// Save updated store endpoints for restarts

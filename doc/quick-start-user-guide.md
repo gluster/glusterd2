@@ -26,23 +26,28 @@ Install rpcbind:
 
 **Installing glusterfs from nightly RPMs (CentOS 7):**
 
-These packages require dependencies present in [EPEL](https://fedoraproject.org/wiki/EPEL). Enable the EPEL repositories before enabling gluster nightly packages repo below.
+These packages require dependencies present in [EPEL](https://fedoraproject.org/wiki/EPEL). Enable the [EPEL repositories](https://fedoraproject.org/wiki/EPEL#Quickstart) before enabling gluster nightly packages repo below.
 
 Install packages that provide GlusterFS server (brick process) and client (fuse, libgfapi):
 
 ```sh
-# curl -o /etc/yum.repos.d/glusterfs-nighthly-master.repo http://artifacts.ci.centos.org/gluster/nightly/master.repo
+# curl -o /etc/yum.repos.d/glusterfs-nightly-master.repo http://artifacts.ci.centos.org/gluster/nightly/master.repo
 # yum install glusterfs-server glusterfs-fuse glusterfs-api
 ```
 
 ### Download glusterd2
 
-Glusterd2 is a single binary without any external dependencies. Like all Go programs, dependencies are statically linked. You can download the [latest release](https://github.com/gluster/glusterd2/releases) from Github.
+We recommend that you use the RPMs made available nightly as they contain the latest fixes. If you are on CentOS 7, you can download the latest glusterd2 nightly RPM using the following method:
 
 ```sh
-$ wget https://github.com/gluster/glusterd2/releases/download/v4.0dev-7/glusterd2-v4.0dev-7-linux-amd64.tar.xz
-$ tar -xf glusterd2-v4.0dev-7-linux-amd64.tar.xz
+# curl -o /etc/yum.repos.d/glusterd2-nightly-master.repo http://artifacts.ci.centos.org/gluster/gd2-nightly/gd2-master.repo
+# yum install glusterd2
 ```
+
+Alternatlively, if you are using a non-RPM based distro, you can download
+binaries of the latest release. Like all Go programs, glusterd2 is a single
+binary (statically linked) without external dependencies. You can download the
+[latest release](https://github.com/gluster/glusterd2/releases) from Github.
 
 ### Running glusterd2
 

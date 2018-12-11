@@ -7,55 +7,56 @@ import (
 	"github.com/gluster/glusterd2/glusterd2/snapshot"
 	"github.com/gluster/glusterd2/glusterd2/volume"
 	"github.com/gluster/glusterd2/pkg/api"
-	"github.com/gluster/glusterd2/pkg/errors"
 )
 
 func snapshotListHandler(w http.ResponseWriter, r *http.Request) {
 
-	snapName := make(map[string][]string)
+	snapName := make(map[string][]api.SnapInfo)
 	ctx := r.Context()
-	var req api.SnapListReq
 
-	if err := restutils.UnmarshalRequest(r, &req); err != nil {
-		restutils.SendHTTPError(ctx, w, http.StatusUnprocessableEntity, err)
-		return
-	}
+	volumeName := r.URL.Query().Get("volume")
 
-	volumeName := req.Volname
 	if volumeName != "" {
-		vol, e := volume.GetVolume(volumeName)
-		if e != nil {
-			if e == errors.ErrVolNotFound {
-				restutils.SendHTTPError(ctx, w, http.StatusNotFound, errors.ErrVolNotFound)
-			} else {
-				restutils.SendHTTPError(ctx, w, http.StatusInternalServerError, e)
-			}
+		vol, err := volume.GetVolume(volumeName)
+		if err != nil {
+			status, err := restutils.ErrToStatusCode(err)
+			restutils.SendHTTPError(ctx, w, status, err)
 			return
 		}
-		snapName[volumeName] = vol.SnapList
-	} else {
+		for _, s := range vol.SnapList {
+			snapInfo, err := snapshot.GetSnapshot(s)
+			if err != nil {
+				status, err := restutils.ErrToStatusCode(err)
+				restutils.SendHTTPError(ctx, w, status, err)
+				return
+			}
+			snapName[volumeName] = append(snapName[volumeName], *createSnapInfoResp(snapInfo))
+		}
 
+	} else {
 		snaps, err := snapshot.GetSnapshots()
 		if err != nil {
-			restutils.SendHTTPError(ctx, w, http.StatusNotFound, err)
+			status, err := restutils.ErrToStatusCode(err)
+			restutils.SendHTTPError(ctx, w, status, err)
+			return
 		}
 		for _, s := range snaps {
-			snapName[s.ParentVolume] = append(snapName[s.ParentVolume], s.SnapVolinfo.Name)
+			snapName[s.ParentVolume] = append(snapName[s.ParentVolume], *createSnapInfoResp(s))
 		}
 	}
-	resp := createSnapshotListResp(snapName)
-	restutils.SendHTTPResponse(ctx, w, http.StatusOK, resp)
+	restutils.SendHTTPResponse(ctx, w, http.StatusOK, createSnapshotListResp(snapName))
 }
 
-func createSnapshotListResp(snaps map[string][]string) *api.SnapListResp {
+func createSnapshotListResp(volSnaps map[string][]api.SnapInfo) *api.SnapListResp {
 	var resp api.SnapListResp
-	var entry api.SnapList
-
-	for key, s := range snaps {
-		entry.ParentName = key
-		entry.SnapName = s
-		resp = append(resp, entry)
+	resp = make(api.SnapListResp, 0)
+	for vol, snapList := range volSnaps {
+		var snap api.SnapList
+		snap.ParentName = vol
+		for _, s := range snapList {
+			snap.SnapList = append(snap.SnapList, s)
+		}
+		resp = append(resp, snap)
 	}
-
 	return &resp
 }

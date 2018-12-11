@@ -16,7 +16,7 @@ import (
 	"strings"
 	"unsafe"
 
-	"github.com/gluster/glusterd2/glusterd2/xlator/options"
+	"github.com/gluster/glusterd2/glusterd2/options"
 	"github.com/gluster/glusterd2/pkg/utils"
 
 	log "github.com/sirupsen/logrus"
@@ -66,6 +66,12 @@ func structifyOption(cOpt *C.volume_option_t) *options.Option {
 	opt.SetKey = C.GoString(cOpt.setkey)
 	opt.Level = options.OptionLevel(cOpt.level)
 
+	// For boolean options, default value isn't set in xlator's option
+	// table as glusterfs code treats that case as false by default.
+	if opt.Type == options.OptionTypeBool && opt.DefaultValue == "" {
+		opt.DefaultValue = "off"
+	}
+
 	return &opt
 }
 
@@ -83,7 +89,6 @@ func loadXlator(xlPath string) (*Xlator, error) {
 	defer C.dlclose(handle)
 
 	xl := new(Xlator)
-	xl.ID = strings.TrimSuffix(filepath.Base(xlPath), filepath.Ext(xlPath))
 
 	xlSym := C.CString("xlator_api")
 	defer C.free(unsafe.Pointer(xlSym))
@@ -91,9 +96,7 @@ func loadXlator(xlPath string) (*Xlator, error) {
 	p := C.dlsym(handle, xlSym)
 	if p != nil {
 		xp := (*C.xlator_api_t)(p)
-		// FIXME: It's named "server-protocol" instead of "server" in server.so
-		//        https://review.gluster.org/18879
-		// xl.ID = C.GoString(xp.identifier)
+		xl.ID = C.GoString(xp.identifier)
 		xl.rawID = uint32(xp.xlator_id)
 		xl.Flags = uint32(xp.flags)
 		for _, k := range xp.op_version {
@@ -107,6 +110,14 @@ func loadXlator(xlPath string) (*Xlator, error) {
 		if p == nil {
 			return xl, nil
 		}
+	}
+
+	if xl.ID == "" {
+		// The xlator ID defaults to name of its .so file unless the
+		// xlator defines 'xlator_api_t' structure which has the
+		// 'identifier' field.
+		xl.ID = strings.TrimSuffix(filepath.Base(xlPath),
+			filepath.Ext(xlPath))
 	}
 
 	soOptions := (*[maxOptions]C.volume_option_t)(p)
@@ -126,7 +137,7 @@ func loadXlator(xlPath string) (*Xlator, error) {
 
 	if vfunc, ok := validationFuncs[xl.ID]; ok {
 		log.WithField("xlator",
-			xl.ID).Info("Registered validation function for xlator")
+			xl.ID).Debug("Registered validation function for xlator")
 		xl.Validate = vfunc
 	}
 
@@ -161,7 +172,7 @@ func loadAllXlators() (map[string]*Xlator, error) {
 
 	xlatorsDir := getXlatorsDir()
 	if xlatorsDir == "" {
-		return nil, fmt.Errorf("No xlators dir found")
+		return nil, fmt.Errorf("no xlators dir found")
 	}
 	log.WithField("xlatordir", xlatorsDir).Debug("Xlators dir found")
 

@@ -7,16 +7,22 @@ import (
 	"strings"
 	"time"
 
+	"github.com/gluster/glusterd2/glusterd2/brickmux"
 	"github.com/gluster/glusterd2/glusterd2/commands/volumes"
 	"github.com/gluster/glusterd2/glusterd2/daemon"
 	"github.com/gluster/glusterd2/glusterd2/events"
 	"github.com/gluster/glusterd2/glusterd2/gdctx"
 	"github.com/gluster/glusterd2/glusterd2/peer"
+	"github.com/gluster/glusterd2/glusterd2/pmap"
 	"github.com/gluster/glusterd2/glusterd2/servers"
 	"github.com/gluster/glusterd2/glusterd2/store"
+	gdutils "github.com/gluster/glusterd2/glusterd2/utils"
+	"github.com/gluster/glusterd2/glusterd2/volgen"
 	"github.com/gluster/glusterd2/glusterd2/xlator"
 	"github.com/gluster/glusterd2/pkg/errors"
+	"github.com/gluster/glusterd2/pkg/firewalld"
 	"github.com/gluster/glusterd2/pkg/logging"
+	"github.com/gluster/glusterd2/pkg/tracing"
 	"github.com/gluster/glusterd2/pkg/utils"
 	"github.com/gluster/glusterd2/version"
 
@@ -32,8 +38,8 @@ func main() {
 		log.WithError(err).Fatal("Failed to get and set hostname or IP")
 	}
 
-	// Parse command-line arguments
-	parseFlags()
+	// Initialize and parse CLI flags
+	initFlags()
 
 	if showvers, _ := flag.CommandLine.GetBool("version"); showvers {
 		version.DumpVersionInfo()
@@ -48,9 +54,8 @@ func main() {
 		log.WithError(err).Fatal("Failed to initialize logging")
 	}
 
-	// Read config file
-	confFile, _ := flag.CommandLine.GetString("config")
-	if err := initConfig(confFile); err != nil {
+	// Initialize GD2 config
+	if err := initConfig(); err != nil {
 		log.WithError(err).Fatal("Failed to initialize config")
 	}
 
@@ -110,7 +115,7 @@ func main() {
 	}
 
 	// Load the default group option map into the store
-	if err := volumecommands.LoadDefaultGroupOptions(); err != nil {
+	if err := volumecommands.InitDefaultGroupOptions(); err != nil {
 		log.WithError(err).Fatal("Failed to load the default group options")
 	}
 
@@ -119,13 +124,38 @@ func main() {
 		log.WithError(err).Fatal("Failed to generate local auth token")
 	}
 
+	// Create the Opencensus Jaeger exporter
+	if exporter := tracing.InitJaegerExporter(); exporter != nil {
+		defer exporter.Flush()
+	}
+
+	// Load default volfile templates
+	if err := volgen.LoadDefaultTemplates(); err != nil {
+		log.WithError(err).Fatal("failed to load volgen templates")
+	}
+
 	// Start all servers (rest, peerrpc, sunrpc) managed by suture supervisor
 	super := initGD2Supervisor()
 	super.ServeBackground()
 	super.Add(servers.New())
 
+	// Start dbus connection (optional for notifying firewalld)
+	if err := firewalld.Init(); err != nil {
+		log.WithError(err).Warn("firewalld.Init() failed")
+	}
+
+	pmap.Init()
+
+	// Mount all Local Bricks
+	gdutils.MountLocalBricks()
+
 	// Restart previously running daemons
 	daemon.StartAllDaemons()
+
+	// Reconcile multiplexed bricks
+	if err := brickmux.Reconcile(); err != nil {
+		log.WithError(err).Fatal("bmux.Reconcile() failed")
+	}
 
 	// Use the main goroutine as signal handling loop
 	sigCh := make(chan os.Signal)
@@ -137,6 +167,7 @@ func main() {
 			fallthrough
 		case unix.SIGINT:
 			log.Info("Received SIGTERM. Stopping GlusterD")
+			gdctx.IsTerminating = true
 			super.Stop()
 			events.Stop()
 			store.Close()
@@ -154,7 +185,7 @@ func main() {
 			}
 		case unix.SIGUSR1:
 			log.Info("Received SIGUSR1. Dumping statedump")
-			utils.WriteStatedump()
+			utils.WriteStatedump(config.GetString("rundir"))
 		default:
 			continue
 		}
@@ -180,6 +211,7 @@ func createDirectories() error {
 		path.Join(config.GetString("hooksdir"), "delete/post"),
 		path.Join(config.GetString("hooksdir"), "add-brick/post"),
 		path.Join(config.GetString("hooksdir"), "remove-brick/post"),
+		path.Join(config.GetString("localstatedir"), "vols"),
 		"/var/run/gluster", // issue #476
 	}
 	for _, dirpath := range dirs {

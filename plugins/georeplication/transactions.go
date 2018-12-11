@@ -166,7 +166,7 @@ func txnGeorepStatus(c transaction.TxnCtx) error {
 		}
 		args := gsyncd.statusArgs(w.Path)
 
-		out, err := utils.ExecuteCommandOutput(gsyncdCommand, args...)
+		out, err := utils.ExecuteCommandOutput(getGsyncdCommand(), args...)
 		if err != nil {
 			return err
 		}
@@ -255,7 +255,7 @@ func configFileGenerate(session *georepapi.GeorepSession) error {
 	}
 
 	// Remote host and UUID details
-	var remote []string
+	var remote = make([]string, 0, len(session.RemoteHosts))
 	for _, sh := range session.RemoteHosts {
 		remote = append(remote, sh.PeerID.String()+":"+sh.Hostname)
 	}
@@ -264,8 +264,9 @@ func configFileGenerate(session *georepapi.GeorepSession) error {
 	)
 
 	// Master Bricks details
-	var master []string
-	for _, b := range vol.GetBricks() {
+	bricks := vol.GetBricks()
+	var master = make([]string, 0, len(bricks))
+	for _, b := range bricks {
 		master = append(master, b.PeerID.String()+":"+b.Hostname+":"+b.Path)
 	}
 	confdata = append(confdata,
@@ -322,19 +323,18 @@ func txnGeorepConfigFilegen(c transaction.TxnCtx) error {
 	}
 
 	if restartRequired {
-		err = gsyncdAction(c, actionStop)
-		if err != nil {
+
+		if err = gsyncdAction(c, actionStop); err != nil {
 			return err
 		}
-		err = gsyncdAction(c, actionStart)
-		if err != nil {
+
+		if err = gsyncdAction(c, actionStart); err != nil {
 			return err
 		}
 	} else {
 		// Restart not required, Generate config file Gsynd will reload
 		// automatically if running
-		err = configFileGenerate(&session)
-		if err != nil {
+		if err = configFileGenerate(&session); err != nil {
 			return err
 		}
 	}
@@ -362,8 +362,8 @@ func txnSSHKeysGenerate(c transaction.TxnCtx) error {
 	)
 
 	// Create Directory if not exists
-	err = os.MkdirAll(path.Dir(secretPemFile), os.ModeDir|os.ModePerm)
-	if err != nil {
+
+	if err = os.MkdirAll(path.Dir(secretPemFile), os.ModeDir|os.ModePerm); err != nil {
 		return err
 	}
 
@@ -392,17 +392,14 @@ func txnSSHKeysGenerate(c transaction.TxnCtx) error {
 			return err
 		}
 	}
-	data, err = ioutil.ReadFile(tarSSHPemFile + ".pub")
-	if err != nil {
+	if data, err = ioutil.ReadFile(tarSSHPemFile + ".pub"); err != nil {
 		return err
 	}
 	sshkey.TarKey = string(data)
 
 	err = addOrUpdateSSHKey(volname, sshkey)
-	if err != nil {
-		return err
-	}
-	return nil
+
+	return err
 }
 
 func txnSSHKeysPush(c transaction.TxnCtx) error {
@@ -418,7 +415,7 @@ func txnSSHKeysPush(c transaction.TxnCtx) error {
 		return err
 	}
 
-	sshCmdGsyncdPrefix := "command=\"" + gsyncdCommand + "\"  "
+	sshCmdGsyncdPrefix := "command=\"" + getGsyncdCommand() + "\"  "
 	sshCmdTarPrefix := "command=\"tar ${SSH_ORIGINAL_COMMAND#* }\"  "
 	authorizedKeysFile := "/root/.ssh/authorized_keys"
 

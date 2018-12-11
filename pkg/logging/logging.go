@@ -3,6 +3,7 @@ package logging
 
 import (
 	"io"
+	"io/ioutil"
 	stdlog "log"
 	"os"
 	"path"
@@ -43,7 +44,21 @@ func openLogFile(filepath string) (io.WriteCloser, error) {
 
 func setLogOutput(w io.Writer) {
 	log.SetOutput(w)
-	stdlog.SetOutput(log.StandardLogger().Writer())
+
+	// turn off standard library logging
+	// see https://github.com/golang/go/issues/19957
+	stdlog.SetFlags(0)
+	stdlog.SetOutput(ioutil.Discard)
+}
+
+type utcFormatter struct {
+	log.Formatter
+}
+
+// Format formats the time in UTC timezone
+func (u utcFormatter) Format(e *log.Entry) ([]byte, error) {
+	e.Time = e.Time.UTC()
+	return u.Formatter.Format(e)
 }
 
 // Init initializes the default logrus logger
@@ -71,7 +86,7 @@ func Init(logdir string, logFileName string, logLevel string, verboseLogEntry bo
 		return err
 	}
 	log.SetLevel(l)
-	log.SetFormatter(&log.TextFormatter{FullTimestamp: true, TimestampFormat: timestampFormat})
+	log.SetFormatter(utcFormatter{&log.TextFormatter{FullTimestamp: true, TimestampFormat: timestampFormat}})
 
 	if strings.ToLower(logFileName) == "stderr" || logFileName == "-" {
 		setLogOutput(os.Stderr)
@@ -82,7 +97,7 @@ func Init(logdir string, logFileName string, logLevel string, verboseLogEntry bo
 		logFile, err := openLogFile(logFilePath)
 		if err != nil {
 			setLogOutput(os.Stderr)
-			log.WithError(err).Debug("Failed to open log file %s", logFilePath)
+			log.WithError(err).Debug("Failed to open log file ", logFilePath)
 			return err
 		}
 		setLogOutput(logFile)

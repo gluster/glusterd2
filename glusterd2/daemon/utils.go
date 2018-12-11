@@ -68,3 +68,19 @@ func GetProcess(pid int) (*os.Process, error) {
 
 	return process, nil
 }
+
+// IsRunning returns true if the specified daemon is running and returns
+// false otherwise.
+func IsRunning(d Daemon) (bool, int) {
+
+	pid, err := ReadPidFromFile(d.PidFile())
+	if err != nil {
+		return false, -1
+	}
+
+	if _, err := GetProcess(pid); err != nil {
+		return false, -1
+	}
+
+	return true, pid
+}

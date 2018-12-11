@@ -2,6 +2,7 @@ package snapshotcommands
 
 import (
 	"errors"
+	"io"
 	"net/http"
 
 	"github.com/gluster/glusterd2/glusterd2/brick"
@@ -9,131 +10,75 @@ import (
 	restutils "github.com/gluster/glusterd2/glusterd2/servers/rest/utils"
 	"github.com/gluster/glusterd2/glusterd2/snapshot"
 	"github.com/gluster/glusterd2/glusterd2/transaction"
+	"github.com/gluster/glusterd2/glusterd2/volgen"
 	"github.com/gluster/glusterd2/glusterd2/volume"
 	"github.com/gluster/glusterd2/pkg/api"
+
 	"github.com/gorilla/mux"
 	"github.com/pborman/uuid"
 	log "github.com/sirupsen/logrus"
 )
 
-func validateSnapActivate(c transaction.TxnCtx) error {
-	var req api.VolCreateReq
-	var snapname string
-	var brickinfos []brick.Brickinfo
+func activateSnapshot(c transaction.TxnCtx) error {
+	var snapinfo snapshot.Snapinfo
+	activate := true
 
-	if err := c.Get("req", &req); err != nil {
+	if err := c.Get("oldsnapinfo", &snapinfo); err != nil {
 		return err
 	}
-	if err := c.Get("snapname", &snapname); err != nil {
-		return err
-	}
-
-	snapinfo, err := snapshot.GetSnapshot(snapname)
-	if err != nil {
-		return err
-	}
-
 	vol := &snapinfo.SnapVolinfo
-	switch vol.State == volume.VolStarted {
-	case true:
-		if req.Force == false {
-			return errors.New("snapshot already started. Use force to override the behaviour")
-		}
-		fallthrough
-	case false:
-		brickStatuses, err := volume.CheckBricksStatus(vol)
-		if err != nil {
-			return err
-		}
 
-		for _, brick := range brickStatuses {
-			if brick.Online == false {
-				brickinfos = append(brickinfos, brick.Info)
-			}
-		}
+	brickinfos, err := snapshot.GetOfflineBricks(vol)
+	if err != nil {
+		c.Logger().WithError(err).Error("failed to get offline Bricks")
+		return err
 	}
+	//Storing the data to use when rollbacking the operation
 	if err := c.SetNodeResult(gdctx.MyUUID, "brickListToOperate", &brickinfos); err != nil {
 		log.WithError(err).Error("failed to set request in transaction context")
 		return err
 	}
 
-	return nil
-}
-
-func activateSnapshot(c transaction.TxnCtx) error {
-	activate := true
-	var brickinfos []brick.Brickinfo
-	var snapname string
-
-	if err := c.Get("snapname", &snapname); err != nil {
-		return err
-	}
-
-	snapinfo, err := snapshot.GetSnapshot(snapname)
+	// Generate local Bricks Volfiles
+	err = volgen.GenerateBricksVolfiles(vol, vol.GetLocalBricks())
 	if err != nil {
-		return err
-	}
-	if err := c.GetNodeResult(gdctx.MyUUID, "brickListToOperate", &brickinfos); err != nil {
-		log.WithError(err).Error("failed to set request in transaction context")
-		return err
-	}
-
-	err = snapshot.ActivateDeactivateFunc(snapinfo, brickinfos, activate, c.Logger())
-	if err != nil {
+		c.Logger().WithError(err).WithFields(log.Fields{
+			"template": "brick",
+			"volume":   vol.Name,
+		}).Error("failed to generate brick volfiles")
 		return err
 	}
 
-	return nil
-
-}
-func storeSnapshotActivate(c transaction.TxnCtx) error {
-	var snapname string
-
-	if err := c.Get("snapname", &snapname); err != nil {
-		return err
-	}
-
-	snapinfo, err := snapshot.GetSnapshot(snapname)
-	if err != nil {
-		return err
-	}
-
-	volinfo := &snapinfo.SnapVolinfo
-	volinfo.State = volume.VolStarted
-
-	if err := snapshot.AddOrUpdateSnapFunc(snapinfo); err != nil {
-		c.Logger().WithError(err).WithField(
-			"snapshot", volinfo.Name).Debug("storeSnapshot: failed to store snapshot info")
-		return err
-	}
-	/*
-		TODO
-		Intiate fetchspec notify to update snapd, once snapd is implemeted.
-	*/
-
-	return nil
+	err = snapshot.ActivateDeactivateFunc(&snapinfo, brickinfos, activate, c.Logger())
+	return err
 }
 
 func rollbackActivateSnapshot(c transaction.TxnCtx) error {
 	activate := false
+	var snapinfo snapshot.Snapinfo
 	var brickinfos []brick.Brickinfo
-	var snapname string
 
-	if err := c.Get("snapname", &snapname); err != nil {
+	if err := c.Get("oldsnapinfo", &snapinfo); err != nil {
 		return err
 	}
-
-	snapinfo, err := snapshot.GetSnapshot(snapname)
-	if err != nil {
-		return err
-	}
+	vol := &snapinfo.SnapVolinfo
 
 	if err := c.GetNodeResult(gdctx.MyUUID, "brickListToOperate", &brickinfos); err != nil {
 		log.WithError(err).Error("failed to set request in transaction context")
 		return err
 	}
 
-	err = snapshot.ActivateDeactivateFunc(snapinfo, brickinfos, activate, c.Logger())
+	// Remove the local Bricks Volfiles
+	err := volgen.DeleteBricksVolfiles(vol.GetLocalBricks())
+	if err != nil {
+		c.Logger().WithError(err).WithFields(log.Fields{
+			"template": "brick",
+			"volume":   vol.Name,
+		}).Error("failed to delete brick volfiles")
+		return err
+	}
+
+	err = snapshot.ActivateDeactivateFunc(&snapinfo, brickinfos, activate, c.Logger())
 
 	return err
 
@@ -142,8 +87,8 @@ func rollbackActivateSnapshot(c transaction.TxnCtx) error {
 func registerSnapActivateStepFuncs() {
 	transaction.RegisterStepFunc(activateSnapshot, "snap-activate.Commit")
 	transaction.RegisterStepFunc(rollbackActivateSnapshot, "snap-activate.Undo")
-	transaction.RegisterStepFunc(storeSnapshotActivate, "snap-activate.StoreSnapshot")
-	transaction.RegisterStepFunc(validateSnapActivate, "snap-activate.Validate")
+	transaction.RegisterStepFunc(storeSnapshot, "snap-activate.StoreSnapshot")
+	transaction.RegisterStepFunc(undoStoreSnapshot, "snap-activate.UndoStoreSnapshot")
 
 }
 
@@ -164,20 +109,33 @@ func snapshotActivateHandler(w http.ResponseWriter, r *http.Request) {
 
 	snapinfo, err := snapshot.GetSnapshot(snapname)
 	if err != nil {
-		restutils.SendHTTPError(ctx, w, http.StatusNotFound, err)
+		status, err := restutils.ErrToStatusCode(err)
+		restutils.SendHTTPError(ctx, w, status, err)
 		return
 	}
 
 	var req api.SnapActivateReq
 	vol = &snapinfo.SnapVolinfo
-	if err := restutils.UnmarshalRequest(r, &req); err != nil {
-		restutils.SendHTTPError(ctx, w, http.StatusUnprocessableEntity, err)
+	if err := restutils.UnmarshalRequest(r, &req); err != nil && err != io.EOF {
+		restutils.SendHTTPError(ctx, w, http.StatusBadRequest, err)
 		return
 	}
 
-	err = txn.Ctx.Set("snapname", &snapname)
-	if err != nil {
-		log.WithError(err).Error("failed to set snap name in transaction context")
+	if vol.State == volume.VolStarted && req.Force == false {
+		err := errors.New("snapshot already activated. Use force to override the behaviour")
+		restutils.SendHTTPError(ctx, w, http.StatusBadRequest, err)
+		return
+	}
+
+	if err = txn.Ctx.Set("oldsnapinfo", &snapinfo); err != nil {
+		log.WithError(err).Error("failed to set old snapinfo in transaction context")
+		restutils.SendHTTPError(ctx, w, http.StatusInternalServerError, err)
+		return
+	}
+
+	vol.State = volume.VolStarted
+	if err = txn.Ctx.Set("snapinfo", &snapinfo); err != nil {
+		log.WithError(err).Error("failed to set snapinfo in transaction context")
 		restutils.SendHTTPError(ctx, w, http.StatusInternalServerError, err)
 		return
 	}
@@ -186,32 +144,19 @@ func snapshotActivateHandler(w http.ResponseWriter, r *http.Request) {
 	txn.Nodes = vol.Nodes()
 	txn.Steps = []*transaction.Step{
 		{
-			DoFunc: "snap-activate.Validate",
-			Nodes:  txn.Nodes,
-		},
-
-		{
 			DoFunc:   "snap-activate.Commit",
 			UndoFunc: "snap-activate.Undo",
 			Nodes:    txn.Nodes,
 		},
 		{
-			DoFunc: "snap-activate.StoreSnapshot",
-			Nodes:  []uuid.UUID{gdctx.MyUUID},
+			DoFunc:   "snap-activate.StoreSnapshot",
+			UndoFunc: "snap-activate.UndoStoreSnapshot",
+			Nodes:    []uuid.UUID{gdctx.MyUUID},
 		},
 	}
-	err = txn.Ctx.Set("req", &req)
-	if err != nil {
-		log.WithError(err).Error("failed to set request in transaction context")
-		restutils.SendHTTPError(ctx, w, http.StatusInternalServerError, err)
-		return
-	}
-	err = txn.Do()
-	if err != nil {
-		log.WithFields(log.Fields{
-			"error":    err.Error(),
-			"snapshot": snapname,
-		}).Error("failed to start snapshot")
+	if err = txn.Do(); err != nil {
+		log.WithError(err).WithField(
+			"snapshot", snapname).Error("failed to start snapshot")
 		restutils.SendHTTPError(ctx, w, http.StatusInternalServerError, err)
 		return
 	}
@@ -221,5 +166,10 @@ func snapshotActivateHandler(w http.ResponseWriter, r *http.Request) {
 		restutils.SendHTTPError(ctx, w, http.StatusInternalServerError, err)
 	}
 
-	restutils.SendHTTPResponse(ctx, w, http.StatusOK, snapinfo)
+	resp := createSnapshotActivateResp(snapinfo)
+	restutils.SendHTTPResponse(ctx, w, http.StatusOK, resp)
+}
+
+func createSnapshotActivateResp(snap *snapshot.Snapinfo) *api.SnapshotActivateResp {
+	return (*api.SnapshotActivateResp)(createSnapInfoResp(snap))
 }

@@ -9,7 +9,7 @@ RETVAL=0
 GENERATED_FILES="*(.pb|_string).go"
 
 for file in $(find . -path ./vendor -prune -o -type f -name '*.go' -print | grep -E -v "$GENERATED_FILES"); do
-	gofmt -s -l "$file"
+	test -z "$(gofmt -s -l "$file")"
 	if [[ $? -ne 0 ]]; then
 		echo -e "$file does not conform to gofmt rules. Run: gofmt -s -w $file"
 		RETVAL=1

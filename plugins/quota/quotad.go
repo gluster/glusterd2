@@ -24,7 +24,7 @@ type Quotad struct {
 	pidfilepath    string
 	logfilepath    string
 	volname        string
-	volFileID      string
+	VolfileID      string
 
 	// For internal use
 }
@@ -46,11 +46,9 @@ func (q *Quotad) Args() []string {
 	if shost == "" {
 		shost = "127.0.0.1"
 	}
-	q.volFileID = "gluster/quotad"
-
 	q.args = []string{}
 	q.args = append(q.args, "-s", shost)
-	q.args = append(q.args, "--volfile-id", q.volFileID)
+	q.args = append(q.args, "--volfile-id", q.VolfileID)
 	q.args = append(q.args, "-p", q.PidFile())
 	q.args = append(q.args, "-S", q.SocketFile())
 	q.args = append(q.args, "-l", q.logfilepath)
@@ -95,7 +93,7 @@ func NewQuotad() (*Quotad, error) {
 	)
 
 	return &Quotad{binarypath: binarypath, pidfilepath: pidfilepath,
-		logfilepath: logfilepath}, nil
+		logfilepath: logfilepath, VolfileID: "gluster/quotad"}, nil
 }
 
 // ID returns the unique identifier of the quota.

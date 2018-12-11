@@ -97,10 +97,7 @@ func Start(d Daemon, wait bool, logger log.FieldLogger) error {
 		// daemon tell glusterd2 that it's up and ready.
 		pid, err = ReadPidFromFile(d.PidFile())
 		if err != nil {
-			logger.WithFields(log.Fields{
-				"pidfile": d.PidFile(),
-				"error":   err.Error(),
-			}).Error("Could not read pidfile")
+			logger.WithError(err).WithField("pidfile", d.PidFile()).Error("Could not read pidfile")
 			events.Broadcast(newEvent(d, daemonStartFailed, 0))
 			return err
 		}
@@ -126,10 +123,29 @@ func Start(d Daemon, wait bool, logger log.FieldLogger) error {
 
 	// Save daemon information in the store so it can be restarted
 	if err := saveDaemon(d); err != nil {
-		logger.WithField("name", d.Name()).WithError(err).Warn("failed to save daemon information into store, daemon may not be restarted on GlusterD restart")
+		logger.WithError(err).WithField("name", d.Name()).Warn("failed to save daemon information into store, daemon may not be restarted on GlusterD restart")
 	}
 
 	return nil
+}
+
+// Kill function terminate the process gracefully or forcefully.
+// When force == false, a SIGTERM signal is sent to the daemon.
+// When force == true, a SIGKILL signal is sent to the daemon.
+func Kill(pid int, force bool) error {
+
+	process, err := GetProcess(pid)
+	if err != nil {
+		return err
+	}
+
+	if force {
+		err = process.Kill()
+	} else {
+		err = process.Signal(syscall.SIGTERM)
+	}
+
+	return err
 }
 
 // Stop function reads the PID from path returned by PidFile() and can
@@ -144,28 +160,19 @@ func Stop(d Daemon, force bool, logger log.FieldLogger) error {
 		return errors.ErrPidFileNotFound
 	}
 
-	process, err := GetProcess(pid)
-	if err != nil {
-		return err
-	}
-
 	logger.WithFields(log.Fields{
 		"name": d.Name(),
 		"pid":  pid,
 	}).Debug("Stopping daemon.")
 	events.Broadcast(newEvent(d, daemonStopping, pid))
 
-	if force == true {
-		err = process.Kill()
-	} else {
-		err = process.Signal(syscall.SIGTERM)
-	}
+	err = Kill(pid, force)
 
 	// TODO: Do this under some lock ?
 	_ = os.Remove(d.PidFile())
 
 	if err != nil {
-		logger.WithFields(log.Fields{
+		logger.WithError(err).WithFields(log.Fields{
 			"name": d.Name(),
 			"pid":  pid,
 		}).Error("Stopping daemon failed.")
@@ -175,10 +182,10 @@ func Stop(d Daemon, force bool, logger log.FieldLogger) error {
 	}
 
 	if err := DelDaemon(d); err != nil {
-		logger.WithFields(log.Fields{
+		logger.WithError(err).WithFields(log.Fields{
 			"name": d.Name(),
 			"pid":  pid,
-		}).WithError(err).Warn("failed to delete daemon from store, it may be restarted on GlusterD restart")
+		}).Warn("failed to delete daemon from store, it may be restarted on GlusterD restart")
 	}
 
 	return nil
@@ -198,7 +205,7 @@ func StartAllDaemons() {
 
 	for _, d := range ds {
 		if err := Start(d, true, log.StandardLogger()); err != nil {
-			log.WithField("name", d.Name()).WithError(err).Warn("failed to start daemon")
+			log.WithError(err).WithField("name", d.Name()).Warn("failed to start daemon")
 		}
 	}
 	events.Broadcast(events.New(daemonStartedAll, nil, false))
@@ -227,7 +234,7 @@ func Signal(d Daemon, sig syscall.Signal, logger log.FieldLogger) error {
 
 	err = process.Signal(sig)
 	if err != nil {
-		logger.WithFields(log.Fields{
+		logger.WithError(err).WithFields(log.Fields{
 			"name":   d.Name(),
 			"pid":    pid,
 			"signal": sig,

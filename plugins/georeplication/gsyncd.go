@@ -3,16 +3,34 @@ package georeplication
 import (
 	"fmt"
 	"path"
+	"strings"
 
 	"github.com/gluster/glusterd2/glusterd2/gdctx"
+	"github.com/gluster/glusterd2/pkg/utils"
 	georepapi "github.com/gluster/glusterd2/plugins/georeplication/api"
 
 	config "github.com/spf13/viper"
 )
 
-const (
-	gsyncdCommand = "/usr/local/libexec/glusterfs/gsyncd"
+var (
+	defaultGsyncdCommand = "/usr/libexec/glusterfs/gsyncd"
+	gsyncdCommand        = ""
 )
+
+func getGsyncdCommand() string {
+	if gsyncdCommand != "" {
+		return gsyncdCommand
+	}
+
+	out, err := utils.ExecuteCommandOutput("glusterfsd", "--print-libexecdir")
+	if err != nil {
+		gsyncdCommand = defaultGsyncdCommand
+		return gsyncdCommand
+	}
+
+	gsyncdCommand = path.Join(strings.TrimRight(string(out), "\n"), "gsyncd")
+	return gsyncdCommand
+}
 
 // Gsyncd type represents information about Gsyncd process
 type Gsyncd struct {
@@ -85,7 +103,7 @@ func (g *Gsyncd) PidFile() string {
 
 // newGsyncd returns a new instance of Gsyncd monitor type which implements the Daemon interface
 func newGsyncd(sessioninfo georepapi.GeorepSession) (*Gsyncd, error) {
-	return &Gsyncd{binarypath: gsyncdCommand, sessioninfo: sessioninfo}, nil
+	return &Gsyncd{binarypath: getGsyncdCommand(), sessioninfo: sessioninfo}, nil
 }
 
 // ID returns the unique identifier of the gsyncd.

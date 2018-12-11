@@ -2,7 +2,6 @@ package e2e
 
 import (
 	"testing"
-	"time"
 
 	"github.com/gluster/glusterd2/pkg/api"
 
@@ -12,22 +11,30 @@ import (
 func TestAddRemovePeer(t *testing.T) {
 	r := require.New(t)
 
-	g1, err := spawnGlusterd("./config/1.toml", true)
+	// set up a cluster w/o glusterd instances for dependencies
+	tc, err := setupCluster(t)
+	r.NoError(err)
+	defer teardownCluster(tc)
+
+	g1, err := spawnGlusterd(t, "./config/1.toml", true)
 	r.Nil(err)
 	defer g1.Stop()
 	r.True(g1.IsRunning())
 
-	g2, err := spawnGlusterd("./config/2.toml", true)
+	g2, err := spawnGlusterd(t, "./config/2.toml", true)
 	r.Nil(err)
 	defer g2.Stop()
 	r.True(g2.IsRunning())
 
-	g3, err := spawnGlusterd("./config/3.toml", true)
+	g3, err := spawnGlusterd(t, "./config/3.toml", true)
 	r.Nil(err)
 	defer g3.Stop()
 	r.True(g3.IsRunning())
 
-	client := initRestclient(gds[0])
+	client, err := initRestclient(g1)
+	r.Nil(err)
+	r.NotNil(client)
+
 	peerAddReq := api.PeerAddReq{
 		Addresses: []string{g2.PeerAddress},
 		Metadata: map[string]string{
@@ -37,8 +44,6 @@ func TestAddRemovePeer(t *testing.T) {
 	_, err = client.PeerAdd(peerAddReq)
 	r.Nil(err)
 
-	time.Sleep(6 * time.Second)
-
 	// add peer: ask g1 to add g3 as peer
 	peerAddReq = api.PeerAddReq{
 		Addresses: []string{g3.PeerAddress},
@@ -46,8 +51,6 @@ func TestAddRemovePeer(t *testing.T) {
 
 	peerinfo, err := client.PeerAdd(peerAddReq)
 	r.Nil(err)
-
-	time.Sleep(6 * time.Second)
 
 	_, err = client.GetPeer(peerinfo.ID.String())
 	r.Nil(err)

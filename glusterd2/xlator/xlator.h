@@ -1,5 +1,5 @@
 #include <stdint.h>
-#include "options/options.h"
+#include "../options/options.h"
 
 // These definitions are borrowed from libglusterfs/src/xlator.h file in
 // glusterfs source. Maintaining this copy here has very little overhead
@@ -29,4 +29,7 @@ typedef struct xlator_api {
         /* struct options: if the translator takes any 'options' from the
            volume file, then that should be defined here. optional. */
         volume_option_t *options;
+
+        /* Flag to understand how this xlator is categorized */
+        gf_category_t category;
 } xlator_api_t;

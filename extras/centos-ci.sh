@@ -6,7 +6,7 @@
 # if anything fails, we'll abort
 set -e
 
-REQ_GO_VERSION='1.8.3'
+REQ_GO_VERSION='1.9.4'
 # install Go
 if ! yum -y install "golang >= $REQ_GO_VERSION"
 then
@@ -23,6 +23,7 @@ yum -y install git mercurial bzr subversion gcc make
 # Install nightly GlusterFS RPMs built off master
 curl -o /etc/yum.repos.d/glusterfs-nighthly-master.repo http://artifacts.ci.centos.org/gluster/nightly/master.repo
 yum -y install epel-release
+yum -y install glusterfs-geo-replication
 yum -y install glusterfs-server
 yum -y install ShellCheck
 
@@ -45,3 +46,7 @@ make test TESTOPTIONS=-v
 
 # run functional tests
 make functest
+
+# tarball the (default) functional test directory
+TIMESTAMP=$(date +%s)
+tar -czf "/tmp/gd2_func_test_${TIMESTAMP}.tar.gz" /tmp/gd2_func_test

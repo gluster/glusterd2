@@ -1,6 +1,7 @@
 package peercommands
 
 import (
+	"context"
 	"net/http"
 
 	"github.com/gluster/glusterd2/glusterd2/events"
@@ -38,12 +39,9 @@ func deletePeerHandler(w http.ResponseWriter, r *http.Request) {
 	// Check whether the member exists
 	p, err := peer.GetPeerF(id)
 	if err != nil {
-		logger.WithError(err).Error("failed to get peer")
-		restutils.SendHTTPError(ctx, w, http.StatusInternalServerError, "could not validate delete request")
-		return
-	} else if p == nil {
-		logger.Debug("request denied, received request to remove unknown peer")
-		restutils.SendHTTPError(ctx, w, http.StatusNotFound, "peer not found in cluster")
+		logger.WithError(err).WithField("peerid", id).Error("Failed to get peer")
+		status, err := restutils.ErrToStatusCode(err)
+		restutils.SendHTTPError(ctx, w, status, err)
 		return
 	}
 
@@ -51,6 +49,13 @@ func deletePeerHandler(w http.ResponseWriter, r *http.Request) {
 	if id == gdctx.MyUUID.String() {
 		logger.Debug("request denied, received request to delete self from cluster")
 		restutils.SendHTTPError(ctx, w, http.StatusBadRequest, "removing self is disallowed.")
+		return
+	}
+
+	//Check if peer liveness key is present in store
+	if _, alive := store.Store.IsNodeAlive(id); !alive {
+		logger.Error("can not delete peer, peer is not alive")
+		restutils.SendHTTPError(ctx, w, http.StatusInternalServerError, "peer is not alive")
 		return
 	}
 
@@ -62,13 +67,6 @@ func deletePeerHandler(w http.ResponseWriter, r *http.Request) {
 	} else if exists {
 		logger.Debug("request denied, peer has bricks")
 		restutils.SendHTTPError(ctx, w, http.StatusForbidden, "cannot delete peer, peer has bricks")
-		return
-	}
-
-	// Remove the peer details from the store
-	if err := peer.DeletePeer(id); err != nil {
-		logger.WithError(err).WithField("peer", id).Error("failed to remove peer from the store")
-		restutils.SendHTTPError(ctx, w, http.StatusInternalServerError, err)
 		return
 	}
 
@@ -91,8 +89,8 @@ func deletePeerHandler(w http.ResponseWriter, r *http.Request) {
 	// potentially still send commands to the cluster
 	rsp, err := client.LeaveCluster()
 	if err != nil {
-		logger.WithError(err).Error("sending Leave request failed")
-		restutils.SendHTTPError(ctx, w, http.StatusInternalServerError, "failed to send leave cluster request")
+		logger.WithError(err).Error("client.LeaveCluster() failed")
+		restutils.SendHTTPError(ctx, w, http.StatusInternalServerError, err)
 		return
 	} else if Error(rsp.Err) != ErrNone {
 		err = Error(rsp.Err)
@@ -105,6 +103,13 @@ func deletePeerHandler(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 	logger.Debug("peer left cluster")
+
+	// Remove the peer details from the store
+	if err := peer.DeletePeer(id); err != nil {
+		logger.WithError(err).WithField("peer", id).Error("failed to remove peer from the store")
+		restutils.SendHTTPError(ctx, w, http.StatusInternalServerError, err)
+		return
+	}
 
 	restutils.SendHTTPResponse(ctx, w, http.StatusNoContent, nil)
 
@@ -119,7 +124,7 @@ func deletePeerHandler(w http.ResponseWriter, r *http.Request) {
 func bricksExist(id string) (bool, error) {
 	pid := uuid.Parse(id)
 
-	vols, err := volume.GetVolumes()
+	vols, err := volume.GetVolumes(context.TODO())
 	if err != nil {
 		return true, err
 	}

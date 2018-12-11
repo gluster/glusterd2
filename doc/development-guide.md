@@ -9,7 +9,7 @@ Glusterd2 is written in Go and if you are new to the language, it is **highly** 
 
 ### Workspace and repository setup
 
-1. [Download](https://golang.org/dl/) Go (>=1.8) and [install](https://golang.org/doc/install) it on your system.
+1. [Download](https://golang.org/dl/) Go (>=1.9) and [install](https://golang.org/doc/install) it on your system.
 1. Setup the [GOPATH](http://www.g33knotes.org/2014/07/60-second-count-down-to-go.html) environment.
 1. Run `$ go get -d github.com/gluster/glusterd2`  
    This will just download the source and not build it. The downloaded source will be at `$GOPATH/src/github.com/gluster/glusterd2`
@@ -108,3 +108,48 @@ $ ./generate-doc
 ```
 
 You should commit the generated file `doc/endpoints.md`
+
+**Setup tracing:**
+
+Tracing glusterd2 operations is accomplished using [OpenCensus Go](https://github.com/census-instrumentation/opencensus-go), which is a Go implementation of OpenCensus. The tracing implementation uses [Jaeger](https://www.jaegertracing.io/) as the backend to export tracing data. The Jaeger UI can then be used to visualize the captured traces.
+
+Run the following steps to setup and view tracing using Jaeger. Note that the steps outlined below is a quick way to setup and view traces for debugging GD2 without attaching a backing store to the Jaeger service.
+
+1. Prior to starting GD2 on any node, start the Jaeger service either on your local machine or on a server/VM. The Jaeger service can be started either as a standalone service or within a container using an available docker image.
+
+  * **Standalone service:** See the "Running Individual Jaeger Components" section in the [Getting Started](https://www.jaegertracing.io/docs/getting-started/) page of Jaeger documentation.
+
+  * **Docker Image:** For quick local testing, an all-in-one docker image can be used which launches the Jaeger UI, query and agent. This image comes with an in-memory storage component. For example, the following command starts the all-in-one docker image with the required services,
+  ```sh
+  $ docker run -d -p 6831:6831/udp -p 6832:6832/udp -p 5778:5778 -p 16686:16686 -p 14268:14268 jaegertracing/all-in-one:latest
+  ```
+  >NOTE: The Jaeger agent runs on port 6831/6832. The Jaeger collector runs on port 14268. The Jaeger query service runs on port 16686 on which the UI can be accessed. Ensure that firewalld is configured (or stopped) to let traffic on the Jaeger specific ports.
+
+2. Start GD2 process on the gluster nodes and provide the Jaeger endpoints either within the config file using the `--config` option or pass the endpoints as separate options. For the Jaeger service to capture traces, the Jaeger agent endpoint  and the Jaeger collector endpoint are necessary. The following outlines both the ways,
+
+ * **Config File:** Add the following to your startup config (for e.g. conf.toml) file on each node.
+  ```toml
+  ...(existing options)
+  jaeger-endpoint = "http://192.168.122.1:14268"
+  jaeger-agent-endpoint = "http://192.168.122.1:6831"
+  ```
+  Start GD2 as usual on each node. For e.g.,
+  ```sh
+  $./glusterd2 --config conf.toml
+  ```
+  >NOTE: Change the IP address based on your configuration.
+
+ * **Start-up Option:** Provide the Jaeger endpoints as options to glusterd2 start-up command in case you don't wish to provide it in the config file. For e.g., the example below shows the options passed to glusterd2. NOTE: Provide the options for all the nodes in your gluster cluster.
+  ```sh
+  $./glusterd2 --config conf.toml --jaeger-endpoint http://192.168.122.1:14268 --jaeger-agent-endpoint http://192.168.122.1:6831
+  ```
+
+3. Verify that on start-up, GD2 was successfully able to connect to the Jaeger endpoints by looking for the following GD2 start-up log message,
+  ```log
+  ...
+  INFO[2018-07-25 13:24:55.174171] tracing: Registered opencensus jaeger exporter for traces and stats  jaegerAgentEndpoint="http://192.168.122.1:6831" jaegerEndpoint="http://192.168.122.1:14268" source="[tracing.go:67:tracing.InitJaegerExporter]"
+  ...
+  ```
+  >NOTE: In case of any warning or error message, verify firewalld settings and the status of Jaeger services.
+
+4. Execute the intended GD2 operation (for e.g. volume create) and view the traces on the Jaeger UI by navigating to the endpoint. For e.g. if the Jaeger service was started locally, then navigate to `http://localhost:16686`. An example of how a trace looks like for a replica 3 volume create transaction is shown in this [github issue](https://github.com/gluster/glusterd2/issues/1049).

@@ -10,6 +10,8 @@ import (
 	"github.com/gluster/glusterd2/glusterd2/transaction"
 	"github.com/gluster/glusterd2/glusterd2/volume"
 	"github.com/gluster/glusterd2/pkg/api"
+	"github.com/gluster/glusterd2/pkg/lvmutils"
+	"github.com/gluster/glusterd2/plugins/device/deviceutils"
 
 	"github.com/pborman/uuid"
 	log "github.com/sirupsen/logrus"
@@ -27,6 +29,9 @@ func expandValidatePrepare(c transaction.TxnCtx) error {
 		return err
 	}
 
+	//As of now volume expand doesn't support auto provisioned bricks
+	provisionType := brick.ManuallyProvisioned
+
 	volinfo, err := volume.GetVolume(volname)
 	if err != nil {
 		return err
@@ -36,20 +41,22 @@ func expandValidatePrepare(c transaction.TxnCtx) error {
 	if req.ReplicaCount == 0 {
 		newReplicaCount = volinfo.Subvols[0].ReplicaCount
 	}
-	if (len(req.Bricks)+len(volinfo.GetBricks()))%newReplicaCount != 0 {
+	if (len(req.Bricks)+len(volinfo.GetBricks()))%(newReplicaCount+volinfo.Subvols[0].ArbiterCount) != 0 {
 		return errors.New("invalid number of bricks")
 	}
 
-	if volinfo.Type == volume.Replicate && req.ReplicaCount != 0 {
-		// TODO: Only considered first sub volume's ReplicaCount
-		if req.ReplicaCount < volinfo.Subvols[0].ReplicaCount {
-			return errors.New("invalid number of bricks")
-		} else if req.ReplicaCount == volinfo.Subvols[0].ReplicaCount {
-			return errors.New("replica count is same")
+	if volinfo.Type == volume.Replicate || volinfo.Type == volume.DistReplicate {
+		if req.ReplicaCount != 0 {
+			// TODO: Only considered first sub volume's ReplicaCount
+			if req.ReplicaCount < volinfo.Subvols[0].ReplicaCount {
+				return errors.New("invalid number of bricks")
+			} else if req.ReplicaCount == volinfo.Subvols[0].ReplicaCount {
+				return errors.New("replica count is same")
+			}
 		}
 	}
 
-	newBricks, err := volume.NewBrickEntriesFunc(req.Bricks, volinfo.Name, volinfo.ID)
+	newBricks, err := volume.NewBrickEntriesFunc(req.Bricks, volinfo.Name, volinfo.VolfileID, volinfo.ID, provisionType)
 	if err != nil {
 		c.Logger().WithError(err).Error("failed to create new brick entries")
 		return err
@@ -140,8 +147,7 @@ func undoStartBricksOnExpand(c transaction.TxnCtx) error {
 		}).Info("volume expand failed, stopping brick")
 
 		if err := b.StopBrick(c.Logger()); err != nil {
-			c.Logger().WithFields(log.Fields{
-				"error":  err,
+			c.Logger().WithError(err).WithFields(log.Fields{
 				"volume": b.VolumeName,
 				"brick":  b.String(),
 			}).Debug("stopping brick failed")
@@ -196,17 +202,35 @@ func updateVolinfoOnExpand(c transaction.TxnCtx) error {
 				idx = 0
 			}
 			volinfo.Subvols[idx].Bricks = append(volinfo.Subvols[idx].Bricks, b)
+			idx++
 		}
 	} else {
 		// Create new Sub volumes with given bricks
 		subvolIdx := len(volinfo.Subvols)
-		for i := 0; i < len(newBricks)/newReplicaCount; i++ {
-			idx := i * newReplicaCount
+		bricksCount := newReplicaCount + volinfo.Subvols[0].ArbiterCount
+		numSubvols := len(newBricks) / bricksCount
+		for i := 0; i < numSubvols; i++ {
+			idx := i * bricksCount
+			brks := newBricks[idx : idx+bricksCount]
+			// If Arbiter count is set then make sure one brick is set
+			// as arbiter brick
+			if volinfo.Subvols[0].ArbiterCount > 0 {
+				arbiterTypeSet := false
+				for _, b := range brks {
+					if b.Type == brick.Arbiter {
+						arbiterTypeSet = true
+						break
+					}
+				}
+				if !arbiterTypeSet {
+					brks[len(brks)-1].Type = brick.Arbiter
+				}
+			}
 			volinfo.Subvols = append(volinfo.Subvols, volume.Subvol{
 				ID:     uuid.NewRandom(),
 				Name:   fmt.Sprintf("%s-%s-%d", volinfo.Name, strings.ToLower(volinfo.Subvols[0].Type.String()), subvolIdx),
 				Type:   volinfo.Subvols[0].Type,
-				Bricks: newBricks[idx : idx+newReplicaCount],
+				Bricks: brks,
 			})
 			subvolIdx = subvolIdx + 1
 		}
@@ -231,5 +255,84 @@ func updateVolinfoOnExpand(c transaction.TxnCtx) error {
 		return err
 	}
 
+	return nil
+}
+
+func resizeLVM(c transaction.TxnCtx) error {
+	var req api.VolExpandReq
+	if err := c.Get("req", &req); err != nil {
+		return err
+	}
+
+	var volname string
+	if err := c.Get("volname", &volname); err != nil {
+		return err
+	}
+
+	volinfo, err := volume.GetVolume(volname)
+	if err != nil {
+		return err
+	}
+
+	var expansionTpSizePerBrick uint64
+	if err := c.Get("expansionTpSizePerBrick", &expansionTpSizePerBrick); err != nil {
+		return err
+	}
+
+	var expansionMetadataSizePerBrick uint64
+	if err := c.Get("expansionMetadataSizePerBrick", &expansionMetadataSizePerBrick); err != nil {
+		return err
+	}
+
+	var brickVgMapping map[string]string
+	if err := c.Get("brickVgMapping", &brickVgMapping); err != nil {
+		return err
+	}
+
+	if err := expandLocalBricks(volinfo, expansionTpSizePerBrick, expansionMetadataSizePerBrick, brickVgMapping); err != nil {
+		return err
+	}
+
+	// Update new volume size in bytes.
+	volinfo.Capacity = volinfo.Capacity + req.Size
+	// update new volinfo in txn ctx
+	return c.Set("volinfo", volinfo)
+
+}
+
+// expandLocalBricks expands the local bricks by extending thinpool, metadata pool and lvm for each brick on current node.
+func expandLocalBricks(volinfo *volume.Volinfo, expansionTpSizePerBrick uint64, expansionMetadataSizePerBrick uint64, brickVgMapping map[string]string) error {
+	for i, sv := range volinfo.Subvols {
+		for j, b := range sv.Bricks {
+			if uuid.Equal(b.PeerID, gdctx.MyUUID) {
+				tpName := fmt.Sprintf("tp_%s_s%d_b%d", volinfo.Name, i+1, j+1)
+				lvName := fmt.Sprintf("brick_%s_s%d_b%d", volinfo.Name, i+1, j+1)
+				totalExpansionSizePerBrick := expansionTpSizePerBrick + expansionMetadataSizePerBrick
+
+				// extend thinpool
+				err := lvmutils.ExtendThinpool(expansionTpSizePerBrick, b.VgName, tpName)
+				if err != nil {
+					return err
+				}
+				// extend metadata pool
+				err = lvmutils.ExtendMetadataPool(expansionMetadataSizePerBrick, b.VgName, tpName)
+				if err != nil {
+					return err
+				}
+
+				// extend lv
+				err = lvmutils.ExtendLV(totalExpansionSizePerBrick, b.VgName, lvName)
+				if err != nil {
+					return err
+				}
+
+				// Update current Vg free size
+				err = deviceutils.UpdateDeviceFreeSize(gdctx.MyUUID.String(), b.RootDevice)
+				if err != nil {
+					return err
+				}
+			}
+		}
+	}
 	return nil
 }

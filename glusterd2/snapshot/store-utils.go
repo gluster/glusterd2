@@ -4,10 +4,12 @@ import (
 	"context"
 	"encoding/json"
 	"errors"
+	"strings"
 
-	"github.com/coreos/etcd/clientv3"
 	gdstore "github.com/gluster/glusterd2/glusterd2/store"
 	"github.com/gluster/glusterd2/glusterd2/volume"
+
+	"github.com/coreos/etcd/clientv3"
 	log "github.com/sirupsen/logrus"
 )
 
@@ -46,10 +48,7 @@ func GetSnapshots() ([]*Snapinfo, error) {
 		var snap Snapinfo
 
 		if err := json.Unmarshal(kv.Value, &snap); err != nil {
-			log.WithFields(log.Fields{
-				"volume": string(kv.Key),
-				"error":  err,
-			}).Error("Failed to unmarshal volume")
+			log.WithError(err).WithField("snapshot", string(kv.Key)).Error("Failed to unmarshal snapshot")
 			continue
 		}
 
@@ -57,6 +56,21 @@ func GetSnapshots() ([]*Snapinfo, error) {
 	}
 
 	return snaps, nil
+}
+
+//GetActivatedSnapshotVolumes return the volfile for all activated snapshots
+func GetActivatedSnapshotVolumes() ([]*volume.Volinfo, error) {
+	var vols []*volume.Volinfo
+	resp, err := GetSnapshots()
+	if err != nil {
+		return vols, err
+	}
+	for _, snap := range resp {
+		if snap.SnapVolinfo.State == volume.VolStarted {
+			vols = append(vols, &snap.SnapVolinfo)
+		}
+	}
+	return vols, nil
 }
 
 //GetSnapshotVolumes return the volfile for all snapshots
@@ -76,13 +90,13 @@ func GetSnapshotVolumes() ([]*volume.Volinfo, error) {
 func AddOrUpdateSnap(snapInfo *Snapinfo) error {
 	json, e := json.Marshal(snapInfo)
 	if e != nil {
-		log.WithField("error", e).Error("Failed to marshal the volinfo object")
+		log.WithError(e).Error("Failed to marshal the snapinfo object")
 		return e
 	}
 
-	_, e = gdstore.Store.Put(context.TODO(), GetStorePath(snapInfo), string(json))
+	_, e = gdstore.Put(context.TODO(), GetStorePath(snapInfo), string(json))
 	if e != nil {
-		log.WithError(e).Error("Couldn't add volume to store")
+		log.WithError(e).Error("Couldn't add snapshot to store")
 		return e
 	}
 	return nil
@@ -92,19 +106,19 @@ func AddOrUpdateSnap(snapInfo *Snapinfo) error {
 // Snapinfo object
 func GetSnapshot(name string) (*Snapinfo, error) {
 	var snap Snapinfo
-	resp, e := gdstore.Store.Get(context.TODO(), snapPrefix+name)
+	resp, e := gdstore.Get(context.TODO(), snapPrefix+name)
 	if e != nil {
 		log.WithError(e).Error("Couldn't retrive volume from store")
 		return nil, e
 	}
 
 	if resp.Count != 1 {
-		log.WithField("volume", name).Error("volume not found")
-		return nil, errors.New("volume not found")
+		log.WithField("snapshot", name).Error("snapshot not found")
+		return nil, errors.New("Snapshot not found")
 	}
 
 	if e = json.Unmarshal(resp.Kvs[0].Value, &snap); e != nil {
-		log.WithError(e).Error("Failed to unmarshal the data into volinfo object")
+		log.WithError(e).Error("Failed to unmarshal the data into snapinfo object")
 		return nil, e
 	}
 	return &snap, nil
@@ -112,7 +126,27 @@ func GetSnapshot(name string) (*Snapinfo, error) {
 
 //DeleteSnapshot passes the snap path to store to delete the snap object
 func DeleteSnapshot(snapInfo *Snapinfo) error {
-	_, e := gdstore.Store.Delete(context.TODO(), GetStorePath(snapInfo))
+	var vol *volume.Volinfo
+	_, e := gdstore.Delete(context.TODO(), GetStorePath(snapInfo))
+	if e != nil {
+		return e
+	}
+
+	vol, e = volume.GetVolume(snapInfo.ParentVolume)
+	if e != nil {
+		return e
+	}
+
+	//TODO change this when label based snapshots are in.
+	e = errors.New("snap is not found in the volinfo")
+	for key, entry := range vol.SnapList {
+		if strings.Compare(entry, snapInfo.SnapVolinfo.Name) == 0 {
+			vol.SnapList = append(vol.SnapList[:key], vol.SnapList[key+1:]...)
+			e = volume.AddOrUpdateVolumeFunc(vol)
+			break
+		}
+	}
+
 	return e
 }
 

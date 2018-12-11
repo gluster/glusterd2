@@ -1,7 +1,11 @@
 package pmap
 
 import (
+	"net"
+
 	"github.com/gluster/glusterd2/pkg/sunrpc"
+
+	log "github.com/sirupsen/logrus"
 )
 
 const (
@@ -24,6 +28,7 @@ type GfPortmap struct {
 	progNum     uint32
 	progVersion uint32
 	procedures  []sunrpc.Procedure
+	conn        net.Conn
 }
 
 // NewGfPortmap returns a new instance of GfPortmap type
@@ -67,6 +72,16 @@ func (p *GfPortmap) Procedures() []sunrpc.Procedure {
 	return p.procedures
 }
 
+// GetConn returns the underlying net.Conn.
+func (p *GfPortmap) GetConn() net.Conn {
+	return p.conn
+}
+
+// SetConn returns stores the net.Conn instance provided.
+func (p *GfPortmap) SetConn(conn net.Conn) {
+	p.conn = conn
+}
+
 // PortByBrickReq is sent by the glusterfs client
 type PortByBrickReq struct {
 	Brick string
@@ -84,8 +99,9 @@ type PortByBrickRsp struct {
 // PortByBrick will return port number for the brick specified
 func (p *GfPortmap) PortByBrick(args *PortByBrickReq, reply *PortByBrickRsp) error {
 
-	port := RegistrySearch(args.Brick, GfPmapPortBrickserver)
-	if port <= 0 {
+	if port, err := registry.SearchByBrickPath(args.Brick); err != nil {
+		log.WithError(err).WithField("brick",
+			args.Brick).Error("registry.SearchByBrickPath() failed for brick")
 		reply.OpRet = -1
 	} else {
 		reply.Port = port
@@ -98,6 +114,7 @@ func (p *GfPortmap) PortByBrick(args *PortByBrickReq, reply *PortByBrickRsp) err
 type SignInReq struct {
 	Brick string
 	Port  int
+	Pid   int
 }
 
 // SignInRsp is response sent to a SignInReq request
@@ -109,9 +126,22 @@ type SignInRsp struct {
 // SignIn stores the brick and port mapping in registry
 func (p *GfPortmap) SignIn(args *SignInReq, reply *SignInRsp) error {
 
-	// FIXME: Xprt (net.Conn instance) isn't available here yet.
-	// Passing nil for now.
-	registryBind(args.Port, args.Brick, GfPmapPortBrickserver, nil)
+	var address string
+
+	conn := p.GetConn()
+	if conn != nil {
+		address = conn.RemoteAddr().String()
+	}
+
+	log.WithFields(log.Fields{
+		"address": address,
+		"brick":   args.Brick,
+		"port":    args.Port,
+	}).Debug("brick signed in")
+
+	// TODO: Add Pid field to SignInReq and pass it here when
+	// https://review.gluster.org/21503 gets in.
+	registry.Update(args.Port, args.Brick, conn, args.Pid)
 
 	return nil
 }
@@ -132,9 +162,20 @@ type SignOutRsp struct {
 // SignOut removes the brick and port mapping in registry
 func (p *GfPortmap) SignOut(args *SignOutReq, reply *SignOutRsp) error {
 
-	// FIXME: Xprt (net.Conn instance) isn't available here yet.
-	// Passing nil for now.
-	registryRemove(args.Port, args.Brick, GfPmapPortBrickserver, nil)
+	var address string
+
+	conn := p.GetConn()
+	if conn != nil {
+		address = p.GetConn().RemoteAddr().String()
+	}
+
+	log.WithFields(log.Fields{
+		"address": address,
+		"brick":   args.Brick,
+		"port":    args.Port,
+	}).Debug("brick signed out")
+
+	registry.Remove(args.Port, args.Brick, conn)
 
 	return nil
 }

@@ -4,11 +4,14 @@ import (
 	"errors"
 	"fmt"
 	"io/ioutil"
+	"math/rand"
 	"net"
 	"os"
 	"os/exec"
+	"path"
 	"path/filepath"
 	"strings"
+	"syscall"
 	"testing"
 	"time"
 
@@ -25,7 +28,6 @@ const (
 )
 
 var (
-	gds    []*gdProcess
 	client *restclient.Client
 )
 
@@ -36,66 +38,52 @@ func TestVolume(t *testing.T) {
 
 	r := require.New(t)
 
-	gds, err = setupCluster("./config/1.toml", "./config/2.toml")
+	tc, err := setupCluster(t, "./config/1.toml", "./config/2.toml")
 	r.Nil(err)
-	defer teardownCluster(gds)
+	defer teardownCluster(tc)
 
-	client = initRestclient(gds[0])
-
-	t.Run("CreateWithoutName", testVolumeCreateWithoutName)
+	client, err = initRestclient(tc.gds[0])
+	r.Nil(err)
+	r.NotNil(client)
 
 	// Create the volume
-	t.Run("Create", testVolumeCreate)
+	t.Run("Create", tc.wrap(testVolumeCreate))
 	// Expand the volume
-	t.Run("Expand", testVolumeExpand)
+	t.Run("Expand", tc.wrap(testVolumeExpand))
 
 	// Run tests that depend on this volume
 	t.Run("Start", testVolumeStart)
-	t.Run("Mount", testVolumeMount)
+	t.Run("Mount", tc.wrap(testVolumeMount))
 	t.Run("Status", testVolumeStatus)
 	t.Run("Statedump", testVolumeStatedump)
 	t.Run("Stop", testVolumeStop)
 	t.Run("List", testVolumeList)
 	t.Run("Info", testVolumeInfo)
 	t.Run("Edit", testEditVolume)
-	t.Run("VolumeFlags", testVolumeCreateWithFlags)
+	t.Run("VolumeFlags", tc.wrap(testVolumeCreateWithFlags))
 	// delete volume
 	t.Run("Delete", testVolumeDelete)
 
 	// Disperse volume test
-	t.Run("Disperse", testDisperse)
-	t.Run("DisperseMount", testDisperseMount)
+	t.Run("Disperse", tc.wrap(testDisperse))
+	t.Run("DisperseMount", tc.wrap(testDisperseMount))
 	t.Run("DisperseDelete", testDisperseDelete)
+	t.Run("testShdOnVolumeStartAndStop", tc.wrap(testShdOnVolumeStartAndStop))
+
+	//test arbiter volume
+	t.Run("testArbiterVolumeCreate", tc.wrap(testArbiterVolumeCreate))
+
+	// Self Heal Test
+	t.Run("SelfHeal", tc.wrap(testSelfHeal))
+	t.Run("GranularEntryHeal", tc.wrap(testGranularEntryHeal))
+	t.Run("SelfHeal", tc.wrap(testSelfHeal))
+	t.Run("SplitBrainOperations", tc.wrap(testSplitBrainOperation))
+
+	// Volume profile test
+	t.Run("VolumeProfile", tc.wrap(testVolumeProfileInfo))
 }
 
-func testVolumeCreateWithoutName(t *testing.T) {
-	r := require.New(t)
-
-	var brickPaths []string
-	for i := 1; i <= 2; i++ {
-		brickPath := testTempDir(t, "brick")
-		brickPaths = append(brickPaths, brickPath)
-	}
-
-	// create 2x2 dist-rep volume
-	createReq := api.VolCreateReq{
-		Subvols: []api.SubvolReq{
-			{
-				Bricks: []api.BrickReq{
-					{PeerID: gds[0].PeerID(), Path: brickPaths[0]},
-					{PeerID: gds[1].PeerID(), Path: brickPaths[1]},
-				},
-			},
-		},
-		Force: true,
-	}
-	volinfo, err := client.VolumeCreate(createReq)
-	r.Nil(err)
-
-	r.Nil(client.VolumeDelete(volinfo.Name))
-}
-
-func testVolumeCreate(t *testing.T) {
+func testVolumeCreate(t *testing.T, tc *testCluster) {
 	r := require.New(t)
 
 	var brickPaths []string
@@ -112,16 +100,16 @@ func testVolumeCreate(t *testing.T) {
 				ReplicaCount: 2,
 				Type:         "replicate",
 				Bricks: []api.BrickReq{
-					{PeerID: gds[0].PeerID(), Path: brickPaths[0]},
-					{PeerID: gds[1].PeerID(), Path: brickPaths[1]},
+					{PeerID: tc.gds[0].PeerID(), Path: brickPaths[0]},
+					{PeerID: tc.gds[1].PeerID(), Path: brickPaths[1]},
 				},
 			},
 			{
 				Type:         "replicate",
 				ReplicaCount: 2,
 				Bricks: []api.BrickReq{
-					{PeerID: gds[0].PeerID(), Path: brickPaths[2]},
-					{PeerID: gds[1].PeerID(), Path: brickPaths[3]},
+					{PeerID: tc.gds[0].PeerID(), Path: brickPaths[2]},
+					{PeerID: tc.gds[1].PeerID(), Path: brickPaths[3]},
 				},
 			},
 		},
@@ -138,10 +126,10 @@ func testVolumeCreate(t *testing.T) {
 	_, err = client.VolumeCreate(createReq)
 	r.NotNil(err)
 
-	testDisallowBrickReuse(t, brickPaths[0])
+	testDisallowBrickReuse(t, brickPaths[0], tc)
 }
 
-func testDisallowBrickReuse(t *testing.T, brickInUse string) {
+func testDisallowBrickReuse(t *testing.T, brickInUse string, tc *testCluster) {
 	r := require.New(t)
 	volname := formatVolName(t.Name())
 
@@ -150,7 +138,7 @@ func testDisallowBrickReuse(t *testing.T, brickInUse string) {
 		Subvols: []api.SubvolReq{
 			{
 				Bricks: []api.BrickReq{
-					{PeerID: gds[0].PeerID(), Path: brickInUse},
+					{PeerID: tc.gds[0].PeerID(), Path: brickInUse},
 				},
 			},
 		},
@@ -161,7 +149,7 @@ func testDisallowBrickReuse(t *testing.T, brickInUse string) {
 	r.NotNil(err)
 }
 
-func testVolumeCreateWithFlags(t *testing.T) {
+func testVolumeCreateWithFlags(t *testing.T, tc *testCluster) {
 	r := require.New(t)
 	volumeName := formatVolName(t.Name())
 	var brickPaths []string
@@ -183,16 +171,16 @@ func testVolumeCreateWithFlags(t *testing.T) {
 				ReplicaCount: 2,
 				Type:         "replicate",
 				Bricks: []api.BrickReq{
-					{PeerID: gds[0].PeerID(), Path: brickPaths[0]},
-					{PeerID: gds[1].PeerID(), Path: brickPaths[1]},
+					{PeerID: tc.gds[0].PeerID(), Path: brickPaths[0]},
+					{PeerID: tc.gds[1].PeerID(), Path: brickPaths[1]},
 				},
 			},
 			{
 				Type:         "replicate",
 				ReplicaCount: 2,
 				Bricks: []api.BrickReq{
-					{PeerID: gds[0].PeerID(), Path: brickPaths[2]},
-					{PeerID: gds[1].PeerID(), Path: brickPaths[3]},
+					{PeerID: tc.gds[0].PeerID(), Path: brickPaths[2]},
+					{PeerID: tc.gds[1].PeerID(), Path: brickPaths[3]},
 				},
 			},
 		},
@@ -224,11 +212,11 @@ func testVolumeCreateWithFlags(t *testing.T) {
 
 }
 
-func testVolumeExpand(t *testing.T) {
+func testVolumeExpand(t *testing.T, tc *testCluster) {
 	r := require.New(t)
 
 	var brickPaths []string
-	for i := 1; i <= 4; i++ {
+	for i := 1; i <= 20; i++ {
 		brickPaths = append(brickPaths, fmt.Sprintf(fmt.Sprintf(baseLocalStateDir+"/"+t.Name()+"/%d/", i)))
 	}
 
@@ -239,10 +227,10 @@ func testVolumeExpand(t *testing.T) {
 
 	expandReq := api.VolExpandReq{
 		Bricks: []api.BrickReq{
-			{PeerID: gds[0].PeerID(), Path: brickPaths[0]},
-			{PeerID: gds[1].PeerID(), Path: brickPaths[1]},
-			{PeerID: gds[0].PeerID(), Path: brickPaths[2]},
-			{PeerID: gds[1].PeerID(), Path: brickPaths[3]},
+			{PeerID: tc.gds[0].PeerID(), Path: brickPaths[0]},
+			{PeerID: tc.gds[1].PeerID(), Path: brickPaths[1]},
+			{PeerID: tc.gds[0].PeerID(), Path: brickPaths[2]},
+			{PeerID: tc.gds[1].PeerID(), Path: brickPaths[3]},
 		},
 		Flags: flags,
 	}
@@ -258,6 +246,127 @@ func testVolumeExpand(t *testing.T) {
 	for _, subvol := range volinfo.Subvols {
 		r.Len(subvol.Bricks, 2)
 	}
+
+	createReqBrick := api.VolCreateReq{
+		Name: "TestVolumeExpand",
+		Subvols: []api.SubvolReq{
+			{
+				ReplicaCount: 2,
+				Type:         "replicate",
+				Bricks: []api.BrickReq{
+					{PeerID: tc.gds[0].PeerID(), Path: brickPaths[4]},
+					{PeerID: tc.gds[1].PeerID(), Path: brickPaths[5]},
+				},
+			},
+			{
+				Type:         "replicate",
+				ReplicaCount: 2,
+				Bricks: []api.BrickReq{
+					{PeerID: tc.gds[0].PeerID(), Path: brickPaths[6]},
+					{PeerID: tc.gds[1].PeerID(), Path: brickPaths[7]},
+				},
+			},
+		},
+		Flags: flags,
+	}
+
+	_, err = client.VolumeCreate(createReqBrick)
+	r.Nil(err)
+
+	expandReq = api.VolExpandReq{
+		ReplicaCount: 1,
+		Bricks: []api.BrickReq{
+			{PeerID: tc.gds[0].PeerID(), Path: brickPaths[8]},
+			{PeerID: tc.gds[1].PeerID(), Path: brickPaths[9]},
+			{PeerID: tc.gds[0].PeerID(), Path: brickPaths[10]},
+		},
+		Flags: flags,
+	}
+	volinfo, err = client.VolumeExpand("TestVolumeExpand", expandReq)
+	r.NotNil(err)
+
+	expandReq = api.VolExpandReq{
+		ReplicaCount: 3,
+		Bricks: []api.BrickReq{
+			{PeerID: tc.gds[0].PeerID(), Path: brickPaths[8]},
+			{PeerID: tc.gds[1].PeerID(), Path: brickPaths[9]},
+			{PeerID: tc.gds[0].PeerID(), Path: brickPaths[10]},
+		},
+		Flags: flags,
+	}
+	volinfo, err = client.VolumeExpand("TestVolumeExpand", expandReq)
+	r.NotNil(err)
+
+	expandReq = api.VolExpandReq{
+		ReplicaCount: 3,
+		Bricks: []api.BrickReq{
+			{PeerID: tc.gds[0].PeerID(), Path: brickPaths[8]},
+			{PeerID: tc.gds[1].PeerID(), Path: brickPaths[9]},
+		},
+		Flags: flags,
+	}
+
+	//expand with new brick dir which is not created
+	volinfo, err = client.VolumeExpand("TestVolumeExpand", expandReq)
+	r.Nil(err)
+	r.Len(volinfo.Subvols, 2)
+	r.Equal(volinfo.ReplicaCount, 3)
+	for _, subvol := range volinfo.Subvols {
+		r.Len(subvol.Bricks, 3)
+	}
+
+	//delete volume
+	r.Nil(client.VolumeDelete("TestVolumeExpand"))
+
+	req := api.VolCreateReq{
+		Name: "TestVolumeExpandArbiter",
+		Subvols: []api.SubvolReq{
+			{
+				ReplicaCount: 2,
+				ArbiterCount: 1,
+				Type:         "replicate",
+				Bricks: []api.BrickReq{
+					{PeerID: tc.gds[0].PeerID(), Path: brickPaths[11]},
+					{PeerID: tc.gds[1].PeerID(), Path: brickPaths[12]},
+					{PeerID: tc.gds[1].PeerID(), Path: brickPaths[13], Type: "arbiter"},
+				},
+			},
+			{
+				Type:         "replicate",
+				ReplicaCount: 2,
+				ArbiterCount: 1,
+				Bricks: []api.BrickReq{
+					{PeerID: tc.gds[0].PeerID(), Path: brickPaths[14]},
+					{PeerID: tc.gds[1].PeerID(), Path: brickPaths[15]},
+					{PeerID: tc.gds[1].PeerID(), Path: brickPaths[16], Type: "arbiter"},
+				},
+			},
+		},
+		Flags: flags,
+	}
+
+	_, err = client.VolumeCreate(req)
+	r.Nil(err)
+
+	expandReq = api.VolExpandReq{
+		Bricks: []api.BrickReq{
+			{PeerID: tc.gds[0].PeerID(), Path: brickPaths[17]},
+			{PeerID: tc.gds[1].PeerID(), Path: brickPaths[18]},
+			{PeerID: tc.gds[1].PeerID(), Path: brickPaths[19]},
+		},
+		Flags: flags,
+	}
+	volinfo, err = client.VolumeExpand("TestVolumeExpandArbiter", expandReq)
+	r.Nil(err)
+	r.Len(volinfo.Subvols, 3)
+	r.Equal(volinfo.ReplicaCount, 2)
+	r.Equal(volinfo.ArbiterCount, 1)
+	for _, subvol := range volinfo.Subvols {
+		r.Len(subvol.Bricks, 3)
+		r.Equal(subvol.Bricks[len(subvol.Bricks)-1].Type.String(), "Arbiter")
+	}
+
+	r.Nil(client.VolumeDelete("TestVolumeExpandArbiter"))
 }
 
 func testVolumeDelete(t *testing.T) {
@@ -268,6 +377,57 @@ func testVolumeDelete(t *testing.T) {
 func testVolumeStart(t *testing.T) {
 	r := require.New(t)
 	r.Nil(client.VolumeStart(volname, false), "volume start failed")
+
+	bricks, err := client.BricksStatus(volname)
+	r.Nil(err)
+	for index := range bricks {
+		r.NotZero(bricks[index].Port)
+		r.True(bricks[index].Online)
+	}
+
+	r.Nil(client.VolumeStart(volname, true), "volume force start failed")
+
+	time.Sleep(3 * time.Second)
+
+	bricks, err = client.BricksStatus(volname)
+	r.Nil(err)
+	for index := range bricks {
+		r.NotZero(bricks[index].Port)
+		r.True(bricks[index].Online)
+	}
+
+	random := rand.New(rand.NewSource(time.Now().UnixNano()))
+	brickIndex := random.Intn(len(bricks))
+	killBrick := bricks[brickIndex].Info.Path
+	process, err := os.FindProcess(bricks[brickIndex].Pid)
+	r.Nil(err, fmt.Sprintf("failed to find brick %s with pid: %d", killBrick, bricks[brickIndex].Pid))
+	err = process.Signal(syscall.Signal(15))
+	r.Nil(err, fmt.Sprintf("failed to kill brick %s with pid: %d", killBrick, bricks[brickIndex].Pid))
+
+	time.Sleep(3 * time.Second)
+
+	bricks, err = client.BricksStatus(volname)
+	r.Nil(err)
+	for index := range bricks {
+		if bricks[index].Info.Path == killBrick {
+			r.Zero(bricks[index].Port)
+			r.False(bricks[index].Online)
+		}
+	}
+
+	r.Nil(client.VolumeStart(volname, true), "volume force start failed")
+
+	time.Sleep(3 * time.Second)
+
+	bricks, err = client.BricksStatus(volname)
+	r.Nil(err)
+	for index := range bricks {
+		if bricks[index].Info.Path == killBrick {
+			r.NotZero(bricks[index].Port)
+			r.True(bricks[index].Online)
+		}
+	}
+
 }
 
 func testVolumeStop(t *testing.T) {
@@ -326,9 +486,7 @@ func testVolumeInfo(t *testing.T) {
 }
 
 func testVolumeStatus(t *testing.T) {
-	if _, err := os.Lstat("/dev/fuse"); os.IsNotExist(err) {
-		t.Skip("skipping mount /dev/fuse unavailable")
-	}
+	checkFuseAvailable(t)
 	r := require.New(t)
 
 	_, err := client.VolumeStatus(volname)
@@ -373,27 +531,28 @@ func testVolumeStatedump(t *testing.T) {
 }
 
 // testVolumeMount mounts checks if the volume mounts successfully and unmounts it
-func testVolumeMount(t *testing.T) {
-	testMountUnmount(t, volname)
+func testVolumeMount(t *testing.T, tc *testCluster) {
+	testMountUnmount(t, volname, tc)
 }
 
-func testMountUnmount(t *testing.T, v string) {
-	if _, err := os.Lstat("/dev/fuse"); os.IsNotExist(err) {
-		t.Skip("skipping mount /dev/fuse unavailable")
-	}
+func testMountUnmount(t *testing.T, v string, tc *testCluster) {
+	checkFuseAvailable(t)
 	r := require.New(t)
 
 	mntPath := testTempDir(t, "mnt")
 	defer os.RemoveAll(mntPath)
 
-	host, _, _ := net.SplitHostPort(gds[0].ClientAddress)
-	mntCmd := exec.Command("mount", "-t", "glusterfs", host+":"+v, mntPath)
-	umntCmd := exec.Command("umount", mntPath)
+	host, _, _ := net.SplitHostPort(tc.gds[0].ClientAddress)
 
-	err := mntCmd.Run()
+	err := mountVolume(host, v, mntPath)
 	r.Nil(err, fmt.Sprintf("mount failed: %s", err))
 
-	err = umntCmd.Run()
+	defer syscall.Unmount(mntPath, syscall.MNT_FORCE)
+
+	err = testMount(mntPath)
+	r.Nil(err)
+
+	err = syscall.Unmount(mntPath, 0)
 	r.Nil(err, fmt.Sprintf("unmount failed: %s", err))
 }
 
@@ -408,17 +567,20 @@ func TestVolumeOptions(t *testing.T) {
 
 	r := require.New(t)
 
-	gds, err := setupCluster("./config/1.toml")
+	tc, err := setupCluster(t, "./config/1.toml")
 	r.Nil(err)
-	defer teardownCluster(gds)
+	defer teardownCluster(tc)
 
 	brickDir, err := ioutil.TempDir(baseLocalStateDir, t.Name())
+	r.Nil(err)
 	defer os.RemoveAll(brickDir)
 
 	brickPath, err := ioutil.TempDir(brickDir, "brick")
 	r.Nil(err)
 
-	client := initRestclient(gds[0])
+	client, err := initRestclient(tc.gds[0])
+	r.Nil(err)
+	r.NotNil(client)
 
 	volname := "testvol"
 	createReq := api.VolCreateReq{
@@ -427,17 +589,17 @@ func TestVolumeOptions(t *testing.T) {
 			{
 				Type: "distribute",
 				Bricks: []api.BrickReq{
-					{PeerID: gds[0].PeerID(), Path: brickPath},
+					{PeerID: tc.gds[0].PeerID(), Path: brickPath},
 				},
 			},
 		},
 		Force: true,
-		// XXX: Setting advanced, as all options are advanced by default
-		// TODO: Remove this later if the default changes
-		Advanced: true,
 	}
+	// XXX: Setting advanced, as all options are advanced by default
+	// TODO: Remove this later if the default changes
+	createReq.AllowAdvanced = true
 
-	validOpKeys := []string{"gfproxy.afr.eager-lock", "afr.eager-lock"}
+	validOpKeys := []string{"gfproxy.replicate.eager-lock", "replicate.eager-lock"}
 	invalidOpKeys := []string{"..eager-lock", "a.b.afr.eager-lock", "afr.non-existent", "eager-lock"}
 
 	// valid option test cases
@@ -485,14 +647,14 @@ func TestVolumeOptions(t *testing.T) {
 	var optionReq api.VolOptionReq
 	// XXX: Setting advanced, as all options are advanced by default
 	// TODO: Remove this later if the default changes
-	optionReq.Advanced = true
+	optionReq.AllowAdvanced = true
 
-	settableKey := "afr.use-compound-fops"
+	settableKey := "replicate.use-compound-fops"
 	optionReq.Options = map[string]string{settableKey: "on"}
 	r.Nil(client.VolumeSet(volname, optionReq))
 
 	var resetOptionReq api.VolOptionResetReq
-	resetOptionReq.Options = []string{"afr.use-compound-fops"}
+	resetOptionReq.Options = []string{"replicate.use-compound-fops"}
 	resetOptionReq.Force = true
 	r.Nil(client.VolumeReset(volname, resetOptionReq))
 
@@ -506,19 +668,23 @@ func TestVolumeOptions(t *testing.T) {
 	resetOptionReq.All = true
 	r.Nil(client.VolumeReset(volname, resetOptionReq))
 
-	notSettableKey := "afr.consistent-io"
+	notSettableKey := "replicate.consistent-io"
 	optionReq.Options = map[string]string{notSettableKey: "on"}
 	r.NotNil(client.VolumeSet(volname, optionReq))
 
 	r.Nil(client.VolumeDelete(volname))
 
 	// group option test cases
-	groupOpKeys := []string{"profile.test"}
+	groupOpKeys := []string{"tls"}
 	for _, validKey := range groupOpKeys {
 		createReq.Options = map[string]string{validKey: "on"}
 
 		_, err = client.VolumeCreate(createReq)
 		r.Nil(err)
+
+		var resetOptionReq api.VolOptionResetReq
+		resetOptionReq.Options = []string{"tls"}
+		r.Nil(client.VolumeReset(volname, resetOptionReq))
 
 		err = client.VolumeDelete(volname)
 		r.Nil(err)
@@ -541,25 +707,27 @@ func TestVolumeOptions(t *testing.T) {
 				{Name: "opt3", OnValue: "off"}},
 			Description: "Test profile 2",
 		},
-		// XXX: Setting advanced, as all options are advanced by default
-		// TODO: Remove this later if the default changes
-		Advanced: true,
 	}
+	// XXX: Setting advanced, as all options are advanced by default
+	// TODO: Remove this later if the default changes
+	optionGroupReq.AllowAdvanced = true
+
 	err = client.OptionGroupCreate(optionGroupReq)
 	r.NotNil(err)
 
 	optionGroupReq = api.OptionGroupReq{
 		OptionGroup: api.OptionGroup{
 			Name: "profile.test2",
-			Options: []api.VolumeOption{{Name: "afr.eager-lock", OnValue: "on"},
-				{Name: "gfproxy.afr.eager-lock", OnValue: "on"},
+			Options: []api.VolumeOption{{Name: "replicate.eager-lock", OnValue: "on"},
+				{Name: "gfproxy.replicate.eager-lock", OnValue: "on"},
 			},
 			Description: "Test profile 2",
 		},
-		// XXX: Setting advanced, as all options are advanced by default
-		// TODO: Remove this later if the default changes
-		Advanced: true,
 	}
+	// XXX: Setting advanced, as all options are advanced by default
+	// TODO: Remove this later if the default changes
+	optionGroupReq.AllowAdvanced = true
+
 	err = client.OptionGroupCreate(optionGroupReq)
 	r.Nil(err)
 
@@ -570,7 +738,7 @@ func TestVolumeOptions(t *testing.T) {
 
 }
 
-func testDisperse(t *testing.T) {
+func testDisperse(t *testing.T, tc *testCluster) {
 	r := require.New(t)
 
 	var brickPaths []string
@@ -585,9 +753,9 @@ func testDisperse(t *testing.T) {
 			{
 				Type: "disperse",
 				Bricks: []api.BrickReq{
-					{PeerID: gds[0].PeerID(), Path: brickPaths[0]},
-					{PeerID: gds[1].PeerID(), Path: brickPaths[1]},
-					{PeerID: gds[0].PeerID(), Path: brickPaths[2]},
+					{PeerID: tc.gds[0].PeerID(), Path: brickPaths[0]},
+					{PeerID: tc.gds[1].PeerID(), Path: brickPaths[1]},
+					{PeerID: tc.gds[0].PeerID(), Path: brickPaths[2]},
 				},
 				DisperseRedundancy: 1,
 			},
@@ -595,14 +763,18 @@ func testDisperse(t *testing.T) {
 		Force: true,
 	}
 
-	_, err := client.VolumeCreate(createReq)
+	volinfo, err := client.VolumeCreate(createReq)
 	r.Nil(err)
+
+	r.Equal(3, volinfo.DisperseCount)
+	r.Equal(2, volinfo.DisperseDataCount)
+	r.Equal(1, volinfo.DisperseRedundancyCount)
 
 	r.Nil(client.VolumeStart(disperseVolName, true), "disperse volume start failed")
 }
 
-func testDisperseMount(t *testing.T) {
-	testMountUnmount(t, disperseVolName)
+func testDisperseMount(t *testing.T, tc *testCluster) {
+	testMountUnmount(t, disperseVolName, tc)
 }
 
 func testDisperseDelete(t *testing.T) {
@@ -672,4 +844,235 @@ func testEditVolume(t *testing.T) {
 	r.Nil(err)
 	err = validateVolumeEdit(volinfo[0], editMetadataReq, resp)
 	r.Nil(err)
+}
+
+func testShdOnVolumeStartAndStop(t *testing.T, tc *testCluster) {
+	r := require.New(t)
+
+	brickDir, err := ioutil.TempDir(baseLocalStateDir, t.Name())
+	r.Nil(err)
+	defer os.RemoveAll(brickDir)
+	//glustershd pid file path
+	pidpath := path.Join(tc.gds[0].Rundir, "glustershd.pid")
+
+	var vol1brickPaths [2]string
+	for i := 1; i <= 2; i++ {
+		brickPath, err := ioutil.TempDir(brickDir, "brick1")
+		r.Nil(err)
+		vol1brickPaths[i-1] = brickPath
+	}
+
+	volname := formatVolName(t.Name())
+	reqVol := api.VolCreateReq{
+		Name: volname,
+		Subvols: []api.SubvolReq{
+			{
+				ReplicaCount: 2,
+				Type:         "replicate",
+				Bricks: []api.BrickReq{
+					{PeerID: tc.gds[0].PeerID(), Path: vol1brickPaths[0]},
+					{PeerID: tc.gds[0].PeerID(), Path: vol1brickPaths[1]},
+				},
+			},
+		},
+		Force: true,
+	}
+	vol1, err := client.VolumeCreate(reqVol)
+	r.Nil(err)
+
+	var optionReq api.VolOptionReq
+	optionReq.Options = map[string]string{"replicate.self-heal-daemon": "on"}
+	optionReq.AllowAdvanced = true
+
+	r.Nil(client.VolumeSet(vol1.Name, optionReq))
+
+	//create one more volume to check how glustershd behaves if we have multiple volumes
+	var vol2brickPaths [2]string
+	for i := 1; i <= 2; i++ {
+		brickPath, err := ioutil.TempDir(brickDir, "brick1")
+		r.Nil(err)
+		vol2brickPaths[i-1] = brickPath
+	}
+
+	volname = formatVolName(t.Name() + "2")
+	reqVol = api.VolCreateReq{
+		Name: volname,
+		Subvols: []api.SubvolReq{
+			{
+				ReplicaCount: 2,
+				Type:         "replicate",
+				Bricks: []api.BrickReq{
+					{PeerID: tc.gds[0].PeerID(), Path: vol2brickPaths[0]},
+					{PeerID: tc.gds[0].PeerID(), Path: vol2brickPaths[1]},
+				},
+			},
+		},
+		Force: true,
+	}
+	vol2, err := client.VolumeCreate(reqVol)
+	r.Nil(err)
+
+	r.Nil(client.VolumeSet(vol2.Name, optionReq))
+
+	r.Nil(client.VolumeStart(vol1.Name, false))
+	r.True(isProcessRunning(pidpath), "glustershd is not running")
+
+	//glustershd is already started
+	r.Nil(client.VolumeStart(vol2.Name, false))
+	r.True(isProcessRunning(pidpath), "glustershd is not running")
+
+	//if we stop one volume, glustershd should be running as another
+	//volume is in started state
+	r.Nil(client.VolumeStop(vol1.Name))
+	r.True(isProcessRunning(pidpath), "glustershd is not running")
+
+	//if both the volumes are in the stopped state, glustershd shouldn't be running
+	r.Nil(client.VolumeStop(vol2.Name))
+	r.False(isProcessRunning(pidpath), "glustershd is running")
+
+	//Restart the volume and check glustershd status
+	r.Nil(client.VolumeStart(vol1.Name, false))
+	r.True(isProcessRunning(pidpath), "glustershd is not running")
+
+	r.Nil(client.VolumeStop(vol1.Name))
+	r.False(isProcessRunning(pidpath), "glustershd is running")
+
+	r.Nil(client.VolumeDelete(vol1.Name))
+	r.Nil(client.VolumeDelete(vol2.Name))
+}
+
+func testArbiterVolumeCreate(t *testing.T, tc *testCluster) {
+	r := require.New(t)
+
+	var brickPaths []string
+	for i := 1; i <= 3; i++ {
+		brickPath := testTempDir(t, "brick")
+		brickPaths = append(brickPaths, brickPath)
+	}
+	volumeName := formatVolName(t.Name())
+	// create arbiter volume
+	createReq := api.VolCreateReq{
+		Name: volumeName,
+		Subvols: []api.SubvolReq{
+			{
+				ReplicaCount: 2,
+				ArbiterCount: 1,
+				Type:         "replicate",
+				Bricks: []api.BrickReq{
+					{PeerID: tc.gds[0].PeerID(), Path: brickPaths[0]},
+					{PeerID: tc.gds[1].PeerID(), Path: brickPaths[1]},
+					{PeerID: tc.gds[1].PeerID(), Path: brickPaths[2]},
+				},
+			},
+		},
+		Force: true,
+	}
+	//if brick type is not set to arbiter
+	_, err := client.VolumeCreate(createReq)
+	r.NotNil(err)
+
+	//multiple bricks are of type arbiter
+	createReq.Subvols[0].Bricks[1].Type = "arbiter"
+	createReq.Subvols[0].Bricks[0].Type = "arbiter"
+	_, err = client.VolumeCreate(createReq)
+	r.NotNil(err)
+
+	//invalid brick type
+	createReq.Subvols[0].Bricks[0].Type = "replicate"
+	_, err = client.VolumeCreate(createReq)
+	r.NotNil(err)
+
+	createReq.Subvols[0].Bricks[0].Type = "brick"
+	_, err = client.VolumeCreate(createReq)
+	r.Nil(err)
+
+	r.Nil(client.VolumeStart(volumeName, false))
+
+	r.Nil(client.VolumeStop(volumeName))
+
+	r.Nil(client.VolumeDelete(volumeName))
+}
+
+func testVolumeProfileInfo(t *testing.T, tc *testCluster) {
+	r := require.New(t)
+	var brickPaths []string
+	for i := 1; i <= 3; i++ {
+		brickPath := testTempDir(t, "brick")
+		brickPaths = append(brickPaths, brickPath)
+	}
+	volname := formatVolName(t.Name())
+	createReq := api.VolCreateReq{
+		Name: volname,
+		Subvols: []api.SubvolReq{
+			{
+				ReplicaCount: 3,
+				Type:         "replicate",
+				Bricks: []api.BrickReq{
+					{PeerID: tc.gds[0].PeerID(), Path: brickPaths[0]},
+					{PeerID: tc.gds[1].PeerID(), Path: brickPaths[1]},
+					{PeerID: tc.gds[1].PeerID(), Path: brickPaths[2]},
+				},
+			},
+		},
+		Force: true,
+	}
+	_, err := client.VolumeCreate(createReq)
+	r.Nil(err)
+
+	r.Nil(client.VolumeStart(volname, false))
+
+	profileOpKeys := []string{"io-stats.count-fop-hits", "io-stats.latency-measurement"}
+	var optionReq api.VolOptionReq
+	for _, profileOpKey := range profileOpKeys {
+		optionReq.Options = map[string]string{profileOpKey: "on"}
+		optionReq.AllowAdvanced = true
+		r.Nil(client.VolumeSet(volname, optionReq))
+	}
+
+	_, err = client.VolumeProfileInfo(volname, "info")
+	r.Nil(err)
+
+	_, err = client.VolumeProfileInfo(volname, "info-peek")
+	r.Nil(err)
+
+	_, err = client.VolumeProfileInfo(volname, "info-incremental")
+	r.Nil(err)
+
+	_, err = client.VolumeProfileInfo(volname, "info-incremental-peek")
+	r.Nil(err)
+
+	_, err = client.VolumeProfileInfo(volname, "info-cumulative")
+	r.Nil(err)
+
+	_, err = client.VolumeProfileInfo(volname, "info-clear")
+	r.Nil(err)
+
+	for _, profileOpKey := range profileOpKeys {
+		optionReq.Options = map[string]string{profileOpKey: "off"}
+		optionReq.AllowAdvanced = true
+		r.Nil(client.VolumeSet(volname, optionReq))
+	}
+
+	_, err = client.VolumeProfileInfo(volname, "info")
+	r.NotNil(err)
+
+	_, err = client.VolumeProfileInfo(volname, "info-peek")
+	r.NotNil(err)
+
+	_, err = client.VolumeProfileInfo(volname, "info-incremental")
+	r.NotNil(err)
+
+	_, err = client.VolumeProfileInfo(volname, "info-incremental-peek")
+	r.NotNil(err)
+
+	_, err = client.VolumeProfileInfo(volname, "info-cumulative")
+	r.NotNil(err)
+
+	_, err = client.VolumeProfileInfo(volname, "info-clear")
+	r.NotNil(err)
+
+	r.Nil(client.VolumeStop(volname))
+
+	r.Nil(client.VolumeDelete(volname))
+
 }

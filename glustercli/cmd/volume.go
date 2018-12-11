@@ -38,8 +38,10 @@ var (
 	flagStopCmdForce bool
 
 	// Expand Command Flags
-	flagExpandCmdReplicaCount int
-	flagExpandCmdForce        bool
+	flagExpandCmdReplicaCount    int
+	flagExpandCmdForce           bool
+	flagExpandCmdDistributeCount int
+	flagExpandCmdSize            string
 
 	// Filter Volume Info/List command flags
 	flagCmdFilterKey   string
@@ -88,7 +90,9 @@ func init() {
 	volumeCmd.AddCommand(volumeListCmd)
 
 	// Volume Expand
-	volumeExpandCmd.Flags().IntVarP(&flagExpandCmdReplicaCount, "replica", "", 0, "Replica Count")
+	volumeExpandCmd.Flags().IntVar(&flagExpandCmdReplicaCount, "replica", 0, "Replica Count")
+	volumeExpandCmd.Flags().IntVar(&flagExpandCmdDistributeCount, "distribute", 0, "Distribute Count")
+	volumeExpandCmd.Flags().StringVar(&flagExpandCmdSize, "size", "", "Size by which volume needs to be expanded.")
 	volumeExpandCmd.Flags().BoolVarP(&flagExpandCmdForce, "force", "f", false, "Force")
 	volumeExpandCmd.Flags().BoolVar(&flagReuseBricks, "reuse-bricks", false, "Reuse Bricks")
 	volumeExpandCmd.Flags().BoolVar(&flagAllowRootDir, "allow-root-dir", false, "Allow Root Directory")
@@ -103,8 +107,6 @@ func init() {
 	volumeEditCmd.MarkFlagRequired("key")
 	volumeEditCmd.MarkFlagRequired("value")
 	volumeCmd.AddCommand(volumeEditCmd)
-
-	RootCmd.AddCommand(volumeCmd)
 }
 
 var volumeCmd = &cobra.Command{
@@ -182,11 +184,8 @@ var volumeStartCmd = &cobra.Command{
 		volname := cmd.Flags().Args()[0]
 		err := client.VolumeStart(volname, flagStartCmdForce)
 		if err != nil {
-			if verbose {
-				log.WithFields(log.Fields{
-					"volume": volname,
-					"error":  err.Error(),
-				}).Error("volume start failed")
+			if GlobalFlag.Verbose {
+				log.WithError(err).WithField("volume", volname).Error("volume start failed")
 			}
 			failure("volume start failed", err, 1)
 		}
@@ -202,11 +201,8 @@ var volumeStopCmd = &cobra.Command{
 		volname := cmd.Flags().Args()[0]
 		err := client.VolumeStop(volname)
 		if err != nil {
-			if verbose {
-				log.WithFields(log.Fields{
-					"volume": volname,
-					"error":  err.Error(),
-				}).Error("volume stop failed")
+			if GlobalFlag.Verbose {
+				log.WithError(err).WithField("volume", volname).Error("volume stop failed")
 			}
 			failure("Volume stop failed", err, 1)
 		}
@@ -220,13 +216,15 @@ var volumeDeleteCmd = &cobra.Command{
 	Args:  cobra.ExactArgs(1),
 	Run: func(cmd *cobra.Command, args []string) {
 		volname := cmd.Flags().Args()[0]
+		if !GlobalFlag.ScriptMode {
+			if ok := PromptConfirm("Are you sure you want to delete volume %s [yes/no]? ", volname); !ok {
+				return
+			}
+		}
 		err := client.VolumeDelete(volname)
 		if err != nil {
-			if verbose {
-				log.WithFields(log.Fields{
-					"volume": volname,
-					"error":  err.Error(),
-				}).Error("volume deletion failed")
+			if GlobalFlag.Verbose {
+				log.WithError(err).WithField("volume", volname).Error("volume deletion failed")
 			}
 			failure("Volume deletion failed", err, 1)
 		}
@@ -299,6 +297,9 @@ func volumeInfoDisplay(vol api.VolumeGetResp) {
 	fmt.Println("Type:", vol.Type)
 	fmt.Println("Volume ID:", vol.ID)
 	fmt.Println("State:", vol.State)
+	if vol.Capacity != 0 {
+		fmt.Println("Capactiy: ", humanReadable(vol.Capacity))
+	}
 	fmt.Println("Transport-type:", vol.Transport)
 	fmt.Println("Options:")
 	for key, value := range vol.Options {
@@ -348,6 +349,11 @@ func volumeInfoHandler2(cmd *cobra.Command, isInfo bool) error {
 		return err
 	}
 
+	if len(vols) <= 0 {
+		fmt.Println("No volumes found")
+		return nil
+	}
+
 	if isInfo {
 		for _, vol := range vols {
 			volumeInfoDisplay(vol)
@@ -379,12 +385,10 @@ var volumeInfoCmd = &cobra.Command{
 	Run: func(cmd *cobra.Command, args []string) {
 		err := volumeInfoHandler2(cmd, true)
 		if err != nil {
-			if verbose {
-				log.WithFields(log.Fields{
-					"error": err.Error(),
-				}).Error("error getting volumes list")
+			if GlobalFlag.Verbose {
+				log.WithError(err).Error("error getting volumes list")
 			}
-			failure("Error getting Volumes list", err, 1)
+			failure("Error getting volumes list", err, 1)
 		}
 	},
 }
@@ -396,12 +400,10 @@ var volumeListCmd = &cobra.Command{
 	Run: func(cmd *cobra.Command, args []string) {
 		err := volumeInfoHandler2(cmd, false)
 		if err != nil {
-			if verbose {
-				log.WithFields(log.Fields{
-					"error": err.Error(),
-				}).Error("error getting volumes list")
+			if GlobalFlag.Verbose {
+				log.WithError(err).Error("error getting volumes list")
 			}
-			failure("Error getting Volumes list", err, 1)
+			failure("Error getting volumes list", err, 1)
 		}
 	},
 }
@@ -426,18 +428,20 @@ func volumeStatusHandler(cmd *cobra.Command) error {
 	if volname == "" {
 		var volList api.VolumeListResp
 		volList, err = client.Volumes("")
+		if len(volList) <= 0 {
+			fmt.Println("No volumes found")
+			return nil
+		}
 		for _, volume := range volList {
 			vol, err = client.BricksStatus(volume.Name)
 			fmt.Println("Volume :", volume.Name)
 			if err == nil {
 				volumeStatusDisplay(vol)
 			} else {
-				if verbose {
-					log.WithFields(log.Fields{
-						"error": err.Error(),
-					}).Error("error getting volume status")
+				if GlobalFlag.Verbose {
+					log.WithError(err).Error("error getting volume status")
 				}
-				failure("Error getting Volume status", err, 1)
+				failure("Error getting volume status", err, 1)
 			}
 		}
 	} else {
@@ -457,12 +461,10 @@ var volumeStatusCmd = &cobra.Command{
 	Run: func(cmd *cobra.Command, args []string) {
 		err := volumeStatusHandler(cmd)
 		if err != nil {
-			if verbose {
-				log.WithFields(log.Fields{
-					"error": err.Error(),
-				}).Error("error getting volume status")
+			if GlobalFlag.Verbose {
+				log.WithError(err).Error("error getting volume status")
 			}
-			failure("Error getting Volume status", err, 1)
+			failure("Error getting volume status", err, 1)
 		}
 	},
 }
@@ -475,12 +477,10 @@ var volumeSizeCmd = &cobra.Command{
 		volname := cmd.Flags().Args()[0]
 		vol, err := client.VolumeStatus(volname)
 		if err != nil {
-			if verbose {
-				log.WithFields(log.Fields{
-					"error": err.Error(),
-				}).Error("error getting volume size")
+			if GlobalFlag.Verbose {
+				log.WithError(err).WithField("volume", volname).Error("error getting volume size")
 			}
-			failure("Error getting Volume size", err, 1)
+			failure("Error getting volume size", err, 1)
 		}
 		fmt.Println("Volume:", volname)
 		fmt.Printf("Capacity: %d bytes\n", vol.Size.Capacity)
@@ -490,40 +490,42 @@ var volumeSizeCmd = &cobra.Command{
 }
 
 var volumeExpandCmd = &cobra.Command{
-	Use:   "add-brick",
+	Use:   "add-brick <volname> [<brick> [<brick>]...|--size <expansion-size>]",
 	Short: helpVolumeExpandCmd,
-	Args:  cobra.MinimumNArgs(2),
+	Args:  cobra.MinimumNArgs(1),
 	Run: func(cmd *cobra.Command, args []string) {
 		volname := cmd.Flags().Args()[0]
 		bricks, err := bricksAsUUID(cmd.Flags().Args()[1:])
 		if err != nil {
-			if verbose {
-				log.WithFields(log.Fields{
-					"volume": volname,
-					"error":  err.Error(),
-				}).Error("error getting brick UUIDs")
+			if GlobalFlag.Verbose {
+				log.WithError(err).WithField("volume", volname).Error("error getting brick UUIDs")
 			}
 			failure("Error getting brick UUIDs", err, 1)
 		}
 		//set flags
+		var size uint64
+		if flagExpandCmdSize != "" {
+			size, err = sizeToBytes(flagExpandCmdSize)
+			if err != nil {
+				failure("Invalid Volume Size specified", nil, 1)
+			}
+		}
 		flags := make(map[string]bool)
 		flags["reuse-bricks"] = flagReuseBricks
 		flags["allow-root-dir"] = flagAllowRootDir
 		flags["allow-mount-as-brick"] = flagAllowMountAsBrick
 		flags["create-brick-dir"] = flagCreateBrickDir
-
 		vol, err := client.VolumeExpand(volname, api.VolExpandReq{
-			ReplicaCount: flagExpandCmdReplicaCount,
-			Bricks:       bricks, // string of format <UUID>:<path>
-			Force:        flagExpandCmdForce,
-			Flags:        flags,
+			ReplicaCount:    flagExpandCmdReplicaCount,
+			Bricks:          bricks, // string of format <UUID>:<path>
+			Force:           flagExpandCmdForce,
+			Flags:           flags,
+			DistributeCount: flagExpandCmdDistributeCount,
+			Size:            uint64(size),
 		})
 		if err != nil {
-			if verbose {
-				log.WithFields(log.Fields{
-					"volume": volname,
-					"error":  err.Error(),
-				}).Error("volume expansion failed")
+			if GlobalFlag.Verbose {
+				log.WithError(err).WithField("volume", volname).Error("volume expansion failed")
 			}
 			failure("Addition of brick failed", err, 1)
 		}
@@ -545,10 +547,8 @@ var volumeEditCmd = &cobra.Command{
 		}
 		_, err := client.EditVolume(volname, editMetadataReq)
 		if err != nil {
-			if verbose {
-				log.WithFields(log.Fields{
-					"error": err.Error(),
-				}).Error("failed to edit metadata")
+			if GlobalFlag.Verbose {
+				log.WithError(err).WithField("volume", volname).Error("failed to edit metadata")
 			}
 			failure("Failed to edit metadata", err, 1)
 		}

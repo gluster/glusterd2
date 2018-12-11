@@ -1,6 +1,7 @@
 package transaction
 
 import (
+	"context"
 	"errors"
 	"fmt"
 	"net/http"
@@ -10,6 +11,7 @@ import (
 
 	"github.com/pborman/uuid"
 	log "github.com/sirupsen/logrus"
+	"go.opencensus.io/trace"
 )
 
 // StepFunc is the function that is supposed to be run during a transaction step
@@ -33,14 +35,14 @@ var (
 )
 
 // do runs the DoFunc on the nodes
-func (s *Step) do(ctx TxnCtx) error {
-	return runStepFuncOnNodes(s.DoFunc, ctx, s.Nodes)
+func (s *Step) do(origCtx context.Context, ctx TxnCtx) error {
+	return runStepFuncOnNodes(origCtx, s.DoFunc, ctx, s.Nodes)
 }
 
 // undo runs the UndoFunc on the nodes
 func (s *Step) undo(ctx TxnCtx) error {
 	if s.UndoFunc != "" {
-		return runStepFuncOnNodes(s.UndoFunc, ctx, s.Nodes)
+		return runStepFuncOnNodes(context.TODO(), s.UndoFunc, ctx, s.Nodes)
 	}
 	return nil
 }
@@ -88,13 +90,13 @@ func (r stepResp) Status() int {
 	return http.StatusInternalServerError
 }
 
-func runStepFuncOnNodes(stepName string, ctx TxnCtx, nodes []uuid.UUID) error {
+func runStepFuncOnNodes(origCtx context.Context, stepName string, ctx TxnCtx, nodes []uuid.UUID) error {
 
 	respCh := make(chan stepPeerResp, len(nodes))
 	defer close(respCh)
 
 	for _, node := range nodes {
-		go runStepFuncOnNode(stepName, ctx, node, respCh)
+		go runStepFuncOnNode(origCtx, stepName, ctx, node, respCh)
 	}
 
 	// Ideally, we have to cancel the pending go-routines on first error
@@ -112,9 +114,9 @@ func runStepFuncOnNodes(stepName string, ctx TxnCtx, nodes []uuid.UUID) error {
 		peerResp = <-respCh
 		if peerResp.Error != nil {
 			resp.errCount++
-			ctx.Logger().WithFields(log.Fields{
+			ctx.Logger().WithError(peerResp.Error).WithFields(log.Fields{
 				"step": stepName, "node": peerResp.PeerID,
-			}).WithError(peerResp.Error).Error("Step failed on node.")
+			}).Error("Step failed on node.")
 		}
 		resp.Resps = append(resp.Resps, peerResp)
 	}
@@ -126,7 +128,7 @@ func runStepFuncOnNodes(stepName string, ctx TxnCtx, nodes []uuid.UUID) error {
 	return nil
 }
 
-func runStepFuncOnNode(stepName string, ctx TxnCtx, node uuid.UUID, respCh chan<- stepPeerResp) {
+func runStepFuncOnNode(origCtx context.Context, stepName string, ctx TxnCtx, node uuid.UUID, respCh chan<- stepPeerResp) {
 
 	ctx.Logger().WithFields(log.Fields{
 		"step": stepName, "node": node,
@@ -134,18 +136,27 @@ func runStepFuncOnNode(stepName string, ctx TxnCtx, node uuid.UUID, respCh chan<
 
 	var err error
 	if uuid.Equal(node, gdctx.MyUUID) {
-		err = runStepFuncLocally(stepName, ctx)
+		err = runStepFuncLocally(origCtx, stepName, ctx)
 	} else {
 		// remote node
-		err = runStepOn(stepName, node, ctx)
+		err = runStepOn(origCtx, stepName, node, ctx)
 	}
 
 	respCh <- stepPeerResp{node, err}
 }
 
-func runStepFuncLocally(stepName string, ctx TxnCtx) error {
+func runStepFuncLocally(origCtx context.Context, stepName string, ctx TxnCtx) error {
 
 	var err error
+
+	if origCtx != nil {
+		_, span := trace.StartSpan(origCtx, stepName)
+		reqID := ctx.GetTxnReqID()
+		span.AddAttributes(
+			trace.StringAttribute("reqID", reqID),
+		)
+		defer span.End()
+	}
 
 	stepFunc, ok := getStepFunc(stepName)
 	if ok {

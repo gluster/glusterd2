@@ -10,7 +10,6 @@ import (
 	"github.com/gluster/glusterd2/plugins/glustershd"
 	"github.com/gluster/glusterd2/plugins/quota"
 	"github.com/gluster/glusterd2/plugins/rebalance"
-	"github.com/gluster/glusterd2/plugins/smartvol"
 
 	// ensure init() of non-plugins also gets executed
 	_ "github.com/gluster/glusterd2/plugins/afr"
@@ -26,5 +25,4 @@ var PluginsList = []GlusterdPlugin{
 	&glustershd.Plugin{},
 	&device.Plugin{},
 	&rebalance.Plugin{},
-	&smartvol.Plugin{},
 }

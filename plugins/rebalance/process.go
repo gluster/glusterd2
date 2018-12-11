@@ -25,6 +25,7 @@ type Process struct {
 	socketfilepath string
 	pidfilepath    string
 	rInfo          rebalanceapi.RebalInfo
+	VolfileID      string
 }
 
 // Name returns the process name
@@ -46,7 +47,6 @@ func (r *Process) Args() []string {
 		volfileserver = "localhost"
 	}
 
-	volFileID := path.Join("rebalance/", r.rInfo.Volname)
 	logDir := path.Join(config.GetString("logdir"), "glusterfs")
 	logFile := fmt.Sprintf("%s/%s-rebalance.log", logDir, r.rInfo.Volname)
 	cmd := r.rInfo.Cmd
@@ -56,7 +56,7 @@ func (r *Process) Args() []string {
 
 	r.args = append(r.args, "-s", volfileserver)
 	r.args = append(r.args, "--volfile-server-port", port)
-	r.args = append(r.args, "--volfile-id", volFileID)
+	r.args = append(r.args, "--volfile-id", r.VolfileID)
 	r.args = append(r.args, "--process-name")
 	r.args = append(r.args, "rebalance")
 	r.args = append(r.args, "--xlator-option", fmt.Sprintf("*distribute.use-readdirp=yes"))
@@ -104,7 +104,7 @@ func NewRebalanceProcess(rinfo rebalanceapi.RebalInfo) (*Process, error) {
 	if e != nil {
 		return nil, e
 	}
-	rebalanceObject := &Process{binarypath: path, rInfo: rinfo}
+	rebalanceObject := &Process{binarypath: path, rInfo: rinfo, VolfileID: rinfo.Volname + "/rebalance"}
 	return rebalanceObject, nil
 }
 

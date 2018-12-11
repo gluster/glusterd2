@@ -42,7 +42,7 @@ func getSession(masterid string, remoteid string) (*georepapi.GeorepSession, err
 func addOrUpdateSession(v *georepapi.GeorepSession) error {
 	json, e := json.Marshal(v)
 	if e != nil {
-		log.WithField("error", e).Error("Failed to marshal the Info object")
+		log.WithError(e).Error("Failed to marshal the Info object")
 		return e
 	}
 
@@ -65,36 +65,33 @@ func deleteSession(mastervolid string, remotevolid string) error {
 }
 
 // getSessionList gets list of Geo-replication sessions
-func getSessionList() ([]*georepapi.GeorepSession, error) {
+func getSessionList() (*georepapi.GeorepSessionList, error) {
 	resp, e := store.Get(context.TODO(), georepPrefix, clientv3.WithPrefix())
 	if e != nil {
 		return nil, e
 	}
 
-	sessions := make([]*georepapi.GeorepSession, len(resp.Kvs))
+	sessions := make(georepapi.GeorepSessionList, len(resp.Kvs))
 
 	for i, kv := range resp.Kvs {
 		var session georepapi.GeorepSession
 
 		if err := json.Unmarshal(kv.Value, &session); err != nil {
-			log.WithFields(log.Fields{
-				"session": string(kv.Key),
-				"error":   err,
-			}).Error("Failed to unmarshal Geo-replication session")
+			log.WithError(err).WithField("session", string(kv.Key)).Error("Failed to unmarshal Geo-replication session")
 			continue
 		}
 
-		sessions[i] = &session
+		sessions[i] = session
 	}
 
-	return sessions, nil
+	return &sessions, nil
 }
 
 // addOrUpdateSSHKeys marshals the georep SSH Public keys to add/update
 func addOrUpdateSSHKey(volname string, sshkey georepapi.GeorepSSHPublicKey) error {
 	json, e := json.Marshal(sshkey)
 	if e != nil {
-		log.WithField("error", e).Error("Failed to marshal the sshkeys object")
+		log.WithError(e).Error("Failed to marshal the sshkeys object")
 		return e
 	}
 
@@ -110,10 +107,7 @@ func addOrUpdateSSHKey(volname string, sshkey georepapi.GeorepSSHPublicKey) erro
 func getSSHPublicKeys(volname string) ([]georepapi.GeorepSSHPublicKey, error) {
 	resp, e := store.Get(context.TODO(), georepSSHKeysPrefix+volname, clientv3.WithPrefix())
 	if e != nil {
-		log.WithFields(log.Fields{
-			"volname": volname,
-			"error":   e,
-		}).Error("Couldn't retrive SSH Key from the node")
+		log.WithError(e).WithField("volname", volname).Error("Couldn't retrive SSH Key from the node")
 		return nil, e
 	}
 

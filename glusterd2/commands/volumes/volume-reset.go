@@ -2,6 +2,7 @@ package volumecommands
 
 import (
 	"net/http"
+	"strings"
 
 	"github.com/gluster/glusterd2/glusterd2/gdctx"
 	"github.com/gluster/glusterd2/glusterd2/peer"
@@ -33,12 +34,24 @@ func volumeResetHandler(w http.ResponseWriter, r *http.Request) {
 
 	ctx := r.Context()
 	logger := gdctx.GetReqLogger(ctx)
-
-	volname := mux.Vars(r)["volname"]
+	var err error
 
 	var req api.VolOptionResetReq
 	if err := restutils.UnmarshalRequest(r, &req); err != nil {
 		restutils.SendHTTPError(ctx, w, http.StatusBadRequest, errors.ErrJSONParsingFailed)
+		return
+	}
+
+	if containsReservedGroupProfile(req.Options) {
+		restutils.SendHTTPError(ctx, w, http.StatusBadRequest, errors.ErrReservedGroupProfile)
+		return
+	}
+
+	volname := mux.Vars(r)["volname"]
+	volinfo, err := volume.GetVolume(volname)
+	if err != nil {
+		status, err := restutils.ErrToStatusCode(err)
+		restutils.SendHTTPError(ctx, w, status, err)
 		return
 	}
 
@@ -50,16 +63,18 @@ func volumeResetHandler(w http.ResponseWriter, r *http.Request) {
 	}
 	defer txn.Done()
 
-	volinfo, err := volume.GetVolume(volname)
-	if err != nil {
-		status, err := restutils.ErrToStatusCode(err)
-		restutils.SendHTTPError(ctx, w, status, err)
+	// store volinfo to revert changes if transaction fails
+	oldvolinfo := volinfo
+	if err := txn.Ctx.Set("oldvolinfo", oldvolinfo); err != nil {
+		restutils.SendHTTPError(ctx, w, http.StatusInternalServerError, err)
 		return
 	}
-	//store volinfo to revert back changes in case of transaction failure
-	oldvolinfo := volinfo
-	// Delete the option after checking for volopt flags
-	opReset := false
+
+	req.Options, err = expandGroupOptionsReset(req.Options)
+	if err != nil {
+		restutils.SendHTTPError(ctx, w, http.StatusInternalServerError, err)
+		return
+	}
 
 	if req.All {
 		req.Options = []string{}
@@ -74,6 +89,29 @@ func volumeResetHandler(w http.ResponseWriter, r *http.Request) {
 			}
 		}
 	}
+
+	// If reset All is called or if anything reseted from the
+	// default group profile, remove from reset list and
+	// reassign the default value
+	var newopts []string
+	if len(volinfo.Subvols) > 0 {
+		optGrp, exists := defaultGroupOptions["profile.default."+strings.ToLower(volinfo.Subvols[0].Type.String())]
+		if exists {
+		REQLOOP:
+			for _, k := range req.Options {
+				for _, opt := range optGrp.Options {
+					if k == opt.Name {
+						// Reset the default value as mentioned in profile
+						volinfo.Options[k] = opt.OnValue
+						continue REQLOOP
+					}
+				}
+				// Not in default profile, continue to reset
+				newopts = append(newopts, k)
+			}
+		}
+	}
+	req.Options = newopts
 
 	for _, k := range req.Options {
 		// Check if the key is set or not
@@ -92,25 +130,18 @@ func volumeResetHandler(w http.ResponseWriter, r *http.Request) {
 			if op.IsForceRequired() {
 				if req.Force {
 					delete(volinfo.Options, k)
-					opReset = true
 				} else {
-					errMsg := "Option needs force flag to be set"
+					errMsg := "Option needs force flag to be reset"
 					restutils.SendHTTPError(ctx, w, http.StatusBadRequest, errMsg)
 					return
 				}
 			}
 			delete(volinfo.Options, k)
-			opReset = true
 		} else {
 			errMsg := "Option trying to reset is not set or invalid option"
 			restutils.SendHTTPError(ctx, w, http.StatusBadRequest, errMsg)
 			return
 		}
-	}
-	// Check if an option was reset, else return.
-	if !opReset {
-		restutils.SendHTTPResponse(ctx, w, http.StatusOK, volinfo.Options)
-		return
 	}
 
 	allNodes, err := peer.GetPeerIDs()
@@ -118,15 +149,13 @@ func volumeResetHandler(w http.ResponseWriter, r *http.Request) {
 		restutils.SendHTTPError(ctx, w, http.StatusInternalServerError, err)
 		return
 	}
-	//save volume information for transaction failure scenario
-	if err := txn.Ctx.Set("oldvolinfo", oldvolinfo); err != nil {
-		restutils.SendHTTPError(ctx, w, http.StatusInternalServerError, err)
-		return
-	}
+
+	// doing this to reuse isActionStepRequired() which takes a map
 	opt := make(map[string]string)
 	for _, key := range req.Options {
 		opt[key] = ""
 	}
+
 	txn.Steps = []*transaction.Step{
 		{
 			DoFunc:   "vol-option.XlatorActionDoReset",
@@ -140,17 +169,22 @@ func volumeResetHandler(w http.ResponseWriter, r *http.Request) {
 			Nodes:    []uuid.UUID{gdctx.MyUUID},
 		},
 		{
+			DoFunc:   "vol-option.GenerateBrickVolfiles",
+			UndoFunc: "vol-option.GenerateBrickvolfiles.Undo",
+			Nodes:    volinfo.Nodes(),
+		},
+		{
 			DoFunc: "vol-option.NotifyVolfileChange",
 			Nodes:  allNodes,
 		},
 	}
+
 	if err := txn.Ctx.Set("req", &req); err != nil {
 		restutils.SendHTTPError(ctx, w, http.StatusInternalServerError, err)
 		return
 	}
 
 	if err := txn.Ctx.Set("volinfo", volinfo); err != nil {
-		logger.WithError(err).Error("failed to set volinfo in transaction context")
 		restutils.SendHTTPError(ctx, w, http.StatusInternalServerError, err)
 		return
 	}
@@ -162,5 +196,5 @@ func volumeResetHandler(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	restutils.SendHTTPResponse(ctx, w, http.StatusOK, volinfo.Options)
+	restutils.SendHTTPResponse(ctx, w, http.StatusOK, volinfo)
 }

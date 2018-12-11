@@ -5,6 +5,7 @@ import (
 	"io"
 	"os"
 	"strings"
+	"time"
 
 	"github.com/gluster/glusterd2/pkg/restclient"
 )
@@ -19,7 +20,12 @@ var (
 )
 
 func initRESTClient(hostname, user, secret, cacert string, insecure bool) {
-	client = restclient.New(hostname, user, secret, cacert, insecure)
+	var err error
+	client, err = restclient.New(hostname, user, secret, cacert, insecure)
+	if err != nil {
+		failure("failed to setup client", err, 1)
+	}
+	client.SetTimeout(time.Duration(GlobalFlag.Timeout) * time.Second)
 }
 
 func isConnectionRefusedErr(err error) bool {
@@ -47,12 +53,36 @@ func handleGlusterdConnectFailure(msg, endpoints string, err error, errcode int)
 }
 
 func failure(msg string, err error, errcode int) {
-	handleGlusterdConnectFailure(msg, flagEndpoints[0], err, errcode)
 
-	// If different error
-	os.Stderr.WriteString(msg + "\n")
-	if err != nil {
-		os.Stderr.WriteString("\nError: " + err.Error() + "\n")
+	handleGlusterdConnectFailure(msg, GlobalFlag.Endpoints[0], err, errcode)
+
+	w := os.Stderr
+
+	w.WriteString(msg + "\n")
+
+	if client == nil && err != nil {
+		fmt.Fprintln(w, err)
+		os.Exit(errcode)
 	}
+
+	resp := client.LastErrorResponse()
+
+	if resp == nil && err != nil {
+		fmt.Fprintln(w, err)
+		os.Exit(errcode)
+	}
+
+	if err != nil {
+		w.WriteString("\nResponse headers:\n")
+		for k, v := range resp.Header {
+			if strings.HasSuffix(k, "-Id") {
+				w.WriteString(fmt.Sprintf("%s: %s\n", k, v[0]))
+			}
+		}
+
+		w.WriteString("\nResponse body:\n")
+		w.WriteString(fmt.Sprintf("%s\n", err.Error()))
+	}
+
 	os.Exit(errcode)
 }

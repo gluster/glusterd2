@@ -22,6 +22,7 @@ type Glustershd struct {
 	args           []string
 	socketfilepath string
 	pidfilepath    string
+	VolfileID      string
 }
 
 // Name returns human-friendly name of the glustershd process. This is used for
@@ -37,22 +38,20 @@ func (shd *Glustershd) Path() string {
 
 // Args returns arguments to be passed to glustershd process during spawn.
 func (shd *Glustershd) Args() []string {
-	shost, _, _ := net.SplitHostPort(config.GetString("clientaddress"))
+	shost, sport, _ := net.SplitHostPort(config.GetString("clientaddress"))
 	if shost == "" {
 		shost = "localhost"
 	}
-	volFileID := "gluster/glustershd"
 
 	logFile := path.Join(config.GetString("logdir"), "glusterfs", "glustershd.log")
-	glusterdSockDir := config.GetString("rundir")
-	socketfilepath := fmt.Sprintf("%s/%x.socket", glusterdSockDir, xxhash.Sum64String(gdctx.MyUUID.String()))
 
 	shd.args = []string{}
 	shd.args = append(shd.args, "-s", shost)
-	shd.args = append(shd.args, "--volfile-id", volFileID)
+	shd.args = append(shd.args, "--volfile-server-port", sport)
+	shd.args = append(shd.args, "--volfile-id", shd.VolfileID)
 	shd.args = append(shd.args, "-p", shd.PidFile())
 	shd.args = append(shd.args, "-l", logFile)
-	shd.args = append(shd.args, "-S", socketfilepath)
+	shd.args = append(shd.args, "-S", shd.SocketFile())
 	shd.args = append(shd.args,
 		"--xlator-option",
 		fmt.Sprintf("*replicate*.node-uuid=%s", gdctx.MyUUID))
@@ -62,7 +61,12 @@ func (shd *Glustershd) Args() []string {
 
 // SocketFile returns path to the socket file used for IPC.
 func (shd *Glustershd) SocketFile() string {
-	return ""
+	if shd.socketfilepath != "" {
+		return shd.socketfilepath
+	}
+	shd.socketfilepath = fmt.Sprintf("%s/shd-%x.socket", config.GetString("rundir"), xxhash.Sum64String(gdctx.MyUUID.String()))
+
+	return shd.socketfilepath
 }
 
 // PidFile returns path to the pid file of self heal process.
@@ -84,7 +88,7 @@ func newGlustershd() (*Glustershd, error) {
 	if e != nil {
 		return nil, e
 	}
-	glustershdObject := &Glustershd{binarypath: path}
+	glustershdObject := &Glustershd{binarypath: path, VolfileID: "gluster/glustershd"}
 	return glustershdObject, nil
 }
 

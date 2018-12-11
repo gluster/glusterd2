@@ -3,9 +3,11 @@ package cmd
 import (
 	"errors"
 	"fmt"
+	"io/ioutil"
 	"net/url"
 	"os"
 	"strings"
+	"time"
 
 	"github.com/gluster/glusterd2/pkg/restclient"
 	georepapi "github.com/gluster/glusterd2/plugins/georeplication/api"
@@ -54,12 +56,24 @@ var (
 	flagGeorepCmdForce        bool
 	flagGeorepShowAllConfig   bool
 	flagGeorepRemoteEndpoints string
+	flagRemoteUser            string
+	flagRemoteSecret          string
+	flagRemoteSecretFile      string
+	flagRemoteCacert          string
+	flagRemoteInsecure        bool
 )
 
 func init() {
 	// Geo-rep Create
 	georepCreateCmd.Flags().StringVar(&flagGeorepRemoteEndpoints, "remote-endpoints", "", "remote glusterd2 endpoints")
 	georepCreateCmd.Flags().BoolVarP(&flagGeorepCmdForce, "force", "f", false, "Force")
+	georepCreateCmd.Flags().StringVar(&flagRemoteUser, "remote-user", "glustercli", "Username for authentication")
+	georepCreateCmd.Flags().StringVar(&flagRemoteSecret, "remote-secret", "", "Password for authentication")
+	georepCreateCmd.Flags().StringVar(&flagRemoteSecretFile, "remote-secret-file", "", "Path to file which contains the secret for authentication")
+	georepCreateCmd.Flags().StringVar(&flagRemoteCacert, "remote-cacert", "", "Path to CA certificate")
+	georepCreateCmd.Flags().BoolVar(&flagRemoteInsecure, "remote-insecure", false,
+		"Skip remote server certificate validation")
+
 	georepCmd.AddCommand(georepCreateCmd)
 
 	// Geo-rep Start
@@ -90,8 +104,6 @@ func init() {
 	georepCmd.AddCommand(georepGetCmd)
 	georepCmd.AddCommand(georepSetCmd)
 	georepCmd.AddCommand(georepResetCmd)
-
-	RootCmd.AddCommand(georepCmd)
 }
 
 var georepCmd = &cobra.Command{
@@ -125,11 +137,8 @@ func getVolumeDetails(volname string, rclient *restclient.Client) (*volumeDetail
 		if !master {
 			emsg = errGeorepRemoteInfoNotAvailable
 		}
-		if verbose {
-			log.WithFields(log.Fields{
-				"volume": volname,
-				"error":  err.Error(),
-			}).Error("failed to get Volume details")
+		if GlobalFlag.Verbose {
+			log.WithError(err).WithField("volume", volname).Error("failed to get Volume details")
 		}
 		return nil, errors.New(emsg)
 	}
@@ -205,11 +214,8 @@ var georepCreateCmd = &cobra.Command{
 		// Generate SSH Keys from all nodes of Master Volume
 		sshkeys, err := client.GeorepSSHKeysGenerate(volname)
 		if err != nil {
-			if verbose {
-				log.WithFields(log.Fields{
-					"volume": volname,
-					"error":  err.Error(),
-				}).Error("failed to generate SSH Keys")
+			if GlobalFlag.Verbose {
+				log.WithError(err).WithField("volume", volname).Error("failed to generate SSH Keys")
 			}
 			failure(errGeorepSessionCreationFailed+errGeorepSSHKeysGenerate, err, 1)
 		}
@@ -223,19 +229,16 @@ var georepCreateCmd = &cobra.Command{
 		})
 
 		if err != nil {
-			if verbose {
-				log.WithField("volume", volname).Println("georep session creation failed")
+			if GlobalFlag.Verbose {
+				log.WithError(err).WithField("volume", volname).Error("georep session creation failed")
 			}
 			failure(errGeorepSessionCreationFailed, err, 1)
 		}
 
 		err = rclient.GeorepSSHKeysPush(remotevol, sshkeys)
 		if err != nil {
-			if verbose {
-				log.WithFields(log.Fields{
-					"volume": remotevol,
-					"error":  err.Error(),
-				}).Error("failed to push SSH Keys to Remote Cluster")
+			if GlobalFlag.Verbose {
+				log.WithError(err).WithField("volume", volname).Error("failed to push SSH Keys to Remote Cluster")
 			}
 			handleGlusterdConnectFailure(errGeorepSessionCreationFailed, remoteEndpoint, err, 1)
 
@@ -292,11 +295,8 @@ func handleGeorepAction(args []string, action georepAction) {
 	}
 
 	if err != nil {
-		if verbose {
-			log.WithFields(log.Fields{
-				"volume": args[0],
-				"error":  err.Error(),
-			}).Error("geo-replication", action.String(), "failed")
+		if GlobalFlag.Verbose {
+			log.WithError(err).WithField("volume", args[0]).Error("geo-replication", action.String(), "failed")
 		}
 		failure(fmt.Sprintf("Geo-replication %s failed", action.String()), err, 1)
 	}
@@ -349,7 +349,6 @@ var georepDeleteCmd = &cobra.Command{
 }
 
 func getRemoteClient(host string) (string, *restclient.Client, error) {
-	// TODO: Handle Remote Cluster Authentication and certificates and URL scheme
 	clienturl := flagGeorepRemoteEndpoints
 
 	if flagGeorepRemoteEndpoints != "" {
@@ -360,7 +359,49 @@ func getRemoteClient(host string) (string, *restclient.Client, error) {
 	} else {
 		clienturl = fmt.Sprintf("%s://%s:%d", geoRepHTTPScheme, host, geoRepGlusterdPort)
 	}
-	return clienturl, restclient.New(clienturl, "", "", "", true), nil
+
+	remoteSecret := ""
+	// Secret is taken in following order of precedence (highest to lowest):
+	// --remote-secret
+	// --remote-secret-file
+	// GD2_REMOTE_AUTH_SECRET (environment variable)
+	// Secret set for Master cluster itself
+	// Default secret
+
+	// Remote Cluster secret --remote-secret
+	if flagRemoteSecret != "" {
+		remoteSecret = flagRemoteSecret
+	}
+
+	// Remote Cluster's secret file --remote-secret-file
+	if flagRemoteSecretFile != "" && remoteSecret == "" {
+		data, err := ioutil.ReadFile(flagRemoteSecretFile)
+		if err != nil {
+			failure(fmt.Sprintf("failed to read remote secret file %s", flagRemoteSecretFile),
+				err, 1)
+		}
+		remoteSecret = string(data)
+	}
+
+	// GD2_REMOTE_AUTH_SECRET
+	if remoteSecret == "" {
+		remoteSecret = os.Getenv("GD2_REMOTE_AUTH_SECRET")
+	}
+
+	// Below option of local cluster is used because --remote-* options
+	// are not specified and Remote volume may exists in same cluster where
+	// Master Volume exists
+	if remoteSecret == "" {
+		remoteSecret = GlobalFlag.Secret
+	}
+
+	client, err := restclient.New(clienturl, flagRemoteUser, remoteSecret, flagRemoteCacert, flagRemoteInsecure)
+	if err != nil {
+		failure("failed to setup remote client", err, 1)
+	}
+	client.SetTimeout(time.Duration(GlobalFlag.Timeout) * time.Second)
+
+	return clienturl, client, nil
 }
 
 func getVolIDs(pargs []string) (string, string, error) {
@@ -419,7 +460,7 @@ var georepStatusCmd = &cobra.Command{
 			failure(errGeorepStatusCommandFailed, err, 1)
 		}
 
-		var sessions []georepapi.GeorepSession
+		var sessions georepapi.GeorepSessionList
 		// If masterVolID or remoteVolID is empty then get status of all and then filter
 		if masterVolID == "" || remoteVolID == "" {
 			allSessions, err := client.GeorepStatus("", "")

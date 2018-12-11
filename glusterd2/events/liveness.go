@@ -18,6 +18,7 @@ const (
 type livenessWatcher struct {
 	stopCh chan struct{}
 	wg     sync.WaitGroup
+	stop   sync.Once
 }
 
 var lWatcher *livenessWatcher
@@ -26,7 +27,6 @@ var lWatcher *livenessWatcher
 // broadcasts this information locally.
 func (l *livenessWatcher) Watch() {
 	defer l.wg.Done()
-
 	wch := store.Store.Watch(store.Store.Ctx(), store.LivenessKeyPrefix,
 		clientv3.WithPrefix(), clientv3.WithKeysOnly())
 	for {
@@ -65,15 +65,26 @@ func (l *livenessWatcher) Watch() {
 	}
 }
 
+//Stop will stop the livenessWatcher if it is running and waits for
+//it to exit.
+func (l *livenessWatcher) Stop() error {
+	l.stop.Do(func() {
+		close(l.stopCh)
+		l.wg.Wait()
+	})
+	return nil
+}
+
 func startLivenessWatcher() {
 	lWatcher = &livenessWatcher{
-		stopCh: make(chan struct{}, 0),
+		stopCh: make(chan struct{}),
 	}
 	lWatcher.wg.Add(1)
 	go lWatcher.Watch()
 }
 
 func stopLivenessWatcher() {
-	close(lWatcher.stopCh)
-	lWatcher.wg.Wait()
+	if err := lWatcher.Stop(); err != nil {
+		log.WithError(err).Errorf("got error in stopping liveness watcher")
+	}
 }

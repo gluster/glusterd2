@@ -5,6 +5,7 @@ import (
 	"encoding/json"
 	"errors"
 	"reflect"
+	"time"
 
 	"github.com/gluster/glusterd2/glusterd2/store"
 
@@ -12,6 +13,8 @@ import (
 	"github.com/pborman/uuid"
 	log "github.com/sirupsen/logrus"
 )
+
+const etcdTxnTimeout = 10
 
 // TxnCtx is used to carry contextual information across the lifetime of a transaction
 type TxnCtx interface {
@@ -23,6 +26,8 @@ type TxnCtx interface {
 	Get(key string, value interface{}) error
 	// GetNodeResult is similar to Get but prefixes the key with node UUID specified.
 	GetNodeResult(peerID uuid.UUID, key string, value interface{}) error
+	// GetTxnReqID gets the reqID string saved in the transaction.
+	GetTxnReqID() string
 	// Delete deletes the key and value
 	Delete(key string) error
 	// Logger returns the Logrus logger associated with the context
@@ -94,11 +99,13 @@ func (c *Tctx) commit() error {
 		putOps = append(putOps, clientv3.OpPut(key, value))
 	}
 
-	txn, err := store.Store.Txn(context.TODO()).
+	ctx, cancel := context.WithTimeout(context.Background(), etcdTxnTimeout*time.Second)
+	txn, err := store.Txn(ctx).
 		If().
 		Then(putOps...).
 		Else().
 		Commit()
+	cancel()
 
 	if err != nil || !txn.Succeeded {
 		msg := "etcd txn to store txn context keys failed"
@@ -163,6 +170,11 @@ func (c *Tctx) Get(key string, value interface{}) error {
 func (c *Tctx) GetNodeResult(peerID uuid.UUID, key string, value interface{}) error {
 	storeKey := peerID.String() + "/" + key
 	return c.Get(storeKey, value)
+}
+
+// GetTxnReqID gets the reqID string saved within the txnCtxConfig.
+func (c *Tctx) GetTxnReqID() string {
+	return c.config.LogFields["reqid"].(string)
 }
 
 // Delete deletes the key and attached value

@@ -3,10 +3,10 @@ package volumecommands
 import (
 	"net/http"
 
+	"github.com/gluster/glusterd2/glusterd2/options"
 	restutils "github.com/gluster/glusterd2/glusterd2/servers/rest/utils"
 	"github.com/gluster/glusterd2/glusterd2/volume"
 	"github.com/gluster/glusterd2/glusterd2/xlator"
-	"github.com/gluster/glusterd2/glusterd2/xlator/options"
 	"github.com/gluster/glusterd2/pkg/api"
 
 	"github.com/gorilla/mux"

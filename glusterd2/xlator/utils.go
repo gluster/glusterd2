@@ -2,8 +2,9 @@ package xlator
 
 import (
 	"fmt"
+	"path"
 
-	"github.com/gluster/glusterd2/glusterd2/xlator/options"
+	"github.com/gluster/glusterd2/glusterd2/options"
 )
 
 // NotFoundError is returned when an xlator cannot be found in the xlMap
@@ -16,6 +17,10 @@ func (e NotFoundError) Error() string {
 // Find returns a Xlator with the give ID if found.
 // Returns a XlatorNotFoundError otherwise.
 func Find(id string) (*Xlator, error) {
+	// Remove category prefix for example "cluster/replicate"
+	// will be converted to "replicate"
+	id = path.Base(id)
+
 	xl, ok := xlMap[id]
 	if !ok {
 		return nil, NotFoundError(id)
@@ -37,10 +42,11 @@ func (e OptionNotFoundError) Error() string {
 func FindOption(k string) (*options.Option, error) {
 	// Interested only in <xlator>.<name> part of the key as optMap is indexed
 	// using them.
-	_, xl, name, err := options.SplitKey(k)
-	if err != nil {
-		return nil, err
-	}
+	_, xl, name := options.SplitKey(k)
+
+	// Remove category prefix for example "cluster/replicate"
+	// will be converted to "replicate"
+	xl = path.Base(xl)
 
 	opt, ok := optMap[xl+"."+name]
 	if !ok {

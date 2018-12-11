@@ -2,9 +2,21 @@ package api
 
 // BrickReq represents Brick Request
 type BrickReq struct {
-	Type   string `json:"type"`
-	PeerID string `json:"peerid"`
-	Path   string `json:"path"`
+	Type           string `json:"type"`
+	PeerID         string `json:"peerid"`
+	Path           string `json:"path"`
+	TpMetadataSize uint64 `json:"metadata-size,omitempty"`
+	TpSize         uint64 `json:"thinpool-size,omitempty"`
+	VgName         string `json:"vg-name,omitempty"`
+	RootDevice     string `json:"root-device,omitempty"`
+	TpName         string `json:"thinpool-name,omitempty"`
+	LvName         string `json:"logical-volume,omitempty"`
+	Size           uint64 `json:"size,omitempty"`
+	VgID           string `json:"vg-id,omitempty"`
+	BrickDirSuffix string `json:"brick-dir-suffix,omitempty"`
+	DevicePath     string `json:"device-path,omitempty"`
+	MntOpts        string `json:"mnt-opts,omitempty"`
+	FsType         string `json:"fs-type,omitempty"`
 }
 
 // SubvolReq represents Sub volume Request
@@ -27,24 +39,43 @@ type SubvolReq struct {
 "create-brick-dir" : if brick dir is not present, create it
 */
 type VolCreateReq struct {
-	Name         string            `json:"name,omitempty"`
-	Transport    string            `json:"transport,omitempty"`
-	Subvols      []SubvolReq       `json:"subvols"`
-	Options      map[string]string `json:"options,omitempty"`
-	Force        bool              `json:"force,omitempty"`
-	Advanced     bool              `json:"advanced,omitempty"`
-	Experimental bool              `json:"experimental,omitempty"`
-	Deprecated   bool              `json:"deprecated,omitempty"`
-	Metadata     map[string]string `json:"metadata,omitempty"`
-	Flags        map[string]bool   `json:"flags,omitempty"`
+	Name                    string            `json:"name"`
+	Transport               string            `json:"transport,omitempty"`
+	Subvols                 []SubvolReq       `json:"subvols"`
+	Force                   bool              `json:"force,omitempty"`
+	Metadata                map[string]string `json:"metadata,omitempty"`
+	Flags                   map[string]bool   `json:"flags,omitempty"`
+	Size                    uint64            `json:"size"`
+	DistributeCount         int               `json:"distribute,omitempty"`
+	ReplicaCount            int               `json:"replica,omitempty"`
+	ArbiterCount            int               `json:"arbiter,omitempty"`
+	AverageFileSize         uint64            `json:"average-file-size,omitempty"`
+	DisperseCount           int               `json:"disperse,omitempty"`
+	DisperseRedundancyCount int               `json:"disperse-redundancy,omitempty"`
+	DisperseDataCount       int               `json:"disperse-data,omitempty"`
+	SnapshotEnabled         bool              `json:"snapshot,omitempty"`
+	SnapshotReserveFactor   float64           `json:"snapshot-reserve-factor,omitempty"`
+	LimitPeers              []string          `json:"limit-peers,omitempty"`
+	LimitZones              []string          `json:"limit-zones,omitempty"`
+	ExcludePeers            []string          `json:"exclude-peers,omitempty"`
+	ExcludeZones            []string          `json:"exclude-zones,omitempty"`
+	SubvolZonesOverlap      bool              `json:"subvolume-zones-overlap,omitempty"`
+	SubvolType              string            `json:"subvolume-type,omitempty"`
+	VolOptionReq
+}
+
+// VolOptionFlags is set of flags that allow/disallow setting certain kinds
+// of volume options.
+type VolOptionFlags struct {
+	AllowAdvanced     bool `json:"allow-advanced-options,omitempty"`
+	AllowExperimental bool `json:"allow-experimental-options,omitempty"`
+	AllowDeprecated   bool `json:"allow-deprecated-options,omitempty"`
 }
 
 // VolOptionReq represents an incoming request to set volume options
 type VolOptionReq struct {
-	Options      map[string]string `json:"options"`
-	Advanced     bool              `json:"advanced,omitempty"`
-	Experimental bool              `json:"experimental,omitempty"`
-	Deprecated   bool              `json:"deprecated,omitempty"`
+	Options map[string]string `json:"options"`
+	VolOptionFlags
 }
 
 // VolOptionResetReq represents a request to reset volume options
@@ -62,10 +93,12 @@ type VolOptionResetReq struct {
 "create-brick-dir" : if brick dir is not present, create it
 */
 type VolExpandReq struct {
-	ReplicaCount int             `json:"replica,omitempty"`
-	Bricks       []BrickReq      `json:"bricks"`
-	Force        bool            `json:"force,omitempty"`
-	Flags        map[string]bool `json:"flags,omitempty"`
+	ReplicaCount    int             `json:"replica,omitempty"`
+	Bricks          []BrickReq      `json:"bricks,omitempty"`
+	Force           bool            `json:"force,omitempty"`
+	Flags           map[string]bool `json:"flags,omitempty"`
+	Size            uint64          `json:"size,omitempty"`
+	DistributeCount int             `json:"distribute,omitempty"`
 }
 
 // VolumeOption represents an option that is part of a profile
@@ -84,9 +117,7 @@ type OptionGroup struct {
 // OptionGroupReq represents a request to create a new option group
 type OptionGroupReq struct {
 	OptionGroup
-	Advanced     bool `json:"advanced,omitempty"`
-	Experimental bool `json:"experimental,omitempty"`
-	Deprecated   bool `json:"deprecated,omitempty"`
+	VolOptionFlags
 }
 
 // ClientStatedump uniquely identifies a client (only gfapi) connected to
@@ -108,6 +139,19 @@ type VolStatedumpReq struct {
 type VolEditReq struct {
 	Metadata       map[string]string `json:"metadata"`
 	DeleteMetadata bool              `json:"delete-metadata"`
+}
+
+// ReplaceBrickReq represents replace brick request
+type ReplaceBrickReq struct {
+	SrcPeerID          string          `json:"src-peerid"`
+	SrcBrickPath       string          `json:"src-brickpath"`
+	LimitPeers         []string        `json:"limit-peers,omitempty"`
+	LimitZones         []string        `json:"limit-zones,omitempty"`
+	ExcludePeers       []string        `json:"exclude-peers,omitempty"`
+	ExcludeZones       []string        `json:"exclude-zones,omitempty"`
+	SubvolZonesOverlap bool            `json:"subvolume-zones-overlap,omitempty"`
+	Force              bool            `json:"force,omitempty"`
+	Flags              map[string]bool `json:"flags,omitempty"`
 }
 
 // VolumeStartReq represents a request to start volume

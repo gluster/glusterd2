@@ -5,23 +5,27 @@ import (
 	"encoding/json"
 	"errors"
 	"fmt"
+	"io/ioutil"
 	"os"
+	"path"
 	"path/filepath"
+	"strings"
 
 	"github.com/gluster/glusterd2/glusterd2/brick"
 	"github.com/gluster/glusterd2/glusterd2/gdctx"
+	"github.com/gluster/glusterd2/glusterd2/options"
 	"github.com/gluster/glusterd2/glusterd2/servers/sunrpc"
 	"github.com/gluster/glusterd2/glusterd2/store"
 	"github.com/gluster/glusterd2/glusterd2/transaction"
-	volgen "github.com/gluster/glusterd2/glusterd2/volgen2"
+	"github.com/gluster/glusterd2/glusterd2/volgen"
 	"github.com/gluster/glusterd2/glusterd2/volume"
 	"github.com/gluster/glusterd2/glusterd2/xlator"
-	"github.com/gluster/glusterd2/glusterd2/xlator/options"
 	"github.com/gluster/glusterd2/pkg/api"
 	gderrors "github.com/gluster/glusterd2/pkg/errors"
 
 	"github.com/pborman/uuid"
 	log "github.com/sirupsen/logrus"
+	config "github.com/spf13/viper"
 	"golang.org/x/sys/unix"
 )
 
@@ -29,7 +33,7 @@ const volumeIDXattrKey = "trusted.glusterfs.volume-id"
 
 // validateOptions validates if the options and their values are valid and can
 // be set on a volume.
-func validateOptions(opts map[string]string, adv, exp, dep bool) error {
+func validateOptions(opts map[string]string, flags api.VolOptionFlags) error {
 
 	for k, v := range opts {
 		o, err := xlator.FindOption(k)
@@ -39,21 +43,21 @@ func validateOptions(opts map[string]string, adv, exp, dep bool) error {
 
 		switch {
 		case !o.IsSettable():
-			return fmt.Errorf("Option %s cannot be set", k)
+			return fmt.Errorf("option %s cannot be set", k)
 
-		case o.IsAdvanced() && !adv:
-			return fmt.Errorf("Option %s is an advanced option. To set it pass the advanced flag", k)
+		case o.IsAdvanced() && !flags.AllowAdvanced:
+			return fmt.Errorf("option %s is an advanced option. To set it pass the advanced flag", k)
 
-		case o.IsExperimental() && !exp:
-			return fmt.Errorf("Option %s is an experimental option. To set it pass the experimental flag", k)
+		case o.IsExperimental() && !flags.AllowExperimental:
+			return fmt.Errorf("option %s is an experimental option. To set it pass the experimental flag", k)
 
-		case o.IsDeprecated() && !dep:
+		case o.IsDeprecated() && !flags.AllowDeprecated:
 			// TODO: Return deprecation version and alternative option if available
-			return fmt.Errorf("Option %s will be deprecated in future releases. To set it pass the deprecated flag", k)
+			return fmt.Errorf("option %s will be deprecated in future releases. To set it pass the deprecated flag", k)
 		}
 
 		if err := o.Validate(v); err != nil {
-			return fmt.Errorf("Failed to validate value(%s) for key(%s): %s", k, v, err.Error())
+			return fmt.Errorf("failed to validate value(%s) for key(%s): %s", k, v, err.Error())
 		}
 		// TODO: Check op-version
 	}
@@ -63,10 +67,7 @@ func validateOptions(opts map[string]string, adv, exp, dep bool) error {
 
 func validateXlatorOptions(opts map[string]string, volinfo *volume.Volinfo) error {
 	for k, v := range opts {
-		_, xl, key, err := options.SplitKey(k)
-		if err != nil {
-			return err
-		}
+		_, xl, key := options.SplitKey(k)
 		xltr, err := xlator.Find(xl)
 		if err != nil {
 			return err
@@ -80,14 +81,27 @@ func validateXlatorOptions(opts map[string]string, volinfo *volume.Volinfo) erro
 	return nil
 }
 
-func expandGroupOptions(opts map[string]string) (map[string]string, error) {
+func getGroupOptionsFromStore() (map[string]*api.OptionGroup, error) {
+
 	resp, err := store.Get(context.TODO(), "groupoptions")
 	if err != nil {
 		return nil, err
 	}
 
 	var groupOptions map[string]*api.OptionGroup
-	if err := json.Unmarshal(resp.Kvs[0].Value, &groupOptions); err != nil {
+	if resp.Count > 0 {
+		if err := json.Unmarshal(resp.Kvs[0].Value, &groupOptions); err != nil {
+			return nil, err
+		}
+	}
+
+	return groupOptions, nil
+}
+
+func expandGroupOptions(opts map[string]string) (map[string]string, error) {
+
+	groupOptions, err := getGroupOptionsFromStore()
+	if err != nil {
 		return nil, err
 	}
 
@@ -113,6 +127,28 @@ func expandGroupOptions(opts map[string]string) (map[string]string, error) {
 			}
 		}
 	}
+
+	return options, nil
+}
+
+func expandGroupOptionsReset(reqOpts []string) ([]string, error) {
+
+	groupOptions, err := getGroupOptionsFromStore()
+	if err != nil {
+		return nil, err
+	}
+
+	var options []string
+	for _, reqOpt := range reqOpts {
+		if optionSet, ok := groupOptions[reqOpt]; ok {
+			for _, option := range optionSet.Options {
+				options = append(options, option.Name)
+			}
+		} else {
+			options = append(options, reqOpt)
+		}
+	}
+
 	return options, nil
 }
 
@@ -174,7 +210,7 @@ func validateBricks(c transaction.TxnCtx) error {
 	return nil
 }
 
-// This txn step is used in volume create and in volume expand
+// This txn step is used in volume create, replace brick and in volume expand
 func initBricks(c transaction.TxnCtx) error {
 
 	var err error
@@ -252,19 +288,13 @@ func storeVolInfo(c transaction.TxnCtx, key string) error {
 	var volinfo volume.Volinfo
 	if err := c.Get(key, &volinfo); err != nil {
 		c.Logger().WithError(err).WithField(
-			"key", "volinfo").Debug("Failed to get key from store")
+			"key", "volinfo").Debug("failed to get key from store")
 		return err
 	}
 
 	if err := volume.AddOrUpdateVolumeFunc(&volinfo); err != nil {
 		c.Logger().WithError(err).WithField(
 			"volume", volinfo.Name).Debug("failed to store volume info")
-		return err
-	}
-
-	if err := volgen.Generate(); err != nil {
-		c.Logger().WithError(err).WithField(
-			"volume", volinfo.Name).Debug("failed to generate volfiles")
 		return err
 	}
 
@@ -276,8 +306,43 @@ func undoStoreVolume(c transaction.TxnCtx) error {
 	return storeVolInfo(c, "oldvolinfo")
 }
 
-// LoadDefaultGroupOptions loads the default group option map into the store
-func LoadDefaultGroupOptions() error {
+func loadDefaultGroupOptions() error {
+	defaultProfilesPath := path.Join(config.GetString("localstatedir"), "templates", "profiles.json")
+	// If directory not exists, create the directory and then generate default templates
+	_, err := os.Stat(defaultProfilesPath)
+	if os.IsNotExist(err) {
+		content, err := json.MarshalIndent(defaultGroupOptions, "", "    ")
+		if err != nil {
+			return err
+		}
+
+		err = os.MkdirAll(path.Dir(defaultProfilesPath), os.ModeDir|os.ModePerm)
+		if err != nil {
+			return err
+		}
+		return ioutil.WriteFile(defaultProfilesPath, content, 0640)
+	} else if err == nil {
+		content, err := ioutil.ReadFile(defaultProfilesPath)
+		if err != nil {
+			return err
+		}
+		var grpOpts map[string]*api.OptionGroup
+		err = json.Unmarshal(content, &grpOpts)
+		if err != nil {
+			return err
+		}
+		defaultGroupOptions = grpOpts
+		return nil
+	}
+	return err
+}
+
+// InitDefaultGroupOptions loads the default group option map into the store
+func InitDefaultGroupOptions() error {
+	err := loadDefaultGroupOptions()
+	if err != nil {
+		return err
+	}
 	groupOptions, err := json.Marshal(defaultGroupOptions)
 	if err != nil {
 		return err
@@ -310,12 +375,65 @@ func isActionStepRequired(opt map[string]string, volinfo *volume.Volinfo) bool {
 		return false
 	}
 	for k := range opt {
-		_, xl, _, err := options.SplitKey(k)
-		if err != nil {
-			continue
-		}
+		_, xl, _ := options.SplitKey(k)
 		if xltr, err := xlator.Find(xl); err == nil && xltr.Actor != nil {
 			return true
+		}
+	}
+
+	return false
+}
+
+func txnDeleteBrickVolfiles(c transaction.TxnCtx) error {
+	var volinfo volume.Volinfo
+	if err := c.Get("volinfo", &volinfo); err != nil {
+		c.Logger().WithError(err).WithField(
+			"key", "volinfo").Error("failed to get key from store")
+		return err
+	}
+
+	err := volgen.DeleteBricksVolfiles(volinfo.GetLocalBricks())
+	if err != nil {
+		c.Logger().WithError(err).WithFields(log.Fields{
+			"template": "brick",
+			"volume":   volinfo.Name,
+		}).Error("failed to delete brick volfile")
+		return err
+	}
+	return nil
+}
+
+func txnGenerateBrickVolfiles(c transaction.TxnCtx) error {
+	var volinfo volume.Volinfo
+	if err := c.Get("volinfo", &volinfo); err != nil {
+		return err
+	}
+
+	err := volgen.GenerateBricksVolfiles(&volinfo, volinfo.GetLocalBricks())
+	if err != nil {
+		c.Logger().WithError(err).WithFields(log.Fields{
+			"template": "brick",
+			"volume":   volinfo.Name,
+		}).Error("failed to generate volfile")
+		return err
+	}
+	return nil
+}
+
+func containsReservedGroupProfile(opts interface{}) bool {
+	pfx := "profile.default."
+	switch value := opts.(type) {
+	case map[string]string:
+		for k := range value {
+			if strings.HasPrefix(k, pfx) {
+				return true
+			}
+		}
+	case []string:
+		for _, v := range value {
+			if strings.HasPrefix(v, pfx) {
+				return true
+			}
 		}
 	}
 

@@ -16,7 +16,7 @@ func validateOptionSet(req api.OptionGroupReq) error {
 	for _, o := range req.Options {
 		o1[o.Name] = o.OnValue
 	}
-	return validateOptions(o1, req.Advanced, req.Experimental, req.Deprecated)
+	return validateOptions(o1, req.VolOptionFlags)
 }
 
 func optionGroupCreateHandler(w http.ResponseWriter, r *http.Request) {
@@ -40,11 +40,12 @@ func optionGroupCreateHandler(w http.ResponseWriter, r *http.Request) {
 	}
 
 	var groupOptions map[string]*api.OptionGroup
-	if err := json.Unmarshal(resp.Kvs[0].Value, &groupOptions); err != nil {
-		restutils.SendHTTPError(ctx, w, http.StatusInternalServerError, err)
-		return
+	if resp.Count > 0 {
+		if err := json.Unmarshal(resp.Kvs[0].Value, &groupOptions); err != nil {
+			restutils.SendHTTPError(ctx, w, http.StatusInternalServerError, err)
+			return
+		}
 	}
-
 	var optionSet []api.VolumeOption
 	for _, option := range req.Options {
 		optionSet = append(optionSet, option)
@@ -66,5 +67,8 @@ func optionGroupCreateHandler(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	restutils.SendHTTPResponse(ctx, w, http.StatusCreated, req)
+	// FIXME: Change this to http.StatusCreated when we are able to set
+	// location header with a unique URL that points to created option
+	// group.
+	restutils.SendHTTPResponse(ctx, w, http.StatusOK, req)
 }

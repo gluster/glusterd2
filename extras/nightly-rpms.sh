@@ -6,6 +6,17 @@
 
 set -e
 
+if grep -q Fedora /etc/redhat-release; then
+  YUMDNF=dnf
+  MOCKARGS="--dnf"
+else
+  YUMDNF=yum
+  MOCKARGS=
+  yum install -y epel-release
+fi
+
+$YUMDNF -y install make mock rpm-build golang
+
 ##
 ## Set up build environment
 ##
@@ -15,7 +26,6 @@ BUILDDIR=$PWD/$(mktemp -d nightlyrpmXXXXXX)
 BASEDIR=$(dirname "$0")
 GD2CLONE=$(realpath "$BASEDIR/..")
 
-yum -y install make mock rpm-build golang
 
 export GOPATH=$BUILDDIR/go
 mkdir -p "$GOPATH"/{bin,pkg,src}
@@ -46,7 +56,8 @@ popd #GD2SRC
 
 pushd "$BUILDDIR"
 
-DISTARCHIVE="glusterd2-$FULL_VERSION-vendor.tar.xz"
+DISTBASE="glusterd2-$FULL_VERSION"
+DISTARCHIVE="$DISTBASE-vendor.tar.xz"
 SPEC=glusterd2.spec
 sed -i -E "
 # Use bundled always
@@ -54,11 +65,11 @@ s/with_bundled 0/with_bundled 1/;
 # Replace version with HEAD version
 s/^Version:[[:space:]]+([0-9]+\\.)*[0-9]+$/Version: $VERSION/;
 # Replace release with proper release
-s/^Release:[[:space:]]+.*%\\{\\?dist\\}/Release: $RELEASE%{?dist}/;
+s/^Release:[[:space:]]+.*%\\{\\?dist\\}/Release: 0.$RELEASE%{?dist}/;
 # Replace Source0 with generated archive
-s/^Source0:[[:space:]]+.*-vendor.tar.xz/Source0: $DISTARCHIVE/;
+s/^Source0:[[:space:]]+.*.tar.xz/Source0: $DISTARCHIVE/;
 # Change prep setup line to use correct release
-s/^(%setup -q -n %\\{name\\}-v%\\{version\\}-)(0)/\\1$RELEASE/;
+s/^%setup -q -n .*$/%setup -q -n $DISTBASE/;
 " $SPEC
 
 ##
@@ -73,7 +84,7 @@ SRPM=$(rpmbuild --define "_topdir $PWD/rpmbuild" -bs rpmbuild/SPECS/$SPEC | cut 
 
 # Build RPM from SRPM using mock
 mkdir -p "$RESULTDIR"
-/usr/bin/mock -r epel-7-x86_64 --resultdir="$RESULTDIR" --rebuild "$SRPM"
+/usr/bin/mock $MOCKARGS -r epel-7-x86_64 --resultdir="$RESULTDIR" --rebuild "$SRPM"
 
 popd #BUILDDIR
 
