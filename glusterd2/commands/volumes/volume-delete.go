@@ -81,6 +81,7 @@ func volumeDeleteHandler(w http.ResponseWriter, r *http.Request) {
 		{
 			DoFunc: "vol-delete.Store",
 			Nodes:  []uuid.UUID{gdctx.MyUUID},
+			Sync:   true,
 		},
 	}
 

@@ -171,6 +171,7 @@ func volumeStartHandler(w http.ResponseWriter, r *http.Request) {
 			DoFunc:   "vol-start.UpdateVolinfo",
 			UndoFunc: "vol-start.UpdateVolinfo.Undo",
 			Nodes:    []uuid.UUID{gdctx.MyUUID},
+			Sync:     true,
 		},
 		{
 			DoFunc:   "vol-start.XlatorActionDoVolumeStart",

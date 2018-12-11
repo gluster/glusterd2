@@ -176,6 +176,8 @@ func volumeExpandHandler(w http.ResponseWriter, r *http.Request) {
 			DoFunc: "vol-expand.ValidateBricks",
 			Nodes:  nodes,
 			Skip:   lvmResizeOp,
+			// Need to wait for newly selected bricks to be set by the previous step
+			Sync: true,
 		},
 		{
 			DoFunc:   "vol-expand.InitBricks",
@@ -193,11 +195,13 @@ func volumeExpandHandler(w http.ResponseWriter, r *http.Request) {
 			UndoFunc: "vol-create.UndoStoreVolume",
 			Nodes:    []uuid.UUID{gdctx.MyUUID},
 			Skip:     !lvmResizeOp,
+			Sync:     true,
 		},
 		{
 			DoFunc: "vol-expand.UpdateVolinfo",
 			Nodes:  []uuid.UUID{gdctx.MyUUID},
 			Skip:   lvmResizeOp,
+			Sync:   true,
 		},
 		{
 			DoFunc:   "vol-expand.GenerateBrickVolfiles",

@@ -148,6 +148,7 @@ func snapshotDeactivateHandler(w http.ResponseWriter, r *http.Request) {
 			DoFunc:   "snap-deactivate.StoreSnapshot",
 			UndoFunc: "snap-deactivate.UndoStoreSnapshot",
 			Nodes:    []uuid.UUID{gdctx.MyUUID},
+			Sync:     true,
 		},
 	}
 	if err = txn.Ctx.Set("oldsnapinfo", &snapinfo); err != nil {

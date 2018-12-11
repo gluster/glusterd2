@@ -197,6 +197,8 @@ func georepCreateHandler(w http.ResponseWriter, r *http.Request) {
 		{
 			DoFunc: "vol-option.NotifyVolfileChange",
 			Nodes:  txn.Nodes,
+			// Volinfo needs to be updated before sending notifications
+			Sync: true,
 		},
 		{
 			DoFunc: "georeplication-create.Commit",
@@ -786,6 +788,8 @@ func georepConfigSetHandler(w http.ResponseWriter, r *http.Request) {
 		{
 			DoFunc: "georeplication-configfilegen.Commit",
 			Nodes:  txn.Nodes,
+			// Config needs to be set before config file can be generated
+			Sync: true,
 		},
 	}
 
@@ -919,6 +923,8 @@ func georepConfigResetHandler(w http.ResponseWriter, r *http.Request) {
 		{
 			DoFunc: "georeplication-configfilegen.Commit",
 			Nodes:  txn.Nodes,
+			// Config needs to be set before config file can be generated
+			Sync: true,
 		},
 	}
 

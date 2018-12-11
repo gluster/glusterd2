@@ -152,6 +152,7 @@ func snapshotActivateHandler(w http.ResponseWriter, r *http.Request) {
 			DoFunc:   "snap-activate.StoreSnapshot",
 			UndoFunc: "snap-activate.UndoStoreSnapshot",
 			Nodes:    []uuid.UUID{gdctx.MyUUID},
+			Sync:     true,
 		},
 	}
 	if err = txn.Do(); err != nil {

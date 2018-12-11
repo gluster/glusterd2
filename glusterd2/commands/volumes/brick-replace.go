@@ -161,6 +161,7 @@ LOOP:
 		{
 			DoFunc: "brick-replace.ReplaceVolinfo",
 			Nodes:  []uuid.UUID{gdctx.MyUUID},
+			Sync:   true,
 		},
 		{
 			DoFunc:   "vol-create.InitBricks",
@@ -175,6 +176,7 @@ LOOP:
 			DoFunc:   "vol-create.StoreVolume",
 			UndoFunc: "vol-create.UndoStoreVolume",
 			Nodes:    []uuid.UUID{gdctx.MyUUID},
+			Sync:     true,
 		},
 		{
 			DoFunc: "vol-expand.NotifyClients",
