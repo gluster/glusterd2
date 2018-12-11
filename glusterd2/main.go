@@ -119,7 +119,7 @@ func main() {
 	}
 
 	// Load the default group option map into the store
-	if err := volumecommands.LoadDefaultGroupOptions(); err != nil {
+	if err := volumecommands.InitDefaultGroupOptions(); err != nil {
 		log.WithError(err).Fatal("Failed to load the default group options")
 	}
 

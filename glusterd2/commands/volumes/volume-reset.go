@@ -2,6 +2,7 @@ package volumecommands
 
 import (
 	"net/http"
+	"strings"
 
 	"github.com/gluster/glusterd2/glusterd2/gdctx"
 	"github.com/gluster/glusterd2/glusterd2/peer"
@@ -38,6 +39,11 @@ func volumeResetHandler(w http.ResponseWriter, r *http.Request) {
 	var req api.VolOptionResetReq
 	if err := restutils.UnmarshalRequest(r, &req); err != nil {
 		restutils.SendHTTPError(ctx, w, http.StatusBadRequest, errors.ErrJSONParsingFailed)
+		return
+	}
+
+	if containsReservedGroupProfile(req.Options) {
+		restutils.SendHTTPError(ctx, w, http.StatusBadRequest, errors.ErrReservedGroupProfile)
 		return
 	}
 
@@ -83,6 +89,29 @@ func volumeResetHandler(w http.ResponseWriter, r *http.Request) {
 			}
 		}
 	}
+
+	// If reset All is called or if anything reseted from the
+	// default group profile, remove from reset list and
+	// reassign the default value
+	var newopts []string
+	if len(volinfo.Subvols) > 0 {
+		optGrp, exists := defaultGroupOptions["profile.default."+strings.ToLower(volinfo.Subvols[0].Type.String())]
+		if exists {
+		REQLOOP:
+			for _, k := range req.Options {
+				for _, opt := range optGrp.Options {
+					if k == opt.Name {
+						// Reset the default value as mentioned in profile
+						volinfo.Options[k] = opt.OnValue
+						continue REQLOOP
+					}
+				}
+				// Not in default profile, continue to reset
+				newopts = append(newopts, k)
+			}
+		}
+	}
+	req.Options = newopts
 
 	for _, k := range req.Options {
 		// Check if the key is set or not
