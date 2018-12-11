@@ -51,6 +51,16 @@ func setLogOutput(w io.Writer) {
 	stdlog.SetOutput(ioutil.Discard)
 }
 
+type utcFormatter struct {
+	log.Formatter
+}
+
+// Format formats the time in UTC timezone
+func (u utcFormatter) Format(e *log.Entry) ([]byte, error) {
+	e.Time = e.Time.UTC()
+	return u.Formatter.Format(e)
+}
+
 // Init initializes the default logrus logger
 // Should be called as early as possible when a process starts.
 // Note that this does not create a new logger. Packages should still continue
@@ -76,7 +86,7 @@ func Init(logdir string, logFileName string, logLevel string, verboseLogEntry bo
 		return err
 	}
 	log.SetLevel(l)
-	log.SetFormatter(&log.TextFormatter{FullTimestamp: true, TimestampFormat: timestampFormat})
+	log.SetFormatter(utcFormatter{&log.TextFormatter{FullTimestamp: true, TimestampFormat: timestampFormat}})
 
 	if strings.ToLower(logFileName) == "stderr" || logFileName == "-" {
 		setLogOutput(os.Stderr)
