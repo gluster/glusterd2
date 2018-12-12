@@ -206,6 +206,11 @@ func volumeOptionsHandler(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
+	if containsReservedGroupProfile(req.Options) {
+		restutils.SendHTTPError(ctx, w, http.StatusBadRequest, errors.ErrReservedGroupProfile)
+		return
+	}
+
 	txn, err := transaction.NewTxnWithLocks(ctx, volname)
 	if err != nil {
 		status, err := restutils.ErrToStatusCode(err)
@@ -241,6 +246,7 @@ func volumeOptionsHandler(w http.ResponseWriter, r *http.Request) {
 			DoFunc:   "vol-option.UpdateVolinfo",
 			UndoFunc: "vol-option.UpdateVolinfo.Undo",
 			Nodes:    []uuid.UUID{gdctx.MyUUID},
+			Sync:     true,
 		},
 		{
 			DoFunc:   "vol-option.XlatorActionDoSet",

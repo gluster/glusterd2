@@ -107,9 +107,40 @@ func init() {
 				NameTmpl: "{{ volume.name }}",
 			},
 			{
+				Type: "performance/io-threads",
+			},
+			{
+				Type: "performance/md-cache",
+			},
+			{
+				Type: "performance/open-behind",
+			},
+			{
+				Type: "performance/quick-read",
+			},
+			{
+				Type: "performance/io-cache",
+			},
+			{
+				Type: "performance/readdir-ahead",
+			},
+			{
+				Type: "performance/read-ahead",
+			},
+			{
+				Type: "performance/write-behind",
+			},
+			{
 				Type:           "features/read-only",
 				Disabled:       true,
 				EnableByOption: true,
+			},
+			{
+				Type: "features/utime",
+			},
+			{
+				Type:     "features/shard",
+				Disabled: true,
 			},
 			{
 				Type: "cluster/distribute",

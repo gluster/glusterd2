@@ -11,6 +11,7 @@ import (
 	"github.com/gluster/glusterd2/glusterd2/gdctx"
 	restutils "github.com/gluster/glusterd2/glusterd2/servers/rest/utils"
 	"github.com/gluster/glusterd2/glusterd2/transaction"
+	transactionv2 "github.com/gluster/glusterd2/glusterd2/transactionv2"
 	"github.com/gluster/glusterd2/glusterd2/volume"
 	"github.com/gluster/glusterd2/pkg/api"
 	gderrors "github.com/gluster/glusterd2/pkg/errors"
@@ -118,6 +119,11 @@ func volumeCreateHandler(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
+	if containsReservedGroupProfile(req.Options) {
+		restutils.SendHTTPError(ctx, w, http.StatusBadRequest, gderrors.ErrReservedGroupProfile)
+		return
+	}
+
 	if req.Size > 0 {
 		applyDefaults(&req)
 
@@ -149,13 +155,27 @@ func volumeCreateHandler(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
+	// Include default Volume Options profile
+	if len(req.Subvols) > 0 {
+		groupProfile, exists := defaultGroupOptions["profile.default."+req.Subvols[0].Type]
+		if exists {
+			for _, opt := range groupProfile.Options {
+				// Apply default option only if not overridden in volume create request
+				_, exists = req.Options[opt.Name]
+				if !exists {
+					req.Options[opt.Name] = opt.OnValue
+				}
+			}
+		}
+	}
+
 	nodes, err := req.Nodes()
 	if err != nil {
 		restutils.SendHTTPError(ctx, w, http.StatusBadRequest, err)
 		return
 	}
 
-	txn, err := transaction.NewTxnWithLocks(ctx, req.Name)
+	txn, err := transactionv2.NewTxnWithLocks(ctx, req.Name)
 	if err != nil {
 		status, err := restutils.ErrToStatusCode(err)
 		restutils.SendHTTPError(ctx, w, status, err)
@@ -177,6 +197,8 @@ func volumeCreateHandler(w http.ResponseWriter, r *http.Request) {
 		{
 			DoFunc: "vol-create.ValidateBricks",
 			Nodes:  nodes,
+			// Need to wait for volinfo to be created first
+			Sync: true,
 		},
 		{
 			DoFunc:   "vol-create.InitBricks",
@@ -187,6 +209,7 @@ func volumeCreateHandler(w http.ResponseWriter, r *http.Request) {
 			DoFunc:   "vol-create.StoreVolume",
 			UndoFunc: "vol-create.UndoStoreVolume",
 			Nodes:    []uuid.UUID{gdctx.MyUUID},
+			Sync:     true,
 		},
 	}
 

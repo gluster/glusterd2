@@ -322,6 +322,7 @@ func snapshotCloneHandler(w http.ResponseWriter, r *http.Request) {
 		{
 			DoFunc: "snap-clone.CreateCloneVolinfo",
 			Nodes:  []uuid.UUID{gdctx.MyUUID},
+			Sync:   true,
 		},
 		{
 			DoFunc:   "snap-clone.TakeBrickSnapshots",
@@ -332,6 +333,7 @@ func snapshotCloneHandler(w http.ResponseWriter, r *http.Request) {
 			DoFunc:   "snap-clone.StoreSnapshot",
 			UndoFunc: "snap-clone.UndoStoreSnapshotOnClone",
 			Nodes:    []uuid.UUID{gdctx.MyUUID},
+			Sync:     true,
 		},
 	}
 	if err = txn.Ctx.Set("snapname", &snapname); err != nil {

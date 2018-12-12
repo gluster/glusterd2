@@ -96,6 +96,7 @@ func rebalanceStartHandler(w http.ResponseWriter, r *http.Request) {
 		{
 			DoFunc: "rebalance-store",
 			Nodes:  []uuid.UUID{gdctx.MyUUID},
+			Sync:   true,
 		},
 	}
 
@@ -186,6 +187,7 @@ func rebalanceStopHandler(w http.ResponseWriter, r *http.Request) {
 		{
 			DoFunc: "rebalance-store",
 			Nodes:  []uuid.UUID{gdctx.MyUUID},
+			Sync:   true,
 		},
 	}
 

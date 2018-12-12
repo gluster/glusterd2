@@ -364,6 +364,7 @@ func snapshotRestoreHandler(w http.ResponseWriter, r *http.Request) {
 			DoFunc:   "snap-restore.Store",
 			UndoFunc: "snap-restore.UndoStore",
 			Nodes:    []uuid.UUID{gdctx.MyUUID},
+			Sync:     true,
 		},
 		{
 			DoFunc: "snap-restore.CleanBricks",

@@ -85,8 +85,8 @@ func CreateLockSteps(key string) (*Step, *Step, error) {
 		return nil, nil, err
 	}
 
-	lockStep := &Step{lockFunc, unlockFunc, []uuid.UUID{gdctx.MyUUID}, false}
-	unlockStep := &Step{unlockFunc, "", []uuid.UUID{gdctx.MyUUID}, false}
+	lockStep := &Step{DoFunc: lockFunc, UndoFunc: unlockFunc, Nodes: []uuid.UUID{gdctx.MyUUID}, Skip: false}
+	unlockStep := &Step{DoFunc: unlockFunc, UndoFunc: "", Nodes: []uuid.UUID{gdctx.MyUUID}, Skip: false}
 
 	return lockStep, unlockStep, nil
 }
@@ -149,13 +149,17 @@ func CreateLockFuncs(key string) (LockUnlockFunc, LockUnlockFunc) {
 	return lockFunc, unlockFunc
 }
 
-func (t *Txn) lock(lockID string) error {
+// Locks are the collection of cluster wide transaction lock
+type Locks map[string]*concurrency.Mutex
+
+func (l Locks) lock(lockID string) error {
+	var logger = log.WithField("lockID", lockID)
+
 	// Ensure that no prior lock exists for the given lockID in this transaction
-	if _, ok := t.locks[lockID]; ok {
+	if _, ok := l[lockID]; ok {
 		return ErrLockExists
 	}
 
-	logger := t.Ctx.Logger().WithField("lockID", lockID)
 	logger.Debug("attempting to obtain lock")
 
 	key := lockPrefix + lockID
@@ -169,11 +173,11 @@ func (t *Txn) lock(lockID string) error {
 	case nil:
 		logger.Debug("lock obtained")
 		// Attach lock to the transaction
-		t.locks[lockID] = locker
+		l[lockID] = locker
 
 	case context.DeadlineExceeded:
-		// Propagate this all the way back to the client as a HTTP 409 response
 		logger.Debug("timeout: failed to obtain lock")
+		// Propagate this all the way back to the client as a HTTP 409 response
 		err = ErrLockTimeout
 
 	default:
@@ -185,14 +189,23 @@ func (t *Txn) lock(lockID string) error {
 
 // Lock obtains a cluster wide transaction lock on the given lockID/lockIDs,
 // and attaches the obtained locks to the transaction
-func (t *Txn) Lock(lockID string, lockIDs ...string) error {
-	if err := t.lock(lockID); err != nil {
+func (l Locks) Lock(lockID string, lockIDs ...string) error {
+	if err := l.lock(lockID); err != nil {
 		return err
 	}
 	for _, id := range lockIDs {
-		if err := t.lock(id); err != nil {
+		if err := l.lock(id); err != nil {
 			return err
 		}
 	}
 	return nil
+}
+
+// UnLock releases all cluster wide obtained locks
+func (l Locks) UnLock(ctx context.Context) {
+	for lockID, locker := range l {
+		if err := locker.Unlock(ctx); err == nil {
+			delete(l, lockID)
+		}
+	}
 }

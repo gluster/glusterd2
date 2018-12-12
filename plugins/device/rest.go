@@ -89,8 +89,9 @@ func deviceAddHandler(w http.ResponseWriter, r *http.Request) {
 
 	err = txn.Do()
 	if err != nil {
-		logger.WithError(err).Error("Transaction to prepare device failed")
-		restutils.SendHTTPError(ctx, w, http.StatusInternalServerError, "transaction to prepare device failed")
+		logger.WithError(err).Error("failed to add device")
+		status, err := restutils.ErrToStatusCode(err)
+		restutils.SendHTTPError(ctx, w, status, err)
 		return
 	}
 	deviceInfo, err := deviceutils.GetDevice(peerID, req.Device)
@@ -205,7 +206,7 @@ func deviceDeleteHandler(w http.ResponseWriter, r *http.Request) {
 	}
 	deviceName := mux.Vars(r)["device"]
 	if deviceName == "" {
-		restutils.SendHTTPError(ctx, w, http.StatusBadRequest, "Device name not provided in URL")
+		restutils.SendHTTPError(ctx, w, http.StatusBadRequest, "device name not provided in URL")
 		return
 	}
 
@@ -253,7 +254,9 @@ func deviceDeleteHandler(w http.ResponseWriter, r *http.Request) {
 
 	err = txn.Do()
 	if err != nil {
-		restutils.SendHTTPError(ctx, w, http.StatusInternalServerError, "transaction to prepare device failed")
+		logger.WithError(err).Error("failed to delete device")
+		status, err := restutils.ErrToStatusCode(err)
+		restutils.SendHTTPError(ctx, w, status, err)
 		return
 	}
 
@@ -261,7 +264,6 @@ func deviceDeleteHandler(w http.ResponseWriter, r *http.Request) {
 }
 
 func listAllDevicesHandler(w http.ResponseWriter, r *http.Request) {
-
 	ctx := r.Context()
 	logger := gdctx.GetReqLogger(ctx)
 	devices, err := deviceutils.GetDevices()

@@ -152,6 +152,7 @@ func volumeStopHandler(w http.ResponseWriter, r *http.Request) {
 			DoFunc:   "vol-stop.UpdateVolinfo",
 			UndoFunc: "vol-stop.UpdateVolinfo.Undo",
 			Nodes:    []uuid.UUID{gdctx.MyUUID},
+			Sync:     true,
 		},
 		{
 			DoFunc:   "vol-stop.XlatorActionDoVolumeStop",
