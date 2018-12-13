@@ -33,7 +33,7 @@ func (c *Command) Routes() route.Routes {
 		route.Route{
 			Name:         "VolumeOptionGet",
 			Method:       "GET",
-			Pattern:      "/volumes/{volname}/options/{optname}",
+			Pattern:      "/volumes/{volname}/options/{optname:.*}",
 			Version:      1,
 			ResponseType: utils.GetTypeString((*api.VolumeOptionGetResp)(nil)),
 			HandlerFunc:  volumeOptionsGetHandler},

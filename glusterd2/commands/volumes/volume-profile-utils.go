@@ -67,7 +67,7 @@ var fops = []string{
 	"MAXVALUE",
 }
 
-var profileSessionKeys = [...]string{"io-stats.count-fop-hits", "io-stats.latency-measurement"}
+var profileSessionKeys = [...]string{"debug/io-stats.count-fop-hits", "debug/io-stats.latency-measurement"}
 
 // BrickProfileInfo holds profile info of each brick
 type BrickProfileInfo struct {
