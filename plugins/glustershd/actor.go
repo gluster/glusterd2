@@ -1,7 +1,6 @@
 package glustershd
 
 import (
-	"fmt"
 	"os"
 	"path"
 
@@ -15,22 +14,7 @@ import (
 	config "github.com/spf13/viper"
 )
 
-var names = [...]string{"replicate", "afr"}
-
-const (
-	selfHealKey          = "self-heal-daemon"
-	granularEntryHealKey = "granular-entry-heal"
-)
-
 type shdActor struct{}
-
-func getSelfHealKeys() []string {
-	var selfhealKeys = make([]string, len(names))
-	for i, n := range names {
-		selfhealKeys[i] = fmt.Sprintf("%s.%s", n, selfHealKey)
-	}
-	return selfhealKeys
-}
 
 func (actor *shdActor) Do(v *volume.Volinfo, key string, value string, volOp xlator.VolumeOpType, logger log.FieldLogger) error {
 
@@ -44,10 +28,8 @@ func (actor *shdActor) Do(v *volume.Volinfo, key string, value string, volOp xla
 	}
 	switch volOp {
 	case xlator.VolumeStart:
-		for _, key := range getSelfHealKeys() {
-			if val, ok := v.Options[key]; ok && val == "off" {
-				return nil
-			}
+		if val, ok := v.Options[shdKey]; ok && val == "off" {
+			return nil
 		}
 
 		err = volgen.ClusterVolfileToFile(v, glustershDaemon.VolfileID, "glustershd")
@@ -140,10 +122,8 @@ func (actor *shdActor) Undo(v *volume.Volinfo, key string, value string, volOp x
 	}
 	switch volOp {
 	case xlator.VolumeStart:
-		for _, key := range getSelfHealKeys() {
-			if val, ok := v.Options[key]; ok && val == "off" {
-				return nil
-			}
+		if val, ok := v.Options[shdKey]; ok && val == "off" {
+			return nil
 		}
 
 		isVolRunning, err := volume.AreReplicateVolumesRunning(v.ID)
@@ -221,7 +201,5 @@ func (actor *shdActor) Undo(v *volume.Volinfo, key string, value string, volOp x
 }
 
 func init() {
-	for _, name := range names {
-		xlator.RegisterOptionActor(name, &shdActor{})
-	}
+	xlator.RegisterOptionActor("replicate", &shdActor{})
 }

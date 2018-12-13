@@ -89,7 +89,7 @@ func (xl *Xlator) getOptions(tmplName string, volinfo *volume.Volinfo) (map[stri
 		// If option set in template
 		v, ok := xl.Options[optKey]
 		if ok {
-			opts[optKey] = v
+			optVal = v
 		}
 
 		// Volinfo can be nil in case of cluster level
