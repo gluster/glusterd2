@@ -55,7 +55,7 @@ var (
 	ErrFetchingVolfileContent          = errors.New("unable to fetch volfile content")
 	ErrPidFileNotFound                 = errors.New("pid file not found")
 	ErrInvalidSnapName                 = errors.New("invalid snapshot name")
-	ErrInvalidClusterOption            = errors.New("Invalid cluster option key")
+	ErrInvalidClusterOption            = errors.New("invalid cluster option key")
 	ErrInvalidVolFileTmplNamespace     = errors.New("invalid template namespace")
 	ErrInvalidVolFileTmplName          = errors.New("invalid template name")
 	ErrDeviceNameNotFound              = errors.New("device name not found")
