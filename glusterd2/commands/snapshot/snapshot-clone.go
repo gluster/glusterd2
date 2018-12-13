@@ -272,7 +272,7 @@ func snapshotCloneHandler(w http.ResponseWriter, r *http.Request) {
 
 	snapname := mux.Vars(r)["snapname"]
 	if snapname == "" {
-		restutils.SendHTTPError(ctx, w, http.StatusBadRequest, errors.New("Snapshot name should not be empty"))
+		restutils.SendHTTPError(ctx, w, http.StatusBadRequest, errors.New("snapshot name should not be empty"))
 		return
 	}
 

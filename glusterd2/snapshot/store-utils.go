@@ -114,7 +114,7 @@ func GetSnapshot(name string) (*Snapinfo, error) {
 
 	if resp.Count != 1 {
 		log.WithField("snapshot", name).Error("snapshot not found")
-		return nil, errors.New("Snapshot not found")
+		return nil, errors.New("snapshot not found")
 	}
 
 	if e = json.Unmarshal(resp.Kvs[0].Value, &snap); e != nil {
