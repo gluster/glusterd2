@@ -183,6 +183,11 @@ func volumeCreateHandler(w http.ResponseWriter, r *http.Request) {
 	}
 	defer txn.Done()
 
+	if volume.Exists(req.Name) {
+		restutils.SendHTTPError(ctx, w, http.StatusBadRequest, gderrors.ErrVolExists)
+		return
+	}
+
 	txn.Steps = []*transaction.Step{
 		{
 			DoFunc:   "vol-create.PrepareBricks",
