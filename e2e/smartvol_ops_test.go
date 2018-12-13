@@ -111,6 +111,10 @@ func testReplaceBrick(t *testing.T) {
 	volinfo, err = client.VolumeCreate(createReq)
 	r.Nil(err)
 
+	// Start volume
+	err = client.VolumeStart(smartvolname, true)
+	r.Nil(err)
+
 	oldBrickPath = volinfo.Subvols[0].Bricks[0].Path
 	oldBrickPeerID = volinfo.Subvols[0].Bricks[0].PeerID
 	excludePeer := []string{peerinfo.ID.String()}
@@ -125,6 +129,7 @@ func testReplaceBrick(t *testing.T) {
 	r.Nil(err)
 
 	r.NotEqual(peerinfo.ID, oldBrickPeerID)
+
 	err = client.VolumeStop(smartvolname)
 	r.Nil(err)
 	err = (client.VolumeDelete(smartvolname))
