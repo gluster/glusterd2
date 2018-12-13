@@ -52,6 +52,10 @@ func sizeToBytes(value string) (uint64, error) {
 		size = sizeValue * utils.KiB
 	case "KB":
 		size = sizeValue * utils.KB
+	case "M", "MiB":
+		size = sizeValue * utils.MiB
+	case "MB":
+		size = sizeValue * utils.MB
 	case "G", "GiB":
 		size = sizeValue * utils.GiB
 	case "GB":
