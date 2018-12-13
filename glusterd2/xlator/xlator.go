@@ -17,4 +17,12 @@ type Xlator struct {
 
 	// This is pretty much useless now.
 	rawID uint32
+
+	// Category is parent directory name
+	Category string
+}
+
+// FullName returns xlator name including the category name
+func (xl *Xlator) FullName() string {
+	return xl.Category + "/" + xl.ID
 }
