@@ -120,6 +120,9 @@ func loadXlator(xlPath string) (*Xlator, error) {
 			filepath.Ext(xlPath))
 	}
 
+	// Parent directory name where xlator .so file exists
+	xl.Category = filepath.Base(filepath.Dir(xlPath))
+
 	soOptions := (*[maxOptions]C.volume_option_t)(p)
 	for _, option := range soOptions {
 
