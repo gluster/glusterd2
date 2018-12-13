@@ -4,12 +4,18 @@ import (
 	"errors"
 	"fmt"
 	"path"
+	"strconv"
 
 	"github.com/gluster/glusterd2/glusterd2/volume"
 	"github.com/gluster/glusterd2/pkg/api"
 	"github.com/gluster/glusterd2/pkg/lvmutils"
+	gutils "github.com/gluster/glusterd2/pkg/utils"
 
 	config "github.com/spf13/viper"
+)
+
+const (
+	minBrickSize = 20 * gutils.MiB
 )
 
 func handleReplicaSubvolReq(req *api.VolCreateReq) error {
@@ -66,20 +72,6 @@ func getBricksLayout(req *api.VolCreateReq) ([]api.SubvolReq, error) {
 	var err error
 	bricksMountRoot := path.Join(config.GetString("rundir"), "/bricks")
 
-	// If Distribute count is zero then automatically decide
-	// the distribute count based on available size in each device
-	// TODO: Auto find the distribute count
-	numSubvols := 1
-	if req.DistributeCount > 0 {
-		numSubvols = req.DistributeCount
-	}
-
-	// User input will be in Bytes
-	subvolSize := req.Size
-	if numSubvols > 1 {
-		subvolSize = subvolSize / uint64(numSubvols)
-	}
-
 	// Default Subvol Type
 	req.SubvolType = "distribute"
 
@@ -93,6 +85,37 @@ func getBricksLayout(req *api.VolCreateReq) ([]api.SubvolReq, error) {
 	err = handleDisperseSubvolReq(req)
 	if err != nil {
 		return nil, err
+	}
+
+	if req.MaxBrickSize > 0 && req.MaxBrickSize < minBrickSize {
+		return nil, errors.New("invalid max-brick-size, Minimum size required is " + strconv.Itoa(minBrickSize))
+	}
+
+	// If max Brick size is specified then decide distribute
+	// count and Volume Size based on Volume Type
+	if req.MaxBrickSize > 0 && req.Size > req.MaxBrickSize {
+		// In case of replica and distribute, brick size is equal to
+		// subvolume size, In case of disperse volume
+		// subvol size = brick size * disperse-data-count
+		maxSubvolSize := req.MaxBrickSize
+		if req.DisperseDataCount > 0 {
+			maxSubvolSize = req.MaxBrickSize * uint64(req.DisperseDataCount)
+		}
+		req.DistributeCount = int(req.Size / maxSubvolSize)
+		if req.Size%maxSubvolSize > 0 {
+			req.DistributeCount++
+		}
+	}
+
+	numSubvols := 1
+	if req.DistributeCount > 0 {
+		numSubvols = req.DistributeCount
+	}
+
+	// User input will be in Bytes
+	subvolSize := req.Size
+	if numSubvols > 1 {
+		subvolSize = subvolSize / uint64(numSubvols)
 	}
 
 	subvolplanner, exists := subvolPlanners[req.SubvolType]
@@ -121,8 +144,8 @@ func getBricksLayout(req *api.VolCreateReq) ([]api.SubvolReq, error) {
 				BrickDirSuffix: "/brick",
 				TpName:         fmt.Sprintf("tp_%s_s%d_b%d", req.Name, i+1, j+1),
 				LvName:         fmt.Sprintf("brick_%s_s%d_b%d", req.Name, i+1, j+1),
-				Size:           eachBrickSize,
-				TpSize:         eachBrickTpSize,
+				Size:           lvmutils.NormalizeSize(eachBrickSize),
+				TpSize:         lvmutils.NormalizeSize(eachBrickTpSize),
 				TpMetadataSize: lvmutils.GetPoolMetadataSize(eachBrickTpSize),
 				FsType:         "xfs",
 				MntOpts:        "rw,inode64,noatime,nouuid",

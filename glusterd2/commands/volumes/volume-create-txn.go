@@ -9,7 +9,6 @@ import (
 	"github.com/gluster/glusterd2/glusterd2/transaction"
 	"github.com/gluster/glusterd2/glusterd2/volume"
 	"github.com/gluster/glusterd2/pkg/api"
-	gderrors "github.com/gluster/glusterd2/pkg/errors"
 
 	"github.com/pborman/uuid"
 )
@@ -184,10 +183,6 @@ func createVolinfo(c transaction.TxnCtx) error {
 	var req api.VolCreateReq
 	if err := c.Get("req", &req); err != nil {
 		return err
-	}
-
-	if volume.Exists(req.Name) {
-		return gderrors.ErrVolExists
 	}
 
 	if len(req.Subvols) > 0 && req.Subvols[0].ArbiterCount > 0 {

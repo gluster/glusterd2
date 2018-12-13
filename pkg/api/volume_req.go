@@ -46,6 +46,7 @@ type VolCreateReq struct {
 	Metadata                map[string]string `json:"metadata,omitempty"`
 	Flags                   map[string]bool   `json:"flags,omitempty"`
 	Size                    uint64            `json:"size"`
+	MaxBrickSize            uint64            `json:"max-brick-size,omitempty"`
 	DistributeCount         int               `json:"distribute,omitempty"`
 	ReplicaCount            int               `json:"replica,omitempty"`
 	ArbiterCount            int               `json:"arbiter,omitempty"`

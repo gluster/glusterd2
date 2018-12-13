@@ -103,16 +103,12 @@ func GetPoolMetadataSize(poolsize uint64) uint64 {
 	// Minimum metadata size required is 0.5% and Max upto 16GB ~ 17179869184 Bytes
 
 	metadataSize := uint64(float64(poolsize) * 0.005)
-	rem := metadataSize % 512
-	if rem > 0 {
-		metadataSize += (512 - rem)
-	}
 
 	if metadataSize > maxMetadataSize {
 		metadataSize = maxMetadataSize
 	}
 
-	return metadataSize
+	return NormalizeSize(metadataSize)
 }
 
 // CreateTP creates LVM Thin Pool
@@ -344,4 +340,13 @@ func ExtendMetadataPool(expansionMetadataSizePerBrick uint64, vgName string, tpN
 func ExtendThinpool(expansionTpSizePerBrick uint64, vgName string, tpName string) error {
 	err := utils.ExecuteCommandRun("lvextend", fmt.Sprintf("-L+%dB", expansionTpSizePerBrick), fmt.Sprintf("/dev/%s/%s", vgName, tpName))
 	return err
+}
+
+// NormalizeSize converts the value to multiples of 512
+func NormalizeSize(size uint64) uint64 {
+	rem := size % 512
+	if rem > 0 {
+		size = size - rem
+	}
+	return size
 }

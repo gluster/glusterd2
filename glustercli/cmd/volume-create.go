@@ -40,6 +40,7 @@ var (
 	flagCreateSnapshotReserveFactor float64 = 1
 	flagCreateSubvolZoneOverlap     bool
 	flagAverageFileSize             string
+	flagCreateMaxBrickSize          string
 
 	volumeCreateCmd = &cobra.Command{
 		Use:   "create <volname> [<brick> [<brick>]...|--size <size>]",
@@ -85,6 +86,7 @@ func init() {
 	volumeCreateCmd.Flags().Float64Var(&flagCreateSnapshotReserveFactor, "snapshot-reserve-factor", 1, "Snapshot Reserve Factor")
 	volumeCreateCmd.Flags().BoolVar(&flagCreateSubvolZoneOverlap, "subvols-zones-overlap", false, "Brick belonging to other Sub volume can be created in the same zone")
 	volumeCreateCmd.Flags().StringVar(&flagAverageFileSize, "average-file-size", "1M", "Average size of the files")
+	volumeCreateCmd.Flags().StringVar(&flagCreateMaxBrickSize, "max-brick-size", "", "Max brick size for auto distribute count")
 
 	volumeCmd.AddCommand(volumeCreateCmd)
 }
@@ -102,10 +104,16 @@ func smartVolumeCreate(cmd *cobra.Command, args []string) {
 		failure("Invalid File Size specified", nil, 1)
 	}
 
+	maxBrickSize, err := sizeToBytes(flagCreateMaxBrickSize)
+	if err != nil {
+		failure("Invalid Max Brick size Size specified", nil, 1)
+	}
+
 	req := api.VolCreateReq{
 		Name:                    args[0],
 		Transport:               flagCreateTransport,
 		Size:                    size,
+		MaxBrickSize:            maxBrickSize,
 		ReplicaCount:            flagCreateReplicaCount,
 		ArbiterCount:            flagCreateArbiterCount,
 		AverageFileSize:         avgFileSize,
