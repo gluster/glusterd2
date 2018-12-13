@@ -4,7 +4,11 @@ import (
 	"github.com/gluster/glusterd2/glusterd2/volume"
 )
 
-var shdKeys = [...]string{"afr.self-heal-daemon", "replicate.self-heal-daemon"}
+const (
+	selfHealKey          = "self-heal-daemon"
+	shdKey               = "cluster/replicate." + selfHealKey
+	granularEntryHealKey = "granular-entry-heal"
+)
 
 // isVolReplicate returns true if volume is of type replicate, disperse, distreplicate or distdisperse
 // otherwise it returns false
@@ -18,11 +22,9 @@ func isVolReplicate(vType volume.VolType) bool {
 
 // isHealEnabled returns true if heal is enabled for the volume otherwise returns false.
 func isHealEnabled(v *volume.Volinfo) bool {
-	for _, key := range shdKeys {
-		value, ok := v.Options[key]
-		if ok && value == "on" {
-			return true
-		}
+	value, ok := v.Options[shdKey]
+	if ok && value == "on" {
+		return true
 	}
 	return false
 }
