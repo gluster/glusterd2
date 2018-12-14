@@ -39,16 +39,17 @@ func undoSnapshotClone(c transaction.TxnCtx) error {
 	return nil
 }
 func undoStoreSnapshotClone(c transaction.TxnCtx) error {
-	var vol volume.Volinfo
-	if err := c.Get("volinfo", &vol); err != nil {
+	var (
+		vol volume.Volinfo
+		err error
+	)
+
+	if err = c.Get("volinfo", &vol); err != nil {
 		return err
 	}
 
-	if err := volume.DeleteVolume(vol.Name); err != nil {
-		return err
-	}
-
-	return nil
+	err = volume.DeleteVolume(vol.Name)
+	return err
 }
 
 func storeSnapshotClone(c transaction.TxnCtx) error {

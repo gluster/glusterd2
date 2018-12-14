@@ -83,16 +83,16 @@ func snapshotDelete(c transaction.TxnCtx) error {
 
 func snapshotDeleteStore(c transaction.TxnCtx) error {
 
-	var snapinfo snapshot.Snapinfo
-	if err := c.Get("snapinfo", &snapinfo); err != nil {
+	var (
+		snapinfo snapshot.Snapinfo
+		err      error
+	)
+	if err = c.Get("snapinfo", &snapinfo); err != nil {
 		return err
 	}
 
-	if err := snapshot.DeleteSnapshot(&snapinfo); err != nil {
-		return err
-	}
-
-	return nil
+	err = snapshot.DeleteSnapshot(&snapinfo)
+	return err
 }
 
 /*
