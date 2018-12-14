@@ -290,6 +290,11 @@ func txnVolumeProfile(c transaction.TxnCtx) error {
 			Op:   int(brick.OpBrickXlatorInfo),
 		}
 		req.Input, err = dict.Serialize(reqDict)
+		if err != nil {
+			c.Logger().WithError(err).WithField(
+				"reqDict", reqDict).Error("failed to convert map to slice of bytes")
+			return err
+		}
 		var rsp brick.GfBrickOpRsp
 		err = client.Call("Brick.OpBrickXlatorInfo", req, &rsp)
 		if err != nil || rsp.OpRet != 0 {
