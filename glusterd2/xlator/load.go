@@ -123,19 +123,22 @@ func loadXlator(xlPath string) (*Xlator, error) {
 	// Parent directory name where xlator .so file exists
 	xl.Category = filepath.Base(filepath.Dir(xlPath))
 
-	soOptions := (*[maxOptions]C.volume_option_t)(p)
-	for _, option := range soOptions {
+	// If no options exists in xlator_api table
+	if p != nil {
+		soOptions := (*[maxOptions]C.volume_option_t)(p)
+		for _, option := range soOptions {
 
-		// identify sentinel NULL key which marks the end of options
-		if option.key[0] == nil {
-			break
+			// identify sentinel NULL key which marks the end of options
+			if option.key[0] == nil {
+				break
+			}
+
+			// &option i.e *C.volume_option_t still points to an address
+			// in memory where that symbol resides as mmap()ed by the call
+			// to dlsym(). We need to copy the contents of that C structure
+			// to its equivalent Go struct before dlclose() happens.
+			xl.Options = append(xl.Options, structifyOption(&option))
 		}
-
-		// &option i.e *C.volume_option_t still points to an address
-		// in memory where that symbol resides as mmap()ed by the call
-		// to dlsym(). We need to copy the contents of that C structure
-		// to its equivalent Go struct before dlclose() happens.
-		xl.Options = append(xl.Options, structifyOption(&option))
 	}
 
 	if vfunc, ok := validationFuncs[xl.ID]; ok {
