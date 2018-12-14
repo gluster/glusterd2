@@ -166,6 +166,6 @@ var selfHealSplitBrainCmd = &cobra.Command{
 		if err != nil {
 			failure(fmt.Sprintf("Failed to resolve split-brain for volume %s\n", volname), err, 1)
 		}
-		fmt.Printf("Split Brain Resolution successfull on volume %s \n", volname)
+		fmt.Printf("Split Brain Resolution successful on volume %s \n", volname)
 	},
 }
