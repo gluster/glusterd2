@@ -47,7 +47,7 @@ func (sm *stepManager) runStep(ctx context.Context, stepName string, txnCtx tran
 	return transaction.RunStepFuncLocally(ctx, stepName, txnCtx)
 }
 
-// isPrevStepsExecutedOnNode reports that all pervious steps
+// isPrevStepsExecutedOnNode reports that all previous steps
 // have been completed successfully on a given node
 func (sm *stepManager) isPrevStepsExecutedOnNode(ctx context.Context, syncStepIndex int, nodeID uuid.UUID, txnID uuid.UUID, success chan<- struct{}) {
 	txnManager := NewTxnManager(store.Store.Watcher)

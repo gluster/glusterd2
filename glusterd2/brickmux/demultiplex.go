@@ -56,7 +56,7 @@ func Demultiplex(b brick.Brickinfo) error {
 	if rsp.OpRet != 0 {
 		return fmt.Errorf("detach brick RPC request failed; OpRet = %d", rsp.OpRet)
 	}
-	log.WithField("brick", b.String()).Debug("detach request succeded with result")
+	log.WithField("brick", b.String()).Debug("detach request succeeded with result")
 
 	// TODO: Find an alternative to substitute the sleep.
 	// There might be some changes on glusterfsd side related to socket
