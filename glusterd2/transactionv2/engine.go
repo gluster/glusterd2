@@ -134,7 +134,7 @@ func (txnEng *Engine) executePendingTxn(ctx context.Context, txn *Txn) error {
 	for i, step := range txn.Steps {
 		logger.WithField("stepname", step.DoFunc).Debug("running step func on node")
 
-		// a synchronized step is executed only after all pervious steps
+		// a synchronized step is executed only after all previous steps
 		// have been completed successfully by all involved peers.
 		if step.Sync {
 			logger.WithField("stepname", step.DoFunc).Debug("synchronizing txn step")

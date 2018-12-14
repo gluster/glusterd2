@@ -498,6 +498,7 @@ func editDevice(t *testing.T) {
 	var peerID string
 	for _, peer := range peerList {
 		deviceList, err = client.DeviceList(peer.ID.String(), "")
+		r.Nil(err)
 		if len(deviceList) > 0 {
 			peerID = peer.ID.String()
 			break

@@ -66,7 +66,7 @@ func Reconcile() error {
 			// do nothing, fallback to starting a separate process
 			log.WithField("brick", b.String()).Warn(err)
 		default:
-			// log and move on, do not exit; this behaviour can be changed later if necessarry
+			// log and move on, do not exit; this behaviour can be changed later if necessary
 			log.WithField("brick", b.String()).WithError(err).Error("brickmux.Multiplex failed")
 			continue
 		}
