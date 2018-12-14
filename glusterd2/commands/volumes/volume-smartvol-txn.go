@@ -73,7 +73,7 @@ func PrepareBrick(b api.BrickReq, c transaction.TxnCtx) error {
 	}
 
 	// Make Filesystem
-	mkfsOpts := []string{}
+	var mkfsOpts []string
 	if b.Type == "arbiter" {
 		mkfsOpts = []string{"-i", "size=512", "-n", "size=8192", "-i", "maxpct=0"}
 	} else {
