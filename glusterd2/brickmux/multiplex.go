@@ -31,6 +31,27 @@ func Multiplex(b brick.Brickinfo, v *volume.Volinfo, volumes []*volume.Volinfo, 
 		return err
 	}
 
+	// Kill already running fsd for the brick in consideration
+	// Helpful in case of force start where no running glusterfsds are
+	// effected and thus even after multiplexing, old glusterfsds
+	// exist, take this action only when target brick for brick in
+	// consideration is found or else current brick will go into offline
+	// state.
+	brickProc, err := brick.NewGlusterfsd(b)
+	if err != nil {
+		return err
+	}
+	pid, err := daemon.ReadPidFromFile(brickProc.PidFile())
+	if err == nil {
+		_, err = daemon.GetProcess(pid)
+		if err == nil {
+			err = b.TerminateBrick()
+			if err != nil {
+				return err
+			}
+		}
+	}
+
 	targetBrickProc, err := brick.NewGlusterfsd(*targetBrick)
 	if err != nil {
 		return err
@@ -77,7 +98,7 @@ func Multiplex(b brick.Brickinfo, v *volume.Volinfo, volumes []*volume.Volinfo, 
 	logger.WithError(err).WithField(
 		"brick", b.String()).Error("attach RPC request succeeded")
 
-	brickProc, err := brick.NewGlusterfsd(b)
+	brickProc, err = brick.NewGlusterfsd(b)
 	if err != nil {
 		undoMultiplex(client, &b)
 		return err
