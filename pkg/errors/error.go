@@ -70,4 +70,5 @@ var (
 	ErrVolumeBricksMountFailed         = errors.New("failed to get mount point entries for the volume bricks")
 	ErrBrickMountFailed                = errors.New("failed to mount brick")
 	ErrReservedGroupProfile            = errors.New("reserved group profile")
+	ErrInvalidIntValue                 = errors.New("error parsing the value. Make sure the value is a valid integer")
 )

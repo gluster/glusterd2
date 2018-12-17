@@ -34,3 +34,9 @@ func GetBricksOnPort(port int) []string {
 
 	return bricks
 }
+
+// GetNumOfBricksOnPort returns count of bricks attached to a port while
+// useful while multiplexing with max-bricks-per-process constraint
+func GetNumOfBricksOnPort(port int) (int, error) {
+	return registry.NumOfBricksOnPort(port)
+}

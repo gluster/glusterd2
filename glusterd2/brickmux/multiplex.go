@@ -25,8 +25,12 @@ func undoMultiplex(client *rpc.Client, b *brick.Brickinfo) {
 
 // Multiplex the specified brick onto a compatible running brick process.
 func Multiplex(b brick.Brickinfo, v *volume.Volinfo, volumes []*volume.Volinfo, logger log.FieldLogger) error {
+	maxBricksPerProcess, err := getMaxBricksPerProcess()
+	if err != nil {
+		return err
+	}
 
-	targetBrick, err := findCompatibleBrick(&b, v, volumes)
+	targetBrick, err := findCompatibleBrick(&b, v, volumes, maxBricksPerProcess)
 	if err != nil {
 		return err
 	}
