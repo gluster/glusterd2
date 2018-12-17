@@ -10,7 +10,9 @@ import (
 type Info struct {
 	Device        string    `json:"device"`
 	State         string    `json:"state"`
-	AvailableSize uint64    `json:"available-size"`
+	AvailableSize uint64    `json:"free-size"`
+	TotalSize     uint64    `json:"total-size"`
+	UsedSize      uint64    `json:"used-size"`
 	ExtentSize    uint64    `json:"extent-size"`
 	Used          bool      `json:"device-used"`
 	PeerID        uuid.UUID `json:"peer-id"`
