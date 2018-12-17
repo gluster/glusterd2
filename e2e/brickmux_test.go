@@ -243,7 +243,7 @@ func TestBrickMux(t *testing.T) {
 	}
 
 	// Stop glusterd2 instance and kill the glusterfsd into
-	// whcih all bricks were multiplexed
+	// which all bricks were multiplexed
 	r.Nil(tc.gds[0].Stop())
 	process, err = os.FindProcess(pid)
 	r.Nil(err, fmt.Sprintf("failed to find brick pid: %s", err))
