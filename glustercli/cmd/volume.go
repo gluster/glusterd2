@@ -508,6 +508,11 @@ var volumeExpandCmd = &cobra.Command{
 		if flagExpandCmdSize != "" {
 			size, err = sizeToBytes(flagExpandCmdSize)
 			if err != nil {
+				if GlobalFlag.Verbose {
+					log.WithError(err).WithFields(log.Fields{
+						"volume": volname,
+						"size":   flagExpandCmdSize}).Error("invalid volume size")
+				}
 				failure("Invalid Volume Size specified", nil, 1)
 			}
 		}

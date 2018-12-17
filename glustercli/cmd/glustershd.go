@@ -164,6 +164,11 @@ var selfHealSplitBrainCmd = &cobra.Command{
 		}
 		err := client.SelfHealSplitBrain(volname, operation, req)
 		if err != nil {
+			if GlobalFlag.Verbose {
+				log.WithError(err).WithFields(log.Fields{
+					"volume":    volname,
+					"operation": operation}).Error("failed to resolve split brain")
+			}
 			failure(fmt.Sprintf("Failed to resolve split-brain for volume %s\n", volname), err, 1)
 		}
 		fmt.Printf("Split Brain Resolution successful on volume %s \n", volname)
