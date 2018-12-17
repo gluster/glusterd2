@@ -48,6 +48,8 @@ func txnPrepareDevice(c transaction.TxnCtx) error {
 		Device:        device,
 		State:         deviceapi.DeviceEnabled,
 		AvailableSize: availableSize,
+		TotalSize:     availableSize,
+		UsedSize:      0,
 		ExtentSize:    extentSize,
 		PeerID:        peerID,
 	}
