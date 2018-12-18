@@ -95,7 +95,21 @@ func TestAddRemovePeer(t *testing.T) {
 		r.Len(peers, 0)
 	}
 
-	// remove peer: ask g1 to remove g2 as peer
-	err = client.PeerRemove(g2.PeerID())
+	devicesDir := testTempDir(t, "devices")
+	r.Nil(prepareLoopDevice(devicesDir+"/gluster_dev1.img", "1", "250M"))
+	_, err = client.DeviceAdd(g2.PeerID(), "/dev/gluster_loop1")
 	r.Nil(err)
+
+	dev, err := client.DeviceList(g2.PeerID(), "/dev/gluster_loop1")
+	r.Nil(err)
+	r.Equal(dev[0].Device, "/dev/gluster_loop1")
+
+	err = client.PeerRemove(g2.PeerID())
+	r.NotNil(err)
+
+	err = client.PeerRemove(g3.PeerID())
+	r.Nil(err)
+
+	// Device Cleanup
+	r.Nil(loopDevicesCleanup(t))
 }
