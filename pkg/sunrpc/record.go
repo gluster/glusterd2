@@ -98,7 +98,7 @@ func ReadFullRecord(conn io.Reader) ([]byte, error) {
 	// In almost all cases, RPC message contain only one fragment which
 	// is not too big in size. But set a cap on buffer size to prevent
 	// rogue clients from filling up memory.
-	record := bytes.NewBuffer(make([]byte, 0, maxRecordSize))
+	record := bytes.NewBuffer([]byte{})
 	var fragmentHeader uint32
 	for {
 		// Read record fragment header
@@ -112,7 +112,7 @@ func ReadFullRecord(conn io.Reader) ([]byte, error) {
 			return nil, ErrInvalidFragmentSize
 		}
 
-		if int(fragmentSize) > (record.Cap() - record.Len()) {
+		if int(fragmentSize) > (maxRecordSize - record.Len()) {
 			return nil, ErrRPCMessageSizeExceeded
 		}
 
