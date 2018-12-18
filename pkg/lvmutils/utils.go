@@ -71,7 +71,7 @@ func RemovePV(device string) error {
 
 // GetVgAvailableSize gets available size of given Vg
 func GetVgAvailableSize(vgname string) (uint64, uint64, error) {
-	out, err := exec.Command("vgdisplay", "-c", vgname).Output()
+	out, err := exec.Command("vgdisplay", "-c", "--readonly", vgname).Output()
 	if err != nil {
 		return 0, 0, err
 	}
@@ -158,7 +158,7 @@ func RemoveLV(vgName, lvName string) error {
 func NumberOfLvs(vgname, tpname string) (int, error) {
 	nlv := 0
 	out, err := utils.ExecuteCommandOutput(
-		"lvs", "--no-headings", "--select",
+		"lvs", "--no-headings", "--readonly", "--select",
 		fmt.Sprintf("vg_name=%s&&pool_lv=%s", vgname, tpname),
 	)
 
@@ -176,7 +176,7 @@ func NumberOfLvs(vgname, tpname string) (int, error) {
 // GetThinpoolName gets thinpool name for a given LV
 func GetThinpoolName(vgname, lvname string) (string, error) {
 	out, err := utils.ExecuteCommandOutput(
-		"lvs", "--no-headings", "--select",
+		"lvs", "--no-headings", "--readonly", "--select",
 		fmt.Sprintf("vg_name=%s&&lv_name=%s", vgname, lvname),
 		"-o", "pool_lv",
 	)
