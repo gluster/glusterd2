@@ -1,4 +1,4 @@
-package glusterblock
+package utils
 
 import (
 	"context"

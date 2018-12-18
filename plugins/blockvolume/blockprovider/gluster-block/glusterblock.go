@@ -4,6 +4,7 @@ import (
 	"context"
 	"errors"
 	"fmt"
+	"github.com/gluster/glusterd2/plugins/blockvolume/utils"
 	"strconv"
 	"strings"
 
@@ -96,7 +97,7 @@ func (g *GlusterBlock) CreateBlockVolume(name string, size int64, hosts []string
 	// If HostingVolume is not specified. List all available volumes and see if any volume is
 	// available with Metadata:block-hosting=yes
 	if blockVolOpts.HostVol == "" {
-		vInfo, err := GetExistingBlockHostingVolume(size)
+		vInfo, err := utils.GetExistingBlockHostingVolume(size)
 		if err != nil {
 			log.WithError(err).Debug("no block hosting volumes present")
 		}
@@ -107,7 +108,7 @@ func (g *GlusterBlock) CreateBlockVolume(name string, size int64, hosts []string
 	// volumes(Metadata:block-hosting-available-size is less than request size), then try to create a new
 	// block hosting Volume with generated name with default size and volume type configured
 	if blockVolOpts.HostVol == "" && volInfo == nil {
-		vInfo, err := CreateBlockHostingVolume(volCreateReq)
+		vInfo, err := utils.CreateBlockHostingVolume(volCreateReq)
 		if err != nil {
 			log.WithError(err).Error("error in auto creating block hosting volume")
 			return nil, err
@@ -219,7 +220,7 @@ func (g *GlusterBlock) DeleteBlockVolume(name string, options ...blockprovider.B
 		return err
 	}
 
-	if err := ResizeBlockHostingVolume(hostVol, blockInfo.Size); err != nil {
+	if err := utils.ResizeBlockHostingVolume(hostVol, blockInfo.Size); err != nil {
 		log.WithError(err).Error("error in resizing the block hosting volume")
 	}
 
