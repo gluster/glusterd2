@@ -1,20 +1,22 @@
 package blockvolume
 
 import (
-	"github.com/gorilla/mux"
 	"net/http"
 
 	"github.com/gluster/glusterd2/glusterd2/servers/rest/utils"
 	"github.com/gluster/glusterd2/plugins/blockvolume/api"
 	"github.com/gluster/glusterd2/plugins/blockvolume/blockprovider"
+
+	"github.com/gorilla/mux"
 )
 
 // CreateVolume is a http Handler for creating a block volume
 func (b *BlockVolume) CreateVolume(w http.ResponseWriter, r *http.Request) {
 	var (
-		req  = &api.BlockVolumeCreateRequest{}
-		resp = &api.BlockVolumeCreateResp{}
-		opts = []blockprovider.BlockVolOption{}
+		req        = &api.BlockVolumeCreateRequest{}
+		resp       = &api.BlockVolumeCreateResp{}
+		opts       = []blockprovider.BlockVolOption{}
+		pathParams = mux.Vars(r)
 	)
 
 	if err := utils.UnmarshalRequest(r, req); err != nil {
@@ -22,16 +24,25 @@ func (b *BlockVolume) CreateVolume(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	opts = append(opts,
-		blockprovider.WithHostVolume(req.HostingVolume),
-		blockprovider.WithHaCount(req.HaCount),
-	)
+	opts = append(opts, blockprovider.WithHaCount(req.HaCount))
 
 	if req.Auth {
 		opts = append(opts, blockprovider.WithAuthEnabled)
 	}
 
-	blockVol, err := b.blockProvider.CreateBlockVolume(req.Name, req.Size, req.Clusters, opts...)
+	blockProvider, err := blockprovider.GetBlockProvider(pathParams["provider"])
+	if err != nil {
+		utils.SendHTTPError(r.Context(), w, http.StatusInternalServerError, err)
+		return
+	}
+
+	hostVolInfo, err := b.hostVolManager.GetOrCreateHostingVolume(req.HostingVolume, req.Size)
+	if err != nil {
+		utils.SendHTTPError(r.Context(), w, http.StatusInternalServerError, err)
+		return
+	}
+
+	blockVol, err := blockProvider.CreateBlockVolume(req.Name, req.Size, req.Clusters, hostVolInfo.Name, opts...)
 	if err != nil {
 		utils.SendHTTPError(r.Context(), w, http.StatusInternalServerError, err)
 		return
@@ -52,11 +63,14 @@ func (b *BlockVolume) CreateVolume(w http.ResponseWriter, r *http.Request) {
 
 // DeleteVolume is a http Handler for deleting a specific block-volume
 func (b *BlockVolume) DeleteVolume(w http.ResponseWriter, r *http.Request) {
-	var (
-		pathParams = mux.Vars(r)
-	)
+	pathParams := mux.Vars(r)
+	blockProvider, err := blockprovider.GetBlockProvider(pathParams["provider"])
+	if err != nil {
+		utils.SendHTTPError(r.Context(), w, http.StatusInternalServerError, err)
+		return
+	}
 
-	if err := b.blockProvider.DeleteBlockVolume(pathParams["name"]); err != nil {
+	if err := blockProvider.DeleteBlockVolume(pathParams["name"]); err != nil {
 		utils.SendHTTPError(r.Context(), w, http.StatusInternalServerError, err)
 		return
 	}
@@ -67,10 +81,17 @@ func (b *BlockVolume) DeleteVolume(w http.ResponseWriter, r *http.Request) {
 // ListBlockVolumes is a http handler for listing all available block volumes
 func (b *BlockVolume) ListBlockVolumes(w http.ResponseWriter, r *http.Request) {
 	var (
-		resp = api.BlockVolumeListResp{}
+		resp       = api.BlockVolumeListResp{}
+		pathParams = mux.Vars(r)
 	)
 
-	blockVols := b.blockProvider.BlockVolumes()
+	blockProvider, err := blockprovider.GetBlockProvider(pathParams["provider"])
+	if err != nil {
+		utils.SendHTTPError(r.Context(), w, http.StatusInternalServerError, err)
+		return
+	}
+
+	blockVols := blockProvider.BlockVolumes()
 
 	for _, blockVol := range blockVols {
 		resp = append(resp, api.BlockVolumeInfo{Name: blockVol.Name(), HostingVolume: blockVol.HostVolume()})
@@ -86,7 +107,13 @@ func (b *BlockVolume) GetBlockVolume(w http.ResponseWriter, r *http.Request) {
 		resp       = &api.BlockVolumeGetResp{}
 	)
 
-	blockVol, err := b.blockProvider.GetBlockVolume(pathParams["name"])
+	blockProvider, err := blockprovider.GetBlockProvider(pathParams["provider"])
+	if err != nil {
+		utils.SendHTTPError(r.Context(), w, http.StatusInternalServerError, err)
+		return
+	}
+
+	blockVol, err := blockProvider.GetBlockVolume(pathParams["name"])
 	if err != nil {
 		utils.SendHTTPError(r.Context(), w, http.StatusInternalServerError, err)
 		return

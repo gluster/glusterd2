@@ -18,7 +18,7 @@ var (
 
 // Provider is an abstract, pluggable interface for block volume providers
 type Provider interface {
-	CreateBlockVolume(name string, size int64, hosts []string, options ...BlockVolOption) (BlockVolume, error)
+	CreateBlockVolume(name string, size int64, hosts []string, hostVolume string, options ...BlockVolOption) (BlockVolume, error)
 	DeleteBlockVolume(name string, options ...BlockVolOption) error
 	GetBlockVolume(id string) (BlockVolume, error)
 	BlockVolumes() []BlockVolume

@@ -5,7 +5,6 @@ type BlockVolOption func(*BlockVolumeOptions)
 
 // BlockVolumeOptions represents various optional params to be used for a block volume operation
 type BlockVolumeOptions struct {
-	HostVol            string
 	Auth               bool
 	FullPrealloc       bool
 	Storage            string
@@ -19,13 +18,6 @@ type BlockVolumeOptions struct {
 func (op *BlockVolumeOptions) ApplyOpts(optFuncs ...BlockVolOption) {
 	for _, optFunc := range optFuncs {
 		optFunc(op)
-	}
-}
-
-// WithHostVolume configures a HostVolume param
-func WithHostVolume(name string) BlockVolOption {
-	return func(options *BlockVolumeOptions) {
-		options.HostVol = name
 	}
 }
 
