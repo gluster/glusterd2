@@ -10,9 +10,12 @@ import (
 	"time"
 
 	"github.com/gluster/glusterd2/glusterd2/commands/volumes"
+	"github.com/gluster/glusterd2/glusterd2/transaction"
 	"github.com/gluster/glusterd2/glusterd2/volume"
 	"github.com/gluster/glusterd2/pkg/api"
 	"github.com/gluster/glusterd2/pkg/size"
+
+	log "github.com/sirupsen/logrus"
 )
 
 // BlockSizeFilter returns a volume Filter, which will filter out volumes
@@ -73,6 +76,8 @@ func CreateBlockHostingVolume(req *api.VolCreateReq) (*volume.Volinfo, error) {
 // ResizeBlockHostingVolume will adds deletedBlockSize to block-hosting-available-size
 // in metadata and update the new vol info to store.
 func ResizeBlockHostingVolume(volname string, deletedBlockSize string) error {
+	clusterLocks := transaction.Locks{}
+
 	volInfo, err := volume.GetVolume(volname)
 	if err != nil {
 		return err
@@ -93,6 +98,13 @@ func ResizeBlockHostingVolume(volname string, deletedBlockSize string) error {
 	}
 
 	volInfo.Metadata["block-hosting-available-size"] = fmt.Sprintf("%d", size.Size(availableSizeInBytes)+deletedSizeInBytes)
+
+	if err := clusterLocks.Lock(volInfo.Name); err != nil {
+		log.WithError(err).Error("error in acquiring cluster lock")
+		return err
+	}
+
+	defer clusterLocks.UnLock(context.Background())
 
 	return volume.AddOrUpdateVolume(volInfo)
 }

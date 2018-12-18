@@ -4,19 +4,16 @@ import (
 	"context"
 	"errors"
 	"fmt"
-	"github.com/gluster/glusterd2/plugins/blockvolume/utils"
 	"strconv"
-	"strings"
+
+	"github.com/gluster/glusterd2/glusterd2/transaction"
+	"github.com/gluster/glusterd2/glusterd2/volume"
+	"github.com/gluster/glusterd2/pkg/size"
+	"github.com/gluster/glusterd2/plugins/blockvolume/blockprovider"
+	"github.com/gluster/glusterd2/plugins/blockvolume/utils"
 
 	"github.com/gluster/gluster-block-restapi/client"
 	"github.com/gluster/gluster-block-restapi/pkg/api"
-	"github.com/gluster/glusterd2/glusterd2/commands/volumes"
-	"github.com/gluster/glusterd2/glusterd2/gdctx"
-	"github.com/gluster/glusterd2/glusterd2/volume"
-	gd2api "github.com/gluster/glusterd2/pkg/api"
-	"github.com/gluster/glusterd2/pkg/size"
-	"github.com/gluster/glusterd2/plugins/blockvolume/blockprovider"
-
 	log "github.com/sirupsen/logrus"
 	"github.com/spf13/viper"
 )
@@ -30,24 +27,19 @@ func init() {
 
 // GlusterBlock implements block Provider interface. It represents a gluster-block
 type GlusterBlock struct {
-	client               client.GlusterBlockClient
-	ClientConf           *ClientConfig
-	HostingVolumeOptions *HostingVolumeOptions
+	client     client.GlusterBlockClient
+	ClientConf *ClientConfig
 }
 
 func newGlusterBlock() (blockprovider.Provider, error) {
 	var (
-		gb          = &GlusterBlock{}
-		clientConf  = &ClientConfig{}
-		hostVolOpts = &HostingVolumeOptions{}
-		opts        = []client.OptFuncs{}
+		gb         = &GlusterBlock{}
+		clientConf = &ClientConfig{}
+		opts       = []client.OptFuncs{}
 	)
 
 	clientConf.ApplyFromConfig(viper.GetViper())
-	hostVolOpts.ApplyFromConfig(viper.GetViper())
-
 	gb.ClientConf = clientConf
-	gb.HostingVolumeOptions = hostVolOpts
 
 	opts = append(opts,
 		client.WithAuth(clientConf.User, clientConf.Secret),
@@ -63,93 +55,14 @@ func newGlusterBlock() (blockprovider.Provider, error) {
 	return gb, nil
 }
 
-// CreateBlockVolume will create a gluster block volume with given name and size. If hosting volume is not provide then it will
-// create a gluster volume for hosting gluster block.
-func (g *GlusterBlock) CreateBlockVolume(name string, size int64, hosts []string, options ...blockprovider.BlockVolOption) (blockprovider.BlockVolume, error) {
+// CreateBlockVolume will create a gluster block volume with given name and size having `hostVolume` as hosting volume
+func (g *GlusterBlock) CreateBlockVolume(name string, size int64, hosts []string, hostVolume string, options ...blockprovider.BlockVolOption) (blockprovider.BlockVolume, error) {
 	var (
 		blockVolOpts = &blockprovider.BlockVolumeOptions{}
-		volCreateReq = g.HostingVolumeOptions.PrepareVolumeCreateReq()
-		volInfo      *volume.Volinfo
-		ctx          = gdctx.WithReqLogger(context.Background(), log.StandardLogger())
+		clusterLocks = transaction.Locks{}
 	)
 
 	blockVolOpts.ApplyOpts(options...)
-
-	// ERROR if If HostingVolume is not specified and auto-create-block-hosting-volumes is false
-	if blockVolOpts.HostVol == "" && !g.HostingVolumeOptions.AutoCreate {
-		err := errors.New("host volume is not provided and auto creation is not enabled")
-		log.WithError(err).Error("failed in creating block volume")
-		return nil, err
-	}
-
-	// If HostingVolume name is not empty, then create block volume with requested size.
-	// If available size is less than requested size then ERROR. Set block related
-	// metadata and volume options if not exists.
-	if blockVolOpts.HostVol != "" {
-		vInfo, err := volume.GetVolume(blockVolOpts.HostVol)
-		if err != nil {
-			log.WithError(err).Error("error in fetching volume info")
-			return nil, err
-		}
-		volInfo = vInfo
-	}
-
-	// If HostingVolume is not specified. List all available volumes and see if any volume is
-	// available with Metadata:block-hosting=yes
-	if blockVolOpts.HostVol == "" {
-		vInfo, err := utils.GetExistingBlockHostingVolume(size)
-		if err != nil {
-			log.WithError(err).Debug("no block hosting volumes present")
-		}
-		volInfo = vInfo
-	}
-
-	// If No volumes are available with Metadata:block-hosting=yes or if no space available to create block
-	// volumes(Metadata:block-hosting-available-size is less than request size), then try to create a new
-	// block hosting Volume with generated name with default size and volume type configured
-	if blockVolOpts.HostVol == "" && volInfo == nil {
-		vInfo, err := utils.CreateBlockHostingVolume(volCreateReq)
-		if err != nil {
-			log.WithError(err).Error("error in auto creating block hosting volume")
-			return nil, err
-		}
-
-		vInfo, _, err = volumecommands.StartVolume(ctx, vInfo.Name, gd2api.VolumeStartReq{})
-		if err != nil {
-			log.WithError(err).Error("error in starting auto created block hosting volume")
-			return nil, err
-		}
-
-		volInfo = vInfo
-	}
-
-	if _, found := volInfo.Metadata["block-hosting"]; !found {
-		volInfo.Metadata["block-hosting"] = "yes"
-	}
-
-	blockHosting := volInfo.Metadata["block-hosting"]
-
-	if strings.ToLower(blockHosting) == "no" {
-		return nil, errors.New("not a block hosting volume")
-	}
-
-	if _, found := volInfo.Metadata["block-hosting-available-size"]; !found {
-		volInfo.Metadata["block-hosting-available-size"] = fmt.Sprintf("%d", g.HostingVolumeOptions.Size)
-	}
-
-	availableSizeInBytes, err := strconv.Atoi(volInfo.Metadata["block-hosting-available-size"])
-
-	if err != nil {
-		return nil, err
-	}
-
-	if int64(availableSizeInBytes) < size {
-		return nil, fmt.Errorf("available size is less than requested size,request size: %d, available size: %d", size, availableSizeInBytes)
-	}
-
-	if volInfo.State != volume.VolStarted {
-		return nil, errors.New("volume has not been started")
-	}
 
 	req := &api.BlockVolumeCreateReq{
 		HaCount:            blockVolOpts.Ha,
@@ -161,7 +74,28 @@ func (g *GlusterBlock) CreateBlockVolume(name string, size int64, hosts []string
 		Hosts:              hosts,
 	}
 
-	resp, err := g.client.CreateBlockVolume(volInfo.Name, name, req)
+	volInfo, err := volume.GetVolume(hostVolume)
+	if err != nil {
+		return nil, fmt.Errorf("error in getting host vol details: %s", err)
+	}
+
+	if err := clusterLocks.Lock(volInfo.Name); err != nil {
+		log.WithError(err).Error("error in acquiring cluster lock")
+		return nil, err
+	}
+
+	defer clusterLocks.UnLock(context.Background())
+
+	availableSizeInBytes, err := strconv.Atoi(volInfo.Metadata["block-hosting-available-size"])
+	if err != nil {
+		return nil, err
+	}
+
+	if int64(availableSizeInBytes) < size {
+		return nil, fmt.Errorf("available size is less than requested size,request size: %d, available size: %d", size, availableSizeInBytes)
+	}
+
+	resp, err := g.client.CreateBlockVolume(hostVolume, name, req)
 	if err != nil {
 		return nil, err
 	}

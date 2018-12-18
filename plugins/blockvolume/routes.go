@@ -7,32 +7,28 @@ import (
 	"github.com/gluster/glusterd2/glusterd2/servers/rest/route"
 	"github.com/gluster/glusterd2/pkg/utils"
 	"github.com/gluster/glusterd2/plugins/blockvolume/api"
-	"github.com/gluster/glusterd2/plugins/blockvolume/blockprovider"
-
-	log "github.com/sirupsen/logrus"
-	config "github.com/spf13/viper"
 )
 
 // BlockVolume represents BlockVolume plugin
 type BlockVolume struct {
-	blockProvider blockprovider.Provider
-	initOnce      sync.Once
+	hostVolManager HostingVolumeManager
+	initOnce       sync.Once
 }
 
-// Name returns underlying block provider name
+// Name returns plugin name
 func (b *BlockVolume) Name() string {
-	b.mustInitBlockProvider()
-	return b.blockProvider.ProviderName()
+	b.Init()
+	return "block-volume"
 }
 
 // RestRoutes returns list of REST API routes of BlockVolume to register with Glusterd.
 func (b *BlockVolume) RestRoutes() route.Routes {
-	b.mustInitBlockProvider()
+	b.Init()
 	return route.Routes{
 		{
 			Name:         "BlockCreate",
 			Method:       http.MethodPost,
-			Pattern:      "/blockvolumes",
+			Pattern:      "/blockvolumes/{provider}",
 			Version:      1,
 			RequestType:  utils.GetTypeString((*api.BlockVolumeCreateRequest)(nil)),
 			ResponseType: utils.GetTypeString((*api.BlockVolumeCreateResp)(nil)),
@@ -41,21 +37,21 @@ func (b *BlockVolume) RestRoutes() route.Routes {
 		{
 			Name:        "BlockDelete",
 			Method:      http.MethodDelete,
-			Pattern:     "/blockvolumes/{name}",
+			Pattern:     "/blockvolumes/{provider}/{name}",
 			Version:     1,
 			HandlerFunc: b.DeleteVolume,
 		},
 		{
 			Name:        "BlockList",
 			Method:      http.MethodGet,
-			Pattern:     "/blockvolumes",
+			Pattern:     "/blockvolumes/{provider}",
 			Version:     1,
 			HandlerFunc: b.ListBlockVolumes,
 		},
 		{
 			Name:        "BlockGet",
 			Method:      http.MethodGet,
-			Pattern:     "/blockvolumes/{name}",
+			Pattern:     "/blockvolumes/{provider}/{name}",
 			Version:     1,
 			HandlerFunc: b.GetBlockVolume,
 		},
@@ -63,20 +59,15 @@ func (b *BlockVolume) RestRoutes() route.Routes {
 }
 
 // RegisterStepFuncs registers all step functions
-// Here it is a no-op func
+// Here it is a no-op method
 func (*BlockVolume) RegisterStepFuncs() {
 
 }
 
-// mustInitBlockProvider will initialize the underlying block provider only once.
+// Init will initialize the underlying HostVolume manager only once.
 // calling it multiple times will do nothing
-func (b *BlockVolume) mustInitBlockProvider() {
+func (b *BlockVolume) Init() {
 	b.initOnce.Do(func() {
-		providerName := config.GetString("block-provider")
-		provider, err := blockprovider.GetBlockProvider(providerName)
-		if err != nil {
-			log.WithError(err).Panic("failed in initializing block-volume provider")
-		}
-		b.blockProvider = provider
+		b.hostVolManager = newGlusterVolManager()
 	})
 }
