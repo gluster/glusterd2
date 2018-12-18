@@ -181,6 +181,15 @@ func testSmartVolumeDistribute(t *testing.T) {
 	r.NotNil(err)
 
 	r.Nil(client.VolumeDelete(smartvolname))
+
+	createReq = api.VolCreateReq{
+		Name:            "volume",
+		Size:            60 * gutils.MiB,
+		DistributeCount: 3,
+	}
+	volinfo, err = client.VolumeCreate(createReq)
+	r.NotNil(err)
+
 	checkZeroLvs(r)
 }
 

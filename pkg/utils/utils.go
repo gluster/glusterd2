@@ -31,6 +31,18 @@ const (
 	TiB = 1024 * GiB
 )
 
+var (
+	// ReservedKeywords are Glusterd2 reserved keywords and must not be used as
+	// resource(volume, peer etc) name to avoid conflict in glustercli.
+	ReservedKeywords = []string{"all", "volume", "status", "list", "cluster", "gluster", "brick"}
+)
+
+// IsReservedKeyword returns true if the resource name is one of the
+// GD2 Reserved Keyword
+func IsReservedKeyword(resourceName string) bool {
+	return StringInSlice(resourceName, ReservedKeywords)
+}
+
 // IsLocalAddress checks whether a given host/IP is local
 // Does lookup only after string matching IP addresses
 func IsLocalAddress(address string) (bool, error) {

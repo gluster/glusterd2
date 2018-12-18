@@ -233,39 +233,55 @@ var volumeDeleteCmd = &cobra.Command{
 }
 
 var volumeGetCmd = &cobra.Command{
-	Use:   "get",
+	Use:   "get <VOLNAME|all> <key|all>",
 	Short: helpVolumeGetCmd,
 	Args:  cobra.ExactArgs(2),
 	Run: func(cmd *cobra.Command, args []string) {
-
 		volname := args[0]
 		optname := args[1]
-
-		opts, err := client.VolumeGet(volname, optname)
-		if err != nil {
-			log.WithError(err).Error("error getting volume options")
-			failure("Error getting volume options", err, 1)
-		}
-
 		table := tablewriter.NewWriter(os.Stdout)
-		table.SetHeader([]string{"Name", "Modified", "Value", "Default Value", "Option Level"})
-		table.SetAlignment(tablewriter.ALIGN_LEFT)
 
-		for _, opt := range opts {
-			//if modified flag is set, discard unmodified options
-			if flagGetMdf && !opt.Modified {
-				continue
+		var volList []string
+		if volname == "all" {
+			volInfoList, err := client.Volumes("")
+			if len(volInfoList) <= 0 {
+				failure("No volumes found", err, 1)
 			}
-			if flagGetBsc && opt.OptionLevel == "Basic" {
-				table.Append([]string{opt.OptName, formatBoolYesNo(opt.Modified), opt.Value, opt.DefaultValue, opt.OptionLevel})
+			for _, volInfo := range volInfoList {
+				volList = append(volList, volInfo.Name)
 			}
-			if flagGetAdv && opt.OptionLevel == "Advanced" {
-				table.Append([]string{opt.OptName, formatBoolYesNo(opt.Modified), opt.Value, opt.DefaultValue, opt.OptionLevel})
-
-			}
+		} else {
+			volList = append(volList, volname)
 		}
-		table.Render()
+		for _, volume := range volList {
 
+			fmt.Println("Volume :", volume)
+			opts, err := client.VolumeGet(volume, optname)
+			if err != nil {
+				log.WithError(err).Error("error getting volume options")
+				failure("Error getting volume options", err, 1)
+			}
+			table = tablewriter.NewWriter(os.Stdout)
+			table.SetHeader([]string{"Name", "Modified", "Value", "Default Value", "Option Level"})
+			table.SetAlignment(tablewriter.ALIGN_LEFT)
+
+			for _, opt := range opts {
+				//if modified flag is set, discard unmodified options
+				if flagGetMdf && !opt.Modified {
+					continue
+				}
+				if flagGetBsc && opt.OptionLevel == "Basic" {
+					table.Append([]string{opt.OptName, formatBoolYesNo(opt.Modified), opt.Value, opt.DefaultValue, opt.OptionLevel})
+				}
+				if flagGetAdv && opt.OptionLevel == "Advanced" {
+					table.Append([]string{opt.OptName, formatBoolYesNo(opt.Modified), opt.Value, opt.DefaultValue, opt.OptionLevel})
+
+				}
+			}
+			table.Render()
+			fmt.Println("")
+
+		}
 	},
 }
 

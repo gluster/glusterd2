@@ -54,6 +54,7 @@ func addSubCommands(rootCmd *cobra.Command) {
 	rootCmd.AddCommand(georepCmd)
 	rootCmd.AddCommand(snapshotCmd)
 	rootCmd.AddCommand(volumeCmd)
+	rootCmd.AddCommand(clusterCmd)
 }
 
 // GlustercliOption will have all global flags set during run time

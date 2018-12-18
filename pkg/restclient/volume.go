@@ -117,14 +117,8 @@ func (c *Client) VolumeSet(volname string, req api.VolOptionReq) error {
 	return err
 }
 
-// ClusterOptionSet sets cluster level options
-func (c *Client) ClusterOptionSet(req api.ClusterOptionReq) error {
-	url := fmt.Sprintf("/v1/cluster/options")
-	return c.post(url, req, http.StatusOK, nil)
-}
-
 // VolumeGet gets volume options for a Gluster Volume
-func (c *Client) VolumeGet(volname string, optname string) (api.VolumeOptionsGetResp, error) {
+func (c *Client) VolumeGet(volname, optname string) (api.VolumeOptionsGetResp, error) {
 	if optname == "all" {
 		var opts api.VolumeOptionsGetResp
 		url := fmt.Sprintf("/v1/volumes/%s/options", volname)
