@@ -136,6 +136,9 @@ func getBricksLayout(req *api.VolCreateReq) ([]api.SubvolReq, error) {
 		for j := 0; j < subvolplanner.BricksCount(); j++ {
 			eachBrickSize := subvolplanner.BrickSize(j)
 			brickType := subvolplanner.BrickType(j)
+			if eachBrickSize < minBrickSize {
+				return nil, errors.New("brick size is too small")
+			}
 			eachBrickTpSize := uint64(float64(eachBrickSize) * req.SnapshotReserveFactor)
 
 			bricks = append(bricks, api.BrickReq{
