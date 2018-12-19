@@ -16,6 +16,7 @@ import (
 const (
 	lockPrefix        = "locks/"
 	lockObtainTimeout = 5 * time.Second
+	lockTTL           = 10
 )
 
 var (
@@ -163,12 +164,17 @@ func (l Locks) lock(lockID string) error {
 	logger.Debug("attempting to obtain lock")
 
 	key := lockPrefix + lockID
-	locker := concurrency.NewMutex(store.Store.Session, key)
+	s, err := concurrency.NewSession(store.Store.Client, concurrency.WithTTL(lockTTL))
+	if err != nil {
+		return err
+	}
+
+	locker := concurrency.NewMutex(s, key)
 
 	ctx, cancel := context.WithTimeout(store.Store.Ctx(), lockObtainTimeout)
 	defer cancel()
 
-	err := locker.Lock(ctx)
+	err = locker.Lock(ctx)
 	switch err {
 	case nil:
 		logger.Debug("lock obtained")
