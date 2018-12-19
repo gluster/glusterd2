@@ -94,19 +94,34 @@ func init() {
 func smartVolumeCreate(cmd *cobra.Command, args []string) {
 	size, err := sizeToBytes(flagCreateVolumeSize)
 	if err != nil {
-		failure("Invalid Volume Size specified", nil, 1)
+		if GlobalFlag.Verbose {
+			log.WithError(err).WithFields(log.Fields{
+				"volume": args[0],
+				"size":   flagCreateVolumeSize}).Error("invalid volume size")
+		}
+		failure("Invalid Volume Size specified", err, 1)
 	}
 
 	// if average file size is specified for arbiter brick calculation
 	// else default is taken.
 	avgFileSize, err := sizeToBytes(flagAverageFileSize)
 	if err != nil {
-		failure("Invalid File Size specified", nil, 1)
+		if GlobalFlag.Verbose {
+			log.WithError(err).WithFields(log.Fields{
+				"volume": args[0],
+				"size":   flagCreateVolumeSize}).Error("invalid file size")
+		}
+		failure("Invalid File Size specified", err, 1)
 	}
 
 	maxBrickSize, err := sizeToBytes(flagCreateMaxBrickSize)
 	if err != nil {
-		failure("Invalid Max Brick size Size specified", nil, 1)
+		if GlobalFlag.Verbose {
+			log.WithError(err).WithFields(log.Fields{
+				"volume": args[0],
+				"size":   flagCreateVolumeSize}).Error("invalid max brick size")
+		}
+		failure("Invalid Max Brick Size specified", err, 1)
 	}
 
 	req := api.VolCreateReq{
