@@ -18,16 +18,16 @@ import (
 
 func deleteVolume(c transaction.TxnCtx) error {
 
-	var volinfo volume.Volinfo
-	if err := c.Get("volinfo", &volinfo); err != nil {
+	var (
+		volinfo volume.Volinfo
+		err     error
+	)
+	if err = c.Get("volinfo", &volinfo); err != nil {
 		return err
 	}
 
-	if err := volume.DeleteVolume(volinfo.Name); err != nil {
-		return err
-	}
-
-	return nil
+	err = volume.DeleteVolume(volinfo.Name)
+	return err
 }
 
 func registerVolDeleteStepFuncs() {

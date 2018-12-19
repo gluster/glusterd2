@@ -40,6 +40,7 @@ var (
 	flagCreateSnapshotReserveFactor float64 = 1
 	flagCreateSubvolZoneOverlap     bool
 	flagAverageFileSize             string
+	flagCreateMaxBrickSize          string
 
 	volumeCreateCmd = &cobra.Command{
 		Use:   "create <volname> [<brick> [<brick>]...|--size <size>]",
@@ -85,6 +86,7 @@ func init() {
 	volumeCreateCmd.Flags().Float64Var(&flagCreateSnapshotReserveFactor, "snapshot-reserve-factor", 1, "Snapshot Reserve Factor")
 	volumeCreateCmd.Flags().BoolVar(&flagCreateSubvolZoneOverlap, "subvols-zones-overlap", false, "Brick belonging to other Sub volume can be created in the same zone")
 	volumeCreateCmd.Flags().StringVar(&flagAverageFileSize, "average-file-size", "1M", "Average size of the files")
+	volumeCreateCmd.Flags().StringVar(&flagCreateMaxBrickSize, "max-brick-size", "", "Max brick size for auto distribute count")
 
 	volumeCmd.AddCommand(volumeCreateCmd)
 }
@@ -92,20 +94,41 @@ func init() {
 func smartVolumeCreate(cmd *cobra.Command, args []string) {
 	size, err := sizeToBytes(flagCreateVolumeSize)
 	if err != nil {
-		failure("Invalid Volume Size specified", nil, 1)
+		if GlobalFlag.Verbose {
+			log.WithError(err).WithFields(log.Fields{
+				"volume": args[0],
+				"size":   flagCreateVolumeSize}).Error("invalid volume size")
+		}
+		failure("Invalid Volume Size specified", err, 1)
 	}
 
 	// if average file size is specified for arbiter brick calculation
 	// else default is taken.
 	avgFileSize, err := sizeToBytes(flagAverageFileSize)
 	if err != nil {
-		failure("Invalid File Size specified", nil, 1)
+		if GlobalFlag.Verbose {
+			log.WithError(err).WithFields(log.Fields{
+				"volume": args[0],
+				"size":   flagCreateVolumeSize}).Error("invalid file size")
+		}
+		failure("Invalid File Size specified", err, 1)
+	}
+
+	maxBrickSize, err := sizeToBytes(flagCreateMaxBrickSize)
+	if err != nil {
+		if GlobalFlag.Verbose {
+			log.WithError(err).WithFields(log.Fields{
+				"volume": args[0],
+				"size":   flagCreateVolumeSize}).Error("invalid max brick size")
+		}
+		failure("Invalid Max Brick Size specified", err, 1)
 	}
 
 	req := api.VolCreateReq{
 		Name:                    args[0],
 		Transport:               flagCreateTransport,
 		Size:                    size,
+		MaxBrickSize:            maxBrickSize,
 		ReplicaCount:            flagCreateReplicaCount,
 		ArbiterCount:            flagCreateArbiterCount,
 		AverageFileSize:         avgFileSize,

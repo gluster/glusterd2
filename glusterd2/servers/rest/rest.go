@@ -11,6 +11,7 @@ import (
 
 	"github.com/gluster/glusterd2/glusterd2/middleware"
 	restutils "github.com/gluster/glusterd2/glusterd2/servers/rest/utils"
+	gdutils "github.com/gluster/glusterd2/glusterd2/utils"
 	"github.com/gluster/glusterd2/pkg/api"
 	"github.com/gluster/glusterd2/pkg/tlsmatcher"
 
@@ -84,6 +85,12 @@ func NewMuxed(m cmux.CMux) *GDRest {
 	}
 
 	rest.registerRoutes()
+
+	//Enable go profiling
+	profiling := config.GetBool("profiling")
+	if profiling {
+		gdutils.EnableProfiling(rest.Routes)
+	}
 
 	// Set Handler to opencensus HTTP handler to enable tracing
 	// Set chain of ordered middlewares

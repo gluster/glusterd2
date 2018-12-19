@@ -66,8 +66,9 @@ func validateOptions(opts map[string]string, flags api.VolOptionFlags) error {
 }
 
 func validateXlatorOptions(opts map[string]string, volinfo *volume.Volinfo) error {
+	var toreplace [][]string
 	for k, v := range opts {
-		_, xl, key := options.SplitKey(k)
+		graphName, xl, key := options.SplitKey(k)
 		xltr, err := xlator.Find(xl)
 		if err != nil {
 			return err
@@ -77,6 +78,22 @@ func validateXlatorOptions(opts map[string]string, volinfo *volume.Volinfo) erro
 				return err
 			}
 		}
+
+		normalizedKeyName := xltr.FullName() + "." + key
+		if graphName != "" {
+			normalizedKeyName = graphName + "." + normalizedKeyName
+		}
+
+		if k != normalizedKeyName {
+			// Do not remove and add key inplace, do it lator
+			// Format: Old Key, New Key, Value
+			toreplace = append(toreplace, []string{k, normalizedKeyName, v})
+		}
+	}
+
+	for _, v := range toreplace {
+		delete(opts, v[0])
+		opts[v[1]] = v[2]
 	}
 	return nil
 }

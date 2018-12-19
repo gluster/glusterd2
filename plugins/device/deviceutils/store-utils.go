@@ -115,6 +115,7 @@ func UpdateDeviceFreeSize(peerID, device string) error {
 		return err
 	}
 	dev.AvailableSize = availableSize
+	dev.UsedSize = dev.TotalSize - availableSize
 	dev.ExtentSize = extentSize
 	return AddOrUpdateDevice(*dev)
 }
@@ -133,6 +134,7 @@ func UpdateDeviceFreeSizeByVg(peerID, vgname string) error {
 				return err
 			}
 			dev.AvailableSize = availableSize
+			dev.UsedSize = dev.TotalSize - availableSize
 			dev.ExtentSize = extentSize
 			return AddOrUpdateDevice(dev)
 		}

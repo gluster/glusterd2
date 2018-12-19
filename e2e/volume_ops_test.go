@@ -599,7 +599,7 @@ func TestVolumeOptions(t *testing.T) {
 	// TODO: Remove this later if the default changes
 	createReq.AllowAdvanced = true
 
-	validOpKeys := []string{"gfproxy.replicate.eager-lock", "replicate.eager-lock"}
+	validOpKeys := []string{"gfproxy.cluster/replicate.eager-lock", "cluster/replicate.eager-lock"}
 	invalidOpKeys := []string{"..eager-lock", "a.b.afr.eager-lock", "afr.non-existent", "eager-lock"}
 
 	// valid option test cases
@@ -621,6 +621,33 @@ func TestVolumeOptions(t *testing.T) {
 		err = client.VolumeDelete(volname)
 		r.Nil(err)
 	}
+
+	// Test the option key normalization, set short name and get full name
+	createReq.Options = map[string]string{"replicate.eager-lock": "on"}
+
+	_, err = client.VolumeCreate(createReq)
+	r.Nil(err)
+
+	// test volume get on full name
+	_, err = client.VolumeGet(volname, "cluster/replicate.eager-lock")
+	r.Nil(err)
+
+	var resetOptReq api.VolOptionResetReq
+	resetOptReq.Options = []string{"cluster/replicate.eager-lock"}
+	resetOptReq.Force = true
+	r.Nil(client.VolumeReset(volname, resetOptReq))
+
+	var reqSetTest api.VolOptionReq
+	reqSetTest.Options = map[string]string{"replicate.eager-lock": "on"}
+	reqSetTest.AllowAdvanced = true
+	r.Nil(client.VolumeSet(volname, reqSetTest))
+
+	// test volume get on full name
+	_, err = client.VolumeGet(volname, "cluster/replicate.eager-lock")
+	r.Nil(err)
+
+	err = client.VolumeDelete(volname)
+	r.Nil(err)
 
 	// invalid option test cases
 	for _, invalidKey := range invalidOpKeys {
@@ -654,7 +681,7 @@ func TestVolumeOptions(t *testing.T) {
 	r.Nil(client.VolumeSet(volname, optionReq))
 
 	var resetOptionReq api.VolOptionResetReq
-	resetOptionReq.Options = []string{"replicate.use-compound-fops"}
+	resetOptionReq.Options = []string{"cluster/replicate.use-compound-fops"}
 	resetOptionReq.Force = true
 	r.Nil(client.VolumeReset(volname, resetOptionReq))
 

@@ -140,13 +140,24 @@ func testReplaceBrick(t *testing.T) {
 func testSmartVolumeDistribute(t *testing.T) {
 	r := require.New(t)
 	smartvolname := formatVolName(t.Name())
-	// create Distribute 3 Volume
+
+	// Too small brick size as a result of asked distribute size
 	createReq := api.VolCreateReq{
+		Name:               smartvolname,
+		Size:               20 * gutils.MiB,
+		DistributeCount:    3,
+		SubvolZonesOverlap: true,
+	}
+	volinfo, err := client.VolumeCreate(createReq)
+	r.NotNil(err)
+
+	// create Distribute 3 Volume
+	createReq = api.VolCreateReq{
 		Name:            smartvolname,
 		Size:            60 * gutils.MiB,
 		DistributeCount: 3,
 	}
-	volinfo, err := client.VolumeCreate(createReq)
+	volinfo, err = client.VolumeCreate(createReq)
 	r.Nil(err)
 	r.Len(volinfo.Subvols, 3)
 	r.Equal("Distribute", volinfo.Type.String())
@@ -305,13 +316,23 @@ func testSmartVolumeDisperse(t *testing.T) {
 
 	smartvolname := formatVolName(t.Name())
 
-	// create Disperse Volume
+	// Too small brick size as a result of asked disperse size
 	createReq := api.VolCreateReq{
+		Name:               smartvolname,
+		Size:               20 * gutils.MiB,
+		DisperseCount:      3,
+		SubvolZonesOverlap: true,
+	}
+	volinfo, err := client.VolumeCreate(createReq)
+	r.NotNil(err)
+
+	// create Disperse Volume
+	createReq = api.VolCreateReq{
 		Name:          smartvolname,
 		Size:          40 * gutils.MiB,
 		DisperseCount: 3,
 	}
-	volinfo, err := client.VolumeCreate(createReq)
+	volinfo, err = client.VolumeCreate(createReq)
 	r.Nil(err)
 
 	r.Len(volinfo.Subvols, 1)
@@ -411,6 +432,83 @@ func testSmartVolumeDistributeDisperse(t *testing.T) {
 	checkZeroLvs(r)
 }
 
+func testSmartVolumeAutoDistributeReplicate(t *testing.T) {
+	r := require.New(t)
+
+	smartvolname := formatVolName(t.Name())
+
+	// Too small value for max-brick-size
+	createReq := api.VolCreateReq{
+		Name:               smartvolname,
+		Size:               40 * gutils.MiB,
+		ReplicaCount:       3,
+		MaxBrickSize:       10 * gutils.MiB,
+		SubvolZonesOverlap: true,
+	}
+	volinfo, err := client.VolumeCreate(createReq)
+	r.NotNil(err)
+
+	createReq = api.VolCreateReq{
+		Name:               smartvolname,
+		Size:               40 * gutils.MiB,
+		ReplicaCount:       3,
+		MaxBrickSize:       20 * gutils.MiB,
+		SubvolZonesOverlap: true,
+	}
+	volinfo, err = client.VolumeCreate(createReq)
+	r.Nil(err)
+
+	r.Len(volinfo.Subvols, 2)
+	r.Equal("Distributed-Replicate", volinfo.Type.String())
+	r.Len(volinfo.Subvols[0].Bricks, 3)
+	r.Len(volinfo.Subvols[1].Bricks, 3)
+
+	r.Nil(client.VolumeDelete(smartvolname))
+	checkZeroLvs(r)
+
+	// Max-brick-size is more than request size
+	createReq = api.VolCreateReq{
+		Name:               smartvolname,
+		Size:               20 * gutils.MiB,
+		ReplicaCount:       3,
+		MaxBrickSize:       30 * gutils.MiB,
+		SubvolZonesOverlap: true,
+	}
+	volinfo, err = client.VolumeCreate(createReq)
+	r.Nil(err)
+
+	r.Len(volinfo.Subvols, 1)
+	r.Equal("Replicate", volinfo.Type.String())
+	r.Len(volinfo.Subvols[0].Bricks, 3)
+
+	r.Nil(client.VolumeDelete(smartvolname))
+	checkZeroLvs(r)
+}
+
+func testSmartVolumeAutoDistributeDisperse(t *testing.T) {
+	r := require.New(t)
+
+	smartvolname := formatVolName(t.Name())
+
+	createReq := api.VolCreateReq{
+		Name:               smartvolname,
+		Size:               80 * gutils.MiB,
+		DisperseCount:      3,
+		MaxBrickSize:       20 * gutils.MiB,
+		SubvolZonesOverlap: true,
+	}
+	volinfo, err := client.VolumeCreate(createReq)
+	r.Nil(err)
+
+	r.Len(volinfo.Subvols, 2)
+	r.Equal("Distributed-Disperse", volinfo.Type.String())
+	r.Len(volinfo.Subvols[0].Bricks, 3)
+	r.Len(volinfo.Subvols[1].Bricks, 3)
+
+	r.Nil(client.VolumeDelete(smartvolname))
+	checkZeroLvs(r)
+}
+
 // TestSmartVolume creates a volume and starts it, runs further tests on it and
 // finally deletes the volume
 func TestSmartVolume(t *testing.T) {
@@ -459,6 +557,8 @@ func TestSmartVolume(t *testing.T) {
 	t.Run("Smartvol Disperse Volume", testSmartVolumeDisperse)
 	t.Run("Smartvol Distributed-Replicate Volume", testSmartVolumeDistributeReplicate)
 	t.Run("Smartvol Distributed-Disperse Volume", testSmartVolumeDistributeDisperse)
+	t.Run("Smartvol Auto Distributed-Replicate Volume", testSmartVolumeAutoDistributeReplicate)
+	t.Run("Smartvol Auto Distributed-Disperse Volume", testSmartVolumeAutoDistributeDisperse)
 	t.Run("Replace Brick", testReplaceBrick)
 
 	// // Device Cleanup

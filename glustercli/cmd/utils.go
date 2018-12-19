@@ -12,7 +12,7 @@ import (
 )
 
 var (
-	validSizeFormat = regexp.MustCompile(`^([0-9]+)([GMKT])?$`)
+	validSizeFormat = regexp.MustCompile(`^([0-9]+)\s*([kKmMgGtT]?[iI]?[bB]?)$`)
 )
 
 func formatBoolYesNo(value bool) string {
@@ -30,13 +30,15 @@ func formatPID(pid int) string {
 }
 
 func sizeToBytes(value string) (uint64, error) {
+	if value == "" {
+		return 0, nil
+	}
 	sizeParts := validSizeFormat.FindStringSubmatch(value)
 	if len(sizeParts) == 0 {
 		return 0, errors.New("invalid size format")
 	}
-
-	// If Size unit is specified as M/K/G/T, Default Size unit is M
-	sizeUnit := "M"
+	// If Size unit is specified as M/K/G/T, Default Size unit is bytes
+	var sizeUnit string
 	if len(sizeParts) == 3 {
 		sizeUnit = sizeParts[2]
 	}
@@ -47,21 +49,27 @@ func sizeToBytes(value string) (uint64, error) {
 	}
 
 	var size uint64
-	switch sizeUnit {
-	case "K", "KiB":
+	switch strings.ToLower(sizeUnit) {
+	case "k", "kib":
 		size = sizeValue * utils.KiB
-	case "KB":
+	case "kb":
 		size = sizeValue * utils.KB
-	case "G", "GiB":
+	case "m", "mib":
+		size = sizeValue * utils.MiB
+	case "mb":
+		size = sizeValue * utils.MB
+	case "g", "gib":
 		size = sizeValue * utils.GiB
-	case "GB":
+	case "gb":
 		size = sizeValue * utils.GB
-	case "T", "TiB":
+	case "t", "tib":
 		size = sizeValue * utils.TiB
-	case "TB":
+	case "tb":
 		size = sizeValue * utils.TB
-	default:
+	case "b", "":
 		size = sizeValue
+	default:
+		return 0, fmt.Errorf("invalid size unit specified %s", sizeUnit)
 	}
 	return size, nil
 }

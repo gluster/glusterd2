@@ -39,16 +39,17 @@ func undoSnapshotClone(c transaction.TxnCtx) error {
 	return nil
 }
 func undoStoreSnapshotClone(c transaction.TxnCtx) error {
-	var vol volume.Volinfo
-	if err := c.Get("volinfo", &vol); err != nil {
+	var (
+		vol volume.Volinfo
+		err error
+	)
+
+	if err = c.Get("volinfo", &vol); err != nil {
 		return err
 	}
 
-	if err := volume.DeleteVolume(vol.Name); err != nil {
-		return err
-	}
-
-	return nil
+	err = volume.DeleteVolume(vol.Name)
+	return err
 }
 
 func storeSnapshotClone(c transaction.TxnCtx) error {
@@ -272,7 +273,7 @@ func snapshotCloneHandler(w http.ResponseWriter, r *http.Request) {
 
 	snapname := mux.Vars(r)["snapname"]
 	if snapname == "" {
-		restutils.SendHTTPError(ctx, w, http.StatusBadRequest, errors.New("Snapshot name should not be empty"))
+		restutils.SendHTTPError(ctx, w, http.StatusBadRequest, errors.New("snapshot name should not be empty"))
 		return
 	}
 

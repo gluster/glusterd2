@@ -97,6 +97,17 @@ func testDeviceDelete(t *testing.T) {
 		}
 	}
 
+	smartvolname := formatVolName(t.Name())
+	// create Distribute 3 Volume
+	createReq := api.VolCreateReq{
+		Name:            smartvolname,
+		Size:            60 * gutils.MiB,
+		DistributeCount: 3,
+	}
+
+	_, err = client.VolumeCreate(createReq)
+	r.Nil(err)
+
 	err = client.DeviceDelete(peerID, deviceList[0].Device)
 	r.Nil(err)
 

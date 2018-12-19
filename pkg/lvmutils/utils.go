@@ -71,7 +71,7 @@ func RemovePV(device string) error {
 
 // GetVgAvailableSize gets available size of given Vg
 func GetVgAvailableSize(vgname string) (uint64, uint64, error) {
-	out, err := exec.Command("vgdisplay", "-c", vgname).Output()
+	out, err := exec.Command("vgdisplay", "-c", "--readonly", vgname).Output()
 	if err != nil {
 		return 0, 0, err
 	}
@@ -103,16 +103,12 @@ func GetPoolMetadataSize(poolsize uint64) uint64 {
 	// Minimum metadata size required is 0.5% and Max upto 16GB ~ 17179869184 Bytes
 
 	metadataSize := uint64(float64(poolsize) * 0.005)
-	rem := metadataSize % 512
-	if rem > 0 {
-		metadataSize += (512 - rem)
-	}
 
 	if metadataSize > maxMetadataSize {
 		metadataSize = maxMetadataSize
 	}
 
-	return metadataSize
+	return NormalizeSize(metadataSize)
 }
 
 // CreateTP creates LVM Thin Pool
@@ -161,10 +157,17 @@ func RemoveLV(vgName, lvName string) error {
 // NumberOfLvs returns number of Lvs present in thinpool
 func NumberOfLvs(vgname, tpname string) (int, error) {
 	nlv := 0
-	out, err := utils.ExecuteCommandOutput(
-		"lvs", "--no-headings", "--select",
-		fmt.Sprintf("vg_name=%s&&pool_lv=%s", vgname, tpname),
-	)
+	var err error
+	var out []byte
+	if tpname == "" {
+		out, err = utils.ExecuteCommandOutput(
+			"lvs", "--no-headings", "--readonly", "--select",
+			fmt.Sprintf("vg_name=%s", vgname))
+	} else {
+		out, err = utils.ExecuteCommandOutput(
+			"lvs", "--no-headings", "--readonly", "--select",
+			fmt.Sprintf("vg_name=%s&&pool_lv=%s", vgname, tpname))
+	}
 
 	if err == nil {
 		out := strings.Trim(string(out), " \n")
@@ -180,7 +183,7 @@ func NumberOfLvs(vgname, tpname string) (int, error) {
 // GetThinpoolName gets thinpool name for a given LV
 func GetThinpoolName(vgname, lvname string) (string, error) {
 	out, err := utils.ExecuteCommandOutput(
-		"lvs", "--no-headings", "--select",
+		"lvs", "--no-headings", "--readonly", "--select",
 		fmt.Sprintf("vg_name=%s&&lv_name=%s", vgname, lvname),
 		"-o", "pool_lv",
 	)
@@ -344,4 +347,13 @@ func ExtendMetadataPool(expansionMetadataSizePerBrick uint64, vgName string, tpN
 func ExtendThinpool(expansionTpSizePerBrick uint64, vgName string, tpName string) error {
 	err := utils.ExecuteCommandRun("lvextend", fmt.Sprintf("-L+%dB", expansionTpSizePerBrick), fmt.Sprintf("/dev/%s/%s", vgName, tpName))
 	return err
+}
+
+// NormalizeSize converts the value to multiples of 512
+func NormalizeSize(size uint64) uint64 {
+	rem := size % 512
+	if rem > 0 {
+		size = size - rem
+	}
+	return size
 }

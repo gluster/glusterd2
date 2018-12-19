@@ -99,6 +99,9 @@ func DeleteFile(volfileID string) error {
 func ClusterVolfileToFile(v *volume.Volinfo, volfileID string, tmplName string) error {
 	// Use temporary Volume info instead of Volume info from store
 	clusterinfo, err := volume.GetVolumes(context.TODO())
+	if err != nil {
+		return err
+	}
 	for idx, vinfo := range clusterinfo {
 		if v != nil && vinfo.Name == v.Name {
 			clusterinfo[idx] = v

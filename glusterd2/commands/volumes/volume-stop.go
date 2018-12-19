@@ -143,6 +143,11 @@ func volumeStopHandler(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
+	if volinfo.State != volume.VolStarted {
+		restutils.SendHTTPError(ctx, w, http.StatusBadRequest, errors.ErrVolNotStarted)
+		return
+	}
+
 	txn.Steps = []*transaction.Step{
 		{
 			DoFunc: "vol-stop.StopBricks",

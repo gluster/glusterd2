@@ -4,7 +4,7 @@ import (
 	"errors"
 
 	"github.com/gluster/glusterd2/glusterd2/transaction"
-	"github.com/gluster/glusterd2/pkg/errors"
+	gderrors "github.com/gluster/glusterd2/pkg/errors"
 	"github.com/gluster/glusterd2/pkg/lvmutils"
 	deviceapi "github.com/gluster/glusterd2/plugins/device/api"
 	"github.com/gluster/glusterd2/plugins/device/deviceutils"
@@ -51,6 +51,8 @@ func txnPrepareDevice(c transaction.TxnCtx) error {
 		Device:        device,
 		State:         deviceapi.DeviceEnabled,
 		AvailableSize: availableSize,
+		TotalSize:     availableSize,
+		UsedSize:      0,
 		ExtentSize:    extentSize,
 		PeerID:        peerID,
 	}
@@ -82,7 +84,7 @@ func txnDeleteDevice(c transaction.TxnCtx) error {
 	}
 
 	if len(devices) == 0 {
-		return errors.ErrDeviceNotFound
+		return gderrors.ErrDeviceNotFound
 	}
 
 	vgName := ""
@@ -93,7 +95,18 @@ func txnDeleteDevice(c transaction.TxnCtx) error {
 	}
 
 	if vgName == "" {
-		return ErrDeviceNameNotFound
+		return gderrors.ErrDeviceNameNotFound
+	}
+
+	nlvs, err := lvmutils.NumberOfLvs(vgName, "")
+	if err != nil {
+		c.Logger().WithError(err).WithField("device", deviceName).Error("Failed to get number of Lvs")
+		return err
+	}
+
+	if nlvs > 0 {
+		c.Logger().WithError(err).WithField("device", deviceName).Error("Cannot remove device, volume exists on device")
+		return errors.New("Cannot remove device, volumes exists on device")
 	}
 
 	// Remove VG
