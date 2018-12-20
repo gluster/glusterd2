@@ -11,6 +11,7 @@ import (
 	"github.com/gluster/glusterd2/plugins/glustershd"
 	"github.com/gluster/glusterd2/plugins/quota"
 	"github.com/gluster/glusterd2/plugins/rebalance"
+	"github.com/gluster/glusterd2/plugins/tracemgmt"
 
 	// ensure init() of non-plugins also gets executed
 	_ "github.com/gluster/glusterd2/plugins/afr"
@@ -27,4 +28,5 @@ var PluginsList = []GlusterdPlugin{
 	&device.Plugin{},
 	&rebalance.Plugin{},
 	&blockvolume.BlockVolume{},
+	&tracemgmt.Plugin{},
 }
