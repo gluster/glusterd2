@@ -51,13 +51,18 @@ var (
 		{Size(2.5e9), "2.50GB"},
 		{Size(8.75e6), "8.75MB"},
 		{Size(768e3), "768.00KB"},
-		{Size(500), "500 Bytes"},
+		{Size(500), "500 B"},
 	}
 
 	parseSizeTests = []struct {
 		s    string
 		want Size
 	}{
+		// Byte Format
+		{"1B", Byte},
+		{"512.0 B", 512 * Byte},
+		{"125.0B", 125 * Byte},
+
 		// Binary format
 		{"1GiB", Size(1 * float64(GiB))},
 		{"2.5GiB", Size(2.5 * float64(GiB))},
@@ -67,11 +72,28 @@ var (
 		{"0050KiB", Size(50 * float64(KiB))},
 		{"2.50KiB", Size(2.5 * float64(KiB))},
 		{"2.50TiB", Size(2.5 * float64(TiB))},
+
+		{"1Gi", Size(1 * float64(GiB))},
+		{"2.5Gi", Size(2.5 * float64(GiB))},
+		{"1Mi", Size(1 * float64(MiB))},
+		{"100.5Mi", Size(100.5 * float64(MiB))},
+		{"50Ki", Size(50 * float64(KiB))},
+		{"0050Ki", Size(50 * float64(KiB))},
+		{"2.50Ki", Size(2.5 * float64(KiB))},
+		{"2.50Ti", Size(2.5 * float64(TiB))},
+
+		{"100.5M", Size(100.5 * float64(MiB))},
+		{"50K", Size(50 * float64(KiB))},
+		{"0050K", Size(50 * float64(KiB))},
+		{"2.50K", Size(2.5 * float64(KiB))},
+		{"2.50T", Size(2.5 * float64(TiB))},
+
 		// Decimal format
 		{"2.50TB", Size(2.5 * float64(TB))},
 		{"2.50MB", Size(2.5 * float64(MB))},
 		{"0.5KB", Size(0.5 * float64(KB))},
 		{"052GB", Size(52 * float64(GB))},
+
 		// having space in between
 		{"0.5 KB", Size(0.5 * float64(KB))},
 		{"052 GB", Size(52 * float64(GB))},
@@ -93,6 +115,8 @@ var (
 		"x5KB",
 		"05xMB",
 		"5.5.5MB",
+		"5BB",
+		"4.5.5B",
 	}
 )
 

@@ -10,6 +10,7 @@ import (
 	"time"
 
 	"github.com/gluster/glusterd2/glusterd2/commands/volumes"
+	"github.com/gluster/glusterd2/glusterd2/gdctx"
 	"github.com/gluster/glusterd2/glusterd2/transaction"
 	"github.com/gluster/glusterd2/glusterd2/volume"
 	"github.com/gluster/glusterd2/pkg/api"
@@ -25,7 +26,7 @@ func BlockSizeFilter(size uint64) volume.Filter {
 		var volumes []*volume.Volinfo
 
 		for _, volinfo := range volinfos {
-			availableSize, found := volinfo.Metadata["block-hosting-available-size"]
+			availableSize, found := volinfo.Metadata[volume.BlockHostingAvailableSize]
 			if !found {
 				continue
 			}
@@ -57,19 +58,25 @@ func GetExistingBlockHostingVolume(size uint64) (*volume.Volinfo, error) {
 	return SelectRandomVolume(volumes)
 }
 
-// CreateBlockHostingVolume will create a gluster volume with metadata block-hosting-volume-auto-created=yes
-func CreateBlockHostingVolume(req *api.VolCreateReq) (*volume.Volinfo, error) {
-	status, err := volumecommands.CreateVolume(context.Background(), *req)
+// CreateAndStartHostingVolume creates and starts a gluster volume and returns volume Info on success.
+// Set Metadata:block-hosting-volume-auto-created=yes if Block hosting volume is created and started successfully.
+func CreateAndStartHostingVolume(req *api.VolCreateReq) (*volume.Volinfo, error) {
+	ctx := gdctx.WithReqLogger(context.Background(), log.StandardLogger())
+
+	status, err := volumecommands.CreateVolume(ctx, *req)
 	if err != nil || status != http.StatusCreated {
+		log.WithError(err).Error("error in auto creating block hosting volume")
 		return nil, err
 	}
 
-	vInfo, err := volume.GetVolume(req.Name)
+	vInfo, _, err := volumecommands.StartVolume(ctx, req.Name, api.VolumeStartReq{})
 	if err != nil {
+		log.WithError(err).Error("error in starting auto created block hosting volume")
 		return nil, err
 	}
 
-	vInfo.Metadata["block-hosting-volume-auto-created"] = "yes"
+	vInfo.Metadata[volume.BlockHostingVolumeAutoCreated] = "yes"
+	log.WithField("name", vInfo.Name).Debug("host volume created and started successfully")
 	return vInfo, nil
 }
 
@@ -94,16 +101,16 @@ func ResizeBlockHostingVolume(volname string, deletedBlockSize string) error {
 		return err
 	}
 
-	if _, found := volInfo.Metadata["block-hosting-available-size"]; !found {
+	if _, found := volInfo.Metadata[volume.BlockHostingAvailableSize]; !found {
 		return errors.New("block-hosting-available-size metadata not found for volume")
 	}
 
-	availableSizeInBytes, err := strconv.ParseUint(volInfo.Metadata["block-hosting-available-size"], 10, 64)
+	availableSizeInBytes, err := strconv.ParseUint(volInfo.Metadata[volume.BlockHostingAvailableSize], 10, 64)
 	if err != nil {
 		return err
 	}
 
-	volInfo.Metadata["block-hosting-available-size"] = fmt.Sprintf("%d", availableSizeInBytes+uint64(deletedSize))
+	volInfo.Metadata[volume.BlockHostingAvailableSize] = fmt.Sprintf("%d", availableSizeInBytes+uint64(deletedSize))
 
 	return volume.AddOrUpdateVolume(volInfo)
 }

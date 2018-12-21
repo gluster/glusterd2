@@ -43,7 +43,8 @@ func RegisterBlockProvider(name string, f ProviderFunc) {
 	providersMutex.Lock()
 	defer providersMutex.Unlock()
 	if _, found := providerFactory[name]; found {
-		log.WithField("name", name).Error("block provider was registered twice")
+		log.WithField("name", name).Error("failed to register block provider, provider already exist")
+		return
 	}
 	log.WithField("name", name).Infof("Registered block provider")
 	providerFactory[name] = f

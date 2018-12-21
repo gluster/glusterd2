@@ -1,9 +1,9 @@
 package size
 
 import (
-	"errors"
 	"fmt"
 	"regexp"
+	"strconv"
 	"strings"
 )
 
@@ -38,6 +38,34 @@ const (
 	// PB is a multiple of the unit byte the prefix T represents 10^15
 	PB = 1e3 * TB
 )
+
+var sizeMultiple = map[string]Size{
+	"B": Byte,
+
+	"KB": KB,
+	"MB": MB,
+	"GB": GB,
+	"TB": TB,
+	"PB": PB,
+
+	"K": KiB,
+	"M": MiB,
+	"G": GiB,
+	"T": TiB,
+	"P": PiB,
+
+	"KiB": KiB,
+	"MiB": MiB,
+	"GiB": GiB,
+	"TiB": TiB,
+	"PiB": PiB,
+
+	"Ki": KiB,
+	"Mi": MiB,
+	"Gi": GiB,
+	"Ti": TiB,
+	"Pi": PiB,
+}
 
 // Bytes returns number of bytes
 func (s Size) Bytes() int64 { return int64(s) }
@@ -126,62 +154,44 @@ func (s Size) String() string {
 		return fmt.Sprintf("%.2fKB", s.KiloBytes())
 	}
 
-	return fmt.Sprintf("%d Bytes", s)
+	return fmt.Sprintf("%d B", s)
 }
 
+var validSizePattern = regexp.MustCompile(
+	`(\d+(\.\d+)?)([KMGTP]?i?B?)`,
+)
+
 // Parse parses a string representation of size and returns the Size value it represents.
-// Supported formats are {TiB,GiB,MiB,KiB,TB,GB,MB,KB}
-func Parse(s string) (Size, error) {
-	var (
-		count float64
-		size  Size
-		err   error
-		regex = regexp.MustCompile(`^([\d.]+)([KMGT]i?B)$`)
-	)
+// Supported formats are {PiB,TiB,GiB,MiB,KiB,PB,TB,GB,MB,KB,B,Pi,Ti,Gi,Mi,Ki}
+func Parse(sizeStr string) (Size, error) {
+	sizeStr = strings.Replace(sizeStr, " ", "", -1)
 
-	s = strings.Replace(s, " ", "", -1)
-	matches := regex.FindStringSubmatch(s)
-
-	if len(matches) != 3 {
-		return size, errors.New("invalid size format")
+	if !validSizePattern.MatchString(sizeStr) {
+		return 0, fmt.Errorf("size parse error: %s", sizeStr)
 	}
 
-	switch matches[2] {
-	case "GiB":
-		_, err = fmt.Sscanf(s, "%fGiB", &count)
-		size = Size(count * float64(1*GiB))
+	matches := validSizePattern.FindStringSubmatch(sizeStr)
 
-	case "MiB":
-		_, err = fmt.Sscanf(s, "%fMiB", &count)
-		size = Size(count * float64(1*MiB))
-
-	case "KiB":
-		_, err = fmt.Sscanf(s, "%fKiB", &count)
-		size = Size(count * float64(1*KiB))
-
-	case "TiB":
-		_, err = fmt.Sscanf(s, "%fTiB", &count)
-		size = Size(count * float64(1*TiB))
-
-	case "KB":
-		_, err = fmt.Sscanf(s, "%fKB", &count)
-		size = Size(count * float64(1*KB))
-
-	case "MB":
-		_, err = fmt.Sscanf(s, "%fMB", &count)
-		size = Size(count * float64(1*MB))
-
-	case "GB":
-		_, err = fmt.Sscanf(s, "%fGB", &count)
-		size = Size(count * float64(1*GB))
-
-	case "TB":
-		_, err = fmt.Sscanf(s, "%fTB", &count)
-		size = Size(count * float64(1*TB))
-
-	default:
-		return 0, errors.New("can not parse to size")
+	if len(matches) != 4 {
+		return 0, fmt.Errorf("size parse error: %s invalid fields (%v)", sizeStr, matches)
 	}
 
-	return size, err
+	if matches[0] != sizeStr {
+		return 0, fmt.Errorf("size parse error: %s invalid fields (%v)", sizeStr, matches)
+	}
+
+	unit := matches[3]
+	size := matches[1]
+
+	multiplier, ok := sizeMultiple[unit]
+	if !ok {
+		return 0, fmt.Errorf("multiplier not found for unit: %s", unit)
+	}
+
+	val, err := strconv.ParseFloat(size, 64)
+	if err != nil {
+		return 0, err
+	}
+
+	return Size(float64(multiplier) * val), nil
 }

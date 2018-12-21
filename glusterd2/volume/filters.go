@@ -38,7 +38,7 @@ func ApplyCustomFilters(volumes []*Volinfo, filters ...Filter) []*Volinfo {
 func FilterBlockHostedVolumes(volumes []*Volinfo) []*Volinfo {
 	var volInfos []*Volinfo
 	for _, volume := range volumes {
-		val, found := volume.Metadata["block-hosting"]
+		val, found := volume.Metadata[BlockHosting]
 		if found && val == "yes" {
 			volInfos = append(volInfos, volume)
 		}
