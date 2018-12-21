@@ -56,7 +56,7 @@ func newGlusterBlock() (blockprovider.Provider, error) {
 }
 
 // CreateBlockVolume will create a gluster block volume with given name and size having `hostVolume` as hosting volume
-func (g *GlusterBlock) CreateBlockVolume(name string, size int64, hosts []string, hostVolume string, options ...blockprovider.BlockVolOption) (blockprovider.BlockVolume, error) {
+func (g *GlusterBlock) CreateBlockVolume(name string, size uint64, hosts []string, hostVolume string, options ...blockprovider.BlockVolOption) (blockprovider.BlockVolume, error) {
 	var (
 		blockVolOpts = &blockprovider.BlockVolumeOptions{}
 		clusterLocks = transaction.Locks{}
@@ -68,30 +68,29 @@ func (g *GlusterBlock) CreateBlockVolume(name string, size int64, hosts []string
 		HaCount:            blockVolOpts.Ha,
 		AuthEnabled:        blockVolOpts.Auth,
 		FullPrealloc:       blockVolOpts.FullPrealloc,
-		Size:               uint64(size),
+		Size:               size,
 		Storage:            blockVolOpts.Storage,
 		RingBufferSizeInMB: blockVolOpts.RingBufferSizeInMB,
 		Hosts:              hosts,
 	}
+
+	if err := clusterLocks.Lock(hostVolume); err != nil {
+		log.WithError(err).Error("error in acquiring cluster lock")
+		return nil, err
+	}
+	defer clusterLocks.UnLock(context.Background())
 
 	volInfo, err := volume.GetVolume(hostVolume)
 	if err != nil {
 		return nil, fmt.Errorf("error in getting host vol details: %s", err)
 	}
 
-	if err := clusterLocks.Lock(volInfo.Name); err != nil {
-		log.WithError(err).Error("error in acquiring cluster lock")
-		return nil, err
-	}
-
-	defer clusterLocks.UnLock(context.Background())
-
-	availableSizeInBytes, err := strconv.Atoi(volInfo.Metadata["block-hosting-available-size"])
+	availableSizeInBytes, err := strconv.ParseUint(volInfo.Metadata["block-hosting-available-size"], 10, 64)
 	if err != nil {
 		return nil, err
 	}
 
-	if int64(availableSizeInBytes) < size {
+	if availableSizeInBytes < size {
 		return nil, fmt.Errorf("available size is less than requested size,request size: %d, available size: %d", size, availableSizeInBytes)
 	}
 
@@ -100,9 +99,9 @@ func (g *GlusterBlock) CreateBlockVolume(name string, size int64, hosts []string
 		return nil, err
 	}
 
-	volInfo.Metadata["block-hosting-available-size"] = fmt.Sprintf("%d", int64(availableSizeInBytes)-size)
+	volInfo.Metadata["block-hosting-available-size"] = fmt.Sprintf("%d", availableSizeInBytes-size)
 
-	if err := volume.AddOrUpdateVolume(volInfo); err != nil {
+	if err = volume.AddOrUpdateVolume(volInfo); err != nil {
 		log.WithError(err).Error("failed in updating volume info to store")
 	}
 
@@ -113,9 +112,9 @@ func (g *GlusterBlock) CreateBlockVolume(name string, size int64, hosts []string
 		iqn:        resp.IQN,
 		username:   resp.Username,
 		password:   resp.Password,
-		size:       int64(size),
+		size:       size,
 		ha:         blockVolOpts.Ha,
-	}, nil
+	}, err
 }
 
 // DeleteBlockVolume deletes a gluster block volume of give name
@@ -154,11 +153,14 @@ func (g *GlusterBlock) DeleteBlockVolume(name string, options ...blockprovider.B
 		return err
 	}
 
-	if err := utils.ResizeBlockHostingVolume(hostVol, blockInfo.Size); err != nil {
-		log.WithError(err).Error("error in resizing the block hosting volume")
+	if err = utils.ResizeBlockHostingVolume(hostVol, blockInfo.Size); err != nil {
+		log.WithFields(log.Fields{
+			"error": err,
+			"size":  blockInfo.Size,
+		}).Error("error in resizing the block hosting volume")
 	}
 
-	return nil
+	return err
 }
 
 // GetBlockVolume gives info about a gluster block volume
@@ -194,7 +196,7 @@ func (g *GlusterBlock) GetBlockVolume(name string) (blockprovider.BlockVolume, e
 	}
 
 	if blockSize, err := size.Parse(blockInfo.Size); err == nil {
-		glusterBlockVol.size = int64(blockSize)
+		glusterBlockVol.size = uint64(blockSize)
 	}
 
 	return glusterBlockVol, nil
@@ -239,7 +241,7 @@ type BlockVolume struct {
 	password   string
 	hostVolume string
 	name       string
-	size       int64
+	size       uint64
 	gbID       string
 	ha         int
 }
@@ -263,7 +265,7 @@ func (gv *BlockVolume) HostVolume() string { return gv.hostVolume }
 func (gv *BlockVolume) Name() string { return gv.name }
 
 // Size returns size of a gluster block vol in bytes
-func (gv *BlockVolume) Size() uint64 { return uint64(gv.size) }
+func (gv *BlockVolume) Size() uint64 { return gv.size }
 
 // ID returns Gluster Block ID
 func (gv *BlockVolume) ID() string { return gv.gbID }

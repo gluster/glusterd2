@@ -27,7 +27,7 @@ const (
 // HostingVolumeManager provides methods for host volume management
 type HostingVolumeManager interface {
 	GetHostingVolumesInUse() []*volume.Volinfo
-	GetOrCreateHostingVolume(name string, minSizeLimit int64) (*volume.Volinfo, error)
+	GetOrCreateHostingVolume(name string, minSizeLimit uint64) (*volume.Volinfo, error)
 }
 
 // glusterVolManager is a concrete implementation of HostingVolumeManager
@@ -62,7 +62,7 @@ func (g *glusterVolManager) GetHostingVolumesInUse() []*volume.Volinfo {
 
 // GetOrCreateHostingVolume will returns volume details for a given volume name and having a minimum size of `minSizeLimit`.
 // If volume name is not provided then it will create a gluster volume with default size for hosting gluster block.
-func (g *glusterVolManager) GetOrCreateHostingVolume(name string, minSizeLimit int64) (*volume.Volinfo, error) {
+func (g *glusterVolManager) GetOrCreateHostingVolume(name string, minSizeLimit uint64) (*volume.Volinfo, error) {
 	var (
 		volInfo      *volume.Volinfo
 		volCreateReq = g.hostVolOpts.PrepareVolumeCreateReq()
@@ -141,13 +141,13 @@ func (g *glusterVolManager) GetOrCreateHostingVolume(name string, minSizeLimit i
 		volInfo.Metadata["block-hosting-available-size"] = fmt.Sprintf("%d", g.hostVolOpts.Size)
 	}
 
-	availableSizeInBytes, err := strconv.Atoi(volInfo.Metadata["block-hosting-available-size"])
+	availableSizeInBytes, err := strconv.ParseUint(volInfo.Metadata["block-hosting-available-size"], 10, 64)
 
 	if err != nil {
 		return nil, err
 	}
 
-	if int64(availableSizeInBytes) < minSizeLimit {
+	if availableSizeInBytes < minSizeLimit {
 		return nil, fmt.Errorf("available size is less than requested size,request size: %d, available size: %d", minSizeLimit, availableSizeInBytes)
 	}
 

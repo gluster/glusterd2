@@ -20,7 +20,7 @@ import (
 
 // BlockSizeFilter returns a volume Filter, which will filter out volumes
 // haing block-hosting-available-size greater than give size.
-func BlockSizeFilter(size int64) volume.Filter {
+func BlockSizeFilter(size uint64) volume.Filter {
 	return func(volinfos []*volume.Volinfo) []*volume.Volinfo {
 		var volumes []*volume.Volinfo
 
@@ -30,7 +30,7 @@ func BlockSizeFilter(size int64) volume.Filter {
 				continue
 			}
 
-			if availableSizeInBytes, err := strconv.Atoi(availableSize); err == nil && int64(availableSizeInBytes) > size {
+			if availableSizeInBytes, err := strconv.ParseUint(availableSize, 10, 64); err == nil && availableSizeInBytes > size {
 				volumes = append(volumes, volinfo)
 			}
 		}
@@ -39,7 +39,7 @@ func BlockSizeFilter(size int64) volume.Filter {
 }
 
 // GetExistingBlockHostingVolume returns a existing volume which is suitable for hosting a gluster-block
-func GetExistingBlockHostingVolume(size int64) (*volume.Volinfo, error) {
+func GetExistingBlockHostingVolume(size uint64) (*volume.Volinfo, error) {
 	var (
 		filters     = []volume.Filter{volume.FilterBlockHostedVolumes, BlockSizeFilter(size)}
 		ctx, cancel = context.WithTimeout(context.Background(), time.Second*5)
@@ -78,12 +78,18 @@ func CreateBlockHostingVolume(req *api.VolCreateReq) (*volume.Volinfo, error) {
 func ResizeBlockHostingVolume(volname string, deletedBlockSize string) error {
 	clusterLocks := transaction.Locks{}
 
+	if err := clusterLocks.Lock(volname); err != nil {
+		log.WithError(err).Error("error in acquiring cluster lock")
+		return err
+	}
+	defer clusterLocks.UnLock(context.Background())
+
 	volInfo, err := volume.GetVolume(volname)
 	if err != nil {
 		return err
 	}
 
-	deletedSizeInBytes, err := size.Parse(deletedBlockSize)
+	deletedSize, err := size.Parse(deletedBlockSize)
 	if err != nil {
 		return err
 	}
@@ -92,19 +98,12 @@ func ResizeBlockHostingVolume(volname string, deletedBlockSize string) error {
 		return errors.New("block-hosting-available-size metadata not found for volume")
 	}
 
-	availableSizeInBytes, err := strconv.Atoi(volInfo.Metadata["block-hosting-available-size"])
+	availableSizeInBytes, err := strconv.ParseUint(volInfo.Metadata["block-hosting-available-size"], 10, 64)
 	if err != nil {
 		return err
 	}
 
-	volInfo.Metadata["block-hosting-available-size"] = fmt.Sprintf("%d", size.Size(availableSizeInBytes)+deletedSizeInBytes)
-
-	if err := clusterLocks.Lock(volInfo.Name); err != nil {
-		log.WithError(err).Error("error in acquiring cluster lock")
-		return err
-	}
-
-	defer clusterLocks.UnLock(context.Background())
+	volInfo.Metadata["block-hosting-available-size"] = fmt.Sprintf("%d", availableSizeInBytes+uint64(deletedSize))
 
 	return volume.AddOrUpdateVolume(volInfo)
 }
