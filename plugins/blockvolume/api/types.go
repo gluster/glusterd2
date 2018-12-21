@@ -7,8 +7,8 @@ type BlockVolumeInfo struct {
 	// Name represents block Volume name
 	Name string `json:"name"`
 	// Size represents Block Volume size in bytes
-	Size    int64 `json:"size,omitempty"`
-	HaCount int   `json:"hacount,omitempty"`
+	Size    uint64 `json:"size,omitempty"`
+	HaCount int    `json:"hacount,omitempty"`
 }
 
 // BlockVolumeCreateRequest represents req Body for Block vol create req

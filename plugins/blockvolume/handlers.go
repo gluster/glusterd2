@@ -123,7 +123,7 @@ func (b *BlockVolume) GetBlockVolume(w http.ResponseWriter, r *http.Request) {
 		resp.BlockVolumeInfo = &api.BlockVolumeInfo{}
 		resp.Name = blockVol.Name()
 		resp.HostingVolume = blockVol.HostVolume()
-		resp.Size = int64(blockVol.Size())
+		resp.Size = blockVol.Size()
 		resp.Hosts = blockVol.HostAddresses()
 		resp.Password = blockVol.Password()
 		resp.GBID = blockVol.ID()
