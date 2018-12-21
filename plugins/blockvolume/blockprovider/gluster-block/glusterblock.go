@@ -85,7 +85,7 @@ func (g *GlusterBlock) CreateBlockVolume(name string, size uint64, hosts []strin
 		return nil, fmt.Errorf("error in getting host vol details: %s", err)
 	}
 
-	availableSizeInBytes, err := strconv.ParseUint(volInfo.Metadata["block-hosting-available-size"], 10, 64)
+	availableSizeInBytes, err := strconv.ParseUint(volInfo.Metadata[volume.BlockHostingAvailableSize], 10, 64)
 	if err != nil {
 		return nil, err
 	}
@@ -99,7 +99,7 @@ func (g *GlusterBlock) CreateBlockVolume(name string, size uint64, hosts []strin
 		return nil, err
 	}
 
-	volInfo.Metadata["block-hosting-available-size"] = fmt.Sprintf("%d", availableSizeInBytes-size)
+	volInfo.Metadata[volume.BlockHostingAvailableSize] = fmt.Sprintf("%d", availableSizeInBytes-size)
 
 	if err = volume.AddOrUpdateVolume(volInfo); err != nil {
 		log.WithError(err).Error("failed in updating volume info to store")

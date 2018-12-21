@@ -9,11 +9,8 @@ import (
 	"strings"
 	"time"
 
-	"github.com/gluster/glusterd2/glusterd2/commands/volumes"
-	"github.com/gluster/glusterd2/glusterd2/gdctx"
 	"github.com/gluster/glusterd2/glusterd2/transaction"
 	"github.com/gluster/glusterd2/glusterd2/volume"
-	"github.com/gluster/glusterd2/pkg/api"
 	"github.com/gluster/glusterd2/plugins/blockvolume/utils"
 
 	log "github.com/sirupsen/logrus"
@@ -66,7 +63,6 @@ func (g *glusterVolManager) GetOrCreateHostingVolume(name string, minSizeLimit u
 	var (
 		volInfo      *volume.Volinfo
 		volCreateReq = g.hostVolOpts.PrepareVolumeCreateReq()
-		ctx          = gdctx.WithReqLogger(context.Background(), log.StandardLogger())
 		clusterLocks = transaction.Locks{}
 	)
 
@@ -106,42 +102,31 @@ func (g *glusterVolManager) GetOrCreateHostingVolume(name string, minSizeLimit u
 
 	// If No volumes are available with Metadata:block-hosting=yes or if no space available to create block
 	// volumes(Metadata:block-hosting-available-size is less than request size), then try to create a new
-	// block hosting Volume with generated name with default size and volume type configured
+	// block hosting Volume with generated name with default size and volume type configured.
 	if name == "" && volInfo == nil {
-		vInfo, err := utils.CreateBlockHostingVolume(volCreateReq)
+		vInfo, err := utils.CreateAndStartHostingVolume(volCreateReq)
 		if err != nil {
-			log.WithError(err).Error("error in auto creating block hosting volume")
+			log.WithError(err).Error("error in auto creation of block hosting volume")
 			return nil, err
 		}
-
-		log.WithField("name", vInfo.Name).Debug("auto creation of hosting volume succeeded")
-
-		vInfo, _, err = volumecommands.StartVolume(ctx, vInfo.Name, api.VolumeStartReq{})
-		if err != nil {
-			log.WithError(err).Error("error in starting auto created block hosting volume")
-			return nil, err
-		}
-
-		log.WithField("name", vInfo.Name).Debug("host volume started successfully")
-
 		volInfo = vInfo
 	}
 
-	if _, found := volInfo.Metadata["block-hosting"]; !found {
-		volInfo.Metadata["block-hosting"] = "yes"
+	if _, found := volInfo.Metadata[volume.BlockHosting]; !found {
+		volInfo.Metadata[volume.BlockHosting] = "yes"
 	}
 
-	blockHosting := volInfo.Metadata["block-hosting"]
+	blockHosting := volInfo.Metadata[volume.BlockHosting]
 
 	if strings.ToLower(blockHosting) != "yes" {
 		return nil, errors.New("not a block hosting volume")
 	}
 
-	if _, found := volInfo.Metadata["block-hosting-available-size"]; !found {
-		volInfo.Metadata["block-hosting-available-size"] = fmt.Sprintf("%d", g.hostVolOpts.Size)
+	if _, found := volInfo.Metadata[volume.BlockHostingAvailableSize]; !found {
+		volInfo.Metadata[volume.BlockHostingAvailableSize] = fmt.Sprintf("%d", g.hostVolOpts.Size)
 	}
 
-	availableSizeInBytes, err := strconv.ParseUint(volInfo.Metadata["block-hosting-available-size"], 10, 64)
+	availableSizeInBytes, err := strconv.ParseUint(volInfo.Metadata[volume.BlockHostingAvailableSize], 10, 64)
 
 	if err != nil {
 		return nil, err
