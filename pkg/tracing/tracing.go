@@ -6,6 +6,8 @@ import (
 	"sync"
 
 	"github.com/gluster/glusterd2/glusterd2/gdctx"
+	tracemgmtapi "github.com/gluster/glusterd2/plugins/tracemgmt/api"
+	"github.com/gluster/glusterd2/plugins/tracemgmt/traceutils"
 
 	log "github.com/sirupsen/logrus"
 	flag "github.com/spf13/pflag"
@@ -197,13 +199,25 @@ func ApplySampler(sampler int, sampleFraction float64) {
 // This creates and returns an exporter if successful.
 // Otherwise, a warning is logged and a 'nil' exporter is returned.
 func InitJaegerExporter() *jaeger.Exporter {
+	var validStoreConfig = false
+	var storeTraceConfig *tracemgmtapi.JaegerConfigInfo
+
 	// Get the Jaeger endpoints
 	endpoint := config.GetString(jaegerEndpointOpt)
 	agentEndpoint := config.GetString(jaegerAgentEndpointOpt)
 
 	// Validate endpoints and return nil exporter if invalid
 	if err := ValidateJaegerEndpoints(endpoint, agentEndpoint); err != nil {
-		return nil
+		// Since no config is passed in start-up options, check if etcd has a
+		// trace config entry, and if so apply it on this node.
+		if storeTraceConfig, err = traceutils.GetTraceConfig(); err != nil {
+			return nil
+		}
+
+		// Valid trace config found in store
+		validStoreConfig = true
+		endpoint = storeTraceConfig.JaegerEndpoint
+		agentEndpoint = storeTraceConfig.JaegerAgentEndpoint
 	}
 
 	// Create the Opencensus Jaeger exporter
@@ -224,27 +238,34 @@ func InitJaegerExporter() *jaeger.Exporter {
 	// Register the Jaeger exporter
 	trace.RegisterExporter(exporter)
 
-	// Get the sampler type & sample fraction if required
-	sampler := config.GetInt(jaegerSamplerOpt)
+	var sampler int
+	var sampleFraction float64
+	if validStoreConfig {
+		sampler = storeTraceConfig.JaegerSampler
+		sampleFraction = storeTraceConfig.JaegerSampleFraction
+	} else {
+		// Get the sampler type & sample fraction if required
+		sampler := config.GetInt(jaegerSamplerOpt)
 
-	// Validate sampler. Disable tracing if invalid.
-	if err := ValidateJaegerSampler(sampler); err != nil {
-		sampler = int(Never)
-	}
+		// Validate sampler. Disable tracing if invalid.
+		if err := ValidateJaegerSampler(sampler); err != nil {
+			sampler = int(Never)
+		}
 
-	// Validate the sample fraction. Implicitly set the sample fraction if the
-	// sampler is either "Never" or "Always". Client is not expected to set
-	// sample fraction for such samplers.
-	sampleFraction := config.GetFloat64(jaegerSampleFractionOpt)
-	switch JaegerSamplerType(sampler) {
-	case Never:
-		sampleFraction = 0.0
-	case Always:
-		sampleFraction = 1.0
-	case Probabilistic:
-		if err := ValidateJaegerProbSampleFraction(sampler, sampleFraction); err != nil {
-			// Set default sample fraction
-			sampleFraction = DefaultSampleFraction
+		// Validate the sample fraction. Implicitly set the sample fraction if the
+		// sampler is either "Never" or "Always". Client is not expected to set
+		// sample fraction for such samplers.
+		sampleFraction = config.GetFloat64(jaegerSampleFractionOpt)
+		switch JaegerSamplerType(sampler) {
+		case Never:
+			sampleFraction = 0.0
+		case Always:
+			sampleFraction = 1.0
+		case Probabilistic:
+			if err := ValidateJaegerProbSampleFraction(sampler, sampleFraction); err != nil {
+				// Set default sample fraction
+				sampleFraction = DefaultSampleFraction
+			}
 		}
 	}
 
@@ -252,13 +273,13 @@ func InitJaegerExporter() *jaeger.Exporter {
 	ApplySampler(sampler, sampleFraction)
 
 	// Initialize and set the global jaegerTraceConfig
-	traceConfig := JaegerTraceConfig{
+	tmpTraceConfig := JaegerTraceConfig{
 		JaegerEndpoint:       endpoint,
 		JaegerAgentEndpoint:  agentEndpoint,
 		JaegerSampler:        JaegerSamplerType(sampler),
 		JaegerSampleFraction: sampleFraction,
 	}
-	SetJaegerTraceConfig(traceConfig)
+	SetJaegerTraceConfig(tmpTraceConfig)
 
 	// Set the new Jaeger exporter
 	jaegerExporter = exporter
