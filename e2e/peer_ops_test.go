@@ -51,6 +51,7 @@ func TestAddRemovePeer(t *testing.T) {
 
 	peerinfo, err := client.PeerAdd(peerAddReq)
 	r.Nil(err)
+	r.True(peerinfo.Online)
 
 	_, err = client.GetPeer(peerinfo.ID.String())
 	r.Nil(err)

@@ -141,6 +141,7 @@ func createPeerAddResp(p *peer.Peer) *api.PeerAddResp {
 	return &api.PeerAddResp{
 		ID:              p.ID,
 		Name:            p.Name,
+		Online:          true,
 		PeerAddresses:   p.PeerAddresses,
 		ClientAddresses: p.ClientAddresses,
 		Metadata:        p.Metadata,
