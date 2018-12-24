@@ -283,7 +283,7 @@ func TestBrickMux(t *testing.T) {
 	err = client.ClusterOptionSet(optReq)
 	r.Nil(err)
 
-	for i := 36; i <= 100; i++ {
+	for i := 36; i <= 200; i++ {
 		brickPath := testTempDir(t, "brick")
 		brickPaths = append(brickPaths, brickPath)
 	}
@@ -371,6 +371,110 @@ func TestBrickMux(t *testing.T) {
 		r.Equal(v, 5)
 	}
 
+	pidMap = make(map[int]int)
+	portMap = make(map[int]int)
+	index = 100
+	for i := 1; i <= 10; i++ {
+		if i%2 != 0 {
+			expandReq := api.VolExpandReq{
+				Bricks: []api.BrickReq{
+					{PeerID: tc.gds[0].PeerID(), Path: brickPaths[index]},
+					{PeerID: tc.gds[0].PeerID(), Path: brickPaths[index+1]},
+				},
+				Force: true,
+			}
+			_, err := client.VolumeExpand(volname1+strconv.Itoa(i), expandReq)
+			r.Nil(err)
+
+			index = index + 2
+		} else {
+			expandReq := api.VolExpandReq{
+				Bricks: []api.BrickReq{
+					{PeerID: tc.gds[0].PeerID(), Path: brickPaths[index]},
+				},
+				Force: true,
+			}
+			_, err := client.VolumeExpand(volname1+strconv.Itoa(i), expandReq)
+			r.Nil(err)
+
+			index = index + 1
+		}
+		// Wait for added bricks' glusterfsds to Sign In
+		time.Sleep(5 * time.Millisecond)
+
+		// re-populate pid and port mapping
+		bstatus, err := client.BricksStatus(volname1 + strconv.Itoa(i))
+		r.Nil(err)
+		for _, b := range bstatus {
+			if _, ok := pidMap[b.Pid]; ok {
+				pidMap[b.Pid]++
+			} else {
+				pidMap[b.Pid] = 1
+			}
+
+			if _, ok := portMap[b.Port]; ok {
+				portMap[b.Port]++
+			} else {
+				portMap[b.Port] = 1
+			}
+		}
+	}
+
+	for _, v := range pidMap {
+		r.Equal(v, 5)
+	}
+
+	for _, v := range portMap {
+		r.Equal(v, 5)
+	}
+
+	pidMap = make(map[int]int)
+	portMap = make(map[int]int)
+	for i := 1; i <= 10; i++ {
+		if i%2 != 0 {
+			expandReq := api.VolExpandReq{
+				ReplicaCount: 3,
+				Bricks: []api.BrickReq{
+					{PeerID: tc.gds[0].PeerID(), Path: brickPaths[index]},
+					{PeerID: tc.gds[0].PeerID(), Path: brickPaths[index+1]},
+				},
+				Force: true,
+			}
+			_, err := client.VolumeExpand(volname1+strconv.Itoa(i), expandReq)
+			r.Nil(err)
+
+			// Wait for new bricks glusterfsds to Sign In
+			time.Sleep(5 * time.Millisecond)
+
+			// re-populate pid and port mapping
+			bstatus, err := client.BricksStatus(volname1 + strconv.Itoa(i))
+			r.Nil(err)
+			for _, b := range bstatus {
+				if _, ok := pidMap[b.Pid]; ok {
+					pidMap[b.Pid]++
+				} else {
+					pidMap[b.Pid] = 1
+				}
+
+				if _, ok := portMap[b.Port]; ok {
+					portMap[b.Port]++
+				} else {
+					portMap[b.Port] = 1
+				}
+
+			}
+			index = index + 2
+		}
+	}
+
+	for _, v := range pidMap {
+		r.Equal(v, 5)
+	}
+
+	for _, v := range portMap {
+		r.Equal(v, 5)
+	}
+
 	r.Nil(gd.Stop())
 	for k := range pidMap {
 		process, err := os.FindProcess(k)
@@ -384,7 +488,8 @@ func TestBrickMux(t *testing.T) {
 	r.Nil(err)
 	r.True(gd.IsRunning())
 
-	time.Sleep(10 * time.Millisecond)
+	// Wait for GD2 instance and all glusterfsds to spawn up
+	time.Sleep(5 * time.Second)
 
 	pidMap = make(map[int]int)
 	portMap = make(map[int]int)
@@ -407,7 +512,7 @@ func TestBrickMux(t *testing.T) {
 		}
 	}
 
-	// Check if all pid's and ports's have count = 2 as mentioned in
+	// Check if all pid's and ports's have count = 5 as mentioned in
 	// max-bricks-per-process
 	for _, v := range pidMap {
 		r.Equal(v, 5)
