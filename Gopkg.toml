@@ -93,3 +93,8 @@
 [[constraint]]
   name = "github.com/godbus/dbus"
   version = "4.1.0"
+
+[prune]
+  go-tests = true
+  non-go = true
+  unused-packages = true

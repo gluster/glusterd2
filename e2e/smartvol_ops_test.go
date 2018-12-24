@@ -141,13 +141,24 @@ func testReplaceBrick(t *testing.T) {
 func testSmartVolumeDistribute(t *testing.T) {
 	r := require.New(t)
 	smartvolname := formatVolName(t.Name())
-	// create Distribute 3 Volume
+
+	// Too small brick size as a result of asked distribute size
 	createReq := api.VolCreateReq{
+		Name:               smartvolname,
+		Size:               20 * gutils.MiB,
+		DistributeCount:    3,
+		SubvolZonesOverlap: true,
+	}
+	volinfo, err := client.VolumeCreate(createReq)
+	r.NotNil(err)
+
+	// create Distribute 3 Volume
+	createReq = api.VolCreateReq{
 		Name:            smartvolname,
 		Size:            60 * gutils.MiB,
 		DistributeCount: 3,
 	}
-	volinfo, err := client.VolumeCreate(createReq)
+	volinfo, err = client.VolumeCreate(createReq)
 	r.Nil(err)
 	r.Len(volinfo.Subvols, 3)
 	r.Equal("Distribute", volinfo.Type.String())
@@ -306,13 +317,23 @@ func testSmartVolumeDisperse(t *testing.T) {
 
 	smartvolname := formatVolName(t.Name())
 
-	// create Disperse Volume
+	// Too small brick size as a result of asked disperse size
 	createReq := api.VolCreateReq{
+		Name:               smartvolname,
+		Size:               20 * gutils.MiB,
+		DisperseCount:      3,
+		SubvolZonesOverlap: true,
+	}
+	volinfo, err := client.VolumeCreate(createReq)
+	r.NotNil(err)
+
+	// create Disperse Volume
+	createReq = api.VolCreateReq{
 		Name:          smartvolname,
 		Size:          40 * gutils.MiB,
 		DisperseCount: 3,
 	}
-	volinfo, err := client.VolumeCreate(createReq)
+	volinfo, err = client.VolumeCreate(createReq)
 	r.Nil(err)
 
 	r.Len(volinfo.Subvols, 1)
