@@ -48,7 +48,8 @@ func createSizeInfo(fstat *syscall.Statfs_t) *SizeInfo {
 
 const fuseSuperMagic = 1702057286
 
-func mountVolume(name string, mountpoint string) error {
+//MountVolume mounts the gluster volume on a given mount point
+func MountVolume(name string, mountpoint string, mntOptns string) error {
 	// NOTE: Why do it this way ?
 	// * Libgfapi leaks memory on unmount.
 	// * Glusterfs volumes cannot be mounted using syscall.Mount()
@@ -67,8 +68,8 @@ func mountVolume(name string, mountpoint string) error {
 	buffer.WriteString(fmt.Sprintf(" --volfile-server-port %s", sport))
 	buffer.WriteString(fmt.Sprintf(" --volfile-id %s", name))
 	buffer.WriteString(" --log-file /dev/null")
-	buffer.WriteString(" --read-only ")
-	buffer.WriteString(mountpoint)
+	buffer.WriteString(mntOptns)
+	buffer.WriteString(" " + mountpoint)
 
 	args := strings.Fields(buffer.String())
 	cmd := exec.Command("glusterfs", args...)
@@ -88,7 +89,7 @@ func UsageInfo(volname string) (*SizeInfo, error) {
 	}
 	defer os.Remove(tempDir)
 
-	if err := mountVolume(volname, tempDir); err != nil {
+	if err := MountVolume(volname, tempDir, " --read-only "); err != nil {
 		return nil, err
 	}
 	defer syscall.Unmount(tempDir, syscall.MNT_FORCE)
