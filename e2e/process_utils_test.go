@@ -41,7 +41,11 @@ var errFinished = errors.New("os: process already finished")
 // Stop will terminate the associated process. It will attempt a graceful
 // shutdown before killing the process.
 func (tp *testProcess) Stop() error {
-	tp.Cmd.Process.Signal(os.Interrupt) // try shutting down gracefully
+	//tp.Cmd.Process.Signal(os.Interrupt)
+	err := tp.Cmd.Process.Signal(os.Interrupt) // try shutting down gracefully
+	if err != nil {
+		return err
+	}
 	time.Sleep(2 * time.Second)
 	if tp.IsRunning() {
 		time.Sleep(2 * time.Second)
@@ -179,13 +183,32 @@ func spawnGlusterd(t *testing.T, configFilePath string, cleanStart bool) (*gdPro
 		)
 	}
 	g.Cmd = exec.Command(path.Join(binDir, "glusterd2"), args...)
+	logMsg := fmt.Sprintf("BrickMux Log:g.Cmd : %v, g.PeerID: %s, args:%v\n", g.Cmd, g.PeerID(), args)
+	t.Logf(logMsg)
+
+	stdout, err := g.Cmd.StdoutPipe()
+	if err != nil {
+		return nil, err
+	}
+	stderr, err := g.Cmd.StderrPipe()
+	if err != nil {
+		return nil, err
+	}
 
 	if err := g.Cmd.Start(); err != nil {
 		return nil, err
 	}
 
 	go func() {
-		g.Cmd.Wait()
+		sout, _ := ioutil.ReadAll(stdout)
+		logOutput := fmt.Sprintf("BrickMux Log output: %s\n", sout)
+		t.Logf(logOutput)
+		serr, _ := ioutil.ReadAll(stderr)
+		logErr := fmt.Sprintf("BrickMux Log error: %s\n", serr)
+		t.Logf(logErr)
+		err := g.Cmd.Wait()
+		logMsg := fmt.Sprintf("BrickMux Log: Error in wait %v\n", err)
+		t.Logf(logMsg)
 	}()
 
 	retries := 4

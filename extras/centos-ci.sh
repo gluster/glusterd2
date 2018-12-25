@@ -47,6 +47,9 @@ make test TESTOPTIONS=-v
 # run functional tests
 make functest
 
+# Printing everything
+tail -1000 /tmp/gd2_func_test/TestBrickMux/w1/log/glusterd2.log
+
 # tarball the (default) functional test directory
-TIMESTAMP=$(date +%s)
-tar -czf "/tmp/gd2_func_test_${TIMESTAMP}.tar.gz" /tmp/gd2_func_test
+#TIMESTAMP=$(date +%s)
+#tar -czf "/tmp/gd2_func_test_${TIMESTAMP}.tar.gz" /tmp/gd2_func_test
