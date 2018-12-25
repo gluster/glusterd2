@@ -735,6 +735,43 @@
   revision = "5420a8b6744d3b0345ab293f6fcba19c978f1183"
   version = "v2.2.1"
 
+[[projects]]
+  branch = "master"
+  digest = "1:f5fb6c4c9e14909a66efe7d3e49403234cd52523eb3997c5753a880635e8be2d"
+  name = "k8s.io/apimachinery"
+  packages = ["pkg/util/sets"]
+  pruneopts = "NUT"
+  revision = "fa6ddc151d63306b3540a37d910a07b181e4a474"
+
+[[projects]]
+  digest = "1:9cc257b3c9ff6a0158c9c661ab6eebda1fe8a4a4453cd5c4044dc9a2ebfb992b"
+  name = "k8s.io/klog"
+  packages = ["."]
+  pruneopts = "NUT"
+  revision = "a5bc97fbc634d635061f3146511332c7e313a55a"
+  version = "v0.1.0"
+
+[[projects]]
+  digest = "1:d230959a8578b5604f996833fb8e0c643d14700e1b9d72033526c6a3bed6464c"
+  name = "k8s.io/kubernetes"
+  packages = [
+    "pkg/util/file",
+    "pkg/util/io",
+    "pkg/util/mount",
+    "pkg/util/nsenter",
+  ]
+  pruneopts = "NUT"
+  revision = "cff46ab41ff0bb44d8584413b598ad8360ec1def"
+  version = "v1.13.2"
+
+[[projects]]
+  branch = "master"
+  digest = "1:381323c2fe2e890a3dd3b5d6dc6f2199068408cca89b24f6b7ca1c60f32644a5"
+  name = "k8s.io/utils"
+  packages = ["exec"]
+  pruneopts = "NUT"
+  revision = "8a16e7dd8fb6d97d1331b0c79a16722f934b00b1"
+
 [solve-meta]
   analyzer-name = "dep"
   analyzer-version = 1
@@ -779,6 +816,7 @@
     "golang.org/x/sys/unix",
     "google.golang.org/grpc",
     "google.golang.org/grpc/codes",
+    "k8s.io/kubernetes/pkg/util/mount",
   ]
   solver-name = "gps-cdcl"
   solver-version = 1
