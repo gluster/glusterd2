@@ -71,4 +71,5 @@ var (
 	ErrBrickMountFailed                = errors.New("failed to mount brick")
 	ErrReservedGroupProfile            = errors.New("reserved group profile")
 	ErrInvalidIntValue                 = errors.New("error parsing the value. Make sure the value is a valid integer")
+	ErrConnectingHost                  = errors.New("could not connect to host. Make sure host address is valid, network connection is active and gd2 is up and running")
 )

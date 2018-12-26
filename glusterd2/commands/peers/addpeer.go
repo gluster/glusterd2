@@ -64,6 +64,12 @@ func addPeerHandler(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
+	if err = utils.CheckPeerConnectivity(remotePeerAddress); err != nil {
+		logger.WithError(err).WithField("address", remotePeerAddress).Error("peer is not reachable from this node")
+		restutils.SendHTTPError(ctx, w, http.StatusInternalServerError, errors.ErrConnectingHost)
+		return
+	}
+
 	// TODO: Try all addresses till the first one connects
 	client, err := getPeerServiceClient(remotePeerAddress)
 	if err != nil {

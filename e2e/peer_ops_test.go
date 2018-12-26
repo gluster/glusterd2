@@ -100,3 +100,38 @@ func TestAddRemovePeer(t *testing.T) {
 	err = client.PeerRemove(g2.PeerID())
 	r.Nil(err)
 }
+
+func TestPeerAddFailure(t *testing.T) {
+	r := require.New(t)
+
+	// set up a cluster w/o glusterd instances for dependencies
+	tc, err := setupCluster(t)
+	r.NoError(err)
+	defer teardownCluster(tc)
+
+	g1, err := spawnGlusterd(t, "./config/1.toml", true)
+	r.Nil(err)
+	defer g1.Stop()
+	r.True(g1.IsRunning())
+
+	g2, err := spawnGlusterd(t, "./config/2.toml", true)
+	r.Nil(err)
+	defer g2.Stop()
+	r.True(g2.IsRunning())
+
+	client, err := initRestclient(g1)
+	r.Nil(err)
+	r.NotNil(client)
+
+	// using peer ID instead of peer address, this should get fail
+	peerAddReq := api.PeerAddReq{
+		Addresses: []string{g2.PeerID()},
+		Metadata: map[string]string{
+			"owner": "gd2test",
+		},
+	}
+
+	_, err = client.PeerAdd(peerAddReq)
+	r.NotNil(err)
+	r.Contains(err.Error(), "could not connect to host. Make sure host address is valid,")
+}
