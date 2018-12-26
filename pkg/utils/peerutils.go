@@ -4,6 +4,7 @@ import (
 	"errors"
 	"net"
 	"strings"
+	"time"
 
 	config "github.com/spf13/viper"
 )
@@ -37,4 +38,14 @@ func IsPeerAddressSame(addr1 string, addr2 string) bool {
 	r1, _ := FormRemotePeerAddress(addr1)
 	r2, _ := FormRemotePeerAddress(addr2)
 	return r1 == r2
+}
+
+// CheckPeerConnectivity will check whether given peer is reachable from this node or not.
+func CheckPeerConnectivity(addr string) error {
+	conn, err := net.DialTimeout("tcp", addr, time.Second*5)
+	if err != nil {
+		return err
+	}
+	defer conn.Close()
+	return nil
 }
