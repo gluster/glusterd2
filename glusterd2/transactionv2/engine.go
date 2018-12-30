@@ -2,7 +2,6 @@ package transaction
 
 import (
 	"context"
-	"errors"
 	"sync"
 	"time"
 
@@ -30,6 +29,7 @@ type Engine struct {
 	selfNodeID  uuid.UUID
 	stepManager StepManager
 	txnManager  TxnManager
+	executor    Executor
 }
 
 // NewEngine creates a TxnEngine
@@ -39,6 +39,7 @@ func NewEngine() *Engine {
 		selfNodeID:  gdctx.MyUUID,
 		stepManager: newStepManager(),
 		txnManager:  NewTxnManager(store.Store.Watcher),
+		executor:    NewExecutor(),
 	}
 }
 
@@ -73,109 +74,16 @@ func (txnEng *Engine) HandleTransaction() {
 	}
 }
 
-func (txnEng *Engine) isInitiator(txn *Txn) bool {
-	return uuid.Equal(txn.Initiator, txnEng.selfNodeID)
-}
-
 // Execute will run a given txn
 func (txnEng *Engine) Execute(ctx context.Context, txn *Txn) {
-	var shouldExecute bool
-	for _, node := range txn.Nodes {
-		if uuid.Equal(node, txnEng.selfNodeID) {
-			txn.Ctx.Logger().WithField("peerID", txnEng.selfNodeID.String()).Info("executing txn on peer")
-			shouldExecute = true
-			break
-		}
-	}
-
-	if !shouldExecute {
-		txn.Ctx.Logger().WithField("peerID", txnEng.selfNodeID.String()).Info("peer is not involved in this txn")
+	if !txnEng.executor.IsTxnPending(txn.ID) {
+		txn.Ctx.Logger().Debug("transaction is in progress")
 		return
 	}
 
-	if txnEng.isInitiator(txn) {
-		if err := WithClusterLocks(txn.Locks...)(txn); err != nil {
-			txn.Ctx.Logger().WithError(err).Error("error in acquiring cluster lock")
-			return
-		}
-		defer txn.releaseLocks()
+	if err := txnEng.executor.Execute(txn); err != nil {
+		txn.Ctx.Logger().WithError(err).Error("error in executing transaction")
 	}
-
-	txnStatus, err := txnEng.txnManager.GetTxnStatus(txn.ID, txnEng.selfNodeID)
-	if err != nil {
-		txn.Ctx.Logger().WithError(err).Error("error in getting txn status")
-		return
-	}
-
-	switch txnStatus.State {
-	case txnPending:
-		if err := txnEng.executePendingTxn(ctx, txn); err != nil {
-			status := TxnStatus{State: txnFailed, Reason: err.Error(), TxnID: txn.ID}
-			txnEng.txnManager.UpDateTxnStatus(status, txn.ID, txnEng.selfNodeID)
-			return
-		}
-		txn.Ctx.Logger().Info("txn succeeded")
-		txnEng.txnManager.UpDateTxnStatus(TxnStatus{State: txnSucceeded, TxnID: txn.ID}, txn.ID, txnEng.selfNodeID)
-	}
-	return
-}
-
-func (txnEng *Engine) executePendingTxn(ctx context.Context, txn *Txn) error {
-	var (
-		stopch        = make(chan struct{})
-		txnStatusChan = txnEng.txnManager.WatchTxnStatus(stopch, txn.ID, txnEng.selfNodeID)
-		updateOnce    = &sync.Once{}
-		logger        = txn.Ctx.Logger()
-	)
-	defer close(stopch)
-
-	logger.Infof("transaction started on node")
-
-	for i, step := range txn.Steps {
-		logger.WithField("stepname", step.DoFunc).Debug("running step func on node")
-
-		// a synchronized step is executed only after all previous steps
-		// have been completed successfully by all involved peers.
-		if step.Sync {
-			logger.WithField("stepname", step.DoFunc).Debug("synchronizing txn step")
-			if err := txnEng.stepManager.SyncStep(ctx, i, txn); err != nil {
-				logger.WithFields(log.Fields{
-					"error":    err,
-					"stepname": step.DoFunc,
-				}).Error("encounter an error in synchronizing txn step")
-				return err
-			}
-			logger.Debug("transaction got synchronized")
-		}
-
-		if err := txnEng.stepManager.RunStep(ctx, step, txn.Ctx); err != nil {
-			logger.WithFields(log.Fields{
-				"error":    err,
-				"stepname": step.DoFunc,
-			}).Error("failed in executing txn step ")
-			txnEng.txnManager.UpdateLastExecutedStep(i, txn.ID, txnEng.selfNodeID)
-			return err
-		}
-
-		select {
-		case <-ctx.Done():
-			txnEng.txnManager.UpdateLastExecutedStep(i, txn.ID, txnEng.selfNodeID)
-			return ctx.Err()
-		case status := <-txnStatusChan:
-			if status.State == txnFailed {
-				txnEng.txnManager.UpdateLastExecutedStep(i, txn.ID, txnEng.selfNodeID)
-				return errors.New(status.Reason)
-			}
-		default:
-		}
-
-		logger.WithField("stepname", step.DoFunc).Debug("step func executed successfully on node")
-		txnEng.txnManager.UpdateLastExecutedStep(i, txn.ID, txnEng.selfNodeID)
-		updateOnce.Do(func() {
-			txnEng.txnManager.UpDateTxnStatus(TxnStatus{State: txnRunning, TxnID: txn.ID}, txn.ID, txnEng.selfNodeID)
-		})
-	}
-	return nil
 }
 
 // HandleFailedTxn keep on watching store for failed txn. If it receives any failed
