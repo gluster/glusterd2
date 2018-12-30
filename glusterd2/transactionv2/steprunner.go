@@ -8,6 +8,7 @@ import (
 	"github.com/gluster/glusterd2/glusterd2/transaction"
 
 	"github.com/pborman/uuid"
+	log "github.com/sirupsen/logrus"
 )
 
 // StepManager is an interface for running a step and also rollback step on local node
@@ -37,6 +38,7 @@ func (sm *stepManager) shouldRunStep(step *transaction.Step) bool {
 			return true
 		}
 	}
+
 	return false
 }
 
@@ -80,7 +82,7 @@ func (sm *stepManager) SyncStep(ctx context.Context, syncStepIndex int, txn *Txn
 	for range txn.Nodes {
 		select {
 		case <-syncCtx.Done():
-			return errTxnSyncTimeout
+			return ctx.Err()
 		case <-success:
 		}
 	}
@@ -90,6 +92,7 @@ func (sm *stepManager) SyncStep(ctx context.Context, syncStepIndex int, txn *Txn
 // RollBackStep will rollback a given step on local node
 func (sm *stepManager) RollBackStep(ctx context.Context, step *transaction.Step, txnCtx transaction.TxnCtx) error {
 	if !sm.shouldRunStep(step) {
+		log.WithField("step", step.UndoFunc).Debug("peer is excluded in running this step")
 		return nil
 	}
 
@@ -102,6 +105,7 @@ func (sm *stepManager) RollBackStep(ctx context.Context, step *transaction.Step,
 // RunStepRunStep will execute the step on local node
 func (sm *stepManager) RunStep(ctx context.Context, step *transaction.Step, txnCtx transaction.TxnCtx) error {
 	if !sm.shouldRunStep(step) {
+		log.WithField("step", step.DoFunc).Debug("peer is excluded in running this step")
 		return nil
 	}
 	return sm.runStep(ctx, step.DoFunc, txnCtx)

@@ -192,7 +192,7 @@ func (tm *txnManager) watchRespToTxns(resp clientv3.WatchResponse) (txns []*Txn)
 			continue
 		}
 
-		txn.locks = make(map[string]*concurrency.Mutex)
+		txn.locks = transaction.Locks{}
 		txns = append(txns, txn)
 	}
 	return
