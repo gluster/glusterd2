@@ -13,6 +13,7 @@ import (
 	"strings"
 	"syscall"
 	"testing"
+	"time"
 
 	"github.com/gluster/glusterd2/pkg/api"
 	"github.com/gluster/glusterd2/pkg/restclient"
@@ -362,5 +363,25 @@ func testMount(path string) error {
 func checkFuseAvailable(t *testing.T) {
 	if _, err := os.Lstat("/dev/fuse"); os.IsNotExist(err) {
 		t.Skip("skipping mount /dev/fuse unavailable")
+	}
+}
+
+func retryUntilSucceeds(f func() bool, pollingInterval time.Duration, stop <-chan struct{}) {
+	for {
+		select {
+		case <-stop:
+			return
+		default:
+
+		}
+		if succeeded := f(); succeeded {
+			return
+		}
+		select {
+		case <-time.After(pollingInterval):
+		case <-stop:
+			return
+
+		}
 	}
 }
