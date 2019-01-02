@@ -60,14 +60,6 @@ func (e *executorImpl) Execute(txn *Txn) error {
 		return nil
 	}
 
-	if e.isInitiator(txn) {
-		if err := txn.acquireClusterLocks(); err != nil {
-			txn.Ctx.Logger().WithError(err).Error("error in acquiring cluster locks")
-			return err
-		}
-		defer txn.releaseLocks()
-	}
-
 	txn.Ctx.Logger().Info("transaction started on node")
 
 	failureChan := e.watchTxnForFailure(ctx, txn)
@@ -171,8 +163,4 @@ func (e *executorImpl) shouldRunTxn(txn *Txn) bool {
 	}
 	txn.Ctx.Logger().Debug("skipping txn on this node")
 	return false
-}
-
-func (e *executorImpl) isInitiator(txn *Txn) bool {
-	return uuid.Equal(txn.Initiator, e.selfNodeID)
 }

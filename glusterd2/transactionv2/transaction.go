@@ -31,13 +31,11 @@ type Txn struct {
 	Nodes           []uuid.UUID         `json:"nodes"`
 	StorePrefix     string              `json:"store_prefix"`
 	ID              uuid.UUID           `json:"id"`
-	Locks           []string            `json:"locks"`
 	ReqID           uuid.UUID           `json:"req_id"`
 	Ctx             transaction.TxnCtx  `json:"ctx"`
 	Steps           []*transaction.Step `json:"steps"`
 	DontCheckAlive  bool                `json:"dont_check_alive"`
 	DisableRollback bool                `json:"disable_rollback"`
-	Initiator       uuid.UUID           `json:"initiator"`
 	StartTime       time.Time           `json:"start_time"`
 
 	success   chan struct{}
@@ -61,7 +59,6 @@ func NewTxn(ctx context.Context) *Txn {
 		StorePrefix: t.StorePrefix,
 	}
 	t.Ctx = transaction.NewCtx(config)
-	t.Initiator = gdctx.MyUUID
 	t.Ctx.Logger().Debug("new transaction created")
 	return t
 }
@@ -69,16 +66,17 @@ func NewTxn(ctx context.Context) *Txn {
 // NewTxnWithLocks returns an empty Txn with locks obtained on given lockIDs
 func NewTxnWithLocks(ctx context.Context, lockIDs ...string) (*Txn, error) {
 	t := NewTxn(ctx)
-	t.Locks = lockIDs
-	return t, nil
+	t.locks = transaction.Locks{}
+	err := t.acquireClusterLocks(lockIDs...)
+	return t, err
 }
 
-func (t *Txn) acquireClusterLocks() error {
+func (t *Txn) acquireClusterLocks(lockIDs ...string) error {
 	if t.locks == nil {
 		t.locks = transaction.Locks{}
 	}
 
-	for _, id := range t.Locks {
+	for _, id := range lockIDs {
 		logger := t.Ctx.Logger().WithField("lockID", id)
 		logger.Debug("txn attempts to acquire cluster lock")
 		if err := t.locks.Lock(id); err != nil {
@@ -99,16 +97,17 @@ func (t *Txn) releaseLocks() {
 // Done releases any obtained locks and cleans up the transaction namespace
 // Done must be called after a transaction ends
 func (t *Txn) Done() {
+	defer t.releaseLocks()
+
 	if !t.succeeded {
 		return
 	}
-	t.done()
-	t.releaseLocks()
+	t.removeContextData()
 	GlobalTxnManager.RemoveTransaction(t.ID)
 	t.Ctx.Logger().Info("txn succeeded on all nodes, txn data cleaned up from store")
 }
 
-func (t *Txn) done() {
+func (t *Txn) removeContextData() {
 	if _, err := store.Delete(context.TODO(), t.StorePrefix, clientv3.WithPrefix()); err != nil {
 		t.Ctx.Logger().WithError(err).WithField("key",
 			t.StorePrefix).Error("Failed to remove transaction namespace from store")
