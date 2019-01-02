@@ -164,7 +164,7 @@ func (l Locks) lock(lockID string) error {
 	logger.Debug("attempting to obtain lock")
 
 	key := lockPrefix + lockID
-	s, err := concurrency.NewSession(store.Store.Client, concurrency.WithTTL(lockTTL))
+	s, err := concurrency.NewSession(store.Store.NamespaceClient, concurrency.WithTTL(lockTTL))
 	if err != nil {
 		return err
 	}

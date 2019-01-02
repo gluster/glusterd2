@@ -192,7 +192,6 @@ func (tm *txnManager) watchRespToTxns(resp clientv3.WatchResponse) (txns []*Txn)
 			continue
 		}
 
-		txn.locks = transaction.Locks{}
 		txns = append(txns, txn)
 	}
 	return
@@ -226,7 +225,6 @@ func (tm *txnManager) GetTxnByUUID(id uuid.UUID) (*Txn, error) {
 	if err := json.Unmarshal(kv.Value, txn); err != nil {
 		return nil, err
 	}
-	txn.locks = make(map[string]*concurrency.Mutex)
 	return txn, nil
 }
 
@@ -246,7 +244,6 @@ func (tm *txnManager) GetTxns() (txns []*Txn) {
 		if err := json.Unmarshal(kv.Value, txn); err != nil {
 			continue
 		}
-		txn.locks = make(map[string]*concurrency.Mutex)
 		txns = append(txns, txn)
 	}
 	return
@@ -409,7 +406,7 @@ func (tm *txnManager) RemoveFailedTxns() {
 
 		if nodesRollbacked == len(txn.Nodes) {
 			txn.Ctx.Logger().Info("txn rolled back on all nodes, cleaning from store")
-			txn.done()
+			txn.removeContextData()
 			tm.RemoveTransaction(txn.ID)
 		}
 	}
