@@ -24,7 +24,10 @@ func (b *BlockVolume) CreateVolume(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	opts = append(opts, blockprovider.WithHaCount(req.HaCount))
+	opts = append(opts,
+		blockprovider.WithHaCount(req.HaCount),
+		blockprovider.WithHosts(req.Clusters),
+	)
 
 	if req.Auth {
 		opts = append(opts, blockprovider.WithAuthEnabled)
@@ -42,7 +45,7 @@ func (b *BlockVolume) CreateVolume(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	blockVol, err := blockProvider.CreateBlockVolume(req.Name, req.Size, req.Clusters, hostVolInfo.Name, opts...)
+	blockVol, err := blockProvider.CreateBlockVolume(req.Name, req.Size, hostVolInfo.Name, opts...)
 	if err != nil {
 		utils.SendHTTPError(r.Context(), w, http.StatusInternalServerError, err)
 		return

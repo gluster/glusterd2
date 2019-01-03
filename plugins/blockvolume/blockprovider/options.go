@@ -12,6 +12,7 @@ type BlockVolumeOptions struct {
 	RingBufferSizeInMB uint64
 	ForceDelete        bool
 	UnlinkStorage      bool
+	Hosts              []string
 }
 
 // ApplyOpts applies configured optional parameters on BlockVolumeOptions
@@ -60,4 +61,11 @@ func WithAuthEnabled(options *BlockVolumeOptions) {
 // WithFullPrealloc configures "prealloc" param
 func WithFullPrealloc(options *BlockVolumeOptions) {
 	options.FullPrealloc = true
+}
+
+// WithHosts configures required hosts for block creation
+func WithHosts(hosts []string) BlockVolOption {
+	return func(options *BlockVolumeOptions) {
+		options.Hosts = hosts
+	}
 }

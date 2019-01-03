@@ -3,14 +3,11 @@ package glusterblock
 import (
 	"context"
 	"errors"
-	"fmt"
-	"strconv"
-
-	"github.com/gluster/glusterd2/glusterd2/transaction"
 	"github.com/gluster/glusterd2/glusterd2/volume"
 	"github.com/gluster/glusterd2/pkg/size"
 	"github.com/gluster/glusterd2/plugins/blockvolume/blockprovider"
 	"github.com/gluster/glusterd2/plugins/blockvolume/utils"
+	"time"
 
 	"github.com/gluster/gluster-block-restapi/client"
 	"github.com/gluster/gluster-block-restapi/pkg/api"
@@ -44,6 +41,7 @@ func newGlusterBlock() (blockprovider.Provider, error) {
 	opts = append(opts,
 		client.WithAuth(clientConf.User, clientConf.Secret),
 		client.WithTLSConfig(&client.TLSOptions{CaCertFile: clientConf.CaCertFile, InsecureSkipVerify: clientConf.Insecure}),
+		client.WithTimeOut(time.Minute),
 	)
 
 	gbClient, err := client.NewClientWithOpts(clientConf.HostAddress, opts...)
@@ -56,13 +54,14 @@ func newGlusterBlock() (blockprovider.Provider, error) {
 }
 
 // CreateBlockVolume will create a gluster block volume with given name and size having `hostVolume` as hosting volume
-func (g *GlusterBlock) CreateBlockVolume(name string, size uint64, hosts []string, hostVolume string, options ...blockprovider.BlockVolOption) (blockprovider.BlockVolume, error) {
-	var (
-		blockVolOpts = &blockprovider.BlockVolumeOptions{}
-		clusterLocks = transaction.Locks{}
-	)
-
+func (g *GlusterBlock) CreateBlockVolume(name string, size uint64, hostVolume string, options ...blockprovider.BlockVolOption) (blockprovider.BlockVolume, error) {
+	blockVolOpts := &blockprovider.BlockVolumeOptions{}
 	blockVolOpts.ApplyOpts(options...)
+	logger := log.WithFields(log.Fields{
+		"block_name":           name,
+		"hostvol":              hostVolume,
+		"requested_block_size": size,
+	})
 
 	req := &api.BlockVolumeCreateReq{
 		HaCount:            blockVolOpts.Ha,
@@ -71,42 +70,22 @@ func (g *GlusterBlock) CreateBlockVolume(name string, size uint64, hosts []strin
 		Size:               size,
 		Storage:            blockVolOpts.Storage,
 		RingBufferSizeInMB: blockVolOpts.RingBufferSizeInMB,
-		Hosts:              hosts,
-	}
-
-	if err := clusterLocks.Lock(hostVolume); err != nil {
-		log.WithError(err).Error("error in acquiring cluster lock")
-		return nil, err
-	}
-	defer clusterLocks.UnLock(context.Background())
-
-	volInfo, err := volume.GetVolume(hostVolume)
-	if err != nil {
-		return nil, fmt.Errorf("error in getting host vol details: %s", err)
-	}
-
-	availableSizeInBytes, err := strconv.ParseUint(volInfo.Metadata[volume.BlockHostingAvailableSize], 10, 64)
-	if err != nil {
-		return nil, err
-	}
-
-	if availableSizeInBytes < size {
-		return nil, fmt.Errorf("available size is less than requested size,request size: %d, available size: %d", size, availableSizeInBytes)
+		Hosts:              blockVolOpts.Hosts,
 	}
 
 	resp, err := g.client.CreateBlockVolume(hostVolume, name, req)
 	if err != nil {
+		logger.WithError(err).Error("failed in creating gluster block volume")
 		return nil, err
 	}
 
-	volInfo.Metadata[volume.BlockHostingAvailableSize] = fmt.Sprintf("%d", availableSizeInBytes-size)
-
-	if err = volume.AddOrUpdateVolume(volInfo); err != nil {
-		log.WithError(err).Error("failed in updating volume info to store")
+	resizeFunc := func(blockHostingAvailableSize, blockSize uint64) uint64 { return blockHostingAvailableSize - blockSize }
+	if err = utils.ResizeBlockHostingVolume(hostVolume, size, resizeFunc); err != nil {
+		logger.WithError(err).Error("failed in updating hostvolume _block-hosting-available-size metadata")
 	}
 
 	return &BlockVolume{
-		hostVolume: volInfo.Name,
+		hostVolume: hostVolume,
 		name:       name,
 		hosts:      resp.Portals,
 		iqn:        resp.IQN,
@@ -153,7 +132,9 @@ func (g *GlusterBlock) DeleteBlockVolume(name string, options ...blockprovider.B
 		return err
 	}
 
-	if err = utils.ResizeBlockHostingVolume(hostVol, blockInfo.Size); err != nil {
+	resizeFunc := func(blockHostingAvailableSize, blockSize uint64) uint64 { return blockHostingAvailableSize + blockSize }
+
+	if err = utils.ResizeBlockHostingVolume(hostVol, blockInfo.Size, resizeFunc); err != nil {
 		log.WithFields(log.Fields{
 			"error": err,
 			"size":  blockInfo.Size,

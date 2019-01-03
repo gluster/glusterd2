@@ -80,25 +80,39 @@ func CreateAndStartHostingVolume(req *api.VolCreateReq) (*volume.Volinfo, error)
 	return vInfo, nil
 }
 
-// ResizeBlockHostingVolume will adds deletedBlockSize to block-hosting-available-size
-// in metadata and update the new vol info to store.
-func ResizeBlockHostingVolume(volname string, deletedBlockSize string) error {
-	clusterLocks := transaction.Locks{}
+// ResizeBlockHostingVolume will resize the _block-hosting-available-size metadata and update the new vol info to store.
+// resizeFunc is use to update the new new value to the _block-hosting-available-size metadata
+// e.g for adding the value to the _block-hosting-available-size metadata  we can use `resizeFunc` as
+// f := func(a, b uint64) uint64{return a +b }
+func ResizeBlockHostingVolume(volName string, blockSize interface{}, resizeFunc func(blockHostingAvailableSize, blockSize uint64) uint64) error {
+	var (
+		blkSize      size.Size
+		clusterLocks = transaction.Locks{}
+	)
 
-	if err := clusterLocks.Lock(volname); err != nil {
+	if err := clusterLocks.Lock(volName); err != nil {
 		log.WithError(err).Error("error in acquiring cluster lock")
 		return err
 	}
 	defer clusterLocks.UnLock(context.Background())
 
-	volInfo, err := volume.GetVolume(volname)
+	volInfo, err := volume.GetVolume(volName)
 	if err != nil {
 		return err
 	}
 
-	deletedSize, err := size.Parse(deletedBlockSize)
-	if err != nil {
-		return err
+	switch sz := blockSize.(type) {
+	case string:
+		blkSize, err = size.Parse(sz)
+		if err != nil {
+			return err
+		}
+	case uint64:
+		blkSize = size.Size(sz)
+	case int64:
+		blkSize = size.Size(sz)
+	default:
+		return fmt.Errorf("blocksize is not a supported type(%T)", blockSize)
 	}
 
 	if _, found := volInfo.Metadata[volume.BlockHostingAvailableSize]; !found {
@@ -110,7 +124,12 @@ func ResizeBlockHostingVolume(volname string, deletedBlockSize string) error {
 		return err
 	}
 
-	volInfo.Metadata[volume.BlockHostingAvailableSize] = fmt.Sprintf("%d", availableSizeInBytes+uint64(deletedSize))
+	log.WithFields(log.Fields{
+		"blockHostingAvailableSize": size.Size(availableSizeInBytes),
+		"blockSize":                 blkSize,
+	}).Debug("resizing hosting volume")
+
+	volInfo.Metadata[volume.BlockHostingAvailableSize] = fmt.Sprintf("%d", resizeFunc(availableSizeInBytes, uint64(blkSize)))
 
 	return volume.AddOrUpdateVolume(volInfo)
 }
