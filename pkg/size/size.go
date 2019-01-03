@@ -134,24 +134,24 @@ func (s Size) TebiBytes() float64 {
 	return float64(tib) + float64(bytes)/(1024*1024*1024*1024)
 }
 
-// String string representation of Size in form XXKB/MB/TB/GB/Bytes
-// TODO: support for string representation in XiB format
+// String string representation of Size in form XXKiB/MiB/TiB/GiB/B
+// TODO: support for string representation in other formats
 func (s Size) String() string {
 
-	if s >= TB {
-		return fmt.Sprintf("%.2fTB", s.TeraBytes())
+	if s >= TiB {
+		return fmt.Sprintf("%.2fTiB", s.TebiBytes())
 	}
 
-	if s >= GB {
-		return fmt.Sprintf("%.2fGB", s.GigaBytes())
+	if s >= GiB {
+		return fmt.Sprintf("%.2fGiB", s.GibiBytes())
 	}
 
-	if s >= MB {
-		return fmt.Sprintf("%.2fMB", s.MegaBytes())
+	if s >= MiB {
+		return fmt.Sprintf("%.2fMiB", s.MebiBytes())
 	}
 
-	if s >= KB {
-		return fmt.Sprintf("%.2fKB", s.KiloBytes())
+	if s >= KiB {
+		return fmt.Sprintf("%.2fKiB", s.KibiBytes())
 	}
 
 	return fmt.Sprintf("%d B", s)
