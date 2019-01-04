@@ -205,7 +205,6 @@ func volumeStartHandler(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	logger.WithField("volume-name", volinfo.Name).Info("volume started")
 	events.Broadcast(volume.NewEvent(volume.EventVolumeStarted, volinfo))
 
 	resp := createVolumeStartResp(volinfo)

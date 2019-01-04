@@ -301,8 +301,6 @@ func volumeOptionsHandler(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	logger.WithField("volume-name", volinfo.Name).Info("volume options changed")
-
 	resp := createVolumeOptionResp(volinfo)
 	restutils.SendHTTPResponse(ctx, w, http.StatusOK, resp)
 }
