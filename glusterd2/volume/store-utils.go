@@ -61,7 +61,6 @@ func GetVolume(name string) (*Volinfo, error) {
 	}
 
 	if resp.Count != 1 {
-		log.WithField("volume", name).Error("volume not found")
 		return nil, gderror.ErrVolNotFound
 	}
 

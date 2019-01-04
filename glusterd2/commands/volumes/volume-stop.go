@@ -191,7 +191,6 @@ func volumeStopHandler(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	logger.WithField("volume-name", volinfo.Name).Info("volume stopped")
 	events.Broadcast(volume.NewEvent(volume.EventVolumeStopped, volinfo))
 
 	resp := createVolumeStopResp(volinfo)
