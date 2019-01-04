@@ -3,7 +3,6 @@ package transaction
 import (
 	"context"
 	"sync"
-	"time"
 
 	"github.com/gluster/glusterd2/glusterd2/gdctx"
 	"github.com/gluster/glusterd2/glusterd2/store"
@@ -15,7 +14,6 @@ import (
 const (
 	// PendingTxnPrefix is the etcd namespace into which all pending txn will be stored
 	PendingTxnPrefix = "pending-transaction/"
-	txnSyncTimeout   = time.Second * 10
 )
 
 // transactionEngine is responsible for executing newly added txn
