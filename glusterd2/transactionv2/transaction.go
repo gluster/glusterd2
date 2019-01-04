@@ -18,7 +18,7 @@ import (
 
 const (
 	txnPrefix  = "transaction/"
-	txnTimeOut = time.Second * 15
+	txnTimeOut = time.Minute * 3
 )
 
 // Txn is a set of steps
@@ -159,6 +159,7 @@ func (t *Txn) Do() error {
 	defer close(stop)
 
 	GlobalTxnManager.UpDateTxnStatus(TxnStatus{State: txnPending, TxnID: t.ID}, t.ID, t.Nodes...)
+	GlobalTxnManager.UpdateLastExecutedStep(-1, t.ID, t.Nodes...)
 
 	// commit txn.Ctx.Set()s done in REST handlers to the store
 	if err := t.Ctx.Commit(); err != nil {

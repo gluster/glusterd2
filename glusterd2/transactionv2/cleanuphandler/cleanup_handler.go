@@ -16,8 +16,8 @@ import (
 
 const (
 	leaderKey       = "cleanup-leader"
-	cleanupTimerDur = time.Minute * 2
-	txnMaxAge       = time.Second * 20
+	cleanupTimerDur = time.Minute * 5
+	txnMaxAge       = time.Minute * 5
 )
 
 // CleanupLeader is responsible for performing all cleaning operation
