@@ -510,6 +510,69 @@ func testSmartVolumeAutoDistributeDisperse(t *testing.T) {
 	checkZeroLvs(r)
 }
 
+func testSmartVolumeWhenCloneExists(t *testing.T) {
+	r := require.New(t)
+
+	smartvolname := "svol1"
+
+	createReq := api.VolCreateReq{
+		Name:         smartvolname,
+		Size:         20 * gutils.MiB,
+		ReplicaCount: 3,
+	}
+	volinfo, err := client.VolumeCreate(createReq)
+	r.Nil(err)
+
+	r.Len(volinfo.Subvols, 1)
+	r.Equal("Replicate", volinfo.Type.String())
+	r.Len(volinfo.Subvols[0].Bricks, 3)
+
+	err = client.VolumeStart(smartvolname, false)
+	r.Nil(err)
+
+	// Snapshot Create, Activate, Clone and delete Snapshot
+	snapshotCreateReq := api.SnapCreateReq{
+		VolName:  smartvolname,
+		SnapName: smartvolname + "-s1",
+	}
+	_, err = client.SnapshotCreate(snapshotCreateReq)
+	r.Nil(err, "snapshot create failed")
+
+	var snapshotActivateReq api.SnapActivateReq
+
+	err = client.SnapshotActivate(snapshotActivateReq, smartvolname+"-s1")
+	r.Nil(err)
+
+	snapshotCloneReq := api.SnapCloneReq{
+		CloneName: smartvolname + "-c1",
+	}
+	_, err = client.SnapshotClone(smartvolname+"-s1", snapshotCloneReq)
+	r.Nil(err, "snapshot clone failed")
+
+	err = client.SnapshotDelete(smartvolname + "-s1")
+	r.Nil(err)
+
+	// Check number of Lvs
+	nlv, err := numberOfLvs("gluster-dev-gluster_loop1")
+	r.Nil(err)
+	// Thinpool + brick + Clone volume's brick
+	r.Equal(3, nlv)
+
+	r.Nil(client.VolumeStop(smartvolname))
+
+	r.Nil(client.VolumeDelete(smartvolname))
+
+	nlv, err = numberOfLvs("gluster-dev-gluster_loop1")
+	r.Nil(err)
+	// Thinpool + brick + Clone volume's brick
+	r.Equal(2, nlv)
+
+	// Delete Clone Volume
+	r.Nil(client.VolumeDelete(smartvolname + "-c1"))
+
+	checkZeroLvs(r)
+}
+
 func editDevice(t *testing.T) {
 	r := require.New(t)
 	peerList, err := client.Peers()
@@ -632,6 +695,8 @@ func TestSmartVolume(t *testing.T) {
 	t.Run("Smartvol Distributed-Disperse Volume", testSmartVolumeDistributeDisperse)
 	t.Run("Smartvol Auto Distributed-Replicate Volume", testSmartVolumeAutoDistributeReplicate)
 	t.Run("Smartvol Auto Distributed-Disperse Volume", testSmartVolumeAutoDistributeDisperse)
+	// Test dependent lvs in thinpool cases
+	t.Run("Smartvol delete when clone exists", testSmartVolumeWhenCloneExists)
 	t.Run("Replace Brick", testReplaceBrick)
 	t.Run("Edit device", editDevice)
 
