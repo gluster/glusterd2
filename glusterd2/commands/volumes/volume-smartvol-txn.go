@@ -136,7 +136,7 @@ func txnUndoPrepareBricks(c transaction.TxnCtx) error {
 			}
 
 			// Remove LV
-			err = lvmutils.RemoveLV(b.VgName, b.LvName)
+			err = lvmutils.RemoveLV(b.VgName, b.LvName, true)
 			if err != nil {
 				c.Logger().WithError(err).WithFields(log.Fields{
 					"vg-name": b.VgName,
@@ -145,7 +145,7 @@ func txnUndoPrepareBricks(c transaction.TxnCtx) error {
 			}
 
 			// Remove Thin Pool
-			err = lvmutils.RemoveLV(b.VgName, b.TpName)
+			err = lvmutils.RemoveLV(b.VgName, b.TpName, true)
 			if err != nil {
 				c.Logger().WithError(err).WithFields(log.Fields{
 					"vg-name": b.VgName,

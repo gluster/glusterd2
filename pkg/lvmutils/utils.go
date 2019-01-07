@@ -149,9 +149,39 @@ func UnmountLV(mountdir string) error {
 	return syscall.Unmount(mountdir, syscall.MNT_FORCE)
 }
 
+// IsDependentLvsError returns true if the error related to dependent Lvs exists
+func IsDependentLvsError(err error) bool {
+	if err == nil {
+		return false
+	}
+	return strings.Contains(err.Error(), "dependent volume(s). Proceed? [y/n]")
+}
+
+// IsLvNotFoundError returns true if the error is related to non existent LV error
+func IsLvNotFoundError(err error) bool {
+	if err == nil {
+		return false
+	}
+	return strings.Contains(err.Error(), "Failed to find logical volume")
+}
+
+// DeactivateLV deactivates a Logical Volume
+func DeactivateLV(vgName, lvName string) error {
+	return utils.ExecuteCommandRun("lvchange", "-a", "n", vgName+"/"+lvName)
+}
+
+// ActivateLV activates a Logical Volume
+func ActivateLV(vgName, lvName string) error {
+	return utils.ExecuteCommandRun("lvchange", "-a", "y", vgName+"/"+lvName)
+}
+
 // RemoveLV removes Logical Volume
-func RemoveLV(vgName, lvName string) error {
-	return utils.ExecuteCommandRun("lvremove", "-f", vgName+"/"+lvName)
+func RemoveLV(vgName, lvName string, force bool) error {
+	args := []string{"--autobackup", "y", vgName + "/" + lvName}
+	if force {
+		args = append(args, "-f")
+	}
+	return utils.ExecuteCommandRun("lvremove", args...)
 }
 
 // NumberOfLvs returns number of Lvs present in thinpool

@@ -32,6 +32,14 @@ type MountInfo struct {
 	MntOpts        string
 }
 
+// DeviceInfo is used to store brick device information
+type DeviceInfo struct {
+	TpName     string
+	LvName     string
+	VgName     string
+	RootDevice string
+}
+
 // Brickinfo is the static information about the brick
 type Brickinfo struct {
 	ID             uuid.UUID
@@ -44,9 +52,8 @@ type Brickinfo struct {
 	Type           Type
 	Decommissioned bool
 	PType          ProvisionType
-	VgName         string
-	RootDevice     string
 	MountInfo
+	DeviceInfo
 }
 
 // SizeInfo represents sizing information.
