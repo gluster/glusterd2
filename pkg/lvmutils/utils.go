@@ -157,10 +157,17 @@ func RemoveLV(vgName, lvName string) error {
 // NumberOfLvs returns number of Lvs present in thinpool
 func NumberOfLvs(vgname, tpname string) (int, error) {
 	nlv := 0
-	out, err := utils.ExecuteCommandOutput(
-		"lvs", "--no-headings", "--readonly", "--select",
-		fmt.Sprintf("vg_name=%s&&pool_lv=%s", vgname, tpname),
-	)
+	var err error
+	var out []byte
+	if tpname == "" {
+		out, err = utils.ExecuteCommandOutput(
+			"lvs", "--no-headings", "--readonly", "--select",
+			fmt.Sprintf("vg_name=%s", vgname))
+	} else {
+		out, err = utils.ExecuteCommandOutput(
+			"lvs", "--no-headings", "--readonly", "--select",
+			fmt.Sprintf("vg_name=%s&&pool_lv=%s", vgname, tpname))
+	}
 
 	if err == nil {
 		out := strings.Trim(string(out), " \n")

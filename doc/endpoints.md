@@ -88,6 +88,7 @@ DeviceInfo | GET | /devices/{peerid}/{device:.*} | [](https://godoc.org/github.c
 DevicesInPeer | GET | /devices/{peerid} | [](https://godoc.org/github.com/gluster/glusterd2/plugins/device/api#) | [ListDeviceResp](https://godoc.org/github.com/gluster/glusterd2/plugins/device/api#ListDeviceResp)
 DeviceEdit | POST | /devices/{peerid}/{device:.*} | [EditDeviceReq](https://godoc.org/github.com/gluster/glusterd2/plugins/device/api#EditDeviceReq) | [](https://godoc.org/github.com/gluster/glusterd2/plugins/device/api#)
 DevicesList | GET | /devices | [](https://godoc.org/github.com/gluster/glusterd2/plugins/device/api#) | [ListDeviceResp](https://godoc.org/github.com/gluster/glusterd2/plugins/device/api#ListDeviceResp)
+DeviceDelete | DELETE | /devices/{peerid}/{device:.*} | [](https://godoc.org/github.com/gluster/glusterd2/plugins/device/api#) | [](https://godoc.org/github.com/gluster/glusterd2/plugins/device/api#)
 RebalanceStart | POST | /volumes/{volname}/rebalance/start | [StartReq](https://godoc.org/github.com/gluster/glusterd2/plugins/rebalance/api#StartReq) | [](https://godoc.org/github.com/gluster/glusterd2/plugins/rebalance/api#)
 RebalanceStop | POST | /volumes/{volname}/rebalance/stop | [](https://godoc.org/github.com/gluster/glusterd2/plugins/rebalance/api#) | [](https://godoc.org/github.com/gluster/glusterd2/plugins/rebalance/api#)
 RebalanceStatus | GET | /volumes/{volname}/rebalance | [](https://godoc.org/github.com/gluster/glusterd2/plugins/rebalance/api#) | [](https://godoc.org/github.com/gluster/glusterd2/plugins/rebalance/api#)

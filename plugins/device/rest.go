@@ -89,8 +89,9 @@ func deviceAddHandler(w http.ResponseWriter, r *http.Request) {
 
 	err = txn.Do()
 	if err != nil {
-		logger.WithError(err).Error("Transaction to prepare device failed")
-		restutils.SendHTTPError(ctx, w, http.StatusInternalServerError, "transaction to prepare device failed")
+		logger.WithError(err).Error("failed to add device")
+		status, err := restutils.ErrToStatusCode(err)
+		restutils.SendHTTPError(ctx, w, status, err)
 		return
 	}
 	deviceInfo, err := deviceutils.GetDevice(peerID, req.Device)
@@ -193,4 +194,84 @@ func deviceEditHandler(w http.ResponseWriter, r *http.Request) {
 	}
 
 	restutils.SendHTTPResponse(ctx, w, http.StatusOK, nil)
+}
+
+func deviceDeleteHandler(w http.ResponseWriter, r *http.Request) {
+	ctx := r.Context()
+	logger := gdctx.GetReqLogger(ctx)
+	peerID := mux.Vars(r)["peerid"]
+	if uuid.Parse(peerID) == nil {
+		restutils.SendHTTPError(ctx, w, http.StatusBadRequest, "invalid peer-id passed in url")
+		return
+	}
+	deviceName := mux.Vars(r)["device"]
+	if deviceName == "" {
+		restutils.SendHTTPError(ctx, w, http.StatusBadRequest, "device name not provided in URL")
+		return
+	}
+
+	// Adding prefix(/) to device name
+	deviceName = "/" + deviceName
+
+	txn, err := transaction.NewTxnWithLocks(ctx, peerID+deviceName)
+	if err != nil {
+		status, err := restutils.ErrToStatusCode(err)
+		restutils.SendHTTPError(ctx, w, status, err)
+		return
+	}
+	defer txn.Done()
+
+	peerInfo, err := peer.GetPeer(peerID)
+	if err != nil {
+		logger.WithError(err).WithField("peerid", peerID).Error("Peer ID not found in store")
+		if err == errors.ErrPeerNotFound {
+			restutils.SendHTTPError(ctx, w, http.StatusNotFound, errors.ErrPeerNotFound)
+		} else {
+			restutils.SendHTTPError(ctx, w, http.StatusInternalServerError, "failed to get peer details from store")
+		}
+		return
+	}
+
+	txn.Nodes = []uuid.UUID{peerInfo.ID}
+	txn.Steps = []*transaction.Step{
+		{
+			DoFunc: "delete-device",
+			Nodes:  txn.Nodes,
+		},
+	}
+
+	err = txn.Ctx.Set("peerid", &peerID)
+	if err != nil {
+		restutils.SendHTTPError(ctx, w, http.StatusInternalServerError, err)
+		return
+	}
+
+	err = txn.Ctx.Set("device", &deviceName)
+	if err != nil {
+		restutils.SendHTTPError(ctx, w, http.StatusInternalServerError, err)
+		return
+	}
+
+	err = txn.Do()
+	if err != nil {
+		logger.WithError(err).Error("failed to delete device")
+		status, err := restutils.ErrToStatusCode(err)
+		restutils.SendHTTPError(ctx, w, status, err)
+		return
+	}
+
+	restutils.SendHTTPResponse(ctx, w, http.StatusNoContent, nil)
+}
+
+func listAllDevicesHandler(w http.ResponseWriter, r *http.Request) {
+	ctx := r.Context()
+	logger := gdctx.GetReqLogger(ctx)
+	devices, err := deviceutils.GetDevices()
+	if err != nil {
+		logger.WithError(err).Error(err)
+		restutils.SendHTTPError(ctx, w, http.StatusInternalServerError, err)
+		return
+	}
+
+	restutils.SendHTTPResponse(ctx, w, http.StatusOK, devices)
 }

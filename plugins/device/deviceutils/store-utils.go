@@ -70,6 +70,12 @@ func GetDevice(peerID, deviceName string) (*deviceapi.Info, error) {
 	return &device, nil
 }
 
+// DeleteDevice removes device from peer if device is not been used.
+func DeleteDevice(peerID, deviceName string) error {
+	_, e := store.Delete(context.TODO(), devicePrefix+peerID+"/"+deviceName)
+	return e
+}
+
 // SetDeviceState sets device state and updates device state in etcd
 func SetDeviceState(peerID, deviceName, deviceState string) error {
 	dev, err := GetDevice(peerID, deviceName)
