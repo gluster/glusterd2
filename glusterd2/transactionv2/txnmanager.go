@@ -182,7 +182,7 @@ func (tm *txnManager) kvToFailedTxn(kv *mvccpb.KeyValue, nodeID uuid.UUID) *Txn 
 func (tm *txnManager) watchRespToTxns(resp clientv3.WatchResponse) (txns []*Txn) {
 	for _, event := range resp.Events {
 		prefix, id := path.Split(string(event.Kv.Key))
-		if uuid.Parse(id) == nil || !strings.HasSuffix(prefix, PendingTxnPrefix) {
+		if uuid.Parse(id) == nil || prefix != PendingTxnPrefix {
 			continue
 		}
 
@@ -234,8 +234,8 @@ func (tm *txnManager) GetTxns() (txns []*Txn) {
 		return
 	}
 	for _, kv := range resp.Kvs {
-		_, id := path.Split(string(kv.Key))
-		if uuid.Parse(id) == nil {
+		preifx, id := path.Split(string(kv.Key))
+		if uuid.Parse(id) == nil || preifx != PendingTxnPrefix {
 			continue
 		}
 
