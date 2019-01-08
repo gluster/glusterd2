@@ -102,13 +102,16 @@ func (t *Txn) releaseLocks() {
 // Done must be called after a transaction ends
 func (t *Txn) Done() {
 	defer t.releaseLocks()
-
 	if !t.succeeded {
 		return
 	}
+
+	t.Ctx.Logger().Info("transaction succeeded on all nodes")
 	t.removeContextData()
-	GlobalTxnManager.RemoveTransaction(t.ID)
-	t.Ctx.Logger().Info("txn succeeded on all nodes, txn data cleaned up from store")
+
+	if err := GlobalTxnManager.RemoveTransaction(t.ID); err != nil {
+		t.Ctx.Logger().WithError(err).Error("failed to remove txn data from pending-transaction namespace")
+	}
 }
 
 func (t *Txn) removeContextData() {
@@ -174,7 +177,7 @@ func (t *Txn) Do() error {
 	if err := GlobalTxnManager.AddTxn(t); err != nil {
 		return err
 	}
-	t.Ctx.Logger().Debug("waiting for txn to be cleaned up")
+	t.Ctx.Logger().Debug("waiting for completion of transaction")
 
 	failureAction := func(err error) {
 		t.Ctx.Logger().WithError(err).Error("error in executing txn, marking as failure")
@@ -254,4 +257,16 @@ func nodesUnion(nodes []uuid.UUID) []uuid.UUID {
 		}
 	}
 	return nodes
+}
+
+// FilterNonFailedTxn will return txns which are not marked as failed
+func FilterNonFailedTxn(txns []*Txn) []*Txn {
+	var nonFailedTxns []*Txn
+	for _, txn := range txns {
+		txnStatus, err := GlobalTxnManager.GetTxnStatus(txn.ID, gdctx.MyUUID)
+		if err == nil && txnStatus.State.Valid() && txnStatus.State != txnFailed {
+			nonFailedTxns = append(nonFailedTxns, txn)
+		}
+	}
+	return nonFailedTxns
 }

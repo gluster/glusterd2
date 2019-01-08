@@ -9,7 +9,6 @@ import (
 
 	"github.com/pborman/uuid"
 	log "github.com/sirupsen/logrus"
-	"go.opencensus.io/trace"
 )
 
 const (
@@ -57,17 +56,31 @@ func (txnEng *Engine) Run() {
 // `pending-transaction` namespace, if a new txn is added to the namespace then it will
 // execute that txn.
 func (txnEng *Engine) HandleTransaction() {
+	pendingTxnChan := make(chan *Txn)
+
+	// fetching list of all non-failed transaction which are
+	// already present in store. If a transaction is not marked
+	// as fail then we need to resume all those transaction.
+	go func(txnChan chan<- *Txn) {
+		txns := FilterNonFailedTxn(txnEng.txnManager.GetTxns())
+		for _, txn := range txns {
+			txnChan <- txn
+		}
+	}(pendingTxnChan)
+
+	// watching store for newly added txns
 	txnChan := txnEng.txnManager.WatchTxn(txnEng.stop)
 
 	for {
 		select {
 		case <-txnEng.stop:
 			return
+		case txn := <-pendingTxnChan:
+			go txnEng.Execute(context.Background(), txn)
 		case txn, ok := <-txnChan:
 			if !ok {
 				return
 			}
-			txn.Ctx.Logger().Info("received a pending txn")
 			go txnEng.Execute(context.Background(), txn)
 		}
 	}
@@ -75,20 +88,24 @@ func (txnEng *Engine) HandleTransaction() {
 
 // Execute will run a given txn
 func (txnEng *Engine) Execute(ctx context.Context, txn *Txn) {
-	if !txnEng.executor.IsTxnPending(txn.ID) {
-		txn.Ctx.Logger().Debug("transaction is in progress")
+	status, err := txnEng.txnManager.GetTxnStatus(txn.ID, txnEng.selfNodeID)
+	if err != nil {
 		return
 	}
 
-	ctx, span := trace.StartSpanWithRemoteParent(ctx, "txnEng.Execute/", txn.TxnSpanCtx)
-	defer span.End()
-	span.AddAttributes(
-		trace.StringAttribute("reqID", txn.Ctx.GetTxnReqID()),
-	)
+	txn.Ctx.Logger().WithField("state", status.State).Debug("received a transaction")
 
-	if err := txnEng.executor.Execute(ctx, txn); err != nil {
-		txn.Ctx.Logger().WithError(err).Error("error in executing transaction")
+	switch status.State {
+	case txnPending:
+		if err := txnEng.executor.Execute(txn); err != nil {
+			txn.Ctx.Logger().WithError(err).Error("error in executing transaction")
+		}
+	case txnRunning:
+		if err := txnEng.executor.Resume(txn); err != nil {
+			txn.Ctx.Logger().WithError(err).Error("error in resuming transaction")
+		}
 	}
+
 }
 
 // HandleFailedTxn keep on watching store for failed txn. If it receives any failed
@@ -104,22 +121,25 @@ func (txnEng *Engine) HandleFailedTxn() {
 			if !ok {
 				return
 			}
-
-			lastStepIndex, err := txnEng.txnManager.GetLastExecutedStep(failedTxn.ID, txnEng.selfNodeID)
-			if err != nil || lastStepIndex == -1 {
-				continue
-			}
-			failedTxn.Ctx.Logger().Debugf("received a failed txn, rolling back changes")
-
-			for i := lastStepIndex; i >= 0; i-- {
-				err := txnEng.stepManager.RollBackStep(context.Background(), failedTxn.Steps[i], failedTxn.Ctx)
-				if err != nil {
-					failedTxn.Ctx.Logger().WithError(err).WithField("step", failedTxn.Steps[i]).Error("failed in rolling back step")
-				}
-			}
-			txnEng.txnManager.UpdateLastExecutedStep(-1, failedTxn.ID, txnEng.selfNodeID)
+			go txnEng.startRollBack(failedTxn)
 		}
 	}
+}
+
+func (txnEng *Engine) startRollBack(failedTxn *Txn) {
+	lastStepIndex, err := txnEng.txnManager.GetLastExecutedStep(failedTxn.ID, txnEng.selfNodeID)
+	if err != nil || lastStepIndex == -1 {
+		return
+	}
+	failedTxn.Ctx.Logger().Debugf("received a failed txn, rolling back changes")
+
+	for i := lastStepIndex; i >= 0; i-- {
+		err := txnEng.stepManager.RollBackStep(context.Background(), failedTxn.Steps[i], failedTxn.Ctx)
+		if err != nil {
+			failedTxn.Ctx.Logger().WithError(err).WithField("step", failedTxn.Steps[i]).Error("failed in rolling back step")
+		}
+	}
+	txnEng.txnManager.UpdateLastExecutedStep(-1, failedTxn.ID, txnEng.selfNodeID)
 }
 
 // Stop will stop a running Txn Engine

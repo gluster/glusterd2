@@ -9,13 +9,12 @@ import (
 	"github.com/gluster/glusterd2/glusterd2/store"
 
 	"github.com/pborman/uuid"
-	"go.opencensus.io/trace"
 )
 
 // Executor contains method set to execute a txn on local node
 type Executor interface {
-	Execute(ctx context.Context, txn *Txn) error
-	IsTxnPending(txnID uuid.UUID) bool
+	Execute(txn *Txn) error
+	Resume(txn *Txn) error
 }
 
 // NewExecutor returns an Executor instance
@@ -36,43 +35,41 @@ type executorImpl struct {
 	selfNodeID  uuid.UUID
 }
 
-// IsTxnPending returns true if the given txn is in pending state
-func (e *executorImpl) IsTxnPending(txnID uuid.UUID) bool {
-	status, err := e.txnManager.GetTxnStatus(txnID, e.selfNodeID)
-	if err != nil || status.State != txnPending {
-		return false
-	}
-	return true
-}
-
 // Execute will run all steps of a given txn on local Node. If a step is marked as synchornized,
 // then It will wait for all previous steps to complete on all involved Nodes.
 // If a node is an initiator node then It will acquire all cluster locks before running the txn steps.
-func (e *executorImpl) Execute(ctx context.Context, txn *Txn) error {
+func (e *executorImpl) Execute(txn *Txn) error {
+	return e.startExec(txn, 0)
+}
+
+// Resume will resume a transaction. It will execute all remaining steps of a txn which are not executed
+func (e *executorImpl) Resume(txn *Txn) error {
+	stepIndex, err := e.txnManager.GetLastExecutedStep(txn.ID, e.selfNodeID)
+	if err != nil {
+		return err
+	}
+
+	return e.startExec(txn, stepIndex+1)
+}
+
+func (e *executorImpl) startExec(txn *Txn, startStepIndex int) error {
 	var (
 		errChan          = make(chan error)
 		done             = make(chan struct{})
 		updateStatusOnce = &sync.Once{}
+		ctx, cancel      = context.WithCancel(context.Background())
 	)
-
-	ctx, cancel := context.WithCancel(ctx)
 	defer cancel()
 
 	if !e.shouldRunTxn(txn) {
 		return nil
 	}
 
-	ctx, span := trace.StartSpan(ctx, "txnEng.executor.Execute/")
-	defer span.End()
-	span.AddAttributes(
-		trace.StringAttribute("reqID", txn.Ctx.GetTxnReqID()),
-	)
-
 	txn.Ctx.Logger().Info("transaction started on node")
 
 	failureChan := e.watchTxnForFailure(ctx, txn)
 
-	for i := range txn.Steps {
+	for i := startStepIndex; i < len(txn.Steps); i++ {
 		go e.runTxnStep(ctx, i, txn, errChan, done)
 
 		select {
