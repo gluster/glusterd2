@@ -9,11 +9,12 @@ import (
 	"github.com/gluster/glusterd2/glusterd2/store"
 
 	"github.com/pborman/uuid"
+	"go.opencensus.io/trace"
 )
 
 // Executor contains method set to execute a txn on local node
 type Executor interface {
-	Execute(txn *Txn) error
+	Execute(ctx context.Context, txn *Txn) error
 	IsTxnPending(txnID uuid.UUID) bool
 }
 
@@ -47,18 +48,25 @@ func (e *executorImpl) IsTxnPending(txnID uuid.UUID) bool {
 // Execute will run all steps of a given txn on local Node. If a step is marked as synchornized,
 // then It will wait for all previous steps to complete on all involved Nodes.
 // If a node is an initiator node then It will acquire all cluster locks before running the txn steps.
-func (e *executorImpl) Execute(txn *Txn) error {
+func (e *executorImpl) Execute(ctx context.Context, txn *Txn) error {
 	var (
 		errChan          = make(chan error)
 		done             = make(chan struct{})
 		updateStatusOnce = &sync.Once{}
-		ctx, cancel      = context.WithCancel(context.Background())
 	)
+
+	ctx, cancel := context.WithCancel(ctx)
 	defer cancel()
 
 	if !e.shouldRunTxn(txn) {
 		return nil
 	}
+
+	ctx, span := trace.StartSpan(ctx, "txnEng.executor.Execute/")
+	defer span.End()
+	span.AddAttributes(
+		trace.StringAttribute("reqID", txn.Ctx.GetTxnReqID()),
+	)
 
 	txn.Ctx.Logger().Info("transaction started on node")
 
