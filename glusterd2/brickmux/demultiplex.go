@@ -67,12 +67,6 @@ func Demultiplex(b brick.Brickinfo) error {
 	}
 	log.WithField("brick", b.String()).Debug("detach request succeeded with result")
 
-	// TODO: Find an alternative to substitute the sleep.
-	// There might be some changes on glusterfsd side related to socket
-	// files used while brick signout,
-	// make appropriate changes once glusterfsd side is fixed.
-	//time.Sleep(time.Millisecond * 200)
-
 	log.WithField("brick", b.String()).Debug("deleting brick socket and pid file")
 	os.Remove(brickDaemon.PidFile())
 
