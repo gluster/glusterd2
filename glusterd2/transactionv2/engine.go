@@ -9,6 +9,7 @@ import (
 
 	"github.com/pborman/uuid"
 	log "github.com/sirupsen/logrus"
+	"go.opencensus.io/trace"
 )
 
 const (
@@ -79,7 +80,13 @@ func (txnEng *Engine) Execute(ctx context.Context, txn *Txn) {
 		return
 	}
 
-	if err := txnEng.executor.Execute(txn); err != nil {
+	ctx, span := trace.StartSpanWithRemoteParent(ctx, "txnEng.Execute/", txn.TxnSpanCtx)
+	defer span.End()
+	span.AddAttributes(
+		trace.StringAttribute("reqID", txn.Ctx.GetTxnReqID()),
+	)
+
+	if err := txnEng.executor.Execute(ctx, txn); err != nil {
 		txn.Ctx.Logger().WithError(err).Error("error in executing transaction")
 	}
 }

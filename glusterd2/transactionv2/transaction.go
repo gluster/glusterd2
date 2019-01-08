@@ -14,6 +14,7 @@ import (
 	"github.com/coreos/etcd/clientv3"
 	"github.com/pborman/uuid"
 	log "github.com/sirupsen/logrus"
+	"go.opencensus.io/trace"
 )
 
 const (
@@ -37,6 +38,7 @@ type Txn struct {
 	DontCheckAlive  bool                `json:"dont_check_alive"`
 	DisableRollback bool                `json:"disable_rollback"`
 	StartTime       time.Time           `json:"start_time"`
+	TxnSpanCtx      trace.SpanContext   `json:"txn_span_ctx"`
 
 	success   chan struct{}
 	error     chan error
@@ -59,6 +61,8 @@ func NewTxn(ctx context.Context) *Txn {
 		StorePrefix: t.StorePrefix,
 	}
 	t.Ctx = transaction.NewCtx(config)
+	spanCtx := trace.FromContext(ctx)
+	t.TxnSpanCtx = spanCtx.SpanContext()
 	t.Ctx.Logger().Debug("new transaction created")
 	return t
 }
