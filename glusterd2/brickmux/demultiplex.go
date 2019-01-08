@@ -75,8 +75,6 @@ func Demultiplex(b brick.Brickinfo) error {
 
 	log.WithField("brick", b.String()).Debug("deleting brick socket and pid file")
 	os.Remove(brickDaemon.PidFile())
-	os.Remove(brickDaemon.SocketFile())
-	log.WithField("brick", b.String()).Debug("deleted brick socket and pid file")
 
 	return nil
 }
