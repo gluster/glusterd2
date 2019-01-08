@@ -38,7 +38,7 @@ type Glusterfsd struct {
 	// Externally consumable using methods of Glusterfsd interface
 	binarypath     string
 	args           []string
-	socketfilepath string
+	Socketfilepath string
 	pidfilepath    string
 
 	// For internal use
@@ -89,8 +89,8 @@ func (b *Glusterfsd) Args() []string {
 // SocketFile returns path to the brick socket file used for IPC.
 func (b *Glusterfsd) SocketFile() string {
 
-	if b.socketfilepath != "" {
-		return b.socketfilepath
+	if b.Socketfilepath != "" {
+		return b.Socketfilepath
 	}
 
 	// First we form a key
@@ -101,10 +101,10 @@ func (b *Glusterfsd) SocketFile() string {
 	// Example: /var/run/gluster/<xxhash-hash>.socket
 	glusterdSockDir := config.GetString("rundir")
 	hash := strconv.FormatUint(xxhash.Sum64String(key), 16)
-	b.socketfilepath = path.Join(glusterdSockDir, hash+".socket")
+	b.Socketfilepath = path.Join(glusterdSockDir, hash+".socket")
 	// FIXME: The brick can no longer clean this up on clean shut down
 
-	return b.socketfilepath
+	return b.Socketfilepath
 }
 
 // PidFile returns path to the pid file of the brick process
