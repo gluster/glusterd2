@@ -14,7 +14,6 @@ import (
 	"github.com/gluster/glusterd2/glusterd2/transaction"
 
 	"github.com/coreos/etcd/clientv3"
-	"github.com/coreos/etcd/clientv3/concurrency"
 	"github.com/coreos/etcd/mvcc/mvccpb"
 	"github.com/pborman/uuid"
 )
@@ -30,7 +29,7 @@ const (
 	// eg.. key for storing last executed step on a node:-  pending-transaction/<txn-ID>/<node-ID>/laststep
 	LastExecutedStepPrefix = "laststep"
 	// etcd txn timeout in seconds
-	etcdTxnTimeout = time.Second * 5
+	etcdTxnTimeout = time.Second * 60
 )
 
 // TxnManager stores and manages access to transaction related data in
@@ -41,7 +40,7 @@ type TxnManager interface {
 	AddTxn(txn *Txn) error
 	GetTxnByUUID(id uuid.UUID) (*Txn, error)
 	RemoveTransaction(txnID uuid.UUID) error
-	UpdateLastExecutedStep(index int, txnID uuid.UUID, nodeID uuid.UUID) error
+	UpdateLastExecutedStep(index int, txnID uuid.UUID, nodeIDs ...uuid.UUID) error
 	GetLastExecutedStep(txnID uuid.UUID, nodeID uuid.UUID) (int, error)
 	WatchLastExecutedStep(stopCh <-chan struct{}, txnID uuid.UUID, nodeID uuid.UUID) <-chan int
 	WatchFailedTxn(stopCh <-chan struct{}, nodeID uuid.UUID) <-chan *Txn
@@ -192,7 +191,6 @@ func (tm *txnManager) watchRespToTxns(resp clientv3.WatchResponse) (txns []*Txn)
 			continue
 		}
 
-		txn.locks = make(map[string]*concurrency.Mutex)
 		txns = append(txns, txn)
 	}
 	return
@@ -226,7 +224,6 @@ func (tm *txnManager) GetTxnByUUID(id uuid.UUID) (*Txn, error) {
 	if err := json.Unmarshal(kv.Value, txn); err != nil {
 		return nil, err
 	}
-	txn.locks = make(map[string]*concurrency.Mutex)
 	return txn, nil
 }
 
@@ -246,7 +243,6 @@ func (tm *txnManager) GetTxns() (txns []*Txn) {
 		if err := json.Unmarshal(kv.Value, txn); err != nil {
 			continue
 		}
-		txn.locks = make(map[string]*concurrency.Mutex)
 		txns = append(txns, txn)
 	}
 	return
@@ -256,13 +252,12 @@ func (tm *txnManager) GetTxns() (txns []*Txn) {
 func (tm *txnManager) UpDateTxnStatus(status TxnStatus, txnID uuid.UUID, nodeIDs ...uuid.UUID) error {
 	var (
 		ctx, cancel = context.WithTimeout(context.Background(), etcdTxnTimeout)
-		storeMutex  = concurrency.NewMutex(store.Store.Session, txnID.String())
+		clusterLock = transaction.Locks{}
 		putOps      []clientv3.Op
 	)
 
-	storeMutex.Lock(ctx)
 	defer cancel()
-	defer storeMutex.Unlock(ctx)
+	defer clusterLock.UnLock(ctx)
 
 	data, err := json.Marshal(status)
 	if err != nil {
@@ -271,6 +266,9 @@ func (tm *txnManager) UpDateTxnStatus(status TxnStatus, txnID uuid.UUID, nodeIDs
 
 	for _, nodeID := range nodeIDs {
 		key := tm.getStoreKey(txnID.String(), nodeID.String(), TxnStatusPrefix)
+		if err := clusterLock.Lock(key); err != nil {
+			return err
+		}
 		putOps = append(putOps, clientv3.OpPut(key, string(data)))
 	}
 
@@ -286,16 +284,19 @@ func (tm *txnManager) GetTxnStatus(txnID uuid.UUID, nodeID uuid.UUID) (TxnStatus
 	var (
 		ctx, cancel = context.WithCancel(context.Background())
 		key         = tm.getStoreKey(txnID.String(), nodeID.String(), TxnStatusPrefix)
-		storeMutex  = concurrency.NewMutex(store.Store.Session, txnID.String())
+		clusterLock = transaction.Locks{}
 	)
 
-	storeMutex.Lock(ctx)
 	defer cancel()
-	defer storeMutex.Unlock(ctx)
+
+	if err := clusterLock.Lock(key); err != nil {
+		return TxnStatus{State: txnUnknown, Reason: err.Error()}, err
+	}
+	defer clusterLock.UnLock(ctx)
 
 	resp, err := store.Get(context.TODO(), key)
 	if err != nil {
-		return TxnStatus{State: txnUnknown}, err
+		return TxnStatus{State: txnUnknown, Reason: err.Error()}, err
 	}
 
 	if len(resp.Kvs) == 0 {
@@ -306,7 +307,7 @@ func (tm *txnManager) GetTxnStatus(txnID uuid.UUID, nodeID uuid.UUID) (TxnStatus
 	kv := resp.Kvs[0]
 
 	if err := json.Unmarshal(kv.Value, &txnStatus); err != nil {
-		return TxnStatus{State: txnUnknown}, err
+		return TxnStatus{State: txnUnknown, Reason: err.Error()}, err
 	}
 
 	if !txnStatus.State.Valid() {
@@ -317,15 +318,30 @@ func (tm *txnManager) GetTxnStatus(txnID uuid.UUID, nodeID uuid.UUID) (TxnStatus
 }
 
 // UpdateLastExecutedStep updates the last executed step on a node of a given txn ID
-func (tm *txnManager) UpdateLastExecutedStep(index int, txnID uuid.UUID, nodeID uuid.UUID) error {
-	key := tm.getStoreKey(txnID.String(), nodeID.String(), LastExecutedStepPrefix)
-	_, err := store.Put(context.TODO(), key, strconv.Itoa(index))
-	return err
+func (tm *txnManager) UpdateLastExecutedStep(index int, txnID uuid.UUID, nodeIDs ...uuid.UUID) error {
+	var (
+		ctx, cancel = context.WithTimeout(context.Background(), etcdTxnTimeout)
+		putOps      []clientv3.Op
+	)
+
+	defer cancel()
+
+	for _, nodeID := range nodeIDs {
+		key := tm.getStoreKey(txnID.String(), nodeID.String(), LastExecutedStepPrefix)
+		putOps = append(putOps, clientv3.OpPut(key, strconv.Itoa(index)))
+	}
+
+	txn, err := store.Txn(ctx).Then(putOps...).Commit()
+	if err != nil || !txn.Succeeded {
+		return errors.New("etcd txn to update last executed step failed")
+	}
+	return nil
 }
 
 // GetLastExecutedStep fetches the last executed step on a node for a given txn ID
 func (tm *txnManager) GetLastExecutedStep(txnID uuid.UUID, nodeID uuid.UUID) (int, error) {
 	key := tm.getStoreKey(txnID.String(), nodeID.String(), LastExecutedStepPrefix)
+
 	resp, err := store.Get(context.TODO(), key)
 	if err != nil {
 		return -1, err
@@ -409,7 +425,7 @@ func (tm *txnManager) RemoveFailedTxns() {
 
 		if nodesRollbacked == len(txn.Nodes) {
 			txn.Ctx.Logger().Info("txn rolled back on all nodes, cleaning from store")
-			txn.done()
+			txn.removeContextData()
 			tm.RemoveTransaction(txn.ID)
 		}
 	}

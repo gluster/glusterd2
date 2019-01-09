@@ -500,6 +500,9 @@ func createSnapSubvols(newVolinfo, origVolinfo *volume.Volinfo, nodeData map[str
 				DevicePath:     mountData.DevicePath,
 				FsType:         mountData.FsType,
 				MntOpts:        mountData.MntOpts,
+				VgName:         brickinfo.DeviceInfo.VgName,
+				RootDevice:     brickinfo.DeviceInfo.RootDevice,
+				TpName:         brickinfo.DeviceInfo.TpName,
 			}
 
 			bricks = append(bricks, brick)

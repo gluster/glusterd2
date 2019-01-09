@@ -3,3 +3,15 @@ peeraddress = ":24008"
 clientaddress = ":24007"
 #restauth enables/disables REST authentication in glusterd2
 #restauth = true
+
+#[block-hosting-vol-options]
+block-hosting-volume-size = 5368709120 #5GiB
+auto-create-block-hosting-volumes = true
+block-hosting-volume-replica-count = 3
+#block-hosting-volume-type = "Replicate"
+
+#[gluster-block-client-config]
+gluster-block-hostaddr = "192.168.122.16:8081"
+#gluster-block-cacert = "/path/to/ca.crt"
+#gluster-block-user = "username_for_rest_authentication"
+#gluster-block-secret = "secret_for_rest_authentication"

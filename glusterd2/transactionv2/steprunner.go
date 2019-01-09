@@ -2,6 +2,7 @@ package transaction
 
 import (
 	"context"
+	"time"
 
 	"github.com/gluster/glusterd2/glusterd2/gdctx"
 	"github.com/gluster/glusterd2/glusterd2/store"
@@ -16,6 +17,8 @@ type StepManager interface {
 	RollBackStep(ctx context.Context, step *transaction.Step, txnCtx transaction.TxnCtx) error
 	SyncStep(ctx context.Context, stepIndex int, txn *Txn) error
 }
+
+const txnSyncTimeout = time.Minute * 2
 
 type stepManager struct {
 	selfNodeID uuid.UUID
@@ -37,6 +40,7 @@ func (sm *stepManager) shouldRunStep(step *transaction.Step) bool {
 			return true
 		}
 	}
+
 	return false
 }
 
@@ -80,7 +84,7 @@ func (sm *stepManager) SyncStep(ctx context.Context, syncStepIndex int, txn *Txn
 	for range txn.Nodes {
 		select {
 		case <-syncCtx.Done():
-			return errTxnSyncTimeout
+			return ctx.Err()
 		case <-success:
 		}
 	}
@@ -90,10 +94,12 @@ func (sm *stepManager) SyncStep(ctx context.Context, syncStepIndex int, txn *Txn
 // RollBackStep will rollback a given step on local node
 func (sm *stepManager) RollBackStep(ctx context.Context, step *transaction.Step, txnCtx transaction.TxnCtx) error {
 	if !sm.shouldRunStep(step) {
+		txnCtx.Logger().WithField("step", step.UndoFunc).Debug("peer is excluded in running this step")
 		return nil
 	}
 
 	if step.UndoFunc != "" {
+		txnCtx.Logger().WithField("step", step.UndoFunc).Debug("rolling back txn step")
 		return sm.runStep(ctx, step.UndoFunc, txnCtx)
 	}
 	return nil
@@ -102,6 +108,7 @@ func (sm *stepManager) RollBackStep(ctx context.Context, step *transaction.Step,
 // RunStepRunStep will execute the step on local node
 func (sm *stepManager) RunStep(ctx context.Context, step *transaction.Step, txnCtx transaction.TxnCtx) error {
 	if !sm.shouldRunStep(step) {
+		txnCtx.Logger().WithField("step", step.DoFunc).Debug("peer is excluded in running this step")
 		return nil
 	}
 	return sm.runStep(ctx, step.DoFunc, txnCtx)

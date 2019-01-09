@@ -190,7 +190,7 @@ func CheckForAvailableVgSize(expansionSize uint64, bricksInfo []brick.Brickinfo)
 		if requiredDeviceSizeMap[b.MountInfo.DevicePath] > deviceSize {
 			return map[string]string{}, false, nil
 		}
-		brickVgMapping[b.Path] = b.VgName
+		brickVgMapping[b.Path] = b.DeviceInfo.VgName
 	}
 
 	return brickVgMapping, true, nil

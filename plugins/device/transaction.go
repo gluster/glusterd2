@@ -38,7 +38,6 @@ func txnPrepareDevice(c transaction.TxnCtx) error {
 		}
 		return err
 	}
-	c.Logger().WithField("device", device).Info("Device setup successful, setting device status to 'Enabled'")
 
 	availableSize, extentSize, err := lvmutils.GetVgAvailableSize(deviceInfo.VgName())
 	if err != nil {

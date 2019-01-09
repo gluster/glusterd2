@@ -286,18 +286,11 @@ func CleanBricks(volinfo *Volinfo) error {
 		}
 		vgname := parts[2]
 		lvname := parts[3]
-		tpname, err := lvmutils.GetThinpoolName(vgname, lvname)
-		if err != nil {
-			log.WithError(err).WithFields(log.Fields{
-				"vg-name": vgname,
-				"lv-name": lvname,
-			}).Error("failed to get thinpool name")
-			return err
-		}
 
 		// Remove LV
-		err = lvmutils.RemoveLV(vgname, lvname)
-		if err != nil {
+		err = lvmutils.RemoveLV(vgname, lvname, true)
+		// Ignore error if LV not exists
+		if err != nil && !lvmutils.IsLvNotFoundError(err) {
 			log.WithError(err).WithFields(log.Fields{
 				"vg-name": vgname,
 				"lv-name": lvname,
@@ -309,25 +302,41 @@ func CleanBricks(volinfo *Volinfo) error {
 			continue
 		}
 
-		// Remove Thin Pool if LV count is zero, Thinpool will
-		// have more LVs in case of snapshots and clones
-		numLvs, err := lvmutils.NumberOfLvs(vgname, tpname)
-		if err != nil {
-			log.WithError(err).WithFields(log.Fields{
-				"vg-name": vgname,
-				"tp-name": tpname,
-			}).Error("failed to get number of lvs")
-			return err
-		}
-
-		if numLvs == 0 {
-			err = lvmutils.RemoveLV(vgname, tpname)
+		// Thinpool info will not be available if Volume is manually provisioned
+		// or a volume is cloned from a manually provisioned volume
+		if b.DeviceInfo.TpName != "" {
+			err = lvmutils.DeactivateLV(vgname, b.DeviceInfo.TpName)
 			if err != nil {
 				log.WithError(err).WithFields(log.Fields{
 					"vg-name": vgname,
-					"tp-name": tpname,
+					"tp-name": b.DeviceInfo.TpName,
+				}).Error("thinpool deactivate failed")
+				return err
+			}
+
+			err = lvmutils.RemoveLV(vgname, b.DeviceInfo.TpName, false)
+			// Do not remove Thinpool if the dependent Lvs exists
+			// Ignore the lvremove command failure if the reason is
+			// dependent Lvs exists
+			if err != nil && !lvmutils.IsDependentLvsError(err) && !lvmutils.IsLvNotFoundError(err) {
+				log.WithError(err).WithFields(log.Fields{
+					"vg-name": vgname,
+					"tp-name": b.DeviceInfo.TpName,
 				}).Error("thinpool remove failed")
 				return err
+			}
+
+			// Thinpool is not removed if dependent Lvs exists,
+			// activate the thinpool again
+			if err != nil && lvmutils.IsDependentLvsError(err) {
+				err = lvmutils.ActivateLV(vgname, b.DeviceInfo.TpName)
+				if err != nil {
+					log.WithError(err).WithFields(log.Fields{
+						"vg-name": vgname,
+						"tp-name": b.DeviceInfo.TpName,
+					}).Error("thinpool activate failed")
+					return err
+				}
 			}
 		}
 

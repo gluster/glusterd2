@@ -11,6 +11,7 @@ import (
 	"github.com/gluster/glusterd2/glusterd2/gdctx"
 	restutils "github.com/gluster/glusterd2/glusterd2/servers/rest/utils"
 	"github.com/gluster/glusterd2/glusterd2/transaction"
+	transactionv2 "github.com/gluster/glusterd2/glusterd2/transactionv2"
 	"github.com/gluster/glusterd2/glusterd2/volgen"
 	"github.com/gluster/glusterd2/glusterd2/volume"
 	"github.com/gluster/glusterd2/pkg/api"
@@ -123,7 +124,7 @@ func volumeStopHandler(w http.ResponseWriter, r *http.Request) {
 	logger := gdctx.GetReqLogger(ctx)
 	volname := mux.Vars(r)["volname"]
 
-	txn, err := transaction.NewTxnWithLocks(ctx, volname)
+	txn, err := transactionv2.NewTxnWithLocks(ctx, volname)
 	if err != nil {
 		status, err := restutils.ErrToStatusCode(err)
 		restutils.SendHTTPError(ctx, w, status, err)
@@ -190,7 +191,6 @@ func volumeStopHandler(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	logger.WithField("volume-name", volinfo.Name).Info("volume stopped")
 	events.Broadcast(volume.NewEvent(volume.EventVolumeStopped, volinfo))
 
 	resp := createVolumeStopResp(volinfo)

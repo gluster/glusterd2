@@ -2,7 +2,6 @@ package cleanuphandler
 
 import (
 	"context"
-	"fmt"
 	"sync"
 	"time"
 
@@ -17,8 +16,8 @@ import (
 
 const (
 	leaderKey       = "cleanup-leader"
-	cleanupTimerDur = time.Minute * 2
-	txnMaxAge       = time.Second * 20
+	cleanupTimerDur = time.Minute * 5
+	txnMaxAge       = time.Minute * 5
 )
 
 // CleanupLeader is responsible for performing all cleaning operation
@@ -64,8 +63,7 @@ func WithElection(defaultSession *concurrency.Session) CleaupHandlerOptFunc {
 		if handler.session != nil {
 			session = handler.session
 		}
-		electionKeyPrefix := fmt.Sprintf("gluster-%s/", gdctx.MyClusterID.String()) + leaderKey
-		handler.election = concurrency.NewElection(session, electionKeyPrefix)
+		handler.election = concurrency.NewElection(session, leaderKey)
 		return nil
 	}
 }
@@ -151,7 +149,7 @@ func StartCleanupLeader() {
 	var err error
 
 	CleanupLeader, err = NewCleanupHandler(
-		WithSession(store.Store.Client, 60),
+		WithSession(store.Store.NamespaceClient, 60),
 		WithElection(store.Store.Session),
 	)
 

@@ -181,6 +181,7 @@ func createVolumeBrickFromSnap(bricks []brick.Brickinfo, vol *volume.Volinfo) []
 			Hostname:       b.Hostname,
 			ID:             b.ID,
 			MountInfo:      b.MountInfo,
+			DeviceInfo:     b.DeviceInfo,
 			Path:           b.Path,
 			PeerID:         b.PeerID,
 			Type:           b.Type,

@@ -51,10 +51,11 @@ type GDStore struct {
 	// Un-namespaced Client for Auth, Cluster and Maintenance operations
 	*clientv3.Client
 
-	ee        *elasticetcd.ElasticEtcd
-	namespace string
-	stop      chan struct{}
-	stopOnce  sync.Once
+	ee              *elasticetcd.ElasticEtcd
+	namespace       string
+	stop            chan struct{}
+	stopOnce        sync.Once
+	NamespaceClient *clientv3.Client
 }
 
 // Init initializes the GD2 store
@@ -251,14 +252,15 @@ func newNamespacedStore(oc *clientv3.Client, conf *Config) (*GDStore, error) {
 	}
 
 	return &GDStore{
-		conf:      *conf,
-		KV:        kv,
-		Lease:     lease,
-		Watcher:   watcher,
-		Session:   session,
-		Client:    oc,
-		ee:        nil,
-		namespace: namespaceKey,
+		conf:            *conf,
+		KV:              kv,
+		Lease:           lease,
+		Watcher:         watcher,
+		Session:         session,
+		Client:          oc,
+		ee:              nil,
+		namespace:       namespaceKey,
+		NamespaceClient: nc,
 	}, nil
 }
 

@@ -12,18 +12,14 @@ import (
 	"github.com/gluster/glusterd2/glusterd2/transaction"
 
 	"github.com/coreos/etcd/clientv3"
-	"github.com/coreos/etcd/clientv3/concurrency"
 	"github.com/pborman/uuid"
 	log "github.com/sirupsen/logrus"
 )
 
 const (
 	txnPrefix  = "transaction/"
-	txnTimeOut = time.Second * 15
+	txnTimeOut = time.Minute * 3
 )
-
-// TxnOptFunc receives a Txn and overrides its members
-type TxnOptFunc func(*Txn) error
 
 // Txn is a set of steps
 type Txn struct {
@@ -35,13 +31,11 @@ type Txn struct {
 	Nodes           []uuid.UUID         `json:"nodes"`
 	StorePrefix     string              `json:"store_prefix"`
 	ID              uuid.UUID           `json:"id"`
-	Locks           []string            `json:"locks"`
 	ReqID           uuid.UUID           `json:"req_id"`
 	Ctx             transaction.TxnCtx  `json:"ctx"`
 	Steps           []*transaction.Step `json:"steps"`
 	DontCheckAlive  bool                `json:"dont_check_alive"`
 	DisableRollback bool                `json:"disable_rollback"`
-	Initiator       uuid.UUID           `json:"initiator"`
 	StartTime       time.Time           `json:"start_time"`
 
 	success   chan struct{}
@@ -55,7 +49,7 @@ func NewTxn(ctx context.Context) *Txn {
 
 	t.ID = uuid.NewRandom()
 	t.ReqID = gdctx.GetReqID(ctx)
-	t.locks = make(map[string]*concurrency.Mutex)
+	t.locks = transaction.Locks{}
 	t.StorePrefix = txnPrefix + t.ID.String() + "/"
 	config := &transaction.TxnCtxConfig{
 		LogFields: log.Fields{
@@ -65,7 +59,6 @@ func NewTxn(ctx context.Context) *Txn {
 		StorePrefix: t.StorePrefix,
 	}
 	t.Ctx = transaction.NewCtx(config)
-	t.Initiator = gdctx.MyUUID
 	t.Ctx.Logger().Debug("new transaction created")
 	return t
 }
@@ -73,25 +66,28 @@ func NewTxn(ctx context.Context) *Txn {
 // NewTxnWithLocks returns an empty Txn with locks obtained on given lockIDs
 func NewTxnWithLocks(ctx context.Context, lockIDs ...string) (*Txn, error) {
 	t := NewTxn(ctx)
-	t.Locks = lockIDs
-	return t, nil
+	t.locks = transaction.Locks{}
+	err := t.acquireClusterLocks(lockIDs...)
+	return t, err
 }
 
-// WithClusterLocks obtains a cluster wide locks on given IDs for a txn
-func WithClusterLocks(lockIDs ...string) TxnOptFunc {
-	return func(t *Txn) error {
-		for _, id := range lockIDs {
-			logger := t.Ctx.Logger().WithField("lockID", id)
-			logger.Debug("attempting to obtain lock")
-			if err := t.locks.Lock(id); err != nil {
-				logger.WithError(err).Error("failed to obtain lock")
-				t.releaseLocks()
-				return err
-			}
-			logger.Debug("lock obtained")
-		}
-		return nil
+func (t *Txn) acquireClusterLocks(lockIDs ...string) error {
+	if t.locks == nil {
+		t.locks = transaction.Locks{}
 	}
+
+	for _, id := range lockIDs {
+		logger := t.Ctx.Logger().WithField("lockID", id)
+		logger.Debug("txn attempts to acquire cluster lock")
+		if err := t.locks.Lock(id); err != nil {
+			logger.WithError(err).Error("failed to obtain lock")
+			t.releaseLocks()
+			return err
+		}
+		logger.Debug("cluster lock acquired")
+	}
+
+	return nil
 }
 
 func (t *Txn) releaseLocks() {
@@ -101,16 +97,17 @@ func (t *Txn) releaseLocks() {
 // Done releases any obtained locks and cleans up the transaction namespace
 // Done must be called after a transaction ends
 func (t *Txn) Done() {
+	defer t.releaseLocks()
+
 	if !t.succeeded {
 		return
 	}
-	t.done()
-	t.releaseLocks()
+	t.removeContextData()
 	GlobalTxnManager.RemoveTransaction(t.ID)
 	t.Ctx.Logger().Info("txn succeeded on all nodes, txn data cleaned up from store")
 }
 
-func (t *Txn) done() {
+func (t *Txn) removeContextData() {
 	if _, err := store.Delete(context.TODO(), t.StorePrefix, clientv3.WithPrefix()); err != nil {
 		t.Ctx.Logger().WithError(err).WithField("key",
 			t.StorePrefix).Error("Failed to remove transaction namespace from store")
@@ -119,21 +116,12 @@ func (t *Txn) done() {
 }
 
 func (t *Txn) checkAlive() error {
-
-	if len(t.Nodes) == 0 {
-		for _, s := range t.Steps {
-			t.Nodes = append(t.Nodes, s.Nodes...)
-		}
-	}
-	t.Nodes = nodesUnion(t.Nodes)
-
 	for _, node := range t.Nodes {
 		// TODO: Using prefixed query, get all alive nodes in a single etcd query
 		if _, online := store.Store.IsNodeAlive(node); !online {
 			return fmt.Errorf("node %s is probably down", node.String())
 		}
 	}
-
 	return nil
 }
 
@@ -152,6 +140,13 @@ func (t *Txn) Do() error {
 
 	defer timer.Stop()
 
+	if len(t.Nodes) == 0 {
+		for _, s := range t.Steps {
+			t.Nodes = append(t.Nodes, s.Nodes...)
+		}
+	}
+	t.Nodes = nodesUnion(t.Nodes)
+
 	if !t.DontCheckAlive {
 		if err := t.checkAlive(); err != nil {
 			return err
@@ -164,6 +159,7 @@ func (t *Txn) Do() error {
 	defer close(stop)
 
 	GlobalTxnManager.UpDateTxnStatus(TxnStatus{State: txnPending, TxnID: t.ID}, t.ID, t.Nodes...)
+	GlobalTxnManager.UpdateLastExecutedStep(-1, t.ID, t.Nodes...)
 
 	// commit txn.Ctx.Set()s done in REST handlers to the store
 	if err := t.Ctx.Commit(); err != nil {
@@ -196,7 +192,10 @@ func (t *Txn) Do() error {
 	return nil
 }
 
-func (t *Txn) isNodeSucceded(nodeID uuid.UUID, success chan<- struct{}, stopCh <-chan struct{}) {
+// notifyState will send a notification on `success` chan if txn got marked as succeeded on given
+// nodeID. In case txn got failed on the given nodeID then it will send a notification on Txn.error
+// chan.
+func (t *Txn) notifyState(nodeID uuid.UUID, success chan<- struct{}, stopCh <-chan struct{}) {
 	txnStatusChan := GlobalTxnManager.WatchTxnStatus(stopCh, t.ID, nodeID)
 
 	for {
@@ -220,11 +219,14 @@ func (t *Txn) isNodeSucceded(nodeID uuid.UUID, success chan<- struct{}, stopCh <
 	}
 }
 
+// waitForCompletion will wait for transaction to complete on all nodes.
+// If txn got marked as succeeded on all nodes then it will send a notification
+// on Txn.success chan.
 func (t *Txn) waitForCompletion(stopCh <-chan struct{}) {
 	var successChan = make(chan struct{})
 
 	for _, nodeID := range t.Nodes {
-		go t.isNodeSucceded(nodeID, successChan, stopCh)
+		go t.notifyState(nodeID, successChan, stopCh)
 	}
 
 	for range t.Nodes {

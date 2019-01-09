@@ -4,6 +4,7 @@ package plugin
 
 import (
 	"github.com/gluster/glusterd2/plugins/bitrot"
+	"github.com/gluster/glusterd2/plugins/blockvolume"
 	"github.com/gluster/glusterd2/plugins/device"
 	"github.com/gluster/glusterd2/plugins/events"
 	"github.com/gluster/glusterd2/plugins/georeplication"
@@ -25,4 +26,5 @@ var PluginsList = []GlusterdPlugin{
 	&glustershd.Plugin{},
 	&device.Plugin{},
 	&rebalance.Plugin{},
+	&blockvolume.BlockVolume{},
 }
