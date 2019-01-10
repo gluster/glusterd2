@@ -34,5 +34,6 @@ func (p *Plugin) RestRoutes() route.Routes {
 func (p *Plugin) RegisterStepFuncs() {
 	transaction.RegisterStepFunc(txnTracingValidateConfig, "trace-mgmt.ValidateTraceConfig")
 	transaction.RegisterStepFunc(txnTracingStoreConfig, "trace-mgmt.StoreTraceConfig")
+	transaction.RegisterStepFunc(txnTracingDeleteStoreConfig, "trace-mgmt.UndoStoreTraceConfig")
 	transaction.RegisterStepFunc(txnTracingApplyNewConfig, "trace-mgmt.NotifyTraceConfigChange")
 }
