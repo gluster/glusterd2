@@ -97,11 +97,11 @@ func (txnEng *Engine) Execute(ctx context.Context, txn *Txn) {
 
 	switch status.State {
 	case txnPending:
-		if err := txnEng.executor.Execute(txn); err != nil {
+		if err := txnEng.executor.Execute(ctx, txn); err != nil {
 			txn.Ctx.Logger().WithError(err).Error("error in executing transaction")
 		}
 	case txnRunning:
-		if err := txnEng.executor.Resume(txn); err != nil {
+		if err := txnEng.executor.Resume(ctx, txn); err != nil {
 			txn.Ctx.Logger().WithError(err).Error("error in resuming transaction")
 		}
 	}
