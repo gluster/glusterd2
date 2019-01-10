@@ -216,6 +216,7 @@ func createRestoreVolinfo(snapinfo *snapshot.Snapinfo, vol *volume.Volinfo) volu
 	newVol.Transport = snapVol.Transport
 	newVol.Type = snapVol.Type
 	newVol.VolfileID = newVol.Name
+	newVol.ProvisionerType = snapVol.ProvisionerType
 	for idx, subvol := range snapVol.Subvols {
 		subvolType := volume.SubvolTypeToString(subvol.Type)
 		name := fmt.Sprintf("%s-%s-%d", vol.Name, strings.ToLower(subvolType), idx)
@@ -294,7 +295,7 @@ func cleanParentBricks(c transaction.TxnCtx) error {
 		return err
 	}
 
-	return volume.CleanBricks(&volinfo)
+	return volume.CleanBricksLvm(&volinfo)
 }
 
 func registerSnapRestoreStepFuncs() {

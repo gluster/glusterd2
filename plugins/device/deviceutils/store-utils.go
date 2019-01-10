@@ -7,6 +7,7 @@ import (
 	"github.com/gluster/glusterd2/glusterd2/brick"
 	"github.com/gluster/glusterd2/glusterd2/gdctx"
 	"github.com/gluster/glusterd2/glusterd2/store"
+	"github.com/gluster/glusterd2/glusterd2/transaction"
 	gderrors "github.com/gluster/glusterd2/pkg/errors"
 	"github.com/gluster/glusterd2/pkg/lvmutils"
 	deviceapi "github.com/gluster/glusterd2/plugins/device/api"
@@ -111,6 +112,42 @@ func UpdateDeviceFreeSize(peerID, device string) error {
 	dev.AvailableSize = availableSize
 	dev.UsedSize = dev.TotalSize - availableSize
 	dev.ExtentSize = extentSize
+	return AddOrUpdateDevice(*dev)
+}
+
+// AddDeviceFreeSize updates device available size
+func AddDeviceFreeSize(peerID, device string, size uint64) error {
+	clusterLocks := transaction.Locks{}
+	if err := clusterLocks.Lock(peerID + device); err != nil {
+		return err
+	}
+	defer clusterLocks.UnLock(context.Background())
+
+	dev, err := GetDevice(peerID, device)
+	if err != nil {
+		return err
+	}
+
+	dev.AvailableSize = dev.AvailableSize + size
+	dev.UsedSize = dev.TotalSize - dev.AvailableSize
+	return AddOrUpdateDevice(*dev)
+}
+
+// ReduceDeviceFreeSize updates device available size
+func ReduceDeviceFreeSize(peerID, device string, size uint64) error {
+	clusterLocks := transaction.Locks{}
+	if err := clusterLocks.Lock(peerID + device); err != nil {
+		return err
+	}
+	defer clusterLocks.UnLock(context.Background())
+
+	dev, err := GetDevice(peerID, device)
+	if err != nil {
+		return err
+	}
+
+	dev.AvailableSize = dev.AvailableSize - size
+	dev.UsedSize = dev.TotalSize - dev.AvailableSize
 	return AddOrUpdateDevice(*dev)
 }
 

@@ -2,6 +2,13 @@ package api
 
 import "github.com/pborman/uuid"
 
+const (
+	// ProvisionerTypeLoop represents loop device based provisioner
+	ProvisionerTypeLoop = "loop"
+	// ProvisionerTypeLvm represents LVM based provisioner
+	ProvisionerTypeLvm = "lvm"
+)
+
 // BrickInfo contains the static information about the brick.
 // Clients should NOT use this struct directly.
 type BrickInfo struct {

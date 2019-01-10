@@ -141,6 +141,13 @@ func getBricksLayout(req *api.VolCreateReq) ([]api.SubvolReq, error) {
 			}
 			eachBrickTpSize := uint64(float64(eachBrickSize) * req.SnapshotReserveFactor)
 
+			mntopts := "rw,inode64,noatime,nouuid,discard"
+			if req.ProvisionerType == api.ProvisionerTypeLoop {
+				mntopts += ",loop"
+			}
+
+			tpsize := lvmutils.NormalizeSize(eachBrickTpSize)
+			tpmsize := lvmutils.GetPoolMetadataSize(eachBrickTpSize)
 			bricks = append(bricks, api.BrickReq{
 				Type:           brickType,
 				Path:           fmt.Sprintf("%s/%s/subvol%d/brick%d/brick", bricksMountRoot, req.Name, i+1, j+1),
@@ -148,10 +155,11 @@ func getBricksLayout(req *api.VolCreateReq) ([]api.SubvolReq, error) {
 				TpName:         fmt.Sprintf("tp_%s_s%d_b%d", req.Name, i+1, j+1),
 				LvName:         fmt.Sprintf("brick_%s_s%d_b%d", req.Name, i+1, j+1),
 				Size:           lvmutils.NormalizeSize(eachBrickSize),
-				TpSize:         lvmutils.NormalizeSize(eachBrickTpSize),
-				TpMetadataSize: lvmutils.GetPoolMetadataSize(eachBrickTpSize),
+				TpSize:         tpsize,
+				TpMetadataSize: tpmsize,
+				TotalSize:      tpsize + tpmsize,
 				FsType:         "xfs",
-				MntOpts:        "rw,inode64,noatime,nouuid",
+				MntOpts:        mntopts,
 			})
 		}
 
@@ -198,19 +206,20 @@ func PlanBricks(req *api.VolCreateReq) error {
 		// with device with expected space available.
 		numBricksAllocated := 0
 		for bidx, b := range sv.Bricks {
-			totalsize := b.TpSize + b.TpMetadataSize
-
 			for _, vg := range availableVgs {
 				_, zoneUsed := zones[vg.Zone]
-				if vg.AvailableSize >= totalsize && !zoneUsed && !vg.Used {
+				if vg.AvailableSize >= b.TotalSize && !zoneUsed && !vg.Used {
 					subvols[idx].Bricks[bidx].PeerID = vg.PeerID
 					subvols[idx].Bricks[bidx].VgName = vg.Name
 					subvols[idx].Bricks[bidx].RootDevice = vg.Device
 					subvols[idx].Bricks[bidx].DevicePath = "/dev/" + vg.Name + "/" + b.LvName
+					if req.ProvisionerType == api.ProvisionerTypeLoop {
+						subvols[idx].Bricks[bidx].DevicePath = vg.Device + "/" + b.TpName + "/" + b.LvName + ".img"
+					}
 
 					zones[vg.Zone] = struct{}{}
 					numBricksAllocated++
-					vg.AvailableSize -= totalsize
+					vg.AvailableSize -= b.TotalSize
 					vg.Used = true
 					break
 				}
@@ -227,19 +236,20 @@ func PlanBricks(req *api.VolCreateReq) error {
 		// but enough space is available in the devices
 		for bidx := numBricksAllocated; bidx < len(sv.Bricks); bidx++ {
 			b := sv.Bricks[bidx]
-			totalsize := b.TpSize + b.TpMetadataSize
-
 			for _, vg := range availableVgs {
 				_, zoneUsed := zones[vg.Zone]
-				if vg.AvailableSize >= totalsize && !zoneUsed {
+				if vg.AvailableSize >= b.TotalSize && !zoneUsed {
 					subvols[idx].Bricks[bidx].PeerID = vg.PeerID
 					subvols[idx].Bricks[bidx].VgName = vg.Name
 					subvols[idx].Bricks[bidx].RootDevice = vg.Device
 					subvols[idx].Bricks[bidx].DevicePath = "/dev/" + vg.Name + "/" + b.LvName
+					if req.ProvisionerType == api.ProvisionerTypeLoop {
+						subvols[idx].Bricks[bidx].DevicePath = vg.Device + "/" + b.TpName + "/" + b.LvName + ".img"
+					}
 
 					zones[vg.Zone] = struct{}{}
 					numBricksAllocated++
-					vg.AvailableSize -= totalsize
+					vg.AvailableSize -= b.TotalSize
 					vg.Used = true
 					break
 				}

@@ -229,6 +229,7 @@ func createCloneVolinfo(c transaction.TxnCtx) error {
 	newVol.ID = uuid.NewRandom()
 	newVol.Name = clonename
 	newVol.VolfileID = clonename
+	newVol.ProvisionerType = volinfo.ProvisionerType
 
 	if err = createSnapSubvols(newVol, volinfo, nodeData); err != nil {
 		log.WithError(err).WithFields(log.Fields{

@@ -126,7 +126,6 @@ func populateSubvols(volinfo *volume.Volinfo, req *api.VolCreateReq) error {
 }
 
 func newVolinfo(req *api.VolCreateReq) (*volume.Volinfo, error) {
-
 	volinfo := &volume.Volinfo{
 		ID:                    uuid.NewRandom(),
 		Name:                  req.Name,
@@ -136,6 +135,7 @@ func newVolinfo(req *api.VolCreateReq) (*volume.Volinfo, error) {
 		DistCount:             len(req.Subvols),
 		SnapList:              []string{},
 		SnapshotReserveFactor: req.SnapshotReserveFactor,
+		ProvisionerType:       req.ProvisionerType,
 		Auth: volume.VolAuth{
 			Username: uuid.NewRandom().String(),
 			Password: uuid.NewRandom().String(),

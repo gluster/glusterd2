@@ -1,61 +1,18 @@
 package e2e
 
 import (
-	"fmt"
-	"syscall"
+	"os"
 	"testing"
 
 	"github.com/gluster/glusterd2/pkg/api"
 	gutils "github.com/gluster/glusterd2/pkg/utils"
 	deviceapi "github.com/gluster/glusterd2/plugins/device/api"
 
-	"github.com/pborman/uuid"
 	"github.com/stretchr/testify/require"
 )
 
-func brickSizeTest(brickpath string, min uint64, max uint64) error {
-	var fstat syscall.Statfs_t
-	if err := syscall.Statfs(brickpath, &fstat); err != nil {
-		return fmt.Errorf("unable to get size info of Brick(%s) %v", brickpath, err)
-	}
-
-	if &fstat != nil {
-		value := uint64((fstat.Blocks * uint64(fstat.Bsize)) / (1024 * 1024))
-		if value < min || value > max {
-			return fmt.Errorf("Brick(%s) size mismatch, expected: %d-%d, got: %d", brickpath, min, max, value)
-		}
-		return nil
-	}
-
-	return fmt.Errorf("unable to get size info of Brick(%s)", brickpath)
-}
-
-func checkZeroLvs(r *require.Assertions) {
-	checkZeroLvsWithRange(r, 1, 2)
-}
-
-func checkZeroLvsWithRange(r *require.Assertions, start, end int) {
-	for i := start; i <= end; i++ {
-		nlv, err := numberOfLvs(fmt.Sprintf("gluster-dev-gluster_loop%d", i))
-		r.Nil(err)
-		if err == nil {
-			r.Equal(0, nlv)
-		}
-	}
-}
-
-func getPeerIDs(subvols []api.Subvol) []uuid.UUID {
-	peers := make([]uuid.UUID, 0)
-	for _, subvol := range subvols {
-		for _, brick := range subvol.Bricks {
-			peers = append(peers, brick.PeerID)
-		}
-	}
-	return peers
-}
-
 // Replace brick test
-func testReplaceBrick(t *testing.T) {
+func testReplaceBrickLoop(t *testing.T) {
 	r := require.New(t)
 	smartvolname := formatVolName(t.Name())
 	// create Distribute 3 Volume
@@ -63,6 +20,7 @@ func testReplaceBrick(t *testing.T) {
 		Name:            smartvolname,
 		Size:            60 * gutils.MiB,
 		DistributeCount: 2,
+		ProvisionerType: api.ProvisionerTypeLoop,
 	}
 
 	// Create distribute volume
@@ -138,7 +96,7 @@ func testReplaceBrick(t *testing.T) {
 
 }
 
-func testSmartVolumeDistribute(t *testing.T) {
+func testSmartVolumeDistributeLoop(t *testing.T) {
 	r := require.New(t)
 	smartvolname := formatVolName(t.Name())
 
@@ -148,6 +106,7 @@ func testSmartVolumeDistribute(t *testing.T) {
 		Size:               20 * gutils.MiB,
 		DistributeCount:    3,
 		SubvolZonesOverlap: true,
+		ProvisionerType:    api.ProvisionerTypeLoop,
 	}
 	volinfo, err := client.VolumeCreate(createReq)
 	r.NotNil(err)
@@ -157,6 +116,7 @@ func testSmartVolumeDistribute(t *testing.T) {
 		Name:            smartvolname,
 		Size:            60 * gutils.MiB,
 		DistributeCount: 3,
+		ProvisionerType: api.ProvisionerTypeLoop,
 	}
 	volinfo, err = client.VolumeCreate(createReq)
 	r.Nil(err)
@@ -170,39 +130,18 @@ func testSmartVolumeDistribute(t *testing.T) {
 	r.Nil(brickSizeTest(volinfo.Subvols[1].Bricks[0].Path, 16, 21))
 	r.Nil(brickSizeTest(volinfo.Subvols[2].Bricks[0].Path, 16, 21))
 
-	expandReq := api.VolExpandReq{
-		Size:            60 * gutils.MiB,
-		DistributeCount: 3,
-	}
-	_, err = client.VolumeExpand(smartvolname, expandReq)
-	r.Nil(err)
-
-	vols, err := client.Volumes(smartvolname)
-	r.Nil(err)
-
-	r.Nil(brickSizeTest(vols[0].Subvols[0].Bricks[0].Path, 37, 41))
-	r.Nil(brickSizeTest(vols[0].Subvols[1].Bricks[0].Path, 37, 41))
-	r.Nil(brickSizeTest(vols[0].Subvols[2].Bricks[0].Path, 37, 41))
-
-	expandReq = api.VolExpandReq{
-		Size:            210 * gutils.MiB,
-		DistributeCount: 3,
-	}
-	_, err = client.VolumeExpand(smartvolname, expandReq)
-	r.NotNil(err)
-
 	r.Nil(client.VolumeDelete(smartvolname))
-	checkZeroLvs(r)
 }
 
-func testSmartVolumeReplicate2(t *testing.T) {
+func testSmartVolumeReplicate2Loop(t *testing.T) {
 	r := require.New(t)
 	smartvolname := formatVolName(t.Name())
 	// create Replica 2 Volume
 	createReq := api.VolCreateReq{
-		Name:         smartvolname,
-		Size:         20 * gutils.MiB,
-		ReplicaCount: 2,
+		Name:            smartvolname,
+		Size:            20 * gutils.MiB,
+		ReplicaCount:    2,
+		ProvisionerType: api.ProvisionerTypeLoop,
 	}
 	volinfo, err := client.VolumeCreate(createReq)
 	r.Nil(err)
@@ -214,39 +153,19 @@ func testSmartVolumeReplicate2(t *testing.T) {
 	r.Nil(brickSizeTest(volinfo.Subvols[0].Bricks[0].Path, 16, 21))
 	r.Nil(brickSizeTest(volinfo.Subvols[0].Bricks[1].Path, 16, 21))
 
-	expandReq := api.VolExpandReq{
-		Size:            30 * gutils.MiB,
-		DistributeCount: 1,
-	}
-	_, err = client.VolumeExpand(smartvolname, expandReq)
-	r.Nil(err)
-
-	vols, err := client.Volumes(smartvolname)
-	r.Nil(err)
-
-	r.Nil(brickSizeTest(vols[0].Subvols[0].Bricks[0].Path, 47, 52))
-	r.Nil(brickSizeTest(vols[0].Subvols[0].Bricks[1].Path, 47, 52))
-
-	expandReq = api.VolExpandReq{
-		Size:            200 * gutils.MiB,
-		DistributeCount: 1,
-	}
-	_, err = client.VolumeExpand(smartvolname, expandReq)
-	r.NotNil(err)
-
 	r.Nil(client.VolumeDelete(smartvolname))
-	checkZeroLvs(r)
 }
 
-func testSmartVolumeReplicate3(t *testing.T) {
+func testSmartVolumeReplicate3Loop(t *testing.T) {
 	r := require.New(t)
 
 	smartvolname := formatVolName(t.Name())
 	// create Replica 3 Volume
 	createReq := api.VolCreateReq{
-		Name:         smartvolname,
-		Size:         20 * gutils.MiB,
-		ReplicaCount: 3,
+		Name:            smartvolname,
+		Size:            20 * gutils.MiB,
+		ReplicaCount:    3,
+		ProvisionerType: api.ProvisionerTypeLoop,
 	}
 	volinfo, err := client.VolumeCreate(createReq)
 	r.Nil(err)
@@ -258,41 +177,20 @@ func testSmartVolumeReplicate3(t *testing.T) {
 	r.Nil(brickSizeTest(volinfo.Subvols[0].Bricks[1].Path, 16, 21))
 	r.Nil(brickSizeTest(volinfo.Subvols[0].Bricks[2].Path, 16, 21))
 
-	expandReq := api.VolExpandReq{
-		Size:            30 * gutils.MiB,
-		DistributeCount: 1,
-	}
-	_, err = client.VolumeExpand(smartvolname, expandReq)
-	r.Nil(err)
-
-	vols, err := client.Volumes(smartvolname)
-	r.Nil(err)
-
-	r.Nil(brickSizeTest(vols[0].Subvols[0].Bricks[0].Path, 47, 52))
-	r.Nil(brickSizeTest(vols[0].Subvols[0].Bricks[1].Path, 47, 52))
-	r.Nil(brickSizeTest(vols[0].Subvols[0].Bricks[1].Path, 47, 52))
-
-	expandReq = api.VolExpandReq{
-		Size:            210 * gutils.MiB,
-		DistributeCount: 1,
-	}
-	_, err = client.VolumeExpand(smartvolname, expandReq)
-	r.NotNil(err)
-
 	r.Nil(client.VolumeDelete(smartvolname))
-	checkZeroLvs(r)
 }
 
-func testSmartVolumeArbiter(t *testing.T) {
+func testSmartVolumeArbiterLoop(t *testing.T) {
 	r := require.New(t)
 
 	smartvolname := formatVolName(t.Name())
 	// create Replica 3 Arbiter Volume
 	createReq := api.VolCreateReq{
-		Name:         smartvolname,
-		Size:         20 * gutils.MiB,
-		ReplicaCount: 2,
-		ArbiterCount: 1,
+		Name:            smartvolname,
+		Size:            20 * gutils.MiB,
+		ReplicaCount:    2,
+		ArbiterCount:    1,
+		ProvisionerType: api.ProvisionerTypeLoop,
 	}
 	volinfo, err := client.VolumeCreate(createReq)
 	r.Nil(err)
@@ -309,10 +207,9 @@ func testSmartVolumeArbiter(t *testing.T) {
 	r.Nil(brickSizeTest(volinfo.Subvols[0].Bricks[2].Path, 16, 21))
 
 	r.Nil(client.VolumeDelete(smartvolname))
-	checkZeroLvs(r)
 }
 
-func testSmartVolumeDisperse(t *testing.T) {
+func testSmartVolumeDisperseLoop(t *testing.T) {
 	r := require.New(t)
 
 	smartvolname := formatVolName(t.Name())
@@ -323,15 +220,17 @@ func testSmartVolumeDisperse(t *testing.T) {
 		Size:               20 * gutils.MiB,
 		DisperseCount:      3,
 		SubvolZonesOverlap: true,
+		ProvisionerType:    api.ProvisionerTypeLoop,
 	}
 	volinfo, err := client.VolumeCreate(createReq)
 	r.NotNil(err)
 
 	// create Disperse Volume
 	createReq = api.VolCreateReq{
-		Name:          smartvolname,
-		Size:          40 * gutils.MiB,
-		DisperseCount: 3,
+		Name:            smartvolname,
+		Size:            40 * gutils.MiB,
+		DisperseCount:   3,
+		ProvisionerType: api.ProvisionerTypeLoop,
 	}
 	volinfo, err = client.VolumeCreate(createReq)
 	r.Nil(err)
@@ -344,32 +243,10 @@ func testSmartVolumeDisperse(t *testing.T) {
 	r.Nil(brickSizeTest(volinfo.Subvols[0].Bricks[1].Path, 16, 21))
 	r.Nil(brickSizeTest(volinfo.Subvols[0].Bricks[2].Path, 16, 21))
 
-	expandReq := api.VolExpandReq{
-		Size:            30 * gutils.MiB,
-		DistributeCount: 1,
-	}
-	_, err = client.VolumeExpand(smartvolname, expandReq)
-	r.Nil(err)
-
-	vols, err := client.Volumes(smartvolname)
-	r.Nil(err)
-
-	r.Nil(brickSizeTest(vols[0].Subvols[0].Bricks[0].Path, 27, 32))
-	r.Nil(brickSizeTest(vols[0].Subvols[0].Bricks[1].Path, 27, 32))
-	r.Nil(brickSizeTest(vols[0].Subvols[0].Bricks[1].Path, 27, 32))
-
-	expandReq = api.VolExpandReq{
-		Size:            240 * gutils.MiB,
-		DistributeCount: 1,
-	}
-	_, err = client.VolumeExpand(smartvolname, expandReq)
-	r.NotNil(err)
-
 	r.Nil(client.VolumeDelete(smartvolname))
-	checkZeroLvs(r)
 }
 
-func testSmartVolumeDistributeReplicate(t *testing.T) {
+func testSmartVolumeDistributeReplicateLoop(t *testing.T) {
 	r := require.New(t)
 
 	smartvolname := formatVolName(t.Name())
@@ -381,6 +258,7 @@ func testSmartVolumeDistributeReplicate(t *testing.T) {
 		DistributeCount:    2,
 		ReplicaCount:       3,
 		SubvolZonesOverlap: true,
+		ProvisionerType:    api.ProvisionerTypeLoop,
 	}
 	volinfo, err := client.VolumeCreate(createReq)
 	r.Nil(err)
@@ -398,10 +276,9 @@ func testSmartVolumeDistributeReplicate(t *testing.T) {
 	r.Nil(brickSizeTest(volinfo.Subvols[1].Bricks[2].Path, 16, 21))
 
 	r.Nil(client.VolumeDelete(smartvolname))
-	checkZeroLvs(r)
 }
 
-func testSmartVolumeDistributeDisperse(t *testing.T) {
+func testSmartVolumeDistributeDisperseLoop(t *testing.T) {
 	r := require.New(t)
 
 	smartvolname := formatVolName(t.Name())
@@ -413,6 +290,7 @@ func testSmartVolumeDistributeDisperse(t *testing.T) {
 		DistributeCount:    2,
 		DisperseCount:      3,
 		SubvolZonesOverlap: true,
+		ProvisionerType:    api.ProvisionerTypeLoop,
 	}
 	volinfo, err := client.VolumeCreate(createReq)
 	r.Nil(err)
@@ -430,10 +308,9 @@ func testSmartVolumeDistributeDisperse(t *testing.T) {
 	r.Nil(brickSizeTest(volinfo.Subvols[1].Bricks[2].Path, 16, 21))
 
 	r.Nil(client.VolumeDelete(smartvolname))
-	checkZeroLvs(r)
 }
 
-func testSmartVolumeAutoDistributeReplicate(t *testing.T) {
+func testSmartVolumeAutoDistributeReplicateLoop(t *testing.T) {
 	r := require.New(t)
 
 	smartvolname := formatVolName(t.Name())
@@ -445,6 +322,7 @@ func testSmartVolumeAutoDistributeReplicate(t *testing.T) {
 		ReplicaCount:       3,
 		MaxBrickSize:       10 * gutils.MiB,
 		SubvolZonesOverlap: true,
+		ProvisionerType:    api.ProvisionerTypeLoop,
 	}
 	volinfo, err := client.VolumeCreate(createReq)
 	r.NotNil(err)
@@ -455,6 +333,7 @@ func testSmartVolumeAutoDistributeReplicate(t *testing.T) {
 		ReplicaCount:       3,
 		MaxBrickSize:       20 * gutils.MiB,
 		SubvolZonesOverlap: true,
+		ProvisionerType:    api.ProvisionerTypeLoop,
 	}
 	volinfo, err = client.VolumeCreate(createReq)
 	r.Nil(err)
@@ -465,7 +344,6 @@ func testSmartVolumeAutoDistributeReplicate(t *testing.T) {
 	r.Len(volinfo.Subvols[1].Bricks, 3)
 
 	r.Nil(client.VolumeDelete(smartvolname))
-	checkZeroLvs(r)
 
 	// Max-brick-size is more than request size
 	createReq = api.VolCreateReq{
@@ -474,6 +352,7 @@ func testSmartVolumeAutoDistributeReplicate(t *testing.T) {
 		ReplicaCount:       3,
 		MaxBrickSize:       30 * gutils.MiB,
 		SubvolZonesOverlap: true,
+		ProvisionerType:    api.ProvisionerTypeLoop,
 	}
 	volinfo, err = client.VolumeCreate(createReq)
 	r.Nil(err)
@@ -483,10 +362,9 @@ func testSmartVolumeAutoDistributeReplicate(t *testing.T) {
 	r.Len(volinfo.Subvols[0].Bricks, 3)
 
 	r.Nil(client.VolumeDelete(smartvolname))
-	checkZeroLvs(r)
 }
 
-func testSmartVolumeAutoDistributeDisperse(t *testing.T) {
+func testSmartVolumeAutoDistributeDisperseLoop(t *testing.T) {
 	r := require.New(t)
 
 	smartvolname := formatVolName(t.Name())
@@ -497,6 +375,7 @@ func testSmartVolumeAutoDistributeDisperse(t *testing.T) {
 		DisperseCount:      3,
 		MaxBrickSize:       20 * gutils.MiB,
 		SubvolZonesOverlap: true,
+		ProvisionerType:    api.ProvisionerTypeLoop,
 	}
 	volinfo, err := client.VolumeCreate(createReq)
 	r.Nil(err)
@@ -507,73 +386,9 @@ func testSmartVolumeAutoDistributeDisperse(t *testing.T) {
 	r.Len(volinfo.Subvols[1].Bricks, 3)
 
 	r.Nil(client.VolumeDelete(smartvolname))
-	checkZeroLvs(r)
 }
 
-func testSmartVolumeWhenCloneExists(t *testing.T) {
-	r := require.New(t)
-
-	smartvolname := "svol1"
-
-	createReq := api.VolCreateReq{
-		Name:         smartvolname,
-		Size:         20 * gutils.MiB,
-		ReplicaCount: 3,
-	}
-	volinfo, err := client.VolumeCreate(createReq)
-	r.Nil(err)
-
-	r.Len(volinfo.Subvols, 1)
-	r.Equal("Replicate", volinfo.Type.String())
-	r.Len(volinfo.Subvols[0].Bricks, 3)
-
-	err = client.VolumeStart(smartvolname, false)
-	r.Nil(err)
-
-	// Snapshot Create, Activate, Clone and delete Snapshot
-	snapshotCreateReq := api.SnapCreateReq{
-		VolName:  smartvolname,
-		SnapName: smartvolname + "-s1",
-	}
-	_, err = client.SnapshotCreate(snapshotCreateReq)
-	r.Nil(err, "snapshot create failed")
-
-	var snapshotActivateReq api.SnapActivateReq
-
-	err = client.SnapshotActivate(snapshotActivateReq, smartvolname+"-s1")
-	r.Nil(err)
-
-	snapshotCloneReq := api.SnapCloneReq{
-		CloneName: smartvolname + "-c1",
-	}
-	_, err = client.SnapshotClone(smartvolname+"-s1", snapshotCloneReq)
-	r.Nil(err, "snapshot clone failed")
-
-	err = client.SnapshotDelete(smartvolname + "-s1")
-	r.Nil(err)
-
-	// Check number of Lvs
-	nlv, err := numberOfLvs("gluster-dev-gluster_loop1")
-	r.Nil(err)
-	// Thinpool + brick + Clone volume's brick
-	r.Equal(3, nlv)
-
-	r.Nil(client.VolumeStop(smartvolname))
-
-	r.Nil(client.VolumeDelete(smartvolname))
-
-	nlv, err = numberOfLvs("gluster-dev-gluster_loop1")
-	r.Nil(err)
-	// Thinpool + brick + Clone volume's brick
-	r.Equal(2, nlv)
-
-	// Delete Clone Volume
-	r.Nil(client.VolumeDelete(smartvolname + "-c1"))
-
-	checkZeroLvs(r)
-}
-
-func editDevice(t *testing.T) {
+func editDeviceLoop(t *testing.T) {
 	r := require.New(t)
 	peerList, err := client.Peers()
 	r.Nil(err)
@@ -624,6 +439,7 @@ func editDevice(t *testing.T) {
 		DistributeCount:    2,
 		ReplicaCount:       3,
 		SubvolZonesOverlap: true,
+		ProvisionerType:    api.ProvisionerTypeLoop,
 	}
 	_, err = client.VolumeCreate(createReq)
 	r.NotNil(err)
@@ -645,13 +461,12 @@ func editDevice(t *testing.T) {
 	r.Nil(client.VolumeDelete(smartvolname))
 }
 
-// TestSmartVolume creates a volume and starts it, runs further tests on it and
+// TestSmartVolumeLoop creates a volume and starts it, runs further tests on it and
 // finally deletes the volume
-func TestSmartVolume(t *testing.T) {
+func TestSmartVolumeLoop(t *testing.T) {
 	var err error
 
 	r := require.New(t)
-	loopDevicesCleanup(t)
 
 	tc, err := setupCluster(t, "./config/1.toml", "./config/2.toml", "./config/3.toml")
 	r.Nil(err)
@@ -669,38 +484,40 @@ func TestSmartVolume(t *testing.T) {
 	r.Nil(prepareLoopDevice(devicesDir+"/gluster_dev2.img", "2", "250M"))
 	r.Nil(prepareLoopDevice(devicesDir+"/gluster_dev3.img", "3", "250M"))
 
-	_, err = client.DeviceAdd(tc.gds[0].PeerID(), "/dev/gluster_loop1", api.ProvisionerTypeLvm)
-	r.Nil(err)
-	dev, err := client.DeviceList(tc.gds[0].PeerID(), "/dev/gluster_loop1")
-	r.Nil(err)
-	r.Equal(dev[0].Device, "/dev/gluster_loop1")
+	r.Nil(os.MkdirAll(devicesDir+"/exports1", 0700))
+	r.Nil(os.MkdirAll(devicesDir+"/exports2", 0700))
+	r.Nil(os.MkdirAll(devicesDir+"/exports3", 0700))
 
-	_, err = client.DeviceAdd(tc.gds[1].PeerID(), "/dev/gluster_loop2", api.ProvisionerTypeLvm)
+	_, err = client.DeviceAdd(tc.gds[0].PeerID(), devicesDir+"/exports1", api.ProvisionerTypeLoop)
 	r.Nil(err)
-	dev, err = client.DeviceList(tc.gds[1].PeerID(), "/dev/gluster_loop2")
+	dev, err := client.DeviceList(tc.gds[0].PeerID(), devicesDir+"/exports1")
 	r.Nil(err)
-	r.Equal(dev[0].Device, "/dev/gluster_loop2")
+	r.Equal(dev[0].Device, devicesDir+"/exports1")
 
-	_, err = client.DeviceAdd(tc.gds[2].PeerID(), "/dev/gluster_loop3", api.ProvisionerTypeLvm)
+	_, err = client.DeviceAdd(tc.gds[1].PeerID(), devicesDir+"/exports2", api.ProvisionerTypeLoop)
 	r.Nil(err)
-	dev, err = client.DeviceList(tc.gds[2].PeerID(), "/dev/gluster_loop3")
+	dev, err = client.DeviceList(tc.gds[1].PeerID(), devicesDir+"/exports2")
 	r.Nil(err)
-	r.Equal(dev[0].Device, "/dev/gluster_loop3")
+	r.Equal(dev[0].Device, devicesDir+"/exports2")
 
-	t.Run("Smartvol Distributed Volume", testSmartVolumeDistribute)
-	t.Run("Smartvol Replicate 2 Volume", testSmartVolumeReplicate2)
-	t.Run("Smartvol Replicate 3 Volume", testSmartVolumeReplicate3)
-	t.Run("Smartvol Arbiter Volume", testSmartVolumeArbiter)
-	t.Run("Smartvol Disperse Volume", testSmartVolumeDisperse)
-	t.Run("Smartvol Distributed-Replicate Volume", testSmartVolumeDistributeReplicate)
-	t.Run("Smartvol Distributed-Disperse Volume", testSmartVolumeDistributeDisperse)
-	t.Run("Smartvol Auto Distributed-Replicate Volume", testSmartVolumeAutoDistributeReplicate)
-	t.Run("Smartvol Auto Distributed-Disperse Volume", testSmartVolumeAutoDistributeDisperse)
-	// Test dependent lvs in thinpool cases
-	t.Run("Smartvol delete when clone exists", testSmartVolumeWhenCloneExists)
-	t.Run("Replace Brick", testReplaceBrick)
-	t.Run("Edit device", editDevice)
+	_, err = client.DeviceAdd(tc.gds[2].PeerID(), devicesDir+"/exports3", api.ProvisionerTypeLoop)
+	r.Nil(err)
+	dev, err = client.DeviceList(tc.gds[2].PeerID(), devicesDir+"/exports3")
+	r.Nil(err)
+	r.Equal(dev[0].Device, devicesDir+"/exports3")
+
+	t.Run("Smartvol Distributed Volume Loop", testSmartVolumeDistributeLoop)
+	t.Run("Smartvol Replicate 2 Volume Loop", testSmartVolumeReplicate2Loop)
+	t.Run("Smartvol Replicate 3 Volume Loop", testSmartVolumeReplicate3Loop)
+	t.Run("Smartvol Arbiter Volume Loop", testSmartVolumeArbiterLoop)
+	t.Run("Smartvol Disperse Volume Loop", testSmartVolumeDisperseLoop)
+	t.Run("Smartvol Distributed-Replicate Volume Loop", testSmartVolumeDistributeReplicateLoop)
+	t.Run("Smartvol Distributed-Disperse Volume Loop", testSmartVolumeDistributeDisperseLoop)
+	t.Run("Smartvol Auto Distributed-Replicate Volume Loop", testSmartVolumeAutoDistributeReplicateLoop)
+	t.Run("Smartvol Auto Distributed-Disperse Volume Loop", testSmartVolumeAutoDistributeDisperseLoop)
+	t.Run("Replace Brick Loop", testReplaceBrickLoop)
+	t.Run("Edit device Loop", editDeviceLoop)
 
 	// // Device Cleanup
-	r.Nil(loopDevicesCleanup(t))
+	cleanupAllBrickMounts(t)
 }

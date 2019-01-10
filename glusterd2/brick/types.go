@@ -38,6 +38,7 @@ type DeviceInfo struct {
 	LvName     string
 	VgName     string
 	RootDevice string
+	TotalSize  uint64
 }
 
 // Brickinfo is the static information about the brick
