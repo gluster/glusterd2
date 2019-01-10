@@ -60,10 +60,10 @@ func tracingEnableHandler(w http.ResponseWriter, r *http.Request) {
 			Nodes:  []uuid.UUID{gdctx.MyUUID},
 		},
 		{
-			DoFunc: "trace-mgmt.StoreTraceConfig",
-			//UndoFunc: "trace-mgmt.UndoStoreTraceConfig",
-			Nodes: []uuid.UUID{gdctx.MyUUID},
-			Sync:  true,
+			DoFunc:   "trace-mgmt.StoreTraceConfig",
+			UndoFunc: "trace-mgmt.UndoStoreTraceConfig",
+			Nodes:    []uuid.UUID{gdctx.MyUUID},
+			Sync:     true,
 		},
 		{
 			DoFunc: "trace-mgmt.NotifyTraceConfigChange",

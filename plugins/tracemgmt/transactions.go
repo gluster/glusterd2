@@ -69,6 +69,12 @@ func txnTracingStoreConfig(c transaction.TxnCtx) error {
 	return nil
 }
 
+// Transaction step that reverts the trace config
+func txnTracingDeleteStoreConfig(c transaction.TxnCtx) error {
+	err := traceutils.DeleteTraceConfig()
+	return err
+}
+
 // Tranasaction step that reads trace config info from the store and updates
 // the in-memory trace config.
 func txnTracingApplyNewConfig(c transaction.TxnCtx) error {
