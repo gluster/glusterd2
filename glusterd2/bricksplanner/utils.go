@@ -92,6 +92,11 @@ func GetAvailableVgs(req *api.VolCreateReq) ([]Vg, error) {
 				continue
 			}
 
+			// If Provisioner type does not match the requested provisioner type
+			if d.ProvisionerType != req.ProvisionerType {
+				continue
+			}
+
 			vgs = append(vgs, Vg{
 				Device:        d.Device,
 				Name:          d.VgName(),
@@ -117,8 +122,11 @@ func GetNewBrick(availableVgs []Vg, brickInfo brick.Brickstatus, vol *volume.Vol
 	brickSize := brickInfo.Size.Capacity
 	lvName := fmt.Sprintf("brick_%s_s%d_b%d", vol.Name, subVolIndex, brickIndex)
 	brickTpSize := uint64(float64(brickSize) * vol.SnapshotReserveFactor)
+	brickTpSize = lvmutils.NormalizeSize(brickTpSize)
+	tpmsize := lvmutils.GetPoolMetadataSize(brickTpSize)
 	for _, vg := range availableVgs {
 		if vg.AvailableSize >= brickTpSize {
+
 			newBrick = api.BrickReq{
 				Type:           "brick",
 				Path:           brickInfo.Info.Path,
@@ -127,13 +135,17 @@ func GetNewBrick(availableVgs []Vg, brickInfo brick.Brickstatus, vol *volume.Vol
 				LvName:         lvName,
 				Size:           brickSize,
 				TpSize:         brickTpSize,
-				TpMetadataSize: lvmutils.GetPoolMetadataSize(brickTpSize),
+				TpMetadataSize: tpmsize,
 				FsType:         "xfs",
 				MntOpts:        "rw,inode64,noatime,nouuid",
 				PeerID:         vg.PeerID,
 				VgName:         vg.Name,
 				DevicePath:     "/dev/" + vg.Name + "/" + lvName,
 				RootDevice:     vg.Device,
+				TotalSize:      brickTpSize + tpmsize,
+			}
+			if vol.ProvisionerType == api.ProvisionerTypeLoop {
+				newBrick.DevicePath = vg.Device + "/" + newBrick.TpName + "/" + newBrick.LvName + ".img"
 			}
 			vg.Used = true
 			break

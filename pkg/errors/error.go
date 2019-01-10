@@ -74,4 +74,5 @@ var (
 	ErrConnectingHost                  = errors.New("could not connect to host. Make sure host address is valid, network connection is active and gd2 is up and running")
 	ErrBlockVolNotFound                = errors.New("block volume not found")
 	ErrBlockHostVolNotFound            = errors.New("block hosting volume not found")
+	ErrSnapNotSupported                = errors.New("snapshot not supported")
 )

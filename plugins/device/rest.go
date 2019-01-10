@@ -9,6 +9,7 @@ import (
 	"github.com/gluster/glusterd2/glusterd2/peer"
 	restutils "github.com/gluster/glusterd2/glusterd2/servers/rest/utils"
 	"github.com/gluster/glusterd2/glusterd2/transaction"
+	"github.com/gluster/glusterd2/pkg/api"
 	"github.com/gluster/glusterd2/pkg/errors"
 	deviceapi "github.com/gluster/glusterd2/plugins/device/api"
 	"github.com/gluster/glusterd2/plugins/device/deviceutils"
@@ -32,6 +33,10 @@ func deviceAddHandler(w http.ResponseWriter, r *http.Request) {
 		logger.WithError(err).Error("Failed to unmarshal request")
 		restutils.SendHTTPError(ctx, w, http.StatusBadRequest, errors.ErrJSONParsingFailed)
 		return
+	}
+
+	if req.ProvisionerType == "" {
+		req.ProvisionerType = api.ProvisionerTypeLvm
 	}
 
 	txn, err := transaction.NewTxnWithLocks(ctx, peerID)
@@ -80,9 +85,9 @@ func deviceAddHandler(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	err = txn.Ctx.Set("device", &req.Device)
+	err = txn.Ctx.Set("req", &req)
 	if err != nil {
-		logger.WithError(err).WithField("key", "device").Error("Failed to set key in transaction context")
+		logger.WithError(err).WithField("key", "req").Error("Failed to set key in transaction context")
 		restutils.SendHTTPError(ctx, w, http.StatusInternalServerError, err)
 		return
 	}

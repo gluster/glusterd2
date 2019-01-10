@@ -2,6 +2,7 @@ package volumecommands
 
 import (
 	"os"
+	"path"
 	"strings"
 
 	"github.com/gluster/glusterd2/glusterd2/gdctx"
@@ -24,7 +25,12 @@ func txnPrepareBricks(c transaction.TxnCtx) error {
 
 	for _, sv := range req.Subvols {
 		for _, b := range sv.Bricks {
-			err := PrepareBrick(b, c)
+			var err error
+			if req.ProvisionerType == api.ProvisionerTypeLoop {
+				err = PrepareBrickLoop(b, c)
+			} else {
+				err = PrepareBrickLvm(b, c)
+			}
 			if err != nil {
 				return err
 			}
@@ -34,10 +40,14 @@ func txnPrepareBricks(c transaction.TxnCtx) error {
 	return nil
 }
 
-// PrepareBrick prepares(Creates thin pool, creates LV, mounts etc.) a single brick
-func PrepareBrick(b api.BrickReq, c transaction.TxnCtx) error {
+// PrepareBrickLvm prepares(Creates thin pool, creates LV, mounts etc.) a single brick
+func PrepareBrickLvm(b api.BrickReq, c transaction.TxnCtx) error {
 	if b.PeerID != gdctx.MyUUID.String() {
 		return nil
+	}
+
+	if err := c.Set("freesizeSet."+b.PeerID+b.Path, false); err != nil {
+		return err
 	}
 
 	// Create Mount directory
@@ -86,7 +96,7 @@ func PrepareBrick(b api.BrickReq, c transaction.TxnCtx) error {
 	}
 
 	// Mount the Created FS
-	err = lvmutils.MountLV(b.DevicePath, mountRoot, b.MntOpts)
+	err = fsutils.Mount(b.DevicePath, mountRoot, b.MntOpts)
 	if err != nil {
 		c.Logger().WithError(err).WithFields(log.Fields{
 			"dev":  b.DevicePath,
@@ -104,10 +114,14 @@ func PrepareBrick(b api.BrickReq, c transaction.TxnCtx) error {
 	}
 
 	// Update current Vg free size
-	err = deviceutils.UpdateDeviceFreeSize(gdctx.MyUUID.String(), b.RootDevice)
+	err = deviceutils.ReduceDeviceFreeSize(gdctx.MyUUID.String(), b.RootDevice, b.TotalSize)
 	if err != nil {
 		c.Logger().WithError(err).WithField("vg-name", b.VgName).
 			Error("failed to update available size of a device")
+		return err
+	}
+
+	if err := c.Set("freesizeSet."+b.PeerID+b.Path, true); err != nil {
 		return err
 	}
 
@@ -120,7 +134,13 @@ func txnUndoPrepareBricks(c transaction.TxnCtx) error {
 		c.Logger().WithError(err).WithField("key", "req").Error("failed to get key from store")
 		return err
 	}
+	if req.ProvisionerType == api.ProvisionerTypeLoop {
+		return txnUndoPrepareBricksLoop(req, c)
+	}
+	return txnUndoPrepareBricksLvm(req, c)
+}
 
+func txnUndoPrepareBricksLvm(req api.VolCreateReq, c transaction.TxnCtx) error {
 	for _, sv := range req.Subvols {
 		for _, b := range sv.Bricks {
 
@@ -130,7 +150,7 @@ func txnUndoPrepareBricks(c transaction.TxnCtx) error {
 
 			// UnMount the Brick
 			mountRoot := strings.TrimSuffix(b.Path, b.BrickDirSuffix)
-			err := lvmutils.UnmountLV(mountRoot)
+			err := fsutils.Unmount(mountRoot)
 			if err != nil {
 				c.Logger().WithError(err).WithField("path", mountRoot).Error("brick unmount failed")
 			}
@@ -153,8 +173,148 @@ func txnUndoPrepareBricks(c transaction.TxnCtx) error {
 				}).Error("thinpool remove failed")
 			}
 
-			// Update current Vg free size
-			deviceutils.UpdateDeviceFreeSize(gdctx.MyUUID.String(), b.RootDevice)
+			var freesizeSet bool
+			key := "freesizeSet." + b.PeerID + b.Path
+			if err := c.Get(key, &freesizeSet); err != nil {
+				c.Logger().WithError(err).WithField("key", key).Error("failed to get key from store")
+				return err
+			}
+
+			// Reset Free size only if freeSize is set in transaction
+			if freesizeSet {
+				deviceutils.AddDeviceFreeSize(gdctx.MyUUID.String(), b.RootDevice, b.TotalSize)
+			}
+		}
+	}
+
+	return nil
+}
+
+// PrepareBrickLoop prepares a single brick
+func PrepareBrickLoop(b api.BrickReq, c transaction.TxnCtx) error {
+	if b.PeerID != gdctx.MyUUID.String() {
+		return nil
+	}
+
+	if err := c.Set("freesizeSet."+b.PeerID+b.Path, false); err != nil {
+		return err
+	}
+
+	// Create Mount directory
+	mountRoot := strings.TrimSuffix(b.Path, b.BrickDirSuffix)
+	err := os.MkdirAll(mountRoot, os.ModeDir|os.ModePerm)
+	if err != nil {
+		c.Logger().WithError(err).WithField("path", mountRoot).Error("failed to create brick mount directory")
+		return err
+	}
+
+	// Dir creation
+	err = os.MkdirAll(path.Dir(b.DevicePath), 0700)
+	if err != nil {
+		c.Logger().WithError(err).WithField("device", path.Dir(b.DevicePath)).Error("brick device directory create failed")
+		return err
+	}
+
+	// Loop file creation
+	loopFile, err := os.OpenFile(b.DevicePath, os.O_RDWR|os.O_CREATE, 0700)
+	if err != nil {
+		c.Logger().WithError(err).WithField("device", b.DevicePath).Error("brick device create failed")
+		return err
+	}
+	defer loopFile.Close()
+	err = os.Truncate(b.DevicePath, int64(b.Size))
+	if err != nil {
+		c.Logger().WithError(err).WithFields(log.Fields{
+			"device": b.DevicePath,
+			"size":   b.Size,
+		}).Error("brick device truncate failed")
+		return err
+	}
+
+	// Make Filesystem
+	var mkfsOpts []string
+	if b.Type == "arbiter" {
+		mkfsOpts = []string{"-i", "size=512", "-n", "size=8192", "-i", "maxpct=0"}
+	} else {
+		mkfsOpts = []string{"-i", "size=512", "-n", "size=8192"}
+	}
+	err = fsutils.MakeXfs(b.DevicePath, mkfsOpts...)
+	if err != nil {
+		c.Logger().WithError(err).WithField("dev", b.DevicePath).Error("mkfs.xfs failed")
+		return err
+	}
+
+	// Mount the Created FS
+	err = fsutils.Mount(b.DevicePath, mountRoot, b.MntOpts)
+	if err != nil {
+		c.Logger().WithError(err).WithFields(log.Fields{
+			"dev":  b.DevicePath,
+			"path": mountRoot,
+		}).Error("brick mount failed")
+		return err
+	}
+
+	// Create a directory in Brick Mount
+	err = os.MkdirAll(b.Path, os.ModeDir|os.ModePerm)
+	if err != nil {
+		c.Logger().WithError(err).WithField(
+			"path", b.Path).Error("failed to create brick directory in mount")
+		return err
+	}
+
+	// Update current Vg free size
+	err = deviceutils.ReduceDeviceFreeSize(gdctx.MyUUID.String(), b.RootDevice, b.TotalSize)
+	if err != nil {
+		c.Logger().WithError(err).WithField("vg-name", b.VgName).
+			Error("failed to update available size of a device")
+		return err
+	}
+
+	if err := c.Set("freesizeSet."+b.PeerID+b.Path, true); err != nil {
+		return err
+	}
+
+	return nil
+}
+
+func txnUndoPrepareBricksLoop(req api.VolCreateReq, c transaction.TxnCtx) error {
+	for _, sv := range req.Subvols {
+		for _, b := range sv.Bricks {
+
+			if b.PeerID != gdctx.MyUUID.String() {
+				continue
+			}
+
+			// UnMount the Brick
+			mountRoot := strings.TrimSuffix(b.Path, b.BrickDirSuffix)
+			err := fsutils.Unmount(mountRoot)
+			if err != nil {
+				c.Logger().WithError(err).WithField("path", mountRoot).Error("brick unmount failed")
+			}
+
+			// Remove Loop device
+			err = os.Remove(b.DevicePath)
+			if err != nil {
+				c.Logger().WithError(err).WithField("device", b.DevicePath).Error("brick device remove failed")
+			}
+
+			// Remove Thin Pool
+			err = os.RemoveAll(path.Dir(b.DevicePath))
+			if err != nil {
+				c.Logger().WithError(err).WithField("device", path.Dir(b.DevicePath)).Error("brick device directory remove failed")
+			}
+
+			var freesizeSet bool
+			key := "freesizeSet." + b.PeerID + b.Path
+			if err := c.Get(key, &freesizeSet); err != nil {
+				c.Logger().WithError(err).WithField("key", key).Error("failed to get key from store")
+				return err
+			}
+
+			// Reset Free size only if freeSize is set in transaction
+			if freesizeSet {
+				deviceutils.AddDeviceFreeSize(gdctx.MyUUID.String(), b.RootDevice, b.TotalSize)
+			}
 		}
 	}
 
@@ -169,5 +329,9 @@ func txnCleanBricks(c transaction.TxnCtx) error {
 		return err
 	}
 
-	return volume.CleanBricks(&volinfo)
+	if volinfo.ProvisionerType == api.ProvisionerTypeLoop {
+		return volume.CleanBricksLoop(&volinfo)
+	}
+
+	return volume.CleanBricksLvm(&volinfo)
 }

@@ -757,6 +757,11 @@ func snapshotCreateHandler(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
+	if vol.ProvisionerType != api.ProvisionerTypeLvm && vol.ProvisionerType != "" {
+		restutils.SendHTTPError(ctx, w, http.StatusInternalServerError, gderrors.ErrSnapNotSupported)
+		return
+	}
+
 	txn.Nodes = vol.Nodes()
 	txn.Steps = []*transaction.Step{
 		{

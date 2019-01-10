@@ -9,10 +9,11 @@ import (
 )
 
 // DeviceAdd registers device
-func (c *Client) DeviceAdd(peerid, device string) (deviceapi.AddDeviceResp, error) {
+func (c *Client) DeviceAdd(peerid, device, provType string) (deviceapi.AddDeviceResp, error) {
 	var deviceinfo deviceapi.AddDeviceResp
 	req := deviceapi.AddDeviceReq{
-		Device: device,
+		Device:          device,
+		ProvisionerType: provType,
 	}
 	err := c.post("/v1/devices/"+peerid, req, http.StatusCreated, &deviceinfo)
 	return deviceinfo, err

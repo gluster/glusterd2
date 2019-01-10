@@ -7,6 +7,7 @@ type BrickReq struct {
 	Path           string `json:"path"`
 	TpMetadataSize uint64 `json:"metadata-size,omitempty"`
 	TpSize         uint64 `json:"thinpool-size,omitempty"`
+	TotalSize      uint64 `json:"total-size,omitempty"`
 	VgName         string `json:"vg-name,omitempty"`
 	RootDevice     string `json:"root-device,omitempty"`
 	TpName         string `json:"thinpool-name,omitempty"`
@@ -62,6 +63,7 @@ type VolCreateReq struct {
 	ExcludeZones            []string          `json:"exclude-zones,omitempty"`
 	SubvolZonesOverlap      bool              `json:"subvolume-zones-overlap,omitempty"`
 	SubvolType              string            `json:"subvolume-type,omitempty"`
+	ProvisionerType         string            `json:"provisioner"`
 	VolOptionReq
 }
 

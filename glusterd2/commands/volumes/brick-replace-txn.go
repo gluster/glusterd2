@@ -8,12 +8,18 @@ import (
 )
 
 func prepareBricks(c transaction.TxnCtx) error {
+	var volInfo volume.Volinfo
+	if err := c.Get("volinfo", &volInfo); err != nil {
+		return err
+	}
 	var req api.BrickReq
 	if err := c.Get("newBrick", &req); err != nil {
 		return err
 	}
-	err := PrepareBrick(req, c)
-	return err
+	if volInfo.ProvisionerType == api.ProvisionerTypeLoop {
+		return PrepareBrickLoop(req, c)
+	}
+	return PrepareBrickLvm(req, c)
 }
 
 func replaceVolinfo(c transaction.TxnCtx) error {

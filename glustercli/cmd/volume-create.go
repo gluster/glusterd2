@@ -41,6 +41,7 @@ var (
 	flagCreateSubvolZoneOverlap     bool
 	flagAverageFileSize             string
 	flagCreateMaxBrickSize          string
+	flagProvisionerType             string
 
 	volumeCreateCmd = &cobra.Command{
 		Use:   "create <volname> [<brick> [<brick>]...|--size <size>]",
@@ -87,6 +88,7 @@ func init() {
 	volumeCreateCmd.Flags().BoolVar(&flagCreateSubvolZoneOverlap, "subvols-zones-overlap", false, "Brick belonging to other Sub volume can be created in the same zone")
 	volumeCreateCmd.Flags().StringVar(&flagAverageFileSize, "average-file-size", "1M", "Average size of the files")
 	volumeCreateCmd.Flags().StringVar(&flagCreateMaxBrickSize, "max-brick-size", "", "Max brick size for auto distribute count")
+	volumeCreateCmd.Flags().StringVar(&flagProvisionerType, "provisioner", "lvm", "Brick Provisioner Type(lvm, loop)")
 
 	volumeCmd.AddCommand(volumeCreateCmd)
 }
@@ -144,6 +146,7 @@ func smartVolumeCreate(cmd *cobra.Command, args []string) {
 		ExcludeZones:            flagCreateExcludeZones,
 		SubvolZonesOverlap:      flagCreateSubvolZoneOverlap,
 		Force:                   flagCreateForce,
+		ProvisionerType:         flagProvisionerType,
 	}
 
 	vol, err := client.VolumeCreate(req)
