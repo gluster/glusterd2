@@ -13,8 +13,8 @@ import (
 
 // Executor contains method set to execute a txn on local node
 type Executor interface {
-	Execute(txn *Txn) error
-	Resume(txn *Txn) error
+	Execute(ctx context.Context, txn *Txn) error
+	Resume(ctx context.Context, txn *Txn) error
 }
 
 // NewExecutor returns an Executor instance
@@ -38,26 +38,26 @@ type executorImpl struct {
 // Execute will run all steps of a given txn on local Node. If a step is marked as synchornized,
 // then It will wait for all previous steps to complete on all involved Nodes.
 // If a node is an initiator node then It will acquire all cluster locks before running the txn steps.
-func (e *executorImpl) Execute(txn *Txn) error {
-	return e.startExec(txn, 0)
+func (e *executorImpl) Execute(ctx context.Context, txn *Txn) error {
+	return e.startExec(ctx, txn, 0)
 }
 
 // Resume will resume a transaction. It will execute all remaining steps of a txn which are not executed
-func (e *executorImpl) Resume(txn *Txn) error {
+func (e *executorImpl) Resume(ctx context.Context, txn *Txn) error {
 	stepIndex, err := e.txnManager.GetLastExecutedStep(txn.ID, e.selfNodeID)
 	if err != nil {
 		return err
 	}
 
-	return e.startExec(txn, stepIndex+1)
+	return e.startExec(ctx, txn, stepIndex+1)
 }
 
-func (e *executorImpl) startExec(txn *Txn, startStepIndex int) error {
+func (e *executorImpl) startExec(parentCtx context.Context, txn *Txn, startStepIndex int) error {
 	var (
 		errChan          = make(chan error)
 		done             = make(chan struct{})
 		updateStatusOnce = &sync.Once{}
-		ctx, cancel      = context.WithCancel(context.Background())
+		ctx, cancel      = context.WithCancel(parentCtx)
 	)
 	defer cancel()
 
