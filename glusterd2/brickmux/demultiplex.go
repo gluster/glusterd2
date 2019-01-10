@@ -32,9 +32,15 @@ func Demultiplex(b brick.Brickinfo) error {
 	if err != nil {
 		return err
 	}
-	if pidOnFile, err = daemon.ReadPidFromFile(brickDaemon.PidFile()); err == nil {
+	if pidOnFile, err = daemon.ReadPidFromFile(brickDaemon.PidFile()); err != nil {
 		log.WithFields(log.Fields{"brick": b.String(),
 			"pidfile": brickDaemon.PidFile()}).Error("Failed to read the pidfile")
+		return err
+
+	}
+	if pidOnFile == -1 {
+		log.WithFields(log.Fields{"brick": b.String(),
+			"pidfile": brickDaemon.PidFile()}).Error("Pid is -1")
 		return err
 
 	}
