@@ -46,7 +46,7 @@ func RegisterBlockProvider(name string, f ProviderFunc) {
 		log.WithField("name", name).Error("failed to register block provider, provider already exist")
 		return
 	}
-	log.WithField("name", name).Infof("Registered block provider")
+	log.WithField("name", name).Debug("Registered block provider")
 	providerFactory[name] = f
 }
 

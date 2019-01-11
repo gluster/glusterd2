@@ -18,7 +18,6 @@ import (
 const providerName = "gluster-block"
 
 func init() {
-	log.WithField("name", providerName).Infof("Registering block provider")
 	blockprovider.RegisterBlockProvider(providerName, newGlusterBlock)
 }
 
