@@ -19,3 +19,10 @@ func (c *Client) TraceStatus() (tracemgmtapi.JaegerConfigInfo, error) {
 	err := c.get("/v1/tracemgmt", nil, http.StatusOK, &jaegercfginfo)
 	return jaegercfginfo, err
 }
+
+// TraceUpdate updates an exisiting trace configuration
+func (c *Client) TraceUpdate(req tracemgmtapi.SetupTracingReq) (tracemgmtapi.JaegerConfigInfo, error) {
+	var jaegercfginfo tracemgmtapi.JaegerConfigInfo
+	err := c.post("/v1/tracemgmt/update", req, http.StatusOK, &jaegercfginfo)
+	return jaegercfginfo, err
+}
