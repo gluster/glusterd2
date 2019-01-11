@@ -56,20 +56,31 @@ func txnTracingValidateConfig(c transaction.TxnCtx) error {
 	return err
 }
 
-// Transaction step that stores the trace config
-func txnTracingStoreConfig(c transaction.TxnCtx) error {
+// storeTraceConfig uses the passed context key to get
+// trace config and updates it into the store.
+func storeTraceConfig(c transaction.TxnCtx, key string) error {
 	var traceConfig tracemgmtapi.JaegerConfigInfo
-	if err := c.Get("traceconfig", &traceConfig); err != nil {
+	if err := c.Get(key, &traceConfig); err != nil {
 		return err
 	}
 
-	if err := traceutils.AddOrUpdateTraceConfig(&traceConfig); err != nil {
-		return err
-	}
-	return nil
+	err := traceutils.AddOrUpdateTraceConfig(&traceConfig)
+	return err
+}
+
+// Transaction step that stores the trace config
+func txnTracingStoreConfig(c transaction.TxnCtx) error {
+	err := storeTraceConfig(c, "traceconfig")
+	return err
 }
 
 // Transaction step that reverts the trace config
+func txnTracingUndoStoreConfig(c transaction.TxnCtx) error {
+	err := storeTraceConfig(c, "oldtraceconfig")
+	return err
+}
+
+// Transaction step that deletes the trace config
 func txnTracingDeleteStoreConfig(c transaction.TxnCtx) error {
 	err := traceutils.DeleteTraceConfig()
 	return err

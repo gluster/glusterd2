@@ -34,6 +34,14 @@ func (p *Plugin) RestRoutes() route.Routes {
 			Version:      1,
 			ResponseType: utils.GetTypeString((*tracemgmtapi.JaegerConfigInfo)(nil)),
 			HandlerFunc:  tracingStatusHandler},
+		route.Route{
+			Name:         "TraceUpdate",
+			Method:       "POST",
+			Pattern:      "/tracemgmt/update",
+			Version:      1,
+			RequestType:  utils.GetTypeString((*tracemgmtapi.SetupTracingReq)(nil)),
+			ResponseType: utils.GetTypeString((*tracemgmtapi.JaegerConfigInfo)(nil)),
+			HandlerFunc:  tracingUpdateHandler},
 	}
 }
 
@@ -41,6 +49,7 @@ func (p *Plugin) RestRoutes() route.Routes {
 func (p *Plugin) RegisterStepFuncs() {
 	transaction.RegisterStepFunc(txnTracingValidateConfig, "trace-mgmt.ValidateTraceConfig")
 	transaction.RegisterStepFunc(txnTracingStoreConfig, "trace-mgmt.StoreTraceConfig")
+	transaction.RegisterStepFunc(txnTracingUndoStoreConfig, "trace-mgmt.RestoreTraceConfig")
 	transaction.RegisterStepFunc(txnTracingDeleteStoreConfig, "trace-mgmt.UndoStoreTraceConfig")
 	transaction.RegisterStepFunc(txnTracingApplyNewConfig, "trace-mgmt.NotifyTraceConfigChange")
 }
