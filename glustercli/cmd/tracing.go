@@ -3,9 +3,12 @@ package cmd
 import (
 	"errors"
 	"fmt"
+	"os"
 
+	"github.com/gluster/glusterd2/pkg/tracing"
 	tracemgmtapi "github.com/gluster/glusterd2/plugins/tracemgmt/api"
 
+	"github.com/olekukonko/tablewriter"
 	log "github.com/sirupsen/logrus"
 	"github.com/spf13/cobra"
 )
@@ -13,6 +16,7 @@ import (
 const (
 	helpTraceCmd            = "Gluster Trace Management"
 	helpTraceEnableCmd      = "Enable Tracing"
+	helpTraceStatusCmd      = "Show Tracing Status"
 	errTraceEnableReqFailed = "Failed to enable tracing"
 )
 
@@ -26,6 +30,7 @@ func init() {
 	traceEnableCmd.Flags().IntVar(&flagTraceJaegerSampler, "jaeger-sampler", 2, "jaeger sampler (1: Always sample, 2: Probabilistic)")
 	traceEnableCmd.Flags().Float64Var(&flagTraceJaegerSampleFraction, "jaeger-sample-fraction", 0.1, "jaeger sample fraction (min: >0.0, max: <1.0)")
 	traceCmd.AddCommand(traceEnableCmd)
+	traceCmd.AddCommand(traceStatusCmd)
 }
 
 func validateJaegerSampler() {
@@ -81,5 +86,29 @@ var traceEnableCmd = &cobra.Command{
 			failure(errTraceEnableReqFailed, err, 1)
 		}
 		fmt.Println("Trace enable successful")
+	},
+}
+
+var traceStatusCmd = &cobra.Command{
+	Use:   "status",
+	Short: helpTraceStatusCmd,
+	Run: func(cmd *cobra.Command, args []string) {
+		jaegerConfigInfo, err := client.TraceStatus()
+		if err != nil {
+			failure("Error getting trace status", err, 1)
+		}
+
+		table := tablewriter.NewWriter(os.Stdout)
+		table.SetAlignment(tablewriter.ALIGN_LEFT)
+		table.SetHeader([]string{"Trace Option", "Value"})
+
+		table.Append([]string{"Status", jaegerConfigInfo.Status})
+		table.Append([]string{"Jaeger Endpoint", jaegerConfigInfo.JaegerEndpoint})
+		table.Append([]string{"Jaeger Agent Endpoint", jaegerConfigInfo.JaegerAgentEndpoint})
+		jaegerSampler := tracing.JaegerSamplerType(jaegerConfigInfo.JaegerSampler)
+		table.Append([]string{"Jaeger Sampler", fmt.Sprintf("%d (%s)", jaegerConfigInfo.JaegerSampler, tracing.SamplerTypeToString(jaegerSampler))})
+		table.Append([]string{"Jaeger Sample Fraction", fmt.Sprintf("%0.2f", jaegerConfigInfo.JaegerSampleFraction)})
+		table.Render()
+		fmt.Println()
 	},
 }
