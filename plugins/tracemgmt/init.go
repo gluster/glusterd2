@@ -27,6 +27,13 @@ func (p *Plugin) RestRoutes() route.Routes {
 			RequestType:  utils.GetTypeString((*tracemgmtapi.SetupTracingReq)(nil)),
 			ResponseType: utils.GetTypeString((*tracemgmtapi.JaegerConfigInfo)(nil)),
 			HandlerFunc:  tracingEnableHandler},
+		route.Route{
+			Name:         "TraceStatus",
+			Method:       "GET",
+			Pattern:      "/tracemgmt",
+			Version:      1,
+			ResponseType: utils.GetTypeString((*tracemgmtapi.JaegerConfigInfo)(nil)),
+			HandlerFunc:  tracingStatusHandler},
 	}
 }
 

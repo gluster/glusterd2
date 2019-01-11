@@ -86,3 +86,21 @@ func tracingEnableHandler(w http.ResponseWriter, r *http.Request) {
 
 	restutils.SendHTTPResponse(ctx, w, http.StatusCreated, traceConfig)
 }
+
+func tracingStatusHandler(w http.ResponseWriter, r *http.Request) {
+	ctx := r.Context()
+
+	// Get the trace configuration from the store.
+	traceConfig, err := traceutils.GetTraceConfig()
+	if err != nil {
+		traceConfig = &tracemgmtapi.JaegerConfigInfo{
+			Status:               tracemgmtapi.TracingDisabled,
+			JaegerEndpoint:       "",
+			JaegerAgentEndpoint:  "",
+			JaegerSampler:        0,
+			JaegerSampleFraction: 0.0,
+		}
+	}
+
+	restutils.SendHTTPResponse(ctx, w, http.StatusOK, traceConfig)
+}
