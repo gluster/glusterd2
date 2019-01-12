@@ -67,9 +67,13 @@ func replaceVolinfo(c transaction.TxnCtx) error {
 		return err
 	}
 
-	allBricks, err := volume.GetAllBricksInCluster()
-	if err != nil {
-		return err
+	var allBricks []brick.Brickinfo
+	// Validate brick paths only if it is not a smart volume
+	if newBrick.Size == 0 {
+		allBricks, err = volume.GetAllBricksInCluster()
+		if err != nil {
+			return err
+		}
 	}
 
 	// Used by other peers to check if proposed bricks are already in use.
