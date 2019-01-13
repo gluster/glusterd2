@@ -1,6 +1,8 @@
 package tracemgmt
 
 import (
+	"errors"
+
 	"github.com/gluster/glusterd2/glusterd2/gdctx"
 	"github.com/gluster/glusterd2/glusterd2/transaction"
 	"github.com/gluster/glusterd2/pkg/tracing"
@@ -131,6 +133,30 @@ func txnTracingApplyNewConfig(c transaction.TxnCtx) error {
 
 	// Set the new Jaeger exporter
 	tracing.SetJaegerExporter(exporter)
+
+	return nil
+}
+
+// Transaction step that disables tracing and resets the tracing config.
+func txnTracingDisable(c transaction.TxnCtx) error {
+	// Disable tracing
+	trace.ApplyConfig(trace.Config{DefaultSampler: trace.NeverSample()})
+
+	// Unregister the old Jaeger exporter if it exists
+	Exporter := tracing.JaegerExporter()
+	if Exporter == nil {
+		return errors.New("no opencensus exporter registered")
+	}
+	trace.UnregisterExporter(Exporter)
+
+	// Reset the global Jaeger trace config
+	traceCfg := tracing.JaegerTraceConfig{
+		JaegerEndpoint:       "",
+		JaegerAgentEndpoint:  "",
+		JaegerSampler:        0,
+		JaegerSampleFraction: 0.0,
+	}
+	tracing.SetJaegerTraceConfig(traceCfg)
 
 	return nil
 }

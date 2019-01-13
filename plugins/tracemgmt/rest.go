@@ -194,3 +194,50 @@ func tracingUpdateHandler(w http.ResponseWriter, r *http.Request) {
 
 	restutils.SendHTTPResponse(ctx, w, http.StatusOK, traceConfig)
 }
+
+func tracingDisableHandler(w http.ResponseWriter, r *http.Request) {
+	ctx := r.Context()
+	logger := gdctx.GetReqLogger(ctx)
+
+	// Get the current trace config from the store
+	_, err := traceutils.GetTraceConfig()
+	if err != nil {
+		restutils.SendHTTPError(ctx, w, http.StatusNotFound, "No trace configuration exists")
+		return
+	}
+
+	txn, err := transactionv2.NewTxnWithLocks(ctx, gdctx.MyClusterID.String())
+	if err != nil {
+		status, err := restutils.ErrToStatusCode(err)
+		restutils.SendHTTPError(ctx, w, status, err)
+		return
+	}
+	defer txn.Done()
+
+	nodes, err := peer.GetPeerIDs()
+	if err != nil {
+		restutils.SendHTTPError(ctx, w, http.StatusInternalServerError, err)
+		return
+	}
+
+	txn.Steps = []*transaction.Step{
+		{
+			DoFunc: "trace-mgmt.UndoStoreTraceConfig",
+			Nodes:  []uuid.UUID{gdctx.MyUUID},
+			Sync:   true,
+		},
+		{
+			DoFunc: "trace-mgmt.NotifyTraceDisable",
+			Nodes:  nodes,
+			Sync:   true,
+		},
+	}
+
+	if err = txn.Do(); err != nil {
+		logger.WithError(err).Error("Failed to disable trace configuration")
+		restutils.SendHTTPError(ctx, w, http.StatusInternalServerError, err)
+		return
+	}
+
+	restutils.SendHTTPResponse(ctx, w, http.StatusNoContent, nil)
+}

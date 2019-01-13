@@ -26,3 +26,9 @@ func (c *Client) TraceUpdate(req tracemgmtapi.SetupTracingReq) (tracemgmtapi.Jae
 	err := c.post("/v1/tracemgmt/update", req, http.StatusOK, &jaegercfginfo)
 	return jaegercfginfo, err
 }
+
+// TraceDisable disables and optionally deletes the tracing config
+func (c *Client) TraceDisable() error {
+	err := c.del("/v1/tracemgmt", nil, http.StatusNoContent, nil)
+	return err
+}

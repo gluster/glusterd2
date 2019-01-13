@@ -282,3 +282,41 @@ func TestTraceUpdateInvalidOption(t *testing.T) {
 	r.Equal(0, jaegerCfgInfo.JaegerSampler)
 	r.Equal(0.0, jaegerCfgInfo.JaegerSampleFraction)
 }
+
+func TestTraceDisable(t *testing.T) {
+	r := require.New(t)
+
+	tc, err := setupCluster(t, "./config/1.toml", "./config/2.toml")
+	r.Nil(err)
+	defer teardownCluster(tc)
+
+	client, err := initRestclient(tc.gds[0])
+	r.Nil(err)
+	r.NotNil(client)
+
+	jaegerSampler := 1
+	reqTraceEnable := tracemgmtapi.SetupTracingReq{
+		JaegerEndpoint:      jaegerEndpoint,
+		JaegerAgentEndpoint: jaegerAgentEndpoint,
+		JaegerSampler:       jaegerSampler,
+	}
+	jaegerCfgInfo, err := client.TraceEnable(reqTraceEnable)
+	r.Nil(err)
+
+	r.Equal(jaegerEndpoint, jaegerCfgInfo.JaegerEndpoint)
+	r.Equal(jaegerAgentEndpoint, jaegerCfgInfo.JaegerAgentEndpoint)
+	r.Equal(jaegerSampler, jaegerCfgInfo.JaegerSampler)
+	r.Equal(1.0, jaegerCfgInfo.JaegerSampleFraction)
+
+	// Delete the trace config
+	err = client.TraceDisable()
+	r.Nil(err)
+
+	// Get the trace config
+	jaegerCfgInfo, err = client.TraceStatus()
+	r.Nil(err)
+	r.Equal("", jaegerCfgInfo.JaegerEndpoint)
+	r.Equal("", jaegerCfgInfo.JaegerAgentEndpoint)
+	r.Equal(0, jaegerCfgInfo.JaegerSampler)
+	r.Equal(0.0, jaegerCfgInfo.JaegerSampleFraction)
+}

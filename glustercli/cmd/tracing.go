@@ -18,6 +18,7 @@ const (
 	helpTraceEnableCmd      = "Enable Tracing"
 	helpTraceStatusCmd      = "Show Tracing Status"
 	helpTraceUpdateCmd      = "Update Tracing Options"
+	helpTraceDisableCmd     = "Disable Tracing"
 	errTraceEnableReqFailed = "Failed to enable tracing"
 	errTraceUpdateReqFailed = "Failed to update trace configuration"
 )
@@ -41,6 +42,7 @@ func init() {
 	traceCmd.AddCommand(traceEnableCmd)
 	traceCmd.AddCommand(traceStatusCmd)
 	traceCmd.AddCommand(traceUpdateCmd)
+	traceCmd.AddCommand(traceDisableCmd)
 }
 
 func validateJaegerSampler() {
@@ -149,5 +151,17 @@ var traceUpdateCmd = &cobra.Command{
 			failure(errTraceUpdateReqFailed, err, 1)
 		}
 		fmt.Println("Trace update successful")
+	},
+}
+
+var traceDisableCmd = &cobra.Command{
+	Use:   "disable",
+	Short: helpTraceDisableCmd,
+	Run: func(cmd *cobra.Command, args []string) {
+		err := client.TraceDisable()
+		if err != nil {
+			failure("Trace disable failed", err, 1)
+		}
+		fmt.Println("Trace disable successful")
 	},
 }
