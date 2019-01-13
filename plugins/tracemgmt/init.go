@@ -42,6 +42,12 @@ func (p *Plugin) RestRoutes() route.Routes {
 			RequestType:  utils.GetTypeString((*tracemgmtapi.SetupTracingReq)(nil)),
 			ResponseType: utils.GetTypeString((*tracemgmtapi.JaegerConfigInfo)(nil)),
 			HandlerFunc:  tracingUpdateHandler},
+		route.Route{
+			Name:        "TraceDisable",
+			Method:      "DELETE",
+			Pattern:     "/tracemgmt",
+			Version:     1,
+			HandlerFunc: tracingDisableHandler},
 	}
 }
 
@@ -52,4 +58,5 @@ func (p *Plugin) RegisterStepFuncs() {
 	transaction.RegisterStepFunc(txnTracingUndoStoreConfig, "trace-mgmt.RestoreTraceConfig")
 	transaction.RegisterStepFunc(txnTracingDeleteStoreConfig, "trace-mgmt.UndoStoreTraceConfig")
 	transaction.RegisterStepFunc(txnTracingApplyNewConfig, "trace-mgmt.NotifyTraceConfigChange")
+	transaction.RegisterStepFunc(txnTracingDisable, "trace-mgmt.NotifyTraceDisable")
 }
