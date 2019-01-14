@@ -1,7 +1,6 @@
-package main
+package conf
 
 import (
-	"encoding/json"
 	"errors"
 	"expvar"
 	"net"
@@ -73,6 +72,7 @@ func initFlags() {
 // and flags which don't have default values
 func setDefaults() error {
 
+	config.SetDefault("loglevel", "info")
 	config.SetDefault("hooksdir", config.GetString("localstatedir")+"/hooks")
 
 	if config.GetString("pidfile") == "" {
@@ -97,30 +97,18 @@ func setDefaults() error {
 	return nil
 }
 
-type valueType struct {
-	v interface{}
-}
-
-func (v valueType) String() string {
-	vb, _ := json.Marshal(v.v)
-	return string(vb)
-}
-
-func dumpConfigToLog() {
+// DumpConfigToLog will dump all configuration in use
+func DumpConfigToLog() {
 	if config.ConfigFileUsed() != "" {
 		log.WithField("file", config.ConfigFileUsed()).Info("loaded configuration from file")
 	}
 
-	l := log.NewEntry(log.StandardLogger())
-
-	for k, v := range config.AllSettings() {
-		expConfig.Set(k, valueType{v})
-		l = l.WithField(k, v)
-	}
-	l.Debug("running with configuration")
+	configs := config.AllSettings()
+	expConfig.Set("conf", expvar.Func(func() interface{} { return configs }))
+	log.WithFields(log.Fields(configs)).Debug("running with configuration")
 }
 
-// initConfig intializes GD2 configuration from various sources.
+// Init intializes GD2 configuration from various sources.
 // The order of preference is,
 // - explicitly set configs using config.Set
 // - flags, if set
@@ -128,9 +116,12 @@ func dumpConfigToLog() {
 // - config file
 // - defaults set using config.SetDefault
 // - flag defaults
-func initConfig() error {
+func Init() error {
 	// Use config given by flags
-	config.BindPFlags(flag.CommandLine)
+	initFlags()
+	if err := config.BindPFlags(flag.CommandLine); err != nil {
+		return err
+	}
 
 	// Allow config values from environment environment variables.
 	// All options settable from the command line are available to be set this way.
@@ -145,32 +136,28 @@ func initConfig() error {
 	// If the file is not present panic.
 
 	// Limit config to toml only to avoid confusion with multiple config types
+	config.AddConfigPath(path.Join(defaultPathPrefix, "/etc/glusterd2"))
+	config.SetConfigName("glusterd2")
 	config.SetConfigType("toml")
 
-	confFile := config.GetString("config")
-	// If custom configuration is passed use it, if not try to use defaults
-	if confFile != "" {
+	// SetConfigFile explicitly defines the path, name and extension of the config file.
+	// Viper will use this and not check any of the config paths.
+	if confFile := config.GetString("config"); confFile != "" {
 		config.SetConfigFile(confFile)
-	} else {
-		config.AddConfigPath(path.Join(defaultPathPrefix, "/etc/glusterd2"))
-		config.SetConfigName("glusterd2")
-	}
-	if err := config.ReadInConfig(); err != nil {
-		// Ignore error if config file is not found, error out otherwise
-		if _, ok := err.(config.ConfigFileNotFoundError); ok {
-			log.WithError(err).
-				WithField("file", config.ConfigFileUsed()).
-				Warn("failed to load config from file")
-		} else {
-			log.WithError(err).
-				WithField("file", config.ConfigFileUsed()).
-				Error("failed to load config from file")
-			return err
-		}
 	}
 
-	// Finally initialize missing config with defaults
-	err := setDefaults()
+	// If custom configuration is passed use it, if not try to use defaults
+	err := config.ReadInConfig()
+	if _, ok := err.(config.ConfigFileNotFoundError); err != nil && !ok {
+		log.WithError(err).WithField("file", config.ConfigFileUsed()).Error("failed to load config from file")
+		return err
+	}
 
-	return err
+	return setDefaults()
+}
+
+func init() {
+	if err := Init(); err != nil {
+		log.WithError(err).Fatal("Failed to initialize config")
+	}
 }
