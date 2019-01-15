@@ -383,9 +383,8 @@ func ValidateStr(o *Option, val string) error {
 		if t == op {
 			return nil
 		}
-		return ErrInvalidArg
 	}
-	return nil
+	return ErrInvalidArg
 }
 
 // ValidateTime validates if the option is valid time format
