@@ -52,6 +52,14 @@ func testSelfHeal(t *testing.T, tc *testCluster) {
 	vol1, err := client.VolumeCreate(reqVol)
 	r.Nil(err)
 
+	var optionReq api.VolOptionReq
+
+	optionReq.Options = map[string]string{"cluster/replicate.self-heal-daemon": "off"}
+	optionReq.AllowAdvanced = true
+
+	r.Nil(client.VolumeSet(vol1.Name, optionReq))
+	r.False(isProcessRunning(pidpath), "glustershd is still running")
+
 	r.Nil(client.VolumeStart(vol1.Name, false), "volume start failed")
 
 	checkFuseAvailable(t)
@@ -120,9 +128,15 @@ func testSelfHeal(t *testing.T, tc *testCluster) {
 	}
 
 	r.Nil(client.VolumeStop(vol1.Name), "Volume stop failed")
-	r.Nil(client.VolumeStart(vol1.Name, false), "volume start failed")
 
-	var optionReq api.VolOptionReq
+	optionReq.Options = map[string]string{"cluster/replicate.entry-self-heal": "on",
+		"cluster/replicate.metadata-self-heal": "on",
+		"cluster/replicate.data-self-heal":     "on"}
+	optionReq.AllowAdvanced = true
+
+	r.Nil(client.VolumeSet(vol1.Name, optionReq))
+
+	r.Nil(client.VolumeStart(vol1.Name, false), "volume start failed")
 
 	optionReq.Options = map[string]string{"cluster/replicate.self-heal-daemon": "on"}
 	optionReq.AllowAdvanced = true
