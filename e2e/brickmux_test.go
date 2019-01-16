@@ -1,6 +1,7 @@
 package e2e
 
 import (
+	"context"
 	"fmt"
 	"os"
 	"strconv"
@@ -121,7 +122,21 @@ func TestBrickMux(t *testing.T) {
 	err = process.Signal(syscall.Signal(15))
 	r.Nil(err, fmt.Sprintf("failed to kill bricks: %s", err))
 
-	time.Sleep(time.Second * 1)
+	// wait for killed brick to sign out
+	pollingInterval := time.Second
+	ctx, cancel := context.WithTimeout(context.Background(), time.Second*10)
+	defer cancel()
+	retryUntilSucceeds(func() bool {
+		bstatus, err = client.BricksStatus(volname1)
+		if err != nil {
+			return false
+		}
+		if bstatus[0].Pid == 0 && bstatus[0].Port == 0 {
+			return true
+		}
+		return false
+	}, pollingInterval, ctx.Done())
+
 	bstatus, err = client.BricksStatus(volname1)
 	r.Nil(err)
 	r.Equal(bstatus[0].Pid, 0)
@@ -229,7 +244,6 @@ func TestBrickMux(t *testing.T) {
 
 		bstatus, err = client.BricksStatus(volname1 + strconv.Itoa(i))
 		r.Nil(err)
-
 		if i == 1 {
 			pid = bstatus[0].Pid
 			port = bstatus[0].Port
@@ -253,6 +267,26 @@ func TestBrickMux(t *testing.T) {
 	// Spawn glusterd2 instance
 	gd, err := spawnGlusterd(t, "./config/1.toml", false)
 	r.Nil(err)
+
+	// wait for all bricks to sign in after a new GD2 instance is spawned
+	pollingInterval = time.Second
+	ctx, cancel = context.WithTimeout(context.Background(), time.Second*15)
+	defer cancel()
+	retryUntilSucceeds(func() bool {
+		for i := 1; i <= 10; i++ {
+			bstatus, err = client.BricksStatus(volname1 + strconv.Itoa(i))
+			if err != nil {
+				return false
+			}
+			for _, b := range bstatus {
+				if b.Pid == 0 || b.Port == 0 {
+					return false
+				}
+			}
+		}
+		return true
+	}, pollingInterval, ctx.Done())
+
 	r.True(gd.IsRunning())
 
 	// Check if all the bricks are multiplexed into the first brick
@@ -304,8 +338,8 @@ func TestBrickMux(t *testing.T) {
 				{
 					Type: "distribute",
 					Bricks: []api.BrickReq{
-						{PeerID: tc.gds[0].PeerID(), Path: brickPaths[index]},
-						{PeerID: tc.gds[0].PeerID(), Path: brickPaths[index+1]},
+						{PeerID: gd.PeerID(), Path: brickPaths[index]},
+						{PeerID: gd.PeerID(), Path: brickPaths[index+1]},
 					},
 				},
 			},
@@ -320,8 +354,8 @@ func TestBrickMux(t *testing.T) {
 						ReplicaCount: 2,
 						Type:         "replicate",
 						Bricks: []api.BrickReq{
-							{PeerID: tc.gds[0].PeerID(), Path: brickPaths[index]},
-							{PeerID: tc.gds[0].PeerID(), Path: brickPaths[index+1]},
+							{PeerID: gd.PeerID(), Path: brickPaths[index]},
+							{PeerID: gd.PeerID(), Path: brickPaths[index+1]},
 						},
 					},
 				},
@@ -361,7 +395,7 @@ func TestBrickMux(t *testing.T) {
 		}
 	}
 
-	// Check if all pid's and ports's have count = 2 as mentioned in
+	// Check if all pid's and ports's have count = 5 as mentioned in
 	// max-bricks-per-process
 	for _, v := range pidMap {
 		r.Equal(v, 5)
@@ -378,8 +412,8 @@ func TestBrickMux(t *testing.T) {
 		if i%2 != 0 {
 			expandReq := api.VolExpandReq{
 				Bricks: []api.BrickReq{
-					{PeerID: tc.gds[0].PeerID(), Path: brickPaths[index]},
-					{PeerID: tc.gds[0].PeerID(), Path: brickPaths[index+1]},
+					{PeerID: gd.PeerID(), Path: brickPaths[index]},
+					{PeerID: gd.PeerID(), Path: brickPaths[index+1]},
 				},
 				Force: true,
 			}
@@ -390,22 +424,39 @@ func TestBrickMux(t *testing.T) {
 		} else {
 			expandReq := api.VolExpandReq{
 				Bricks: []api.BrickReq{
-					{PeerID: tc.gds[0].PeerID(), Path: brickPaths[index]},
+					{PeerID: gd.PeerID(), Path: brickPaths[index]},
 				},
 				Force: true,
 			}
 			_, err := client.VolumeExpand(volname1+strconv.Itoa(i), expandReq)
 			r.Nil(err)
-
 			index = index + 1
 		}
+
 		// Wait for added bricks' glusterfsds to Sign In
-		time.Sleep(5 * time.Millisecond)
+		pollingInterval = 1 * time.Second
+		ctx, cancel = context.WithTimeout(context.Background(), time.Second*30)
+		defer cancel()
+		retryUntilSucceeds(func() bool {
+			bstatus, err = client.BricksStatus(volname1 + strconv.Itoa(i))
+			if err != nil {
+				return false
+			}
+			for _, b := range bstatus {
+				if b.Pid <= 0 || b.Port <= 0 {
+					return false
+				}
+			}
+			return true
+		}, pollingInterval, ctx.Done())
+
+		time.Sleep(1 * time.Second)
 
 		// re-populate pid and port mapping
 		bstatus, err := client.BricksStatus(volname1 + strconv.Itoa(i))
 		r.Nil(err)
 		for _, b := range bstatus {
+			fmt.Println(fmt.Sprintf("VolumeName: %s path: %s pid: %d port: %d", b.Info.VolumeName, b.Info.Path, b.Pid, b.Port))
 			if _, ok := pidMap[b.Pid]; ok {
 				pidMap[b.Pid]++
 			} else {
@@ -435,8 +486,8 @@ func TestBrickMux(t *testing.T) {
 			expandReq := api.VolExpandReq{
 				ReplicaCount: 3,
 				Bricks: []api.BrickReq{
-					{PeerID: tc.gds[0].PeerID(), Path: brickPaths[index]},
-					{PeerID: tc.gds[0].PeerID(), Path: brickPaths[index+1]},
+					{PeerID: gd.PeerID(), Path: brickPaths[index]},
+					{PeerID: gd.PeerID(), Path: brickPaths[index+1]},
 				},
 				Force: true,
 			}
@@ -444,7 +495,21 @@ func TestBrickMux(t *testing.T) {
 			r.Nil(err)
 
 			// Wait for new bricks glusterfsds to Sign In
-			time.Sleep(5 * time.Millisecond)
+			pollingInterval = 70 * time.Millisecond
+			ctx, cancel = context.WithTimeout(context.Background(), time.Second*5)
+			defer cancel()
+			retryUntilSucceeds(func() bool {
+				bstatus, err = client.BricksStatus(volname1 + strconv.Itoa(i))
+				if err != nil {
+					return false
+				}
+				for _, b := range bstatus {
+					if b.Pid == 0 || b.Port == 0 {
+						return false
+					}
+				}
+				return true
+			}, pollingInterval, ctx.Done())
 
 			// re-populate pid and port mapping
 			bstatus, err := client.BricksStatus(volname1 + strconv.Itoa(i))
@@ -486,10 +551,27 @@ func TestBrickMux(t *testing.T) {
 	// Spawn glusterd2 instance
 	gd, err = spawnGlusterd(t, "./config/1.toml", false)
 	r.Nil(err)
-	r.True(gd.IsRunning())
 
 	// Wait for GD2 instance and all glusterfsds to spawn up
-	time.Sleep(5 * time.Second)
+	pollingInterval = time.Second
+	ctx, cancel = context.WithTimeout(context.Background(), time.Second*15)
+	defer cancel()
+	retryUntilSucceeds(func() bool {
+		for i := 0; i < 10; i++ {
+			bstatus, err = client.BricksStatus(volname1 + strconv.Itoa(i))
+			if err != nil {
+				return false
+			}
+			for _, b := range bstatus {
+				if b.Pid == 0 || b.Port == 0 {
+					return false
+				}
+			}
+		}
+		return true
+	}, pollingInterval, ctx.Done())
+
+	r.True(gd.IsRunning())
 
 	pidMap = make(map[int]int)
 	portMap = make(map[int]int)
@@ -547,9 +629,9 @@ func TestBrickMux(t *testing.T) {
 				ReplicaCount: 3,
 				Type:         "replicate",
 				Bricks: []api.BrickReq{
-					{PeerID: tc.gds[0].PeerID(), Path: brickPaths[51]},
-					{PeerID: tc.gds[0].PeerID(), Path: brickPaths[52]},
-					{PeerID: tc.gds[0].PeerID(), Path: brickPaths[53]},
+					{PeerID: gd.PeerID(), Path: brickPaths[51]},
+					{PeerID: gd.PeerID(), Path: brickPaths[52]},
+					{PeerID: gd.PeerID(), Path: brickPaths[53]},
 				},
 			},
 		},
@@ -568,9 +650,9 @@ func TestBrickMux(t *testing.T) {
 			{
 				Type: "distribute",
 				Bricks: []api.BrickReq{
-					{PeerID: tc.gds[0].PeerID(), Path: brickPaths[48]},
-					{PeerID: tc.gds[0].PeerID(), Path: brickPaths[49]},
-					{PeerID: tc.gds[0].PeerID(), Path: brickPaths[50]},
+					{PeerID: gd.PeerID(), Path: brickPaths[48]},
+					{PeerID: gd.PeerID(), Path: brickPaths[49]},
+					{PeerID: gd.PeerID(), Path: brickPaths[50]},
 				},
 			},
 		},
