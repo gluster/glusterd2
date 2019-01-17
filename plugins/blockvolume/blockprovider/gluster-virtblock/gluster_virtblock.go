@@ -1,4 +1,4 @@
-package glusterloopback
+package glustervirtblock
 
 import (
 	"context"
@@ -17,28 +17,28 @@ import (
 	"k8s.io/kubernetes/pkg/util/mount"
 )
 
-const providerName = "gluster-loopback"
+const providerName = "virtblock"
 
 var mounter = mount.New("")
 
 func init() {
-	blockprovider.RegisterBlockProvider(providerName, newGlusterLoopBlk)
+	blockprovider.RegisterBlockProvider(providerName, newGlusterVirtBlk)
 }
 
-// GlusterLoopBlk implements block Provider interface. It represents a gluster-block
-type GlusterLoopBlk struct {
+// GlusterVirtBlk implements block Provider interface. It represents a gluster-block
+type GlusterVirtBlk struct {
 	mounts map[string]string
 }
 
-func newGlusterLoopBlk() (blockprovider.Provider, error) {
-	gb := &GlusterLoopBlk{}
+func newGlusterVirtBlk() (blockprovider.Provider, error) {
+	gb := &GlusterVirtBlk{}
 
 	gb.mounts = make(map[string]string)
 
 	return gb, nil
 }
 
-func mountHost(g *GlusterLoopBlk, hostVolume string) (string, error) {
+func mountHost(g *GlusterVirtBlk, hostVolume string) (string, error) {
 	hostDir := g.mounts[hostVolume]
 	if hostDir == "" {
 		hostDir = config.GetString("rundir") + "/blockvolume/" + hostVolume
@@ -67,7 +67,7 @@ func mountHost(g *GlusterLoopBlk, hostVolume string) (string, error) {
 }
 
 // CreateBlockVolume will create a gluster block volume with given name and size having `hostVolume` as hosting volume
-func (g *GlusterLoopBlk) CreateBlockVolume(name string, size uint64, hostVolume string, options ...blockprovider.BlockVolOption) (blockprovider.BlockVolume, error) {
+func (g *GlusterVirtBlk) CreateBlockVolume(name string, size uint64, hostVolume string, options ...blockprovider.BlockVolOption) (blockprovider.BlockVolume, error) {
 	blockVolOpts := &blockprovider.BlockVolumeOptions{}
 	blockVolOpts.ApplyOpts(options...)
 	logger := log.WithFields(log.Fields{
@@ -105,7 +105,7 @@ func (g *GlusterLoopBlk) CreateBlockVolume(name string, size uint64, hostVolume 
 }
 
 // DeleteBlockVolume deletes a gluster block volume of give name
-func (g *GlusterLoopBlk) DeleteBlockVolume(name string, options ...blockprovider.BlockVolOption) error {
+func (g *GlusterVirtBlk) DeleteBlockVolume(name string, options ...blockprovider.BlockVolOption) error {
 	var (
 		blockVolOpts = &blockprovider.BlockVolumeOptions{}
 		hostVol      string
@@ -158,7 +158,7 @@ func (g *GlusterLoopBlk) DeleteBlockVolume(name string, options ...blockprovider
 }
 
 // GetBlockVolume gives info about a gluster block volume
-func (g *GlusterLoopBlk) GetBlockVolume(name string) (blockprovider.BlockVolume, error) {
+func (g *GlusterVirtBlk) GetBlockVolume(name string) (blockprovider.BlockVolume, error) {
 	var (
 		blockVolume           blockprovider.BlockVolume
 		availableBlockVolumes = g.BlockVolumes()
@@ -186,7 +186,7 @@ func (g *GlusterLoopBlk) GetBlockVolume(name string) (blockprovider.BlockVolume,
 }
 
 // BlockVolumes returns all available gluster block volume
-func (g *GlusterLoopBlk) BlockVolumes() []blockprovider.BlockVolume {
+func (g *GlusterVirtBlk) BlockVolumes() []blockprovider.BlockVolume {
 	var glusterBlockVolumes = []blockprovider.BlockVolume{}
 
 	volumes, err := volume.GetVolumes(context.Background())
@@ -216,7 +216,7 @@ func (g *GlusterLoopBlk) BlockVolumes() []blockprovider.BlockVolume {
 }
 
 // ProviderName returns name of block provider
-func (g *GlusterLoopBlk) ProviderName() string {
+func (g *GlusterVirtBlk) ProviderName() string {
 	return providerName
 }
 
