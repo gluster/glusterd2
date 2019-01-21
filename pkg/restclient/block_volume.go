@@ -10,7 +10,7 @@ import (
 // BlockVolumeCreate creates Gluster Block Volume
 func (c *Client) BlockVolumeCreate(provider string, req api.BlockVolumeCreateRequest) (api.BlockVolumeCreateResp, error) {
 	var vol api.BlockVolumeCreateResp
-	err := c.post("v1/blockvolumes/"+provider, req, http.StatusCreated, &vol)
+	err := c.post("/v1/blockvolumes/"+provider, req, http.StatusCreated, &vol)
 	return vol, err
 }
 
