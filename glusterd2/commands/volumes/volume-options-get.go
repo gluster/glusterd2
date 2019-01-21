@@ -2,6 +2,7 @@ package volumecommands
 
 import (
 	"net/http"
+	"strings"
 
 	"github.com/gluster/glusterd2/glusterd2/options"
 	restutils "github.com/gluster/glusterd2/glusterd2/servers/rest/utils"
@@ -53,9 +54,12 @@ func createVolumeOptionGetResp(volinfo *volume.Volinfo, opt *options.Option, opt
 	)
 	optValue = opt.DefaultValue
 
-	if value, ok := volinfo.Options[optname]; ok {
-		modified = true
-		optValue = value
+	for key, value := range volinfo.Options {
+		if strings.HasSuffix(key, optname) {
+			modified = true
+			optValue = value
+			break
+		}
 	}
 
 	resp = api.VolumeOptionGetResp{
@@ -78,7 +82,7 @@ func createVolumeOptionsGetResp(volinfo *volume.Volinfo) *api.VolumeOptionsGetRe
 		// now return all options
 		for _, opt := range xl.Options {
 			for _, k := range opt.Key {
-				optName := xl.ID + "." + k
+				optName := xl.Category + "/" + xl.ID + "." + k
 				volOptRest := createVolumeOptionGetResp(volinfo, opt, optName)
 				resp = append(resp, *volOptRest)
 			}
