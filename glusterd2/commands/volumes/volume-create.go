@@ -3,6 +3,7 @@ package volumecommands
 import (
 	"context"
 	"errors"
+	"fmt"
 	"net/http"
 	"path/filepath"
 	"strconv"
@@ -41,6 +42,10 @@ func applyDefaults(req *api.VolCreateReq) {
 func validateVolCreateReq(req *api.VolCreateReq) error {
 	if !volume.IsValidName(req.Name) {
 		return gderrors.ErrInvalidVolName
+	}
+
+	if gutils.IsReservedKeyword(req.Name) {
+		return fmt.Errorf("invalid name, volume name cannot be among reserved keywords:%v", gutils.ReservedKeywords)
 	}
 
 	if req.Transport != "" && req.Transport != "tcp" && req.Transport != "rdma" {
