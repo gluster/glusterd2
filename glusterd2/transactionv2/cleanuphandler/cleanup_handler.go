@@ -2,6 +2,7 @@ package cleanuphandler
 
 import (
 	"context"
+	"expvar"
 	"sync"
 	"time"
 
@@ -167,4 +168,17 @@ func StopCleanupLeader() {
 	if CleanupLeader != nil {
 		CleanupLeader.Stop()
 	}
+}
+
+func init() {
+	expVar := expvar.Get("txn")
+	if expVar == nil {
+		expVar = expvar.NewMap("txn")
+	}
+	expVar.(*expvar.Map).Set("cleanup_config", expvar.Func(func() interface{} {
+		return map[string]interface{}{
+			"txn_max_age_seconds": txnMaxAge.Seconds(),
+			"cleanup_dur_seconds": cleanupTimerDur.Seconds(),
+		}
+	}))
 }

@@ -4,6 +4,7 @@ package transaction
 import (
 	"context"
 	"errors"
+	"expvar"
 	"fmt"
 	"time"
 
@@ -279,4 +280,17 @@ func FilterNonFailedTxn(txns []*Txn) []*Txn {
 		}
 	}
 	return nonFailedTxns
+}
+
+func init() {
+	expVar := expvar.Get("txn")
+	if expVar == nil {
+		expVar = expvar.NewMap("txn")
+	}
+	expVar.(*expvar.Map).Set("engine_config", expvar.Func(func() interface{} {
+		return map[string]interface{}{
+			"txn_timeout_second":      txnTimeOut.Seconds(),
+			"txn_sync_timeout_second": txnSyncTimeout.Seconds(),
+		}
+	}))
 }
