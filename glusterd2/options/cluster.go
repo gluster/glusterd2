@@ -33,6 +33,11 @@ var ClusterOptMap = map[string]*ClusterOption{
 	"cluster.brick-multiplex":        {"cluster.brick-multiplex", "off", OptionTypeBool, nil},
 	"cluster.max-bricks-per-process": {"cluster.max-bricks-per-process", "250", OptionTypeInt, nil},
 	"cluster.localtime-logging":      {"cluster.localtime-logging", "off", OptionTypeBool, nil},
+	// setting cluster options for block hosting volume
+	"block-hosting-volume-size":          {"block-hosting-volume-size", "5GiB", OptionTypeSizeList, nil},
+	"auto-create-block-hosting-volumes":  {"auto-create-block-hosting-volumes", "true", OptionTypeBool, nil},
+	"block-hosting-volume-replica-count": {"block-hosting-volume-replica-count", "3", OptionTypeInt, nil},
+	"block-hosting-volume-type":          {"block-hosting-volume-type", "Replicate", OptionTypeStr, nil},
 }
 
 // RegisterClusterOpValidationFunc registers a validation function for provided
