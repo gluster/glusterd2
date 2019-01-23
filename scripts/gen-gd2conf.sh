@@ -16,6 +16,9 @@ rundir = "$GD2RUNDIR"
 defaultpeerport = "24008"
 peeraddress = ":24008"
 clientaddress = ":24007"
+block-hosting-volume-size = 5368709120 #5GiB
+auto-create-block-hosting-volumes = true
+block-hosting-volume-replica-count = 3
 #restauth should be set to false to disable REST authentication in glusterd2
 #restauth = false
 EOF
