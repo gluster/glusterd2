@@ -208,6 +208,11 @@ func testGranularEntryHeal(t *testing.T, tc *testCluster) {
 	_, err := client.VolumeCreate(createReq)
 	r.Nil(err)
 
+	var optionReq api.VolOptionReq
+	optionReq.Options = map[string]string{"cluster/replicate.self-heal-daemon": "on"}
+	optionReq.AllowAdvanced = true
+	r.Nil(client.VolumeSet(volname, optionReq))
+
 	r.Nil(client.VolumeStart(volname, false), "volume start failed")
 
 	healInfo, err := client.SelfHealInfo(volname, "info-summary")
@@ -218,7 +223,6 @@ func testGranularEntryHeal(t *testing.T, tc *testCluster) {
 		}
 	}
 
-	var optionReq api.VolOptionReq
 	optionReq.Options = map[string]string{"cluster/replicate.granular-entry-heal": "enable"}
 	optionReq.AllowAdvanced = true
 	r.Nil(client.VolumeSet(volname, optionReq))
@@ -313,9 +317,13 @@ func testSplitBrainOperation(t *testing.T, tc *testCluster) {
 	_, err := client.VolumeCreate(createReq)
 	r.Nil(err)
 
+	var optionReq api.VolOptionReq
+	optionReq.Options = map[string]string{"cluster/replicate.self-heal-daemon": "on"}
+	optionReq.AllowAdvanced = true
+	r.Nil(client.VolumeSet(volname, optionReq))
+
 	r.Nil(client.VolumeStart(volname, false), "volume start failed")
 
-	var optionReq api.VolOptionReq
 	pidpath := path.Join(tc.gds[0].Rundir, "glustershd.pid")
 	optionReq.Options = map[string]string{"cluster/replicate.self-heal-daemon": "off"}
 	optionReq.AllowAdvanced = true

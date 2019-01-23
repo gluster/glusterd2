@@ -98,6 +98,25 @@ func init() {
 	}
 
 	// default client template
+
+	// Quick-read should be a parent of open-behind (otherwise
+	// we'll suffer perf penalty for small file reads)
+
+	// md-cache should be a descendant of write-behind (Otherwise
+	// we cannot leverage stats from brick in writev_cbk. Since
+	// writes invalidate kernel attributes, after a write, kernel
+	// will invariably ask glusterfs for stats. If stats are
+	// invalidated in md-cache by write-cbk - happens when
+	// md-cache is an ancestor of write-behind - stat fop will
+	// have to travel all the way to brick. However, if md-cache
+	// is a descendant of write-behind, stats in write-cbk from
+	// brick will be cached in md-cache)
+
+	// If client-io-threads is enabled, read-ahead should be
+	// parent of client-io-threads (parallelism introduced by
+	// client-io-threads messes the sequential read detection
+	// logic in read-ahead). So, better to change the relative
+	// order of client-io-threads and read-ahead too
 	tmpls[utils.ClientVolfile] = Template{
 		Name:  utils.ClientVolfile,
 		Level: VolfileLevelVolume,
@@ -107,16 +126,20 @@ func init() {
 				NameTmpl: "{{ volume.name }}",
 			},
 			{
-				Type: "performance/io-threads",
+				Type: "performance/read-ahead",
 			},
 			{
-				Type: "performance/md-cache",
+				Type:     "performance/io-threads",
+				Disabled: true,
 			},
 			{
-				Type: "performance/open-behind",
+				Type: "performance/nl-cache",
 			},
 			{
 				Type: "performance/quick-read",
+			},
+			{
+				Type: "performance/open-behind",
 			},
 			{
 				Type: "performance/io-cache",
@@ -124,11 +147,12 @@ func init() {
 			{
 				Type: "performance/readdir-ahead",
 			},
-			{
-				Type: "performance/read-ahead",
-			},
+
 			{
 				Type: "performance/write-behind",
+			},
+			{
+				Type: "performance/md-cache",
 			},
 			{
 				Type:           "features/read-only",
