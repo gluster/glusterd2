@@ -1,34 +1,37 @@
 package blockvolume
 
 import (
+	"strconv"
+
+	"github.com/gluster/glusterd2/glusterd2/options"
 	"github.com/gluster/glusterd2/pkg/api"
+	"github.com/gluster/glusterd2/pkg/size"
 
 	"github.com/pborman/uuid"
-	"github.com/spf13/viper"
 )
 
-// VolumeType represents a volume type
-type VolumeType string
-
 const (
-	// Replica represents a replica volume type
-	Replica VolumeType = "Replica"
+	defaultHostVolsize         = size.GiB * 5
+	defaultHostVolType         = "Replicate"
+	defaultHostVolReplicaCount = 3
+	hostVolautoCreate          = true
 )
 
 // HostingVolumeOptions holds various information which will be used in creating hosting volume
 type HostingVolumeOptions struct {
-	Size         int64
-	Type         VolumeType
+	Size         size.Size
+	Type         string
 	ReplicaCount int
 	AutoCreate   bool
 }
 
-// ApplyFromConfig sets HostingVolumeOptions member values from given config source
-func (h *HostingVolumeOptions) ApplyFromConfig(conf *viper.Viper) {
-	h.Size = conf.GetInt64("block-hosting-volume-size")
-	h.Type = VolumeType(conf.GetString("block-hosting-volume-type"))
-	h.ReplicaCount = conf.GetInt("block-hosting-volume-replica-count")
-	h.AutoCreate = conf.GetBool("auto-create-block-hosting-volumes")
+func newHostingVolumeOptions() *HostingVolumeOptions {
+	return &HostingVolumeOptions{
+		Size:         defaultHostVolsize,
+		Type:         defaultHostVolType,
+		ReplicaCount: defaultHostVolReplicaCount,
+		AutoCreate:   hostVolautoCreate,
+	}
 }
 
 // PrepareVolumeCreateReq will create a request body to be use for creating a gluster volume
@@ -40,8 +43,37 @@ func (h *HostingVolumeOptions) PrepareVolumeCreateReq() *api.VolCreateReq {
 		Transport:    "tcp",
 		Size:         uint64(h.Size),
 		ReplicaCount: h.ReplicaCount,
-		SubvolType:   string(h.Type),
+		SubvolType:   h.Type,
 	}
 
 	return req
+}
+
+// SetFromClusterOptions will configure HostingVolumeOptions using cluster options
+func (h *HostingVolumeOptions) SetFromClusterOptions() {
+	volType, err := options.GetClusterOption("block-hosting-volume-type")
+	if err == nil {
+		h.Type = volType
+	}
+
+	volSize, err := options.GetClusterOption("block-hosting-volume-size")
+	if err == nil {
+		if hostVolSize, err := size.Parse(volSize); err == nil {
+			h.Size = hostVolSize
+		}
+	}
+
+	count, err := options.GetClusterOption("block-hosting-volume-replica-count")
+	if err == nil {
+		if replicaCount, err := strconv.Atoi(count); err == nil {
+			h.ReplicaCount = replicaCount
+		}
+	}
+
+	autoCreate, err := options.GetClusterOption("auto-create-block-hosting-volumes")
+	if err == nil {
+		if val, err := strconv.ParseBool(autoCreate); err == nil {
+			h.AutoCreate = val
+		}
+	}
 }

@@ -14,7 +14,6 @@ import (
 	"github.com/gluster/glusterd2/plugins/blockvolume/utils"
 
 	log "github.com/sirupsen/logrus"
-	"github.com/spf13/viper"
 )
 
 const (
@@ -34,13 +33,10 @@ type glusterVolManager struct {
 
 // newGlusterVolManager returns a glusterVolManager instance
 func newGlusterVolManager() *glusterVolManager {
-	var (
-		g           = &glusterVolManager{}
-		hostVolOpts = &HostingVolumeOptions{}
-	)
+	g := &glusterVolManager{
+		hostVolOpts: newHostingVolumeOptions(),
+	}
 
-	hostVolOpts.ApplyFromConfig(viper.GetViper())
-	g.hostVolOpts = hostVolOpts
 	return g
 }
 
@@ -70,6 +66,8 @@ func (g *glusterVolManager) GetOrCreateHostingVolume(name string, minSizeLimit u
 		return nil, err
 	}
 	defer clusterLocks.UnLock(context.Background())
+
+	g.hostVolOpts.SetFromClusterOptions()
 
 	// ERROR if If HostingVolume is not specified and auto-create-block-hosting-volumes is false
 	if name == "" && !g.hostVolOpts.AutoCreate {
