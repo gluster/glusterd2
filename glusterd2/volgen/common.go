@@ -17,7 +17,7 @@ import (
 )
 
 const (
-	thinArbiterOptionName  = "replicate.thin-arbiter"
+	thinArbiterOptionName  = "cluster/replicate.thin-arbiter"
 	thinArbiterDefaultPort = "24007"
 )
 
