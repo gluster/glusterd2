@@ -1,4 +1,4 @@
-package blockvolume
+package hostvol
 
 import (
 	"context"
@@ -11,7 +11,7 @@ import (
 
 	"github.com/gluster/glusterd2/glusterd2/transaction"
 	"github.com/gluster/glusterd2/glusterd2/volume"
-	"github.com/gluster/glusterd2/plugins/blockvolume/utils"
+	"github.com/gluster/glusterd2/plugins/blockvolume/api"
 
 	log "github.com/sirupsen/logrus"
 )
@@ -23,17 +23,17 @@ const (
 // HostingVolumeManager provides methods for host volume management
 type HostingVolumeManager interface {
 	GetHostingVolumesInUse() []*volume.Volinfo
-	GetOrCreateHostingVolume(name string, minSizeLimit uint64) (*volume.Volinfo, error)
+	GetOrCreateHostingVolume(name string, minSizeLimit uint64, hostVolumeInfo *api.HostVolumeInfo) (*volume.Volinfo, error)
 }
 
-// glusterVolManager is a concrete implementation of HostingVolumeManager
-type glusterVolManager struct {
+// GlusterVolManager is a concrete implementation of HostingVolumeManager
+type GlusterVolManager struct {
 	hostVolOpts *HostingVolumeOptions
 }
 
-// newGlusterVolManager returns a glusterVolManager instance
-func newGlusterVolManager() *glusterVolManager {
-	g := &glusterVolManager{
+// NewGlusterVolManager returns a glusterVolManager instance
+func NewGlusterVolManager() *GlusterVolManager {
+	g := &GlusterVolManager{
 		hostVolOpts: newHostingVolumeOptions(),
 	}
 
@@ -41,7 +41,7 @@ func newGlusterVolManager() *glusterVolManager {
 }
 
 // GetHostingVolumesInUse lists all volumes which used in hosting block-vols
-func (g *glusterVolManager) GetHostingVolumesInUse() []*volume.Volinfo {
+func (g *GlusterVolManager) GetHostingVolumesInUse() []*volume.Volinfo {
 	ctx, cancel := context.WithTimeout(context.Background(), time.Second*5)
 	defer cancel()
 
@@ -55,7 +55,7 @@ func (g *glusterVolManager) GetHostingVolumesInUse() []*volume.Volinfo {
 
 // GetOrCreateHostingVolume will returns volume details for a given volume name and having a minimum size of `minSizeLimit`.
 // If volume name is not provided then it will create a gluster volume with default size for hosting gluster block.
-func (g *glusterVolManager) GetOrCreateHostingVolume(name string, minSizeLimit uint64) (*volume.Volinfo, error) {
+func (g *GlusterVolManager) GetOrCreateHostingVolume(name string, minSizeLimit uint64, hostVolumeInfo *api.HostVolumeInfo) (*volume.Volinfo, error) {
 	var (
 		volInfo      *volume.Volinfo
 		clusterLocks = transaction.Locks{}
@@ -67,9 +67,14 @@ func (g *glusterVolManager) GetOrCreateHostingVolume(name string, minSizeLimit u
 	defer clusterLocks.UnLock(context.Background())
 
 	g.hostVolOpts.SetFromClusterOptions()
-	volCreateReq := g.hostVolOpts.PrepareVolumeCreateReq()
+	g.hostVolOpts.SetFromReq(hostVolumeInfo)
+	volCreateReq, err := g.hostVolOpts.PrepareVolumeCreateReq()
+	if err != nil {
+		log.WithError(err).Error("failed to create block volume create request")
+		return nil, err
+	}
 
-	// ERROR if If HostingVolume is not specified and auto-create-block-hosting-volumes is false
+	// ERROR if HostingVolume is not specified and auto-create-block-hosting-volumes is false
 	if name == "" && !g.hostVolOpts.AutoCreate {
 		err := errors.New("host volume is not provided and auto creation is not enabled")
 		log.WithError(err).Error("failed in creating block volume")
@@ -91,7 +96,7 @@ func (g *glusterVolManager) GetOrCreateHostingVolume(name string, minSizeLimit u
 	// If HostingVolume is not specified. List all available volumes and see if any volume is
 	// available with Metadata:block-hosting=yes
 	if name == "" {
-		vInfo, err := utils.GetExistingBlockHostingVolume(minSizeLimit)
+		vInfo, err := GetExistingBlockHostingVolume(minSizeLimit, g.hostVolOpts)
 		if err != nil {
 			log.WithError(err).Debug("no block hosting volumes present")
 		}
@@ -102,7 +107,7 @@ func (g *glusterVolManager) GetOrCreateHostingVolume(name string, minSizeLimit u
 	// volumes(Metadata:block-hosting-available-size is less than request size), then try to create a new
 	// block hosting Volume with generated name with default size and volume type configured.
 	if name == "" && volInfo == nil {
-		vInfo, err := utils.CreateAndStartHostingVolume(volCreateReq)
+		vInfo, err := CreateAndStartHostingVolume(volCreateReq)
 		if err != nil {
 			log.WithError(err).Error("error in auto creation of block hosting volume")
 			return nil, err

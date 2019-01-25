@@ -4,6 +4,7 @@ import (
 	"fmt"
 	"strings"
 
+	"github.com/gluster/glusterd2/glusterd2/volume"
 	"github.com/gluster/glusterd2/pkg/api"
 
 	log "github.com/sirupsen/logrus"
@@ -315,7 +316,7 @@ func volumeCreateCmdRun(cmd *cobra.Command, args []string) {
 			fmt.Println("Thin arbiter can only be enabled for replica count 2")
 			return
 		}
-		if err := addThinArbiter(&req, cmd.Flag("thin-arbiter").Value.String()); err != nil {
+		if err := volume.AddThinArbiter(&req, cmd.Flag("thin-arbiter").Value.String()); err != nil {
 			fmt.Println(err)
 			return
 		}
@@ -330,21 +331,4 @@ func volumeCreateCmdRun(cmd *cobra.Command, args []string) {
 	}
 	fmt.Printf("%s Volume created successfully\n", vol.Name)
 	fmt.Println("Volume ID: ", vol.ID)
-}
-
-func addThinArbiter(req *api.VolCreateReq, thinArbiter string) error {
-
-	s := strings.Split(thinArbiter, ":")
-	if len(s) != 2 && len(s) != 3 {
-		return fmt.Errorf("thin arbiter brick must be of the form <host>:<brick> or <host>:<brick>:<port>")
-	}
-
-	// TODO: If required, handle this in a generic way, just like other
-	// volume set options that we're going to allow to be set during
-	// volume create.
-	req.Options = map[string]string{
-		"replicate.thin-arbiter": thinArbiter,
-	}
-	req.AllowAdvanced = true
-	return nil
 }

@@ -11,11 +11,25 @@ type BlockVolumeInfo struct {
 	HaCount int    `json:"hacount,omitempty"`
 }
 
+// HostVolumeInfo represents block volume info
+type HostVolumeInfo struct {
+	// HostVolReplicaCnt represents the replica count of the block hosting volume
+	HostVolReplicaCnt int `json:"hostvolreplicacnt,omitempty"`
+	// HostVolThinArbPath represents the thin arbiter path
+	HostVolThinArbPath string `json:"hostvolthinarbpath,omitempty"`
+	// HostVolShardSize represents the shard size of the block hosting volume
+	HostVolShardSize uint64 `json:"hostvolshardsize,omitempty"`
+	// Size represents Block Hosting Volume size in bytes
+	HostVolSize uint64 `json:"hostvolsize,omitempty"`
+}
+
 // BlockVolumeCreateRequest represents req Body for Block vol create req
 type BlockVolumeCreateRequest struct {
 	*BlockVolumeInfo
-	Clusters []string `json:"clusters,omitempty"`
-	Auth     bool     `json:"auth,omitempty"`
+	HostVolumeInfo
+	BlockType string   `json:"blocktype,omitempty"`
+	Clusters  []string `json:"clusters,omitempty"`
+	Auth      bool     `json:"auth,omitempty"`
 }
 
 // BlockVolumeCreateResp represents resp body for a Block Vol Create req

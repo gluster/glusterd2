@@ -6,7 +6,7 @@ import (
 	"github.com/gluster/glusterd2/glusterd2/volume"
 	"github.com/gluster/glusterd2/pkg/size"
 	"github.com/gluster/glusterd2/plugins/blockvolume/blockprovider"
-	"github.com/gluster/glusterd2/plugins/blockvolume/utils"
+	"github.com/gluster/glusterd2/plugins/blockvolume/hostvol"
 	"time"
 
 	"github.com/gluster/gluster-block-restapi/client"
@@ -79,7 +79,7 @@ func (g *GlusterBlock) CreateBlockVolume(name string, size uint64, hostVolume st
 	}
 
 	resizeFunc := func(blockHostingAvailableSize, blockSize uint64) uint64 { return blockHostingAvailableSize - blockSize }
-	if err = utils.ResizeBlockHostingVolume(hostVolume, size, resizeFunc); err != nil {
+	if err = hostvol.ResizeBlockHostingVolume(hostVolume, size, resizeFunc); err != nil {
 		logger.WithError(err).Error("failed in updating hostvolume _block-hosting-available-size metadata")
 	}
 
@@ -133,7 +133,7 @@ func (g *GlusterBlock) DeleteBlockVolume(name string, options ...blockprovider.B
 
 	resizeFunc := func(blockHostingAvailableSize, blockSize uint64) uint64 { return blockHostingAvailableSize + blockSize }
 
-	if err = utils.ResizeBlockHostingVolume(hostVol, blockInfo.Size, resizeFunc); err != nil {
+	if err = hostvol.ResizeBlockHostingVolume(hostVol, blockInfo.Size, resizeFunc); err != nil {
 		log.WithFields(log.Fields{
 			"error": err,
 			"size":  blockInfo.Size,

@@ -12,7 +12,7 @@ import (
 	"github.com/gluster/glusterd2/pkg/errors"
 	"github.com/gluster/glusterd2/pkg/utils"
 	"github.com/gluster/glusterd2/plugins/blockvolume/blockprovider"
-	blkUtils "github.com/gluster/glusterd2/plugins/blockvolume/utils"
+	"github.com/gluster/glusterd2/plugins/blockvolume/hostvol"
 
 	log "github.com/sirupsen/logrus"
 	config "github.com/spf13/viper"
@@ -95,18 +95,21 @@ func (g *GlusterVirtBlk) CreateBlockVolume(name string, size uint64, hostVolume 
 	blockFileName := hostDir + "/" + name
 	err = utils.ExecuteCommandRun("truncate", fmt.Sprintf("-s %d", size), blockFileName) //nolint: gosec
 	if err != nil {
-		logger.WithError(err).Errorf("failed to truncate block file" + blockFileName)
+		logger.WithError(err).Errorf("failed to truncate block file %s", blockFileName)
 		return nil, err
 	}
 
-	err = utils.ExecuteCommandRun("mkfs.xfs", "-f", blockFileName) //nolint: gosec
-	if err != nil {
-		logger.WithError(err).Errorf("failed to format block file " + blockFileName)
-		return nil, err
+	if blockVolOpts.BlockType != "raw" {
+		fsType := blockVolOpts.BlockType
+		err = utils.ExecuteCommandRun(fmt.Sprintf("mkfs.%s", fsType), "-f", blockFileName) //nolint: gosec
+		if err != nil {
+			logger.WithError(err).Errorf("failed to format block file %s with filesystem %s", blockFileName, fsType)
+			return nil, err
+		}
 	}
 
 	resizeFunc := func(blockHostingAvailableSize, blockSize uint64) uint64 { return blockHostingAvailableSize - blockSize }
-	if err = blkUtils.ResizeBlockHostingVolume(hostVolume, size, resizeFunc); err != nil {
+	if err = hostvol.ResizeBlockHostingVolume(hostVolume, size, resizeFunc); err != nil {
 		logger.WithError(err).Error("failed in updating hostvolume _block-hosting-available-size metadata")
 		return nil, err
 	}
@@ -119,7 +122,7 @@ func (g *GlusterVirtBlk) CreateBlockVolume(name string, size uint64, hostVolume 
 
 	volInfo, err := volume.GetVolume(hostVolume)
 	if err != nil {
-		logger.WithError(err).Errorf("failed to get host volume info " + hostVolume)
+		logger.WithError(err).Errorf("failed to get host volume info %s", hostVolume)
 		return nil, err
 	}
 	key := volume.BlockPrefix + name
@@ -181,14 +184,14 @@ func (g *GlusterVirtBlk) DeleteBlockVolume(name string, options ...blockprovider
 
 	hostDir, err := mountHost(g, blkVol.HostVolume())
 	if err != nil {
-		log.WithError(err).Errorf("error mounting block hosting volume :" + blkVol.HostVolume())
+		log.WithError(err).Errorf("error mounting block hosting volume :%s", blkVol.HostVolume())
 		return err
 	}
 
 	blockFileName := hostDir + "/" + name
 	err = os.Remove(blockFileName)
 	if err != nil {
-		log.WithError(err).Errorf("error removing block :" + blockFileName)
+		log.WithError(err).Errorf("error removing block :%s", blockFileName)
 		return err
 	}
 
@@ -199,7 +202,7 @@ func (g *GlusterVirtBlk) DeleteBlockVolume(name string, options ...blockprovider
 	}
 
 	resizeFunc := func(blockHostingAvailableSize, blockSize uint64) uint64 { return blockHostingAvailableSize + blockSize }
-	if err = blkUtils.ResizeBlockHostingVolume(blkVol.HostVolume(), blkVol.Size(), resizeFunc); err != nil {
+	if err = hostvol.ResizeBlockHostingVolume(blkVol.HostVolume(), blkVol.Size(), resizeFunc); err != nil {
 		log.WithFields(log.Fields{
 			"error": err,
 			"size":  blkVol.Size(),

@@ -1,4 +1,4 @@
-package utils
+package hostvol
 
 import (
 	"context"
@@ -15,7 +15,6 @@ import (
 	"github.com/gluster/glusterd2/glusterd2/volume"
 	"github.com/gluster/glusterd2/pkg/api"
 	"github.com/gluster/glusterd2/pkg/size"
-
 	log "github.com/sirupsen/logrus"
 )
 
@@ -40,13 +39,20 @@ func BlockSizeFilter(size uint64) volume.Filter {
 }
 
 // GetExistingBlockHostingVolume returns a existing volume which is suitable for hosting a gluster-block
-func GetExistingBlockHostingVolume(size uint64) (*volume.Volinfo, error) {
+func GetExistingBlockHostingVolume(size uint64, h *HostingVolumeOptions) (*volume.Volinfo, error) {
 	var (
 		filters     = []volume.Filter{volume.FilterBlockHostedVolumes, BlockSizeFilter(size)}
 		ctx, cancel = context.WithTimeout(context.Background(), time.Second*5)
 	)
 
 	defer cancel()
+
+	if h.ShardSize != 0 {
+		filters = append(filters, volume.FilterShardVolumes)
+	}
+	if h.ThinArbPath != "" {
+		filters = append(filters, volume.FilterThinArbiterVolumes)
+	}
 
 	volumes, err := volume.GetVolumes(ctx)
 	if err != nil || len(volumes) == 0 {
@@ -123,6 +129,8 @@ func ResizeBlockHostingVolume(volName string, blockSize interface{}, resizeFunc 
 	if err != nil {
 		return err
 	}
+
+	// TODO: If there are no blocks in the block hosting volume, delete the bhv?
 
 	log.WithFields(log.Fields{
 		"blockHostingAvailableSize": size.Size(availableSizeInBytes),
