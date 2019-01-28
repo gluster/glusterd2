@@ -58,7 +58,6 @@ func (g *glusterVolManager) GetHostingVolumesInUse() []*volume.Volinfo {
 func (g *glusterVolManager) GetOrCreateHostingVolume(name string, minSizeLimit uint64) (*volume.Volinfo, error) {
 	var (
 		volInfo      *volume.Volinfo
-		volCreateReq = g.hostVolOpts.PrepareVolumeCreateReq()
 		clusterLocks = transaction.Locks{}
 	)
 
@@ -68,6 +67,7 @@ func (g *glusterVolManager) GetOrCreateHostingVolume(name string, minSizeLimit u
 	defer clusterLocks.UnLock(context.Background())
 
 	g.hostVolOpts.SetFromClusterOptions()
+	volCreateReq := g.hostVolOpts.PrepareVolumeCreateReq()
 
 	// ERROR if If HostingVolume is not specified and auto-create-block-hosting-volumes is false
 	if name == "" && !g.hostVolOpts.AutoCreate {
