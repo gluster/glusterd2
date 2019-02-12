@@ -15,7 +15,8 @@ import (
 )
 
 const (
-	minBrickSize = 20 * gutils.MiB
+	minBrickSize            = 20 * gutils.MiB
+	defaultMaxLoopBrickSize = 100 * gutils.GiB
 )
 
 func handleReplicaSubvolReq(req *api.VolCreateReq) error {
@@ -89,6 +90,18 @@ func getBricksLayout(req *api.VolCreateReq) ([]api.SubvolReq, error) {
 
 	if req.MaxBrickSize > 0 && req.MaxBrickSize < minBrickSize {
 		return nil, errors.New("invalid max-brick-size, Minimum size required is " + strconv.Itoa(minBrickSize))
+	}
+
+	// Limit max loopback brick size to 100GiB
+	if req.ProvisionerType == api.ProvisionerTypeLoop {
+		if req.MaxBrickSize > defaultMaxLoopBrickSize {
+			return nil, errors.New("invalid max-brick-size, max brick size supported for loop back bricks is " + strconv.Itoa(defaultMaxLoopBrickSize))
+		}
+
+		// If max brick size is not set
+		if req.MaxBrickSize == 0 {
+			req.MaxBrickSize = defaultMaxLoopBrickSize
+		}
 	}
 
 	// If max Brick size is specified then decide distribute
