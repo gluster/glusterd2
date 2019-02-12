@@ -234,8 +234,8 @@ func (tm *txnManager) GetTxns() (txns []*Txn) {
 		return
 	}
 	for _, kv := range resp.Kvs {
-		preifx, id := path.Split(string(kv.Key))
-		if uuid.Parse(id) == nil || preifx != PendingTxnPrefix {
+		prefix, id := path.Split(string(kv.Key))
+		if uuid.Parse(id) == nil || prefix != PendingTxnPrefix {
 			continue
 		}
 
