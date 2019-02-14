@@ -18,7 +18,7 @@ type tracingExecutor struct {
 
 // Execute will record trace info for Execute operation.
 func (t *tracingExecutor) Execute(ctx context.Context, txn *Txn) error {
-	ctx, span := trace.StartSpan(ctx, "txnEng.executor.Execute/")
+	ctx, span := trace.StartSpanWithRemoteParent(ctx, "txnEng.executor.Execute/", txn.TxnSpanCtx)
 	defer span.End()
 	span.AddAttributes(
 		trace.StringAttribute("reqID", txn.Ctx.GetTxnReqID()),
@@ -28,7 +28,7 @@ func (t *tracingExecutor) Execute(ctx context.Context, txn *Txn) error {
 
 // Resume will record trace info for Resume operation.
 func (t *tracingExecutor) Resume(ctx context.Context, txn *Txn) error {
-	ctx, span := trace.StartSpan(ctx, "txnEng.executor.Resume/")
+	ctx, span := trace.StartSpanWithRemoteParent(ctx, "txnEng.executor.Resume/", txn.TxnSpanCtx)
 	defer span.End()
 	span.AddAttributes(
 		trace.StringAttribute("reqID", txn.Ctx.GetTxnReqID()),
