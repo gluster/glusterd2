@@ -137,7 +137,7 @@ func runStepFuncOnNode(origCtx context.Context, stepName string, ctx TxnCtx, nod
 
 	var err error
 	if uuid.Equal(node, gdctx.MyUUID) {
-		err = RunStepFuncLocally(origCtx, stepName, ctx)
+		err = traceStep(RunStepFuncLocally)(origCtx, stepName, ctx)
 	} else {
 		// remote node
 		err = runStepOn(origCtx, stepName, node, ctx)
@@ -146,30 +146,35 @@ func runStepFuncOnNode(origCtx context.Context, stepName string, ctx TxnCtx, nod
 	respCh <- stepPeerResp{node, err}
 }
 
+type runFunc func(origCtx context.Context, stepName string, ctx TxnCtx) error
+
+func traceStep(f runFunc) runFunc {
+	return func(origCtx context.Context, stepName string, ctx TxnCtx) error {
+		if origCtx != nil {
+			_, span := trace.StartSpan(origCtx, stepName)
+			reqID := ctx.GetTxnReqID()
+			span.AddAttributes(
+				trace.StringAttribute("reqID", reqID),
+			)
+			defer span.End()
+		}
+
+		return f(origCtx, stepName, ctx)
+	}
+}
+
 // RunStepFuncLocally runs a step func on local node
 func RunStepFuncLocally(origCtx context.Context, stepName string, ctx TxnCtx) error {
-
-	var err error
-
-	if origCtx != nil {
-		_, span := trace.StartSpan(origCtx, stepName)
-		reqID := ctx.GetTxnReqID()
-		span.AddAttributes(
-			trace.StringAttribute("reqID", reqID),
-		)
-		defer span.End()
-	}
-
 	stepFunc, ok := getStepFunc(stepName)
-	if ok {
-		if err = stepFunc(ctx); err == nil {
-			// if step function executes successfully, commit the
-			// results to the store
-			err = ctx.Commit()
-		}
-	} else {
-		err = ErrStepFuncNotFound
+	if !ok {
+		return ErrStepFuncNotFound
 	}
 
-	return err
+	if err := stepFunc(ctx); err != nil {
+		return err
+	}
+
+	// if step function executes successfully, commit the
+	// results to the store
+	return ctx.Commit()
 }
