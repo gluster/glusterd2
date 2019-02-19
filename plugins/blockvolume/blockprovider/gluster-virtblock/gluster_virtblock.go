@@ -108,12 +108,6 @@ func (g *GlusterVirtBlk) CreateBlockVolume(name string, size uint64, hostVolume 
 		}
 	}
 
-	resizeFunc := func(blockHostingAvailableSize, blockSize uint64) uint64 { return blockHostingAvailableSize - blockSize }
-	if err = hostvol.ResizeBlockHostingVolume(hostVolume, size, resizeFunc); err != nil {
-		logger.WithError(err).Error("failed in updating hostvolume _block-hosting-available-size metadata")
-		return nil, err
-	}
-
 	if err = clusterLocks.Lock(hostVolume); err != nil {
 		logger.WithError(err).Error("error in acquiring cluster lock")
 		return nil, err
@@ -125,6 +119,13 @@ func (g *GlusterVirtBlk) CreateBlockVolume(name string, size uint64, hostVolume 
 		logger.WithError(err).Errorf("failed to get host volume info %s", hostVolume)
 		return nil, err
 	}
+
+	resizeFunc := func(blockHostingAvailableSize, blockSize uint64) uint64 { return blockHostingAvailableSize - blockSize }
+	if err = hostvol.UpdateBlockHostingVolumeSize(volInfo, size, resizeFunc); err != nil {
+		logger.WithError(err).Error("failed in updating hostvolume _block-hosting-available-size metadata")
+		return nil, err
+	}
+
 	key := volume.BlockPrefix + name
 	val := strconv.FormatUint(size, 10)
 	volInfo.Metadata[key] = val
@@ -140,10 +141,33 @@ func (g *GlusterVirtBlk) CreateBlockVolume(name string, size uint64, hostVolume 
 	}, nil
 }
 
-func delBlockEntry(hostName string, name string) error {
+// DeleteBlockVolume deletes a gluster block volume of give name
+func (g *GlusterVirtBlk) DeleteBlockVolume(name string, options ...blockprovider.BlockVolOption) error {
 	var (
+		blockVolOpts = &blockprovider.BlockVolumeOptions{}
 		clusterLocks = transaction.Locks{}
 	)
+
+	blockVolOpts.ApplyOpts(options...)
+
+	blkVol, err := g.GetBlockVolume(name)
+	if err != nil || blkVol == nil {
+		return errors.ErrBlockVolNotFound
+	}
+
+	hostName := blkVol.HostVolume()
+	hostDir, err := mountHost(g, hostName)
+	if err != nil {
+		log.WithError(err).Errorf("error mounting block hosting volume :%s", hostName)
+		return err
+	}
+
+	blockFileName := hostDir + "/" + name
+	err = os.Remove(blockFileName)
+	if err != nil {
+		log.WithError(err).Errorf("error removing block :%s", blockFileName)
+		return err
+	}
 
 	if err := clusterLocks.Lock(hostName); err != nil {
 		log.WithError(err).Error("error in acquiring cluster lock")
@@ -160,53 +184,19 @@ func delBlockEntry(hostName string, name string) error {
 	for k := range hostVol.Metadata {
 		if k == (volume.BlockPrefix + name) {
 			delete(hostVol.Metadata, k)
-			if err := volume.AddOrUpdateVolume(hostVol); err != nil {
-				log.WithError(err).Error("failed in updating volume info to store")
-				return err
-			}
 		}
-	}
-	return nil
-}
-
-// DeleteBlockVolume deletes a gluster block volume of give name
-func (g *GlusterVirtBlk) DeleteBlockVolume(name string, options ...blockprovider.BlockVolOption) error {
-	var (
-		blockVolOpts = &blockprovider.BlockVolumeOptions{}
-	)
-
-	blockVolOpts.ApplyOpts(options...)
-
-	blkVol, err := g.GetBlockVolume(name)
-	if err != nil || blkVol == nil {
-		return errors.ErrBlockVolNotFound
-	}
-
-	hostDir, err := mountHost(g, blkVol.HostVolume())
-	if err != nil {
-		log.WithError(err).Errorf("error mounting block hosting volume :%s", blkVol.HostVolume())
-		return err
-	}
-
-	blockFileName := hostDir + "/" + name
-	err = os.Remove(blockFileName)
-	if err != nil {
-		log.WithError(err).Errorf("error removing block :%s", blockFileName)
-		return err
-	}
-
-	err = delBlockEntry(blkVol.HostVolume(), name)
-	if err != nil {
-		log.WithError(err).Error("error updating block host volume metadata")
-		return err
 	}
 
 	resizeFunc := func(blockHostingAvailableSize, blockSize uint64) uint64 { return blockHostingAvailableSize + blockSize }
-	if err = hostvol.ResizeBlockHostingVolume(blkVol.HostVolume(), blkVol.Size(), resizeFunc); err != nil {
+	if err = hostvol.UpdateBlockHostingVolumeSize(hostVol, blkVol.Size(), resizeFunc); err != nil {
 		log.WithFields(log.Fields{
 			"error": err,
 			"size":  blkVol.Size(),
 		}).Error("error in resizing the block hosting volume")
+	}
+	if err := volume.AddOrUpdateVolume(hostVol); err != nil {
+		log.WithError(err).Error("failed in updating volume info to store")
+		return err
 	}
 
 	return err
