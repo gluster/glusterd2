@@ -9,7 +9,6 @@ import (
 
 	"github.com/pborman/uuid"
 	log "github.com/sirupsen/logrus"
-	"go.opencensus.io/trace"
 )
 
 const (
@@ -36,7 +35,7 @@ func NewEngine() *Engine {
 	engine := &Engine{
 		stop:        make(chan struct{}),
 		selfNodeID:  gdctx.MyUUID,
-		stepManager: newStepManager(),
+		stepManager: newTracingManager(newStepManager()),
 		txnManager:  NewTxnManager(store.Store.Watcher),
 	}
 
@@ -100,12 +99,6 @@ func (txnEng *Engine) Execute(ctx context.Context, txn *Txn) {
 	}
 
 	txn.Ctx.Logger().WithField("state", status.State).Debug("received a transaction")
-
-	ctx, span := trace.StartSpanWithRemoteParent(ctx, "txnEng.Execute/", txn.TxnSpanCtx)
-	defer span.End()
-	span.AddAttributes(
-		trace.StringAttribute("reqID", txn.Ctx.GetTxnReqID()),
-	)
 
 	switch status.State {
 	case txnPending:

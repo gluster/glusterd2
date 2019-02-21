@@ -7,6 +7,7 @@ import (
 	"path"
 	"path/filepath"
 	"regexp"
+	"strconv"
 	"strings"
 	"syscall"
 
@@ -398,4 +399,29 @@ func CleanBricksLoop(volinfo *Volinfo) error {
 		}
 	}
 	return nil
+}
+
+//AddThinArbiter adds thin arbiter option to the volume create request
+func AddThinArbiter(req *api.VolCreateReq, thinArbiter string) error {
+
+	s := strings.Split(thinArbiter, ":")
+	if len(s) != 2 && len(s) != 3 {
+		return errors.New("thin arbiter brick must be of the form <host>:<brick> or <host>:<brick>:<port>")
+	}
+
+	// TODO: If required, handle this in a generic way, just like other
+	// volume set options that we're going to allow to be set during
+	// volume create.
+	req.Options["replicate.thin-arbiter"] = thinArbiter
+	req.AllowAdvanced = true
+	return nil
+}
+
+//AddShard adds shard options to the volume create request
+func AddShard(req *api.VolCreateReq, shardSize uint64) {
+
+	req.Options["features/shard"] = "on"
+	req.Options["features/shard.shard-block-size"] = strconv.FormatUint(shardSize, 10)
+	req.AllowAdvanced = true
+	return
 }

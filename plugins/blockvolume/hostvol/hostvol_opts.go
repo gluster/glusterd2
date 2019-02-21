@@ -1,13 +1,17 @@
-package blockvolume
+package hostvol
 
 import (
+	"errors"
 	"strconv"
 
 	"github.com/gluster/glusterd2/glusterd2/options"
+	"github.com/gluster/glusterd2/glusterd2/volume"
 	"github.com/gluster/glusterd2/pkg/api"
 	"github.com/gluster/glusterd2/pkg/size"
 
+	blkapi "github.com/gluster/glusterd2/plugins/blockvolume/api"
 	"github.com/pborman/uuid"
+	log "github.com/sirupsen/logrus"
 )
 
 const (
@@ -23,6 +27,8 @@ type HostingVolumeOptions struct {
 	Type         string
 	ReplicaCount int
 	AutoCreate   bool
+	ThinArbPath  string
+	ShardSize    uint64
 }
 
 func newHostingVolumeOptions() *HostingVolumeOptions {
@@ -35,7 +41,7 @@ func newHostingVolumeOptions() *HostingVolumeOptions {
 }
 
 // PrepareVolumeCreateReq will create a request body to be use for creating a gluster volume
-func (h *HostingVolumeOptions) PrepareVolumeCreateReq() *api.VolCreateReq {
+func (h *HostingVolumeOptions) PrepareVolumeCreateReq() (*api.VolCreateReq, error) {
 	name := "block_hosting_volume_" + uuid.NewRandom().String()
 
 	req := &api.VolCreateReq{
@@ -44,9 +50,44 @@ func (h *HostingVolumeOptions) PrepareVolumeCreateReq() *api.VolCreateReq {
 		Size:         uint64(h.Size),
 		ReplicaCount: h.ReplicaCount,
 		SubvolType:   h.Type,
+		Force:        true,
+		VolOptionReq: api.VolOptionReq{
+			Options: map[string]string{},
+		},
 	}
 
-	return req
+	if h.ThinArbPath != "" {
+		if h.ReplicaCount != 2 {
+			err := errors.New("thin arbiter can only be enabled for replica count 2")
+			log.WithError(err).Error("failed to prepare host vol create request")
+			return nil, err
+		}
+		if err := volume.AddThinArbiter(req, h.ThinArbPath); err != nil {
+			log.WithError(err).Error("failed to add thin arbiter options to host volume")
+			return nil, err
+		}
+	}
+	if h.ShardSize != 0 {
+		volume.AddShard(req, h.ShardSize)
+	}
+
+	return req, nil
+}
+
+// SetFromReq will configure HostingVolumeOptions from the values sent in the block create request
+func (h *HostingVolumeOptions) SetFromReq(hvi *blkapi.HostVolumeInfo) {
+	if hvi.HostVolReplicaCnt != 0 {
+		h.ReplicaCount = hvi.HostVolReplicaCnt
+	}
+	if hvi.HostVolThinArbPath != "" {
+		h.ThinArbPath = hvi.HostVolThinArbPath
+	}
+	if hvi.HostVolShardSize != 0 {
+		h.ShardSize = hvi.HostVolShardSize
+	}
+	if hvi.HostVolSize != 0 {
+		h.Size = size.Size(hvi.HostVolSize)
+	}
 }
 
 // SetFromClusterOptions will configure HostingVolumeOptions using cluster options
@@ -76,4 +117,6 @@ func (h *HostingVolumeOptions) SetFromClusterOptions() {
 			h.AutoCreate = val
 		}
 	}
+	h.ThinArbPath = ""
+	h.ShardSize = 0
 }

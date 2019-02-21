@@ -20,11 +20,13 @@ type Executor interface {
 // NewExecutor returns an Executor instance
 func NewExecutor() Executor {
 	e := &executorImpl{
-		txnManager:  NewTxnManager(store.Store.Watcher),
-		stepManager: newStepManager(),
-		selfNodeID:  gdctx.MyUUID,
+		txnManager: NewTxnManager(store.Store.Watcher),
+		selfNodeID: gdctx.MyUUID,
 	}
 
+	stepManager := newStepManager()
+	stepManager = newTracingManager(stepManager)
+	e.stepManager = stepManager
 	return e
 }
 
