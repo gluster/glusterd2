@@ -6,8 +6,8 @@ import (
 
 	"github.com/gluster/glusterd2/glusterd2/brick"
 	"github.com/gluster/glusterd2/glusterd2/gdctx"
+	"github.com/gluster/glusterd2/glusterd2/oldtransaction"
 	"github.com/gluster/glusterd2/glusterd2/store"
-	"github.com/gluster/glusterd2/glusterd2/transaction"
 	gderrors "github.com/gluster/glusterd2/pkg/errors"
 	"github.com/gluster/glusterd2/pkg/lvmutils"
 	deviceapi "github.com/gluster/glusterd2/plugins/device/api"
@@ -117,7 +117,7 @@ func UpdateDeviceFreeSize(peerID, device string) error {
 
 // AddDeviceFreeSize updates device available size
 func AddDeviceFreeSize(peerID, device string, size uint64) error {
-	clusterLocks := transaction.Locks{}
+	clusterLocks := oldtransaction.Locks{}
 	if err := clusterLocks.Lock(peerID + device); err != nil {
 		return err
 	}
@@ -135,7 +135,7 @@ func AddDeviceFreeSize(peerID, device string, size uint64) error {
 
 // ReduceDeviceFreeSize updates device available size
 func ReduceDeviceFreeSize(peerID, device string, size uint64) error {
-	clusterLocks := transaction.Locks{}
+	clusterLocks := oldtransaction.Locks{}
 	if err := clusterLocks.Lock(peerID + device); err != nil {
 		return err
 	}

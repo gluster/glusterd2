@@ -3,7 +3,7 @@ package device
 import (
 	"os"
 
-	"github.com/gluster/glusterd2/glusterd2/transaction"
+	"github.com/gluster/glusterd2/glusterd2/oldtransaction"
 	"github.com/gluster/glusterd2/pkg/api"
 	"github.com/gluster/glusterd2/pkg/fsutils"
 	"github.com/gluster/glusterd2/pkg/lvmutils"
@@ -13,7 +13,7 @@ import (
 	"github.com/pborman/uuid"
 )
 
-func txnPrepareDevice(c transaction.TxnCtx) error {
+func txnPrepareDevice(c oldtransaction.TxnCtx) error {
 	var req deviceapi.AddDeviceReq
 	if err := c.Get("req", &req); err != nil {
 		c.Logger().WithError(err).WithField("key", "req").Error("Failed to get key from transaction context")
@@ -25,7 +25,7 @@ func txnPrepareDevice(c transaction.TxnCtx) error {
 	return txnPrepareDeviceLvm(req, c)
 }
 
-func txnPrepareDeviceLvm(req deviceapi.AddDeviceReq, c transaction.TxnCtx) error {
+func txnPrepareDeviceLvm(req deviceapi.AddDeviceReq, c oldtransaction.TxnCtx) error {
 	var peerID uuid.UUID
 	if err := c.Get("peerid", &peerID); err != nil {
 		c.Logger().WithError(err).WithField("key", "peerid").Error("Failed to get key from transaction context")
@@ -72,7 +72,7 @@ func txnPrepareDeviceLvm(req deviceapi.AddDeviceReq, c transaction.TxnCtx) error
 	return nil
 }
 
-func txnPrepareDeviceLoop(req deviceapi.AddDeviceReq, c transaction.TxnCtx) error {
+func txnPrepareDeviceLoop(req deviceapi.AddDeviceReq, c oldtransaction.TxnCtx) error {
 	var peerID uuid.UUID
 	if err := c.Get("peerid", &peerID); err != nil {
 		c.Logger().WithError(err).WithField("key", "peerid").Error("Failed to get key from transaction context")

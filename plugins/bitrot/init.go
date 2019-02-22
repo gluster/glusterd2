@@ -1,8 +1,8 @@
 package bitrot
 
 import (
+	"github.com/gluster/glusterd2/glusterd2/oldtransaction"
 	"github.com/gluster/glusterd2/glusterd2/servers/rest/route"
-	"github.com/gluster/glusterd2/glusterd2/transaction"
 )
 
 const name = "bitrot"
@@ -49,9 +49,9 @@ func (p *Plugin) RestRoutes() route.Routes {
 // RegisterStepFuncs registers transaction step functions with
 // Glusterd Transaction framework
 func (p *Plugin) RegisterStepFuncs() {
-	transaction.RegisterStepFunc(txnBitrotEnableDisable, "bitrot-enable.Commit")
-	transaction.RegisterStepFunc(txnBitrotEnableDisable, "bitrot-disable.Commit")
-	transaction.RegisterStepFunc(txnBitrotScrubOndemand, "bitrot-scrubondemand.Commit")
-	transaction.RegisterStepFunc(txnBitrotScrubStatus, "bitrot-scrubstatus.Commit")
+	oldtransaction.RegisterStepFunc(txnBitrotEnableDisable, "bitrot-enable.Commit")
+	oldtransaction.RegisterStepFunc(txnBitrotEnableDisable, "bitrot-disable.Commit")
+	oldtransaction.RegisterStepFunc(txnBitrotScrubOndemand, "bitrot-scrubondemand.Commit")
+	oldtransaction.RegisterStepFunc(txnBitrotScrubStatus, "bitrot-scrubstatus.Commit")
 	return
 }

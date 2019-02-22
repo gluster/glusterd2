@@ -8,7 +8,7 @@ import (
 	"net/http"
 
 	"github.com/gluster/glusterd2/glusterd2/gdctx"
-	"github.com/gluster/glusterd2/glusterd2/transaction"
+	"github.com/gluster/glusterd2/glusterd2/oldtransaction"
 	"github.com/gluster/glusterd2/pkg/api"
 	gderrors "github.com/gluster/glusterd2/pkg/errors"
 )
@@ -100,7 +100,7 @@ func ErrToStatusCode(err error) (int, error) {
 		statuscode = http.StatusNotFound
 	case gderrors.ErrSnapNotFound:
 		statuscode = http.StatusNotFound
-	case transaction.ErrLockTimeout:
+	case oldtransaction.ErrLockTimeout:
 		statuscode = http.StatusConflict
 	default:
 		statuscode = http.StatusInternalServerError

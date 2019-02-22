@@ -8,9 +8,9 @@ import (
 
 	"github.com/gluster/glusterd2/glusterd2/brick"
 	"github.com/gluster/glusterd2/glusterd2/gdctx"
+	"github.com/gluster/glusterd2/glusterd2/oldtransaction"
 	restutils "github.com/gluster/glusterd2/glusterd2/servers/rest/utils"
 	"github.com/gluster/glusterd2/glusterd2/snapshot"
-	"github.com/gluster/glusterd2/glusterd2/transaction"
 	"github.com/gluster/glusterd2/glusterd2/volgen"
 	"github.com/gluster/glusterd2/glusterd2/volume"
 	"github.com/gluster/glusterd2/pkg/lvmutils"
@@ -49,7 +49,7 @@ func snapshotBrickDelete(errCh chan error, wg *sync.WaitGroup, snapVol volume.Vo
 	return
 }
 
-func snapshotDelete(c transaction.TxnCtx) error {
+func snapshotDelete(c oldtransaction.TxnCtx) error {
 	var snapinfo snapshot.Snapinfo
 	if err := c.Get("snapinfo", &snapinfo); err != nil {
 		return err
@@ -81,7 +81,7 @@ func snapshotDelete(c transaction.TxnCtx) error {
 	return err
 }
 
-func snapshotDeleteStore(c transaction.TxnCtx) error {
+func snapshotDeleteStore(c oldtransaction.TxnCtx) error {
 
 	var (
 		snapinfo snapshot.Snapinfo
@@ -105,7 +105,7 @@ snapshot if something fails.
 func registerSnapDeleteStepFuncs() {
 	var sfs = []struct {
 		name string
-		sf   transaction.StepFunc
+		sf   oldtransaction.StepFunc
 	}{
 		{"snap-delete.Commit", snapshotDelete},
 		{"snap-delete.Store", snapshotDeleteStore},
@@ -116,7 +116,7 @@ func registerSnapDeleteStepFuncs() {
 		*/
 	}
 	for _, sf := range sfs {
-		transaction.RegisterStepFunc(sf.sf, sf.name)
+		oldtransaction.RegisterStepFunc(sf.sf, sf.name)
 	}
 }
 
@@ -136,7 +136,7 @@ func snapshotDeleteHandler(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	txn, err := transaction.NewTxnWithLocks(ctx, snapname, snapinfo.ParentVolume)
+	txn, err := oldtransaction.NewTxnWithLocks(ctx, snapname, snapinfo.ParentVolume)
 	if err != nil {
 		status, err := restutils.ErrToStatusCode(err)
 		restutils.SendHTTPError(ctx, w, status, err)
@@ -153,7 +153,7 @@ func snapshotDeleteHandler(w http.ResponseWriter, r *http.Request) {
 	}
 
 	volinfo := &snapinfo.SnapVolinfo
-	txn.Steps = []*transaction.Step{
+	txn.Steps = []*oldtransaction.Step{
 		{
 			DoFunc: "snap-delete.Commit",
 			Nodes:  volinfo.Nodes(),

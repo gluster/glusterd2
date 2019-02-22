@@ -9,8 +9,8 @@ import (
 	"time"
 
 	"github.com/gluster/glusterd2/glusterd2/gdctx"
+	"github.com/gluster/glusterd2/glusterd2/oldtransaction"
 	"github.com/gluster/glusterd2/glusterd2/store"
-	"github.com/gluster/glusterd2/glusterd2/transaction"
 
 	"github.com/coreos/etcd/clientv3"
 	"github.com/pborman/uuid"
@@ -25,21 +25,21 @@ const (
 
 // Txn is a set of steps
 type Txn struct {
-	locks transaction.Locks
+	locks oldtransaction.Locks
 
 	// Nodes is the union of the all the TxnStep.Nodes and is implicitly
 	// set in Txn.Do(). This list is used to determine liveness of the
 	// nodes before running the transaction steps.
-	Nodes           []uuid.UUID         `json:"nodes"`
-	StorePrefix     string              `json:"store_prefix"`
-	ID              uuid.UUID           `json:"id"`
-	ReqID           uuid.UUID           `json:"req_id"`
-	Ctx             transaction.TxnCtx  `json:"ctx"`
-	Steps           []*transaction.Step `json:"steps"`
-	DontCheckAlive  bool                `json:"dont_check_alive"`
-	DisableRollback bool                `json:"disable_rollback"`
-	StartTime       time.Time           `json:"start_time"`
-	TxnSpanCtx      trace.SpanContext   `json:"txn_span_ctx"`
+	Nodes           []uuid.UUID            `json:"nodes"`
+	StorePrefix     string                 `json:"store_prefix"`
+	ID              uuid.UUID              `json:"id"`
+	ReqID           uuid.UUID              `json:"req_id"`
+	Ctx             oldtransaction.TxnCtx  `json:"ctx"`
+	Steps           []*oldtransaction.Step `json:"steps"`
+	DontCheckAlive  bool                   `json:"dont_check_alive"`
+	DisableRollback bool                   `json:"disable_rollback"`
+	StartTime       time.Time              `json:"start_time"`
+	TxnSpanCtx      trace.SpanContext      `json:"txn_span_ctx"`
 
 	success   chan struct{}
 	error     chan error
@@ -53,16 +53,16 @@ func NewTxn(ctx context.Context) *Txn {
 
 	t.ID = uuid.NewRandom()
 	t.ReqID = gdctx.GetReqID(ctx)
-	t.locks = transaction.Locks{}
+	t.locks = oldtransaction.Locks{}
 	t.StorePrefix = txnPrefix + t.ID.String() + "/"
-	config := &transaction.TxnCtxConfig{
+	config := &oldtransaction.TxnCtxConfig{
 		LogFields: log.Fields{
 			"txnid": t.ID.String(),
 			"reqid": t.ReqID.String(),
 		},
 		StorePrefix: t.StorePrefix,
 	}
-	t.Ctx = transaction.NewCtx(config)
+	t.Ctx = oldtransaction.NewCtx(config)
 	spanCtx := trace.FromContext(ctx)
 	t.TxnSpanCtx = spanCtx.SpanContext()
 	t.Ctx.Logger().Debug("new transaction created")
@@ -72,14 +72,14 @@ func NewTxn(ctx context.Context) *Txn {
 // NewTxnWithLocks returns an empty Txn with locks obtained on given lockIDs
 func NewTxnWithLocks(ctx context.Context, lockIDs ...string) (*Txn, error) {
 	t := NewTxn(ctx)
-	t.locks = transaction.Locks{}
+	t.locks = oldtransaction.Locks{}
 	err := t.acquireClusterLocks(lockIDs...)
 	return t, err
 }
 
 func (t *Txn) acquireClusterLocks(lockIDs ...string) error {
 	if t.locks == nil {
-		t.locks = transaction.Locks{}
+		t.locks = oldtransaction.Locks{}
 	}
 
 	for _, id := range lockIDs {

@@ -6,9 +6,9 @@ import (
 	"strings"
 
 	"github.com/gluster/glusterd2/glusterd2/gdctx"
+	"github.com/gluster/glusterd2/glusterd2/oldtransaction"
 	"github.com/gluster/glusterd2/glusterd2/peer"
 	restutils "github.com/gluster/glusterd2/glusterd2/servers/rest/utils"
-	"github.com/gluster/glusterd2/glusterd2/transaction"
 	"github.com/gluster/glusterd2/pkg/api"
 	"github.com/gluster/glusterd2/pkg/errors"
 	deviceapi "github.com/gluster/glusterd2/plugins/device/api"
@@ -39,7 +39,7 @@ func deviceAddHandler(w http.ResponseWriter, r *http.Request) {
 		req.ProvisionerType = api.ProvisionerTypeLvm
 	}
 
-	txn, err := transaction.NewTxnWithLocks(ctx, peerID)
+	txn, err := oldtransaction.NewTxnWithLocks(ctx, peerID)
 	if err != nil {
 		status, err := restutils.ErrToStatusCode(err)
 		restutils.SendHTTPError(ctx, w, status, err)
@@ -71,7 +71,7 @@ func deviceAddHandler(w http.ResponseWriter, r *http.Request) {
 	}
 
 	txn.Nodes = []uuid.UUID{peerInfo.ID}
-	txn.Steps = []*transaction.Step{
+	txn.Steps = []*oldtransaction.Step{
 		{
 			DoFunc: "prepare-device",
 			Nodes:  txn.Nodes,
@@ -181,7 +181,7 @@ func deviceEditHandler(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	txn, err := transaction.NewTxnWithLocks(ctx, peerID+device)
+	txn, err := oldtransaction.NewTxnWithLocks(ctx, peerID+device)
 	if err != nil {
 		status, err := restutils.ErrToStatusCode(err)
 		restutils.SendHTTPError(ctx, w, status, err)

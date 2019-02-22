@@ -6,8 +6,8 @@ import (
 	"github.com/gluster/glusterd2/glusterd2/brick"
 	"github.com/gluster/glusterd2/glusterd2/daemon"
 	"github.com/gluster/glusterd2/glusterd2/gdctx"
+	"github.com/gluster/glusterd2/glusterd2/oldtransaction"
 	"github.com/gluster/glusterd2/glusterd2/servers/sunrpc/dict"
-	"github.com/gluster/glusterd2/glusterd2/transaction"
 	"github.com/gluster/glusterd2/glusterd2/volgen"
 	"github.com/gluster/glusterd2/glusterd2/volume"
 	rebalanceapi "github.com/gluster/glusterd2/plugins/rebalance/api"
@@ -26,7 +26,7 @@ const (
 	rebalStatusTxnKey string = "rebalstatus"
 )
 
-func txnRebalanceStart(c transaction.TxnCtx) error {
+func txnRebalanceStart(c oldtransaction.TxnCtx) error {
 	var rinfo rebalanceapi.RebalInfo
 
 	err := c.Get("rinfo", &rinfo)
@@ -63,7 +63,7 @@ func txnRebalanceStart(c transaction.TxnCtx) error {
 	return nil
 }
 
-func txnRebalanceStop(c transaction.TxnCtx) error {
+func txnRebalanceStop(c oldtransaction.TxnCtx) error {
 	var rebalinfo rebalanceapi.RebalInfo
 	err := c.Get("rinfo", &rebalinfo)
 	if err != nil {
@@ -134,7 +134,7 @@ func txnRebalanceStop(c transaction.TxnCtx) error {
 	return nil
 }
 
-func txnRebalanceStatus(c transaction.TxnCtx) error {
+func txnRebalanceStatus(c oldtransaction.TxnCtx) error {
 
 	var (
 		rebalinfo rebalanceapi.RebalInfo
@@ -228,7 +228,7 @@ func txnRebalanceStatus(c transaction.TxnCtx) error {
 
 }
 
-func txnRebalanceStoreDetails(c transaction.TxnCtx) error {
+func txnRebalanceStoreDetails(c oldtransaction.TxnCtx) error {
 	var rebalinfo rebalanceapi.RebalInfo
 
 	err := c.Get("rinfo", &rebalinfo)

@@ -5,16 +5,16 @@ import (
 	"time"
 
 	"github.com/gluster/glusterd2/glusterd2/gdctx"
+	"github.com/gluster/glusterd2/glusterd2/oldtransaction"
 	"github.com/gluster/glusterd2/glusterd2/store"
-	"github.com/gluster/glusterd2/glusterd2/transaction"
 
 	"github.com/pborman/uuid"
 )
 
 // StepManager is an interface for running a step and also rollback step on local node
 type StepManager interface {
-	RunStep(ctx context.Context, step *transaction.Step, txnCtx transaction.TxnCtx) error
-	RollBackStep(ctx context.Context, step *transaction.Step, txnCtx transaction.TxnCtx) error
+	RunStep(ctx context.Context, step *oldtransaction.Step, txnCtx oldtransaction.TxnCtx) error
+	RollBackStep(ctx context.Context, step *oldtransaction.Step, txnCtx oldtransaction.TxnCtx) error
 	SyncStep(ctx context.Context, stepIndex int, txn *Txn) error
 }
 
@@ -30,7 +30,7 @@ func newStepManager() StepManager {
 	}
 }
 
-func (sm *stepManager) shouldRunStep(step *transaction.Step) bool {
+func (sm *stepManager) shouldRunStep(step *oldtransaction.Step) bool {
 	if step.Skip {
 		return false
 	}
@@ -46,9 +46,9 @@ func (sm *stepManager) shouldRunStep(step *transaction.Step) bool {
 
 // runStep synchronises the locally cached keys and values from the store
 // before running the step function on node
-func (sm *stepManager) runStep(ctx context.Context, stepName string, txnCtx transaction.TxnCtx) error {
+func (sm *stepManager) runStep(ctx context.Context, stepName string, txnCtx oldtransaction.TxnCtx) error {
 	txnCtx.SyncCache()
-	return transaction.RunStepFuncLocally(ctx, stepName, txnCtx)
+	return oldtransaction.RunStepFuncLocally(ctx, stepName, txnCtx)
 }
 
 // isPrevStepsExecutedOnNode reports that all previous steps
@@ -92,7 +92,7 @@ func (sm *stepManager) SyncStep(ctx context.Context, syncStepIndex int, txn *Txn
 }
 
 // RollBackStep will rollback a given step on local node
-func (sm *stepManager) RollBackStep(ctx context.Context, step *transaction.Step, txnCtx transaction.TxnCtx) error {
+func (sm *stepManager) RollBackStep(ctx context.Context, step *oldtransaction.Step, txnCtx oldtransaction.TxnCtx) error {
 	if !sm.shouldRunStep(step) {
 		txnCtx.Logger().WithField("step", step.UndoFunc).Debug("peer is excluded in running this step")
 		return nil
@@ -106,7 +106,7 @@ func (sm *stepManager) RollBackStep(ctx context.Context, step *transaction.Step,
 }
 
 // RunStepRunStep will execute the step on local node
-func (sm *stepManager) RunStep(ctx context.Context, step *transaction.Step, txnCtx transaction.TxnCtx) error {
+func (sm *stepManager) RunStep(ctx context.Context, step *oldtransaction.Step, txnCtx oldtransaction.TxnCtx) error {
 	if !sm.shouldRunStep(step) {
 		txnCtx.Logger().WithField("step", step.DoFunc).Debug("peer is excluded in running this step")
 		return nil

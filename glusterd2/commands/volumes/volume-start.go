@@ -8,8 +8,8 @@ import (
 	"github.com/gluster/glusterd2/glusterd2/brickmux"
 	"github.com/gluster/glusterd2/glusterd2/events"
 	"github.com/gluster/glusterd2/glusterd2/gdctx"
+	"github.com/gluster/glusterd2/glusterd2/oldtransaction"
 	restutils "github.com/gluster/glusterd2/glusterd2/servers/rest/utils"
-	"github.com/gluster/glusterd2/glusterd2/transaction"
 	transactionv2 "github.com/gluster/glusterd2/glusterd2/transactionv2"
 	"github.com/gluster/glusterd2/glusterd2/volgen"
 	"github.com/gluster/glusterd2/glusterd2/volume"
@@ -22,7 +22,7 @@ import (
 	"go.opencensus.io/trace"
 )
 
-func startAllBricks(c transaction.TxnCtx) error {
+func startAllBricks(c oldtransaction.TxnCtx) error {
 
 	var volinfo volume.Volinfo
 	if err := c.Get("volinfo", &volinfo); err != nil {
@@ -81,7 +81,7 @@ func startAllBricks(c transaction.TxnCtx) error {
 	return nil
 }
 
-func stopAllBricks(c transaction.TxnCtx) error {
+func stopAllBricks(c oldtransaction.TxnCtx) error {
 
 	var volinfo volume.Volinfo
 	if err := c.Get("volinfo", &volinfo); err != nil {
@@ -111,7 +111,7 @@ func stopAllBricks(c transaction.TxnCtx) error {
 func registerVolStartStepFuncs() {
 	var sfs = []struct {
 		name string
-		sf   transaction.StepFunc
+		sf   oldtransaction.StepFunc
 	}{
 		{"vol-start.StartBricks", startAllBricks},
 		{"vol-start.StartBricksUndo", stopAllBricks},
@@ -121,7 +121,7 @@ func registerVolStartStepFuncs() {
 		{"vol-start.UpdateVolinfo.Undo", undoStoreVolume},
 	}
 	for _, sf := range sfs {
-		transaction.RegisterStepFunc(sf.sf, sf.name)
+		oldtransaction.RegisterStepFunc(sf.sf, sf.name)
 	}
 
 }
@@ -173,7 +173,7 @@ func StartVolume(ctx context.Context, volname string, req api.VolumeStartReq) (v
 		return nil, http.StatusBadRequest, errors.ErrVolAlreadyStarted
 	}
 
-	txn.Steps = []*transaction.Step{
+	txn.Steps = []*oldtransaction.Step{
 		{
 			DoFunc:   "vol-start.StartBricks",
 			UndoFunc: "vol-start.StartBricksUndo",

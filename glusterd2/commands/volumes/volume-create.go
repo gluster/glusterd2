@@ -10,8 +10,8 @@ import (
 	"github.com/gluster/glusterd2/glusterd2/bricksplanner"
 	"github.com/gluster/glusterd2/glusterd2/events"
 	"github.com/gluster/glusterd2/glusterd2/gdctx"
+	"github.com/gluster/glusterd2/glusterd2/oldtransaction"
 	restutils "github.com/gluster/glusterd2/glusterd2/servers/rest/utils"
-	"github.com/gluster/glusterd2/glusterd2/transaction"
 	transactionv2 "github.com/gluster/glusterd2/glusterd2/transactionv2"
 	"github.com/gluster/glusterd2/glusterd2/volume"
 	"github.com/gluster/glusterd2/pkg/api"
@@ -84,7 +84,7 @@ func checkDupBrickEntryVolCreate(req api.VolCreateReq) error {
 func registerVolCreateStepFuncs() {
 	var sfs = []struct {
 		name string
-		sf   transaction.StepFunc
+		sf   oldtransaction.StepFunc
 	}{
 		{"vol-create.CreateVolinfo", createVolinfo},
 		{"vol-create.ValidateBricks", validateBricks},
@@ -96,7 +96,7 @@ func registerVolCreateStepFuncs() {
 		{"vol-create.UndoPrepareBricks", txnUndoPrepareBricks},
 	}
 	for _, sf := range sfs {
-		transaction.RegisterStepFunc(sf.sf, sf.name)
+		oldtransaction.RegisterStepFunc(sf.sf, sf.name)
 	}
 }
 
@@ -209,7 +209,7 @@ func CreateVolume(ctx context.Context, req api.VolCreateReq) (status int, err er
 		return http.StatusBadRequest, gderrors.ErrVolExists
 	}
 
-	txn.Steps = []*transaction.Step{
+	txn.Steps = []*oldtransaction.Step{
 		{
 			DoFunc:   "vol-create.PrepareBricks",
 			UndoFunc: "vol-create.UndoPrepareBricks",

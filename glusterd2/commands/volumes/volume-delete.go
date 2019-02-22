@@ -6,8 +6,8 @@ import (
 
 	"github.com/gluster/glusterd2/glusterd2/events"
 	"github.com/gluster/glusterd2/glusterd2/gdctx"
+	"github.com/gluster/glusterd2/glusterd2/oldtransaction"
 	restutils "github.com/gluster/glusterd2/glusterd2/servers/rest/utils"
-	"github.com/gluster/glusterd2/glusterd2/transaction"
 	transactionv2 "github.com/gluster/glusterd2/glusterd2/transactionv2"
 	"github.com/gluster/glusterd2/glusterd2/volume"
 
@@ -17,7 +17,7 @@ import (
 	"go.opencensus.io/trace"
 )
 
-func deleteVolume(c transaction.TxnCtx) error {
+func deleteVolume(c oldtransaction.TxnCtx) error {
 
 	var (
 		volinfo volume.Volinfo
@@ -32,8 +32,8 @@ func deleteVolume(c transaction.TxnCtx) error {
 }
 
 func registerVolDeleteStepFuncs() {
-	transaction.RegisterStepFunc(deleteVolume, "vol-delete.Store")
-	transaction.RegisterStepFunc(txnCleanBricks, "vol-delete.CleanBricks")
+	oldtransaction.RegisterStepFunc(deleteVolume, "vol-delete.Store")
+	oldtransaction.RegisterStepFunc(txnCleanBricks, "vol-delete.CleanBricks")
 }
 
 func volumeDeleteHandler(w http.ResponseWriter, r *http.Request) {
@@ -73,7 +73,7 @@ func volumeDeleteHandler(w http.ResponseWriter, r *http.Request) {
 	}
 
 	bricksAutoProvisioned := volinfo.IsAutoProvisioned() || volinfo.IsSnapshotProvisioned()
-	txn.Steps = []*transaction.Step{
+	txn.Steps = []*oldtransaction.Step{
 		{
 			DoFunc: "vol-delete.CleanBricks",
 			Nodes:  volinfo.Nodes(),

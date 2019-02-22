@@ -11,7 +11,7 @@ import (
 
 	"github.com/gluster/glusterd2/glusterd2/commands/volumes"
 	"github.com/gluster/glusterd2/glusterd2/gdctx"
-	"github.com/gluster/glusterd2/glusterd2/transaction"
+	"github.com/gluster/glusterd2/glusterd2/oldtransaction"
 	"github.com/gluster/glusterd2/glusterd2/volume"
 	"github.com/gluster/glusterd2/pkg/api"
 	"github.com/gluster/glusterd2/pkg/size"
@@ -92,7 +92,7 @@ func CreateAndStartHostingVolume(req *api.VolCreateReq) (*volume.Volinfo, error)
 // f := func(a, b uint64) uint64{return a +b }
 func ResizeBlockHostingVolume(volName string, blockSize interface{}, resizeFunc func(blockHostingAvailableSize, blockSize uint64) uint64) error {
 	var (
-		clusterLocks = transaction.Locks{}
+		clusterLocks = oldtransaction.Locks{}
 	)
 
 	if err := clusterLocks.Lock(volName); err != nil {

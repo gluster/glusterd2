@@ -9,7 +9,7 @@ import (
 	"github.com/gluster/glusterd2/glusterd2/brick"
 	"github.com/gluster/glusterd2/glusterd2/brickmux"
 	"github.com/gluster/glusterd2/glusterd2/gdctx"
-	"github.com/gluster/glusterd2/glusterd2/transaction"
+	"github.com/gluster/glusterd2/glusterd2/oldtransaction"
 	"github.com/gluster/glusterd2/glusterd2/volume"
 	"github.com/gluster/glusterd2/pkg/api"
 	"github.com/gluster/glusterd2/pkg/lvmutils"
@@ -19,7 +19,7 @@ import (
 	log "github.com/sirupsen/logrus"
 )
 
-func expandValidatePrepare(c transaction.TxnCtx) error {
+func expandValidatePrepare(c oldtransaction.TxnCtx) error {
 
 	var req api.VolExpandReq
 	if err := c.Get("req", &req); err != nil {
@@ -97,7 +97,7 @@ func expandValidatePrepare(c transaction.TxnCtx) error {
 	return err
 }
 
-func startBricksOnExpand(c transaction.TxnCtx) error {
+func startBricksOnExpand(c oldtransaction.TxnCtx) error {
 
 	var volinfo volume.Volinfo
 	if err := c.Get("volinfo", &volinfo); err != nil {
@@ -163,7 +163,7 @@ func startBricksOnExpand(c transaction.TxnCtx) error {
 	return nil
 }
 
-func undoStartBricksOnExpand(c transaction.TxnCtx) error {
+func undoStartBricksOnExpand(c oldtransaction.TxnCtx) error {
 
 	var newBricks []brick.Brickinfo
 	if err := c.Get("bricks", &newBricks); err != nil {
@@ -196,7 +196,7 @@ func undoStartBricksOnExpand(c transaction.TxnCtx) error {
 	return nil
 }
 
-func updateVolinfoOnExpand(c transaction.TxnCtx) error {
+func updateVolinfoOnExpand(c oldtransaction.TxnCtx) error {
 
 	var newBricks []brick.Brickinfo
 	if err := c.Get("bricks", &newBricks); err != nil {
@@ -294,7 +294,7 @@ func updateVolinfoOnExpand(c transaction.TxnCtx) error {
 	return nil
 }
 
-func resizeLVM(c transaction.TxnCtx) error {
+func resizeLVM(c oldtransaction.TxnCtx) error {
 	var req api.VolExpandReq
 	if err := c.Get("req", &req); err != nil {
 		return err

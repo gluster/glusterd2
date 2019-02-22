@@ -1,8 +1,8 @@
 package rebalance
 
 import (
+	"github.com/gluster/glusterd2/glusterd2/oldtransaction"
 	"github.com/gluster/glusterd2/glusterd2/servers/rest/route"
-	"github.com/gluster/glusterd2/glusterd2/transaction"
 	"github.com/gluster/glusterd2/pkg/utils"
 	rebalanceapi "github.com/gluster/glusterd2/plugins/rebalance/api"
 )
@@ -47,8 +47,8 @@ func (p *Plugin) RestRoutes() route.Routes {
 // RegisterStepFuncs registers transaction step functions with
 // Glusterd Transaction framework
 func (p *Plugin) RegisterStepFuncs() {
-	transaction.RegisterStepFunc(txnRebalanceStart, "rebalance-start")
-	transaction.RegisterStepFunc(txnRebalanceStop, "rebalance-stop")
-	transaction.RegisterStepFunc(txnRebalanceStatus, "rebalance-status")
-	transaction.RegisterStepFunc(txnRebalanceStoreDetails, "rebalance-store")
+	oldtransaction.RegisterStepFunc(txnRebalanceStart, "rebalance-start")
+	oldtransaction.RegisterStepFunc(txnRebalanceStop, "rebalance-stop")
+	oldtransaction.RegisterStepFunc(txnRebalanceStatus, "rebalance-status")
+	oldtransaction.RegisterStepFunc(txnRebalanceStoreDetails, "rebalance-store")
 }

@@ -5,9 +5,9 @@ import (
 
 	"github.com/gluster/glusterd2/glusterd2/brick"
 	"github.com/gluster/glusterd2/glusterd2/gdctx"
+	"github.com/gluster/glusterd2/glusterd2/oldtransaction"
 	restutils "github.com/gluster/glusterd2/glusterd2/servers/rest/utils"
 	"github.com/gluster/glusterd2/glusterd2/snapshot"
-	"github.com/gluster/glusterd2/glusterd2/transaction"
 	"github.com/gluster/glusterd2/glusterd2/volgen"
 	"github.com/gluster/glusterd2/glusterd2/volume"
 	"github.com/gluster/glusterd2/pkg/api"
@@ -18,7 +18,7 @@ import (
 	log "github.com/sirupsen/logrus"
 )
 
-func deactivateSnapshot(c transaction.TxnCtx) error {
+func deactivateSnapshot(c oldtransaction.TxnCtx) error {
 	var snapinfo snapshot.Snapinfo
 
 	if err := c.Get("oldsnapinfo", &snapinfo); err != nil {
@@ -71,7 +71,7 @@ func deactivateSnapshot(c transaction.TxnCtx) error {
 
 }
 
-func rollbackDeactivateSnapshot(c transaction.TxnCtx) error {
+func rollbackDeactivateSnapshot(c oldtransaction.TxnCtx) error {
 	activate := true
 	var snapinfo snapshot.Snapinfo
 	var brickinfos []brick.Brickinfo
@@ -102,10 +102,10 @@ func rollbackDeactivateSnapshot(c transaction.TxnCtx) error {
 }
 
 func registerSnapDeactivateStepFuncs() {
-	transaction.RegisterStepFunc(deactivateSnapshot, "snap-deactivate.Commit")
-	transaction.RegisterStepFunc(rollbackDeactivateSnapshot, "snap-deactivate.Undo")
-	transaction.RegisterStepFunc(storeSnapshot, "snap-deactivate.StoreSnapshot")
-	transaction.RegisterStepFunc(undoStoreSnapshot, "snap-deactivate.UndoStoreSnapshot")
+	oldtransaction.RegisterStepFunc(deactivateSnapshot, "snap-deactivate.Commit")
+	oldtransaction.RegisterStepFunc(rollbackDeactivateSnapshot, "snap-deactivate.Undo")
+	oldtransaction.RegisterStepFunc(storeSnapshot, "snap-deactivate.StoreSnapshot")
+	oldtransaction.RegisterStepFunc(undoStoreSnapshot, "snap-deactivate.UndoStoreSnapshot")
 
 }
 
@@ -116,7 +116,7 @@ func snapshotDeactivateHandler(w http.ResponseWriter, r *http.Request) {
 
 	snapname := mux.Vars(r)["snapname"]
 
-	txn, err := transaction.NewTxnWithLocks(ctx, snapname)
+	txn, err := oldtransaction.NewTxnWithLocks(ctx, snapname)
 	if err != nil {
 		status, err := restutils.ErrToStatusCode(err)
 		restutils.SendHTTPError(ctx, w, status, err)
@@ -138,7 +138,7 @@ func snapshotDeactivateHandler(w http.ResponseWriter, r *http.Request) {
 	}
 
 	txn.Nodes = vol.Nodes()
-	txn.Steps = []*transaction.Step{
+	txn.Steps = []*oldtransaction.Step{
 		{
 			DoFunc:   "snap-deactivate.Commit",
 			UndoFunc: "snap-deactivate.Undo",

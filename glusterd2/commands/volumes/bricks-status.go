@@ -5,8 +5,8 @@ import (
 
 	"github.com/gluster/glusterd2/glusterd2/brick"
 	"github.com/gluster/glusterd2/glusterd2/gdctx"
+	"github.com/gluster/glusterd2/glusterd2/oldtransaction"
 	restutils "github.com/gluster/glusterd2/glusterd2/servers/rest/utils"
-	"github.com/gluster/glusterd2/glusterd2/transaction"
 	"github.com/gluster/glusterd2/glusterd2/volume"
 	"github.com/gluster/glusterd2/pkg/api"
 	"github.com/gorilla/mux"
@@ -17,10 +17,10 @@ const (
 )
 
 func registerBricksStatusStepFuncs() {
-	transaction.RegisterStepFunc(bricksStatus, "bricks-status.Check")
+	oldtransaction.RegisterStepFunc(bricksStatus, "bricks-status.Check")
 }
 
-func bricksStatus(ctx transaction.TxnCtx) error {
+func bricksStatus(ctx oldtransaction.TxnCtx) error {
 	var volname string
 	if err := ctx.Get("volname", &volname); err != nil {
 		ctx.Logger().WithError(err).Error("Failed to get key from transaction context.")
@@ -57,9 +57,9 @@ func volumeBricksStatusHandler(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	txn := transaction.NewTxn(ctx)
+	txn := oldtransaction.NewTxn(ctx)
 	defer txn.Done()
-	txn.Steps = []*transaction.Step{
+	txn.Steps = []*oldtransaction.Step{
 		{
 			DoFunc: "bricks-status.Check",
 			Nodes:  vol.Nodes(),
@@ -89,7 +89,7 @@ func volumeBricksStatusHandler(w http.ResponseWriter, r *http.Request) {
 	restutils.SendHTTPResponse(ctx, w, http.StatusOK, result)
 }
 
-func createBricksStatusResp(ctx transaction.TxnCtx, vol *volume.Volinfo) (*api.BricksStatusResp, error) {
+func createBricksStatusResp(ctx oldtransaction.TxnCtx, vol *volume.Volinfo) (*api.BricksStatusResp, error) {
 
 	// bmap is a map of brick statuses keyed by brick ID
 	bmap := make(map[string]api.BrickStatus)

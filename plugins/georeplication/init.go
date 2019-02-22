@@ -1,8 +1,8 @@
 package georeplication
 
 import (
+	"github.com/gluster/glusterd2/glusterd2/oldtransaction"
 	"github.com/gluster/glusterd2/glusterd2/servers/rest/route"
-	"github.com/gluster/glusterd2/glusterd2/transaction"
 	"github.com/gluster/glusterd2/pkg/utils"
 	georepapi "github.com/gluster/glusterd2/plugins/georeplication/api"
 )
@@ -130,15 +130,15 @@ func (p *Plugin) RestRoutes() route.Routes {
 // RegisterStepFuncs registers transaction step functions with
 // Glusterd Transaction framework
 func (p *Plugin) RegisterStepFuncs() {
-	transaction.RegisterStepFunc(txnGeorepCreate, "georeplication-create.Commit")
-	transaction.RegisterStepFunc(txnGeorepStart, "georeplication-start.Commit")
-	transaction.RegisterStepFunc(txnGeorepStop, "georeplication-stop.Commit")
-	transaction.RegisterStepFunc(txnGeorepDelete, "georeplication-delete.Commit")
-	transaction.RegisterStepFunc(txnGeorepPause, "georeplication-pause.Commit")
-	transaction.RegisterStepFunc(txnGeorepResume, "georeplication-resume.Commit")
-	transaction.RegisterStepFunc(txnGeorepStatus, "georeplication-status.Commit")
-	transaction.RegisterStepFunc(txnGeorepConfigSet, "georeplication-configset.Commit")
-	transaction.RegisterStepFunc(txnGeorepConfigFilegen, "georeplication-configfilegen.Commit")
-	transaction.RegisterStepFunc(txnSSHKeysGenerate, "georeplication-ssh-keygen.Commit")
-	transaction.RegisterStepFunc(txnSSHKeysPush, "georeplication-ssh-keypush.Commit")
+	oldtransaction.RegisterStepFunc(txnGeorepCreate, "georeplication-create.Commit")
+	oldtransaction.RegisterStepFunc(txnGeorepStart, "georeplication-start.Commit")
+	oldtransaction.RegisterStepFunc(txnGeorepStop, "georeplication-stop.Commit")
+	oldtransaction.RegisterStepFunc(txnGeorepDelete, "georeplication-delete.Commit")
+	oldtransaction.RegisterStepFunc(txnGeorepPause, "georeplication-pause.Commit")
+	oldtransaction.RegisterStepFunc(txnGeorepResume, "georeplication-resume.Commit")
+	oldtransaction.RegisterStepFunc(txnGeorepStatus, "georeplication-status.Commit")
+	oldtransaction.RegisterStepFunc(txnGeorepConfigSet, "georeplication-configset.Commit")
+	oldtransaction.RegisterStepFunc(txnGeorepConfigFilegen, "georeplication-configfilegen.Commit")
+	oldtransaction.RegisterStepFunc(txnSSHKeysGenerate, "georeplication-ssh-keygen.Commit")
+	oldtransaction.RegisterStepFunc(txnSSHKeysPush, "georeplication-ssh-keypush.Commit")
 }

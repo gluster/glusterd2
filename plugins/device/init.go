@@ -1,8 +1,8 @@
 package device
 
 import (
+	"github.com/gluster/glusterd2/glusterd2/oldtransaction"
 	"github.com/gluster/glusterd2/glusterd2/servers/rest/route"
-	"github.com/gluster/glusterd2/glusterd2/transaction"
 	"github.com/gluster/glusterd2/pkg/utils"
 	deviceapi "github.com/gluster/glusterd2/plugins/device/api"
 )
@@ -61,5 +61,5 @@ func (p *Plugin) RestRoutes() route.Routes {
 // RegisterStepFuncs registers transaction step functions with
 // Glusterd Transaction framework
 func (p *Plugin) RegisterStepFuncs() {
-	transaction.RegisterStepFunc(txnPrepareDevice, "prepare-device")
+	oldtransaction.RegisterStepFunc(txnPrepareDevice, "prepare-device")
 }

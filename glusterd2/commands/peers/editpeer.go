@@ -5,9 +5,9 @@ import (
 	"strings"
 
 	"github.com/gluster/glusterd2/glusterd2/gdctx"
+	"github.com/gluster/glusterd2/glusterd2/oldtransaction"
 	"github.com/gluster/glusterd2/glusterd2/peer"
 	restutils "github.com/gluster/glusterd2/glusterd2/servers/rest/utils"
-	"github.com/gluster/glusterd2/glusterd2/transaction"
 	"github.com/gluster/glusterd2/pkg/api"
 	gderrors "github.com/gluster/glusterd2/pkg/errors"
 
@@ -41,7 +41,7 @@ func editPeer(w http.ResponseWriter, r *http.Request) {
 		}
 	}
 
-	txn, err := transaction.NewTxnWithLocks(ctx, peerID)
+	txn, err := oldtransaction.NewTxnWithLocks(ctx, peerID)
 	if err != nil {
 		status, err := restutils.ErrToStatusCode(err)
 		restutils.SendHTTPError(ctx, w, status, err)
@@ -49,7 +49,7 @@ func editPeer(w http.ResponseWriter, r *http.Request) {
 	}
 	defer txn.Done()
 
-	txn.Steps = []*transaction.Step{
+	txn.Steps = []*oldtransaction.Step{
 		{
 			DoFunc: "peer-edit",
 			Nodes:  []uuid.UUID{gdctx.MyUUID},
@@ -85,7 +85,7 @@ func editPeer(w http.ResponseWriter, r *http.Request) {
 
 }
 
-func txnPeerEdit(c transaction.TxnCtx) error {
+func txnPeerEdit(c oldtransaction.TxnCtx) error {
 	var peerID string
 	if err := c.Get("peerid", &peerID); err != nil {
 		c.Logger().WithError(err).WithField("key", "peerID").Error("Failed to get key from transaction context")
@@ -134,12 +134,12 @@ func txnPeerEdit(c transaction.TxnCtx) error {
 func registerPeerEditStepFuncs() {
 	var sfs = []struct {
 		name string
-		sf   transaction.StepFunc
+		sf   oldtransaction.StepFunc
 	}{
 		{"peer-edit", txnPeerEdit},
 	}
 	for _, sf := range sfs {
-		transaction.RegisterStepFunc(sf.sf, sf.name)
+		oldtransaction.RegisterStepFunc(sf.sf, sf.name)
 	}
 }
 

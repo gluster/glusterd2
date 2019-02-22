@@ -6,14 +6,14 @@ import (
 	"strings"
 
 	"github.com/gluster/glusterd2/glusterd2/brick"
-	"github.com/gluster/glusterd2/glusterd2/transaction"
+	"github.com/gluster/glusterd2/glusterd2/oldtransaction"
 	"github.com/gluster/glusterd2/glusterd2/volume"
 	"github.com/gluster/glusterd2/pkg/api"
 
 	"github.com/pborman/uuid"
 )
 
-func undoStoreVolumeOnCreate(c transaction.TxnCtx) error {
+func undoStoreVolumeOnCreate(c oldtransaction.TxnCtx) error {
 
 	var volinfo volume.Volinfo
 	if err := c.Get("volinfo", &volinfo); err != nil {
@@ -178,7 +178,7 @@ func newVolinfo(req *api.VolCreateReq) (*volume.Volinfo, error) {
 	return volinfo, nil
 }
 
-func createVolinfo(c transaction.TxnCtx) error {
+func createVolinfo(c oldtransaction.TxnCtx) error {
 
 	var req api.VolCreateReq
 	if err := c.Get("req", &req); err != nil {

@@ -7,8 +7,8 @@ import (
 	"github.com/gluster/glusterd2/glusterd2/brick"
 	"github.com/gluster/glusterd2/glusterd2/daemon"
 	"github.com/gluster/glusterd2/glusterd2/gdctx"
+	"github.com/gluster/glusterd2/glusterd2/oldtransaction"
 	"github.com/gluster/glusterd2/glusterd2/servers/sunrpc/dict"
-	"github.com/gluster/glusterd2/glusterd2/transaction"
 	"github.com/gluster/glusterd2/glusterd2/volgen"
 	"github.com/gluster/glusterd2/glusterd2/volume"
 	"github.com/gluster/glusterd2/pkg/errors"
@@ -101,7 +101,7 @@ func ManageScrubd(logger log.FieldLogger, volinfo *volume.Volinfo) error {
 	return nil
 }
 
-func txnBitrotEnableDisable(c transaction.TxnCtx) error {
+func txnBitrotEnableDisable(c oldtransaction.TxnCtx) error {
 	var volinfo volume.Volinfo
 	if err := c.Get("volinfo", &volinfo); err != nil {
 		c.Logger().WithError(err).WithField(
@@ -129,7 +129,7 @@ Err:
 	return err
 }
 
-func txnBitrotScrubOndemand(c transaction.TxnCtx) error {
+func txnBitrotScrubOndemand(c oldtransaction.TxnCtx) error {
 
 	var volname string
 	if err := c.Get("volname", &volname); err != nil {
@@ -176,7 +176,7 @@ func txnBitrotScrubOndemand(c transaction.TxnCtx) error {
 	return nil
 }
 
-func txnBitrotScrubStatus(c transaction.TxnCtx) error {
+func txnBitrotScrubStatus(c oldtransaction.TxnCtx) error {
 
 	var volname string
 	if err := c.Get("volname", &volname); err != nil {

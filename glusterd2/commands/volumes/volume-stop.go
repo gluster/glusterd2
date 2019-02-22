@@ -9,8 +9,8 @@ import (
 	"github.com/gluster/glusterd2/glusterd2/daemon"
 	"github.com/gluster/glusterd2/glusterd2/events"
 	"github.com/gluster/glusterd2/glusterd2/gdctx"
+	"github.com/gluster/glusterd2/glusterd2/oldtransaction"
 	restutils "github.com/gluster/glusterd2/glusterd2/servers/rest/utils"
-	"github.com/gluster/glusterd2/glusterd2/transaction"
 	transactionv2 "github.com/gluster/glusterd2/glusterd2/transactionv2"
 	"github.com/gluster/glusterd2/glusterd2/volgen"
 	"github.com/gluster/glusterd2/glusterd2/volume"
@@ -23,7 +23,7 @@ import (
 	"go.opencensus.io/trace"
 )
 
-func stopBricks(c transaction.TxnCtx) error {
+func stopBricks(c oldtransaction.TxnCtx) error {
 
 	var volinfo volume.Volinfo
 	if err := c.Get("volinfo", &volinfo); err != nil {
@@ -101,7 +101,7 @@ func stopBricks(c transaction.TxnCtx) error {
 func registerVolStopStepFuncs() {
 	var sfs = []struct {
 		name string
-		sf   transaction.StepFunc
+		sf   oldtransaction.StepFunc
 	}{
 		{"vol-stop.StopBricks", stopBricks},
 		{"vol-stop.XlatorActionDoVolumeStop", xlatorActionDoVolumeStop},
@@ -110,7 +110,7 @@ func registerVolStopStepFuncs() {
 		{"vol-stop.UpdateVolinfo.Undo", undoStoreVolume},
 	}
 	for _, sf := range sfs {
-		transaction.RegisterStepFunc(sf.sf, sf.name)
+		oldtransaction.RegisterStepFunc(sf.sf, sf.name)
 	}
 
 }
@@ -149,7 +149,7 @@ func volumeStopHandler(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	txn.Steps = []*transaction.Step{
+	txn.Steps = []*oldtransaction.Step{
 		{
 			DoFunc: "vol-stop.StopBricks",
 			Nodes:  volinfo.Nodes(),

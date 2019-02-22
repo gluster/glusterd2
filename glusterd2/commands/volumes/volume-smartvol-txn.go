@@ -6,7 +6,7 @@ import (
 	"strings"
 
 	"github.com/gluster/glusterd2/glusterd2/gdctx"
-	"github.com/gluster/glusterd2/glusterd2/transaction"
+	"github.com/gluster/glusterd2/glusterd2/oldtransaction"
 	"github.com/gluster/glusterd2/glusterd2/volume"
 	"github.com/gluster/glusterd2/pkg/api"
 	"github.com/gluster/glusterd2/pkg/fsutils"
@@ -16,7 +16,7 @@ import (
 	log "github.com/sirupsen/logrus"
 )
 
-func txnPrepareBricks(c transaction.TxnCtx) error {
+func txnPrepareBricks(c oldtransaction.TxnCtx) error {
 	var req api.VolCreateReq
 	if err := c.Get("req", &req); err != nil {
 		c.Logger().WithError(err).WithField("key", "req").Error("failed to get key from store")
@@ -41,7 +41,7 @@ func txnPrepareBricks(c transaction.TxnCtx) error {
 }
 
 // PrepareBrickLvm prepares(Creates thin pool, creates LV, mounts etc.) a single brick
-func PrepareBrickLvm(b api.BrickReq, c transaction.TxnCtx) error {
+func PrepareBrickLvm(b api.BrickReq, c oldtransaction.TxnCtx) error {
 	if b.PeerID != gdctx.MyUUID.String() {
 		return nil
 	}
@@ -128,7 +128,7 @@ func PrepareBrickLvm(b api.BrickReq, c transaction.TxnCtx) error {
 	return nil
 }
 
-func txnUndoPrepareBricks(c transaction.TxnCtx) error {
+func txnUndoPrepareBricks(c oldtransaction.TxnCtx) error {
 	var req api.VolCreateReq
 	if err := c.Get("req", &req); err != nil {
 		c.Logger().WithError(err).WithField("key", "req").Error("failed to get key from store")
@@ -140,7 +140,7 @@ func txnUndoPrepareBricks(c transaction.TxnCtx) error {
 	return txnUndoPrepareBricksLvm(req, c)
 }
 
-func txnUndoPrepareBricksLvm(req api.VolCreateReq, c transaction.TxnCtx) error {
+func txnUndoPrepareBricksLvm(req api.VolCreateReq, c oldtransaction.TxnCtx) error {
 	for _, sv := range req.Subvols {
 		for _, b := range sv.Bricks {
 
@@ -191,7 +191,7 @@ func txnUndoPrepareBricksLvm(req api.VolCreateReq, c transaction.TxnCtx) error {
 }
 
 // PrepareBrickLoop prepares a single brick
-func PrepareBrickLoop(b api.BrickReq, c transaction.TxnCtx) error {
+func PrepareBrickLoop(b api.BrickReq, c oldtransaction.TxnCtx) error {
 	if b.PeerID != gdctx.MyUUID.String() {
 		return nil
 	}
@@ -277,7 +277,7 @@ func PrepareBrickLoop(b api.BrickReq, c transaction.TxnCtx) error {
 	return nil
 }
 
-func txnUndoPrepareBricksLoop(req api.VolCreateReq, c transaction.TxnCtx) error {
+func txnUndoPrepareBricksLoop(req api.VolCreateReq, c oldtransaction.TxnCtx) error {
 	for _, sv := range req.Subvols {
 		for _, b := range sv.Bricks {
 
@@ -321,7 +321,7 @@ func txnUndoPrepareBricksLoop(req api.VolCreateReq, c transaction.TxnCtx) error 
 	return nil
 }
 
-func txnCleanBricks(c transaction.TxnCtx) error {
+func txnCleanBricks(c oldtransaction.TxnCtx) error {
 	var volinfo volume.Volinfo
 	if err := c.Get("volinfo", &volinfo); err != nil {
 		c.Logger().WithError(err).WithField(

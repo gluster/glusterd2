@@ -6,7 +6,7 @@ import (
 	"strings"
 
 	"github.com/gluster/glusterd2/glusterd2/gdctx"
-	"github.com/gluster/glusterd2/glusterd2/transaction"
+	"github.com/gluster/glusterd2/glusterd2/oldtransaction"
 	"github.com/gluster/glusterd2/glusterd2/volume"
 	rebalanceapi "github.com/gluster/glusterd2/plugins/rebalance/api"
 
@@ -34,7 +34,7 @@ func HandleEventNotify(status map[string]string) error {
 	var rebalinfo *rebalanceapi.RebalInfo
 	var rebalNodeStatus rebalanceapi.RebalNodeStatus
 
-	txn, err := transaction.NewTxnWithLocks(context.TODO(), volname)
+	txn, err := oldtransaction.NewTxnWithLocks(context.TODO(), volname)
 	if err != nil {
 		log.WithError(err).Error("Locking failed. Unable to update store")
 		return err
