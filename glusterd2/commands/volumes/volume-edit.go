@@ -5,8 +5,8 @@ import (
 	"strings"
 
 	"github.com/gluster/glusterd2/glusterd2/gdctx"
-	"github.com/gluster/glusterd2/glusterd2/oldtransaction"
 	restutils "github.com/gluster/glusterd2/glusterd2/servers/rest/utils"
+	"github.com/gluster/glusterd2/glusterd2/transaction"
 	"github.com/gluster/glusterd2/glusterd2/volume"
 	"github.com/gluster/glusterd2/pkg/api"
 	"github.com/gluster/glusterd2/pkg/errors"
@@ -29,7 +29,7 @@ func volumeEditHandler(w http.ResponseWriter, r *http.Request) {
 	}
 
 	//Lock on Volume Name
-	txn, err := oldtransaction.NewTxnWithLocks(ctx, volname)
+	txn, err := transaction.NewTxnWithLocks(ctx, volname)
 	if err != nil {
 		status, err := restutils.ErrToStatusCode(err)
 		restutils.SendHTTPError(ctx, w, status, err)

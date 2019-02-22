@@ -7,9 +7,9 @@ import (
 
 	"github.com/gluster/glusterd2/glusterd2/brick"
 	"github.com/gluster/glusterd2/glusterd2/gdctx"
-	"github.com/gluster/glusterd2/glusterd2/oldtransaction"
 	restutils "github.com/gluster/glusterd2/glusterd2/servers/rest/utils"
 	"github.com/gluster/glusterd2/glusterd2/snapshot"
+	"github.com/gluster/glusterd2/glusterd2/transaction"
 	"github.com/gluster/glusterd2/glusterd2/volgen"
 	"github.com/gluster/glusterd2/glusterd2/volume"
 	"github.com/gluster/glusterd2/pkg/errors"
@@ -22,7 +22,7 @@ import (
 
 const volumeIDXattrKey = "trusted.glusterfs.volume-id"
 
-func snapRestore(c oldtransaction.TxnCtx) error {
+func snapRestore(c transaction.TxnCtx) error {
 	var snapname string
 	if err := c.Get("snapname", &snapname); err != nil {
 		return err
@@ -91,7 +91,7 @@ func remountBrick(b brick.Brickinfo, volinfo *volume.Volinfo, mtab []*volume.Mnt
 
 }
 
-func undoSnapStore(c oldtransaction.TxnCtx) error {
+func undoSnapStore(c transaction.TxnCtx) error {
 	var snapInfo snapshot.Snapinfo
 	var volinfo volume.Volinfo
 
@@ -126,7 +126,7 @@ func undoSnapStore(c oldtransaction.TxnCtx) error {
 	return nil
 }
 
-func undoSnapRestore(c oldtransaction.TxnCtx) error {
+func undoSnapRestore(c transaction.TxnCtx) error {
 	var snapname string
 	if err := c.Get("snapname", &snapname); err != nil {
 		return err
@@ -242,7 +242,7 @@ func createRestoreVolinfo(snapinfo *snapshot.Snapinfo, vol *volume.Volinfo) volu
 	return newVol
 }
 
-func storeSnapRestore(c oldtransaction.TxnCtx) error {
+func storeSnapRestore(c transaction.TxnCtx) error {
 	var snapname string
 	if err := c.Get("snapname", &snapname); err != nil {
 		return err
@@ -287,7 +287,7 @@ func storeSnapRestore(c oldtransaction.TxnCtx) error {
 	return nil
 }
 
-func cleanParentBricks(c oldtransaction.TxnCtx) error {
+func cleanParentBricks(c transaction.TxnCtx) error {
 	var volinfo volume.Volinfo
 	if err := c.Get("volinfo", &volinfo); err != nil {
 		c.Logger().WithError(err).WithField(
@@ -301,7 +301,7 @@ func cleanParentBricks(c oldtransaction.TxnCtx) error {
 func registerSnapRestoreStepFuncs() {
 	var sfs = []struct {
 		name string
-		sf   oldtransaction.StepFunc
+		sf   transaction.StepFunc
 	}{
 		{"snap-restore.Commit", snapRestore},
 		{"snap-restore.UndoCommit", undoSnapRestore},
@@ -310,7 +310,7 @@ func registerSnapRestoreStepFuncs() {
 		{"snap-restore.CleanBricks", cleanParentBricks},
 	}
 	for _, sf := range sfs {
-		oldtransaction.RegisterStepFunc(sf.sf, sf.name)
+		transaction.RegisterStepFunc(sf.sf, sf.name)
 	}
 }
 
@@ -326,7 +326,7 @@ func snapshotRestoreHandler(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	txn, err := oldtransaction.NewTxnWithLocks(ctx, snapname, snapinfo.ParentVolume)
+	txn, err := transaction.NewTxnWithLocks(ctx, snapname, snapinfo.ParentVolume)
 	if err != nil {
 		status, err := restutils.ErrToStatusCode(err)
 		restutils.SendHTTPError(ctx, w, status, err)
@@ -356,7 +356,7 @@ func snapshotRestoreHandler(w http.ResponseWriter, r *http.Request) {
 	}
 
 	bricksAutoProvisioned := vol.IsAutoProvisioned() || vol.IsSnapshotProvisioned()
-	txn.Steps = []*oldtransaction.Step{
+	txn.Steps = []*transaction.Step{
 		{
 			DoFunc:   "snap-restore.Commit",
 			UndoFunc: "snap-restore.UndoCommit",

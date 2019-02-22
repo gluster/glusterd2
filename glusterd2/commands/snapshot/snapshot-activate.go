@@ -7,9 +7,9 @@ import (
 
 	"github.com/gluster/glusterd2/glusterd2/brick"
 	"github.com/gluster/glusterd2/glusterd2/gdctx"
-	"github.com/gluster/glusterd2/glusterd2/oldtransaction"
 	restutils "github.com/gluster/glusterd2/glusterd2/servers/rest/utils"
 	"github.com/gluster/glusterd2/glusterd2/snapshot"
+	"github.com/gluster/glusterd2/glusterd2/transaction"
 	"github.com/gluster/glusterd2/glusterd2/volgen"
 	"github.com/gluster/glusterd2/glusterd2/volume"
 	"github.com/gluster/glusterd2/pkg/api"
@@ -19,7 +19,7 @@ import (
 	log "github.com/sirupsen/logrus"
 )
 
-func activateSnapshot(c oldtransaction.TxnCtx) error {
+func activateSnapshot(c transaction.TxnCtx) error {
 	var snapinfo snapshot.Snapinfo
 	activate := true
 
@@ -53,7 +53,7 @@ func activateSnapshot(c oldtransaction.TxnCtx) error {
 	return err
 }
 
-func rollbackActivateSnapshot(c oldtransaction.TxnCtx) error {
+func rollbackActivateSnapshot(c transaction.TxnCtx) error {
 	activate := false
 	var snapinfo snapshot.Snapinfo
 	var brickinfos []brick.Brickinfo
@@ -85,10 +85,10 @@ func rollbackActivateSnapshot(c oldtransaction.TxnCtx) error {
 }
 
 func registerSnapActivateStepFuncs() {
-	oldtransaction.RegisterStepFunc(activateSnapshot, "snap-activate.Commit")
-	oldtransaction.RegisterStepFunc(rollbackActivateSnapshot, "snap-activate.Undo")
-	oldtransaction.RegisterStepFunc(storeSnapshot, "snap-activate.StoreSnapshot")
-	oldtransaction.RegisterStepFunc(undoStoreSnapshot, "snap-activate.UndoStoreSnapshot")
+	transaction.RegisterStepFunc(activateSnapshot, "snap-activate.Commit")
+	transaction.RegisterStepFunc(rollbackActivateSnapshot, "snap-activate.Undo")
+	transaction.RegisterStepFunc(storeSnapshot, "snap-activate.StoreSnapshot")
+	transaction.RegisterStepFunc(undoStoreSnapshot, "snap-activate.UndoStoreSnapshot")
 
 }
 
@@ -99,7 +99,7 @@ func snapshotActivateHandler(w http.ResponseWriter, r *http.Request) {
 
 	snapname := mux.Vars(r)["snapname"]
 
-	txn, err := oldtransaction.NewTxnWithLocks(ctx, snapname)
+	txn, err := transaction.NewTxnWithLocks(ctx, snapname)
 	if err != nil {
 		status, err := restutils.ErrToStatusCode(err)
 		restutils.SendHTTPError(ctx, w, status, err)
@@ -142,7 +142,7 @@ func snapshotActivateHandler(w http.ResponseWriter, r *http.Request) {
 
 	//Populating Nodes neeed not be under lock, because snapshot is a read only config
 	txn.Nodes = vol.Nodes()
-	txn.Steps = []*oldtransaction.Step{
+	txn.Steps = []*transaction.Step{
 		{
 			DoFunc:   "snap-activate.Commit",
 			UndoFunc: "snap-activate.Undo",

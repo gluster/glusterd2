@@ -5,9 +5,9 @@ import (
 
 	"github.com/gluster/glusterd2/glusterd2/brick"
 	"github.com/gluster/glusterd2/glusterd2/gdctx"
-	"github.com/gluster/glusterd2/glusterd2/oldtransaction"
 	restutils "github.com/gluster/glusterd2/glusterd2/servers/rest/utils"
 	"github.com/gluster/glusterd2/glusterd2/snapshot"
+	"github.com/gluster/glusterd2/glusterd2/transaction"
 	"github.com/gluster/glusterd2/glusterd2/volume"
 	"github.com/gluster/glusterd2/pkg/api"
 	"github.com/gluster/glusterd2/pkg/errors"
@@ -48,7 +48,7 @@ func createSnapshotStatusResp(brickStatuses []brick.Brickstatus) []*api.SnapBric
 
 }
 
-func snapshotStatus(ctx oldtransaction.TxnCtx) error {
+func snapshotStatus(ctx transaction.TxnCtx) error {
 	var snapname string
 	if err := ctx.Get("snapname", &snapname); err != nil {
 		ctx.Logger().WithError(err).Error("Failed to get key from transaction context.")
@@ -77,7 +77,7 @@ func snapshotStatus(ctx oldtransaction.TxnCtx) error {
 }
 
 func registerSnapshotStatusStepFuncs() {
-	oldtransaction.RegisterStepFunc(snapshotStatus, "snap-status.Check")
+	transaction.RegisterStepFunc(snapshotStatus, "snap-status.Check")
 }
 
 func snapshotStatusHandler(w http.ResponseWriter, r *http.Request) {
@@ -98,7 +98,7 @@ func snapshotStatusHandler(w http.ResponseWriter, r *http.Request) {
 		restutils.SendHTTPError(ctx, w, http.StatusBadRequest, errors.ErrSnapNotActivated)
 		return
 	}
-	txn, err := oldtransaction.NewTxnWithLocks(ctx, vol.Name)
+	txn, err := transaction.NewTxnWithLocks(ctx, vol.Name)
 	if err != nil {
 		status, err := restutils.ErrToStatusCode(err)
 		restutils.SendHTTPError(ctx, w, status, err)
@@ -106,7 +106,7 @@ func snapshotStatusHandler(w http.ResponseWriter, r *http.Request) {
 	}
 
 	defer txn.Done()
-	txn.Steps = []*oldtransaction.Step{
+	txn.Steps = []*transaction.Step{
 		{
 			DoFunc: "snap-status.Check",
 			Nodes:  vol.Nodes(),
@@ -128,7 +128,7 @@ func snapshotStatusHandler(w http.ResponseWriter, r *http.Request) {
 	restutils.SendHTTPResponse(ctx, w, http.StatusOK, resp)
 }
 
-func createSnapshotStatusesResp(ctx oldtransaction.TxnCtx, snap *snapshot.Snapinfo) *api.SnapStatusResp {
+func createSnapshotStatusesResp(ctx transaction.TxnCtx, snap *snapshot.Snapinfo) *api.SnapStatusResp {
 
 	// bmap is a map of brick statuses keyed by brick ID
 

@@ -13,10 +13,10 @@ import (
 
 	"github.com/gluster/glusterd2/glusterd2/brick"
 	"github.com/gluster/glusterd2/glusterd2/gdctx"
-	"github.com/gluster/glusterd2/glusterd2/oldtransaction"
 	"github.com/gluster/glusterd2/glusterd2/options"
 	"github.com/gluster/glusterd2/glusterd2/servers/sunrpc"
 	"github.com/gluster/glusterd2/glusterd2/store"
+	"github.com/gluster/glusterd2/glusterd2/transaction"
 	"github.com/gluster/glusterd2/glusterd2/volgen"
 	"github.com/gluster/glusterd2/glusterd2/volume"
 	"github.com/gluster/glusterd2/glusterd2/xlator"
@@ -169,7 +169,7 @@ func expandGroupOptionsReset(reqOpts []string) ([]string, error) {
 	return options, nil
 }
 
-func notifyVolfileChange(c oldtransaction.TxnCtx) error {
+func notifyVolfileChange(c transaction.TxnCtx) error {
 
 	var volinfo volume.Volinfo
 	if err := c.Get("volinfo", &volinfo); err != nil {
@@ -186,7 +186,7 @@ func notifyVolfileChange(c oldtransaction.TxnCtx) error {
 }
 
 // This txn step is used in volume create and in volume expand
-func validateBricks(c oldtransaction.TxnCtx) error {
+func validateBricks(c transaction.TxnCtx) error {
 
 	var err error
 
@@ -228,7 +228,7 @@ func validateBricks(c oldtransaction.TxnCtx) error {
 }
 
 // This txn step is used in volume create, replace brick and in volume expand
-func initBricks(c oldtransaction.TxnCtx) error {
+func initBricks(c transaction.TxnCtx) error {
 
 	var err error
 
@@ -274,7 +274,7 @@ func initBricks(c oldtransaction.TxnCtx) error {
 }
 
 // This txn step is used in volume create and in volume expand
-func undoInitBricks(c oldtransaction.TxnCtx) error {
+func undoInitBricks(c transaction.TxnCtx) error {
 
 	var bricks []brick.Brickinfo
 	if err := c.Get("bricks", &bricks); err != nil {
@@ -296,12 +296,12 @@ func undoInitBricks(c oldtransaction.TxnCtx) error {
 }
 
 // StoreVolume uses to store the volinfo and to generate client volfile
-func storeVolume(c oldtransaction.TxnCtx) error {
+func storeVolume(c transaction.TxnCtx) error {
 	return storeVolInfo(c, "volinfo")
 }
 
 // storeVolInfo uses to store the volinfo based on key and to generate client volfile
-func storeVolInfo(c oldtransaction.TxnCtx, key string) error {
+func storeVolInfo(c transaction.TxnCtx, key string) error {
 	var volinfo volume.Volinfo
 	if err := c.Get(key, &volinfo); err != nil {
 		c.Logger().WithError(err).WithField(
@@ -319,7 +319,7 @@ func storeVolInfo(c oldtransaction.TxnCtx, key string) error {
 }
 
 // undoStoreVolume revert back volinfo and to generate client volfile
-func undoStoreVolume(c oldtransaction.TxnCtx) error {
+func undoStoreVolume(c transaction.TxnCtx) error {
 	return storeVolInfo(c, "oldvolinfo")
 }
 
@@ -401,7 +401,7 @@ func isActionStepRequired(opt map[string]string, volinfo *volume.Volinfo) bool {
 	return false
 }
 
-func txnDeleteBrickVolfiles(c oldtransaction.TxnCtx) error {
+func txnDeleteBrickVolfiles(c transaction.TxnCtx) error {
 	var volinfo volume.Volinfo
 	if err := c.Get("volinfo", &volinfo); err != nil {
 		c.Logger().WithError(err).WithField(
@@ -420,7 +420,7 @@ func txnDeleteBrickVolfiles(c oldtransaction.TxnCtx) error {
 	return nil
 }
 
-func txnGenerateBrickVolfiles(c oldtransaction.TxnCtx) error {
+func txnGenerateBrickVolfiles(c transaction.TxnCtx) error {
 	var volinfo volume.Volinfo
 	if err := c.Get("volinfo", &volinfo); err != nil {
 		return err

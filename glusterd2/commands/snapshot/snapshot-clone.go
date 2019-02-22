@@ -6,9 +6,9 @@ import (
 	"net/http"
 
 	"github.com/gluster/glusterd2/glusterd2/gdctx"
-	"github.com/gluster/glusterd2/glusterd2/oldtransaction"
 	restutils "github.com/gluster/glusterd2/glusterd2/servers/rest/utils"
 	"github.com/gluster/glusterd2/glusterd2/snapshot"
+	"github.com/gluster/glusterd2/glusterd2/transaction"
 	"github.com/gluster/glusterd2/glusterd2/volume"
 	"github.com/gluster/glusterd2/pkg/api"
 	gderrors "github.com/gluster/glusterd2/pkg/errors"
@@ -20,7 +20,7 @@ import (
 	config "github.com/spf13/viper"
 )
 
-func undoSnapshotClone(c oldtransaction.TxnCtx) error {
+func undoSnapshotClone(c transaction.TxnCtx) error {
 	var volinfo volume.Volinfo
 
 	if err := c.Get("volinfo", &volinfo); err != nil {
@@ -38,7 +38,7 @@ func undoSnapshotClone(c oldtransaction.TxnCtx) error {
 
 	return nil
 }
-func undoStoreSnapshotClone(c oldtransaction.TxnCtx) error {
+func undoStoreSnapshotClone(c transaction.TxnCtx) error {
 	var (
 		vol volume.Volinfo
 		err error
@@ -52,7 +52,7 @@ func undoStoreSnapshotClone(c oldtransaction.TxnCtx) error {
 	return err
 }
 
-func storeSnapshotClone(c oldtransaction.TxnCtx) error {
+func storeSnapshotClone(c transaction.TxnCtx) error {
 	var vol volume.Volinfo
 	if err := c.Get("volinfo", &vol); err != nil {
 		return err
@@ -65,7 +65,7 @@ func storeSnapshotClone(c oldtransaction.TxnCtx) error {
 
 	return nil
 }
-func takeSnapshotClone(c oldtransaction.TxnCtx) error {
+func takeSnapshotClone(c transaction.TxnCtx) error {
 	var snapname string
 	var newVol volume.Volinfo
 
@@ -135,7 +135,7 @@ func populateCloneBrickMountData(volinfo *volume.Volinfo, name string) (map[stri
 	return nodeData, nil
 }
 
-func validateSnapClone(c oldtransaction.TxnCtx) error {
+func validateSnapClone(c transaction.TxnCtx) error {
 	var (
 		statusStr           []string
 		err                 error
@@ -190,7 +190,7 @@ func validateSnapClone(c oldtransaction.TxnCtx) error {
 	return nil
 }
 
-func createCloneVolinfo(c oldtransaction.TxnCtx) error {
+func createCloneVolinfo(c transaction.TxnCtx) error {
 	var clonename, snapname string
 	nodeData := make(map[string]snapshot.BrickMountData)
 
@@ -253,7 +253,7 @@ func snapshotCloneBrickCreate(cloneName, brickDirSuffix string, subvolNumber, br
 func registerSnapCloneStepFuncs() {
 	var sfs = []struct {
 		name string
-		sf   oldtransaction.StepFunc
+		sf   transaction.StepFunc
 	}{
 		{"snap-clone.Validate", validateSnapClone},
 		{"snap-clone.CreateCloneVolinfo", createCloneVolinfo},
@@ -263,7 +263,7 @@ func registerSnapCloneStepFuncs() {
 		{"snap-clone.UndoStoreSnapshotOnClone", undoStoreSnapshotClone},
 	}
 	for _, sf := range sfs {
-		oldtransaction.RegisterStepFunc(sf.sf, sf.name)
+		transaction.RegisterStepFunc(sf.sf, sf.name)
 	}
 }
 
@@ -288,7 +288,7 @@ func snapshotCloneHandler(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	txn, err := oldtransaction.NewTxnWithLocks(ctx, req.CloneName, snapname)
+	txn, err := transaction.NewTxnWithLocks(ctx, req.CloneName, snapname)
 	if err != nil {
 		status, err := restutils.ErrToStatusCode(err)
 		restutils.SendHTTPError(ctx, w, status, err)
@@ -316,7 +316,7 @@ func snapshotCloneHandler(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 	txn.Nodes = snapVol.Nodes()
-	txn.Steps = []*oldtransaction.Step{
+	txn.Steps = []*transaction.Step{
 		{
 			DoFunc: "snap-clone.Validate",
 			Nodes:  txn.Nodes,

@@ -6,9 +6,9 @@ import (
 	"github.com/gluster/glusterd2/glusterd2/brick"
 	"github.com/gluster/glusterd2/glusterd2/bricksplanner"
 	"github.com/gluster/glusterd2/glusterd2/gdctx"
-	"github.com/gluster/glusterd2/glusterd2/oldtransaction"
 	"github.com/gluster/glusterd2/glusterd2/peer"
 	restutils "github.com/gluster/glusterd2/glusterd2/servers/rest/utils"
+	"github.com/gluster/glusterd2/glusterd2/transaction"
 	"github.com/gluster/glusterd2/glusterd2/volume"
 	"github.com/gluster/glusterd2/pkg/api"
 	gderrors "github.com/gluster/glusterd2/pkg/errors"
@@ -20,14 +20,14 @@ import (
 func registerReplaceBrickStepFuncs() {
 	var sfs = []struct {
 		name string
-		sf   oldtransaction.StepFunc
+		sf   transaction.StepFunc
 	}{
 		{"brick-replace.PrepareBricks", prepareBricks},
 		{"brick-replace.ReplaceVolinfo", replaceVolinfo},
 		{"brick-replace.StartBrick", startBrick},
 	}
 	for _, sf := range sfs {
-		oldtransaction.RegisterStepFunc(sf.sf, sf.name)
+		transaction.RegisterStepFunc(sf.sf, sf.name)
 	}
 }
 
@@ -146,7 +146,7 @@ LOOP:
 	}
 	allPeerIDs := vol.Nodes()
 	nodes := []uuid.UUID{peerID}
-	txn, err := oldtransaction.NewTxnWithLocks(ctx, volname)
+	txn, err := transaction.NewTxnWithLocks(ctx, volname)
 	if err != nil {
 		status, err := restutils.ErrToStatusCode(err)
 		restutils.SendHTTPError(ctx, w, status, err)
@@ -154,7 +154,7 @@ LOOP:
 	}
 	defer txn.Done()
 
-	txn.Steps = []*oldtransaction.Step{
+	txn.Steps = []*transaction.Step{
 		{
 			DoFunc: "brick-replace.PrepareBricks",
 			Nodes:  nodes,

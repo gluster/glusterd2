@@ -5,9 +5,9 @@ import (
 	"strings"
 
 	"github.com/gluster/glusterd2/glusterd2/gdctx"
-	"github.com/gluster/glusterd2/glusterd2/oldtransaction"
 	"github.com/gluster/glusterd2/glusterd2/peer"
 	restutils "github.com/gluster/glusterd2/glusterd2/servers/rest/utils"
+	"github.com/gluster/glusterd2/glusterd2/transaction"
 	"github.com/gluster/glusterd2/glusterd2/volume"
 	"github.com/gluster/glusterd2/glusterd2/xlator"
 	"github.com/gluster/glusterd2/pkg/api"
@@ -20,13 +20,13 @@ import (
 func registerVolOptionResetStepFuncs() {
 	var sfs = []struct {
 		name string
-		sf   oldtransaction.StepFunc
+		sf   transaction.StepFunc
 	}{
 		{"vol-option.XlatorActionDoReset", xlatorActionDoReset},
 		{"vol-option.XlatorActionUndoReset", xlatorActionUndoReset},
 	}
 	for _, sf := range sfs {
-		oldtransaction.RegisterStepFunc(sf.sf, sf.name)
+		transaction.RegisterStepFunc(sf.sf, sf.name)
 	}
 }
 
@@ -55,7 +55,7 @@ func volumeResetHandler(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	txn, err := oldtransaction.NewTxnWithLocks(ctx, volname)
+	txn, err := transaction.NewTxnWithLocks(ctx, volname)
 	if err != nil {
 		status, err := restutils.ErrToStatusCode(err)
 		restutils.SendHTTPError(ctx, w, status, err)
@@ -156,7 +156,7 @@ func volumeResetHandler(w http.ResponseWriter, r *http.Request) {
 		opt[key] = ""
 	}
 
-	txn.Steps = []*oldtransaction.Step{
+	txn.Steps = []*transaction.Step{
 		{
 			DoFunc:   "vol-option.XlatorActionDoReset",
 			UndoFunc: "vol-option.XlatorActionUndoReset",

@@ -10,9 +10,8 @@ import (
 	"github.com/gluster/glusterd2/glusterd2/bricksplanner"
 	"github.com/gluster/glusterd2/glusterd2/events"
 	"github.com/gluster/glusterd2/glusterd2/gdctx"
-	"github.com/gluster/glusterd2/glusterd2/oldtransaction"
 	restutils "github.com/gluster/glusterd2/glusterd2/servers/rest/utils"
-	transactionv2 "github.com/gluster/glusterd2/glusterd2/transaction"
+	"github.com/gluster/glusterd2/glusterd2/transaction"
 	"github.com/gluster/glusterd2/glusterd2/volume"
 	"github.com/gluster/glusterd2/pkg/api"
 	gderrors "github.com/gluster/glusterd2/pkg/errors"
@@ -84,7 +83,7 @@ func checkDupBrickEntryVolCreate(req api.VolCreateReq) error {
 func registerVolCreateStepFuncs() {
 	var sfs = []struct {
 		name string
-		sf   oldtransaction.StepFunc
+		sf   transaction.StepFunc
 	}{
 		{"vol-create.CreateVolinfo", createVolinfo},
 		{"vol-create.ValidateBricks", validateBricks},
@@ -96,7 +95,7 @@ func registerVolCreateStepFuncs() {
 		{"vol-create.UndoPrepareBricks", txnUndoPrepareBricks},
 	}
 	for _, sf := range sfs {
-		oldtransaction.RegisterStepFunc(sf.sf, sf.name)
+		transaction.RegisterStepFunc(sf.sf, sf.name)
 	}
 }
 
@@ -199,7 +198,7 @@ func CreateVolume(ctx context.Context, req api.VolCreateReq) (status int, err er
 		return http.StatusBadRequest, err
 	}
 
-	txn, err := transactionv2.NewTxnWithLocks(ctx, req.Name)
+	txn, err := transaction.NewTxnWithLocks(ctx, req.Name)
 	if err != nil {
 		return restutils.ErrToStatusCode(err)
 	}
@@ -209,7 +208,7 @@ func CreateVolume(ctx context.Context, req api.VolCreateReq) (status int, err er
 		return http.StatusBadRequest, gderrors.ErrVolExists
 	}
 
-	txn.Steps = []*oldtransaction.Step{
+	txn.Steps = []*transaction.Step{
 		{
 			DoFunc:   "vol-create.PrepareBricks",
 			UndoFunc: "vol-create.UndoPrepareBricks",

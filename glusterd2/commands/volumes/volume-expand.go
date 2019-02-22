@@ -6,9 +6,9 @@ import (
 
 	"github.com/gluster/glusterd2/glusterd2/events"
 	"github.com/gluster/glusterd2/glusterd2/gdctx"
-	"github.com/gluster/glusterd2/glusterd2/oldtransaction"
 	"github.com/gluster/glusterd2/glusterd2/peer"
 	restutils "github.com/gluster/glusterd2/glusterd2/servers/rest/utils"
+	"github.com/gluster/glusterd2/glusterd2/transaction"
 	"github.com/gluster/glusterd2/glusterd2/volume"
 	"github.com/gluster/glusterd2/pkg/api"
 	"github.com/gluster/glusterd2/pkg/errors"
@@ -23,7 +23,7 @@ import (
 func registerVolExpandStepFuncs() {
 	var sfs = []struct {
 		name string
-		sf   oldtransaction.StepFunc
+		sf   transaction.StepFunc
 	}{
 		{"vol-expand.ValidateAndPrepare", expandValidatePrepare},
 		{"vol-expand.ValidateBricks", validateBricks},
@@ -38,7 +38,7 @@ func registerVolExpandStepFuncs() {
 		{"vol-expand.LvmResize", resizeLVM},
 	}
 	for _, sf := range sfs {
-		oldtransaction.RegisterStepFunc(sf.sf, sf.name)
+		transaction.RegisterStepFunc(sf.sf, sf.name)
 	}
 }
 
@@ -84,7 +84,7 @@ func volumeExpandHandler(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	txn, err := oldtransaction.NewTxnWithLocks(ctx, volname)
+	txn, err := transaction.NewTxnWithLocks(ctx, volname)
 	if err != nil {
 		status, err := restutils.ErrToStatusCode(err)
 		restutils.SendHTTPError(ctx, w, status, err)
@@ -163,7 +163,7 @@ func volumeExpandHandler(w http.ResponseWriter, r *http.Request) {
 	}
 
 	txn.Nodes = allNodes
-	txn.Steps = []*oldtransaction.Step{
+	txn.Steps = []*transaction.Step{
 		// TODO: This is a lot of steps. We can combine a few if we
 		// do not re-use the same step functions across multiple
 		// volume operations.

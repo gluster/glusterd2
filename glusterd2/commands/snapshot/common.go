@@ -1,22 +1,22 @@
 package snapshotcommands
 
 import (
-	"github.com/gluster/glusterd2/glusterd2/oldtransaction"
 	"github.com/gluster/glusterd2/glusterd2/snapshot"
+	"github.com/gluster/glusterd2/glusterd2/transaction"
 )
 
 // undoStoreSnapshot revert back snapinfo and to generate client volfile
-func undoStoreSnapshot(c oldtransaction.TxnCtx) error {
+func undoStoreSnapshot(c transaction.TxnCtx) error {
 	return storeSnapinfo(c, "oldsnapinfo")
 }
 
 // StoreSnapahot uses to store the snapinfo and to generate client volfile
-func storeSnapshot(c oldtransaction.TxnCtx) error {
+func storeSnapshot(c transaction.TxnCtx) error {
 	return storeSnapinfo(c, "snapinfo")
 }
 
 // storeSnapInfo uses to store the snapinfo based on key and to generate client volfile
-func storeSnapinfo(c oldtransaction.TxnCtx, key string) error {
+func storeSnapinfo(c transaction.TxnCtx, key string) error {
 	var snapinfo snapshot.Snapinfo
 
 	if err := c.Get(key, &snapinfo); err != nil {

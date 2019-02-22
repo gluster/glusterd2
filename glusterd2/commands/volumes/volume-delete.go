@@ -6,9 +6,8 @@ import (
 
 	"github.com/gluster/glusterd2/glusterd2/events"
 	"github.com/gluster/glusterd2/glusterd2/gdctx"
-	"github.com/gluster/glusterd2/glusterd2/oldtransaction"
 	restutils "github.com/gluster/glusterd2/glusterd2/servers/rest/utils"
-	transactionv2 "github.com/gluster/glusterd2/glusterd2/transaction"
+	"github.com/gluster/glusterd2/glusterd2/transaction"
 	"github.com/gluster/glusterd2/glusterd2/volume"
 
 	"github.com/gorilla/mux"
@@ -17,7 +16,7 @@ import (
 	"go.opencensus.io/trace"
 )
 
-func deleteVolume(c oldtransaction.TxnCtx) error {
+func deleteVolume(c transaction.TxnCtx) error {
 
 	var (
 		volinfo volume.Volinfo
@@ -32,8 +31,8 @@ func deleteVolume(c oldtransaction.TxnCtx) error {
 }
 
 func registerVolDeleteStepFuncs() {
-	oldtransaction.RegisterStepFunc(deleteVolume, "vol-delete.Store")
-	oldtransaction.RegisterStepFunc(txnCleanBricks, "vol-delete.CleanBricks")
+	transaction.RegisterStepFunc(deleteVolume, "vol-delete.Store")
+	transaction.RegisterStepFunc(txnCleanBricks, "vol-delete.CleanBricks")
 }
 
 func volumeDeleteHandler(w http.ResponseWriter, r *http.Request) {
@@ -45,7 +44,7 @@ func volumeDeleteHandler(w http.ResponseWriter, r *http.Request) {
 	ctx, span := trace.StartSpan(ctx, "/volumeDeleteHandler")
 	defer span.End()
 
-	txn, err := transactionv2.NewTxnWithLocks(ctx, volname)
+	txn, err := transaction.NewTxnWithLocks(ctx, volname)
 	if err != nil {
 		status, err := restutils.ErrToStatusCode(err)
 		restutils.SendHTTPError(ctx, w, status, err)
@@ -73,7 +72,7 @@ func volumeDeleteHandler(w http.ResponseWriter, r *http.Request) {
 	}
 
 	bricksAutoProvisioned := volinfo.IsAutoProvisioned() || volinfo.IsSnapshotProvisioned()
-	txn.Steps = []*oldtransaction.Step{
+	txn.Steps = []*transaction.Step{
 		{
 			DoFunc: "vol-delete.CleanBricks",
 			Nodes:  volinfo.Nodes(),

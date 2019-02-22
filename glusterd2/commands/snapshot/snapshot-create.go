@@ -21,10 +21,10 @@ import (
 	"github.com/gluster/glusterd2/glusterd2/brick"
 	"github.com/gluster/glusterd2/glusterd2/daemon"
 	"github.com/gluster/glusterd2/glusterd2/gdctx"
-	"github.com/gluster/glusterd2/glusterd2/oldtransaction"
 	restutils "github.com/gluster/glusterd2/glusterd2/servers/rest/utils"
 	"github.com/gluster/glusterd2/glusterd2/servers/sunrpc/dict"
 	"github.com/gluster/glusterd2/glusterd2/snapshot"
+	"github.com/gluster/glusterd2/glusterd2/transaction"
 	"github.com/gluster/glusterd2/glusterd2/volgen"
 	"github.com/gluster/glusterd2/glusterd2/volume"
 	"github.com/gluster/glusterd2/glusterd2/xlator"
@@ -102,7 +102,7 @@ func barrierActivateDeactivateFunc(volinfo *volume.Volinfo, option string, origi
 	}
 	return nil
 }
-func deactivateBarrier(c oldtransaction.TxnCtx) error {
+func deactivateBarrier(c transaction.TxnCtx) error {
 	var barrierOp string
 	var snapInfo snapshot.Snapinfo
 	if err := c.Get("barrier-enabled", &barrierOp); err != nil {
@@ -136,7 +136,7 @@ func deactivateBarrier(c oldtransaction.TxnCtx) error {
 
 }
 
-func activateBarrier(c oldtransaction.TxnCtx) error {
+func activateBarrier(c transaction.TxnCtx) error {
 	var barrierOp string
 	var snapInfo snapshot.Snapinfo
 	if err := c.Get("barrier-enabled", &barrierOp); err != nil {
@@ -171,7 +171,7 @@ func activateBarrier(c oldtransaction.TxnCtx) error {
 	return err
 
 }
-func undoBrickSnapshots(c oldtransaction.TxnCtx) error {
+func undoBrickSnapshots(c transaction.TxnCtx) error {
 	var snapInfo snapshot.Snapinfo
 
 	if err := c.Get("snapinfo", &snapInfo); err != nil {
@@ -189,7 +189,7 @@ func undoBrickSnapshots(c oldtransaction.TxnCtx) error {
 
 	return nil
 }
-func undoStoreSnapshotOnCreate(c oldtransaction.TxnCtx) error {
+func undoStoreSnapshotOnCreate(c transaction.TxnCtx) error {
 
 	var snapInfo snapshot.Snapinfo
 	if err := c.Get("snapinfo", &snapInfo); err != nil {
@@ -208,7 +208,7 @@ func undoStoreSnapshotOnCreate(c oldtransaction.TxnCtx) error {
 }
 
 // storeSnapshot uses to store the volinfo and to generate client volfile
-func storeSnapshotCreate(c oldtransaction.TxnCtx) error {
+func storeSnapshotCreate(c transaction.TxnCtx) error {
 
 	var snapInfo snapshot.Snapinfo
 	if err := c.Get("snapinfo", &snapInfo); err != nil {
@@ -316,7 +316,7 @@ func populateSnapBrickMountData(volinfo *volume.Volinfo, snapName string) (map[s
 	return nodeData, nil
 }
 
-func validateSnapCreate(c oldtransaction.TxnCtx) error {
+func validateSnapCreate(c transaction.TxnCtx) error {
 	var (
 		statusStr []string
 		err       error
@@ -455,7 +455,7 @@ func brickSnapshot(errCh chan error, wg *sync.WaitGroup, snapBrick, b brick.Bric
 	return
 }
 
-func takeSnapshots(c oldtransaction.TxnCtx) error {
+func takeSnapshots(c transaction.TxnCtx) error {
 	var snapInfo snapshot.Snapinfo
 
 	if err := c.Get("snapinfo", &snapInfo); err != nil {
@@ -517,7 +517,7 @@ func createSnapSubvols(newVolinfo, origVolinfo *volume.Volinfo, nodeData map[str
 	return nil
 }
 
-func createSnapinfo(c oldtransaction.TxnCtx) error {
+func createSnapinfo(c transaction.TxnCtx) error {
 	var data txnData
 	ignoreOps := map[string]string{
 		"features/quota":             "off",
@@ -646,7 +646,7 @@ func snapshotBrickCreate(snapName, volName, brickDirSuffix string, subvolNumber,
 	return brickPath
 }
 
-func validateOriginNodeSnapCreate(c oldtransaction.TxnCtx) error {
+func validateOriginNodeSnapCreate(c transaction.TxnCtx) error {
 	var data txnData
 
 	if err := c.Get("data", &data); err != nil {
@@ -690,7 +690,7 @@ func validateOriginNodeSnapCreate(c oldtransaction.TxnCtx) error {
 func registerSnapCreateStepFuncs() {
 	var sfs = []struct {
 		name string
-		sf   oldtransaction.StepFunc
+		sf   transaction.StepFunc
 	}{
 		{"snap-create.Validate", validateSnapCreate},
 		{"snap-create.CreateSnapinfo", createSnapinfo},
@@ -702,7 +702,7 @@ func registerSnapCreateStepFuncs() {
 		{"snap-create.UndoStoreSnapshotOnCreate", undoStoreSnapshotOnCreate},
 	}
 	for _, sf := range sfs {
-		oldtransaction.RegisterStepFunc(sf.sf, sf.name)
+		transaction.RegisterStepFunc(sf.sf, sf.name)
 	}
 }
 
@@ -732,7 +732,7 @@ func snapshotCreateHandler(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	txn, err := oldtransaction.NewTxnWithLocks(ctx, req.VolName, req.SnapName)
+	txn, err := transaction.NewTxnWithLocks(ctx, req.VolName, req.SnapName)
 	if err != nil {
 		status, err := restutils.ErrToStatusCode(err)
 		restutils.SendHTTPError(ctx, w, status, err)
@@ -763,7 +763,7 @@ func snapshotCreateHandler(w http.ResponseWriter, r *http.Request) {
 	}
 
 	txn.Nodes = vol.Nodes()
-	txn.Steps = []*oldtransaction.Step{
+	txn.Steps = []*transaction.Step{
 		{
 			DoFunc: "snap-create.Validate",
 			Nodes:  txn.Nodes,

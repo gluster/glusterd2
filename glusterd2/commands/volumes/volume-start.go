@@ -8,9 +8,8 @@ import (
 	"github.com/gluster/glusterd2/glusterd2/brickmux"
 	"github.com/gluster/glusterd2/glusterd2/events"
 	"github.com/gluster/glusterd2/glusterd2/gdctx"
-	"github.com/gluster/glusterd2/glusterd2/oldtransaction"
 	restutils "github.com/gluster/glusterd2/glusterd2/servers/rest/utils"
-	transactionv2 "github.com/gluster/glusterd2/glusterd2/transaction"
+	"github.com/gluster/glusterd2/glusterd2/transaction"
 	"github.com/gluster/glusterd2/glusterd2/volgen"
 	"github.com/gluster/glusterd2/glusterd2/volume"
 	"github.com/gluster/glusterd2/pkg/api"
@@ -22,7 +21,7 @@ import (
 	"go.opencensus.io/trace"
 )
 
-func startAllBricks(c oldtransaction.TxnCtx) error {
+func startAllBricks(c transaction.TxnCtx) error {
 
 	var volinfo volume.Volinfo
 	if err := c.Get("volinfo", &volinfo); err != nil {
@@ -81,7 +80,7 @@ func startAllBricks(c oldtransaction.TxnCtx) error {
 	return nil
 }
 
-func stopAllBricks(c oldtransaction.TxnCtx) error {
+func stopAllBricks(c transaction.TxnCtx) error {
 
 	var volinfo volume.Volinfo
 	if err := c.Get("volinfo", &volinfo); err != nil {
@@ -111,7 +110,7 @@ func stopAllBricks(c oldtransaction.TxnCtx) error {
 func registerVolStartStepFuncs() {
 	var sfs = []struct {
 		name string
-		sf   oldtransaction.StepFunc
+		sf   transaction.StepFunc
 	}{
 		{"vol-start.StartBricks", startAllBricks},
 		{"vol-start.StartBricksUndo", stopAllBricks},
@@ -121,7 +120,7 @@ func registerVolStartStepFuncs() {
 		{"vol-start.UpdateVolinfo.Undo", undoStoreVolume},
 	}
 	for _, sf := range sfs {
-		oldtransaction.RegisterStepFunc(sf.sf, sf.name)
+		transaction.RegisterStepFunc(sf.sf, sf.name)
 	}
 
 }
@@ -156,7 +155,7 @@ func StartVolume(ctx context.Context, volname string, req api.VolumeStartReq) (v
 	ctx, span := trace.StartSpan(ctx, "/volumeStartHandler")
 	defer span.End()
 
-	txn, err := transactionv2.NewTxnWithLocks(ctx, volname)
+	txn, err := transaction.NewTxnWithLocks(ctx, volname)
 	if err != nil {
 		status, err := restutils.ErrToStatusCode(err)
 		return nil, status, err
@@ -173,7 +172,7 @@ func StartVolume(ctx context.Context, volname string, req api.VolumeStartReq) (v
 		return nil, http.StatusBadRequest, errors.ErrVolAlreadyStarted
 	}
 
-	txn.Steps = []*oldtransaction.Step{
+	txn.Steps = []*transaction.Step{
 		{
 			DoFunc:   "vol-start.StartBricks",
 			UndoFunc: "vol-start.StartBricksUndo",

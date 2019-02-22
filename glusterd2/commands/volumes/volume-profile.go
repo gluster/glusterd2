@@ -10,9 +10,9 @@ import (
 	"github.com/gluster/glusterd2/glusterd2/brick"
 	"github.com/gluster/glusterd2/glusterd2/daemon"
 	"github.com/gluster/glusterd2/glusterd2/gdctx"
-	"github.com/gluster/glusterd2/glusterd2/oldtransaction"
 	restutils "github.com/gluster/glusterd2/glusterd2/servers/rest/utils"
 	"github.com/gluster/glusterd2/glusterd2/servers/sunrpc/dict"
+	"github.com/gluster/glusterd2/glusterd2/transaction"
 	"github.com/gluster/glusterd2/glusterd2/volume"
 
 	"github.com/gorilla/mux"
@@ -26,7 +26,7 @@ const (
 )
 
 func registerVolProfileStepFuncs() {
-	oldtransaction.RegisterStepFunc(txnVolumeProfile, "volume.Profile")
+	transaction.RegisterStepFunc(txnVolumeProfile, "volume.Profile")
 }
 
 func volumeProfileHandler(w http.ResponseWriter, r *http.Request) {
@@ -35,7 +35,7 @@ func volumeProfileHandler(w http.ResponseWriter, r *http.Request) {
 	volname := mux.Vars(r)["volname"]
 	option := mux.Vars(r)["option"]
 
-	txn, err := oldtransaction.NewTxnWithLocks(ctx, volname)
+	txn, err := transaction.NewTxnWithLocks(ctx, volname)
 	if err != nil {
 		status, err := restutils.ErrToStatusCode(err)
 		restutils.SendHTTPError(ctx, w, status, err)
@@ -61,7 +61,7 @@ func volumeProfileHandler(w http.ResponseWriter, r *http.Request) {
 
 	}
 
-	txn.Steps = []*oldtransaction.Step{
+	txn.Steps = []*transaction.Step{
 		{
 			DoFunc: "volume.Profile",
 			Nodes:  volinfo.Nodes(),
@@ -217,7 +217,7 @@ func decodeIntervalKey(key string) (string, string) {
 	return fop, k
 }
 
-func txnVolumeProfile(c oldtransaction.TxnCtx) error {
+func txnVolumeProfile(c transaction.TxnCtx) error {
 	var volinfo volume.Volinfo
 	var nodeProfileInfo []map[string]string
 	if err := c.Get("volinfo", &volinfo); err != nil {

@@ -7,9 +7,9 @@ import (
 	"github.com/gluster/glusterd2/glusterd2/brick"
 	"github.com/gluster/glusterd2/glusterd2/daemon"
 	"github.com/gluster/glusterd2/glusterd2/gdctx"
-	"github.com/gluster/glusterd2/glusterd2/oldtransaction"
 	restutils "github.com/gluster/glusterd2/glusterd2/servers/rest/utils"
 	"github.com/gluster/glusterd2/glusterd2/servers/sunrpc"
+	"github.com/gluster/glusterd2/glusterd2/transaction"
 	"github.com/gluster/glusterd2/glusterd2/volume"
 	"github.com/gluster/glusterd2/pkg/api"
 	gderrors "github.com/gluster/glusterd2/pkg/errors"
@@ -37,7 +37,7 @@ func validateVolStatedumpReq(req *api.VolStatedumpReq) error {
 	return nil
 }
 
-func takeStatedump(c oldtransaction.TxnCtx) error {
+func takeStatedump(c transaction.TxnCtx) error {
 
 	var req api.VolStatedumpReq
 	if err := c.Get("req", &req); err != nil {
@@ -83,7 +83,7 @@ func takeStatedump(c oldtransaction.TxnCtx) error {
 }
 
 func registerVolStatedumpFuncs() {
-	oldtransaction.RegisterStepFunc(takeStatedump, "vol-statedump.TakeStatedump")
+	transaction.RegisterStepFunc(takeStatedump, "vol-statedump.TakeStatedump")
 }
 
 func volumeStatedumpHandler(w http.ResponseWriter, r *http.Request) {
@@ -103,7 +103,7 @@ func volumeStatedumpHandler(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	txn, err := oldtransaction.NewTxnWithLocks(ctx, volname)
+	txn, err := transaction.NewTxnWithLocks(ctx, volname)
 	if err != nil {
 		status, err := restutils.ErrToStatusCode(err)
 		restutils.SendHTTPError(ctx, w, status, err)
@@ -123,7 +123,7 @@ func volumeStatedumpHandler(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	txn.Steps = []*oldtransaction.Step{
+	txn.Steps = []*transaction.Step{
 		{
 			DoFunc: "vol-statedump.TakeStatedump",
 			Nodes:  volinfo.Nodes(),

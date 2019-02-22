@@ -9,9 +9,8 @@ import (
 	"github.com/gluster/glusterd2/glusterd2/daemon"
 	"github.com/gluster/glusterd2/glusterd2/events"
 	"github.com/gluster/glusterd2/glusterd2/gdctx"
-	"github.com/gluster/glusterd2/glusterd2/oldtransaction"
 	restutils "github.com/gluster/glusterd2/glusterd2/servers/rest/utils"
-	transactionv2 "github.com/gluster/glusterd2/glusterd2/transaction"
+	"github.com/gluster/glusterd2/glusterd2/transaction"
 	"github.com/gluster/glusterd2/glusterd2/volgen"
 	"github.com/gluster/glusterd2/glusterd2/volume"
 	"github.com/gluster/glusterd2/pkg/api"
@@ -23,7 +22,7 @@ import (
 	"go.opencensus.io/trace"
 )
 
-func stopBricks(c oldtransaction.TxnCtx) error {
+func stopBricks(c transaction.TxnCtx) error {
 
 	var volinfo volume.Volinfo
 	if err := c.Get("volinfo", &volinfo); err != nil {
@@ -101,7 +100,7 @@ func stopBricks(c oldtransaction.TxnCtx) error {
 func registerVolStopStepFuncs() {
 	var sfs = []struct {
 		name string
-		sf   oldtransaction.StepFunc
+		sf   transaction.StepFunc
 	}{
 		{"vol-stop.StopBricks", stopBricks},
 		{"vol-stop.XlatorActionDoVolumeStop", xlatorActionDoVolumeStop},
@@ -110,7 +109,7 @@ func registerVolStopStepFuncs() {
 		{"vol-stop.UpdateVolinfo.Undo", undoStoreVolume},
 	}
 	for _, sf := range sfs {
-		oldtransaction.RegisterStepFunc(sf.sf, sf.name)
+		transaction.RegisterStepFunc(sf.sf, sf.name)
 	}
 
 }
@@ -124,7 +123,7 @@ func volumeStopHandler(w http.ResponseWriter, r *http.Request) {
 	logger := gdctx.GetReqLogger(ctx)
 	volname := mux.Vars(r)["volname"]
 
-	txn, err := transactionv2.NewTxnWithLocks(ctx, volname)
+	txn, err := transaction.NewTxnWithLocks(ctx, volname)
 	if err != nil {
 		status, err := restutils.ErrToStatusCode(err)
 		restutils.SendHTTPError(ctx, w, status, err)
@@ -149,7 +148,7 @@ func volumeStopHandler(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	txn.Steps = []*oldtransaction.Step{
+	txn.Steps = []*transaction.Step{
 		{
 			DoFunc: "vol-stop.StopBricks",
 			Nodes:  volinfo.Nodes(),

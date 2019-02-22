@@ -5,10 +5,10 @@ import (
 	"net/http"
 
 	"github.com/gluster/glusterd2/glusterd2/gdctx"
-	"github.com/gluster/glusterd2/glusterd2/oldtransaction"
 	"github.com/gluster/glusterd2/glusterd2/options"
 	"github.com/gluster/glusterd2/glusterd2/peer"
 	restutils "github.com/gluster/glusterd2/glusterd2/servers/rest/utils"
+	"github.com/gluster/glusterd2/glusterd2/transaction"
 	"github.com/gluster/glusterd2/glusterd2/volume"
 	"github.com/gluster/glusterd2/glusterd2/xlator"
 	"github.com/gluster/glusterd2/pkg/api"
@@ -20,7 +20,7 @@ import (
 	"go.opencensus.io/trace"
 )
 
-func optionSetValidate(c oldtransaction.TxnCtx) error {
+func optionSetValidate(c transaction.TxnCtx) error {
 
 	var req api.VolOptionReq
 	if err := c.Get("req", &req); err != nil {
@@ -69,42 +69,42 @@ const (
 	txnUndo
 )
 
-func xlatorActionDoSet(c oldtransaction.TxnCtx) error {
+func xlatorActionDoSet(c transaction.TxnCtx) error {
 	return xlatorAction(c, txnDo, xlator.VolumeSet)
 }
 
-func xlatorActionUndoSet(c oldtransaction.TxnCtx) error {
+func xlatorActionUndoSet(c transaction.TxnCtx) error {
 	return xlatorAction(c, txnUndo, xlator.VolumeSet)
 }
 
-func xlatorActionDoReset(c oldtransaction.TxnCtx) error {
+func xlatorActionDoReset(c transaction.TxnCtx) error {
 	return xlatorAction(c, txnDo, xlator.VolumeReset)
 }
 
-func xlatorActionUndoReset(c oldtransaction.TxnCtx) error {
+func xlatorActionUndoReset(c transaction.TxnCtx) error {
 	return xlatorAction(c, txnUndo, xlator.VolumeReset)
 }
 
-func xlatorActionDoVolumeStart(c oldtransaction.TxnCtx) error {
+func xlatorActionDoVolumeStart(c transaction.TxnCtx) error {
 	return xlatorAction(c, txnDo, xlator.VolumeStart)
 }
 
-func xlatorActionUndoVolumeStart(c oldtransaction.TxnCtx) error {
+func xlatorActionUndoVolumeStart(c transaction.TxnCtx) error {
 	return xlatorAction(c, txnUndo, xlator.VolumeStart)
 }
 
-func xlatorActionDoVolumeStop(c oldtransaction.TxnCtx) error {
+func xlatorActionDoVolumeStop(c transaction.TxnCtx) error {
 	return xlatorAction(c, txnDo, xlator.VolumeStop)
 }
 
-func xlatorActionUndoVolumeStop(c oldtransaction.TxnCtx) error {
+func xlatorActionUndoVolumeStop(c transaction.TxnCtx) error {
 	return xlatorAction(c, txnUndo, xlator.VolumeStop)
 }
 
 // This function can be reused when volume reset operation is implemented.
 // However, volume reset can be also be treated logically as volume set but
 // with the value set to default value.
-func xlatorAction(c oldtransaction.TxnCtx, txnOp txnOpType, volOp xlator.VolumeOpType) error {
+func xlatorAction(c transaction.TxnCtx, txnOp txnOpType, volOp xlator.VolumeOpType) error {
 
 	var volinfo volume.Volinfo
 	if err := c.Get("volinfo", &volinfo); err != nil {
@@ -176,7 +176,7 @@ func xlatorAction(c oldtransaction.TxnCtx, txnOp txnOpType, volOp xlator.VolumeO
 func registerVolOptionStepFuncs() {
 	var sfs = []struct {
 		name string
-		sf   oldtransaction.StepFunc
+		sf   transaction.StepFunc
 	}{
 		{"vol-option.Validate", optionSetValidate},
 		{"vol-option.XlatorActionDoSet", xlatorActionDoSet},
@@ -188,7 +188,7 @@ func registerVolOptionStepFuncs() {
 		{"vol-option.GenerateBrickvolfiles.Undo", txnDeleteBrickVolfiles},
 	}
 	for _, sf := range sfs {
-		oldtransaction.RegisterStepFunc(sf.sf, sf.name)
+		transaction.RegisterStepFunc(sf.sf, sf.name)
 	}
 }
 
@@ -211,7 +211,7 @@ func volumeOptionsHandler(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	txn, err := oldtransaction.NewTxnWithLocks(ctx, volname)
+	txn, err := transaction.NewTxnWithLocks(ctx, volname)
 	if err != nil {
 		status, err := restutils.ErrToStatusCode(err)
 		restutils.SendHTTPError(ctx, w, status, err)
@@ -237,7 +237,7 @@ func volumeOptionsHandler(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	txn.Steps = []*oldtransaction.Step{
+	txn.Steps = []*transaction.Step{
 		{
 			DoFunc: "vol-option.Validate",
 			Nodes:  []uuid.UUID{gdctx.MyUUID},

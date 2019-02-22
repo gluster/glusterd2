@@ -2,12 +2,12 @@ package volumecommands
 
 import (
 	"github.com/gluster/glusterd2/glusterd2/brick"
-	"github.com/gluster/glusterd2/glusterd2/oldtransaction"
+	"github.com/gluster/glusterd2/glusterd2/transaction"
 	"github.com/gluster/glusterd2/glusterd2/volume"
 	"github.com/gluster/glusterd2/pkg/api"
 )
 
-func prepareBricks(c oldtransaction.TxnCtx) error {
+func prepareBricks(c transaction.TxnCtx) error {
 	var volInfo volume.Volinfo
 	if err := c.Get("volinfo", &volInfo); err != nil {
 		return err
@@ -22,7 +22,7 @@ func prepareBricks(c oldtransaction.TxnCtx) error {
 	return PrepareBrickLvm(req, c)
 }
 
-func replaceVolinfo(c oldtransaction.TxnCtx) error {
+func replaceVolinfo(c transaction.TxnCtx) error {
 	var newBrick api.BrickReq
 	var err error
 	if err = c.Get("newBrick", &newBrick); err != nil {
@@ -93,7 +93,7 @@ func replaceVolinfo(c oldtransaction.TxnCtx) error {
 	return err
 }
 
-func startBrick(c oldtransaction.TxnCtx) error {
+func startBrick(c transaction.TxnCtx) error {
 
 	var newBrickInfo []brick.Brickinfo
 	if err := c.Get("bricks", newBrickInfo); err != nil {
