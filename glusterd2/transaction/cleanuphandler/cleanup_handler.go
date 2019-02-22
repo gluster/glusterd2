@@ -8,7 +8,7 @@ import (
 
 	"github.com/gluster/glusterd2/glusterd2/gdctx"
 	"github.com/gluster/glusterd2/glusterd2/store"
-	"github.com/gluster/glusterd2/glusterd2/transactionv2"
+	"github.com/gluster/glusterd2/glusterd2/transaction"
 
 	"github.com/coreos/etcd/clientv3"
 	"github.com/coreos/etcd/clientv3/concurrency"
