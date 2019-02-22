@@ -11,11 +11,6 @@ import (
 	log "github.com/sirupsen/logrus"
 )
 
-const (
-	// PendingTxnPrefix is the etcd namespace into which all pending txn will be stored
-	PendingTxnPrefix = "pending-transaction/"
-)
-
 // transactionEngine is responsible for executing newly added txn
 var transactionEngine *Engine
 
