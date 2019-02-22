@@ -10,7 +10,6 @@ import (
 	"sync"
 	"time"
 
-	"github.com/gluster/glusterd2/glusterd2/oldtransaction"
 	"github.com/gluster/glusterd2/glusterd2/store"
 
 	"github.com/coreos/etcd/clientv3"
@@ -186,7 +185,7 @@ func (tm *txnManager) watchRespToTxns(resp clientv3.WatchResponse) (txns []*Txn)
 			continue
 		}
 
-		txn := &Txn{Ctx: new(oldtransaction.Tctx)}
+		txn := &Txn{Ctx: new(Tctx)}
 		if err := json.Unmarshal(event.Kv.Value, txn); err != nil {
 			continue
 		}
@@ -220,7 +219,7 @@ func (tm *txnManager) GetTxnByUUID(id uuid.UUID) (*Txn, error) {
 
 	kv := resp.Kvs[0]
 
-	txn := &Txn{Ctx: new(oldtransaction.Tctx)}
+	txn := &Txn{Ctx: new(Tctx)}
 	if err := json.Unmarshal(kv.Value, txn); err != nil {
 		return nil, err
 	}
@@ -239,7 +238,7 @@ func (tm *txnManager) GetTxns() (txns []*Txn) {
 			continue
 		}
 
-		txn := &Txn{Ctx: new(oldtransaction.Tctx)}
+		txn := &Txn{Ctx: new(Tctx)}
 		if err := json.Unmarshal(kv.Value, txn); err != nil {
 			continue
 		}
@@ -252,7 +251,7 @@ func (tm *txnManager) GetTxns() (txns []*Txn) {
 func (tm *txnManager) UpDateTxnStatus(status TxnStatus, txnID uuid.UUID, nodeIDs ...uuid.UUID) error {
 	var (
 		ctx, cancel = context.WithTimeout(context.Background(), etcdTxnTimeout)
-		clusterLock = oldtransaction.Locks{}
+		clusterLock = Locks{}
 		putOps      []clientv3.Op
 	)
 
@@ -284,7 +283,7 @@ func (tm *txnManager) GetTxnStatus(txnID uuid.UUID, nodeID uuid.UUID) (TxnStatus
 	var (
 		ctx, cancel = context.WithCancel(context.Background())
 		key         = tm.getStoreKey(txnID.String(), nodeID.String(), TxnStatusPrefix)
-		clusterLock = oldtransaction.Locks{}
+		clusterLock = Locks{}
 	)
 
 	defer cancel()

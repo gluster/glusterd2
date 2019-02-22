@@ -9,7 +9,6 @@ import (
 	"time"
 
 	"github.com/gluster/glusterd2/glusterd2/gdctx"
-	"github.com/gluster/glusterd2/glusterd2/oldtransaction"
 	"github.com/gluster/glusterd2/glusterd2/store"
 
 	"github.com/coreos/etcd/clientv3"
@@ -23,23 +22,27 @@ const (
 	txnTimeOut = time.Minute * 3
 )
 
+var (
+	expTxn *expvar.Map
+)
+
 // Txn is a set of steps
 type Txn struct {
-	locks oldtransaction.Locks
+	locks Locks
 
 	// Nodes is the union of the all the TxnStep.Nodes and is implicitly
 	// set in Txn.Do(). This list is used to determine liveness of the
 	// nodes before running the transaction steps.
-	Nodes           []uuid.UUID            `json:"nodes"`
-	StorePrefix     string                 `json:"store_prefix"`
-	ID              uuid.UUID              `json:"id"`
-	ReqID           uuid.UUID              `json:"req_id"`
-	Ctx             oldtransaction.TxnCtx  `json:"ctx"`
-	Steps           []*oldtransaction.Step `json:"steps"`
-	DontCheckAlive  bool                   `json:"dont_check_alive"`
-	DisableRollback bool                   `json:"disable_rollback"`
-	StartTime       time.Time              `json:"start_time"`
-	TxnSpanCtx      trace.SpanContext      `json:"txn_span_ctx"`
+	Nodes           []uuid.UUID       `json:"nodes"`
+	StorePrefix     string            `json:"store_prefix"`
+	ID              uuid.UUID         `json:"id"`
+	ReqID           uuid.UUID         `json:"req_id"`
+	Ctx             TxnCtx            `json:"ctx"`
+	Steps           []*Step           `json:"steps"`
+	DontCheckAlive  bool              `json:"dont_check_alive"`
+	DisableRollback bool              `json:"disable_rollback"`
+	StartTime       time.Time         `json:"start_time"`
+	TxnSpanCtx      trace.SpanContext `json:"txn_span_ctx"`
 
 	success   chan struct{}
 	error     chan error
@@ -53,16 +56,16 @@ func NewTxn(ctx context.Context) *Txn {
 
 	t.ID = uuid.NewRandom()
 	t.ReqID = gdctx.GetReqID(ctx)
-	t.locks = oldtransaction.Locks{}
+	t.locks = Locks{}
 	t.StorePrefix = txnPrefix + t.ID.String() + "/"
-	config := &oldtransaction.TxnCtxConfig{
+	config := &TxnCtxConfig{
 		LogFields: log.Fields{
 			"txnid": t.ID.String(),
 			"reqid": t.ReqID.String(),
 		},
 		StorePrefix: t.StorePrefix,
 	}
-	t.Ctx = oldtransaction.NewCtx(config)
+	t.Ctx = NewCtx(config)
 	spanCtx := trace.FromContext(ctx)
 	t.TxnSpanCtx = spanCtx.SpanContext()
 	t.Ctx.Logger().Debug("new transaction created")
@@ -72,14 +75,14 @@ func NewTxn(ctx context.Context) *Txn {
 // NewTxnWithLocks returns an empty Txn with locks obtained on given lockIDs
 func NewTxnWithLocks(ctx context.Context, lockIDs ...string) (*Txn, error) {
 	t := NewTxn(ctx)
-	t.locks = oldtransaction.Locks{}
+	t.locks = Locks{}
 	err := t.acquireClusterLocks(lockIDs...)
 	return t, err
 }
 
 func (t *Txn) acquireClusterLocks(lockIDs ...string) error {
 	if t.locks == nil {
-		t.locks = oldtransaction.Locks{}
+		t.locks = Locks{}
 	}
 
 	for _, id := range lockIDs {
@@ -283,11 +286,8 @@ func FilterNonFailedTxn(txns []*Txn) []*Txn {
 }
 
 func init() {
-	expVar := expvar.Get("txn")
-	if expVar == nil {
-		expVar = expvar.NewMap("txn")
-	}
-	expVar.(*expvar.Map).Set("engine_config", expvar.Func(func() interface{} {
+	expTxn = expvar.NewMap("txn")
+	expTxn.Set("engine_config", expvar.Func(func() interface{} {
 		return map[string]interface{}{
 			"txn_timeout_second":      txnTimeOut.Seconds(),
 			"txn_sync_timeout_second": txnSyncTimeout.Seconds(),
