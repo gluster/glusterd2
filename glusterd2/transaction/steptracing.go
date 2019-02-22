@@ -4,8 +4,6 @@ import (
 	"context"
 	"fmt"
 
-	"github.com/gluster/glusterd2/glusterd2/transaction"
-
 	"go.opencensus.io/trace"
 )
 
@@ -18,7 +16,7 @@ type tracingManager struct {
 }
 
 // RunStep is a middleware which creates tracing span for step.DoFunc
-func (t *tracingManager) RunStep(ctx context.Context, step *transaction.Step, txnCtx transaction.TxnCtx) (err error) {
+func (t *tracingManager) RunStep(ctx context.Context, step *Step, txnCtx TxnCtx) (err error) {
 	spanName := fmt.Sprintf("RunStep/%s", step.DoFunc)
 	ctx, span := trace.StartSpan(ctx, spanName)
 	defer span.End()
@@ -37,7 +35,7 @@ func (t *tracingManager) RunStep(ctx context.Context, step *transaction.Step, tx
 }
 
 // RollBackStep is a middleware which creates tracing span for step.UndoFunc
-func (t *tracingManager) RollBackStep(ctx context.Context, step *transaction.Step, txnCtx transaction.TxnCtx) (err error) {
+func (t *tracingManager) RollBackStep(ctx context.Context, step *Step, txnCtx TxnCtx) (err error) {
 	spanName := fmt.Sprintf("RollBackStep/%s", step.UndoFunc)
 	ctx, span := trace.StartSpan(ctx, spanName)
 	defer span.End()

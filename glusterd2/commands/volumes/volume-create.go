@@ -12,7 +12,6 @@ import (
 	"github.com/gluster/glusterd2/glusterd2/gdctx"
 	restutils "github.com/gluster/glusterd2/glusterd2/servers/rest/utils"
 	"github.com/gluster/glusterd2/glusterd2/transaction"
-	transactionv2 "github.com/gluster/glusterd2/glusterd2/transactionv2"
 	"github.com/gluster/glusterd2/glusterd2/volume"
 	"github.com/gluster/glusterd2/pkg/api"
 	gderrors "github.com/gluster/glusterd2/pkg/errors"
@@ -199,7 +198,7 @@ func CreateVolume(ctx context.Context, req api.VolCreateReq) (status int, err er
 		return http.StatusBadRequest, err
 	}
 
-	txn, err := transactionv2.NewTxnWithLocks(ctx, req.Name)
+	txn, err := transaction.NewTxnWithLocks(ctx, req.Name)
 	if err != nil {
 		return restutils.ErrToStatusCode(err)
 	}

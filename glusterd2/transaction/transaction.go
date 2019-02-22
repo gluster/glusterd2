@@ -3,62 +3,71 @@ package transaction
 
 import (
 	"context"
+	"errors"
 	"expvar"
 	"fmt"
+	"time"
 
 	"github.com/gluster/glusterd2/glusterd2/gdctx"
 	"github.com/gluster/glusterd2/glusterd2/store"
 
 	"github.com/coreos/etcd/clientv3"
-	"github.com/coreos/etcd/clientv3/concurrency"
 	"github.com/pborman/uuid"
 	log "github.com/sirupsen/logrus"
-	"google.golang.org/grpc"
-	"google.golang.org/grpc/codes"
+	"go.opencensus.io/trace"
 )
 
 const (
-	txnPrefix = "transaction/"
+	txnPrefix  = "transaction/"
+	txnTimeOut = time.Minute * 3
 )
 
-var expTxn = expvar.NewMap("txn")
+var (
+	expTxn *expvar.Map
+)
 
 // Txn is a set of steps
 type Txn struct {
-	id          uuid.UUID
-	locks       Locks
-	reqID       uuid.UUID
-	storePrefix string
+	locks Locks
 
-	Ctx             TxnCtx
-	Steps           []*Step
-	DontCheckAlive  bool
-	DisableRollback bool
 	// Nodes is the union of the all the TxnStep.Nodes and is implicitly
 	// set in Txn.Do(). This list is used to determine liveness of the
 	// nodes before running the transaction steps.
-	Nodes   []uuid.UUID
-	OrigCtx context.Context
+	Nodes           []uuid.UUID       `json:"nodes"`
+	StorePrefix     string            `json:"store_prefix"`
+	ID              uuid.UUID         `json:"id"`
+	ReqID           uuid.UUID         `json:"req_id"`
+	Ctx             TxnCtx            `json:"ctx"`
+	Steps           []*Step           `json:"steps"`
+	DontCheckAlive  bool              `json:"dont_check_alive"`
+	DisableRollback bool              `json:"disable_rollback"`
+	StartTime       time.Time         `json:"start_time"`
+	TxnSpanCtx      trace.SpanContext `json:"txn_span_ctx"`
+
+	success   chan struct{}
+	error     chan error
+	stop      chan struct{}
+	succeeded bool
 }
 
 // NewTxn returns an initialized Txn without any steps
 func NewTxn(ctx context.Context) *Txn {
 	t := new(Txn)
 
-	t.id = uuid.NewRandom()
-	t.reqID = gdctx.GetReqID(ctx)
-	t.locks = make(map[string]*concurrency.Mutex)
-	t.storePrefix = txnPrefix + t.id.String() + "/"
+	t.ID = uuid.NewRandom()
+	t.ReqID = gdctx.GetReqID(ctx)
+	t.locks = Locks{}
+	t.StorePrefix = txnPrefix + t.ID.String() + "/"
 	config := &TxnCtxConfig{
 		LogFields: log.Fields{
-			"txnid": t.id.String(),
-			"reqid": t.reqID.String(),
+			"txnid": t.ID.String(),
+			"reqid": t.ReqID.String(),
 		},
-		StorePrefix: t.storePrefix,
+		StorePrefix: t.StorePrefix,
 	}
-	t.Ctx = newCtx(config)
-
-	t.OrigCtx = ctx
+	t.Ctx = NewCtx(config)
+	spanCtx := trace.FromContext(ctx)
+	t.TxnSpanCtx = spanCtx.SpanContext()
 	t.Ctx.Logger().Debug("new transaction created")
 	return t
 }
@@ -66,42 +75,114 @@ func NewTxn(ctx context.Context) *Txn {
 // NewTxnWithLocks returns an empty Txn with locks obtained on given lockIDs
 func NewTxnWithLocks(ctx context.Context, lockIDs ...string) (*Txn, error) {
 	t := NewTxn(ctx)
+	t.locks = Locks{}
+	err := t.acquireClusterLocks(lockIDs...)
+	return t, err
+}
+
+func (t *Txn) acquireClusterLocks(lockIDs ...string) error {
+	if t.locks == nil {
+		t.locks = Locks{}
+	}
 
 	for _, id := range lockIDs {
 		logger := t.Ctx.Logger().WithField("lockID", id)
-		logger.Debug("attempting to obtain lock")
-
+		logger.Debug("txn attempts to acquire cluster lock")
 		if err := t.locks.Lock(id); err != nil {
 			logger.WithError(err).Error("failed to obtain lock")
-			t.Done()
-			return nil, err
+			t.releaseLocks()
+			return err
 		}
-
-		logger.Debug("lock obtained")
+		logger.Debug("cluster lock acquired")
 	}
 
-	return t, nil
+	return nil
+}
+
+func (t *Txn) releaseLocks() {
+	t.locks.UnLock(context.Background())
 }
 
 // Done releases any obtained locks and cleans up the transaction namespace
 // Done must be called after a transaction ends
 func (t *Txn) Done() {
-	// Release obtained locks
-	for _, locker := range t.locks {
-		locker.Unlock(context.Background())
+	defer t.releaseLocks()
+	if !t.succeeded {
+		return
 	}
 
-	// Wipe txn namespace
-	if _, err := store.Delete(context.TODO(), t.storePrefix, clientv3.WithPrefix()); err != nil {
+	t.Ctx.Logger().Info("transaction succeeded on all nodes")
+	t.removeContextData()
+
+	if err := GlobalTxnManager.RemoveTransaction(t.ID); err != nil {
+		t.Ctx.Logger().WithError(err).Error("failed to remove txn data from pending-transaction namespace")
+	}
+}
+
+func (t *Txn) removeContextData() {
+	if _, err := store.Delete(context.TODO(), t.StorePrefix, clientv3.WithPrefix()); err != nil {
 		t.Ctx.Logger().WithError(err).WithField("key",
-			t.storePrefix).Error("Failed to remove transaction namespace from store")
+			t.StorePrefix).Error("Failed to remove transaction namespace from store")
 	}
 
-	expTxn.Add("initiated_txn_in_progress", -1)
 }
 
 func (t *Txn) checkAlive() error {
+	for _, node := range t.Nodes {
+		// TODO: Using prefixed query, get all alive nodes in a single etcd query
+		if _, online := store.Store.IsNodeAlive(node); !online {
+			return fmt.Errorf("node %s is probably down", node.String())
+		}
+	}
+	return nil
+}
 
+// Do runs the transaction on the cluster
+func (t *Txn) Do() error {
+	var (
+		timer = time.NewTimer(txnTimeOut)
+	)
+	{
+		t.success = make(chan struct{})
+		t.stop = make(chan struct{})
+		t.error = make(chan error)
+		t.StartTime = time.Now()
+	}
+	defer timer.Stop()
+	defer close(t.stop)
+
+	t.Ctx.Logger().Debug("Starting transaction")
+	go t.waitForCompletion()
+
+	if err := t.prepare(); err != nil {
+		t.Ctx.Logger().WithError(err).Error("failed in preparing transaction")
+		return err
+	}
+
+	t.Ctx.Logger().Debug("waiting for completion of transaction")
+
+	select {
+	case <-t.success:
+		t.succeeded = true
+	case err := <-t.error:
+		t.onFailure(err)
+		return err
+	case <-timer.C:
+		t.onFailure(errTxnTimeout)
+		return errTxnTimeout
+	}
+
+	return nil
+}
+
+func (t *Txn) onFailure(err error) error {
+	t.Ctx.Logger().WithError(err).Error("error in executing txn, marking as failure")
+	txnStatus := TxnStatus{State: txnFailed, TxnID: t.ID, Reason: err.Error()}
+	return GlobalTxnManager.UpDateTxnStatus(txnStatus, t.ID, t.Nodes...)
+}
+
+// prepare prepares a transaction before adding it to store
+func (t *Txn) prepare() error {
 	if len(t.Nodes) == 0 {
 		for _, s := range t.Steps {
 			t.Nodes = append(t.Nodes, s.Nodes...)
@@ -109,75 +190,74 @@ func (t *Txn) checkAlive() error {
 	}
 	t.Nodes = nodesUnion(t.Nodes)
 
-	for _, node := range t.Nodes {
-		// TODO: Using prefixed query, get all alive nodes in a single etcd query
-		if _, online := store.Store.IsNodeAlive(node); !online {
-			return fmt.Errorf("node %s is probably down", node.String())
-		}
-	}
-
-	return nil
-}
-
-// Do runs the transaction on the cluster
-func (t *Txn) Do() error {
 	if !t.DontCheckAlive {
 		if err := t.checkAlive(); err != nil {
 			return err
 		}
 	}
 
-	t.Ctx.Logger().Debug("Starting transaction")
-	expTxn.Add("initiated_txn_in_progress", 1)
+	if err := GlobalTxnManager.UpDateTxnStatus(TxnStatus{State: txnPending, TxnID: t.ID}, t.ID, t.Nodes...); err != nil {
+		return err
+	}
+
+	if err := GlobalTxnManager.UpdateLastExecutedStep(-1, t.ID, t.Nodes...); err != nil {
+		return err
+	}
 
 	// commit txn.Ctx.Set()s done in REST handlers to the store
 	if err := t.Ctx.Commit(); err != nil {
 		return err
 	}
 
-	for i, s := range t.Steps {
-		if s.Skip {
-			continue
-		}
-
-		if err := s.do(t.OrigCtx, t.Ctx); err != nil {
-			if t.DontCheckAlive && isNodeUnreachable(err) {
-				continue
-			}
-			expTxn.Add("initiated_txn_failure", 1)
-			if !t.DisableRollback {
-				t.Ctx.Logger().WithError(err).Error("Transaction failed, rolling back changes")
-				t.undo(i)
-			}
-			return err
-		}
-	}
-
-	expTxn.Add("initiated_txn_success", 1)
-	return nil
+	t.Ctx.Logger().Debug("adding txn to store")
+	return GlobalTxnManager.AddTxn(t)
 }
 
-func isNodeUnreachable(err error) bool {
-	unreachable := true
-	if s, ok := err.(*stepResp); ok {
-		for _, e := range s.Resps {
-			if grpc.Code(e.Error) != codes.Unavailable {
-				unreachable = false
+// notifyState will send a notification on `success` chan if txn got marked as succeeded on given
+// nodeID. In case txn got failed on the given nodeID then it will send a notification on Txn.error
+// chan.
+func (t *Txn) notifyState(nodeID uuid.UUID, success chan<- struct{}) {
+	txnStatusChan := GlobalTxnManager.WatchTxnStatus(t.stop, t.ID, nodeID)
+
+	for {
+		select {
+		case <-t.stop:
+			return
+		case status := <-txnStatusChan:
+			log.WithFields(log.Fields{
+				"nodeId": nodeID.String(),
+				"status": fmt.Sprintf("%+v", status),
+			}).Debug("state received")
+
+			if status.State == txnSucceeded {
+				success <- struct{}{}
+				return
+			} else if status.State == txnFailed {
+				t.error <- errors.New(status.Reason)
+				return
 			}
 		}
 	}
-	return unreachable
 }
 
-// undo undoes a transaction and will be automatically called by Perform if any step fails.
-// The Steps are undone in the reverse order, from the failed step.
-func (t *Txn) undo(n int) {
-	for i := n; i >= 0; i-- {
-		if t.Steps[i].Skip {
-			continue
-		}
-		t.Steps[i].undo(t.Ctx)
+// waitForCompletion will wait for transaction to complete on all nodes.
+// If txn got marked as succeeded on all nodes then it will send a notification
+// on Txn.success chan.
+func (t *Txn) waitForCompletion() {
+	var successChan = make(chan struct{})
+
+	for _, nodeID := range t.Nodes {
+		go t.notifyState(nodeID, successChan)
 	}
+
+	for range t.Nodes {
+		select {
+		case <-t.stop:
+			return
+		case <-successChan:
+		}
+	}
+	t.success <- struct{}{}
 }
 
 // nodesUnion removes duplicate nodes
@@ -191,4 +271,26 @@ func nodesUnion(nodes []uuid.UUID) []uuid.UUID {
 		}
 	}
 	return nodes
+}
+
+// FilterNonFailedTxn will return txns which are not marked as failed
+func FilterNonFailedTxn(txns []*Txn) []*Txn {
+	var nonFailedTxns []*Txn
+	for _, txn := range txns {
+		txnStatus, err := GlobalTxnManager.GetTxnStatus(txn.ID, gdctx.MyUUID)
+		if err == nil && txnStatus.State.Valid() && txnStatus.State != txnFailed {
+			nonFailedTxns = append(nonFailedTxns, txn)
+		}
+	}
+	return nonFailedTxns
+}
+
+func init() {
+	expTxn = expvar.NewMap("txn")
+	expTxn.Set("engine_config", expvar.Func(func() interface{} {
+		return map[string]interface{}{
+			"txn_timeout_second":      txnTimeOut.Seconds(),
+			"txn_sync_timeout_second": txnSyncTimeout.Seconds(),
+		}
+	}))
 }

@@ -8,8 +8,8 @@ import (
 	"github.com/gluster/glusterd2/glusterd2/peer"
 	"github.com/gluster/glusterd2/glusterd2/servers/peerrpc"
 	"github.com/gluster/glusterd2/glusterd2/store"
-	"github.com/gluster/glusterd2/glusterd2/transactionv2"
-	"github.com/gluster/glusterd2/glusterd2/transactionv2/cleanuphandler"
+	"github.com/gluster/glusterd2/glusterd2/transaction"
+	"github.com/gluster/glusterd2/glusterd2/transaction/cleanuphandler"
 	"github.com/gluster/glusterd2/glusterd2/volume"
 	"github.com/gluster/glusterd2/pkg/utils"
 
