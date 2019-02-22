@@ -1,8 +1,8 @@
 package tracemgmt
 
 import (
-	"github.com/gluster/glusterd2/glusterd2/oldtransaction"
 	"github.com/gluster/glusterd2/glusterd2/servers/rest/route"
+	"github.com/gluster/glusterd2/glusterd2/transaction"
 	"github.com/gluster/glusterd2/pkg/utils"
 	tracemgmtapi "github.com/gluster/glusterd2/plugins/tracemgmt/api"
 )
@@ -53,10 +53,10 @@ func (p *Plugin) RestRoutes() route.Routes {
 
 // RegisterStepFuncs registers transaction step functions with Glusterd transaction framework
 func (p *Plugin) RegisterStepFuncs() {
-	oldtransaction.RegisterStepFunc(txnTracingValidateConfig, "trace-mgmt.ValidateTraceConfig")
-	oldtransaction.RegisterStepFunc(txnTracingStoreConfig, "trace-mgmt.StoreTraceConfig")
-	oldtransaction.RegisterStepFunc(txnTracingUndoStoreConfig, "trace-mgmt.RestoreTraceConfig")
-	oldtransaction.RegisterStepFunc(txnTracingDeleteStoreConfig, "trace-mgmt.UndoStoreTraceConfig")
-	oldtransaction.RegisterStepFunc(txnTracingApplyNewConfig, "trace-mgmt.NotifyTraceConfigChange")
-	oldtransaction.RegisterStepFunc(txnTracingDisable, "trace-mgmt.NotifyTraceDisable")
+	transaction.RegisterStepFunc(txnTracingValidateConfig, "trace-mgmt.ValidateTraceConfig")
+	transaction.RegisterStepFunc(txnTracingStoreConfig, "trace-mgmt.StoreTraceConfig")
+	transaction.RegisterStepFunc(txnTracingUndoStoreConfig, "trace-mgmt.RestoreTraceConfig")
+	transaction.RegisterStepFunc(txnTracingDeleteStoreConfig, "trace-mgmt.UndoStoreTraceConfig")
+	transaction.RegisterStepFunc(txnTracingApplyNewConfig, "trace-mgmt.NotifyTraceConfigChange")
+	transaction.RegisterStepFunc(txnTracingDisable, "trace-mgmt.NotifyTraceDisable")
 }

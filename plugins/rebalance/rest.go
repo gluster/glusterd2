@@ -5,8 +5,8 @@ import (
 	"net/http"
 
 	"github.com/gluster/glusterd2/glusterd2/gdctx"
-	"github.com/gluster/glusterd2/glusterd2/oldtransaction"
 	restutils "github.com/gluster/glusterd2/glusterd2/servers/rest/utils"
+	"github.com/gluster/glusterd2/glusterd2/transaction"
 	"github.com/gluster/glusterd2/glusterd2/volume"
 	"github.com/gluster/glusterd2/pkg/errors"
 
@@ -57,7 +57,7 @@ func rebalanceStartHandler(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	txn, err := oldtransaction.NewTxnWithLocks(ctx, volname)
+	txn, err := transaction.NewTxnWithLocks(ctx, volname)
 	if err != nil {
 		status, err := restutils.ErrToStatusCode(err)
 		restutils.SendHTTPError(ctx, w, status, err)
@@ -88,7 +88,7 @@ func rebalanceStartHandler(w http.ResponseWriter, r *http.Request) {
 	// Only this node will save the rebalinfo in the store
 
 	txn.Nodes = vol.Nodes()
-	txn.Steps = []*oldtransaction.Step{
+	txn.Steps = []*transaction.Step{
 		{
 			DoFunc: "rebalance-start",
 			Nodes:  txn.Nodes,
@@ -150,7 +150,7 @@ func rebalanceStopHandler(w http.ResponseWriter, r *http.Request) {
 	// collect inputs from url
 	volname := mux.Vars(r)["volname"]
 
-	txn, err := oldtransaction.NewTxnWithLocks(ctx, volname)
+	txn, err := transaction.NewTxnWithLocks(ctx, volname)
 	if err != nil {
 		status, err := restutils.ErrToStatusCode(err)
 		restutils.SendHTTPError(ctx, w, status, err)
@@ -179,7 +179,7 @@ func rebalanceStopHandler(w http.ResponseWriter, r *http.Request) {
 	}
 
 	txn.Nodes = vol.Nodes()
-	txn.Steps = []*oldtransaction.Step{
+	txn.Steps = []*transaction.Step{
 		{
 			DoFunc: "rebalance-stop",
 			Nodes:  txn.Nodes,
@@ -227,7 +227,7 @@ func rebalanceStatusHandler(w http.ResponseWriter, r *http.Request) {
 	// collect inputs from url
 	volname := mux.Vars(r)["volname"]
 
-	txn, err := oldtransaction.NewTxnWithLocks(ctx, volname)
+	txn, err := transaction.NewTxnWithLocks(ctx, volname)
 	if err != nil {
 		status, err := restutils.ErrToStatusCode(err)
 		restutils.SendHTTPError(ctx, w, status, err)
@@ -261,7 +261,7 @@ func rebalanceStatusHandler(w http.ResponseWriter, r *http.Request) {
 
 	// Get the consolidated status from all the nodes
 	txn.Nodes = vol.Nodes()
-	txn.Steps = []*oldtransaction.Step{
+	txn.Steps = []*transaction.Step{
 		{
 			DoFunc: "rebalance-status",
 			Nodes:  txn.Nodes,
@@ -292,7 +292,7 @@ func rebalanceStatusHandler(w http.ResponseWriter, r *http.Request) {
 	restutils.SendHTTPResponse(r.Context(), w, http.StatusOK, response)
 }
 
-func createRebalanceStatusResp(ctx oldtransaction.TxnCtx, volinfo *volume.Volinfo) (*rebalanceapi.RebalStatus, error) {
+func createRebalanceStatusResp(ctx transaction.TxnCtx, volinfo *volume.Volinfo) (*rebalanceapi.RebalStatus, error) {
 	var (
 		resp      rebalanceapi.RebalStatus
 		tmp       rebalanceapi.RebalNodeStatus

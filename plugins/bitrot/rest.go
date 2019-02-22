@@ -5,8 +5,8 @@ import (
 	"strconv"
 
 	"github.com/gluster/glusterd2/glusterd2/gdctx"
-	"github.com/gluster/glusterd2/glusterd2/oldtransaction"
 	restutils "github.com/gluster/glusterd2/glusterd2/servers/rest/utils"
+	"github.com/gluster/glusterd2/glusterd2/transaction"
 	"github.com/gluster/glusterd2/glusterd2/volume"
 	"github.com/gluster/glusterd2/glusterd2/xlator"
 	"github.com/gluster/glusterd2/pkg/errors"
@@ -23,7 +23,7 @@ func bitrotEnableHandler(w http.ResponseWriter, r *http.Request) {
 	ctx := r.Context()
 	logger := gdctx.GetReqLogger(ctx)
 
-	txn, err := oldtransaction.NewTxnWithLocks(ctx, volname)
+	txn, err := transaction.NewTxnWithLocks(ctx, volname)
 	if err != nil {
 		status, err := restutils.ErrToStatusCode(err)
 		restutils.SendHTTPError(ctx, w, status, err)
@@ -68,7 +68,7 @@ func bitrotEnableHandler(w http.ResponseWriter, r *http.Request) {
 	}
 
 	txn.Nodes = volinfo.Nodes()
-	txn.Steps = []*oldtransaction.Step{
+	txn.Steps = []*transaction.Step{
 		{
 			DoFunc:   "vol-option.UpdateVolinfo",
 			UndoFunc: "vol-option.UpdateVolinfo.Undo",
@@ -107,7 +107,7 @@ func bitrotDisableHandler(w http.ResponseWriter, r *http.Request) {
 	ctx := r.Context()
 	logger := gdctx.GetReqLogger(ctx)
 
-	txn, err := oldtransaction.NewTxnWithLocks(ctx, volname)
+	txn, err := transaction.NewTxnWithLocks(ctx, volname)
 	if err != nil {
 		status, err := restutils.ErrToStatusCode(err)
 		restutils.SendHTTPError(ctx, w, status, err)
@@ -140,7 +140,7 @@ func bitrotDisableHandler(w http.ResponseWriter, r *http.Request) {
 	}
 
 	txn.Nodes = volinfo.Nodes()
-	txn.Steps = []*oldtransaction.Step{
+	txn.Steps = []*transaction.Step{
 		{
 			DoFunc: "vol-option.UpdateVolinfo",
 			Nodes:  []uuid.UUID{gdctx.MyUUID},
@@ -173,7 +173,7 @@ func bitrotScrubOndemandHandler(w http.ResponseWriter, r *http.Request) {
 	ctx := r.Context()
 	logger := gdctx.GetReqLogger(ctx)
 
-	txn, err := oldtransaction.NewTxnWithLocks(ctx, volname)
+	txn, err := transaction.NewTxnWithLocks(ctx, volname)
 	if err != nil {
 		status, err := restutils.ErrToStatusCode(err)
 		restutils.SendHTTPError(ctx, w, status, err)
@@ -202,7 +202,7 @@ func bitrotScrubOndemandHandler(w http.ResponseWriter, r *http.Request) {
 	}
 
 	txn.Nodes = volinfo.Nodes()
-	txn.Steps = []*oldtransaction.Step{
+	txn.Steps = []*transaction.Step{
 		{
 			DoFunc: "bitrot-scrubondemand.Commit",
 			Nodes:  txn.Nodes,
@@ -229,7 +229,7 @@ func bitrotScrubStatusHandler(w http.ResponseWriter, r *http.Request) {
 	ctx := r.Context()
 	logger := gdctx.GetReqLogger(ctx)
 
-	txn, err := oldtransaction.NewTxnWithLocks(ctx, volname)
+	txn, err := transaction.NewTxnWithLocks(ctx, volname)
 	if err != nil {
 		status, err := restutils.ErrToStatusCode(err)
 		restutils.SendHTTPError(ctx, w, status, err)
@@ -264,7 +264,7 @@ func bitrotScrubStatusHandler(w http.ResponseWriter, r *http.Request) {
 	txn.DisableRollback = true
 
 	txn.Nodes = volinfo.Nodes()
-	txn.Steps = []*oldtransaction.Step{
+	txn.Steps = []*transaction.Step{
 		{
 			DoFunc: "bitrot-scrubstatus.Commit",
 			Nodes:  txn.Nodes,
@@ -293,7 +293,7 @@ func bitrotScrubStatusHandler(w http.ResponseWriter, r *http.Request) {
 	restutils.SendHTTPResponse(ctx, w, http.StatusOK, result)
 }
 
-func createScrubStatusResp(ctx oldtransaction.TxnCtx, volinfo *volume.Volinfo) (*bitrotapi.ScrubStatus, error) {
+func createScrubStatusResp(ctx transaction.TxnCtx, volinfo *volume.Volinfo) (*bitrotapi.ScrubStatus, error) {
 
 	var resp bitrotapi.ScrubStatus
 	var exists bool

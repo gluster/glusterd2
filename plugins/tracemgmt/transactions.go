@@ -4,7 +4,7 @@ import (
 	"errors"
 
 	"github.com/gluster/glusterd2/glusterd2/gdctx"
-	"github.com/gluster/glusterd2/glusterd2/oldtransaction"
+	"github.com/gluster/glusterd2/glusterd2/transaction"
 	"github.com/gluster/glusterd2/pkg/tracing"
 
 	tracemgmtapi "github.com/gluster/glusterd2/plugins/tracemgmt/api"
@@ -16,7 +16,7 @@ import (
 )
 
 // Transaction step that validates the trace info passed
-func txnTracingValidateConfig(c oldtransaction.TxnCtx) error {
+func txnTracingValidateConfig(c transaction.TxnCtx) error {
 	var req tracemgmtapi.SetupTracingReq
 	if err := c.Get("req", &req); err != nil {
 		return err
@@ -60,7 +60,7 @@ func txnTracingValidateConfig(c oldtransaction.TxnCtx) error {
 
 // storeTraceConfig uses the passed context key to get
 // trace config and updates it into the store.
-func storeTraceConfig(c oldtransaction.TxnCtx, key string) error {
+func storeTraceConfig(c transaction.TxnCtx, key string) error {
 	var traceConfig tracemgmtapi.JaegerConfigInfo
 	if err := c.Get(key, &traceConfig); err != nil {
 		return err
@@ -71,26 +71,26 @@ func storeTraceConfig(c oldtransaction.TxnCtx, key string) error {
 }
 
 // Transaction step that stores the trace config
-func txnTracingStoreConfig(c oldtransaction.TxnCtx) error {
+func txnTracingStoreConfig(c transaction.TxnCtx) error {
 	err := storeTraceConfig(c, "traceconfig")
 	return err
 }
 
 // Transaction step that reverts the trace config
-func txnTracingUndoStoreConfig(c oldtransaction.TxnCtx) error {
+func txnTracingUndoStoreConfig(c transaction.TxnCtx) error {
 	err := storeTraceConfig(c, "oldtraceconfig")
 	return err
 }
 
 // Transaction step that deletes the trace config
-func txnTracingDeleteStoreConfig(c oldtransaction.TxnCtx) error {
+func txnTracingDeleteStoreConfig(c transaction.TxnCtx) error {
 	err := traceutils.DeleteTraceConfig()
 	return err
 }
 
 // Tranasaction step that reads trace config info from the store and updates
 // the in-memory trace config.
-func txnTracingApplyNewConfig(c oldtransaction.TxnCtx) error {
+func txnTracingApplyNewConfig(c transaction.TxnCtx) error {
 	var traceConfig tracemgmtapi.JaegerConfigInfo
 	if err := c.Get("traceconfig", &traceConfig); err != nil {
 		return err
@@ -138,7 +138,7 @@ func txnTracingApplyNewConfig(c oldtransaction.TxnCtx) error {
 }
 
 // Transaction step that disables tracing and resets the tracing config.
-func txnTracingDisable(c oldtransaction.TxnCtx) error {
+func txnTracingDisable(c transaction.TxnCtx) error {
 	// Disable tracing
 	trace.ApplyConfig(trace.Config{DefaultSampler: trace.NeverSample()})
 

@@ -5,9 +5,9 @@ import (
 
 	gd2events "github.com/gluster/glusterd2/glusterd2/events"
 	"github.com/gluster/glusterd2/glusterd2/gdctx"
-	"github.com/gluster/glusterd2/glusterd2/oldtransaction"
 	"github.com/gluster/glusterd2/glusterd2/peer"
 	restutils "github.com/gluster/glusterd2/glusterd2/servers/rest/utils"
+	"github.com/gluster/glusterd2/glusterd2/transaction"
 	"github.com/gluster/glusterd2/pkg/errors"
 	eventsapi "github.com/gluster/glusterd2/plugins/events/api"
 )
@@ -126,7 +126,7 @@ func eventsListHandler(w http.ResponseWriter, r *http.Request) {
 	restutils.SendHTTPResponse(ctx, w, http.StatusOK, events)
 }
 
-func checkConnection(c oldtransaction.TxnCtx) error {
+func checkConnection(c transaction.TxnCtx) error {
 	var req eventsapi.Webhook
 
 	if err := c.Get("req", &req); err != nil {
@@ -139,12 +139,12 @@ func checkConnection(c oldtransaction.TxnCtx) error {
 func registerWebhookTestStepFuncs() {
 	var sfs = []struct {
 		name string
-		sf   oldtransaction.StepFunc
+		sf   transaction.StepFunc
 	}{
 		{"webhook-test.checkConnection", checkConnection},
 	}
 	for _, sf := range sfs {
-		oldtransaction.RegisterStepFunc(sf.sf, sf.name)
+		transaction.RegisterStepFunc(sf.sf, sf.name)
 	}
 }
 
@@ -170,10 +170,10 @@ func webhookTestHandler(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	txn := oldtransaction.NewTxn(ctx)
+	txn := transaction.NewTxn(ctx)
 	defer txn.Done()
 
-	txn.Steps = []*oldtransaction.Step{
+	txn.Steps = []*transaction.Step{
 		{
 			DoFunc: "webhook-test.checkConnection",
 			Nodes:  allNodes,

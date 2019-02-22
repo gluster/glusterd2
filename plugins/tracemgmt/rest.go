@@ -4,7 +4,6 @@ import (
 	"net/http"
 
 	"github.com/gluster/glusterd2/glusterd2/gdctx"
-	"github.com/gluster/glusterd2/glusterd2/oldtransaction"
 	"github.com/gluster/glusterd2/glusterd2/peer"
 	restutils "github.com/gluster/glusterd2/glusterd2/servers/rest/utils"
 	"github.com/gluster/glusterd2/glusterd2/transaction"
@@ -54,7 +53,7 @@ func tracingEnableHandler(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	txn.Steps = []*oldtransaction.Step{
+	txn.Steps = []*transaction.Step{
 		{
 			DoFunc: "trace-mgmt.ValidateTraceConfig",
 			Nodes:  []uuid.UUID{gdctx.MyUUID},
@@ -162,7 +161,7 @@ func tracingUpdateHandler(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	txn.Steps = []*oldtransaction.Step{
+	txn.Steps = []*transaction.Step{
 		{
 			DoFunc: "trace-mgmt.ValidateTraceConfig",
 			Nodes:  []uuid.UUID{gdctx.MyUUID},
@@ -220,7 +219,7 @@ func tracingDisableHandler(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	txn.Steps = []*oldtransaction.Step{
+	txn.Steps = []*transaction.Step{
 		{
 			DoFunc: "trace-mgmt.UndoStoreTraceConfig",
 			Nodes:  []uuid.UUID{gdctx.MyUUID},

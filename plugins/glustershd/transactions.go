@@ -8,8 +8,8 @@ import (
 	"github.com/gluster/glusterd2/glusterd2/brick"
 	"github.com/gluster/glusterd2/glusterd2/daemon"
 	"github.com/gluster/glusterd2/glusterd2/gdctx"
-	"github.com/gluster/glusterd2/glusterd2/oldtransaction"
 	"github.com/gluster/glusterd2/glusterd2/servers/sunrpc/dict"
+	"github.com/gluster/glusterd2/glusterd2/transaction"
 	"github.com/gluster/glusterd2/glusterd2/volume"
 )
 
@@ -61,7 +61,7 @@ func selectHxlatorsWithBricks(volinfo *volume.Volinfo, healType int) map[string]
 	return reqDict
 }
 
-func txnSelfHeal(c oldtransaction.TxnCtx) error {
+func txnSelfHeal(c transaction.TxnCtx) error {
 
 	var volinfo volume.Volinfo
 	if err := c.Get("volinfo", &volinfo); err != nil {

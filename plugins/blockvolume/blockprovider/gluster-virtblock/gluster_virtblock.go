@@ -7,7 +7,7 @@ import (
 	"strconv"
 	"strings"
 
-	"github.com/gluster/glusterd2/glusterd2/oldtransaction"
+	"github.com/gluster/glusterd2/glusterd2/transaction"
 	"github.com/gluster/glusterd2/glusterd2/volume"
 	"github.com/gluster/glusterd2/pkg/errors"
 	"github.com/gluster/glusterd2/pkg/utils"
@@ -75,7 +75,7 @@ func mountHost(g *GlusterVirtBlk, hostVolume string) (string, error) {
 func (g *GlusterVirtBlk) CreateBlockVolume(name string, size uint64, hostVolume string, options ...blockprovider.BlockVolOption) (blockprovider.BlockVolume, error) {
 	var (
 		blockVolOpts = &blockprovider.BlockVolumeOptions{}
-		clusterLocks = oldtransaction.Locks{}
+		clusterLocks = transaction.Locks{}
 	)
 
 	blockVolOpts.ApplyOpts(options...)
@@ -145,7 +145,7 @@ func (g *GlusterVirtBlk) CreateBlockVolume(name string, size uint64, hostVolume 
 func (g *GlusterVirtBlk) DeleteBlockVolume(name string, options ...blockprovider.BlockVolOption) error {
 	var (
 		blockVolOpts = &blockprovider.BlockVolumeOptions{}
-		clusterLocks = oldtransaction.Locks{}
+		clusterLocks = transaction.Locks{}
 	)
 
 	blockVolOpts.ApplyOpts(options...)

@@ -9,7 +9,7 @@ import (
 	"strings"
 	"time"
 
-	"github.com/gluster/glusterd2/glusterd2/oldtransaction"
+	"github.com/gluster/glusterd2/glusterd2/transaction"
 	"github.com/gluster/glusterd2/glusterd2/volume"
 	"github.com/gluster/glusterd2/plugins/blockvolume/api"
 
@@ -58,7 +58,7 @@ func (g *GlusterVolManager) GetHostingVolumesInUse() []*volume.Volinfo {
 func (g *GlusterVolManager) GetOrCreateHostingVolume(name string, minSizeLimit uint64, hostVolumeInfo *api.HostVolumeInfo) (*volume.Volinfo, error) {
 	var (
 		volInfo      *volume.Volinfo
-		clusterLocks = oldtransaction.Locks{}
+		clusterLocks = transaction.Locks{}
 	)
 
 	if err := clusterLocks.Lock(path.Join(globalLockID, name)); err != nil {

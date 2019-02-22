@@ -11,8 +11,8 @@ import (
 
 	"github.com/gluster/glusterd2/glusterd2/events"
 	"github.com/gluster/glusterd2/glusterd2/gdctx"
-	"github.com/gluster/glusterd2/glusterd2/oldtransaction"
 	restutils "github.com/gluster/glusterd2/glusterd2/servers/rest/utils"
+	"github.com/gluster/glusterd2/glusterd2/transaction"
 	"github.com/gluster/glusterd2/glusterd2/volume"
 	"github.com/gluster/glusterd2/pkg/errors"
 	"github.com/gluster/glusterd2/pkg/utils"
@@ -110,7 +110,7 @@ func georepCreateHandler(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	txn, err := oldtransaction.NewTxnWithLocks(ctx, req.MasterVol)
+	txn, err := transaction.NewTxnWithLocks(ctx, req.MasterVol)
 	if err != nil {
 		status, err := restutils.ErrToStatusCode(err)
 		restutils.SendHTTPError(ctx, w, status, err)
@@ -188,7 +188,7 @@ func georepCreateHandler(w http.ResponseWriter, r *http.Request) {
 	}
 
 	txn.Nodes = vol.Nodes()
-	txn.Steps = []*oldtransaction.Step{
+	txn.Steps = []*transaction.Step{
 		{
 			DoFunc:   "vol-option.UpdateVolinfo",
 			UndoFunc: "vol-option.UpdateVolinfo.Undo",
@@ -284,7 +284,7 @@ func georepActionHandler(w http.ResponseWriter, r *http.Request, action actionTy
 		return
 	}
 
-	txn, err := oldtransaction.NewTxnWithLocks(ctx, geoSession.MasterVol)
+	txn, err := transaction.NewTxnWithLocks(ctx, geoSession.MasterVol)
 	if err != nil {
 		status, err := restutils.ErrToStatusCode(err)
 		restutils.SendHTTPError(ctx, w, status, err)
@@ -330,7 +330,7 @@ func georepActionHandler(w http.ResponseWriter, r *http.Request, action actionTy
 		return
 	}
 
-	txn.Steps = []*oldtransaction.Step{
+	txn.Steps = []*transaction.Step{
 		{
 			DoFunc: doFunc,
 			Nodes:  vol.Nodes(),
@@ -414,7 +414,7 @@ func georepDeleteHandler(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	txn, err := oldtransaction.NewTxnWithLocks(ctx, geoSession.MasterVol)
+	txn, err := transaction.NewTxnWithLocks(ctx, geoSession.MasterVol)
 	if err != nil {
 		status, err := restutils.ErrToStatusCode(err)
 		restutils.SendHTTPError(ctx, w, status, err)
@@ -431,7 +431,7 @@ func georepDeleteHandler(w http.ResponseWriter, r *http.Request) {
 	}
 
 	// TODO: Add transaction step to clean xattrs specific to georep session
-	txn.Steps = []*oldtransaction.Step{
+	txn.Steps = []*transaction.Step{
 		{
 			DoFunc: "georeplication-delete.Commit",
 			Nodes:  []uuid.UUID{gdctx.MyUUID},
@@ -505,11 +505,11 @@ func georepStatusHandler(w http.ResponseWriter, r *http.Request) {
 	}
 
 	// Status Transaction
-	txn := oldtransaction.NewTxn(ctx)
+	txn := transaction.NewTxn(ctx)
 	defer txn.Done()
 
 	txn.Nodes = vol.Nodes()
-	txn.Steps = []*oldtransaction.Step{
+	txn.Steps = []*transaction.Step{
 		{
 			DoFunc: "georeplication-status.Commit",
 			Nodes:  txn.Nodes,
@@ -749,7 +749,7 @@ func georepConfigSetHandler(w http.ResponseWriter, r *http.Request) {
 		}
 	}
 
-	txn, err := oldtransaction.NewTxnWithLocks(ctx, geoSession.MasterVol)
+	txn, err := transaction.NewTxnWithLocks(ctx, geoSession.MasterVol)
 	if err != nil {
 		status, err := restutils.ErrToStatusCode(err)
 		restutils.SendHTTPError(ctx, w, status, err)
@@ -780,7 +780,7 @@ func georepConfigSetHandler(w http.ResponseWriter, r *http.Request) {
 	}
 
 	txn.Nodes = vol.Nodes()
-	txn.Steps = []*oldtransaction.Step{
+	txn.Steps = []*transaction.Step{
 		{
 			DoFunc: "georeplication-configset.Commit",
 			Nodes:  []uuid.UUID{gdctx.MyUUID},
@@ -895,7 +895,7 @@ func georepConfigResetHandler(w http.ResponseWriter, r *http.Request) {
 		restartRequired = false
 	}
 
-	txn, err := oldtransaction.NewTxnWithLocks(ctx, geoSession.MasterVol)
+	txn, err := transaction.NewTxnWithLocks(ctx, geoSession.MasterVol)
 	if err != nil {
 		status, err := restutils.ErrToStatusCode(err)
 		restutils.SendHTTPError(ctx, w, status, err)
@@ -915,7 +915,7 @@ func georepConfigResetHandler(w http.ResponseWriter, r *http.Request) {
 	}
 
 	txn.Nodes = vol.Nodes()
-	txn.Steps = []*oldtransaction.Step{
+	txn.Steps = []*transaction.Step{
 		{
 			DoFunc: "georeplication-configset.Commit",
 			Nodes:  []uuid.UUID{gdctx.MyUUID},
@@ -989,7 +989,7 @@ func georepSSHKeyGenerateHandler(w http.ResponseWriter, r *http.Request) {
 	ctx := r.Context()
 	logger := gdctx.GetReqLogger(ctx)
 
-	txn, err := oldtransaction.NewTxnWithLocks(ctx, volname)
+	txn, err := transaction.NewTxnWithLocks(ctx, volname)
 	if err != nil {
 		status, err := restutils.ErrToStatusCode(err)
 		restutils.SendHTTPError(ctx, w, status, err)
@@ -1006,7 +1006,7 @@ func georepSSHKeyGenerateHandler(w http.ResponseWriter, r *http.Request) {
 	}
 
 	txn.Nodes = vol.Nodes()
-	txn.Steps = []*oldtransaction.Step{
+	txn.Steps = []*transaction.Step{
 		{
 			DoFunc: "georeplication-ssh-keygen.Commit",
 			Nodes:  txn.Nodes,
@@ -1064,7 +1064,7 @@ func georepSSHKeyPushHandler(w http.ResponseWriter, r *http.Request) {
 	ctx := r.Context()
 	logger := gdctx.GetReqLogger(ctx)
 
-	txn, err := oldtransaction.NewTxnWithLocks(ctx, volname)
+	txn, err := transaction.NewTxnWithLocks(ctx, volname)
 	if err != nil {
 		status, err := restutils.ErrToStatusCode(err)
 		restutils.SendHTTPError(ctx, w, status, err)
@@ -1088,7 +1088,7 @@ func georepSSHKeyPushHandler(w http.ResponseWriter, r *http.Request) {
 	}
 
 	txn.Nodes = vol.Nodes()
-	txn.Steps = []*oldtransaction.Step{
+	txn.Steps = []*transaction.Step{
 		{
 			DoFunc: "georeplication-ssh-keypush.Commit",
 			Nodes:  txn.Nodes,

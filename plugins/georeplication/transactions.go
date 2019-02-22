@@ -12,7 +12,7 @@ import (
 
 	"github.com/gluster/glusterd2/glusterd2/daemon"
 	"github.com/gluster/glusterd2/glusterd2/gdctx"
-	"github.com/gluster/glusterd2/glusterd2/oldtransaction"
+	"github.com/gluster/glusterd2/glusterd2/transaction"
 	"github.com/gluster/glusterd2/glusterd2/volume"
 	"github.com/gluster/glusterd2/pkg/utils"
 
@@ -27,7 +27,7 @@ const (
 	gsyncdStatusTxnKey string = "gsyncdstatuses"
 )
 
-func txnGeorepCreate(c oldtransaction.TxnCtx) error {
+func txnGeorepCreate(c transaction.TxnCtx) error {
 	var sessioninfo georepapi.GeorepSession
 	if err := c.Get("geosession", &sessioninfo); err != nil {
 		return err
@@ -44,7 +44,7 @@ func txnGeorepCreate(c oldtransaction.TxnCtx) error {
 	return nil
 }
 
-func gsyncdAction(c oldtransaction.TxnCtx, action actionType) error {
+func gsyncdAction(c transaction.TxnCtx, action actionType) error {
 	var masterid string
 	var remoteid string
 	if err := c.Get("mastervolid", &masterid); err != nil {
@@ -91,15 +91,15 @@ func gsyncdAction(c oldtransaction.TxnCtx, action actionType) error {
 	return err
 }
 
-func txnGeorepStart(c oldtransaction.TxnCtx) error {
+func txnGeorepStart(c transaction.TxnCtx) error {
 	return gsyncdAction(c, actionStart)
 }
 
-func txnGeorepStop(c oldtransaction.TxnCtx) error {
+func txnGeorepStop(c transaction.TxnCtx) error {
 	return gsyncdAction(c, actionStop)
 }
 
-func txnGeorepDelete(c oldtransaction.TxnCtx) error {
+func txnGeorepDelete(c transaction.TxnCtx) error {
 	var masterid string
 	var remoteid string
 	if err := c.Get("mastervolid", &masterid); err != nil {
@@ -125,15 +125,15 @@ func txnGeorepDelete(c oldtransaction.TxnCtx) error {
 	return nil
 }
 
-func txnGeorepPause(c oldtransaction.TxnCtx) error {
+func txnGeorepPause(c transaction.TxnCtx) error {
 	return gsyncdAction(c, actionPause)
 }
 
-func txnGeorepResume(c oldtransaction.TxnCtx) error {
+func txnGeorepResume(c transaction.TxnCtx) error {
 	return gsyncdAction(c, actionResume)
 }
 
-func txnGeorepStatus(c oldtransaction.TxnCtx) error {
+func txnGeorepStatus(c transaction.TxnCtx) error {
 	var masterid string
 	var remoteid string
 	var err error
@@ -185,7 +185,7 @@ func txnGeorepStatus(c oldtransaction.TxnCtx) error {
 	return nil
 }
 
-func aggregateGsyncdStatus(ctx oldtransaction.TxnCtx, nodes []uuid.UUID) (*map[string]georepapi.GeorepWorker, error) {
+func aggregateGsyncdStatus(ctx transaction.TxnCtx, nodes []uuid.UUID) (*map[string]georepapi.GeorepWorker, error) {
 	var workersStatuses = make(map[string]georepapi.GeorepWorker)
 
 	// Loop over each node on which txn was run.
@@ -206,7 +206,7 @@ func aggregateGsyncdStatus(ctx oldtransaction.TxnCtx, nodes []uuid.UUID) (*map[s
 	return &workersStatuses, nil
 }
 
-func txnGeorepConfigSet(c oldtransaction.TxnCtx) error {
+func txnGeorepConfigSet(c transaction.TxnCtx) error {
 	var masterid string
 	var remoteid string
 	var session georepapi.GeorepSession
@@ -300,7 +300,7 @@ func configFileGenerate(session *georepapi.GeorepSession) error {
 	return ioutil.WriteFile(configFile, []byte(strings.Join(confdata, "\n")), 0644)
 }
 
-func txnGeorepConfigFilegen(c oldtransaction.TxnCtx) error {
+func txnGeorepConfigFilegen(c transaction.TxnCtx) error {
 	var masterid string
 	var remoteid string
 	var session georepapi.GeorepSession
@@ -341,7 +341,7 @@ func txnGeorepConfigFilegen(c oldtransaction.TxnCtx) error {
 	return nil
 }
 
-func txnSSHKeysGenerate(c oldtransaction.TxnCtx) error {
+func txnSSHKeysGenerate(c transaction.TxnCtx) error {
 	var volname string
 	var err error
 	var args []string
@@ -402,7 +402,7 @@ func txnSSHKeysGenerate(c oldtransaction.TxnCtx) error {
 	return err
 }
 
-func txnSSHKeysPush(c oldtransaction.TxnCtx) error {
+func txnSSHKeysPush(c transaction.TxnCtx) error {
 	var err error
 	var sshkeys []georepapi.GeorepSSHPublicKey
 	var user string
