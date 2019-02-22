@@ -5,7 +5,7 @@ import (
 	"net"
 	"sync/atomic"
 
-	"github.com/gluster/glusterd2/glusterd2/oldtransaction"
+	"github.com/gluster/glusterd2/glusterd2/transaction"
 	"github.com/gluster/glusterd2/pkg/sunrpc"
 	"github.com/gluster/glusterd2/pkg/utils"
 
@@ -90,7 +90,7 @@ const (
 	gfCbkStatedump = 9
 )
 
-func fetchNotify(t oldtransaction.TxnCtx, op fetchOp) {
+func fetchNotify(t transaction.TxnCtx, op fetchOp) {
 	clientsList.RLock()
 	defer clientsList.RUnlock()
 
@@ -114,13 +114,13 @@ func fetchNotify(t oldtransaction.TxnCtx, op fetchOp) {
 
 // FetchSpecNotify notifies all clients connected to glusterd that the volfile
 // has changed and the clients should fetch the new volfile.
-func FetchSpecNotify(t oldtransaction.TxnCtx) {
+func FetchSpecNotify(t transaction.TxnCtx) {
 	fetchNotify(t, gfCbkFetchSpec)
 }
 
 // FetchSnapNotify notifies all clients connected to glusterd that a snapshot
 // has been created or modified.
-func FetchSnapNotify(t oldtransaction.TxnCtx) {
+func FetchSnapNotify(t transaction.TxnCtx) {
 	fetchNotify(t, gfCbkGetSnaps)
 }
 
