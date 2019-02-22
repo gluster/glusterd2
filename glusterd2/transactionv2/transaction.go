@@ -19,7 +19,6 @@ import (
 )
 
 const (
-	txnPrefix  = "transaction/"
 	txnTimeOut = time.Minute * 3
 )
 
@@ -54,7 +53,7 @@ func NewTxn(ctx context.Context) *Txn {
 	t.ID = uuid.NewRandom()
 	t.ReqID = gdctx.GetReqID(ctx)
 	t.locks = transaction.Locks{}
-	t.StorePrefix = txnPrefix + t.ID.String() + "/"
+	t.StorePrefix = TxnPrefix + "/" + t.ID.String() + "/"
 	config := &transaction.TxnCtxConfig{
 		LogFields: log.Fields{
 			"txnid": t.ID.String(),

@@ -22,6 +22,11 @@ import (
 var GlobalTxnManager TxnManager
 
 const (
+	// PendingTxnPrefix is the etcd namespace into which all pending txn info will be stored
+	PendingTxnPrefix = "pending-transaction"
+	// TxnPrefix is etcd key prefix under which details of a single txn will added
+	// eg.. key for storing details of a single transaction:- pending-transaction/transaction/<txn-ID>
+	TxnPrefix = "transaction"
 	// TxnStatusPrefix is etcd key prefix under which status of a txn is stored for a particular node
 	// eg.. key for storing status:-  pending-transaction/<txn-ID>/<node-ID>/status
 	TxnStatusPrefix = "status"
@@ -71,7 +76,10 @@ func NewTxnManager(storeWatcher clientv3.Watcher) TxnManager {
 
 // RemoveTransaction removes a transaction from `pending-transaction namespace`
 func (tm *txnManager) RemoveTransaction(txnID uuid.UUID) error {
-	_, err := store.Delete(context.TODO(), tm.getStoreKey(txnID.String()), clientv3.WithPrefix())
+	if _, err := store.Delete(context.TODO(), tm.getStoreKey(txnID.String()), clientv3.WithPrefix()); err != nil {
+		return err
+	}
+	_, err := store.Delete(context.TODO(), tm.getStoreKey(TxnPrefix, txnID.String()))
 	return err
 }
 
@@ -103,12 +111,16 @@ func (tm *txnManager) WatchTxnStatus(stopCh <-chan struct{}, txnID uuid.UUID, no
 func (tm *txnManager) WatchTxn(stopCh <-chan struct{}) <-chan *Txn {
 	var (
 		txnChan = make(chan *Txn, 10)
-		key     = tm.getStoreKey()
+		key     = tm.getStoreKey(TxnPrefix)
 		opts    = []clientv3.OpOption{clientv3.WithPrefix(), clientv3.WithFilterDelete()}
 	)
 
-	respHandler := func(response clientv3.WatchResponse) {
-		for _, txn := range tm.watchRespToTxns(response) {
+	respHandler := func(resp clientv3.WatchResponse) {
+		for _, event := range resp.Events {
+			txn := &Txn{Ctx: new(transaction.Tctx)}
+			if err := json.Unmarshal(event.Kv.Value, txn); err != nil {
+				continue
+			}
 			txnChan <- txn
 		}
 	}
@@ -179,36 +191,19 @@ func (tm *txnManager) kvToFailedTxn(kv *mvccpb.KeyValue, nodeID uuid.UUID) *Txn 
 	return txn
 }
 
-func (tm *txnManager) watchRespToTxns(resp clientv3.WatchResponse) (txns []*Txn) {
-	for _, event := range resp.Events {
-		prefix, id := path.Split(string(event.Kv.Key))
-		if uuid.Parse(id) == nil || prefix != PendingTxnPrefix {
-			continue
-		}
-
-		txn := &Txn{Ctx: new(transaction.Tctx)}
-		if err := json.Unmarshal(event.Kv.Value, txn); err != nil {
-			continue
-		}
-
-		txns = append(txns, txn)
-	}
-	return
-}
-
 // AddTxn adds a txn to the store
 func (tm *txnManager) AddTxn(txn *Txn) error {
 	data, err := json.Marshal(txn)
 	if err != nil {
 		return err
 	}
-	_, err = store.Put(context.TODO(), tm.getStoreKey(txn.ID.String()), string(data))
+	_, err = store.Put(context.TODO(), tm.getStoreKey(TxnPrefix, txn.ID.String()), string(data))
 	return err
 }
 
 // GetTxnByUUID returns the txn from given ID
 func (tm *txnManager) GetTxnByUUID(id uuid.UUID) (*Txn, error) {
-	key := tm.getStoreKey(id.String())
+	key := tm.getStoreKey(TxnPrefix, id.String())
 	resp, err := store.Get(context.TODO(), key)
 	if err != nil {
 		return nil, err
@@ -229,16 +224,11 @@ func (tm *txnManager) GetTxnByUUID(id uuid.UUID) (*Txn, error) {
 
 // GetTxns returns all txns added to the store
 func (tm *txnManager) GetTxns() (txns []*Txn) {
-	resp, err := store.Get(context.TODO(), tm.getStoreKey(), clientv3.WithPrefix())
+	resp, err := store.Get(context.TODO(), tm.getStoreKey(TxnPrefix), clientv3.WithPrefix())
 	if err != nil {
 		return
 	}
 	for _, kv := range resp.Kvs {
-		prefix, id := path.Split(string(kv.Key))
-		if uuid.Parse(id) == nil || prefix != PendingTxnPrefix {
-			continue
-		}
-
 		txn := &Txn{Ctx: new(transaction.Tctx)}
 		if err := json.Unmarshal(kv.Value, txn); err != nil {
 			continue
