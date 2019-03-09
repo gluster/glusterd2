@@ -1,6 +1,8 @@
 package volumecommands
 
 import (
+	"context"
+	"errors"
 	"fmt"
 	"net/http"
 
@@ -37,39 +39,46 @@ func registerVolDeleteStepFuncs() {
 }
 
 func volumeDeleteHandler(w http.ResponseWriter, r *http.Request) {
-
 	ctx := r.Context()
-	logger := gdctx.GetReqLogger(ctx)
 	volname := mux.Vars(r)["volname"]
 
+	volinfo, status, err := DeleteVolume(ctx, volname)
+	if err != nil {
+		restutils.SendHTTPError(ctx, w, status, err)
+		return
+	}
+
+	events.Broadcast(volume.NewEvent(volume.EventVolumeDeleted, volinfo))
+
+	restutils.SendHTTPResponse(ctx, w, http.StatusNoContent, nil)
+}
+
+// DeleteVolume deletes the volume
+func DeleteVolume(ctx context.Context, volname string) (*volume.Volinfo, int, error) {
+	logger := gdctx.GetReqLogger(ctx)
 	ctx, span := trace.StartSpan(ctx, "/volumeDeleteHandler")
 	defer span.End()
 
 	txn, err := transactionv2.NewTxnWithLocks(ctx, volname)
 	if err != nil {
 		status, err := restutils.ErrToStatusCode(err)
-		restutils.SendHTTPError(ctx, w, status, err)
-		return
+		return nil, status, err
 	}
 	defer txn.Done()
 
 	volinfo, err := volume.GetVolume(volname)
 	if err != nil {
 		status, err := restutils.ErrToStatusCode(err)
-		restutils.SendHTTPError(ctx, w, status, err)
-		return
+		return nil, status, err
 	}
 
 	if volinfo.State == volume.VolStarted {
-		errMsg := "Volume must be in stopped state before deleting."
-		restutils.SendHTTPError(ctx, w, http.StatusBadRequest, errMsg)
-		return
+		return nil, http.StatusBadRequest, errors.New("volume must be in stopped state before deleting")
 	}
 
 	if len(volinfo.SnapList) > 0 {
-		errMsg := fmt.Sprintf("Cannot delete Volume %s ,as it has %d snapshots.", volname, len(volinfo.SnapList))
-		restutils.SendHTTPError(ctx, w, http.StatusFailedDependency, errMsg)
-		return
+		err = fmt.Errorf("cannot delete Volume %s ,as it has %d snapshots", volname, len(volinfo.SnapList))
+		return nil, http.StatusFailedDependency, err
 	}
 
 	bricksAutoProvisioned := volinfo.IsAutoProvisioned() || volinfo.IsSnapshotProvisioned()
@@ -87,8 +96,7 @@ func volumeDeleteHandler(w http.ResponseWriter, r *http.Request) {
 	}
 
 	if err := txn.Ctx.Set("volinfo", volinfo); err != nil {
-		restutils.SendHTTPError(ctx, w, http.StatusInternalServerError, err)
-		return
+		return nil, http.StatusInternalServerError, err
 	}
 
 	span.AddAttributes(
@@ -99,11 +107,8 @@ func volumeDeleteHandler(w http.ResponseWriter, r *http.Request) {
 	if err := txn.Do(); err != nil {
 		logger.WithError(err).WithField(
 			"volume", volname).Error("transaction to delete volume failed")
-		restutils.SendHTTPError(ctx, w, http.StatusInternalServerError, err)
-		return
+		return nil, http.StatusInternalServerError, err
 	}
 
-	events.Broadcast(volume.NewEvent(volume.EventVolumeDeleted, volinfo))
-
-	restutils.SendHTTPResponse(ctx, w, http.StatusNoContent, nil)
+	return volinfo, http.StatusNoContent, nil
 }

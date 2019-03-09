@@ -75,7 +75,7 @@ func WithHosts(hosts []string) BlockVolOption {
 func WithBlockType(blockType string) BlockVolOption {
 	return func(options *BlockVolumeOptions) {
 		if blockType == "" {
-			options.BlockType = "xfs"
+			options.BlockType = "ext4"
 		} else {
 			options.BlockType = blockType
 		}

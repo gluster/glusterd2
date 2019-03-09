@@ -40,7 +40,7 @@ func (b *BlockVolume) CreateVolume(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	hostVolInfo, err := b.hostVolManager.GetOrCreateHostingVolume(req.HostingVolume, req.Size, &req.HostVolumeInfo)
+	hostVolInfo, err := b.hostVolManager.GetOrCreateHostingVolume(req.HostingVolume, req.Name, req.Size, &req.HostVolumeInfo)
 	if err != nil {
 		utils.SendHTTPError(r.Context(), w, http.StatusInternalServerError, err)
 		return
@@ -48,6 +48,7 @@ func (b *BlockVolume) CreateVolume(w http.ResponseWriter, r *http.Request) {
 
 	blockVol, err := blockProvider.CreateBlockVolume(req.Name, req.Size, hostVolInfo.Name, opts...)
 	if err != nil {
+		_ = b.hostVolManager.DeleteBlockInfoFromBHV(hostVolInfo.Name, req.Name, req.Size)
 		utils.SendHTTPError(r.Context(), w, http.StatusInternalServerError, err)
 		return
 	}
@@ -74,7 +75,14 @@ func (b *BlockVolume) DeleteVolume(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	if err := blockProvider.DeleteBlockVolume(pathParams["name"]); err != nil {
+	blkVol, err := blockProvider.GetAndDeleteBlockVolume(pathParams["name"])
+	if err != nil {
+		utils.SendHTTPError(r.Context(), w, http.StatusInternalServerError, err)
+		return
+	}
+
+	err = b.hostVolManager.DeleteBlockInfoFromBHV(blkVol.HostVolume(), pathParams["name"], blkVol.Size())
+	if err != nil {
 		utils.SendHTTPError(r.Context(), w, http.StatusInternalServerError, err)
 		return
 	}

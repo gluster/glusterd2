@@ -9,6 +9,7 @@ import (
 	"net"
 	"os"
 	"os/exec"
+	"path"
 	"strings"
 	"syscall"
 	"time"
@@ -67,7 +68,11 @@ func MountVolume(name string, mountpoint string, mntOptns string) error {
 	buffer.WriteString(fmt.Sprintf(" --volfile-server %s", shost))
 	buffer.WriteString(fmt.Sprintf(" --volfile-server-port %s", sport))
 	buffer.WriteString(fmt.Sprintf(" --volfile-id %s", name))
-	buffer.WriteString(" --log-file /dev/null")
+
+	mountpointWithoutSlash := strings.Trim(strings.Replace(mountpoint, "/", "-", -1), "-")
+	logfilepath := path.Join(config.GetString("logdir"), "glusterfs", mountpointWithoutSlash)
+	buffer.WriteString(" --log-file " + logfilepath)
+
 	buffer.WriteString(mntOptns)
 	buffer.WriteString(" " + mountpoint)
 
