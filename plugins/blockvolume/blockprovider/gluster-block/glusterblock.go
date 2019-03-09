@@ -2,7 +2,6 @@ package glusterblock
 
 import (
 	"context"
-	"errors"
 	"github.com/gluster/glusterd2/glusterd2/volume"
 	"github.com/gluster/glusterd2/pkg/size"
 	"github.com/gluster/glusterd2/plugins/blockvolume/blockprovider"
@@ -11,6 +10,7 @@ import (
 
 	"github.com/gluster/gluster-block-restapi/client"
 	"github.com/gluster/gluster-block-restapi/pkg/api"
+	"github.com/gluster/glusterd2/pkg/errors"
 	log "github.com/sirupsen/logrus"
 	"github.com/spf13/viper"
 )
@@ -78,11 +78,6 @@ func (g *GlusterBlock) CreateBlockVolume(name string, size uint64, hostVolume st
 		return nil, err
 	}
 
-	resizeFunc := func(blockHostingAvailableSize, blockSize uint64) uint64 { return blockHostingAvailableSize - blockSize }
-	if err = hostvol.ResizeBlockHostingVolume(hostVolume, size, resizeFunc); err != nil {
-		logger.WithError(err).Error("failed in updating hostvolume _block-hosting-available-size metadata")
-	}
-
 	return &BlockVolume{
 		hostVolume: hostVolume,
 		name:       name,
@@ -95,31 +90,40 @@ func (g *GlusterBlock) CreateBlockVolume(name string, size uint64, hostVolume st
 	}, err
 }
 
+// GetAndDeleteBlockVolume deletes a gluster block volume of give name
+func (g *GlusterBlock) GetAndDeleteBlockVolume(name string, options ...blockprovider.BlockVolOption) (blockprovider.BlockVolume, error) {
+	blkVol, err := g.deleteBlock(name, options...)
+	if err != nil {
+		log.WithError(err).Errorf("couldn't delete block volume :%s", name)
+		return nil, err
+	}
+
+	return blkVol, nil
+
+}
+
 // DeleteBlockVolume deletes a gluster block volume of give name
 func (g *GlusterBlock) DeleteBlockVolume(name string, options ...blockprovider.BlockVolOption) error {
+	_, err := g.deleteBlock(name, options...)
+	if err != nil {
+		log.WithError(err).Errorf("couldn't delete block volume :%s", name)
+		return err
+	}
+
+	return nil
+}
+
+// deleteBlock deletes a gluster block volume of give name
+func (g *GlusterBlock) deleteBlock(name string, options ...blockprovider.BlockVolOption) (blockprovider.BlockVolume, error) {
 	var (
 		blockVolOpts = &blockprovider.BlockVolumeOptions{}
-		hostVol      string
 	)
 
 	blockVolOpts.ApplyOpts(options...)
 
-	blockVols := g.BlockVolumes()
-
-	for _, blockVol := range blockVols {
-		if blockVol.Name() == name {
-			hostVol = blockVol.HostVolume()
-			break
-		}
-	}
-
-	if hostVol == "" {
-		return errors.New("block volume not found")
-	}
-
-	blockInfo, err := g.client.BlockVolumeInfo(hostVol, name)
-	if err != nil {
-		return err
+	blockInfo, err := g.GetBlockVolume(name)
+	if err != nil || blockInfo == nil {
+		return nil, errors.ErrBlockVolNotFound
 	}
 
 	req := &api.BlockVolumeDeleteReq{
@@ -127,20 +131,21 @@ func (g *GlusterBlock) DeleteBlockVolume(name string, options ...blockprovider.B
 		Force:         blockVolOpts.ForceDelete,
 	}
 
-	if err := g.client.DeleteBlockVolume(hostVol, name, req); err != nil {
-		return err
+	err = g.client.DeleteBlockVolume(blockInfo.HostVolume(), name, req)
+	if err != nil {
+		return nil, err
 	}
 
 	resizeFunc := func(blockHostingAvailableSize, blockSize uint64) uint64 { return blockHostingAvailableSize + blockSize }
 
-	if err = hostvol.ResizeBlockHostingVolume(hostVol, blockInfo.Size, resizeFunc); err != nil {
+	if err = hostvol.ResizeBlockHostingVolume(blockInfo.HostVolume(), blockInfo.Size, resizeFunc); err != nil {
 		log.WithFields(log.Fields{
 			"error": err,
 			"size":  blockInfo.Size,
 		}).Error("error in resizing the block hosting volume")
 	}
 
-	return err
+	return blockInfo, err
 }
 
 // GetBlockVolume gives info about a gluster block volume
@@ -158,7 +163,7 @@ func (g *GlusterBlock) GetBlockVolume(name string) (blockprovider.BlockVolume, e
 	}
 
 	if blockVolume == nil {
-		return nil, errors.New("block volume not found")
+		return nil, errors.ErrBlockVolNotFound
 	}
 
 	blockInfo, err := g.client.BlockVolumeInfo(blockVolume.HostVolume(), blockVolume.Name())

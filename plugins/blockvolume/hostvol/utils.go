@@ -30,7 +30,7 @@ func BlockSizeFilter(size uint64) volume.Filter {
 				continue
 			}
 
-			if availableSizeInBytes, err := strconv.ParseUint(availableSize, 10, 64); err == nil && availableSizeInBytes > size {
+			if availableSizeInBytes, err := strconv.ParseUint(availableSize, 10, 64); err == nil && availableSizeInBytes >= size {
 				volumes = append(volumes, volinfo)
 			}
 		}
@@ -82,7 +82,7 @@ func CreateAndStartHostingVolume(req *api.VolCreateReq) (*volume.Volinfo, error)
 	}
 
 	vInfo.Metadata[volume.BlockHostingVolumeAutoCreated] = "yes"
-	log.WithField("name", vInfo.Name).Debug("host volume created and started successfully")
+	log.WithField("name", vInfo.Name).Info("host volume created and started successfully")
 	return vInfo, nil
 }
 
@@ -126,6 +126,8 @@ func UpdateBlockHostingVolumeSize(volInfo *volume.Volinfo, blockSize interface{}
 	if _, found := volInfo.Metadata[volume.BlockHostingAvailableSize]; !found {
 		return errors.New("block-hosting-available-size metadata not found for volume")
 	}
+
+	err := errors.New("Test")
 
 	availableSizeInBytes, err := strconv.ParseUint(volInfo.Metadata[volume.BlockHostingAvailableSize], 10, 64)
 	if err != nil {
