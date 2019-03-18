@@ -105,7 +105,7 @@ func (sm *stepManager) RollBackStep(ctx context.Context, step *transaction.Step,
 	return nil
 }
 
-// RunStepRunStep will execute the step on local node
+// RunStep will execute the step on local node
 func (sm *stepManager) RunStep(ctx context.Context, step *transaction.Step, txnCtx transaction.TxnCtx) error {
 	if !sm.shouldRunStep(step) {
 		txnCtx.Logger().WithField("step", step.DoFunc).Debug("peer is excluded in running this step")

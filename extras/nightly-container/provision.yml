@@ -18,7 +18,7 @@
         mode: 0644
         owner: root
       with_items:
-        - {url: "http://artifacts.ci.centos.org/gluster/nightly/master.repo", path: "/etc/yum.repos.d/glusterfs-nightly.repo"}
+        - {url: "http://artifacts.ci.centos.org/gluster/nightly/release-6.repo", path: "/etc/yum.repos.d/glusterfs-nightly.repo"}
         - {url: "http://artifacts.ci.centos.org/gluster/gd2-nightly/gd2-master.repo", path: "/etc/yum.repos.d/glusterd2-nightly.repo"}
         - {url: "http://artifacts.ci.centos.org/gluster/gluster-prometheus-nightly/gluster-prometheus-master.repo", path: "/etc/yum.repos.d/gluster-prometheus-nightly.repo"}
 
