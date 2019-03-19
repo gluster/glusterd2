@@ -46,15 +46,18 @@
       args:
         warn: no
 
-    - name: Configure lvm
-      replace:
-        path: /etc/lvm/lvm.conf
-        regexp: '(\s+{{ item.option }}\s=)\s({{ item.oldval }})(\s*)?$'
-        replace: '\1 {{ item.newval }}\3'
+    - name: Remove lvm2 tmpfiles config
+      file:
+        path: /usr/lib/tmpfiles.d/lvm2.conf
+        state: absent
+
+    - name: Ensure /run/{lvm,udev} is present
+      file:
+        path: "{{ item }}"
+        state: directory
       with_items:
-        - {option: "udev_rules", oldval: "1", newval: "0"}
-        - {option: "udev_sync", oldval: "1", newval: "0"}
-        - {option: "use_lvmetad", oldval: "1", newval: "0"}
+        - /run/lvm
+        - /run/udev
 
     # Using shell here instead of find/file modules as this is much easier
     - name: Cleanup systemd targets
@@ -70,13 +73,15 @@
       args:
         warn: no
 
-    - name: Update udev systemd rules
-      command: sed -ibak 's/ENV{DM_UDEV_DISABLE_OTHER_RULES_FLAG}=="1", ENV{SYSTEMD_READY}="0"/ENV{DM_UDEV_DISABLE_OTHER_RULES_FLAG}=="1", GOTO="systemd_end"/g' /usr/lib/udev/rules.d/99-systemd.rules
-      args:
-        warn: no
-
-    - name: Mask getty.target
-      command: systemctl mask getty.target
+    - name: Mask unneeded systemd services
+      shell: |
+        systemctl mask getty.target
+        systemctl mask systemd-udev-trigger.service
+        systemctl mask systemd-udevd.service
+        systemctl mask systemd-udevd.socket
+        systemctl mask systemd-udevd-kernel.socket
+        systemctl mask lvm2-lvmetad.service
+        systemctl mask lvm2-lvmetad.socket
       args:
         warn: no
 
