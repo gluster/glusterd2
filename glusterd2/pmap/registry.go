@@ -123,7 +123,7 @@ func (r *pmapRegistry) NumOfBricksOnPort(port int) (int, error) {
 	return -1, fmt.Errorf("NumOfBricksOnPort: port %d not found in registry", port)
 }
 
-// RemoveByConn deletes port map entry by brick process's TCP connection.
+// RemovePortByConn deletes port map entry by brick process's TCP connection.
 // There will be only one TCP connection per brick process, regardless of
 // number of bricks in the process.
 func (r *pmapRegistry) RemovePortByConn(conn net.Conn) error {
