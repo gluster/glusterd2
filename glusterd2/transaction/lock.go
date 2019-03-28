@@ -3,10 +3,12 @@ package transaction
 import (
 	"context"
 	"errors"
+	"fmt"
 	"time"
 
 	"github.com/gluster/glusterd2/glusterd2/gdctx"
 	"github.com/gluster/glusterd2/glusterd2/store"
+	"github.com/gluster/glusterd2/pkg/backoff"
 
 	"github.com/coreos/etcd/clientv3/concurrency"
 	"github.com/pborman/uuid"
@@ -205,6 +207,23 @@ func (l Locks) Lock(lockID string, lockIDs ...string) error {
 		}
 	}
 	return nil
+}
+
+// LockWithRetry will try to obtain a cluster wide lock. In case of failure it will keep
+// on retrying up to maxAttempts.
+func (l Locks) LockWithRetry(lockID string, maxAttempts int, backOff *backoff.BackOff) error {
+	for {
+		dur := backOff.NextDuration()
+		err := l.lock(lockID)
+		if err == nil {
+			return nil
+		}
+
+		if maxAttempts == backOff.Attempts() {
+			return fmt.Errorf("%v, after %d attempts", err, maxAttempts)
+		}
+		<-time.After(dur)
+	}
 }
 
 // UnLock releases all cluster wide obtained locks

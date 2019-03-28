@@ -46,6 +46,42 @@
       args:
         warn: no
 
+    - name: Downgrade lvm2
+      yum:
+        name: "{{ item }}"
+        allow_downgrade: yes
+      with_items:
+        - device-mapper-libs-1.02.149-10.el7_6.2.x86_64
+        - device-mapper-1.02.149-10.el7_6.2.x86_64
+        - device-mapper-event-libs-1.02.149-10.el7_6.2.x86_64
+        - device-mapper-event-1.02.149-10.el7_6.2.x86_64
+        - lvm2-libs-2.02.180-10.el7_6.2.x86_64
+        - lvm2-2.02.180-10.el7_6.2.x86_64
+
+    - name: Clean yum cache
+      command: yum clean all
+      args:
+        warn: no
+
+    # Disable lvmetad in container
+    - name: Disable lvmetad services
+      command: systemctl mask {{ item }}
+      args:
+        warn: false
+      loop:
+        - lvm2-lvmetad.service
+        - lvm2-lvmetad.socket
+
+    # Prevent dmeventd from running in the container, it may cause
+    # conflicts with the service running on the host
+    - name: Disable dmeventd services
+      command: systemctl mask {{ item }}
+      args:
+        warn: false
+      loop:
+        - dmevent.service
+        - dmevent.socket
+
     - name: Configure lvm
       replace:
         path: /etc/lvm/lvm.conf
@@ -55,6 +91,8 @@
         - {option: "udev_rules", oldval: "1", newval: "0"}
         - {option: "udev_sync", oldval: "1", newval: "0"}
         - {option: "use_lvmetad", oldval: "1", newval: "0"}
+        - {option: "obtain_device_list_from_udev", oldval: "1", newval: "0"}
+        - {option: "monitoring", oldval: "1", newval: "0"}
 
     # Using shell here instead of find/file modules as this is much easier
     - name: Cleanup systemd targets
