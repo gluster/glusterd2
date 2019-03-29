@@ -1,7 +1,6 @@
 [Unit]
 Description=GlusterD2, the management service for GlusterFS (pre-release)
-Requires=rpcbind.service
-After=network.target rpcbind.service
+After=network.target
 Before=network-online.target
 Conflicts=glusterd.service
 
