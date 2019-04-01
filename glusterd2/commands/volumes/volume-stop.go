@@ -1,6 +1,7 @@
 package volumecommands
 
 import (
+	"context"
 	"net/http"
 	"os"
 
@@ -118,35 +119,44 @@ func registerVolStopStepFuncs() {
 func volumeStopHandler(w http.ResponseWriter, r *http.Request) {
 
 	ctx := r.Context()
+	volname := mux.Vars(r)["volname"]
+
+	volinfo, status, err := StopVolume(ctx, volname)
+	if err != nil {
+		restutils.SendHTTPError(ctx, w, status, err)
+		return
+	}
+
+	events.Broadcast(volume.NewEvent(volume.EventVolumeStopped, volinfo))
+	resp := createVolumeStopResp(volinfo)
+	restutils.SendHTTPResponse(ctx, w, http.StatusOK, resp)
+}
+
+// StopVolume will stop the volume
+func StopVolume(ctx context.Context, volname string) (*volume.Volinfo, int, error) {
+	logger := gdctx.GetReqLogger(ctx)
 	ctx, span := trace.StartSpan(ctx, "/volumeStopHandler")
 	defer span.End()
-
-	logger := gdctx.GetReqLogger(ctx)
-	volname := mux.Vars(r)["volname"]
 
 	txn, err := transactionv2.NewTxnWithLocks(ctx, volname)
 	if err != nil {
 		status, err := restutils.ErrToStatusCode(err)
-		restutils.SendHTTPError(ctx, w, status, err)
-		return
+		return nil, status, err
 	}
 	defer txn.Done()
 
 	volinfo, err := volume.GetVolume(volname)
 	if err != nil {
 		status, err := restutils.ErrToStatusCode(err)
-		restutils.SendHTTPError(ctx, w, status, err)
-		return
+		return nil, status, err
 	}
 
 	if volinfo.State == volume.VolStopped {
-		restutils.SendHTTPError(ctx, w, http.StatusBadRequest, errors.ErrVolAlreadyStopped)
-		return
+		return nil, http.StatusBadRequest, errors.ErrVolAlreadyStopped
 	}
 
 	if volinfo.State != volume.VolStarted {
-		restutils.SendHTTPError(ctx, w, http.StatusBadRequest, errors.ErrVolNotStarted)
-		return
+		return nil, http.StatusBadRequest, errors.ErrVolNotStarted
 	}
 
 	txn.Steps = []*transaction.Step{
@@ -168,15 +178,13 @@ func volumeStopHandler(w http.ResponseWriter, r *http.Request) {
 	}
 
 	if err := txn.Ctx.Set("oldvolinfo", volinfo); err != nil {
-		restutils.SendHTTPError(ctx, w, http.StatusInternalServerError, err)
-		return
+		return nil, http.StatusInternalServerError, err
 	}
 
 	volinfo.State = volume.VolStopped
 
 	if err := txn.Ctx.Set("volinfo", volinfo); err != nil {
-		restutils.SendHTTPError(ctx, w, http.StatusInternalServerError, err)
-		return
+		return nil, http.StatusInternalServerError, err
 	}
 
 	span.AddAttributes(
@@ -187,14 +195,10 @@ func volumeStopHandler(w http.ResponseWriter, r *http.Request) {
 	if err := txn.Do(); err != nil {
 		logger.WithError(err).WithField(
 			"volume", volname).Error("transaction to stop volume failed")
-		restutils.SendHTTPError(ctx, w, http.StatusInternalServerError, err)
-		return
+		return nil, http.StatusInternalServerError, err
 	}
 
-	events.Broadcast(volume.NewEvent(volume.EventVolumeStopped, volinfo))
-
-	resp := createVolumeStopResp(volinfo)
-	restutils.SendHTTPResponse(ctx, w, http.StatusOK, resp)
+	return volinfo, http.StatusOK, nil
 }
 
 func createVolumeStopResp(v *volume.Volinfo) *api.VolumeStopResp {

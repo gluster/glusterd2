@@ -19,6 +19,7 @@ const (
 	defaultHostVolType         = "Replicate"
 	defaultHostVolReplicaCount = 3
 	hostVolautoCreate          = true
+	hostVolautoDelete          = true
 )
 
 // HostingVolumeOptions holds various information which will be used in creating hosting volume
@@ -27,6 +28,7 @@ type HostingVolumeOptions struct {
 	Type         string
 	ReplicaCount int
 	AutoCreate   bool
+	AutoDelete   bool
 	ThinArbPath  string
 	ShardSize    uint64
 }
@@ -37,6 +39,7 @@ func newHostingVolumeOptions() *HostingVolumeOptions {
 		Type:         defaultHostVolType,
 		ReplicaCount: defaultHostVolReplicaCount,
 		AutoCreate:   hostVolautoCreate,
+		AutoDelete:   hostVolautoDelete,
 	}
 }
 
@@ -117,6 +120,14 @@ func (h *HostingVolumeOptions) SetFromClusterOptions() {
 			h.AutoCreate = val
 		}
 	}
+
+	autoDelete, err := options.GetClusterOption("auto-delete-block-hosting-volumes")
+	if err == nil {
+		if val, err := strconv.ParseBool(autoDelete); err == nil {
+			h.AutoDelete = val
+		}
+	}
+
 	h.ThinArbPath = ""
 	h.ShardSize = 0
 }

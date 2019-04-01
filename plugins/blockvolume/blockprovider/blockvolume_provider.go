@@ -20,6 +20,7 @@ var (
 type Provider interface {
 	CreateBlockVolume(name string, size uint64, hostVolume string, options ...BlockVolOption) (BlockVolume, error)
 	DeleteBlockVolume(name string, options ...BlockVolOption) error
+	GetAndDeleteBlockVolume(name string, options ...BlockVolOption) (BlockVolume, error)
 	GetBlockVolume(id string) (BlockVolume, error)
 	BlockVolumes() []BlockVolume
 	ProviderName() string

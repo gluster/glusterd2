@@ -7,12 +7,10 @@ import (
 	"strconv"
 	"strings"
 
-	"github.com/gluster/glusterd2/glusterd2/transaction"
 	"github.com/gluster/glusterd2/glusterd2/volume"
 	"github.com/gluster/glusterd2/pkg/errors"
 	"github.com/gluster/glusterd2/pkg/utils"
 	"github.com/gluster/glusterd2/plugins/blockvolume/blockprovider"
-	"github.com/gluster/glusterd2/plugins/blockvolume/hostvol"
 
 	log "github.com/sirupsen/logrus"
 	config "github.com/spf13/viper"
@@ -75,7 +73,6 @@ func mountHost(g *GlusterVirtBlk, hostVolume string) (string, error) {
 func (g *GlusterVirtBlk) CreateBlockVolume(name string, size uint64, hostVolume string, options ...blockprovider.BlockVolOption) (blockprovider.BlockVolume, error) {
 	var (
 		blockVolOpts = &blockprovider.BlockVolumeOptions{}
-		clusterLocks = transaction.Locks{}
 	)
 
 	blockVolOpts.ApplyOpts(options...)
@@ -108,32 +105,6 @@ func (g *GlusterVirtBlk) CreateBlockVolume(name string, size uint64, hostVolume 
 		}
 	}
 
-	if err = clusterLocks.Lock(hostVolume); err != nil {
-		logger.WithError(err).Error("error in acquiring cluster lock")
-		return nil, err
-	}
-	defer clusterLocks.UnLock(context.Background())
-
-	volInfo, err := volume.GetVolume(hostVolume)
-	if err != nil {
-		logger.WithError(err).Errorf("failed to get host volume info %s", hostVolume)
-		return nil, err
-	}
-
-	resizeFunc := func(blockHostingAvailableSize, blockSize uint64) uint64 { return blockHostingAvailableSize - blockSize }
-	if err = hostvol.UpdateBlockHostingVolumeSize(volInfo, size, resizeFunc); err != nil {
-		logger.WithError(err).Error("failed in updating hostvolume _block-hosting-available-size metadata")
-		return nil, err
-	}
-
-	key := volume.BlockPrefix + name
-	val := strconv.FormatUint(size, 10)
-	volInfo.Metadata[key] = val
-	if err := volume.AddOrUpdateVolume(volInfo); err != nil {
-		logger.WithError(err).Error("failed in updating volume info to store")
-		return nil, err
-	}
-
 	return &BlockVolume{
 		hostVolume: hostVolume,
 		name:       name,
@@ -141,65 +112,56 @@ func (g *GlusterVirtBlk) CreateBlockVolume(name string, size uint64, hostVolume 
 	}, nil
 }
 
+// GetAndDeleteBlockVolume deletes a gluster block volume of give name
+func (g *GlusterVirtBlk) GetAndDeleteBlockVolume(name string, options ...blockprovider.BlockVolOption) (blockprovider.BlockVolume, error) {
+	blkVol, err := g.deleteBlock(name, options...)
+	if err != nil {
+		log.WithError(err).Errorf("couldn't delete block volume :%s", name)
+		return nil, err
+	}
+
+	return blkVol, nil
+}
+
 // DeleteBlockVolume deletes a gluster block volume of give name
 func (g *GlusterVirtBlk) DeleteBlockVolume(name string, options ...blockprovider.BlockVolOption) error {
+	_, err := g.deleteBlock(name, options...)
+	if err != nil {
+		log.WithError(err).Errorf("couldn't delete block volume :%s", name)
+		return err
+	}
+
+	return nil
+}
+
+// DeleteBlockVolume deletes a gluster block volume of give name
+func (g *GlusterVirtBlk) deleteBlock(name string, options ...blockprovider.BlockVolOption) (blockprovider.BlockVolume, error) {
 	var (
 		blockVolOpts = &blockprovider.BlockVolumeOptions{}
-		clusterLocks = transaction.Locks{}
 	)
 
 	blockVolOpts.ApplyOpts(options...)
 
 	blkVol, err := g.GetBlockVolume(name)
 	if err != nil || blkVol == nil {
-		return errors.ErrBlockVolNotFound
+		return nil, errors.ErrBlockVolNotFound
 	}
 
 	hostName := blkVol.HostVolume()
 	hostDir, err := mountHost(g, hostName)
 	if err != nil {
 		log.WithError(err).Errorf("error mounting block hosting volume :%s", hostName)
-		return err
+		return nil, err
 	}
 
 	blockFileName := hostDir + "/" + name
 	err = os.Remove(blockFileName)
 	if err != nil {
 		log.WithError(err).Errorf("error removing block :%s", blockFileName)
-		return err
+		return nil, err
 	}
 
-	if err := clusterLocks.Lock(hostName); err != nil {
-		log.WithError(err).Error("error in acquiring cluster lock")
-		return err
-	}
-	defer clusterLocks.UnLock(context.Background())
-
-	hostVol, err := volume.GetVolume(hostName)
-	if err != nil {
-		log.WithError(err).Error("failed to get block host vol info")
-		return err
-	}
-
-	for k := range hostVol.Metadata {
-		if k == (volume.BlockPrefix + name) {
-			delete(hostVol.Metadata, k)
-		}
-	}
-
-	resizeFunc := func(blockHostingAvailableSize, blockSize uint64) uint64 { return blockHostingAvailableSize + blockSize }
-	if err = hostvol.UpdateBlockHostingVolumeSize(hostVol, blkVol.Size(), resizeFunc); err != nil {
-		log.WithFields(log.Fields{
-			"error": err,
-			"size":  blkVol.Size(),
-		}).Error("error in resizing the block hosting volume")
-	}
-	if err := volume.AddOrUpdateVolume(hostVol); err != nil {
-		log.WithError(err).Error("failed in updating volume info to store")
-		return err
-	}
-
-	return err
+	return blkVol, nil
 }
 
 // GetBlockVolume gives info about a gluster block volume

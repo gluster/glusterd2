@@ -38,6 +38,7 @@ var ClusterOptMap = map[string]*ClusterOption{
 	"auto-create-block-hosting-volumes":  {"auto-create-block-hosting-volumes", "true", OptionTypeBool, nil},
 	"block-hosting-volume-replica-count": {"block-hosting-volume-replica-count", "3", OptionTypeInt, nil},
 	"block-hosting-volume-type":          {"block-hosting-volume-type", "Replicate", OptionTypeStr, nil},
+	"auto-delete-block-hosting-volumes":  {"auto-delete-block-hosting-volumes", "false", OptionTypeBool, nil},
 }
 
 // RegisterClusterOpValidationFunc registers a validation function for provided

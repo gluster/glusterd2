@@ -60,9 +60,8 @@ func (b *BlockVolume) RestRoutes() route.Routes {
 }
 
 // RegisterStepFuncs registers all step functions
-// Here it is a no-op method
 func (*BlockVolume) RegisterStepFuncs() {
-
+	hostvol.RegisterBHVstepFunctions()
 }
 
 // Init will initialize the underlying HostVolume manager only once.
