@@ -39,6 +39,7 @@
         - glusterd2
         - lvm2
         - xfsprogs
+        - e2fsprogs
         - gluster-prometheus-exporter
 
     - name: Clean yum cache
