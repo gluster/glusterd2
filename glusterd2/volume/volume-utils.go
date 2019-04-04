@@ -7,6 +7,7 @@ import (
 	"path"
 	"path/filepath"
 	"regexp"
+	"strconv"
 	"strings"
 	"syscall"
 
@@ -16,6 +17,7 @@ import (
 	"github.com/gluster/glusterd2/glusterd2/pmap"
 	"github.com/gluster/glusterd2/pkg/api"
 	gderrors "github.com/gluster/glusterd2/pkg/errors"
+	"github.com/gluster/glusterd2/pkg/fsutils"
 	"github.com/gluster/glusterd2/pkg/lvmutils"
 	"github.com/gluster/glusterd2/plugins/device/deviceutils"
 
@@ -259,8 +261,8 @@ func (v *Volinfo) GetProvisionType() brick.ProvisionType {
 	return provisionType
 }
 
-//CleanBricks will Unmount the bricks and delete lv, thinpool
-func CleanBricks(volinfo *Volinfo) error {
+//CleanBricksLvm will Unmount the bricks and delete lv, thinpool
+func CleanBricksLvm(volinfo *Volinfo) error {
 	for _, b := range volinfo.GetLocalBricks() {
 		// UnMount the Brick if mounted
 		mountRoot := strings.TrimSuffix(b.Path, b.MountInfo.BrickDirSuffix)
@@ -272,7 +274,7 @@ func CleanBricks(volinfo *Volinfo) error {
 				return err
 			}
 		} else {
-			err := lvmutils.UnmountLV(mountRoot)
+			err := fsutils.Unmount(mountRoot)
 			if err != nil {
 				log.WithError(err).WithField("path", mountRoot).
 					Error("brick unmount failed")
@@ -341,12 +343,85 @@ func CleanBricks(volinfo *Volinfo) error {
 		}
 
 		// Update current Vg free size
-		err = deviceutils.UpdateDeviceFreeSizeByVg(gdctx.MyUUID.String(), vgname)
+		err = deviceutils.AddDeviceFreeSize(gdctx.MyUUID.String(), b.DeviceInfo.RootDevice, b.TotalSize)
 		if err != nil {
-			log.WithError(err).WithField("vg-name", vgname).
+			log.WithError(err).WithField("device", b.DeviceInfo.RootDevice).
 				Error("failed to update available size of a device")
 			return err
 		}
 	}
 	return nil
+}
+
+//CleanBricksLoop will Unmount the bricks and delete lv, thinpool
+func CleanBricksLoop(volinfo *Volinfo) error {
+	for _, b := range volinfo.GetLocalBricks() {
+		// UnMount the Brick if mounted
+		mountRoot := strings.TrimSuffix(b.Path, b.MountInfo.BrickDirSuffix)
+		_, err := GetBrickMountInfo(mountRoot)
+		if err != nil {
+			if !IsMountNotFoundError(err) {
+				log.WithError(err).WithField("path", mountRoot).
+					Error("unable to get mount info")
+				return err
+			}
+		} else {
+			err := fsutils.Unmount(mountRoot)
+			if err != nil {
+				log.WithError(err).WithField("path", mountRoot).
+					Error("brick unmount failed")
+				return err
+			}
+		}
+
+		// Remove Loop file
+		err = os.Remove(b.MountInfo.DevicePath)
+		// Ignore error if loop file not exists
+		if err != nil && !os.IsNotExist(err) {
+			log.WithError(err).WithField("device", b.MountInfo.DevicePath).Error("brick device remove failed")
+			return err
+		}
+
+		// Remove directory
+		err = os.Remove(path.Dir(b.MountInfo.DevicePath))
+		// Do not remove directory if the dependent brick loop file exists
+		if err != nil && !os.IsExist(err) && !os.IsNotExist(err) {
+			log.WithError(err).WithField("device", b.MountInfo.DevicePath).Error("brick device directory remove failed")
+			return err
+		}
+
+		// Update current Vg free size
+		err = deviceutils.AddDeviceFreeSize(gdctx.MyUUID.String(), b.DeviceInfo.RootDevice, b.DeviceInfo.TotalSize)
+		if err != nil {
+			log.WithError(err).WithField("device", b.DeviceInfo.RootDevice).
+				Error("failed to update available size of a device")
+			return err
+		}
+	}
+	return nil
+}
+
+//AddThinArbiter adds thin arbiter option to the volume create request
+func AddThinArbiter(req *api.VolCreateReq, thinArbiter string) error {
+
+	s := strings.Split(thinArbiter, ":")
+	if len(s) != 2 && len(s) != 3 {
+		return errors.New("thin arbiter brick must be of the form <host>:<brick> or <host>:<brick>:<port>")
+	}
+
+	// TODO: If required, handle this in a generic way, just like other
+	// volume set options that we're going to allow to be set during
+	// volume create.
+	req.Options["replicate.thin-arbiter"] = thinArbiter
+	req.AllowAdvanced = true
+	return nil
+}
+
+//AddShard adds shard options to the volume create request
+func AddShard(req *api.VolCreateReq, shardSize uint64) {
+
+	req.Options["features/shard"] = "on"
+	req.Options["features/shard.shard-block-size"] = strconv.FormatUint(shardSize, 10)
+	req.AllowAdvanced = true
+	return
 }

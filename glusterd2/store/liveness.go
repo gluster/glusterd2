@@ -3,6 +3,7 @@ package store
 import (
 	"context"
 	"os"
+	"path"
 	"strconv"
 	"time"
 
@@ -54,6 +55,52 @@ func (s *GDStore) IsNodeAlive(peerID interface{}) (int, bool) {
 		return pid, true
 	}
 	return 0, false
+}
+
+// GetAliveNodes will return a map of all alive nodes. It will contain
+// peerID and corresponding process id. It uses single etcd query
+// to get all alive nodes.
+func (s *GDStore) GetAliveNodes(ctx context.Context) map[string]int {
+	peerStatus := map[string]int{}
+
+	resp, err := s.Get(ctx, LivenessKeyPrefix, clientv3.WithPrefix())
+	if err != nil {
+		return peerStatus
+	}
+
+	for _, kv := range resp.Kvs {
+		peerID := path.Base(string(kv.Key))
+		pid, err := strconv.Atoi(string(kv.Value))
+		if err == nil {
+			peerStatus[peerID] = pid
+		}
+	}
+
+	return peerStatus
+}
+
+// AreNodesAlive returns true if all given nodes are alive.
+func (s *GDStore) AreNodesAlive(ctx context.Context, peerIDs ...uuid.UUID) bool {
+	var nodeIDs []string
+
+	for _, peerID := range peerIDs {
+		nodeIDs = append(nodeIDs, peerID.String())
+
+	}
+
+	peerStatus := s.GetAliveNodes(ctx)
+
+	if len(nodeIDs) > len(peerStatus) {
+		return false
+	}
+
+	for _, nodeID := range nodeIDs {
+		if _, ok := peerStatus[nodeID]; !ok {
+			return false
+		}
+	}
+
+	return true
 }
 
 func (s *GDStore) publishLiveness() error {

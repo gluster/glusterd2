@@ -17,7 +17,10 @@ const (
 	helpDeviceInfoCmd = "Get device info"
 )
 
+var flagDeviceAddProvisioner string
+
 func init() {
+	deviceAddCmd.Flags().StringVar(&flagDeviceAddProvisioner, "provisioner", "lvm", "Provisioner Type(lvm, loop)")
 	deviceCmd.AddCommand(deviceAddCmd)
 	deviceCmd.AddCommand(deviceInfoCmd)
 }
@@ -111,7 +114,7 @@ var deviceAddCmd = &cobra.Command{
 		peerid := args[0]
 		devname := args[1]
 
-		_, err := client.DeviceAdd(peerid, devname)
+		_, err := client.DeviceAdd(peerid, devname, flagDeviceAddProvisioner)
 
 		if err != nil {
 			if GlobalFlag.Verbose {

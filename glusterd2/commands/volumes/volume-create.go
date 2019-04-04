@@ -151,6 +151,10 @@ func CreateVolume(ctx context.Context, req api.VolCreateReq) (status int, err er
 		return http.StatusBadRequest, gderrors.ErrReservedGroupProfile
 	}
 
+	if req.ProvisionerType == "" {
+		req.ProvisionerType = api.ProvisionerTypeLvm
+	}
+
 	if req.Size > 0 {
 		applyDefaults(&req)
 

@@ -104,12 +104,13 @@ LOOP:
 
 	subvolumes := make([]api.SubvolReq, 0)
 	volreq := api.VolCreateReq{
-		Subvols:      subvolumes,
-		Size:         vol.Capacity,
-		LimitPeers:   req.LimitPeers,
-		LimitZones:   req.LimitZones,
-		ExcludePeers: req.ExcludePeers,
-		ExcludeZones: req.ExcludeZones,
+		Subvols:         subvolumes,
+		Size:            vol.Capacity,
+		LimitPeers:      req.LimitPeers,
+		LimitZones:      req.LimitZones,
+		ExcludePeers:    req.ExcludePeers,
+		ExcludeZones:    req.ExcludeZones,
+		ProvisionerType: vol.ProvisionerType,
 	}
 	availableVgs, err := bricksplanner.GetAvailableVgs(&volreq)
 	if err != nil {

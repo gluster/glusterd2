@@ -392,11 +392,11 @@ func testSnapshotOnSmartVol(t *testing.T, tc *testCluster) {
 	r.Nil(prepareLoopDevice(devicesDir+"/gluster_dev2.img", "6", "500M"))
 
 	// brickCount+1
-	_, err := client.DeviceAdd(tc.gds[0].PeerID(), "/dev/gluster_loop5")
+	_, err := client.DeviceAdd(tc.gds[0].PeerID(), "/dev/gluster_loop5", api.ProvisionerTypeLvm)
 	r.Nil(err)
 
 	// brickCount+2
-	_, err = client.DeviceAdd(tc.gds[1].PeerID(), "/dev/gluster_loop6")
+	_, err = client.DeviceAdd(tc.gds[1].PeerID(), "/dev/gluster_loop6", api.ProvisionerTypeLvm)
 	r.Nil(err)
 
 	smartvolname := formatVolName(t.Name())

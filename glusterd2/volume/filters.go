@@ -34,6 +34,30 @@ func ApplyCustomFilters(volumes []*Volinfo, filters ...Filter) []*Volinfo {
 	return volumes
 }
 
+// FilterThinArbiterVolumes filters out volumes that are thin arbiter volumes
+func FilterThinArbiterVolumes(volumes []*Volinfo) []*Volinfo {
+	var volInfos []*Volinfo
+	for _, volume := range volumes {
+		_, exists := volume.Options["cluster/replicate.thin-arbiter"]
+		if exists {
+			volInfos = append(volInfos, volume)
+		}
+	}
+	return volInfos
+}
+
+//FilterShardVolumes filters out volumes that are shard enabled
+func FilterShardVolumes(volumes []*Volinfo) []*Volinfo {
+	var volInfos []*Volinfo
+	for _, volume := range volumes {
+		_, exists := volume.Options["features/shard"]
+		if exists {
+			volInfos = append(volInfos, volume)
+		}
+	}
+	return volInfos
+}
+
 // FilterBlockHostedVolumes filters out volume which are suitable for hosting block volume
 func FilterBlockHostedVolumes(volumes []*Volinfo) []*Volinfo {
 	var volInfos []*Volinfo

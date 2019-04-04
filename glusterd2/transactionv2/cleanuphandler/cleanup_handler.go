@@ -2,12 +2,15 @@ package cleanuphandler
 
 import (
 	"context"
+	"expvar"
 	"sync"
 	"time"
 
+	"github.com/gluster/glusterd2/glusterd2/events"
 	"github.com/gluster/glusterd2/glusterd2/gdctx"
 	"github.com/gluster/glusterd2/glusterd2/store"
 	"github.com/gluster/glusterd2/glusterd2/transactionv2"
+	"github.com/gluster/glusterd2/pkg/api"
 
 	"github.com/coreos/etcd/clientv3"
 	"github.com/coreos/etcd/clientv3/concurrency"
@@ -132,6 +135,7 @@ func (c *CleanupHandler) StartElecting() {
 	log.Info("node got elected as cleanup leader")
 	c.Lock()
 	defer c.Unlock()
+	events.Broadcast(newCleanupLeaderEvent())
 	c.isLeader = true
 }
 
@@ -167,4 +171,26 @@ func StopCleanupLeader() {
 	if CleanupLeader != nil {
 		CleanupLeader.Stop()
 	}
+}
+
+func newCleanupLeaderEvent() *api.Event {
+	data := map[string]string{
+		"peer.id":   gdctx.MyUUID.String(),
+		"peer.name": gdctx.HostName,
+	}
+
+	return events.New("cleanup leader elected", data, true)
+}
+
+func init() {
+	expVar := expvar.Get("txn")
+	if expVar == nil {
+		expVar = expvar.NewMap("txn")
+	}
+	expVar.(*expvar.Map).Set("cleanup_config", expvar.Func(func() interface{} {
+		return map[string]interface{}{
+			"txn_max_age_seconds": txnMaxAge.Seconds(),
+			"cleanup_dur_seconds": cleanupTimerDur.Seconds(),
+		}
+	}))
 }

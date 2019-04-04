@@ -13,6 +13,7 @@ type BlockVolumeOptions struct {
 	ForceDelete        bool
 	UnlinkStorage      bool
 	Hosts              []string
+	BlockType          string
 }
 
 // ApplyOpts applies configured optional parameters on BlockVolumeOptions
@@ -67,5 +68,16 @@ func WithFullPrealloc(options *BlockVolumeOptions) {
 func WithHosts(hosts []string) BlockVolOption {
 	return func(options *BlockVolumeOptions) {
 		options.Hosts = hosts
+	}
+}
+
+// WithBlockType configures the block type
+func WithBlockType(blockType string) BlockVolOption {
+	return func(options *BlockVolumeOptions) {
+		if blockType == "" {
+			options.BlockType = "ext4"
+		} else {
+			options.BlockType = blockType
+		}
 	}
 }

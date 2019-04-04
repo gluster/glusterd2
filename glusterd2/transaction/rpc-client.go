@@ -11,7 +11,6 @@ import (
 	"github.com/pborman/uuid"
 	log "github.com/sirupsen/logrus"
 	"go.opencensus.io/plugin/ocgrpc"
-	"go.opencensus.io/trace"
 	"google.golang.org/grpc"
 )
 
@@ -35,10 +34,7 @@ func runStepOn(origCtx context.Context, step string, node uuid.UUID, c TxnCtx) e
 	}
 
 	conn, err = grpc.Dial(remote,
-		grpc.WithStatsHandler(&ocgrpc.ClientHandler{
-			StartOptions: trace.StartOptions{
-				Sampler: trace.AlwaysSample(),
-			}}),
+		grpc.WithStatsHandler(&ocgrpc.ClientHandler{}),
 		grpc.WithInsecure(),
 	)
 	if err == nil && conn != nil {

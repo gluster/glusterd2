@@ -3,6 +3,7 @@ package fsutils
 import (
 	"fmt"
 	"strings"
+	"syscall"
 
 	"github.com/gluster/glusterd2/pkg/utils"
 
@@ -41,4 +42,44 @@ func UpdateFsLabel(DevicePath, FsType string) error {
 		return fmt.Errorf("changing file-system label of %s is not supported as of now", FsType)
 	}
 	return nil
+}
+
+// StatFsData represents statvfs information
+type StatFsData struct {
+	Total       uint64
+	Free        uint64
+	InodesTotal uint64
+	InodesFree  uint64
+}
+
+// StatFs provides statvfs information of given path
+func StatFs(pth string) (*StatFsData, error) {
+	fs := syscall.Statfs_t{}
+	err := syscall.Statfs(pth, &fs)
+	if err != nil {
+		return nil, err
+	}
+
+	return &StatFsData{
+		Total:       fs.Blocks * uint64(fs.Bsize),
+		Free:        fs.Bfree * uint64(fs.Bsize),
+		InodesTotal: fs.Files,
+		InodesFree:  fs.Ffree,
+	}, nil
+}
+
+// Mount mounts the brick
+func Mount(dev, mountdir, mountOpts string) error {
+	args := []string{}
+	if mountOpts != "" {
+		args = append(args, "-o", mountOpts)
+	}
+	args = append(args, dev, mountdir)
+
+	return utils.ExecuteCommandRun("mount", args...)
+}
+
+// Unmount unmounts the Brick
+func Unmount(mountdir string) error {
+	return syscall.Unmount(mountdir, syscall.MNT_FORCE)
 }

@@ -7,7 +7,6 @@ import (
 	"os/exec"
 	"strconv"
 	"strings"
-	"syscall"
 
 	"github.com/gluster/glusterd2/pkg/api"
 	"github.com/gluster/glusterd2/pkg/utils"
@@ -131,22 +130,6 @@ func CreateLV(vgname, tpname, lvname string, lvsize uint64) error {
 		"--name", lvname,
 		vgname+"/"+tpname,
 	)
-}
-
-// MountLV mounts the brick LV
-func MountLV(dev, mountdir, mountOpts string) error {
-	args := []string{}
-	if mountOpts != "" {
-		args = append(args, "-o", mountOpts)
-	}
-	args = append(args, dev, mountdir)
-
-	return utils.ExecuteCommandRun("mount", args...)
-}
-
-// UnmountLV unmounts the Brick
-func UnmountLV(mountdir string) error {
-	return syscall.Unmount(mountdir, syscall.MNT_FORCE)
 }
 
 // IsDependentLvsError returns true if the error related to dependent Lvs exists

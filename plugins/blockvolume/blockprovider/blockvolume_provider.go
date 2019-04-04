@@ -20,6 +20,7 @@ var (
 type Provider interface {
 	CreateBlockVolume(name string, size uint64, hostVolume string, options ...BlockVolOption) (BlockVolume, error)
 	DeleteBlockVolume(name string, options ...BlockVolOption) error
+	GetAndDeleteBlockVolume(name string, options ...BlockVolOption) (BlockVolume, error)
 	GetBlockVolume(id string) (BlockVolume, error)
 	BlockVolumes() []BlockVolume
 	ProviderName() string
@@ -46,7 +47,7 @@ func RegisterBlockProvider(name string, f ProviderFunc) {
 		log.WithField("name", name).Error("failed to register block provider, provider already exist")
 		return
 	}
-	log.WithField("name", name).Infof("Registered block provider")
+	log.WithField("name", name).Debug("Registered block provider")
 	providerFactory[name] = f
 }
 

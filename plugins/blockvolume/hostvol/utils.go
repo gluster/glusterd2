@@ -1,4 +1,4 @@
-package utils
+package hostvol
 
 import (
 	"context"
@@ -15,7 +15,6 @@ import (
 	"github.com/gluster/glusterd2/glusterd2/volume"
 	"github.com/gluster/glusterd2/pkg/api"
 	"github.com/gluster/glusterd2/pkg/size"
-
 	log "github.com/sirupsen/logrus"
 )
 
@@ -31,7 +30,7 @@ func BlockSizeFilter(size uint64) volume.Filter {
 				continue
 			}
 
-			if availableSizeInBytes, err := strconv.ParseUint(availableSize, 10, 64); err == nil && availableSizeInBytes > size {
+			if availableSizeInBytes, err := strconv.ParseUint(availableSize, 10, 64); err == nil && availableSizeInBytes >= size {
 				volumes = append(volumes, volinfo)
 			}
 		}
@@ -40,13 +39,20 @@ func BlockSizeFilter(size uint64) volume.Filter {
 }
 
 // GetExistingBlockHostingVolume returns a existing volume which is suitable for hosting a gluster-block
-func GetExistingBlockHostingVolume(size uint64) (*volume.Volinfo, error) {
+func GetExistingBlockHostingVolume(size uint64, h *HostingVolumeOptions) (*volume.Volinfo, error) {
 	var (
 		filters     = []volume.Filter{volume.FilterBlockHostedVolumes, BlockSizeFilter(size)}
 		ctx, cancel = context.WithTimeout(context.Background(), time.Second*5)
 	)
 
 	defer cancel()
+
+	if h.ShardSize != 0 {
+		filters = append(filters, volume.FilterShardVolumes)
+	}
+	if h.ThinArbPath != "" {
+		filters = append(filters, volume.FilterThinArbiterVolumes)
+	}
 
 	volumes, err := volume.GetVolumes(ctx)
 	if err != nil || len(volumes) == 0 {
@@ -76,7 +82,7 @@ func CreateAndStartHostingVolume(req *api.VolCreateReq) (*volume.Volinfo, error)
 	}
 
 	vInfo.Metadata[volume.BlockHostingVolumeAutoCreated] = "yes"
-	log.WithField("name", vInfo.Name).Debug("host volume created and started successfully")
+	log.WithField("name", vInfo.Name).Info("host volume created and started successfully")
 	return vInfo, nil
 }
 
@@ -86,7 +92,6 @@ func CreateAndStartHostingVolume(req *api.VolCreateReq) (*volume.Volinfo, error)
 // f := func(a, b uint64) uint64{return a +b }
 func ResizeBlockHostingVolume(volName string, blockSize interface{}, resizeFunc func(blockHostingAvailableSize, blockSize uint64) uint64) error {
 	var (
-		blkSize      size.Size
 		clusterLocks = transaction.Locks{}
 	)
 
@@ -97,6 +102,34 @@ func ResizeBlockHostingVolume(volName string, blockSize interface{}, resizeFunc 
 	defer clusterLocks.UnLock(context.Background())
 
 	volInfo, err := volume.GetVolume(volName)
+	if err != nil {
+		return err
+	}
+
+	err = UpdateBlockHostingVolumeSize(volInfo, blockSize, resizeFunc)
+	if err != nil {
+		return err
+	}
+
+	return volume.AddOrUpdateVolume(volInfo)
+}
+
+// UpdateBlockHostingVolumeSize will update the _block-hosting-available-size metadata in the volinfo passed
+// resizeFunc is use to update the new new value to the _block-hosting-available-size metadata
+// e.g for adding the value to the _block-hosting-available-size metadata  we can use `resizeFunc` as
+// f := func(a, b uint64) uint64{return a +b }
+func UpdateBlockHostingVolumeSize(volInfo *volume.Volinfo, blockSize interface{}, resizeFunc func(blockHostingAvailableSize, blockSize uint64) uint64) error {
+	var (
+		blkSize size.Size
+	)
+
+	if _, found := volInfo.Metadata[volume.BlockHostingAvailableSize]; !found {
+		return errors.New("block-hosting-available-size metadata not found for volume")
+	}
+
+	err := errors.New("Test")
+
+	availableSizeInBytes, err := strconv.ParseUint(volInfo.Metadata[volume.BlockHostingAvailableSize], 10, 64)
 	if err != nil {
 		return err
 	}
@@ -115,14 +148,7 @@ func ResizeBlockHostingVolume(volName string, blockSize interface{}, resizeFunc 
 		return fmt.Errorf("blocksize is not a supported type(%T)", blockSize)
 	}
 
-	if _, found := volInfo.Metadata[volume.BlockHostingAvailableSize]; !found {
-		return errors.New("block-hosting-available-size metadata not found for volume")
-	}
-
-	availableSizeInBytes, err := strconv.ParseUint(volInfo.Metadata[volume.BlockHostingAvailableSize], 10, 64)
-	if err != nil {
-		return err
-	}
+	// TODO: If there are no blocks in the block hosting volume, delete the bhv?
 
 	log.WithFields(log.Fields{
 		"blockHostingAvailableSize": size.Size(availableSizeInBytes),
@@ -131,7 +157,7 @@ func ResizeBlockHostingVolume(volName string, blockSize interface{}, resizeFunc 
 
 	volInfo.Metadata[volume.BlockHostingAvailableSize] = fmt.Sprintf("%d", resizeFunc(availableSizeInBytes, uint64(blkSize)))
 
-	return volume.AddOrUpdateVolume(volInfo)
+	return nil
 }
 
 // SelectRandomVolume will select a random volume from a given slice of volumes

@@ -13,18 +13,20 @@ import (
 
 // Executor contains method set to execute a txn on local node
 type Executor interface {
-	Execute(txn *Txn) error
-	IsTxnPending(txnID uuid.UUID) bool
+	Execute(ctx context.Context, txn *Txn) error
+	Resume(ctx context.Context, txn *Txn) error
 }
 
 // NewExecutor returns an Executor instance
 func NewExecutor() Executor {
 	e := &executorImpl{
-		txnManager:  NewTxnManager(store.Store.Watcher),
-		stepManager: newStepManager(),
-		selfNodeID:  gdctx.MyUUID,
+		txnManager: NewTxnManager(store.Store.Watcher),
+		selfNodeID: gdctx.MyUUID,
 	}
 
+	stepManager := newStepManager()
+	stepManager = newTracingManager(stepManager)
+	e.stepManager = stepManager
 	return e
 }
 
@@ -35,24 +37,29 @@ type executorImpl struct {
 	selfNodeID  uuid.UUID
 }
 
-// IsTxnPending returns true if the given txn is in pending state
-func (e *executorImpl) IsTxnPending(txnID uuid.UUID) bool {
-	status, err := e.txnManager.GetTxnStatus(txnID, e.selfNodeID)
-	if err != nil || status.State != txnPending {
-		return false
-	}
-	return true
-}
-
 // Execute will run all steps of a given txn on local Node. If a step is marked as synchornized,
 // then It will wait for all previous steps to complete on all involved Nodes.
 // If a node is an initiator node then It will acquire all cluster locks before running the txn steps.
-func (e *executorImpl) Execute(txn *Txn) error {
+func (e *executorImpl) Execute(ctx context.Context, txn *Txn) error {
+	return e.startExec(ctx, txn, 0)
+}
+
+// Resume will resume a transaction. It will execute all remaining steps of a txn which are not executed
+func (e *executorImpl) Resume(ctx context.Context, txn *Txn) error {
+	stepIndex, err := e.txnManager.GetLastExecutedStep(txn.ID, e.selfNodeID)
+	if err != nil {
+		return err
+	}
+
+	return e.startExec(ctx, txn, stepIndex+1)
+}
+
+func (e *executorImpl) startExec(parentCtx context.Context, txn *Txn, startStepIndex int) error {
 	var (
 		errChan          = make(chan error)
 		done             = make(chan struct{})
 		updateStatusOnce = &sync.Once{}
-		ctx, cancel      = context.WithCancel(context.Background())
+		ctx, cancel      = context.WithCancel(parentCtx)
 	)
 	defer cancel()
 
@@ -64,7 +71,7 @@ func (e *executorImpl) Execute(txn *Txn) error {
 
 	failureChan := e.watchTxnForFailure(ctx, txn)
 
-	for i := range txn.Steps {
+	for i := startStepIndex; i < len(txn.Steps); i++ {
 		go e.runTxnStep(ctx, i, txn, errChan, done)
 
 		select {

@@ -7,11 +7,12 @@ import (
 	"github.com/gluster/glusterd2/glusterd2/servers/rest/route"
 	"github.com/gluster/glusterd2/pkg/utils"
 	"github.com/gluster/glusterd2/plugins/blockvolume/api"
+	"github.com/gluster/glusterd2/plugins/blockvolume/hostvol"
 )
 
 // BlockVolume represents BlockVolume plugin
 type BlockVolume struct {
-	hostVolManager HostingVolumeManager
+	hostVolManager hostvol.HostingVolumeManager
 	initOnce       sync.Once
 }
 
@@ -59,15 +60,14 @@ func (b *BlockVolume) RestRoutes() route.Routes {
 }
 
 // RegisterStepFuncs registers all step functions
-// Here it is a no-op method
 func (*BlockVolume) RegisterStepFuncs() {
-
+	hostvol.RegisterBHVstepFunctions()
 }
 
 // Init will initialize the underlying HostVolume manager only once.
 // calling it multiple times will do nothing
 func (b *BlockVolume) Init() {
 	b.initOnce.Do(func() {
-		b.hostVolManager = newGlusterVolManager()
+		b.hostVolManager = hostvol.NewGlusterVolManager()
 	})
 }

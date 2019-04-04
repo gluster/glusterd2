@@ -9,6 +9,7 @@ import (
 
 	"github.com/gluster/glusterd2/glusterd2/brickmux"
 	"github.com/gluster/glusterd2/glusterd2/commands/volumes"
+	"github.com/gluster/glusterd2/glusterd2/conf"
 	"github.com/gluster/glusterd2/glusterd2/daemon"
 	"github.com/gluster/glusterd2/glusterd2/events"
 	"github.com/gluster/glusterd2/glusterd2/gdctx"
@@ -36,39 +37,18 @@ import (
 )
 
 func main() {
+	var (
+		logLevel    = config.GetString("loglevel")
+		logdir      = config.GetString("logdir")
+		logFileName = config.GetString("logfile")
+	)
 	if err := gdctx.SetHostnameAndIP(); err != nil {
 		log.WithError(err).Fatal("Failed to get and set hostname or IP")
 	}
 
-	// Initialize and parse CLI flags
-	initFlags()
-
 	if showvers, _ := flag.CommandLine.GetBool("version"); showvers {
 		version.DumpVersionInfo()
 		return
-	}
-
-	logLevel, _ := flag.CommandLine.GetString("loglevel")
-	logdir, _ := flag.CommandLine.GetString("logdir")
-	logFileName, _ := flag.CommandLine.GetString("logfile")
-
-	if err := logging.Init(logdir, logFileName, logLevel, true); err != nil {
-		log.WithError(err).Fatal("Failed to initialize logging")
-	}
-
-	// Initialize GD2 config
-	if err := initConfig(); err != nil {
-		log.WithError(err).Fatal("Failed to initialize config")
-	}
-
-	logLevel2 := config.GetString("loglevel")
-	logdir2 := config.GetString("logdir")
-	logFileName2 := config.GetString("logfile")
-
-	if logLevel != logLevel2 || logdir != logdir2 || logFileName != logFileName2 {
-		if err := logging.Init(logdir2, logFileName2, logLevel2, true); err != nil {
-			log.WithError(err).Fatal("Failed to re-initialize logging")
-		}
 	}
 
 	log.WithFields(log.Fields{
@@ -76,7 +56,7 @@ func main() {
 		"version": version.GlusterdVersion,
 	}).Debug("Starting GlusterD")
 
-	dumpConfigToLog()
+	conf.DumpConfigToLog()
 
 	workdir := config.GetString("localstatedir")
 	if err := os.Chdir(workdir); err != nil {
@@ -130,7 +110,7 @@ func main() {
 
 	// Create the Opencensus Jaeger exporter
 	if exporter := tracing.InitJaegerExporter(); exporter != nil {
-		defer exporter.Flush()
+		defer tracing.Flush()
 	}
 
 	// Load default volfile templates
@@ -183,9 +163,9 @@ func main() {
 		case unix.SIGHUP:
 			// Logrotate case, when Log rotated, Reopen the log file and
 			// re-initiate the logger instance.
-			if strings.ToLower(logFileName2) != "stderr" && strings.ToLower(logFileName2) != "stdout" && logFileName2 != "-" {
+			if strings.ToLower(logFileName) != "stderr" && strings.ToLower(logFileName) != "stdout" && logFileName != "-" {
 				log.Info("Received SIGHUP, Reloading log file")
-				if err := logging.Init(logdir2, logFileName2, logLevel2, true); err != nil {
+				if err := logging.Init(logdir, logFileName, logLevel, true); err != nil {
 					log.WithError(err).Fatal("Could not re-initialize logging")
 				}
 			}
