@@ -1,10 +1,12 @@
 package brickmux
 
 import (
+	"fmt"
+	config "github.com/spf13/viper"
+	"io/ioutil"
 	"os"
 	"path"
-
-	config "github.com/spf13/viper"
+	"strings"
 )
 
 // getBrickVolfilePath returns path correspponding to the volfileID. Since, brick volfiles are now stored on
@@ -19,4 +21,25 @@ func getBrickVolfilePath(volfileID string) (string, error) {
 	}
 
 	return volfilePath, nil
+}
+
+// glusterdGetSockFromBrickPid returns the socket file from the /proc/
+// filesystem for the concerned process running with the same pid
+func glusterdGetSockFromBrickPid(pid int) (string, error) {
+	content, err := ioutil.ReadFile(fmt.Sprintf("/proc/%d/cmdline", pid))
+	if err != nil {
+		return "", err
+	}
+
+	parts := strings.Split(string(content), "\x00")
+	prevPart := ""
+	socketFile := ""
+	for _, p := range parts {
+		if prevPart == "-S" {
+			socketFile = p
+			break
+		}
+		prevPart = p
+	}
+	return socketFile, nil
 }

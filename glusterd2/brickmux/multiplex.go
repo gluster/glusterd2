@@ -3,7 +3,6 @@ package brickmux
 import (
 	"fmt"
 	"net/rpc"
-	"os"
 
 	"github.com/gluster/glusterd2/glusterd2/brick"
 	"github.com/gluster/glusterd2/glusterd2/daemon"
@@ -83,13 +82,6 @@ func Multiplex(b brick.Brickinfo, v *volume.Volinfo, volumes []*volume.Volinfo, 
 
 	brickProc, err := brick.NewGlusterfsd(b)
 	if err != nil {
-		undoMultiplex(client, &b)
-		return err
-	}
-
-	// create Unix Domain Socket hardlink
-	os.Remove(brickProc.SocketFile())
-	if err := os.Link(targetBrickProc.SocketFile(), brickProc.SocketFile()); err != nil {
 		undoMultiplex(client, &b)
 		return err
 	}
