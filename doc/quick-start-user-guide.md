@@ -9,18 +9,9 @@ This guide takes the following as an example of IPs for the two nodes:
  * **Node 1**: `192.168.56.101`
  * **Node 2**: `192.168.56.102`
 
-Please follow these steps for setup on **each of the two nodes**.
+Please follow these steps for setting up glusterd2 on **each of the two nodes**.
 
-### Installing dependent packages
-
-Install rpcbind:
-
-```sh
-# dnf install rpcbind
-# mkdir -p /run/rpcbind
-# systemctl start rpcbind
-# systemctl enable rpcbind
-```
+### Installing Glusterfs
 
 > **IMPORTANT:** Please install glusterfs from source using code from the [master branch](https://github.com/gluster/glusterfs/tree/master) OR if on CentOS 7, you can install glusterfs using nightly RPMs.
 
@@ -44,53 +35,65 @@ We recommend that you use the RPMs made available nightly as they contain the la
 # yum install glusterd2
 ```
 
-Alternatlively, if you are using a non-RPM based distro, you can download
-binaries of the latest release. Like all Go programs, glusterd2 is a single
-binary (statically linked) without external dependencies. You can download the
-[latest release](https://github.com/gluster/glusterd2/releases) from Github.
+For other distros, you can download binaries of the [latest release](https://github.com/gluster/glusterd2/releases) from Github. 
+Like all Go programs, glusterd2 is a single binary (statically linked) without 
+external dependencies.
 
-### Running glusterd2
+**Config File:** Default path of glusterd2 config file is `/etc/glusterd2/glusterd2.toml`.
 
-**Create a working directory:** This is where glusterd2 will store all data which includes logs, pid files, etcd information etc. For this example, we will be using a temporary path. If a working directory is not specified, it defaults to current directory.
+### Using external etcd.
 
-```sh
-$ mkdir -p /var/lib/gd2
-```
-
-**Create a config file:** This is optional but if your VM/machine has multiple network interfaces, it is recommended to create a config file. The config file location can be passed to Glusterd2 using the `--config` option.
-Glusterd2 will also pick up conf file named `glusterd2.toml` if available in `/etc/glusterd2/` or the current directory.
+Setup etcd on a node. Edit glusterd2 config file by adding `noembed` and `etcdenpoints` options. Replace 
+endpoints argument to point to etcd client URL:
 
 ```toml
-$ cat conf.toml
-localstatedir = "/var/lib/gd2"
-peeraddress = "192.168.56.101:24008"
-clientaddress = "192.168.56.101:24007"
-etcdcurls = "http://192.168.56.101:2379"
-etcdpurls = "http://192.168.56.101:2380"
+etcdendpoints = "http://[ip_address]:[port]"
+noembed = true
 ```
 
-Replace the IP address accordingly on each node.
+### Running glusterd2 for RPM installation
 
-**Start glusterd2 process:** Glusterd2 is not a daemon and currently can run only in the foreground.
+**Enable glusterd2 service:** Ensure that glusterd2 service starts automatically when system starts.
+To enable glusterd2 service run:
+
+```sh
+# systemctl enable glusterd2
+```
+
+**Start glusterd2 service:** To start glusterd2 process run:
+
+```sh
+# systemctl start glusterd2
+```
+
+Check the status of glusterd2 service:
+
+```sh
+# systemctl status glusterd2
+```
+Please ensure that glusterd2 service status is "active (runnning)" before proceeding.
+
+
+### Running glusterd2 for binaries installation
+
+**Start glusterd2 process:** Create a config file and provide the path of config file while running glusterd2 as shown below.
 
 ```sh
 # ./glusterd2 --config conf.toml
 ```
 
-You will see an output similar to the following:
-```log
-INFO[2017-08-28T16:03:58+05:30] Starting GlusterD                             pid=1650
-INFO[2017-08-28T16:03:58+05:30] loaded configuration from file                file=conf.toml
-INFO[2017-08-28T16:03:58+05:30] Generated new UUID                            uuid=19db62df-799b-47f1-80e4-0f5400896e05
-INFO[2017-08-28T16:03:58+05:30] started muxsrv listener                      
-INFO[2017-08-28T16:03:58+05:30] Started GlusterD ReST server                  ip:port=192.168.56.101:24007
-INFO[2017-08-28T16:03:58+05:30] Registered RPC Listener                       ip:port=192.168.56.101:24008
-INFO[2017-08-28T16:03:58+05:30] started GlusterD SunRPC server                ip:port=192.168.56.101:24007
-```
+### Authentication
+
+In glusterd2, REST API authentication is enabled by default. To disable rest authentication add `restauth=false` in Glusterd2 config file(`/etc/glusterd2/glusterd2.toml`) or the custom config file provided by you (conf.toml as per above example)
+
+Please restart glusterd2 service after changing config file.
+
+### Using Glusterd2
 
 Now you have two nodes running glusterd2.
 
 > NOTE: Ensure that firewalld is configured (or stopped) to let traffic on ports ` before adding a peer.
+
 
 ## Add peer
 
