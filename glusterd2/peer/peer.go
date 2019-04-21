@@ -13,6 +13,7 @@ type Peer struct {
 	Name            string
 	PeerAddresses   []string
 	ClientAddresses []string
+	Disabled        bool
 	Metadata        map[string]string
 }
 
