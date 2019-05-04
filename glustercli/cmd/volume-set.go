@@ -66,6 +66,14 @@ func volumeOptionJSONHandler(cmd *cobra.Command, volname string, options []strin
 	vopt := make(map[string]string)
 	for op, val := range options {
 		if op%2 == 0 {
+			// If exists in legacy list, send new name(s) to glusterd
+			newvals, legacyOpt := legacyVolumeOptions[val]
+			if legacyOpt {
+				for _, v := range newvals {
+					vopt[v] = options[op+1]
+				}
+				continue
+			}
 			vopt[val] = options[op+1]
 		}
 	}
