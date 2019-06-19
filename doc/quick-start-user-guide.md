@@ -207,3 +207,54 @@ Verify that `glusterfsd` process is running on both nodes.
 * Issues with 2 node clusters
   * Restarting glusterd2 does not restore the cluster
   * Peer remove doesn't work
+
+### Solutions to common issues
+
+  >  Note: These are hacks or temporary solutions to the problems. Only use these solutions only if the issues are faced during re-setup.
+
+* If glusterd service fails with error: "failed to start embedded store"
+
+  Sample output:
+  ```log
+  ERRO[2018-06-04 06:05:41.020313] failed to start embedded store                error="dial tcp {IP}: connect: connection refused" source="[embed.go:36:store.newEmbedStore]"
+  ```
+  To solve this you will be required to clean up glusterd2 [working directory](https://github.com/gluster/glusterd2/blob/master/doc/quick-start-user-guide.md#running-glusterd2).
+  The path to default directory used by glusterd2 is "/var/lib/glusterd2/", if using custom config file then please provide working directory path instead of "/var/lib/glusterd2/"
+
+  ```sh
+  # rm /var/lib/glusterd2/*
+  ```
+
+* If glusterd service fails with error: "Failed to create pid file"
+
+  Sample Output:
+  ```log
+  FATA[2018-06-04 06:07:22.605017] Failed to create pid file                     error="Process is already running" source="[main.go:87:main.main]"
+  ```
+  This issue occurs because the pid file already exists, to solve this issue you will be required to delete the already existing glusterd2 pid file. The path to pid file will be provided in the log messages just before this error log meesage.
+
+  Sample Output:
+  ```log
+  DEBU[2018-06-04 06:07:22.604369] running with configuration                    cert-file= clientaddress=":24007" config=glusterd2.toml.example defaultpeerport=24008 etcdcurls="http://{IP}:2379" etcdendpoints="  []" etcdpurls="http://{IP}:2380" hooksdir=/var/lib/glusterd/hooks key-file= localstatedir=/var/lib/glusterd logdir=/usr/local/var/log/glusterd2 logfile=STDOUT loglevel=debug noembed=false peeraddress="{IP}:240  08" pidfile=/usr/local/var/run/glusterd2/glusterd2.pid rundir=/usr/local/var/run/glusterd2 source="[config.go:125:main.dumpConfigToLog]" statedump=true version=false workdir=/root/src/github.com/gluster/gluste  rd2
+  FATA[2018-06-04 06:07:22.605017] Failed to create pid file                     error="Process is already running" source="[main.go:87:main.main]"
+  ```
+
+  To delete the pid file for the given output:
+
+  ```sh
+  # rm /usr/local/var/run/glusterd2/glusterd2.pid
+  ```
+
+* If glusterd service fails with error: "failed to listen"
+
+  Sample Output:
+  ```log
+  FATA[2018-06-04 06:07:38.348333] failed to listen                              error="listen unix /usr/local/var/run/glusterd2/glusterd2.socket: bind: address already in use" socket=glusterd2.socket source="[server.go:76:sunrpc.NewMuxed]"
+  ```
+  This issue occurs because the socket address is already in use by old glusterd service. To resolve this issue you will have to delete the socket file to free the socket for the new glusterd service.
+
+   ```sh
+  # rm /usr/local/var/run/glusterd2/glusterd2.socket
+  ```
+  The path to socket file will be mentioned in the error message itself.
+  Note:  Check if any other instance of glusterd2 is running before removing the socket file.
