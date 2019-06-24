@@ -37,6 +37,7 @@ func (actor *shdActor) Do(v *volume.Volinfo, key string, value string, volOp xla
 			return err
 		}
 
+		err := daemon.Stop(glustershDaemon, true, logger)
 		err = daemon.Start(glustershDaemon, true, logger)
 		if err != nil && err != gderrors.ErrProcessAlreadyRunning {
 			return err
@@ -53,10 +54,23 @@ func (actor *shdActor) Do(v *volume.Volinfo, key string, value string, volOp xla
 			if err != nil && err != gderrors.ErrPidFileNotFound {
 				return err
 			}
+		} else {
+			err = volgen.ClusterVolfileToFile(v, glustershDaemon.VolfileID, "glustershd")
+			if err != nil {
+				return err
+			}
+			err := daemon.Stop(glustershDaemon, true, logger)
+			err = daemon.Start(glustershDaemon, true, logger)
+			if err != nil && err != gderrors.ErrProcessAlreadyRunning {
+				return err
+			}
 		}
 
 	case xlator.VolumeSet:
-		fallthrough
+		fallthrough // TODO : In case there's any option which changes
+		// the topology of the shd volfile, shd needs to be
+		// restarted, refer glusterd_shdsvc_reconfigure()
+		// from GD1 code
 	case xlator.VolumeReset:
 		if key != selfHealKey && key != granularEntryHealKey {
 			return nil
