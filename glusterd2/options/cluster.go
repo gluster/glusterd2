@@ -30,7 +30,7 @@ var ClusterOptMap = map[string]*ClusterOption{
 	"cluster.shared-storage":         {"cluster.shared-storage", "off", OptionTypeBool, nil},
 	"cluster.op-version":             {"cluster.op-version", strconv.Itoa(gdctx.OpVersion), OptionTypeInt, nil},
 	"cluster.max-op-version":         {"cluster.max-op-version", strconv.Itoa(gdctx.OpVersion), OptionTypeInt, nil},
-	"cluster.brick-multiplex":        {"cluster.brick-multiplex", "off", OptionTypeBool, nil},
+	"cluster.brick-multiplex":        {"cluster.brick-multiplex", "on", OptionTypeBool, nil},
 	"cluster.max-bricks-per-process": {"cluster.max-bricks-per-process", "250", OptionTypeInt, nil},
 	"cluster.localtime-logging":      {"cluster.localtime-logging", "off", OptionTypeBool, nil},
 	// setting cluster options for block hosting volume

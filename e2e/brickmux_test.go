@@ -28,12 +28,11 @@ func TestBrickMux(t *testing.T) {
 	r.Nil(err)
 	r.NotNil(client)
 
-	// Turn on brick mux cluster option
 	optReq := api.ClusterOptionReq{
-		Options: map[string]string{"cluster.brick-multiplex": "on"},
+		Options: map[string]string{"cluster.brick-multiplex": "invalidValue"},
 	}
 	err = client.ClusterOptionSet(optReq)
-	r.Nil(err)
+	r.NotNil(err)
 
 	// Create a 1 x 3 volume
 	var brickPaths []string
