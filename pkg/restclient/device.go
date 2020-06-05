@@ -44,3 +44,11 @@ func (c *Client) DeviceEdit(peerid, device, state string) error {
 	err := c.post(url, req, http.StatusOK, nil)
 	return err
 }
+
+// DevicesInPeer lists devices in peer
+func (c *Client) DevicesInPeer(peerid string) (deviceapi.ListDeviceResp, error) {
+	var deviceList deviceapi.ListDeviceResp
+	url := fmt.Sprintf("/v1/devices/%s", peerid)
+	err := c.get(url, nil, http.StatusOK, &deviceList)
+	return deviceList, err
+}

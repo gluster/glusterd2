@@ -11,6 +11,7 @@ import (
 	"github.com/gluster/glusterd2/glusterd2/store"
 	"github.com/gluster/glusterd2/glusterd2/volume"
 	"github.com/gluster/glusterd2/pkg/utils"
+	"github.com/gluster/glusterd2/plugins/device/deviceutils"
 
 	"github.com/gorilla/mux"
 	"github.com/pborman/uuid"
@@ -70,6 +71,16 @@ func deletePeerHandler(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
+	if exists, err := deviceExist(id); err != nil {
+		logger.WithError(err).Error("failed to check if device exist on peer")
+		restutils.SendHTTPError(ctx, w, http.StatusInternalServerError, "could not validate delete peer request")
+		return
+	} else if exists {
+		logger.Debug("request denied, peer has devices")
+		restutils.SendHTTPError(ctx, w, http.StatusForbidden, "cannot delete peer, peer has device/devices")
+		return
+	}
+
 	remotePeerAddress, err := utils.FormRemotePeerAddress(p.PeerAddresses[0])
 	if err != nil {
 		logger.WithError(err).WithField("address", p.PeerAddresses[0]).Error("failed to parse peer address")
@@ -117,6 +128,17 @@ func deletePeerHandler(w http.ResponseWriter, r *http.Request) {
 	store.Store.UpdateEndpoints()
 
 	events.Broadcast(newPeerEvent(eventPeerRemoved, p))
+}
+
+func deviceExist(id string) (bool, error) {
+	deviceInfo, err := deviceutils.GetDevices(id)
+	if err != nil {
+		return false, err
+	}
+	if len(deviceInfo) > 0 {
+		return true, nil
+	}
+	return false, nil
 }
 
 // bricksExist checks if the given peer has any bricks on it
